@@ -14,11 +14,19 @@ it('stores time in UTC regardless of the operator timezone', function (): void {
     expect(config('app.timezone'))->toBe('UTC');
 });
 
-it('runs on sqlite locally', function (): void {
-    // MySQL 8 exists only in CI and production (ADR-0015). If this fails on a
-    // developer machine, someone has pointed .env at MySQL and the SQLite/MySQL
-    // parity contract is no longer being exercised.
-    expect(config('database.default'))->toBe('sqlite');
+it('declares sqlite as the local database stack', function (): void {
+    // ENV-17: a clean checkout must land on SQLite. This asserts the *contract*
+    // in .env.example rather than the runtime connection, because the CI MySQL
+    // job legitimately runs the same suite against MySQL 8 (ADR-0015) — asserting
+    // config('database.default') here would fail that job for the wrong reason.
+    $example = file_get_contents(base_path('.env.example'));
+
+    expect($example)->toContain('DB_CONNECTION=sqlite')
+        ->and($example)->toContain('CACHE_STORE=database')
+        ->and($example)->toContain('QUEUE_CONNECTION=database')
+        ->and($example)->toContain('SESSION_DRIVER=database')
+        ->and($example)->toContain('MAIL_MAILER=log')
+        ->and($example)->toContain('APP_TIMEZONE=UTC');
 });
 
 it('has a directory for every bounded context', function (): void {

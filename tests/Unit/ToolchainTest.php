@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,12 +21,18 @@ it('runs tests in the fast group', function (): void {
     expect(true)->toBeTrue();
 })->group('fast');
 
-it('is excluded from composer test because it needs mysql', function (): void {
-    // `composer test` excludes the mysql group, so this must not run locally.
-    // `composer test:mysql` runs it. It is a placeholder until the overselling
-    // concurrency test lands in M2 (ADR-0006, spec AVL-43, ENV-11).
-    expect(config('database.default'))->not->toBeEmpty();
-})->group('mysql');
+it('runs the mysql group against a real MySQL 8 connection', function (): void {
+    // ENV-11 / TST-8: the mysql group must never report green without actually
+    // being on MySQL. If phpunit.xml's sqlite defaults were to win over the CI
+    // job's environment, this fails loudly instead of silently testing SQLite
+    // and calling it a MySQL run. The overselling concurrency test (AVL-44,
+    // ADR-0006) joins this group in M2 and depends on that guarantee.
+    expect(DB::connection()->getDriverName())->toBe('mysql')
+        ->and(DB::connection()->getPdo())->not->toBeNull();
+})->group('mysql')->skip(
+    fn (): bool => DB::connection()->getDriverName() !== 'mysql',
+    'Needs MySQL 8. Runs in CI only — local development is SQLite (ADR-0015).',
+);
 
 it('freezes time with Carbon::setTestNow rather than reading the clock', function (): void {
     // TST-9: no test may depend on the real clock. This proves the mechanism
