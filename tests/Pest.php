@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 /*
@@ -17,9 +18,31 @@ use Tests\TestCase;
 
 pest()->extend(TestCase::class)
     ->use(RefreshDatabase::class)
+    ->beforeEach(fn () => Cache::flush())
     ->in('Feature');
 
-pest()->extend(TestCase::class)->in('Unit');
+pest()->extend(TestCase::class)
+    ->beforeEach(fn () => Cache::flush())
+    ->in('Unit');
+
+/*
+|--------------------------------------------------------------------------
+| Why the cache is flushed between tests
+|--------------------------------------------------------------------------
+|
+| `RefreshDatabase` rolls back the database, so auto-increment ids restart at 1
+| in every test. The cache is not rolled back. With the array driver that is
+| harmless, because the store dies with the process — but in CI the cache is
+| **real Redis**, shared across the whole run, and an entry keyed on a model id
+| written by one test is read by the next test's *different* model that happens
+| to have the same id.
+|
+| That is not hypothetical: it failed the MySQL + Redis job on the API-key
+| throttle tests while SQLite stayed green. Anything that caches per-id needs
+| this, and the failure mode is order-dependent flakiness, which is the most
+| expensive kind to diagnose later.
+|
+*/
 
 /*
 |--------------------------------------------------------------------------

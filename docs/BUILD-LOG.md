@@ -75,6 +75,14 @@ So the local suite was green for a reason that does not hold in production. The 
 
 This is the second parity bug in two database-touching issues, and the first one CI caught rather than review. **A cache-driver difference is subtler than a SQL-dialect one**: nothing about `Cache::add(…, 60)` looks environment-specific.
 
+### …and immediately a second one underneath it
+
+The next run failed differently, on the neighbouring test. Root cause: **`RefreshDatabase` rolls back the database, so auto-increment ids restart at 1 in every test — but the cache is not rolled back.** With the array driver that is harmless, because the store dies with the process. In CI the cache is real Redis, shared across the whole run, so an entry keyed `apikey:1:touched` written by one test is read by the *next* test's different key that also happens to have id 1.
+
+Fixed globally in `tests/Pest.php`: the cache is flushed before every test. Anything that caches per-id would have hit this, and the symptom — order-dependent flakiness that only appears with a real cache — is among the most expensive to diagnose once a suite is large.
+
+Both of these were invisible locally and would have stayed invisible until production. This is the concrete return on ADR-0015's parity contract, three issues in.
+
 ### CI-only
 
 `api_keys` migrating on MySQL 8 — in particular `char(64)` for the hash and the `api_keys_tenant_type_idx` composite, neither of which SQLite validates the way MySQL does.
