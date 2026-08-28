@@ -13,7 +13,7 @@ Each entry records the **verification actually run** and its **real output** —
 | | |
 |---|---|
 | Milestone | **M0 — Foundation** |
-| Issues closed | #1, #2, #3, #5 of 12 |
+| Issues closed | #1, #2, #3, #5, #6 of 12 |
 | Local stack | Laravel 12.68 · PHP 8.4.24 · SQLite · database/file drivers |
 | Quality gate | Pint · PHPStan level 6 + Larastan · Pest — all green |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
@@ -25,6 +25,45 @@ Each entry records the **verification actually run** and its **real output** —
 | VAT **rates** (mechanism settled in ADR-0002; the numbers are not) | accountant | M6 |
 | Invoice-numbering **gap policy** (ADR-0022) | accountant | M6 |
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
+
+---
+
+## #6 — API keys: `api_keys`, generation and hashing, authentication middleware
+
+**Files:** `app/Models/ApiKey.php`, `app/Enums/{ApiKeyType,ApiKeyEnvironment,ApiScope}.php`, `app/Domain/Tenancy/Actions/{GenerateApiKey,RevokeApiKey}.php`, `app/Domain/Tenancy/Data/GeneratedApiKeyData.php`, `app/Http/Middleware/{AuthenticateApiKey,RequireApiKeyCapability}.php`, `config/kaiki.php`, one migration, factory, `lang/{el,en}/api.php`, three test files
+
+Key shape `{pk|sk}_{live|test}_{32 random}`. Type and environment are in the string, so a key is readable on sight — which is also the only reason SEC-9's CI grep for a leaked `sk_` can work.
+
+### The three things that must not be got wrong
+
+**The raw key exists exactly once.** Only `prefix`, `secret_hash` (SHA-256) and `last_four` are stored, so a database dump is not replayable against the live API. Verified by a test that walks *every column* of the stored row asserting the plaintext appears in none of them — not by inspecting the two columns we expect to be safe.
+
+**Type is a ceiling; scopes only narrow it** (SEC-5). Enforced twice: at creation, so a key that could never be used cannot be stored, and again at read time, so a row widened by a bad migration or a hand edit still cannot be used. There is a test that writes `quotes.write` directly into a publishable key's row with raw SQL and asserts it is still refused.
+
+**A secret key arriving with an `Origin` header is refused.** Browsers always send one cross-origin, so that is exactly what a secret key leaking into front-end code looks like on the wire. Loud failure beats quiet success — the quiet version means an operator ships their secret key in a page and never finds out.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `composer lint:test` | passed |
+| `composer stan` | `[OK] No errors` |
+| `composer test` | **58 passed** (149 assertions), 24 of them new |
+| `php artisan migrate:fresh --seed` | 5 migrations green on SQLite |
+
+Authentication is covered end to end through the real HTTP stack — valid, missing, malformed, unknown prefix, **right prefix with the wrong secret**, revoked, expired, publishable-on-a-secret-route, secret-with-Origin, origin allow-list hit and miss, empty allow-list, and both locales in the error body. Middleware that works in isolation but not on a route is a familiar way to ship a hole, so none of it is tested by calling the class directly.
+
+A query-count test asserts authentication costs **exactly one** indexed `api_keys` read. It runs on every public API request, so an extra read multiplies across the whole API against NFR-1's 150 ms p95.
+
+### Three test problems fixed at the source
+
+1. **A DB-touching test was written under `tests/Unit`**, where `RefreshDatabase` does not apply — it failed with `no such table: tenants`. Moved to `tests/Feature`: it was never a unit test, and the issue's file list was wrong about that.
+2. **The "no direct `Redis::` call" guard was grepping comments.** The docblock in `ApiKey` explaining *why* there is no Redis call contains the string `Redis::`, so the guard failed on its own prose. It now strips comments with `token_get_all` and greps code. A guard that can be defeated — or triggered — by a comment is not a guard.
+3. **PHPStan cannot type `$this` inside a Pest closure.** Both API test files use Pest's function API and local variables instead. The alternative, excluding `tests/` from analysis, would take the static-analysis gate off the code most likely to lie about itself.
+
+### CI-only
+
+`api_keys` migrating on MySQL 8 — in particular `char(64)` for the hash and the `api_keys_tenant_type_idx` composite, neither of which SQLite validates the way MySQL will.
 
 ---
 

@@ -2,6 +2,24 @@
 
 ## M0 — Foundation
 
+### #6 - API keys: table, generation and hashing, authentication middleware
+
+`api_keys` from data-model section 2.1, key generation and one-way hashing, and the middleware that turns a presented key into a resolved tenant plus a capability set. This is strategy (1) of the four in TEN-4; #7 adds the rest.
+
+Key shape is `{pk|sk}_{live|test}_{32 random chars}`. Type and environment live in the string itself, so anyone holding a key knows what it is without a lookup - and SEC-9's CI grep for a leaked `sk_` only works because of that.
+
+**The raw key exists exactly once**, in the value the create action returns. Only `prefix`, `secret_hash` (SHA-256) and `last_four` are stored, so a database dump is not replayable against the live API. A test walks every column of the stored row asserting the plaintext appears in none of them, and the DTO's `toArray()` deliberately omits it so it cannot be serialised into a log line, a queued job payload or a Sentry breadcrumb by accident.
+
+**Type is a ceiling, scopes only narrow it** (SEC-5), and it is enforced twice: at creation, so a key that could never be used cannot even be stored, and at read time, so a row widened by a bad migration or a hand edit still cannot be used. There is a test for the second case.
+
+**A secret key arriving with an `Origin` header is refused outright.** Browsers always send one cross-origin, so that is precisely what a secret key leaking into front-end code looks like on the wire. Failing loudly beats working quietly - the quiet version means an operator ships their secret key in a page and never finds out.
+
+The `api_keys` lookup necessarily runs before a tenant exists, since it is what resolves one. It goes through `Tenancy::withoutTenancy()` - the escape hatch built in #5, used here for its textbook case, and safe because `prefix` is globally unique.
+
+`last_used_at` is throttled to one write per key per minute via `Cache::add`, which is atomic and driver-agnostic - database driver locally, Redis in production. Without it, authentication turns every read into a write, and the availability endpoint's 150 ms p95 budget goes with it.
+
+Three test problems were fixed at the source rather than worked around. A DB-touching test was written under `tests/Unit` where `RefreshDatabase` does not apply, so it moved to `tests/Feature` - it was never a unit test. The guard asserting no direct `Redis::` call was grepping comments, and the docblock explaining *why* there is no Redis call made it fail; it now strips comments and greps code. And PHPStan cannot type `$this` inside a Pest closure, so both API test files use Pest's function API and local variables - the alternative, excluding `tests/` from analysis, would take the gate off the code most likely to lie.
+
 ### #5 - Tenancy foundation: single database, tenants/users/role_assignments, BelongsToTenant
 
 Installed `stancl/tenancy` in single-database mode (ADR-0001 Option A) and landed the M0 tables from `docs/data-model.md` §6.
