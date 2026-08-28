@@ -13,7 +13,7 @@ Each entry records the **verification actually run** and its **real output** —
 | | |
 |---|---|
 | Milestone | **M0 — Foundation** |
-| Issues closed | #1, #2, #3 of 12 |
+| Issues closed | #1, #2, #3, #5 of 12 |
 | Local stack | Laravel 12.68 · PHP 8.4.24 · SQLite · database/file drivers |
 | Quality gate | Pint · PHPStan level 6 + Larastan · Pest — all green |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
@@ -25,6 +25,53 @@ Each entry records the **verification actually run** and its **real output** —
 | VAT **rates** (mechanism settled in ADR-0002; the numbers are not) | accountant | M6 |
 | Invoice-numbering **gap policy** (ADR-0022) | accountant | M6 |
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
+
+---
+
+## #5 — Tenancy foundation: single database, `tenants` / `users` / `role_assignments`, `BelongsToTenant`
+
+**Files:** `config/tenancy.php`, `app/Models/{Tenant,User,RoleAssignment}.php`, `app/Models/Concerns/{BelongsToTenant,HasUuid}.php`, `app/Models/Scopes/TenantScope.php`, `app/Support/Tenancy.php`, `app/Exceptions/{TenantContextMissingException,LastOwnerException}.php`, `app/Enums/{Role,Plan,TenantStatus}.php`, two migrations, three factories, `DemoTenantSeeder`, `lang/{el,en}/*`, five test files
+
+`stancl/tenancy` in single-database mode (ADR-0001 Option A). `tenant_id` on every tenant-owned table, mandatory `BelongsToTenant`, and an explicit platform-owned allow-list with no implicit exemption.
+
+### Decisions worth knowing
+
+**The scope throws when no tenant is resolved.** Spec TEN-4 has no default tenant and no fallback, so the absence of context is an error rather than a wildcard. Returning every operator's rows because nobody resolved a tenant is the worst failure mode this product has, and it is silent. Deliberate cross-tenant access goes through `Tenancy::withoutTenancy()` — verbose and greppable on purpose, so it shows up in review.
+
+**`config/tenancy.php` was replaced, not tuned.** The published file is 200 lines of database-per-tenant machinery. None of it applies, and leaving it would tell the next reader that per-tenant databases exist somewhere in the system. `bootstrappers` is deliberately empty, with a note that an entry appearing there is a silent move to per-tenant infrastructure.
+
+**`users` deliberately has no tenant scope.** `tenant_id` is nullable and null means platform super-admin (ADR-0020 Option C); a global scope would make super-admins invisible to their own panel. It is in the allow-list with that reason attached.
+
+**The last-owner guard is in the application, not the database.** No portable constraint expresses "at least one row matching this predicate", and a trigger would not survive the SQLite/MySQL split. Its message is an operator-facing string, so it exists in Greek and English.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `composer lint:test` | passed |
+| `composer stan` | `[OK] No errors` — 11 findings fixed with real annotations, no baseline, no ignores |
+| `composer test` | **30 passed** (67 assertions) |
+| `php artisan migrate:fresh --seed` on SQLite | 4 migrations, 2 tenants, 6 users, 5 role assignments, uuids assigned |
+
+**The allow-list guard was tested by breaking it.** Adding a bare `App\Models\LeakProbe` made the suite fail, naming the model and saying what to do:
+
+```
+These models are neither tenant-scoped nor listed as platform-owned:
+  App\Models\LeakProbe
+Tests:    1 failed, 29 passed
+```
+
+Removing it returned the suite to green. A guard that has never been seen to fail is not evidence of anything.
+
+**The scope assertion reads compiled SQL, not row counts.** A query returning the right number of rows proves nothing if the filtering happened in PHP; the isolation guarantee rests on the `WHERE` clause reaching the database.
+
+### One parity bug caught before CI could
+
+That same assertion originally expected `"role_assignments"."tenant_id"` — SQLite quoting. MySQL emits backticks, so it would have passed locally and gone red in the MySQL job. It now strips quote characters and asserts the clause rather than the dialect. **This is the SQLite/MySQL split producing exactly the class of bug ADR-0015 predicted**, on the first issue that touches the database.
+
+### CI-only
+
+Migrations running on MySQL 8 (ENV-10). Local SQLite green says nothing about MySQL column types, index name lengths or the utf8mb4 key limit.
 
 ---
 
