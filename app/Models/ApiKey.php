@@ -168,9 +168,15 @@ class ApiKey extends Model
         $seconds = (int) config('kaiki.api_keys.last_used_throttle_seconds');
         $cacheKey = "apikey:{$this->getKey()}:touched";
 
+        // `is_numeric`, not `is_int`. Laravel's Redis store round-trips numeric
+        // values as strings (RedisStore::serialize leaves them raw), while the
+        // array driver keeps the int. An `is_int` check is therefore false on
+        // Redis and true in tests — the throttle would silently never engage in
+        // production while passing locally. Same class of trap as the TTL above,
+        // one level deeper.
         $lastTouched = Cache::get($cacheKey);
 
-        if (is_int($lastTouched) && (now()->getTimestamp() - $lastTouched) < $seconds) {
+        if (is_numeric($lastTouched) && (now()->getTimestamp() - (int) $lastTouched) < $seconds) {
             return;
         }
 

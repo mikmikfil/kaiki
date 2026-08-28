@@ -81,7 +81,17 @@ The next run failed differently, on the neighbouring test. Root cause: **`Refres
 
 Fixed globally in `tests/Pest.php`: the cache is flushed before every test. Anything that caches per-id would have hit this, and the symptom — order-dependent flakiness that only appears with a real cache — is among the most expensive to diagnose once a suite is large.
 
-Both of these were invisible locally and would have stayed invisible until production. This is the concrete return on ADR-0015's parity contract, three issues in.
+### …and a third, one level deeper still
+
+The run after that failed on the same test again. **Laravel's Redis store round-trips numeric values as strings** — `RedisStore::serialize()` leaves anything numeric raw rather than serialising it — while the array driver keeps the int. So the guard `is_int($lastTouched)` was `false` on Redis and `true` in the local suite: the throttle **silently never engaged in production** while passing every local test.
+
+Fixed by checking `is_numeric()` and casting. Note what this one would have cost: not a failing test, but a `last_used_at` write on every single authenticated API request, discovered eventually as unexplained database load.
+
+### What these three have in common
+
+All three were the same shape: **code that reads correctly, passes locally, and behaves differently in production because of an implicit driver assumption.** A TTL that means Carbon time in one driver and wall-clock in another. A cache that survives a rolled-back database. A numeric type that survives one store and not another. None of them looks environment-specific at the call site, and none would have been caught by review.
+
+This is the concrete return on ADR-0015's parity contract, three issues in — and the argument for the MySQL + Redis job being a required check on every pull request rather than a nightly.
 
 ### CI-only
 
