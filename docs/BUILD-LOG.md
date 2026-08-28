@@ -69,9 +69,17 @@ Removing it returned the suite to green. A guard that has never been seen to fai
 
 That same assertion originally expected `"role_assignments"."tenant_id"` — SQLite quoting. MySQL emits backticks, so it would have passed locally and gone red in the MySQL job. It now strips quote characters and asserts the clause rather than the dialect. **This is the SQLite/MySQL split producing exactly the class of bug ADR-0015 predicted**, on the first issue that touches the database.
 
-### CI-only
+### CI evidence — run [33171491076](https://github.com/mikmikfil/kaiki/actions/runs/33171491076), commit `4942bd0`
 
-Migrations running on MySQL 8 (ENV-10). Local SQLite green says nothing about MySQL column types, index name lengths or the utf8mb4 key limit.
+All five jobs green, including **Pest on MySQL 8 + Redis**. The part local SQLite could not prove:
+
+```
+0001_01_01_000000_create_users_table ......................... 224.87ms DONE
+0001_01_01_000003_create_role_assignments_table .............. 111.73ms DONE
+mysql group executed for real: Tests:    1 passed (2 assertions)
+```
+
+Both migrations run on MySQL 8 — so the column types, the index names, and the `utf8mb4` key limit on `users.email` (190 chars = 760 bytes) all hold on the engine production actually uses, not just on SQLite.
 
 ---
 
