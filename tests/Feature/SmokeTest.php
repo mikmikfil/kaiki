@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use function Pest\Laravel\get;
+
 it('boots the application and serves the root route', function (): void {
-    $this->get('/')->assertOk();
+    get('/')->assertOk();
 });
 
 it('stores time in UTC regardless of the operator timezone', function (): void {

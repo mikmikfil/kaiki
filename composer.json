@@ -3,7 +3,12 @@
     "name": "kaiki/kaiki",
     "type": "project",
     "description": "Kaiki — booking engine for cruises, day trips and private charters.",
-    "keywords": ["laravel", "booking", "charter", "greece"],
+    "keywords": [
+        "laravel",
+        "booking",
+        "charter",
+        "greece"
+    ],
     "license": "proprietary",
     "require": {
         "php": "^8.4",
@@ -12,6 +17,7 @@
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
+        "larastan/larastan": "^3.10",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.24",
         "mockery/mockery": "^1.6",
@@ -46,11 +52,32 @@
         ],
         "test": [
             "@php artisan config:clear --ansi",
-            "@php vendor/bin/pest"
+            "@php vendor/bin/pest --exclude-group=mysql --exclude-group=chromium --exclude-group=external"
         ],
         "test:fast": [
             "@php artisan config:clear --ansi",
-            "@php vendor/bin/pest --exclude-group=mysql,chromium,slow"
+            "@php vendor/bin/pest --group=fast"
+        ],
+        "test:mysql": [
+            "@php artisan config:clear --ansi",
+            "@php vendor/bin/pest --group=mysql"
+        ],
+        "lint": [
+            "@php vendor/bin/pint"
+        ],
+        "lint:test": [
+            "@php vendor/bin/pint --test"
+        ],
+        "analyse": [
+            "@php vendor/bin/phpstan analyse --memory-limit=1G"
+        ],
+        "stan": [
+            "@composer analyse"
+        ],
+        "ci": [
+            "@composer lint:test",
+            "@composer analyse",
+            "@composer test"
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
@@ -81,5 +108,17 @@
         }
     },
     "minimum-stability": "stable",
-    "prefer-stable": true
+    "prefer-stable": true,
+    "scripts-descriptions": {
+        "setup": "Clean checkout to a running app: .env, key, SQLite file, migrate, seed, build assets.",
+        "dev": "artisan serve + queue listener + Vite together.",
+        "test": "Pest, excluding the mysql, chromium and external groups (ENV-15). The flag is repeated deliberately: Pest ignores a comma-separated --exclude-group.",
+        "test:fast": "The fast group only. Used by the Stop hook.",
+        "test:mysql": "The mysql group. Needs a MySQL 8 instance; normally CI only.",
+        "lint": "Pint in fix mode.",
+        "lint:test": "Pint in check mode. What CI runs.",
+        "analyse": "PHPStan level 6 with Larastan.",
+        "stan": "Alias for analyse.",
+        "ci": "lint:test, analyse, test - in that order, failing on the first."
+    }
 }

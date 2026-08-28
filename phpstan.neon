@@ -1,0 +1,27 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 6
+
+    # PHP 8.4 everywhere (ADR-0014, Option B). 8.4-only syntax is allowed.
+    phpVersion: 80400
+
+    paths:
+        - app
+        - config
+        - database
+        - routes
+        - tests
+
+    # The WordPress plugin targets PHP 8.1+ because it runs on operator hosting
+    # (spec ARC-9). It is linted separately and must not be analysed with the
+    # 8.4 assumptions above.
+    excludePaths:
+        - packages/wordpress-plugin/*
+
+    # No baseline. A baseline hides debt that this project has not accrued yet;
+    # if one is ever added it needs its own decision, not a quiet commit.
+    treatPhpDocTypesAsCertain: false
+
+    ignoreErrors: []

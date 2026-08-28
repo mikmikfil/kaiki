@@ -1,0 +1,31 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(php -r \"\\$i=json_decode(stream_get_contents(STDIN),true); echo \\$i[\\\"tool_input\\\"][\\\"file_path\\\"] ?? \\\"\\\";\"); case \"$f\" in *.php) [ -f vendor/bin/pint ] && php vendor/bin/pint \"$f\" >/dev/null 2>&1;; esac; true",
+            "shell": "bash",
+            "timeout": 30,
+            "statusMessage": "Pint"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "out=$(composer test:fast 2>&1); line=$(printf \"%s\" \"$out\" | sed -e \"s/\u001b\\[[0-9;]*m//g\" | grep -o \"Tests:.*\" | head -1 | tr -s \" \"); [ -z \"$line\" ] && line=\"test:fast FAILED - run composer test:fast\"; php -r \"echo json_encode([\\\"systemMessage\\\"=>trim(\\$argv[1])]);\" \"$line\"",
+            "shell": "bash",
+            "timeout": 120,
+            "statusMessage": "composer test:fast"
+          }
+        ]
+      }
+    ]
+  }
+}
