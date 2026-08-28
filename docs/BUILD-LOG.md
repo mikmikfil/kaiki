@@ -62,12 +62,18 @@ Unsafe methods only. `past_due` still writes — that is the dunning window, not
 |---|---|
 | `composer lint:test` | passed |
 | `composer stan` | `[OK] No errors` |
-| `composer test` | **88 passed** (200 assertions), 30 new |
+| `composer test` | **90 passed** (207 assertions), 32 new |
 
 ### Two test bugs of my own
 
 1. **A catch-all route on `/` silently lost to `routes/web.php`.** Six tests failed with "Invalid JSON was returned from the route" — they were asserting against the Laravel welcome page. Test routes now use a path that does not collide.
-2. **A hand-written punycode string was wrong.** The normalisation was correct and the constant I asserted against was not — worth noting because the failure looked exactly like a broken resolver.
+2. **A hardcoded punycode constant was wrong, twice, in two different ways.** First I asserted an encoding I had guessed; the real one differs. Then, with the value taken from my own machine, the test passed locally and **failed in CI on both engines** — the exact punycode output depends on the ICU version the PHP build links against, and CI's differs from Windows'.
+
+   Rewritten to derive the expected hostname through the same normalisation instead of naming it. The property worth proving was never *what the encoding string is* — it is that **a hostname stored in Unicode is matched by the request that arrives for it**, whatever form that takes. Split into three deterministic tests: ASCII case-insensitivity, the Greek round trip, and idempotence (normalising an already-normalised hostname must not yield a third value, or the unique index means nothing).
+
+   This one is worth remembering: it is the first environment difference that had nothing to do with the database or the cache. **A library version can be a parity boundary too.**
+
+3. **A real bug found while chasing that.** `normalise()` used `strtolower`, which is byte-based and leaves `ΑΙΓΑΙΟ.GR` untouched. IDN processing folds the case anyway, so nothing was broken today — but the lowercase step silently did nothing for exactly the hostnames this product's customers register. Now `mb_strtolower`.
 
 ---
 

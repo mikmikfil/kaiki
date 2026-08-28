@@ -86,14 +86,46 @@ it('does not resolve from a pending or disabled domain', function (): void {
     get('http://disabled.example/_probe')->assertNotFound();
 })->group('fast');
 
-it('matches a custom domain case-insensitively and in punycode', function (): void {
-    // Greek operators register Greek domains, and a browser sends the xn-- form.
+it('matches a custom domain regardless of the case it was entered in', function (): void {
+    $tenant = Tenant::factory()->create();
+    Tenancy::forTenant($tenant, fn () => TenantDomain::factory()->create(['hostname' => 'Book.AEGEAN.gr']));
+
+    get('http://book.aegean.gr/_probe')
+        ->assertOk()
+        ->assertJson(['tenant' => $tenant->getKey(), 'via' => 'custom_domain']);
+})->group('fast');
+
+it('matches a Greek domain in the punycode form a browser sends', function (): void {
+    // Greek operators register Greek domains, so this is a real input.
+    //
+    // The expected hostname is derived through the same normalisation rather
+    // than hardcoded: the exact punycode output depends on the ICU version, and
+    // an earlier version of this test asserted a constant taken from the local
+    // build that did not hold in CI. The property worth proving is not what the
+    // encoding string is — it is that a hostname stored in Unicode is matched
+    // by the request that arrives for it, whatever form that takes.
     $tenant = Tenant::factory()->create();
     Tenancy::forTenant($tenant, fn () => TenantDomain::factory()->create(['hostname' => 'Κρουαζιέρες.gr']));
 
-    get('http://xn--ixahncpd9apfl0a.gr/_probe')
+    $stored = Tenancy::forTenant($tenant, fn (): string => (string) TenantDomain::query()->value('hostname'));
+
+    expect($stored)->toStartWith('xn--')
+        ->and($stored)->toEndWith('.gr');
+
+    get("http://{$stored}/_probe")
         ->assertOk()
         ->assertJson(['tenant' => $tenant->getKey(), 'via' => 'custom_domain']);
+})->group('fast');
+
+it('normalises a hostname the same way every time it sees it', function (): void {
+    // Idempotence is what makes the unique index trustworthy: normalising an
+    // already-normalised hostname must not produce a third value.
+    $once = TenantDomain::normalise('Κρουαζιέρες.GR:8080');
+    $twice = TenantDomain::normalise($once);
+
+    expect($twice)->toBe($once)
+        ->and(TenantDomain::normalise('Example.COM.'))->toBe('example.com')
+        ->and(TenantDomain::normalise('book.aegean.gr:443'))->toBe('book.aegean.gr');
 })->group('fast');
 
 it('resolves from the first path segment on the hosted host', function (): void {

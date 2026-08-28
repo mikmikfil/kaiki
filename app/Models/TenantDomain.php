@@ -59,7 +59,11 @@ class TenantDomain extends Model
      */
     public static function normalise(string $hostname): string
     {
-        $hostname = strtolower(trim($hostname));
+        // mb_strtolower, not strtolower: the latter is byte-based and leaves
+        // `ΑΙΓΑΙΟ.GR` untouched. IDN processing would fold the case anyway, but
+        // relying on that would mean the lowercase step silently does nothing
+        // for exactly the hostnames this product's customers register.
+        $hostname = mb_strtolower(trim($hostname));
         $hostname = preg_replace('/:\d+$/', '', $hostname) ?? $hostname;
         $hostname = rtrim($hostname, '.');
 
