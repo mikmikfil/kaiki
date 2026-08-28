@@ -30,7 +30,7 @@ Each entry records the **verification actually run** and its **real output** —
 
 ## #3 — CI workflow: Pint, PHPStan, Pest on SQLite, plus MySQL 8 + Redis
 
-**Commit:** see `git log` · **Files:** `.github/workflows/ci.yml`, `tests/Feature/SmokeTest.php`, `tests/Unit/ToolchainTest.php`
+**Commit:** `927f13e` · **Files:** `.github/workflows/ci.yml`, `tests/Feature/SmokeTest.php`, `tests/Unit/ToolchainTest.php`
 
 Five jobs on every pull request and every push to `main`: `lint`, `static-analysis`, `test-sqlite`, `test-mysql`, and a `ci-passed` aggregate gate that exists so branch protection needs exactly one required check and cannot silently miss a job added later. PHP 8.4 is declared once, in workflow-level `env` (ADR-0014 Option B — a single version, not a matrix). Composer installs are cached by `ramsey/composer-install` keyed on `composer.lock`.
 
@@ -60,7 +60,27 @@ This matters beyond this issue: the overselling concurrency test (AVL-44, ADR-00
 | `composer test:mysql` locally | **1 skipped** — `"Needs MySQL 8. Runs in CI only — local development is SQLite (ADR-0015)."` |
 | workflow YAML parses | 5 jobs, services `mysql` + `redis`, `PHP_VERSION` declared once |
 
-**CI-only, by design:** every assertion in `test-mysql`. The first pipeline run on GitHub is the real verification of this issue — a green local run proves nothing about it.
+### CI evidence — run [33169705588](https://github.com/mikmikfil/kaiki/actions/runs/33169705588), commit `927f13e`
+
+| Job | Result |
+|---|---|
+| Pint | success |
+| PHPStan level 6 | success |
+| Pest on SQLite | success |
+| Pest on MySQL 8 + Redis | success |
+| CI passed (aggregate gate) | success |
+
+The guard's own output, which is the assertion that matters:
+
+```
+✓ it runs the mysql group against a real MySQL 8 connection            0.09s
+  Tests:    1 passed (2 assertions)
+mysql group executed for real: Tests:    1 passed (2 assertions)
+```
+
+`1 passed`, not `1 skipped` — the job environment does reach PHPUnit, MySQL 8 was genuinely connected, and the driver assertion held. That is the evidence M2's overselling test depends on.
+
+**Known warning, not failing:** GitHub reports `actions/checkout@v4` and the `actions/cache` pulled in transitively by `ramsey/composer-install@v3` still target Node.js 20, which is deprecated and force-run on Node 24. Cosmetic today; worth clearing when those actions publish updates, so a real warning is not lost in the noise.
 
 ---
 
