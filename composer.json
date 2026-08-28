@@ -64,6 +64,10 @@
             "@php artisan config:clear --ansi",
             "@php vendor/bin/pest --group=mysql"
         ],
+        "test:tenancy": [
+            "@php artisan config:clear --ansi",
+            "@php vendor/bin/pest --group=tenancy"
+        ],
         "lint": [
             "@php vendor/bin/pint"
         ],
@@ -121,6 +125,7 @@
         "lint:test": "Pint in check mode. What CI runs.",
         "analyse": "PHPStan level 6 with Larastan.",
         "stan": "Alias for analyse.",
-        "ci": "lint:test, analyse, test - in that order, failing on the first."
+        "ci": "lint:test, analyse, test - in that order, failing on the first.",
+        "test:tenancy": "The cross-tenant isolation gate. A required CI check in its own right (ADR-0001)."
     }
 }

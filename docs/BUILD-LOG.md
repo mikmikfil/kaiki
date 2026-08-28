@@ -13,9 +13,9 @@ Each entry records the **verification actually run** and its **real output** —
 | | |
 |---|---|
 | Milestone | **M0 — Foundation** |
-| Issues closed | #1, #2, #3, #5, #6, #7 of 12 |
+| Issues closed | #1, #2, #3, #5, #6, #7, #8 of 12 |
 | Local stack | Laravel 12.68 · PHP 8.4.24 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest — all green |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest · **cross-tenant isolation gate** — all green |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 **Open, not blocking, and not mine to close:**
@@ -25,6 +25,62 @@ Each entry records the **verification actually run** and its **real output** —
 | VAT **rates** (mechanism settled in ADR-0002; the numbers are not) | accountant | M6 |
 | Invoice-numbering **gap policy** (ADR-0022) | accountant | M6 |
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
+
+---
+
+## #8 — Cross-tenant isolation suite as a required CI gate
+
+**Files:** `tests/Support/TenantIsolationHarness.php`, `tests/Feature/Tenancy/{ModelIsolationTest,HttpIsolationTest}.php`, `.github/workflows/ci.yml`, `composer.json`
+
+The highest-value test in M0, and the reason ADR-0001 was acceptable at all. Single-database tenancy means **one missing global scope is a cross-tenant data leak**; Option A was accepted on the explicit condition that this suite exists and gates the build. It is the price of the schema.
+
+### Generated, not written
+
+Cases come from the models themselves by reflection. A hand-maintained list would be correct the day it was written and quietly wrong the first time somebody added a model and forgot a line — which is *precisely* the failure this suite exists to catch, making a list the one shape that cannot be trusted here. Adding a tenant-owned model without an isolation test is now impossible.
+
+Eight cases per model: read by id, `findOrFail`/`firstOrFail`, read by uuid, update by key, delete by key, create stamps the tenant, each-tenant-sees-only-its-own, and factory-exists. The update and delete cases **read the row back outside any tenant afterwards** — proving the row is genuinely untouched, not merely that the statement reported zero rows.
+
+Where the generic case cannot build a model — `RoleAssignment` needs a user — the harness carries a documented **override, never an exclusion**. An exclusion removes a model from the gate; an override keeps it in and says what it needs.
+
+### 404, never 403
+
+A 403 says *"this exists, but not for you"*, which is a disclosure in itself. A publishable key is designed to be readable in page source, so anyone could then probe uuids and learn which are real, how many an operator has, roughly when they were created. One test goes past the status code and asserts the response for another tenant's record is **byte-identical** to the response for a record that never existed.
+
+That test initially failed for an instructive reason: `APP_DEBUG=true` attaches a stack trace, so the two bodies differed by a line number. Debug is now off for that file — with it on, the assertion measures the debug renderer rather than what production ships.
+
+### Proven by sabotage
+
+Removing `BelongsToTenant` from `TenantDomain`:
+
+```
+⨯ it serves a tenant its own record
+⨯ it returns 404 and not 403 for another tenant record
+⨯ it answers identically for another tenant record and one that never existed
+⨯ it does not leak another tenant hostname in the response body
+⨯ it does not let a key from one tenant read across after another tenant was resolved
+⨯ it leaves no model unscoped and unlisted
+  Neither tenant-scoped nor listed as platform-owned:
+  App\Models\TenantDomain
+Tests: 6 failed, 17 passed
+```
+
+Both layers fired: the structural check named the model, and the HTTP tests caught the actual leak. Restored, green. **A guard nobody has watched fail is not evidence of anything.**
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `composer lint:test` | passed |
+| `composer stan` | `[OK] No errors` |
+| `composer test` | **119 passed** (260 assertions) |
+| `composer test:tenancy` | **31 passed** (58 assertions) |
+| sabotage drill | 6 failures naming the model, then green after restore |
+
+Runs as its own CI job with the same three-shape guard as the MySQL group — no summary, any skip, or no passing test all fail the build.
+
+Two PHPStan findings fixed properly rather than suppressed: the harness returns a generic `Model`, so `->uuid` and `->tenant_id` are not statically known. `getAttribute()` is the accurate call, not a workaround.
+
+`PlatformOwnedAllowListTest` from #5 was dropped — the isolation suite covers the same ground more thoroughly, and two tests asserting one property is how one of them rots.
 
 ---
 

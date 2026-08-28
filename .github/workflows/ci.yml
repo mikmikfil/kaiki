@@ -172,11 +172,58 @@ jobs:
 
           echo "mysql group executed for real: $summary"
 
+  tenancy-isolation:
+    name: Cross-tenant isolation gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # ADR-0001 accepted single-database tenancy on the explicit condition that
+      # this suite exists and is a required check. It is the price of the schema,
+      # so it runs as its own job rather than buried inside the general suite:
+      # a red build here should say "tenant isolation" and nothing else.
+      - name: Isolation suite (must actually execute)
+        run: |
+          set -o pipefail
+          composer test:tenancy 2>&1 | tee pest-tenancy.log
+
+          summary="$(sed -e 's/\x1b\[[0-9;]*m//g' pest-tenancy.log | grep -oE 'Tests:.*' | head -1)"
+
+          if [ -z "$summary" ]; then
+            echo "::error::The tenancy group produced no test summary. A gate that silently stops running reports green, which is worse than no gate (ENV-11, TST-8)."
+            exit 1
+          fi
+
+          if echo "$summary" | grep -q 'skipped'; then
+            echo "::error::The tenancy group SKIPPED ($summary). The isolation gate must run for real."
+            exit 1
+          fi
+
+          if ! echo "$summary" | grep -q 'passed'; then
+            echo "::error::The tenancy group reported no passing test ($summary)."
+            exit 1
+          fi
+
+          echo "isolation gate executed for real: $summary"
+
   ci-passed:
     name: CI passed
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, static-analysis, test-sqlite, test-mysql]
+    needs: [lint, static-analysis, test-sqlite, test-mysql, tenancy-isolation]
     steps:
       # A single check to make required in branch protection. Without this,
       # adding a job later means remembering to mark it required by hand.

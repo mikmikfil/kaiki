@@ -2,6 +2,24 @@
 
 ## M0 — Foundation
 
+### #8 - Cross-tenant isolation suite as a required CI gate
+
+The single highest-value test in M0, and the reason ADR-0001 was acceptable at all: single-database tenancy means **one missing global scope is a cross-tenant data leak**, and Option A was accepted on the explicit condition that this suite exists and gates the build.
+
+**Cases are generated from the models themselves, by reflection.** A hand-maintained list would be correct the day it was written and quietly wrong the first time somebody added a model and forgot a line - which is exactly the failure this suite exists to catch, so a list is the one shape that cannot be trusted. Adding a tenant-owned model without an isolation test is now impossible: the cases appear whether or not anyone remembers to write them.
+
+Eight generated cases per model: read by id, `findOrFail`/`firstOrFail`, read by uuid, update by key, delete by key, create stamping the resolved tenant, each-tenant-sees-only-its-own, and a factory-exists check. The update and delete cases read the row back **outside any tenant** afterwards, to prove it is genuinely untouched rather than that the statement merely reported zero rows.
+
+Where the generic case cannot build a model - `RoleAssignment` needs a user - the harness carries a documented **override**, never an exclusion. An exclusion removes a model from the gate; an override keeps it in and says what it needs. A tenant-owned model with no factory fails the suite with a message telling you to add one rather than silently skipping.
+
+At the HTTP boundary: **404, never 403**. A 403 says "this exists, but not for you", which is a disclosure in itself - anyone holding a publishable key, which is designed to be readable in page source, could probe uuids and learn which are real. One test goes further and asserts the response for another tenant's record is **byte-identical** to the response for a record that never existed.
+
+**Proven by sabotage, as the issue required.** Removing `BelongsToTenant` from `TenantDomain` turned the suite red with six failures naming `App\Models\TenantDomain` - both the structural check and the HTTP tests catching the actual leak. Restored, green. A guard nobody has watched fail is not evidence of anything.
+
+Runs as its own CI job with the same three-shape guard as the MySQL group: no summary, any skip, or no passing test all fail the build. A gate that silently stops running reports green, which is worse than no gate.
+
+Dropped `PlatformOwnedAllowListTest` from #5 - the isolation suite now covers the same ground more thoroughly, and two tests asserting one property is how one of them rots.
+
 ### #7 - Tenant resolution: four strategies in a fixed order, plus read-only mode
 
 `ResolveTenant` tries four strategies and stops at the first match: API key, verified custom domain, hosted slug, panel session. **No match aborts 404** - there is no default tenant and no fallback (SEC-4), because the alternative to "I do not know which operator this is" is serving somebody else's data. 404 is also the right answer outward: it does not disclose whether a slug or hostname exists.
