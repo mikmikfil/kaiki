@@ -147,17 +147,36 @@ class ApiKey extends Model
      *
      * Authentication runs on every public API request. Writing `last_used_at`
      * each time would turn the read-heavy availability endpoint into a
-     * write-heavy one and put its <150 ms p95 budget at risk. `Cache::add` is
-     * atomic and driver-agnostic — database driver locally, Redis in
-     * production — which is why this is not a direct `Redis::` call (ENV-7).
+     * write-heavy one and put its <150 ms p95 budget at risk.
+     *
+     * The window is decided by comparing stored and current **application**
+     * time, not by leaning on the cache entry's TTL to expire. That distinction
+     * is not academic: an entry written with `Cache::add(…, 60)` expires after
+     * 60 seconds of *wall-clock* time in Redis, while the array driver used in
+     * tests honours Carbon — so a TTL-based throttle behaves differently in
+     * production than in the suite that supposedly proves it. Reading the
+     * timestamp back makes the decision identical on every driver and testable
+     * with frozen time (TST-9).
+     *
+     * The trade is that two simultaneous requests can both decide to write.
+     * That is a harmless duplicate update — the throttle is a performance
+     * measure, not a correctness guarantee — and it buys behaviour that does
+     * not depend on which cache driver is configured (ENV-7, ADR-0015).
      */
     public function touchLastUsed(): void
     {
         $seconds = (int) config('kaiki.api_keys.last_used_throttle_seconds');
+        $cacheKey = "apikey:{$this->getKey()}:touched";
 
-        if (! Cache::add("apikey:{$this->getKey()}:touched", true, $seconds)) {
+        $lastTouched = Cache::get($cacheKey);
+
+        if (is_int($lastTouched) && (now()->getTimestamp() - $lastTouched) < $seconds) {
             return;
         }
+
+        // Held well beyond the window so the entry is still there to compare
+        // against; expiry is a cleanup detail, never the throttle decision.
+        Cache::put($cacheKey, now()->getTimestamp(), $seconds * 10);
 
         Tenancy::withoutTenancy(function (): void {
             static::query()->whereKey($this->getKey())->update(['last_used_at' => now()]);

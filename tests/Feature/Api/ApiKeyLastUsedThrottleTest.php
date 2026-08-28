@@ -111,7 +111,7 @@ it('uses the cache abstraction rather than a direct Redis call', function (): vo
         $code .= is_array($token) ? $token[1] : $token;
     }
 
-    expect($code)->toContain('Cache::add')
+    expect($code)->toContain('Cache::get')
         ->and($code)->not->toContain('Redis::')
         ->and($code)->not->toContain('Facades\Redis');
 })->group('fast');

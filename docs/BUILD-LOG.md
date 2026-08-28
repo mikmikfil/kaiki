@@ -61,9 +61,23 @@ A query-count test asserts authentication costs **exactly one** indexed `api_key
 2. **The "no direct `Redis::` call" guard was grepping comments.** The docblock in `ApiKey` explaining *why* there is no Redis call contains the string `Redis::`, so the guard failed on its own prose. It now strips comments with `token_get_all` and greps code. A guard that can be defeated — or triggered — by a comment is not a guard.
 3. **PHPStan cannot type `$this` inside a Pest closure.** Both API test files use Pest's function API and local variables instead. The alternative, excluding `tests/` from analysis, would take the static-analysis gate off the code most likely to lie about itself.
 
+### The MySQL job earned its keep: a real bug, green locally, red in CI
+
+CI run [33172994149](https://github.com/mikmikfil/kaiki/actions/runs/33172994149) failed on **Pest on MySQL 8 + Redis** while SQLite passed. One test: *"it writes again once the window has passed"* — `last_used_at` stayed at `12:00:00` instead of moving to `12:01:01`.
+
+The cause is worth writing down, because it will recur.
+
+The throttle used `Cache::add($key, true, 60)` and let the **cache entry's TTL** decide whether the window had passed. Laravel's `array` driver — what the suite uses locally — evaluates expiry against **Carbon**, so `Carbon::setTestNow()` moved the clock and the entry looked expired. Redis expires keys on **real wall-clock time**, and 61 simulated seconds take no real time at all, so the entry was still there and the write was correctly skipped.
+
+So the local suite was green for a reason that does not hold in production. The test was not wrong; the code was relying on a behaviour that differs by driver.
+
+**Fixed in the code, not the test.** The window is now decided by comparing a stored timestamp against current application time, which is identical on every driver and controllable with frozen time. The trade is that two simultaneous requests could both write — a harmless duplicate update, since the throttle is a performance measure and not a correctness guarantee — bought in exchange for behaviour that does not depend on which cache driver happens to be configured.
+
+This is the second parity bug in two database-touching issues, and the first one CI caught rather than review. **A cache-driver difference is subtler than a SQL-dialect one**: nothing about `Cache::add(…, 60)` looks environment-specific.
+
 ### CI-only
 
-`api_keys` migrating on MySQL 8 — in particular `char(64)` for the hash and the `api_keys_tenant_type_idx` composite, neither of which SQLite validates the way MySQL will.
+`api_keys` migrating on MySQL 8 — in particular `char(64)` for the hash and the `api_keys_tenant_type_idx` composite, neither of which SQLite validates the way MySQL does.
 
 ---
 
