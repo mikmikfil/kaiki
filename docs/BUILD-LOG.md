@@ -13,7 +13,7 @@ Each entry records the **verification actually run** and its **real output** —
 | | |
 |---|---|
 | Milestone | **M0 — Foundation** |
-| Issues closed | #1, #2, #3, #5, #6, #7, #8 of 12 |
+| Issues closed | #1, #2, #3, #5, #6, #7, #8, #9 of 12 |
 | Local stack | Laravel 12.68 · PHP 8.4.24 · SQLite · database/file drivers |
 | Quality gate | Pint · PHPStan level 6 + Larastan · Pest · **cross-tenant isolation gate** — all green |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
@@ -25,6 +25,52 @@ Each entry records the **verification actually run** and its **real output** —
 | VAT **rates** (mechanism settled in ADR-0002; the numbers are not) | accountant | M6 |
 | Invoice-numbering **gap policy** (ADR-0022) | accountant | M6 |
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
+| **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
+
+---
+
+## #9 — Filament panels `/app` and `/admin`, with the TEN-8 role matrix
+
+**Files:** `app/Providers/Filament/{AppPanelProvider,AdminPanelProvider}.php`, `app/Support/Authorization/Capability.php`, `app/Policies/*` (5), `app/Http/Middleware/AddSecurityHeaders.php`, `app/Models/User.php`, `lang/{el,en}/panel.php`, `config/kaiki.php`, five test files, `docs/adr/0024-two-factor-authentication.md`
+
+**This is the first thing in the project you can look at and click.** Both panels are live; the seeded accounts sign in.
+
+### Two panels, strictly separate populations
+
+An operator reaching `/admin` would see every operator's data. A super-admin landing in `/app` has no tenant to scope to. Both are refused outright rather than rendered partially — a partial render is how someone learns what exists behind a wall. Different colours on purpose: someone who can see every operator's data should be able to tell at a glance which panel they are in, because a mistake made there is not recoverable by the person making it.
+
+`/app` carries `ResolveTenant` and `EnsureTenantIsWritable` in its auth middleware, so read-only mode works without any resource having to remember. `/admin` deliberately has no tenant resolution — the one place in the application where that is correct.
+
+**No tenant switcher** (ADR-0020 Option C). A dropdown would make "which tenant am I acting as" a piece of session state, which is exactly where cross-tenant mistakes become possible. Super-admins reach an operator through impersonation in M7.
+
+### The matrix in one place
+
+TEN-8 lives in a single `Capability` enum, so "what can crew do" is one file rather than a search. Three fixed roles with Laravel policies — **not** `spatie/laravel-permission`, which is conditionally approved only and whose pre-emptive installation is a hard stop (ARC-21a).
+
+Asserted **exhaustively**: every capability against every role, grants *and* refusals. Testing only grants would let a widened capability through unnoticed — and nobody files a bug saying "I can see more than I should". A meta-test asserts the test data covers every enum case, so adding a capability and forgetting to test it fails rather than passing silently.
+
+### Why `PolicyCoverageTest` exists
+
+**Filament allows an action when no policy is registered.** Convenient, and in a multi-tenant back office dangerous: a resource shipped without a policy is writable by every role, and nothing in the code says so. This test turns that silence into a failure — verified by removing `TenantDomainPolicy` and watching the suite name the model, then restoring.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `composer lint:test` | passed |
+| `composer stan` | `[OK] No errors` |
+| `composer test` | **162 passed** (407 assertions), 43 new |
+| panels reachable | `/app`, `/app/login`, `/admin`, `/admin/login` all routed |
+| seeded logins | 5 operator users across 2 tenants + 1 super-admin |
+| policy-coverage sabotage | removed a policy → suite named the model → restored → green |
+
+### One acceptance criterion deliberately not delivered
+
+**SEC-15 (two-factor: optional for operators, required for super-admins) is not implemented.** The `two_factor_*` columns exist from #5, but nothing writes them, because neither Laravel nor Filament v3 ships an enrolment flow. Delivering it needs a package and §3.2 lists none — ARC-19 makes that a hard stop, not a judgement call, and installing one quietly is exactly the drift ADR-0019 exists to prevent.
+
+Written up as **ADR-0024** recommending `laravel/fortify` (whose column names already match the schema, which strongly suggests it was the intent) scheduled with the M7 super-admin work.
+
+Worth being explicit about why I did not simply enforce the flag: **without an enrolment flow, requiring 2FA would permanently lock out every super-admin with no way in to fix it.** A half-delivered security control that bricks the platform panel is worse than an honestly deferred one.
 
 ---
 

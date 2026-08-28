@@ -6,7 +6,10 @@ namespace App\Models;
 
 use App\Enums\Role;
 use App\Models\Concerns\HasUuid;
+use App\Support\Authorization\Capability;
 use Database\Factories\UserFactory;
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -36,7 +39,7 @@ use Illuminate\Notifications\Notifiable;
  * @property string $locale
  * @property bool $is_super_admin
  */
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory;
@@ -114,5 +117,47 @@ class User extends Authenticatable
     public function isSuperAdmin(): bool
     {
         return $this->is_super_admin && $this->tenant_id === null;
+    }
+
+    /**
+     * Does this user hold the capability, through any of their roles?
+     *
+     * The union of roles applies: someone who is both manager and crew gets
+     * everything either role allows. `role_assignments` permits multiple rows
+     * per user precisely so a small operation can say "runs the office and also
+     * skippers on Sundays" without inventing a fourth role.
+     */
+    public function hasCapability(Capability $capability): bool
+    {
+        // A super-admin is not an operator and holds no operator capabilities.
+        // Reaching an operator's data is impersonation (TEN-7, M7), an audited
+        // action rather than an implicit privilege.
+        if ($this->isSuperAdmin()) {
+            return false;
+        }
+
+        foreach ($this->roles() as $role) {
+            if ($capability->grantedTo($role)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Which panel may this user sign in to (SCP-1, SCP-13)?
+     *
+     * Strictly one each. An operator reaching `/admin` would see every
+     * operator's data, and a super-admin landing in `/app` has no tenant to
+     * scope to — so both are refused outright rather than rendered partially.
+     */
+    public function canAccessPanel(Panel $panel): bool
+    {
+        return match ($panel->getId()) {
+            'admin' => $this->isSuperAdmin(),
+            'app' => ! $this->is_super_admin && $this->tenant_id !== null,
+            default => false,
+        };
     }
 }

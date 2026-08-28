@@ -2,6 +2,22 @@
 
 ## M0 — Foundation
 
+### #9 - Filament panels /app and /admin with the owner/manager/crew role matrix
+
+Two panels, strictly separate populations. An operator reaching `/admin` would see every operator's data; a super-admin landing in `/app` has no tenant to scope to. Both are refused outright rather than rendered partially - a partial render is how someone learns what exists behind a wall. Different colours on purpose, because someone who can see every operator's data should be able to tell at a glance which panel they are in.
+
+`/app` gets `ResolveTenant` and `EnsureTenantIsWritable` in its auth middleware, so a lapsed subscription blocks writes without any resource having to remember, and reads keep working - the operator still needs to see their bookings while sorting out a payment. `/admin` deliberately has no tenant resolution: it is the one place in the application where that is correct.
+
+**No tenant switcher.** ADR-0020 Option C gives each user exactly one tenant, and a super-admin reaches an operator through impersonation (M7) rather than a dropdown. A dropdown would make "which tenant am I acting as" session state, which is precisely where a cross-tenant mistake becomes possible.
+
+The TEN-8 matrix lives in one `Capability` enum rather than spread across policies, so the answer to "what can crew do" is one file rather than a search. Three fixed roles with Laravel policies, **not** `spatie/laravel-permission` - conditionally approved only, and installing it pre-emptively is a hard stop (ARC-21a).
+
+The matrix is asserted exhaustively: every capability against every role, grants *and* refusals. Testing only the grants would let a widened capability through unnoticed, and nobody files a bug saying "I can see more than I should". A meta-test asserts the test data covers every enum case, so adding a capability and forgetting to test it fails rather than passing silently.
+
+`PolicyCoverageTest` exists because **Filament allows an action when no policy is registered**. That default is convenient and, in a multi-tenant back office, dangerous: a resource shipped without a policy is writable by every role and nothing in the code says so. Verified by removing a policy and watching the suite name the model.
+
+**SEC-15 (two-factor) is not delivered.** Neither Laravel nor Filament ships an enrolment flow, so it needs a package, and §3.2 lists none - ARC-19 makes that a hard stop rather than a judgement call. Written up as ADR-0024 with a recommendation. Enforcing the requirement without an enrolment flow would be worse than not enforcing it: a super-admin who never enrolled would be permanently locked out with no way in to fix it.
+
 ### #8 - Cross-tenant isolation suite as a required CI gate
 
 The single highest-value test in M0, and the reason ADR-0001 was acceptable at all: single-database tenancy means **one missing global scope is a cross-tenant data leak**, and Option A was accepted on the explicit condition that this suite exists and gates the build.

@@ -64,4 +64,21 @@ return [
         'host_cache_seconds' => (int) env('KAIKI_HOST_CACHE_SECONDS', 60),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Panel
+    |--------------------------------------------------------------------------
+    */
+    'panel' => [
+        /*
+         * How far either side of today crew may see departures (TEN-8).
+         *
+         * Crew access is read-only and deliberately narrow: someone standing on
+         * the quay needs tomorrow's list, not the season's. Configurable
+         * because a multi-day charter operation will want a wider window than a
+         * day-trip one, and neither should have to change code to get it.
+         */
+        'crew_departure_window_days' => (int) env('KAIKI_CREW_WINDOW_DAYS', 1),
+    ],
+
 ];

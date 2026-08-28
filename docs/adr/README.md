@@ -2,7 +2,7 @@
 
 Every decision marked **DECIDE** in `docs/BRIEF.md`, plus every genuinely open question found while turning the brief into `docs/spec.md`, is recorded here as a numbered ADR. Each ADR states the context, two or three options with trade-offs, a recommendation, and the consequences of accepting it.
 
-**All 23 ADRs were accepted on 2026-08-28.** Every `**DECIDE — see ADR-000N**` marker in `docs/spec.md` has been resolved into a concrete requirement carrying a `(per ADR-000N, Option X)` citation; the marker no longer appears in any document. For any *future* fork, no agent may implement against a recommendation until the product owner marks a new ADR `Accepted` (or `Superseded`) and updates this table.
+**ADRs 0001–0023 were accepted on 2026-08-28. ADR-0024 is open.** Every `**DECIDE — see ADR-000N**` marker in `docs/spec.md` has been resolved into a concrete requirement carrying a `(per ADR-000N, Option X)` citation; the marker no longer appears in any document. For any *future* fork, no agent may implement against a recommendation until the product owner marks a new ADR `Accepted` (or `Superseded`) and updates this table.
 
 > **One caveat:** ADR-0022 (invoice numbering) is accepted as an *engineering* shape so M1 is not blocked. The gap policy itself still needs an accountant's sign-off before M6 issuance ships. ADR-0002 is the same story for the VAT *rate* — the resolution mechanism is settled, the rate is not. Both caveats are recorded in `docs/spec.md` §16.3 ("What is still open after the ADR round") and repeated inline at MYD-4, CAT-11b and MYD-6a. A third item is a *revisit trigger* rather than an open question: ADR-0023 is reopened if the NFR-1 availability benchmark misses 150 ms p95 at the close of M2.
 
@@ -39,6 +39,7 @@ Every decision marked **DECIDE** in `docs/BRIEF.md`, plus every genuinely open q
 | [0021](0021-image-and-file-storage.md) | Image and file storage strategy | **Accepted (A)** | **A** — plain path columns + an upload Action + `intervention/image`; no polymorphic media table | M1 |
 | [0022](0022-invoice-numbering-scope.md) | Invoice numbering scope and gap policy | **Accepted (A + C (per-tenant external mode))** | **A** default (per tenant/series/year, allocated at send, gaps logged) **plus** C as a per-tenant `external` mode. **Needs an accountant.** | M1 (schema), M6 |
 | [0023](0023-unified-bookable-windows.md) | One `bookable_windows` table vs departures + per-vessel windows | **Accepted (C)** | **C** — keep the brief's two shapes, hide the union behind one `VesselCalendar` port, pull the NFR-1 benchmark forward to the M2 close | Locks in at M2 |
+| [0024](0024-two-factor-authentication.md) | Two-factor authentication for panel accounts | **Proposed** | **A** — `laravel/fortify` as the mechanism, implemented in M7 beside impersonation | SEC-15 criterion of #9 |
 
 ## Future ADRs expected (not yet written)
 | Topic | Why deferred | Needed before |
