@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Logging\AddTenantContext;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -62,6 +63,8 @@ return [
 
         'single' => [
             'driver' => 'single',
+            // OBS-2: every line carries tenant_id and request_id.
+            'tap' => [AddTenantContext::class],
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
@@ -69,6 +72,7 @@ return [
 
         'daily' => [
             'driver' => 'daily',
+            'tap' => [AddTenantContext::class],
             'path' => storage_path('logs/laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => env('LOG_DAILY_DAYS', 14),

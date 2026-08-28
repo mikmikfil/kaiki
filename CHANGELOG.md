@@ -2,6 +2,24 @@
 
 ## M0 — Foundation
 
+### #7 - Tenant resolution: four strategies in a fixed order, plus read-only mode
+
+`ResolveTenant` tries four strategies and stops at the first match: API key, verified custom domain, hosted slug, panel session. **No match aborts 404** - there is no default tenant and no fallback (SEC-4), because the alternative to "I do not know which operator this is" is serving somebody else's data. 404 is also the right answer outward: it does not disclose whether a slug or hostname exists.
+
+Each strategy is a small class implementing one interface, independently testable, returning `null` for "not my kind of request" rather than "no tenant, carry on".
+
+**The ordering is a security property, not a preference.** API key first because the caller named a tenant explicitly and must never be reinterpreted by host. Panel session *last*, because an operator signed into their own back office opening a competitor's hosted page must see that operator's public page - a session is the weakest signal about what a request is *for*. Both precedence cases have their own test.
+
+`tenant_domains` ships here per ADR-0010: `hostname` globally unique, stored lowercased and punycode-normalised at save. Normalising on write rather than comparing on read is what makes the unique constraint mean something - otherwise `Example.COM` and `example.com` are two rows answering the same question. Greek operators register Greek domains, so the Unicode form is a real input and must match the `xn--` form a browser actually sends; there is a test.
+
+**Only `status = verified` resolves.** A pending or disabled row is not a claim of ownership, and honouring one would let anyone point a hostname at the platform and be served another operator's catalogue.
+
+Read-only mode gates unsafe methods only. Guests keep seeing trips, existing bookings keep working, token pages keep opening; what stops is the operator changing anything. `past_due` still allows writes - that is the dunning window, not the punishment, and cutting an operator off the moment a card fails would break bookings over a payment that usually succeeds on retry.
+
+Every log line now carries `tenant_id` and `request_id` (OBS-2). A log line without a tenant in a single-database multi-tenant system is close to useless: "booking confirmation failed" is unanswerable until you know whose.
+
+Two test bugs of my own, both fixed rather than worked around: a catch-all route on `/` silently lost to `routes/web.php`, and a hand-written punycode string was simply wrong - PHP will tell you the real encoding if you ask it instead of guessing.
+
 ### #6 - API keys: table, generation and hashing, authentication middleware
 
 `api_keys` from data-model section 2.1, key generation and one-way hashing, and the middleware that turns a presented key into a resolved tenant plus a capability set. This is strategy (1) of the four in TEN-4; #7 adds the rest.

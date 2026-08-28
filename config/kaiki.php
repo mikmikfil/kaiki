@@ -40,4 +40,28 @@ return [
         'generation_attempts' => 5,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Tenancy
+    |--------------------------------------------------------------------------
+    */
+    'tenancy' => [
+        /*
+         * The host that serves operator hosted pages as
+         * `book.{platform-domain}/{slug}`. Only this host reads the first path
+         * segment as an operator slug — doing that on every host would turn
+         * `/login` into a tenant lookup the day someone registers that slug.
+         */
+        'hosted_host' => env('KAIKI_HOSTED_HOST', 'book.kaiki.test'),
+
+        /*
+         * How long a hostname-to-tenant or slug-to-tenant answer is cached.
+         * Resolution runs on every request including the hottest public read,
+         * so it must not be a database round trip each time — but the window is
+         * short, because disabling a domain or a hosted page should take effect
+         * in seconds rather than needing a deploy.
+         */
+        'host_cache_seconds' => (int) env('KAIKI_HOST_CACHE_SECONDS', 60),
+    ],
+
 ];

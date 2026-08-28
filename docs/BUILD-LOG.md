@@ -13,7 +13,7 @@ Each entry records the **verification actually run** and its **real output** —
 | | |
 |---|---|
 | Milestone | **M0 — Foundation** |
-| Issues closed | #1, #2, #3, #5, #6 of 12 |
+| Issues closed | #1, #2, #3, #5, #6, #7 of 12 |
 | Local stack | Laravel 12.68 · PHP 8.4.24 · SQLite · database/file drivers |
 | Quality gate | Pint · PHPStan level 6 + Larastan · Pest — all green |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
@@ -25,6 +25,49 @@ Each entry records the **verification actually run** and its **real output** —
 | VAT **rates** (mechanism settled in ADR-0002; the numbers are not) | accountant | M6 |
 | Invoice-numbering **gap policy** (ADR-0022) | accountant | M6 |
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
+
+---
+
+## #7 — Tenant resolution: four strategies, fixed order, plus read-only mode
+
+**Files:** `app/Http/Middleware/{ResolveTenant,EnsureTenantIsWritable}.php`, `app/Domain/Tenancy/Resolvers/` (interface + four strategies), `app/Models/TenantDomain.php`, `app/Enums/DomainStatus.php`, `app/Logging/{TenantContextProcessor,AddTenantContext}.php`, one migration, factory, `config/kaiki.php`, `lang/{el,en}/{errors,domains}.php`, four test files
+
+Order: **API key → verified custom domain → hosted slug → panel session**, stopping at the first match, 404 when none matches.
+
+### The ordering is a security property
+
+API key first: the caller named a tenant explicitly, and a request holding a valid key must never be reinterpreted by host. Panel session **last**: an operator signed into their own back office who opens a competitor's hosted page must see *that* operator's public page, not their own catalogue bleeding through. A session says who you are, not what the request is for.
+
+Both precedence cases are tested directly, because a resolver that works alone and loses to the wrong neighbour is exactly how that leak happens.
+
+### No fallback, tested as its own failure
+
+`NoFallbackTenantTest` covers unknown host, unknown slug, no signal at all, and an invalid API key that must **not** quietly degrade into "resolve by host instead". It also covers the tempting bug: *"there is only one operator, so obviously they meant that one"* — true on day one, catastrophic the day a second signs up.
+
+These live here rather than in #8 because they are a different failure: #8 proves the scope cannot leak *between* resolved tenants; this proves the system refuses to proceed with *no* tenant.
+
+### Custom domains
+
+`tenant_domains` per ADR-0010, `hostname` globally unique and normalised **on write** — lowercased, port stripped, punycode-encoded. Normalising on write rather than comparing on read is what makes the unique constraint mean anything; otherwise `Example.COM` and `example.com` are two rows answering the same question, which is the whole security property gone.
+
+Only `status = verified` resolves. Pending and disabled both 404.
+
+### Read-only mode
+
+Unsafe methods only. `past_due` still writes — that is the dunning window, not the punishment; cutting an operator off the moment a card fails would break bookings over a payment that usually succeeds on retry. `read_only` and `suspended` refuse, in Greek and English.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `composer lint:test` | passed |
+| `composer stan` | `[OK] No errors` |
+| `composer test` | **88 passed** (200 assertions), 30 new |
+
+### Two test bugs of my own
+
+1. **A catch-all route on `/` silently lost to `routes/web.php`.** Six tests failed with "Invalid JSON was returned from the route" — they were asserting against the Laravel welcome page. Test routes now use a path that does not collide.
+2. **A hand-written punycode string was wrong.** The normalisation was correct and the constant I asserted against was not — worth noting because the failure looked exactly like a broken resolver.
 
 ---
 
