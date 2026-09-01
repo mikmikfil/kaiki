@@ -58,16 +58,24 @@ it('translates every role label and description in both locales', function (): v
     }
 })->group('fast');
 
-it('renders the login page in Greek when the locale is Greek', function (): void {
-    app()->setLocale('el');
-
-    $response = get('/app/login');
+it('renders the login page in Greek when Greek is asked for', function (): void {
+    // Was `app()->setLocale('el')` before #12, because no middleware existed to
+    // set it — which meant the assertion could only ever prove that Blade reads
+    // the locale, never that a real request arrives with the right one. Now it
+    // drives the actual path: `?lang=` on an unauthenticated page, which is the
+    // whole reason SetLocale sits in the panel's base middleware stack rather
+    // than behind authentication.
+    $response = get('/app/login?lang=el');
 
     $response->assertOk();
-    // Filament ships Greek translations; this asserts the locale actually
-    // reaches the rendered page rather than only the lang helper.
     expect($response->getContent())->toContain('lang="el"');
-})->group('fast');
+})->group('fast', 'i18n');
+
+it('renders the login page in Greek for a Greek browser, with no query string', function (): void {
+    get('/app/login', ['Accept-Language' => 'el-GR,el;q=0.9'])
+        ->assertOk()
+        ->assertSee('lang="el"', escape: false);
+})->group('fast', 'i18n');
 
 it('keeps capability values stable, since lang keys and policies are built on them', function (): void {
     // These strings appear in policy names, in audit logs and eventually in

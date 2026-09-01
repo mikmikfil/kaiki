@@ -22,4 +22,9 @@ return [
     'errors' => [
         'no_panel_access' => 'This account cannot open that part of Kaiki.',
     ],
+
+    'locale' => [
+        'switcher' => 'Language',
+    ],
+
 ];

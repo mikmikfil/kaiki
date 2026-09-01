@@ -87,7 +87,14 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('phone', 32)->nullable();
-            $table->char('locale', 2)->default('el');
+            // Nullable with NO default: null means "this person has never
+            // chosen", which is what lets steps 4 and 5 of the I18N-5 chain
+            // (Accept-Language, then the tenant's default_locale) be reachable
+            // for a signed-in user. A `default('el')` here reads as an explicit
+            // preference the moment the row is created, so every staff member
+            // of an English-speaking operator would get a Greek panel and no
+            // amount of middleware could tell the difference (#12 review).
+            $table->char('locale', 2)->nullable();
             $table->boolean('is_super_admin')->default(false);
             $table->timestamp('last_login_at')->nullable();
 

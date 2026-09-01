@@ -7,6 +7,7 @@ namespace App\Providers\Filament;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureTenantIsWritable;
 use App\Http\Middleware\ResolveTenant;
+use App\Http\Middleware\SetLocale;
 use App\Support\Tenancy;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
@@ -114,6 +115,14 @@ class AppPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
                 AddSecurityHeaders::class,
+                // Listed here rather than in `authMiddleware` so the login page
+                // is localised too — an operator who cannot read the sign-in
+                // form is the last person able to fix their own locale. It
+                // still runs *after* `ResolveTenant`, which lives in the auth
+                // stack: the middleware priority list in `bootstrap/app.php`
+                // guarantees the order, because listing it twice would be
+                // silently deduplicated. See `SetLocale`.
+                SetLocale::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

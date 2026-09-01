@@ -33,6 +33,33 @@ jobs:
 
       - run: composer lint:test
 
+  i18n:
+    name: EL/EN parity and no hardcoded strings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # I18N-2 and I18N-3. Its own job rather than relying on `test-sqlite`,
+      # because "the Greek translations are missing" and "a test failed" are
+      # different problems for whoever reads the red build, and the fix paths
+      # have nothing in common. The checks themselves are Pest tests, so there
+      # is one implementation and two ways to invoke it.
+      - name: Lang parity and hardcoded-string lint
+        run: composer i18n:check
+
   static-analysis:
     name: PHPStan level 6
     runs-on: ubuntu-latest
@@ -334,7 +361,7 @@ jobs:
     name: CI passed
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, static-analysis, test-sqlite, test-mysql, tenancy-isolation, coverage, security-audit, migrate-from-zero, widget-build, widget-e2e, plugin-lint]
+    needs: [lint, i18n, static-analysis, test-sqlite, test-mysql, tenancy-isolation, coverage, security-audit, migrate-from-zero, widget-build, widget-e2e, plugin-lint]
     steps:
       # A single check to make required in branch protection. Without this,
       # adding a job later means remembering to mark it required by hand.

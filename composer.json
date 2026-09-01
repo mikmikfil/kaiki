@@ -12,6 +12,8 @@
     "license": "proprietary",
     "require": {
         "php": "^8.4",
+        "ext-intl": "*",
+        "brick/money": "^0.11.2",
         "filament/filament": "^3.2",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
@@ -76,6 +78,10 @@
             "@php artisan config:clear --ansi",
             "@php vendor/bin/pest --group=tenancy"
         ],
+        "i18n:check": [
+            "@php artisan config:clear --ansi",
+            "@php vendor/bin/pest --group=i18n"
+        ],
         "lint": [
             "@php vendor/bin/pint"
         ],
@@ -132,6 +138,7 @@
         "test:coverage": "The TST-1 gate: coverage of app/Domain only, failing under 80%. Needs PCOV, so CI only (ENV-22). The threshold lives here and nowhere else.",
         "schema:snapshot": "Regenerates database/schema/mysql-schema.snapshot.sql, the file the migrate-from-zero gate compares against (ENV-10). Needs a MySQL 8 connection - see docs/ci.md.",
         "test:mysql": "The mysql group. Needs a MySQL 8 instance; normally CI only.",
+        "i18n:check": "The I18N-2 and I18N-3 gates: EL/EN key parity, and no hardcoded user-facing string. A required CI check. The allow-list for both lives in tests/Support/I18n/allow-list.php.",
         "lint": "Pint in fix mode.",
         "lint:test": "Pint in check mode. What CI runs.",
         "analyse": "PHPStan level 6 with Larastan.",

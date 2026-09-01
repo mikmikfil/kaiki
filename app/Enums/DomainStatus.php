@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasTranslatedLabel;
+
 /**
  * Verification state of an operator's custom domain (ADR-0010 Option A).
  *
@@ -15,15 +17,12 @@ namespace App\Enums;
  */
 enum DomainStatus: string
 {
+    use HasTranslatedLabel;
+
     case Pending = 'pending';
     case Verified = 'verified';
     case Failed = 'failed';
     case Disabled = 'disabled';
-
-    public function label(): string
-    {
-        return __("domains.status.{$this->value}");
-    }
 
     /** May a request on this hostname resolve its tenant? */
     public function resolvesTenant(): bool

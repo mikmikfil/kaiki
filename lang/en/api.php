@@ -14,22 +14,4 @@ return [
         'insufficient_scope' => 'That API key does not have permission for this action (:scope).',
     ],
 
-    'key_type' => [
-        'publishable' => 'Publishable',
-        'secret' => 'Secret',
-    ],
-
-    'key_environment' => [
-        'live' => 'Live',
-        'test' => 'Test',
-    ],
-
-    'scope' => [
-        'products.read' => 'Read trips',
-        'availability.read' => 'Read availability',
-        'branding.read' => 'Read branding',
-        'bookings.write' => 'Create bookings',
-        'quotes.write' => 'Create quotes',
-        'webhooks.receive' => 'Receive webhooks',
-    ],
 ];

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasTranslatedLabel;
+
 /**
  * Operator account status (data-model §2.1).
  *
@@ -13,16 +15,13 @@ namespace App\Enums;
  */
 enum TenantStatus: string
 {
+    use HasTranslatedLabel;
+
     case Trialing = 'trialing';
     case Active = 'active';
     case PastDue = 'past_due';
     case ReadOnly = 'read_only';
     case Suspended = 'suspended';
-
-    public function label(): string
-    {
-        return __("tenant_status.{$this->value}.label");
-    }
 
     /** May the operator write anything at all? */
     public function allowsWrites(): bool

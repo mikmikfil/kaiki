@@ -87,6 +87,17 @@ return [
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
     /*
+    | The locales this application actually ships lang files for (I18N-1,
+    | EXT-7). A tenant's `supported_locales` is narrowed against this list, so
+    | adding `it` here without adding `lang/it` would serve raw dotted keys.
+    |
+    | Deliberately not env-driven: which translations exist is a property of the
+    | repository, not of the deployment, and the key-parity CI check verifies
+    | exactly these directories.
+    */
+    'available_locales' => ['el', 'en'],
+
+    /*
     |--------------------------------------------------------------------------
     | Encryption Key
     |--------------------------------------------------------------------------

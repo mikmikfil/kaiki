@@ -275,7 +275,7 @@ Operator staff and platform super-admins in one table. `tenant_id` is **nullable
 | `email_verified_at` | timestamp | yes | null | |
 | `password` | varchar(255) | no | — | bcrypt/argon hash |
 | `phone` | varchar(32) | yes | null | crew SMS for departure changes |
-| `locale` | char(2) | no | `el` | panel language |
+| `locale` | char(2) | yes | null | panel language; **null = no preference chosen**, so the I18N-5 chain falls through to `Accept-Language` then the tenant's `default_locale` |
 | `is_super_admin` | boolean | no | `false` | true only when `tenant_id` is null |
 | `last_login_at` | timestamp | yes | null | |
 | `two_factor_secret`, `two_factor_recovery_codes`, `two_factor_confirmed_at` | text/timestamp | yes | null | Fortify/Filament 2FA; encrypted casts |

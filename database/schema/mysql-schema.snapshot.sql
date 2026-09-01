@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:8d1cbf3d2d9a9edaa127deb5195713f944c77a4e171f1a56a8aea1d4e23f2115
+-- migrations-fingerprint: sha256:77a712478d3c4279612544ec140be26eec9882ab7139dc3fc9600b44cd2c1d8d
 
 DROP TABLE IF EXISTS `api_keys`;
 CREATE TABLE `api_keys` (
@@ -205,7 +205,7 @@ CREATE TABLE `users` (
   `email_verified_at` timestamp NULL DEFAULT NULL,
   `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `phone` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `locale` char(2) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'el',
+  `locale` char(2) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `is_super_admin` tinyint(1) NOT NULL DEFAULT '0',
   `last_login_at` timestamp NULL DEFAULT NULL,
   `two_factor_secret` text COLLATE utf8mb4_unicode_ci,

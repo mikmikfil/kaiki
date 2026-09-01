@@ -14,22 +14,4 @@ return [
         'insufficient_scope' => 'Το κλειδί API δεν έχει δικαίωμα για αυτή την ενέργεια (:scope).',
     ],
 
-    'key_type' => [
-        'publishable' => 'Δημόσιο',
-        'secret' => 'Μυστικό',
-    ],
-
-    'key_environment' => [
-        'live' => 'Παραγωγή',
-        'test' => 'Δοκιμαστικό',
-    ],
-
-    'scope' => [
-        'products.read' => 'Ανάγνωση εκδρομών',
-        'availability.read' => 'Ανάγνωση διαθεσιμότητας',
-        'branding.read' => 'Ανάγνωση εμφάνισης',
-        'bookings.write' => 'Δημιουργία κρατήσεων',
-        'quotes.write' => 'Δημιουργία προσφορών',
-        'webhooks.receive' => 'Λήψη webhooks',
-    ],
 ];

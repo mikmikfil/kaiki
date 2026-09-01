@@ -36,7 +36,7 @@ use Illuminate\Notifications\Notifiable;
  * @property int|null $tenant_id
  * @property string $name
  * @property string $email
- * @property string $locale
+ * @property string|null $locale
  * @property bool $is_super_admin
  */
 class User extends Authenticatable implements FilamentUser

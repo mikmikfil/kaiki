@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasTranslatedLabel;
+
 /**
  * Publishable or secret (spec SEC-5, ADR-0013 Option A).
  *
@@ -14,13 +16,10 @@ namespace App\Enums;
  */
 enum ApiKeyType: string
 {
+    use HasTranslatedLabel;
+
     case Publishable = 'publishable';
     case Secret = 'secret';
-
-    public function label(): string
-    {
-        return __("api.key_type.{$this->value}");
-    }
 
     /** The `pk_` / `sk_` marker that starts every key of this type. */
     public function keyPrefix(): string

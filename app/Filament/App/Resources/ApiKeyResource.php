@@ -92,7 +92,7 @@ class ApiKeyResource extends Resource
                 ->helperText(__('api_keys.form.type.help'))
                 ->options(fn (): array => collect(ApiKeyType::cases())
                     ->mapWithKeys(fn (ApiKeyType $type): array => [
-                        $type->value => __("api.key_type.{$type->value}"),
+                        $type->value => $type->label(),
                     ])
                     ->all())
                 ->default(ApiKeyType::Publishable->value)
@@ -105,7 +105,7 @@ class ApiKeyResource extends Resource
                 ->label(__('api_keys.form.environment.label'))
                 ->options(fn (): array => collect(ApiKeyEnvironment::cases())
                     ->mapWithKeys(fn (ApiKeyEnvironment $env): array => [
-                        $env->value => __("api.key_environment.{$env->value}"),
+                        $env->value => $env->label(),
                     ])
                     ->all())
                 ->default(ApiKeyEnvironment::Live->value)
@@ -134,7 +134,7 @@ class ApiKeyResource extends Resource
                             if ($candidate === null || ! $type->permits($candidate)) {
                                 $fail(__('api_keys.form.scopes.forbidden', [
                                     'scope' => (string) $scope,
-                                    'type' => __("api.key_type.{$type->value}"),
+                                    'type' => $type->label(),
                                 ]));
                             }
                         }
@@ -172,13 +172,13 @@ class ApiKeyResource extends Resource
                 TextColumn::make('type')
                     ->label(__('api_keys.table.type'))
                     ->badge()
-                    ->formatStateUsing(fn (ApiKeyType $state): string => __("api.key_type.{$state->value}"))
+                    ->formatStateUsing(fn (ApiKeyType $state): string => $state->label())
                     ->color(fn (ApiKeyType $state): string => $state->isPublic() ? 'gray' : 'warning'),
 
                 TextColumn::make('environment')
                     ->label(__('api_keys.table.environment'))
                     ->badge()
-                    ->formatStateUsing(fn (ApiKeyEnvironment $state): string => __("api.key_environment.{$state->value}"))
+                    ->formatStateUsing(fn (ApiKeyEnvironment $state): string => $state->label())
                     ->color(fn (ApiKeyEnvironment $state): string => $state === ApiKeyEnvironment::Live ? 'success' : 'gray'),
 
                 // The only part of the key that is ever shown again (TEN-3).

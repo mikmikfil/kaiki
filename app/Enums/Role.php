@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasTranslatedLabel;
+
 /**
  * The three fixed operator roles (data-model §2.1, ADR-0019).
  *
@@ -14,34 +16,27 @@ namespace App\Enums;
  */
 enum Role: string
 {
+    use HasTranslatedLabel;
+
     case Owner = 'owner';
     case Manager = 'manager';
     case Crew = 'crew';
 
-    /** Translated label. Never a literal — every user-facing string is EL/EN. */
-    public function label(): string
-    {
-        return __("roles.{$this->value}.label");
-    }
-
+    /**
+     * The longer explanation shown beside the role in the panel.
+     *
+     * On `Role` rather than on the trait: it is the only enum with
+     * descriptions, and a trait method that six enums answer with a dotted key
+     * is an invitation for an M1 resource to render one.
+     */
     public function description(): string
     {
-        return __("roles.{$this->value}.description");
+        return $this->line('description');
     }
 
     /** Roles that may administer other users' roles. */
     public function canManageRoles(): bool
     {
         return $this === self::Owner;
-    }
-
-    /** @return array<string, string> value => label, for form selects */
-    public static function options(): array
-    {
-        return array_reduce(
-            self::cases(),
-            static fn (array $carry, self $role): array => $carry + [$role->value => $role->label()],
-            [],
-        );
     }
 }

@@ -24,7 +24,10 @@ class UserFactory extends Factory
             'email' => $this->faker->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => Hash::make('password'),
-            'locale' => 'el',
+            // No preference, which is what a real new user has. A factory
+            // that pins a locale makes steps 4 and 5 of the I18N-5 chain
+            // untestable for an authenticated user.
+            'locale' => null,
             'is_super_admin' => false,
             'remember_token' => Str::random(10),
         ];
@@ -36,7 +39,6 @@ class UserFactory extends Factory
         return $this->state(fn (): array => [
             'tenant_id' => null,
             'is_super_admin' => true,
-            'locale' => 'en',
         ]);
     }
 

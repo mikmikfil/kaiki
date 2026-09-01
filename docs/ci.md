@@ -25,6 +25,7 @@ Also enable **Require branches to be up to date before merging**. Without it, tw
 | Job | What a red build means |
 |---|---|
 | `lint` | Pint would reformat something. `composer lint` fixes it. |
+| `i18n` | EL and EN lang files disagree on a key, or a user-facing string is hardcoded (I18N-2, I18N-3). `composer i18n:check` reproduces it. |
 | `static-analysis` | PHPStan level 6 with Larastan found something (TST-10). |
 | `test-sqlite` | Pest against the SQLite stack developers actually run on. |
 | `test-mysql` | Pest against MySQL 8 and Redis, plus the `mysql` group — which must execute for real, not skip (ENV-11, TST-8). |
@@ -106,6 +107,7 @@ Two of the four things ENV-25 lists do not exist yet and are recorded as comment
 | Gate | Local | Notes |
 |---|---|---|
 | Pint, PHPStan, Pest | `composer ci` | The SQLite stack. |
+| i18n parity and lint | `composer i18n:check` | Runs fully locally; no database needed. |
 | Widget and plugin stubs | `npm run widget:build`, `npm run widget:size`, `npm run e2e`, `npm run plugin:lint` | Stubs until M3/M4. |
 | Coverage | — | CI only; no PCOV locally (ENV-22). |
 | MySQL suite, schema snapshot, audits | — | CI only; no local MySQL (ADR-0015). |

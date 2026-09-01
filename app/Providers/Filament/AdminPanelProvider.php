@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers\Filament;
 
 use App\Http\Middleware\AddSecurityHeaders;
+use App\Http\Middleware\SetLocale;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -61,6 +62,11 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
                 AddSecurityHeaders::class,
+                // Listed here rather than in `authMiddleware` so the login page
+                // is localised too. There is no tenant to inherit from in this
+                // panel, so the chain here is `?lang=`, then the super-admin's
+                // own `users.locale`, then `Accept-Language`, then `en`.
+                SetLocale::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

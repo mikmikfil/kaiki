@@ -8,6 +8,7 @@ use App\Enums\Role;
 
 use function Pest\Laravel\actingAs;
 
+use Tests\Support\I18n\LangFiles;
 use Tests\Support\OperatorUser;
 
 /*
@@ -19,40 +20,9 @@ use Tests\Support\OperatorUser;
  * and is only noticed when an operator sends a screenshot.
  */
 
-/**
- * Every dotted key in a lang array, flattened.
- *
- * Compared as a set rather than key-by-key at the top level, because a key
- * added three levels down and forgotten in the other file renders as the raw
- * dotted path on screen and nothing else goes wrong.
- *
- * @param  array<string, mixed>  $lines
- * @return list<string>
- */
-function flattenKeys(array $lines, string $prefix = ''): array
-{
-    $keys = [];
-
-    foreach ($lines as $key => $value) {
-        $path = $prefix === '' ? (string) $key : "{$prefix}.{$key}";
-
-        if (is_array($value)) {
-            $keys = [...$keys, ...flattenKeys($value, $path)];
-
-            continue;
-        }
-
-        $keys[] = $path;
-    }
-
-    sort($keys);
-
-    return $keys;
-}
-
 it('has identical key sets in both locales', function (): void {
-    $en = flattenKeys(require lang_path('en/api_keys.php'));
-    $el = flattenKeys(require lang_path('el/api_keys.php'));
+    $en = LangFiles::flatten(require lang_path('en/api_keys.php'));
+    $el = LangFiles::flatten(require lang_path('el/api_keys.php'));
 
     expect($el)->toBe($en);
 })->group('fast');
@@ -61,7 +31,7 @@ it('translates every string in Greek, with no English left behind', function ():
     $en = require lang_path('en/api_keys.php');
     $el = require lang_path('el/api_keys.php');
 
-    foreach (flattenKeys($en) as $key) {
+    foreach (LangFiles::flatten($en) as $key) {
         $english = data_get($en, $key);
         $greek = data_get($el, $key);
 
@@ -82,7 +52,7 @@ it('keeps every placeholder that the English string uses', function (): void {
     $en = require lang_path('en/api_keys.php');
     $el = require lang_path('el/api_keys.php');
 
-    foreach (flattenKeys($en) as $key) {
+    foreach (LangFiles::flatten($en) as $key) {
         $english = (string) data_get($en, $key);
         $greek = (string) data_get($el, $key);
 
@@ -97,32 +67,39 @@ it('keeps every placeholder that the English string uses', function (): void {
 it('renders the page in Greek for an owner', function (): void {
     $owner = OperatorUser::withRole(Role::Owner);
 
-    app()->setLocale('el');
-
-    actingAs($owner)->get('/app/api-keys')
+    // Drives the real path rather than `app()->setLocale('el')`. Before #12 no
+    // middleware set the locale, so presetting it by hand was the only way to
+    // reach this assertion — and it proved only that Blade reads the locale,
+    // never that a request arrives with the right one.
+    actingAs($owner)->get('/app/api-keys?lang=el')
         ->assertSuccessful()
         ->assertSee(__('api_keys.model.plural'))
         ->assertSee('Κλειδιά API');
 })->group('fast');
 
-it('reuses the shared api vocabulary rather than duplicating it', function (): void {
-    // The scope, type and environment labels belong to `api.php`, which the
-    // public API error messages already use. Two copies of "Read trips" is how
-    // the panel and the API start disagreeing about what a scope is called.
+it('reuses the shared enum vocabulary rather than duplicating it', function (): void {
+    // The scope, type and environment labels belong to the enums, and the enums
+    // read `enums.php` (CNV-11). Two copies of "Read trips" is how the panel and
+    // the API start disagreeing about what a scope is called.
+    //
+    // They lived in `api.php` until #12 consolidated every enum label into one
+    // file; the claim being tested is unchanged — one home, no duplication, no
+    // literal — only the address moved. `api.php` now holds the API error
+    // envelope alone, which is prose for an integrator rather than a form label.
     $apiKeys = require lang_path('en/api_keys.php');
 
-    expect(flattenKeys($apiKeys))->not->toContain('scope.products.read');
+    expect(LangFiles::flatten($apiKeys))->not->toContain('scope.products.read');
 
     foreach (['el', 'en'] as $locale) {
         app()->setLocale($locale);
 
         foreach (ApiScope::cases() as $scope) {
             expect($scope->label())->toBeString();
-            expect($scope->label())->not->toBe("api.scope.{$scope->value}");
+            expect($scope->label())->not->toBe("enums.api_scope.{$scope->value}.label");
         }
 
         foreach (ApiKeyType::cases() as $type) {
-            expect(__("api.key_type.{$type->value}"))->not->toBe("api.key_type.{$type->value}");
+            expect($type->label())->not->toBe("enums.api_key_type.{$type->value}.label");
         }
     }
 })->group('fast');

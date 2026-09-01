@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Enums\Concerns\HasTranslatedLabel;
+
 /**
  * Live or test (data-model §2.1).
  *
@@ -14,13 +16,10 @@ namespace App\Enums;
  */
 enum ApiKeyEnvironment: string
 {
+    use HasTranslatedLabel;
+
     case Live = 'live';
     case Test = 'test';
-
-    public function label(): string
-    {
-        return __("api.key_environment.{$this->value}");
-    }
 
     public function isTest(): bool
     {
