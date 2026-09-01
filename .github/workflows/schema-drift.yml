@@ -23,7 +23,14 @@ jobs:
       # schema, which is the path a new production database takes exactly once
       # and can therefore never be rehearsed anywhere else.
       mysql:
-        image: mysql:8.0
+        # Pinned to a patch, unlike the floating tag in ci.yml's test-mysql.
+        # That job only needs "a MySQL 8"; this one compares dumped DDL byte
+        # for byte, and the server's rendering of display widths and default
+        # collations moves between patches. A silent image bump would turn
+        # this gate red for a reason that has nothing to do with a migration —
+        # the "gate that cries wolf" the normaliser exists to avoid.
+        # Bumping this means regenerating the snapshot. See docs/ci.md.
+        image: mysql:8.0.40
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: kaiki_schema

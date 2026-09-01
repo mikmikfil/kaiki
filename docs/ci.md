@@ -33,11 +33,14 @@ Also enable **Require branches to be up to date before merging**. Without it, tw
 | `security-audit` | A high or critical advisory in Composer or npm dependencies (SEC-12). |
 | `migrate-from-zero` | The migrations no longer produce the committed schema (ENV-10). |
 | `widget-build` | The widget build or its 80 KB gzipped budget (WGT-2, NFR-3). |
+| `widget-e2e` | The widget Playwright smoke run (ENV-23, TST-3). |
 | `plugin-lint` | The WordPress plugin coding standard (WPP-11). |
 
 <!-- required-checks:end -->
 
-`widget-build` and `plugin-lint` run stubs until M3 and M4. They exist now so those milestones replace a `package.json` script rather than invent a pipeline, and so the required-check list on `main` never has to change again.
+`widget-build`, `widget-e2e` and `plugin-lint` run stubs until M3 and M4. They exist now so those milestones replace a `package.json` script rather than invent a pipeline.
+
+The **branch-protection** list never has to change again — it is one entry, `CI passed`. The job list behind it will still grow, and three are known to be owed: the ENV-14 job running the availability group under a non-UTC machine timezone, the ENV-28 Scramble docs-drift check (issue #11), and the M3 replacement of the Playwright stub with a real run. Each becomes required the moment it joins `ci-passed`'s `needs:`, with nothing to configure.
 
 ---
 
@@ -59,6 +62,8 @@ Also enable **Require branches to be up to date before merging**. Without it, tw
 composer schema:snapshot
 ```
 
+> **Point it at a throwaway database only.** Laravel's dumper passes the password on the `mysqldump` command line, so it is visible in the process list for the life of the dump. That is fine for the ephemeral root/root container in CI; it is not fine for staging.
+
 One command — but it needs a MySQL 8 connection, and the local stack is SQLite (ADR-0015), so in practice:
 
 1. Push the branch. `migrate-from-zero` goes red and says the snapshot is stale.
@@ -67,15 +72,19 @@ One command — but it needs a MySQL 8 connection, and the local stack is SQLite
 
 `tests/Unit/CiGatesTest.php` also checks a fingerprint of the migrations recorded in the snapshot's header, so "changed a migration, forgot to refresh" fails locally in seconds instead of after a MySQL round-trip.
 
+The MySQL service image for this job is pinned to a **patch** version, unlike the floating `mysql:8.0` in `test-mysql`. The comparison is byte-for-byte, and the server's rendering of display widths and default collations moves between patches. **Bumping that image means regenerating the snapshot** in the same commit.
+
 ### Why the file is not called `mysql-schema.sql`
 
-Because Laravel would load it. `MigrateCommand::prepareDatabase()` runs a dump found at `database/schema/{connection}-schema.sql` **instead of** the migrations whenever no migration has run yet. Committing the snapshot there would mean `migrate-from-zero` compared the snapshot with itself, and `test-mysql`'s `migrate:fresh` stopped exercising the migrations — and neither would have gone red to say so. `.gitignore` therefore ignores that path, the job asserts the migrate output never says `Loading stored database schemas`, and a test asserts no such file exists.
+Because Laravel would load it. `MigrateCommand::prepareDatabase()` runs a dump found at `database/schema/{connection}-schema.dump` or `{connection}-schema.sql` **instead of** the migrations whenever no migration has run yet. Committing the snapshot there would mean `migrate-from-zero` compared the snapshot with itself, and `test-mysql`'s `migrate:fresh` stopped exercising the migrations — and neither would have gone red to say so. Laravel checks `database/schema/{connection}-schema.dump` **first** and `{connection}-schema.sql` second, and the connection name is part of the filename — so a local `php artisan schema:dump` on the SQLite stack writes `sqlite-schema.sql` and silently neuters that developer's own `migrate`. `.gitignore` therefore ignores both extensions for every connection, the job asserts the migrate output never says `Loading stored database schemas`, and a test asserts no such file exists.
 
 ---
 
 ## The dependency audit (SEC-12)
 
-`composer audit` and `npm audit` both run. **High and critical fail the build**; medium, moderate and low are printed as a notice with the package and title, for a human to open an issue about. Both tools exit non-zero on any finding, so the exit code is discarded and the severity is read from the JSON — and a run that produced no parseable JSON fails rather than being read as "no advisories".
+`composer audit` and `npm audit` both run. **High, critical and unclassified fail the build**; medium, moderate, low and info are printed as a notice with the package and title, for a human to open an issue about.
+
+Both tools exit non-zero on any finding, so the exit code is discarded and the severity read from the JSON. Everything about that reading **fails closed**: Composer's severity is nullable, so an advisory with no severity blocks rather than sorting into the harmless pile; output that is not a JSON object, or that lacks the key the counts read, fails the job rather than counting zero; and an advisory suppressed through `config.advisories.ignore` fails too, because muting one is a decision that needs a human rather than a quietly green build.
 
 The audit and schema jobs live in `.github/workflows/dependency-audit.yml` and `.github/workflows/schema-drift.yml` and are called by both `ci.yml` and `nightly.yml`. Extracted rather than copied: two divergent copies of a severity threshold is how one of them quietly stops blocking anything.
 
@@ -97,6 +106,6 @@ Two of the four things ENV-25 lists do not exist yet and are recorded as comment
 | Gate | Local | Notes |
 |---|---|---|
 | Pint, PHPStan, Pest | `composer ci` | The SQLite stack. |
-| Widget and plugin stubs | `npm run widget:build`, `npm run widget:size`, `npm run plugin:lint` | Stubs until M3/M4. |
+| Widget and plugin stubs | `npm run widget:build`, `npm run widget:size`, `npm run e2e`, `npm run plugin:lint` | Stubs until M3/M4. |
 | Coverage | — | CI only; no PCOV locally (ENV-22). |
 | MySQL suite, schema snapshot, audits | — | CI only; no local MySQL (ADR-0015). |

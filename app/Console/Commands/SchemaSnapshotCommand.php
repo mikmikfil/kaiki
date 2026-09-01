@@ -49,13 +49,15 @@ final class SchemaSnapshotCommand extends Command
 
         $path = base_path(self::PATH);
 
-        if (! is_dir($directory = dirname($path))) {
-            mkdir($directory, recursive: true);
+        if (! is_dir($directory = dirname($path)) && ! mkdir($directory, recursive: true) && ! is_dir($directory)) {
+            throw new RuntimeException(sprintf('Could not create %s.', $directory));
         }
 
         $dump = $this->normalise($this->dump($connection));
 
-        file_put_contents($path, $this->header() . $dump);
+        if (file_put_contents($path, $this->header() . $dump) === false) {
+            throw new RuntimeException(sprintf('Could not write %s.', self::PATH));
+        }
 
         $this->components->info(sprintf('Schema snapshot written to %s.', self::PATH));
 

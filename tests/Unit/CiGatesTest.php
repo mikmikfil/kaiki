@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Console\Commands\SchemaSnapshotCommand;
+use Tests\Support\WorkflowFile;
 
 /*
 |--------------------------------------------------------------------------
@@ -20,83 +21,16 @@ use App\Console\Commands\SchemaSnapshotCommand;
 |
 */
 
-/**
- * The job identifiers defined under `jobs:` in a workflow file.
- *
- * Deliberately a line scanner rather than a YAML parser: symfony/yaml is not an
- * approved dependency (ARC-19), and the shape being read is fixed - two-space
- * job keys directly under `jobs:`.
- *
- * @return list<string>
- */
-function workflowJobIds(string $path): array
+function ciWorkflow(): string
 {
-    $inJobs = false;
-    $ids = [];
-
-    foreach (file($path, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
-        if (preg_match('/^jobs:\s*$/', $line) === 1) {
-            $inJobs = true;
-
-            continue;
-        }
-
-        // A non-indented, non-comment line ends the jobs block.
-        if ($inJobs && preg_match('/^[^\s#]/', $line) === 1) {
-            break;
-        }
-
-        if ($inJobs && preg_match('/^ {2}([a-z0-9][a-z0-9_-]*):\s*$/', $line, $matches) === 1) {
-            $ids[] = $matches[1];
-        }
-    }
-
-    return $ids;
-}
-
-/**
- * The job identifiers listed in the `needs:` of the aggregating check.
- *
- * @return list<string>
- */
-function aggregatedJobIds(string $path): array
-{
-    $yaml = (string) file_get_contents($path);
-
-    if (preg_match('/^\s*needs:\s*\[(?P<list>[^\]]*)\]/m', $yaml, $matches) !== 1) {
-        return [];
-    }
-
-    return array_values(array_filter(array_map(
-        static fn (string $id): string => trim($id),
-        explode(',', $matches['list']),
-    )));
-}
-
-/**
- * The job identifiers documented as required status checks.
- *
- * @return list<string>
- */
-function documentedRequiredChecks(): array
-{
-    $docs = (string) file_get_contents(base_path('docs/ci.md'));
-
-    if (preg_match('/<!-- required-checks:start -->(?P<block>.*?)<!-- required-checks:end -->/s', $docs, $matches) !== 1) {
-        return [];
-    }
-
-    // The first column of the table only. Prose in the second column mentions
-    // plenty of other backticked names, and none of them is a status check.
-    preg_match_all('/^\|\s*`([a-z0-9][a-z0-9_-]*)`\s*\|/m', $matches['block'], $found);
-
-    return $found[1];
+    return base_path('.github/workflows/ci.yml');
 }
 
 it('defines every ENV-23 job in the CI workflow', function (): void {
-    $jobs = workflowJobIds(base_path('.github/workflows/ci.yml'));
-
-    expect($jobs)->toContain(
+    // The spec names twelve checks; composer audit and npm audit share one job.
+    // Playwright and phpcs run stubs until M3 and M4 - the jobs exist now so
+    // those milestones replace a script rather than invent a pipeline.
+    expect(WorkflowFile::jobIds(ciWorkflow()))->toContain(
         'lint',
         'static-analysis',
         'test-sqlite',
@@ -106,6 +40,7 @@ it('defines every ENV-23 job in the CI workflow', function (): void {
         'security-audit',
         'migrate-from-zero',
         'widget-build',
+        'widget-e2e',
         'plugin-lint',
     );
 })->group('fast');
@@ -113,10 +48,8 @@ it('defines every ENV-23 job in the CI workflow', function (): void {
 it('requires every CI job through the single aggregating check', function (): void {
     // Branch protection makes one check required: `ci-passed`. A job missing
     // from its `needs:` runs, goes red, and merges anyway.
-    $path = base_path('.github/workflows/ci.yml');
-
-    $jobs = array_values(array_diff(workflowJobIds($path), ['ci-passed']));
-    $needed = aggregatedJobIds($path);
+    $jobs = array_values(array_diff(WorkflowFile::jobIds(ciWorkflow()), ['ci-passed']));
+    $needed = WorkflowFile::aggregatedJobIds(ciWorkflow());
 
     sort($jobs);
     sort($needed);
@@ -127,8 +60,8 @@ it('requires every CI job through the single aggregating check', function (): vo
 it('documents exactly the required status checks that CI enforces', function (): void {
     // ENV-23: the list someone types into branch protection has to be the list
     // the workflow actually produces, in both directions.
-    $documented = documentedRequiredChecks();
-    $needed = aggregatedJobIds(base_path('.github/workflows/ci.yml'));
+    $documented = WorkflowFile::documentedRequiredChecks(base_path('docs/ci.md'));
+    $needed = WorkflowFile::aggregatedJobIds(ciWorkflow());
 
     sort($documented);
     sort($needed);
@@ -152,7 +85,7 @@ it('schedules the nightly workflow and names its deferred placeholders', functio
 })->group('fast');
 
 it('keeps the coverage threshold in exactly one place', function (): void {
-    $composer = composerManifest();
+    $composer = WorkflowFile::composerManifest(base_path('composer.json'));
 
     expect($composer['scripts'])->toHaveKey('test:coverage')
         ->and($composer['scripts-descriptions'])->toHaveKey('test:coverage');
@@ -165,10 +98,7 @@ it('keeps the coverage threshold in exactly one place', function (): void {
     expect($script)->toMatch('/--min=\d+/')
         ->and($script)->toContain('phpunit.coverage.xml');
 
-    // TST-1 raises this number later. Raising it must be a one-line change, so
-    // the workflow calls the composer script and never repeats the figure.
-    expect((string) file_get_contents(base_path('.github/workflows/ci.yml')))
-        ->not->toContain('--min=');
+    expect((string) file_get_contents(ciWorkflow()))->not->toContain('--min=');
 })->group('fast');
 
 it('scopes the coverage source to app/Domain without drifting from phpunit.xml', function (): void {
@@ -180,20 +110,24 @@ it('scopes the coverage source to app/Domain without drifting from phpunit.xml',
     expect($coverage)->toContain('<directory>app/Domain</directory>')
         ->and($coverage)->not->toContain('<directory>app</directory>');
 
-    $phpBlock = static function (string $path): string {
-        preg_match('/<php>(?P<block>.*?)<\/php>/s', (string) file_get_contents($path), $matches);
+    // Compared whole, modulo the source filter and comments. Restricting the
+    // comparison to the <php> block would let the test suites, the bootstrap
+    // or the root attributes drift apart unnoticed, and a coverage run under a
+    // different configuration measures something other than what CI runs.
+    $skeleton = static function (string $path): string {
+        $xml = (string) file_get_contents($path);
+        $xml = (string) preg_replace('/<!--.*?-->/s', '', $xml);
+        $xml = (string) preg_replace('/<source>.*?<\/source>/s', '', $xml);
 
-        return trim((string) preg_replace('/\s+/', ' ', $matches['block'] ?? ''));
+        return trim((string) preg_replace('/\s+/', ' ', $xml));
     };
 
-    // Two config files means two sets of test environment defaults, and a
-    // coverage run against a different environment measures the wrong thing.
-    expect($phpBlock(base_path('phpunit.coverage.xml')))
-        ->toBe($phpBlock(base_path('phpunit.xml')));
+    expect($skeleton(base_path('phpunit.coverage.xml')))
+        ->toBe($skeleton(base_path('phpunit.xml')));
 })->group('fast');
 
 it('exposes the schema snapshot refresh as one composer command', function (): void {
-    $composer = composerManifest();
+    $composer = WorkflowFile::composerManifest(base_path('composer.json'));
 
     expect($composer['scripts'])->toHaveKey('schema:snapshot')
         ->and($composer['scripts-descriptions'])->toHaveKey('schema:snapshot');
@@ -201,47 +135,55 @@ it('exposes the schema snapshot refresh as one composer command', function (): v
 
 it('runs every workflow on the one PHP version composer.json requires', function (): void {
     // ADR-0014, Option B: 8.4 everywhere. Extracting the audit and schema jobs
-    // into reusable workflows gave each of them its own default, so the version
-    // now appears in more than one file - and a pipeline testing a PHP the
-    // application does not require is a pipeline testing the wrong thing.
+    // into reusable workflows gave each of them its own input default, because
+    // GitHub does not allow the `env` context in a job's `with:` - so the
+    // version genuinely lives in more than one file and this is what keeps
+    // those files honest.
     $declared = [];
 
     foreach (glob(base_path('.github/workflows/*.yml')) ?: [] as $workflow) {
-        preg_match_all(
-            '/^\s*(?:PHP_VERSION|default):\s*\'(\d+\.\d+)\'/m',
-            (string) file_get_contents($workflow),
-            $found,
-        );
-
-        $declared = [...$declared, ...$found[1]];
+        $declared = [...$declared, ...WorkflowFile::phpVersions($workflow)];
     }
 
-    $composer = composerManifest();
+    $composer = WorkflowFile::composerManifest(base_path('composer.json'));
 
     expect($declared)->not->toBeEmpty()
         ->and(array_values(array_unique($declared)))
-        ->toBe([ltrim((string) $composer['require']['php'], '^~')]);
+        ->toBe([WorkflowFile::constraintToMajorMinor($composer['require']['php'])]);
 })->group('fast');
 
 it('keeps the widget and plugin stubs the CI jobs depend on', function (): void {
-    // WGT-2 and WPP-11 land in M3 and M4. The jobs exist now so those
-    // milestones fill a pipeline in rather than invent one, which only works
-    // if the scripts they call keep their names.
+    // WGT-2, WPP-11 and the ENV-23 Playwright smoke land in M3 and M4. The jobs
+    // exist now so those milestones fill a pipeline in rather than invent one,
+    // which only works if the scripts they call keep their names.
     /** @var array{scripts: array<string, string>} $package */
     $package = json_decode((string) file_get_contents(base_path('package.json')), true, flags: JSON_THROW_ON_ERROR);
 
-    expect($package['scripts'])->toHaveKeys(['widget:build', 'widget:size', 'plugin:lint']);
+    expect($package['scripts'])->toHaveKeys(['widget:build', 'widget:size', 'e2e', 'plugin:lint']);
 })->group('fast');
 
-it('never commits a schema dump at the path Laravel auto-loads', function (): void {
-    // MigrateCommand::prepareDatabase() loads database/schema/{connection}-schema.sql
-    // instead of running the migrations whenever no migration has run yet. A
-    // file there would turn every from-scratch MySQL migration - the ENV-10 job
-    // and test-mysql's migrate:fresh alike - into a replay of the dump, and the
-    // guarantee would vanish without a single red build.
-    expect(is_file(base_path('database/schema/mysql-schema.sql')))->toBeFalse()
-        ->and((string) file_get_contents(base_path('.gitignore')))
-        ->toContain('/database/schema/*-schema.sql');
+it('never commits a schema dump at any path Laravel auto-loads', function (): void {
+    // MigrateCommand::prepareDatabase() runs a dump found at
+    // database/schema/{connection}-schema.dump - checked FIRST - or
+    // {connection}-schema.sql, instead of running the migrations, whenever no
+    // migration has run yet. A file at either would turn every from-scratch
+    // MySQL migration into a replay of the dump and the guarantee would vanish
+    // without a single red build.
+    //
+    // Globbed rather than named: the connection is part of the filename, so a
+    // local `schema:dump` on the SQLite stack writes sqlite-schema.sql and
+    // neuters that developer's own migrate with nothing to warn them.
+    $loadable = [
+        ...glob(base_path('database/schema/*-schema.sql')) ?: [],
+        ...glob(base_path('database/schema/*-schema.dump')) ?: [],
+    ];
+
+    expect($loadable)->toBe([]);
+
+    $gitignore = (string) file_get_contents(base_path('.gitignore'));
+
+    expect($gitignore)->toContain('/database/schema/*-schema.sql')
+        ->and($gitignore)->toContain('/database/schema/*-schema.dump');
 })->group('fast');
 
 it('keeps the committed schema snapshot in step with the migrations', function (): void {
@@ -260,14 +202,3 @@ it('keeps the committed schema snapshot in step with the migrations', function (
 
     expect($matches['hash'])->toBe(SchemaSnapshotCommand::migrationsFingerprint());
 })->group('fast');
-
-/**
- * @return array{require: array<string, string>, scripts: array<string, mixed>, scripts-descriptions: array<string, string>}
- */
-function composerManifest(): array
-{
-    /** @var array{require: array<string, string>, scripts: array<string, mixed>, scripts-descriptions: array<string, string>} $manifest */
-    $manifest = json_decode((string) file_get_contents(base_path('composer.json')), true, flags: JSON_THROW_ON_ERROR);
-
-    return $manifest;
-}

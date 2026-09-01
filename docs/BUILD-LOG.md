@@ -61,7 +61,7 @@ A second, cheaper layer sits in front of it: the snapshot header carries a SHA-2
 |---|---|
 | `composer lint:test` | passed |
 | `composer stan` | `[OK] No errors` |
-| `composer test` | **173 passed** (444 assertions), 11 new |
+| `composer test` | **173 passed** (447 assertions), 11 new |
 | `npm run widget:build` / `widget:size` / `plugin:lint` | all exit 0 against the M0 stubs |
 | Full pipeline green | run [33484640743](https://github.com/mikmikfil/kaiki/actions/runs/33484640743), commit `fcce8f2` — all 11 jobs |
 | `app/Domain` coverage | **93.9%**, floor 80 |
@@ -78,6 +78,20 @@ Both gates broken in one commit, so that the blast radius of each was visible ag
 | Everything else | **green** — Pint, PHPStan, both Pest jobs, the isolation gate, both audits, both stub jobs |
 
 Reverted in `a113af5`. That last row is the half of the claim that is easy to skip: a gate that goes red when something unrelated breaks is not evidence that it watches what it says it watches.
+
+### Review — two blocking findings, both mine
+
+`security-reviewer` and `architect` over the diff. Neither found a way to leak tenant data; this change touches no model, route or migration. Both found real holes anyway.
+
+**The guards missed the path Laravel checks first.** `MigrateCommand::schemaPath()` tries `{connection}-schema.dump` *before* `-schema.sql`. My ignore rule and my test covered only the second, and only for `mysql` — so a developer running `php artisan schema:dump` on the local SQLite stack would write `sqlite-schema.sql` and silently neuter their own `migrate`, with nothing to warn them. Now both extensions are ignored for every connection, and the test globs rather than naming one path.
+
+**ENV-23 lists twelve checks and I shipped eleven.** The missing one is the widget Playwright smoke — and `CiGatesTest` asserted "every ENV-23 job" against a hand-written list that did not include it, so the test was green while the requirement it names was incomplete. That is this file's own doctrine turned inward: a gate that reports green while measuring less than it claims. `widget-e2e` now runs the existing `npm run e2e` stub, symmetrical with `widget-build` and `plugin-lint`.
+
+The audit gate had three ways to **fail open**, all now closed: Composer's severity is nullable and an unclassified advisory sorted into the harmless pile; `.advisories[]?[]` returned zero for output with no `advisories` key at all; and `jq empty` succeeds on an empty file, so "the tool died before writing anything" read as "no advisories". Unclassified now blocks, and the shape is asserted before anything is counted.
+
+The coverage job was the only gate here **without a proof that it ran** — php-code-coverage reports 100% for a source set with zero executable lines, so a broken source filter would have passed at 100% against nothing. It now asserts the clover report measured a non-zero statement count. One reviewer reached this from a false premise (that `app/Domain` is empty — it holds 8 files at 93.9%); the recommendation was right regardless.
+
+**Deferred, with reasons.** Pinning third-party actions to commit SHAs is correct and is *not* done here: it is a repo-wide convention that also covers #3's jobs, and pinning only the new files would be worse than pinning none. Its own issue. Likewise the coverage run excluding the `mysql` group — harmless today, wrong from M2 when AVL-44 can only run on MySQL and its `app/Domain` code would count as uncovered; and the ARC-21c test asserting `composer.json` requires nothing outside the approved list, which is pre-existing and is the one guard that would make ARC-19 mechanical.
 
 ### Left for the architect
 

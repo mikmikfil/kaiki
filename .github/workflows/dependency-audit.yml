@@ -47,27 +47,48 @@ jobs:
         run: |
           composer audit --locked --abandoned=report --format=json > composer-audit.json || true
 
-          if ! jq empty composer-audit.json 2>/dev/null; then
-            echo "::error::composer audit produced no parseable JSON. Treating as a failure rather than as 'no advisories'."
+          # `jq empty` succeeds on an empty file — it simply reads no values —
+          # so it cannot tell "no advisories" from "composer died before it
+          # wrote anything". Assert the shape instead.
+          if ! jq -e 'type == "object"' composer-audit.json > /dev/null 2>&1; then
+            echo "::error::composer audit produced no JSON object. Treating as a failure rather than as 'no advisories'."
             cat composer-audit.json
             exit 1
           fi
 
-          blocking="$(jq '[.advisories[]?[] | select(.severity == "critical" or .severity == "high")] | length' composer-audit.json)"
-          lesser="$(jq '[.advisories[]?[] | select(.severity != "critical" and .severity != "high")] | length' composer-audit.json)"
-
-          if [ "$lesser" != "0" ]; then
-            echo "::notice::composer audit: $lesser advisory/advisories below high severity. Open an issue; not failing the build (SEC-12)."
-            jq -r '.advisories[]?[] | select(.severity != "critical" and .severity != "high") | "  \(.severity)\t\(.packageName)\t\(.title)"' composer-audit.json
-          fi
-
-          if [ "$blocking" != "0" ]; then
-            echo "::error::composer audit: $blocking high or critical advisory/advisories."
-            jq -r '.advisories[]?[] | select(.severity == "critical" or .severity == "high") | "  \(.severity)\t\(.packageName)\t\(.title)\t\(.link)"' composer-audit.json
+          if ! jq -e 'has("advisories")' composer-audit.json > /dev/null; then
+            echo "::error::composer audit JSON has no 'advisories' key. The output shape changed; this gate can no longer read it, so it fails closed."
             exit 1
           fi
 
-          echo "composer audit: no high or critical advisories."
+          # Advisories matched by config.advisories.ignore move to a separate
+          # key where the counts below cannot see them. Nothing is configured
+          # today; if someone adds it, this gate must not go quiet about it.
+          if jq -e '(."ignored-advisories" // {}) | length > 0' composer-audit.json > /dev/null; then
+            echo "::error::composer audit reported ignored advisories. Suppressing an advisory in config is a decision that needs a human, not a silent green build."
+            jq -r '."ignored-advisories"[]?[] | "  \(.packageName)  |  \(.title)"' composer-audit.json
+            exit 1
+          fi
+
+          # Severity is nullable in Composer's own model and is not normalised
+          # for case. Anything that is not explicitly a known lesser severity
+          # blocks — an unclassified advisory is the one you least want waved
+          # through, so this fails closed rather than open.
+          blocking="$(jq '[.advisories[][] | select((.severity // "unknown" | ascii_downcase) as $s | ["medium", "low", "info"] | index($s) | not)] | length' composer-audit.json)"
+          lesser="$(jq '[.advisories[][] | select((.severity // "unknown" | ascii_downcase) as $s | ["medium", "low", "info"] | index($s))] | length' composer-audit.json)"
+
+          if [ "$lesser" != "0" ]; then
+            echo "::notice::composer audit: $lesser advisory/advisories below high severity. Open an issue; not failing the build (SEC-12)."
+            jq -r '.advisories[][] | select((.severity // "unknown" | ascii_downcase) as $s | ["medium", "low", "info"] | index($s)) | "  \(.severity)  |  \(.packageName)  |  \(.title)"' composer-audit.json
+          fi
+
+          if [ "$blocking" != "0" ]; then
+            echo "::error::composer audit: $blocking advisory/advisories at high, critical or unclassified severity."
+            jq -r '.advisories[][] | select((.severity // "unknown" | ascii_downcase) as $s | ["medium", "low", "info"] | index($s) | not) | "  \(.severity // "unclassified")  |  \(.packageName)  |  \(.title)  |  \(.link)"' composer-audit.json
+            exit 1
+          fi
+
+          echo "composer audit: no blocking advisories."
 
       # npm calls the middle band "moderate" where composer calls it "medium".
       # Same rule, different vocabulary.
@@ -75,14 +96,23 @@ jobs:
         run: |
           npm audit --json > npm-audit.json || true
 
-          if ! jq empty npm-audit.json 2>/dev/null; then
-            echo "::error::npm audit produced no parseable JSON. Treating as a failure rather than as 'no advisories'."
+          if ! jq -e 'type == "object"' npm-audit.json > /dev/null 2>&1; then
+            echo "::error::npm audit produced no JSON object. Treating as a failure rather than as 'no advisories'."
             cat npm-audit.json
             exit 1
           fi
 
-          blocking="$(jq '.metadata.vulnerabilities.critical + .metadata.vulnerabilities.high' npm-audit.json)"
-          lesser="$(jq '.metadata.vulnerabilities.moderate + .metadata.vulnerabilities.low' npm-audit.json)"
+          # When npm cannot reach the registry it emits {"error": {...}} with no
+          # metadata at all, and the arithmetic below would yield null. Fail on
+          # the shape rather than on a null that happens to compare unequal.
+          if ! jq -e '.metadata.vulnerabilities | type == "object"' npm-audit.json > /dev/null; then
+            echo "::error::npm audit reported no vulnerability metadata — it did not complete."
+            jq -r '.error // . | tostring' npm-audit.json
+            exit 1
+          fi
+
+          blocking="$(jq '.metadata.vulnerabilities | .critical + .high' npm-audit.json)"
+          lesser="$(jq '.metadata.vulnerabilities | .moderate + .low + .info' npm-audit.json)"
 
           if [ "$lesser" != "0" ]; then
             echo "::notice::npm audit: $lesser advisory/advisories below high severity. Open an issue; not failing the build (SEC-12)."

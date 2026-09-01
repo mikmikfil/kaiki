@@ -30,8 +30,13 @@ Thumbs.db
 /database/*.sqlite-wal
 /public/widget
 # The ENV-10 snapshot is committed as database/schema/*.snapshot.sql. A dump at
-# Laravel's own schema path would be loaded INSTEAD of running the migrations,
-# so a stray one must never reach a commit.
+# either of Laravel's own schema paths would be loaded INSTEAD of running the
+# migrations, so a stray one must never reach a commit. The .dump extension is
+# the one MigrateCommand::schemaPath() checks FIRST, and the connection name is
+# part of the filename, so this covers sqlite-schema.sql on a local machine too.
 /database/schema/*-schema.sql
+/database/schema/*-schema.dump
+# Written by `composer test:coverage`; the figure belongs in CI, not in a commit.
+/coverage.xml
 /.claude/agent-memory
 /.claude/settings.local.json

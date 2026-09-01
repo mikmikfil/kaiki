@@ -246,6 +246,25 @@ jobs:
       - name: Pest with coverage restricted to app/Domain
         run: composer test:coverage
 
+      # Every other gate in this file proves it actually ran; this one could
+      # not. php-code-coverage returns 100% for a source set with zero
+      # executable lines, so if the app/Domain filter in phpunit.coverage.xml
+      # ever stopped matching — a rename, a moved namespace, a typo — the gate
+      # would pass at 100% against nothing at all and say so proudly.
+      - name: The coverage gate must have measured something
+        run: |
+          php -r '
+            $report = simplexml_load_file("coverage.xml");
+            $statements = (int) ($report->project->metrics["statements"] ?? 0);
+
+            if ($statements < 1) {
+                fwrite(STDERR, "::error::Coverage measured 0 executable lines. An empty source set reports 100%, so this gate was green while measuring nothing — check the app/Domain filter in phpunit.coverage.xml.\n");
+                exit(1);
+            }
+
+            printf("coverage measured %d executable statements in app/Domain%s", $statements, PHP_EOL);
+          '
+
   security-audit:
     name: Dependency audit
     # SEC-12. Shared with nightly.yml so the severity threshold cannot end up
@@ -276,6 +295,24 @@ jobs:
 
       - run: npm run widget:size
 
+  widget-e2e:
+    name: Widget Playwright smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # ENV-23 names this check explicitly, alongside the build and the size
+      # gate. TST-3 and A11Y-1 fill it in at M3 — the full suite plus the
+      # WordPress site run go to nightly, this one stays a smoke subset.
+      - run: npm run e2e
+
   plugin-lint:
     name: WordPress plugin lint
     runs-on: ubuntu-latest
@@ -297,7 +334,7 @@ jobs:
     name: CI passed
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, static-analysis, test-sqlite, test-mysql, tenancy-isolation, coverage, security-audit, migrate-from-zero, widget-build, plugin-lint]
+    needs: [lint, static-analysis, test-sqlite, test-mysql, tenancy-isolation, coverage, security-audit, migrate-from-zero, widget-build, widget-e2e, plugin-lint]
     steps:
       # A single check to make required in branch protection. Without this,
       # adding a job later means remembering to mark it required by hand.

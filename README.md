@@ -45,6 +45,7 @@ Every migration must run on **both** SQLite and MySQL. Some tests can only run i
 | `docs/data-model.md` | Schema, JSON shapes, state machines, migration ordering |
 | `docs/api.md` | OpenAPI 3.1 for the public API v1 |
 | `docs/adr/` | 23 accepted architecture decisions |
+| `docs/ci.md` | What CI runs, which checks `main` requires, and how to refresh the schema snapshot |
 | `docs/BRIEF.md` | The original brief — historical; where it differs from the spec, the spec wins |
 | `CLAUDE.md` | Conventions, engine invariants, delegation map |
 
