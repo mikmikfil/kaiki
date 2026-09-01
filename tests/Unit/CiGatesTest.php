@@ -159,7 +159,10 @@ it('keeps the coverage threshold in exactly one place', function (): void {
 
     $script = implode(' ', (array) $composer['scripts']['test:coverage']);
 
-    expect($script)->toContain('--min=80')
+    // Deliberately not asserting the number itself. Pinning it here would make
+    // this test the second place the threshold lives, which is the exact thing
+    // the test exists to prevent.
+    expect($script)->toMatch('/--min=\d+/')
         ->and($script)->toContain('phpunit.coverage.xml');
 
     // TST-1 raises this number later. Raising it must be a one-line change, so
