@@ -37,7 +37,12 @@ enum ApiScope: string
         /** @var array<string, string> $labels */
         $labels = (array) trans('api.scope');
 
-        return $labels[$this->value] ?? $this->value;
+        // Falls back to the dotted key, never to the raw value. Returning
+        // `products.read` would be a plausible-looking lowercase string on
+        // screen — a missing translation that nobody reports, and an assertion
+        // that it is not the key could then never fail. A visibly wrong key is
+        // the point: I18N-1 relies on a missing string looking missing.
+        return $labels[$this->value] ?? "api.scope.{$this->value}";
     }
 
     /** @return list<string> */

@@ -7,6 +7,9 @@ namespace App\Providers\Filament;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureTenantIsWritable;
 use App\Http\Middleware\ResolveTenant;
+use App\Support\Tenancy;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -16,6 +19,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\Tables\Columns\TextColumn;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -40,6 +44,43 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
  */
 class AppPanelProvider extends PanelProvider
 {
+    /**
+     * CNV-2: stored in UTC, **displayed in the tenant timezone**.
+     *
+     * Registered once here rather than field by field, because the alternative
+     * is every resource in M1 remembering a `->timezone()` call and one of them
+     * not. `config('app.timezone')` is UTC and tenants default to
+     * `Europe/Athens`, so the default is silently wrong by two or three hours —
+     * survivable on an API key's expiry, not survivable on a departure time,
+     * where CNV-3 requires `local_time` and `starts_at_utc` to agree.
+     *
+     * This is global to both panels by nature. That is correct: `/admin` has no
+     * tenant to resolve, so a super-admin falls back to UTC, which is the right
+     * frame for someone looking across every operator at once.
+     */
+    public function boot(): void
+    {
+        $timezone = static function (): string {
+            $tenant = Tenancy::current();
+
+            return $tenant === null
+                ? (string) config('app.timezone')
+                : $tenant->timezone;
+        };
+
+        DateTimePicker::configureUsing(
+            static fn (DateTimePicker $component): DateTimePicker => $component->timezone($timezone),
+        );
+
+        DatePicker::configureUsing(
+            static fn (DatePicker $component): DatePicker => $component->timezone($timezone),
+        );
+
+        TextColumn::configureUsing(
+            static fn (TextColumn $column): TextColumn => $column->timezone($timezone),
+        );
+    }
+
     public function panel(Panel $panel): Panel
     {
         return $panel
@@ -79,6 +120,12 @@ class AppPanelProvider extends PanelProvider
                 // After authentication, so the session user exists to resolve from.
                 ResolveTenant::class,
                 EnsureTenantIsWritable::class,
-            ]);
+                // isPersistent, or none of this runs on `POST /livewire/update`
+                // — which is every button in the panel. Filament only forwards
+                // auth middleware to Livewire's persistent list when asked, and
+                // without it `Tenancy::current()` is null on each action: the
+                // tenant scope throws and the operator gets a 500. A component
+                // test cannot catch this, because it never reaches that route.
+            ], isPersistent: true);
     }
 }
