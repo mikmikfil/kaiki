@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\Responses\ApiErrorResponse;
 use App\Models\ApiKey;
 use Closure;
 use Illuminate\Http\JsonResponse;
@@ -116,12 +117,6 @@ final class AuthenticateApiKey
      */
     private function reject(string $key, string $code, int $status): JsonResponse
     {
-        return new JsonResponse([
-            'error' => [
-                'code' => $code,
-                'message' => __($key, [], 'en'),
-                'message_el' => __($key, [], 'el'),
-            ],
-        ], $status);
+        return ApiErrorResponse::fromKey($key, $code, $status);
     }
 }

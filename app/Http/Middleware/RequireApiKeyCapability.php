@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Enums\ApiScope;
+use App\Http\Responses\ApiErrorResponse;
 use App\Models\ApiKey;
 use Closure;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Response;
@@ -48,14 +48,13 @@ final class RequireApiKeyCapability
             }
 
             if (! $apiKey->can($required)) {
-                return new JsonResponse([
-                    'error' => [
-                        'code' => 'insufficient_scope',
-                        'message' => __('api.errors.insufficient_scope', ['scope' => $scope], 'en'),
-                        'message_el' => __('api.errors.insufficient_scope', ['scope' => $scope], 'el'),
-                        'details' => ['required_scope' => $scope],
-                    ],
-                ], 403);
+                return ApiErrorResponse::fromKey(
+                    key: 'api.errors.insufficient_scope',
+                    code: 'insufficient_scope',
+                    status: 403,
+                    replace: ['scope' => $scope],
+                    details: ['required_scope' => $scope],
+                );
             }
         }
 

@@ -12,6 +12,12 @@ return [
         'secret_key_from_browser' => 'A secret key was sent from a browser. Secret keys must only be used server to server — use your publishable key (`pk_…`) in anything a visitor can see.',
         'origin_not_allowed' => 'This website is not on the allowed list for that API key. Add its address in your Kaiki panel.',
         'insufficient_scope' => 'That API key does not have permission for this action (:scope).',
+        'not_found' => 'That endpoint does not exist. Check the path and the API version.',
+        'method_not_allowed' => 'That endpoint does not accept this HTTP method.',
+        'validation_failed' => 'Some of the values sent are not valid. See `details` for the fields.',
+        'forbidden' => 'That API key is not allowed to perform this action.',
+        'gone' => 'That resource is no longer available.',
+        'rate_limited' => 'Too many requests. Slow down and retry after the time in `Retry-After`.',
     ],
 
 ];

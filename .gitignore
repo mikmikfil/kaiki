@@ -40,3 +40,7 @@ Thumbs.db
 /coverage.xml
 /.claude/agent-memory
 /.claude/settings.local.json
+
+# Generated artefacts: the OpenAPI document Scramble produces for the
+# api-docs-drift gate. Never committed — docs/api.md is the contract.
+/build

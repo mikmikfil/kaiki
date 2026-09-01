@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\Responses\ApiErrorResponse;
 use App\Support\Tenancy;
 use Closure;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -39,13 +39,7 @@ final class EnsureTenantIsWritable
         }
 
         if ($request->expectsJson()) {
-            return new JsonResponse([
-                'error' => [
-                    'code' => 'tenant_read_only',
-                    'message' => __('errors.tenant_read_only', [], 'en'),
-                    'message_el' => __('errors.tenant_read_only', [], 'el'),
-                ],
-            ], 403);
+            return ApiErrorResponse::fromKey('errors.tenant_read_only', 'tenant_read_only', 403);
         }
 
         abort(403, __('errors.tenant_read_only'));

@@ -14,6 +14,7 @@
         "php": "^8.4",
         "ext-intl": "*",
         "brick/money": "^0.11.2",
+        "dedoc/scramble": "^0.13.42",
         "filament/filament": "^3.2",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
@@ -78,6 +79,14 @@
             "@php artisan config:clear --ansi",
             "@php vendor/bin/pest --group=tenancy"
         ],
+        "api:docs": [
+            "@php artisan config:clear --ansi",
+            "@php artisan scramble:export"
+        ],
+        "test:api-docs": [
+            "@php artisan config:clear --ansi",
+            "@php vendor/bin/pest --group=api-docs"
+        ],
         "i18n:check": [
             "@php artisan config:clear --ansi",
             "@php vendor/bin/pest --group=i18n"
@@ -138,6 +147,8 @@
         "test:coverage": "The TST-1 gate: coverage of app/Domain only, failing under 80%. Needs PCOV, so CI only (ENV-22). The threshold lives here and nowhere else.",
         "schema:snapshot": "Regenerates database/schema/mysql-schema.snapshot.sql, the file the migrate-from-zero gate compares against (ENV-10). Needs a MySQL 8 connection - see docs/ci.md.",
         "test:mysql": "The mysql group. Needs a MySQL 8 instance; normally CI only.",
+        "api:docs": "Regenerates build/openapi.generated.json from the routes, the file the api-docs-drift gate compares against docs/api.md §5 (ENV-28). The refresh path is this one command; docs/api.md is never regenerated from the code.",
+        "test:api-docs": "The ENV-28 gate: reconciles the routes and the generated OpenAPI document against the contract in docs/api.md §5. A required CI check.",
         "i18n:check": "The I18N-2 and I18N-3 gates: EL/EN key parity, and no hardcoded user-facing string. A required CI check. The allow-list for both lives in tests/Support/I18n/allow-list.php.",
         "lint": "Pint in fix mode.",
         "lint:test": "Pint in check mode. What CI runs.",

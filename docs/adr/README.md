@@ -40,6 +40,7 @@ Every decision marked **DECIDE** in `docs/BRIEF.md`, plus every genuinely open q
 | [0022](0022-invoice-numbering-scope.md) | Invoice numbering scope and gap policy | **Accepted (A + C (per-tenant external mode))** | **A** default (per tenant/series/year, allocated at send, gaps logged) **plus** C as a per-tenant `external` mode. **Needs an accountant.** | M1 (schema), M6 |
 | [0023](0023-unified-bookable-windows.md) | One `bookable_windows` table vs departures + per-vessel windows | **Accepted (C)** | **C** — keep the brief's two shapes, hide the union behind one `VesselCalendar` port, pull the NFR-1 benchmark forward to the M2 close | Locks in at M2 |
 | [0024](0024-two-factor-authentication.md) | Two-factor authentication for panel accounts | **Proposed** | **A** — `laravel/fortify` as the mechanism, implemented in M7 beside impersonation | SEC-15 criterion of #9 |
+| [0026](0026-openapi-contract-tooling.md) | How the `docs/api.md` contract is validated and diffed, with no YAML parser approved | **Proposed** | **A** — `symfony/yaml` in `require-dev`, so §10.2 and the rest of §10.4 can be Pest tests | Before M1's first real endpoint lands (#35) |
 
 ## Future ADRs expected (not yet written)
 | Topic | Why deferred | Needed before |

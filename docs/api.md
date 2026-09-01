@@ -587,11 +587,58 @@ tags:
     description: Voucher balance lookup.
   - name: Sync
     description: Server-to-server catalogue sync for the WordPress SEO CPT.
+  - name: Meta
+    description: Version and key-validity checks. Carries no tenant data.
 
 security:
   - PublishableKey: []
 
 paths:
+
+  /api/v1/health:
+    get:
+      operationId: getHealth
+      summary: Confirm the API version and that a key is accepted
+      description: |
+        A versioning smoke endpoint for integrators. It answers a narrower question
+        than "is the server up" — *is this key accepted, and which API version is
+        answering it* — which is what someone debugging a `401` actually needs.
+
+        Deliberately authenticated. An unauthenticated route here would be the only
+        endpoint in this document with no tenant, and the one route a later change
+        could quietly hang something else off. Load-balancer liveness is `/up`, which
+        is outside `/api/v1` and not part of this contract.
+
+        Returns no tenant identifier: a key already implies its tenant, and echoing a
+        slug or uuid would make this the cheapest tenant-enumeration oracle in the
+        product.
+      tags: [Meta]
+      security:
+        - PublishableKey: []
+        - SecretKey: []
+      responses:
+        '200':
+          description: The API is reachable and the presented key is valid.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: object
+                    required: [status, version]
+                    properties:
+                      status:
+                        type: string
+                        const: ok
+                      version:
+                        type: string
+                        description: The API major version answering this request.
+                        examples: [v1]
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
 
   /api/v1/branding:
     get:

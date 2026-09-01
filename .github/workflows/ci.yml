@@ -60,6 +60,47 @@ jobs:
       - name: Lang parity and hardcoded-string lint
         run: composer i18n:check
 
+  api-docs-drift:
+    name: OpenAPI contract drift
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # ENV-28. `docs/api.md` is the contract and Scramble generates the
+      # implementation's view of it; this reconciles the two. The comparison is
+      # directional until M3 - every route must be documented, while a
+      # documented path with no route yet is "not built" rather than drift.
+      # docs/api.md §10.4 is proposed for that wording in the PR.
+      - name: Regenerate the OpenAPI document
+        run: composer api:docs
+
+      - name: Reconcile the routes against docs/api.md §5
+        run: composer test:api-docs
+
+      # The generated document is an artefact, never committed. Uploading it on
+      # every run - red or green - is what makes a red build actionable without
+      # a local PHP install, the same way the schema snapshot job works.
+      - name: Upload the generated document
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-generated
+          path: build/openapi.generated.json
+          if-no-files-found: warn
+
   static-analysis:
     name: PHPStan level 6
     runs-on: ubuntu-latest
@@ -361,7 +402,7 @@ jobs:
     name: CI passed
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, i18n, static-analysis, test-sqlite, test-mysql, tenancy-isolation, coverage, security-audit, migrate-from-zero, widget-build, widget-e2e, plugin-lint]
+    needs: [lint, i18n, api-docs-drift, static-analysis, test-sqlite, test-mysql, tenancy-isolation, coverage, security-audit, migrate-from-zero, widget-build, widget-e2e, plugin-lint]
     steps:
       # A single check to make required in branch protection. Without this,
       # adding a job later means remembering to mark it required by hand.
