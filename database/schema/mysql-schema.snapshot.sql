@@ -12,7 +12,7 @@ DROP TABLE IF EXISTS `api_keys`;
 CREATE TABLE `api_keys` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `tenant_id` bigint unsigned NOT NULL,
-  `name` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` varchar(81) COLLATE utf8mb4_unicode_ci NOT NULL,
   `type` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
   `environment` varchar(8) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'live',
   `prefix` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,

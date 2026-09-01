@@ -63,7 +63,7 @@
         ],
         "test:coverage": [
             "@php artisan config:clear --ansi",
-            "@php vendor/bin/pest -c phpunit.coverage.xml --coverage --min=80 --exclude-group=mysql --exclude-group=chromium --exclude-group=external"
+            "@php vendor/bin/pest -c phpunit.coverage.xml --coverage --min=100 --exclude-group=mysql --exclude-group=chromium --exclude-group=external"
         ],
         "schema:snapshot": [
             "@php artisan schema:snapshot --ansi"
