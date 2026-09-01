@@ -134,9 +134,13 @@ final class SchemaSnapshotCommand extends Command
                 return true;
             }
 
-            // A leading `--` comment, or a whole-line /*!NNNNN ... */ directive.
+            // A leading `--` comment, or a whole-line /*!NNNNN ... */ directive:
+            // the session settings mysqldump brackets a dump with, and the
+            // sandbox-mode line 8.0.32 added. All of them describe the client,
+            // not the schema. Column-level hints such as /*!80000 INVISIBLE */
+            // sit inside a CREATE TABLE and are not whole lines, so they stay.
             return preg_match('/^--/', $trimmed) !== 1
-                && preg_match('/^\/\*![0-9]{5}.*\*\/;?$/', $trimmed) !== 1;
+                && preg_match('/^\/\*!\d{5,}.*\*\/\s*;?$/', $trimmed) !== 1;
         });
 
         $body = trim((string) preg_replace("/\n{3,}/", "\n\n", implode("\n", $kept)));
