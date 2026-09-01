@@ -38,6 +38,14 @@ return [
          * wrong with the random source, not with luck.
          */
         'generation_attempts' => 5,
+
+        /*
+         * The panel warns when a key has gone this long without being used
+         * (ADR-0013). A key nobody uses is a key nobody would notice leaking,
+         * and rotation here is create-then-revoke — so the warning is the only
+         * prompt an operator gets to tidy one away.
+         */
+        'unused_warning_days' => (int) env('KAIKI_API_KEY_UNUSED_WARNING_DAYS', 90),
     ],
 
     /*

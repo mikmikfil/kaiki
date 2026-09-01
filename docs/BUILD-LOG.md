@@ -13,7 +13,7 @@ Each entry records the **verification actually run** and its **real output** —
 | | |
 |---|---|
 | Milestone | **M0 — Foundation** |
-| Issues closed | #1, #2, #3, #4, #5, #6, #7, #8, #9 of 12 |
+| Issues closed | #1, #2, #3, #4, #5, #6, #7, #8, #9, #10 of 12 |
 | Local stack | Laravel 12.68 · PHP 8.4.24 · SQLite · database/file drivers |
 | Quality gate | Pint · PHPStan level 6 + Larastan · Pest · **cross-tenant isolation gate** · coverage 93.9% of `app/Domain` · dependency audits · schema drift — all green |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
@@ -26,6 +26,50 @@ Each entry records the **verification actually run** and its **real output** —
 | Invoice-numbering **gap policy** (ADR-0022) | accountant | M6 |
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
+
+---
+
+## #10 — API keys in the panel: list, create with a one-time reveal, revoke
+
+**Files:** `app/Filament/App/Resources/ApiKeyResource.php`, `.../ApiKeyResource/Pages/ListApiKeys.php`, `resources/views/filament/api-key-reveal.blade.php`, `lang/{el,en}/api_keys.php`, `config/kaiki.php`, `app/Enums/ApiScope.php`, `tests/Support/OperatorUser.php`, three test files
+
+**The first Filament resource in the project**, so it sets the pattern M1 copies. It also closes M0 item 4: the #6 domain has been complete since then but reachable only from a test.
+
+### The reveal, and why it is not a create page
+
+`CreateRecord` redirects when it finishes. Carrying a plaintext key across a redirect means the session or a flash bag — CNV-13 forbids both, and both outlive the moment the operator is looking at the screen.
+
+So creation is a **modal action**: mint, hand to a `#[Locked]` property, `replaceMountedAction('reveal')`, all inside one Livewire round trip. Filament resolves a `revealAction()` method by name, so the reveal is mountable without also rendering a button nobody should press — there is nothing to reveal until a key has just been made.
+
+Clearing the property hangs off `unmountAction()`, not the action's `->after()`. `->after()` fires when an action *runs*; the reveal modal has no submit button and never runs. Escape, the X and "I have saved it" all land in `unmountAction()`. **The test caught this** — it asserted null after dismissal and got the key back.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `composer lint:test` | passed |
+| `composer stan` | `[OK] No errors` |
+| `composer test` | **190 passed** (688 assertions), 17 new |
+| Reveal shown once | asserted, plus a reload asserting the key is absent |
+| Revocation end to end | panel button → API returns **401** for that key |
+| Role matrix | `manager` and `crew` both refused the page |
+| Forbidden scope | publishable + `webhooks.receive` → form error, no row written |
+| EL/EN parity | key sets identical both directions, placeholders preserved |
+| Manual | signed in as maria (EL) and elena (EN); created, revealed, reloaded, revoked |
+
+### A bug in #6, found by the locale test
+
+`ApiScope::label()` called `__("api.scope.{$this->value}")`. Scope values contain a dot, and Laravel reads a dot in a translation key as a path separator — so it looked for `scope → products → read`, found nothing, and returned the key itself. **It had never worked.** Nothing rendered those labels until this form did, so nothing caught it; operators would have seen `api.scope.products.read` beside a checkbox. Now fetches the array and indexes it.
+
+Worth noting what this says about the I18N-3 parity check: identical key sets in both files would not have caught this. Both files were equally correct and equally unreachable.
+
+### SEC-16, deliberately small
+
+A structured log line — actor, key prefix, tenant, and the record's own timestamp. There is no audit table anywhere in `docs/data-model.md`, and SEC-16's list names deletions, cancellations, refunds and purges, not key revocation. Inventing a general audit log is a **DECIDE** that stops for a human (CLAUDE.md); doing it silently while building a form is exactly how an architecture arrives without anyone choosing it. Flagged rather than assumed.
+
+### Deviation from the issue as written
+
+The issue names `app/Filament/Resources/ApiKeyResource.php`. `AppPanelProvider` discovers `app_path('Filament/App/Resources')`, so the resource follows the panel. It also lists `app/Filament/Actions/RevokeApiKeyAction.php` as a separate class; the revoke stayed a table action calling `RevokeApiKey` directly, because a dedicated Filament action class with one caller is indirection without a second reader.
 
 ---
 

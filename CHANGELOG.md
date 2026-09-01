@@ -2,6 +2,26 @@
 
 ## M0 — Foundation
 
+### #10 - API keys in the panel: list, create with a one-time reveal, revoke
+
+The first Filament resource in the project, and the one that closes M0 item 4. Until now the whole API-key domain from #6 existed but was reachable only from a test: an operator could not create the key their widget needs, and — the part that actually matters — **could not revoke one that had leaked**.
+
+**The reveal is not a create page.** Filament's `CreateRecord` redirects when it finishes, and carrying a plaintext key across a redirect means the session or a flash bag, both of which CNV-13 forbids and both of which outlive the moment the operator is looking at the screen. So creation is a modal action instead: it mints the key, hands it to a `#[Locked]` property, and swaps its own modal for the reveal modal **inside one Livewire round trip**. Nothing is written to the session, nothing is redirected through, nothing is logged. A reload has nothing to show because the plaintext was never stored anywhere it could be read back from.
+
+`#[Locked]` matters more than it looks: without it a crafted Livewire request could write that property and have the page echo it back, which is a self-inflicted XSS reflector in the one component that renders a credential.
+
+Clearing it hangs off `unmountAction()` rather than the action's `->after()`. `->after()` fires when an action *runs*, and the reveal modal has nothing to run — it has no submit button. Escape, the X and the "I have saved it" button all land in `unmountAction()`, so that is the one place that catches every way out. The test that found this asserted the property was null after dismissal and got the key back.
+
+**Type is the ceiling; scopes only narrow it** (SEC-5). The checkbox list is narrowed reactively from `ApiKeyType::allowedScopes()` — the same method the domain Action enforces with — and a validation rule mirrors it so a tampered payload is a form error rather than the Action's `InvalidArgumentException` arriving as a 500. The Action keeps its guard as the backstop; this is the surfacing the issue asked for, not a second copy of the rule.
+
+**Revocation is a timestamp, never a delete.** The row stays in the list marked revoked, because deleting it would free its prefix for reissue and erase the evidence of what a leaked key could reach. Asserted end to end, as the issue insisted: press the button in the panel, then present the key to the API and get a 401. A test that only checks `revoked_at` proves the button wrote a timestamp, not that the key stopped working, and those are different claims.
+
+SEC-16's audit trail is a **structured log line** carrying actor, key prefix and tenant. There is no audit table anywhere in the data model and SEC-16's own list does not include key revocation, so inventing one would have been a DECIDE — an ADR that stops for a human, not a decision to take while building a form. A queryable audit trail remains open.
+
+The copy never implies that creating a key replaces an old one. Rotation is create-then-revoke (ADR-0013), and a confirmation dialog that says the wrong thing about what is about to break is worse than none.
+
+**A bug in #6 fell out of the locale test.** `ApiScope::label()` asked for `api.scope.products.read`, but scope values contain a dot and Laravel reads a dot in a translation key as a path separator — so it searched for `scope → products → read`, found nothing, and returned the key. It had never worked; nothing rendered those labels until this form did. Operators would have seen `api.scope.products.read` beside a checkbox. Fixed by fetching the array and indexing it.
+
 ### #4 - The rest of the CI gates: coverage, audits, schema drift, widget and plugin jobs
 
 ENV-23 lists the checks that must be required on `main`. #3 delivered five of them; this is the rest, and with it the list a human types into branch protection is finally the list the pipeline produces.

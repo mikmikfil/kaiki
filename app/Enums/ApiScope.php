@@ -21,9 +21,23 @@ enum ApiScope: string
     case QuotesWrite = 'quotes.write';
     case WebhooksReceive = 'webhooks.receive';
 
+    /**
+     * The operator-facing name of this scope.
+     *
+     * Fetches the whole `api.scope` array and indexes it, rather than asking
+     * for `api.scope.products.read`. The scope values contain a dot, and
+     * Laravel reads a dot in a translation key as a path separator — so the
+     * direct lookup searched for `scope → products → read`, found nothing, and
+     * returned the key itself. It rendered as `api.scope.products.read` on
+     * screen, which is exactly the quiet I18N-1 failure the lang files exist to
+     * prevent. Found by #10 when these labels first reached a form.
+     */
     public function label(): string
     {
-        return __("api.scope.{$this->value}");
+        /** @var array<string, string> $labels */
+        $labels = (array) trans('api.scope');
+
+        return $labels[$this->value] ?? $this->value;
     }
 
     /** @return list<string> */
