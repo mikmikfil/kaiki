@@ -2,6 +2,27 @@
 
 ## M0 — Foundation
 
+### #44 - The platform merchant list in /admin, and a stat row
+
+`/admin` has been an empty panel since #9. It had the super-admin boundary, the role matrix and the policy-coverage gate, and nothing inside — so the platform owner had no way to see their own operators, and the only screen proving multi-tenancy works was a dashboard with nothing on it.
+
+`SAA-1 (FIXED)` contracts the whole surface — tenants, plans, impersonation, feature flags, platform health, error feeds, announcement banner — but it is M7, and no M7 issues exist, so it was a spec line with nothing tracking it. This pulls forward the read-only merchant list and four counters, requested twice by the product owner during the #11/#12 session.
+
+**Read-only is load-bearing, not timidity.** The moment `/admin` can change an operator's record, SEC-16's "confirmed and audit-logged with actor, timestamp and reason" applies — and that audit log is exactly what #42's ADR-0025 has not decided. Refusing every write is what lets this ship before that decision, and the refusals are asserted rather than left implicit: **Filament allows an action when nothing forbids it**, so "we did not build an edit page" is not the same as "editing is refused". A test pins `getPages()` to exactly `['index']` and asserts a super-admin can neither create, update, delete, restore nor force-delete.
+
+**`TenantPolicy` deliberately does not extend `TenantOwnedPolicy`.** Every other policy does, but that base gates on the TEN-8 `Capability` matrix and compares `tenant_id` — and `tenants` is not tenant-owned, it *is* the tenant. A super-admin has no role assignment and a null `tenant_id`, so inheriting it would have made every method return false. Consistency that produces the wrong answer is not consistency. `forceDelete` is refused outright for a separate reason: `tenant_id` cascades across the whole schema, so a force delete from a list screen would erase every booking, invoice and ναυλοσύμφωνο an operator has. That belongs behind M6's GDPR erasure tooling.
+
+**This is the one resource in the application that is deliberately cross-tenant**, and the test says so. Everywhere else a query returning two operators' rows is the defect #8 exists to catch; here it is the feature. The assertion that two merchants appear is what would fail the day someone "helpfully" adds `BelongsToTenant` to the `Tenant` model — the list would otherwise quietly show one row and look perfectly fine.
+
+Plan and status render through `Plan::label()` and `TenantStatus::label()` from #12's consolidated `enums.php`, so the super-admin panel and the operator panel cannot disagree about what "past due" is called. Soft-deleted operators are hidden by default and reachable through `TrashedFilter` — a cancelled account's data still exists and the platform owner is the one person who may need to see it, but not by default, or the list stops meaning "our merchants".
+
+The stat row is **one grouped query, not four counts**, because it renders on every `/admin` page load, and it is **not lazy**: Filament defers widgets to a second Livewire request by default, which earns its keep for an expensive chart and costs a round trip and a layout shift for four integers. It is also the first thing on the first screen, which is the worst place for numbers that pop in a moment late. Deleted accounts are excluded everywhere, so the total cannot disagree with the list directly beneath it.
+
+The lang file says **"Merchants", not "Tenants"** — `tenant` is our word for a row in a table, and the audience here is the person who owns the platform and thinks of them as the businesses paying for it.
+
+**Two things not done.** The issue asked for vessel and booking counts "where cheap"; those tables do not exist yet — `vessels` is #16 and `bookings` is M2 — so the columns are omitted rather than stubbed, and become a one-line `withCount()` when the tables land. And the browser walkthrough in the plan could not be run: the Chrome extension stopped responding twice, so the rendering is covered by thirteen tests including the real HTTP render of both the list and the landing page, but nobody has yet clicked it.
+
+
 ### #11 - OpenAPI skeleton, the `/api/v1` group, and the docs/api.md drift gate
 
 `docs/api.md` is a **4,100-line contract for sixteen endpoints, none of which existed**. It was written ahead of the code on purpose — §10.5 is explicit that the direction of authority runs contract → code and that the file is *never* regenerated from the routes. Nothing checked that the two agreed, and nothing ever had. Wiring that gate is cheapest now, while there is nothing to reconcile; from here every M1 endpoint either lands matching its contract or turns the build red. **This closes M0.**
