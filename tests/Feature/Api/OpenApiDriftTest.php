@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Tests\Support\Api\OpenApiContract;
 
@@ -126,6 +127,14 @@ it('generates a document whose every path is in the contract', function (): void
     //
     // Generated here rather than read from disk so the assertion cannot pass
     // against a stale artefact somebody exported last week.
+    //
+    // The directory is ensured rather than assumed. `build/` is committed with
+    // its own self-ignoring `.gitignore` so `composer api:docs` works on a
+    // clean checkout — it did not on the first push, because the directory
+    // existed only on the machine where it had been created by hand, and every
+    // Pest job in CI failed on `file_put_contents(): No such file`.
+    File::ensureDirectoryExists(base_path('build'));
+
     Artisan::call('scramble:export');
 
     $generated = json_decode((string) file_get_contents(base_path('build/openapi.generated.json')), true);
@@ -153,4 +162,20 @@ it('generates a document whose every path is in the contract', function (): void
     }
 
     expect($missing)->toBe([], 'generated but not in docs/api.md §5: ' . implode(', ', $missing));
+})->group('fast', 'api-docs');
+
+it('never commits the generated document', function (): void {
+    // `docs/api.md` is the contract; §10.5 says it is never regenerated from
+    // the code. A generated OpenAPI file tracked in the tree beside it is how
+    // someone eventually edits the wrong one — the same reasoning that keeps
+    // the schema snapshot out of the path Laravel auto-loads (#4).
+    $tracked = trim((string) shell_exec('git ls-files build/ 2>&1'));
+
+    $files = $tracked === '' ? [] : explode('
+', str_replace('', '', $tracked));
+
+    expect($files)->toBe(
+        ['build/.gitignore'],
+        'build/ should track only its .gitignore, found: ' . implode(', ', $files),
+    );
 })->group('fast', 'api-docs');

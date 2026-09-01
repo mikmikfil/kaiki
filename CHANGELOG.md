@@ -20,6 +20,8 @@
 
 `ENV-23` gains `api-docs-drift`, the same gap #12 left open for `i18n`; both are proposed to the architect rather than edited into the spec.
 
+**Fixed after the first push, which went red.** `build/` existed only on the machine where `composer api:docs` had first been run by hand, so on a clean checkout the export died with `file_put_contents(build/openapi.generated.json): No such file or directory` — taking down `test-sqlite`, `test-mysql`, `coverage` and `api-docs-drift` together, all from one missing directory. The local suite had been green throughout because the environment had quietly diverged from a fresh clone. The directory is now committed with a self-ignoring `.gitignore`, the pattern Laravel uses for `storage/`, so the documented one-command refresh path works from a clone; the test also ensures the directory rather than assuming it; and a new assertion fails if anything but that `.gitignore` is ever tracked under `build/`. `migrate-from-zero` passed on that same run, which is what confirmed the hand-edited schema snapshot from #12 was correct.
+
 
 ### #12 - i18n foundation: locale resolution, EL/EN parity and no-hardcoded-string gates, formatters, and the language switcher
 

@@ -1,0 +1,13 @@
+# The OpenAPI document Scramble generates for the ENV-28 drift gate, and any
+# other build artefact. The directory itself is committed — and only the
+# directory — because `composer api:docs` is the documented one-command refresh
+# path and it has to work on a clean checkout. It did not: `build/` existed only
+# on the machine where it was first created by hand, and every Pest job in CI
+# failed on the first push with
+# "file_put_contents(build/openapi.generated.json): No such file or directory".
+#
+# Never commit the generated document itself. `docs/api.md` is the contract; a
+# generated file sitting in the tree beside it is how someone eventually edits
+# the wrong one.
+*
+!.gitignore
