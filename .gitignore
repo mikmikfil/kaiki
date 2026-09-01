@@ -29,5 +29,9 @@ Thumbs.db
 /database/*.sqlite-shm
 /database/*.sqlite-wal
 /public/widget
+# The ENV-10 snapshot is committed as database/schema/*.snapshot.sql. A dump at
+# Laravel's own schema path would be loaded INSTEAD of running the migrations,
+# so a stray one must never reach a commit.
+/database/schema/*-schema.sql
 /.claude/agent-memory
 /.claude/settings.local.json

@@ -16,6 +16,8 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
+    // Laravel 11+ does not discover app/Console/Commands unless asked.
+    ->withCommands()
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             // Turns a presented API key into a resolved tenant (#6).

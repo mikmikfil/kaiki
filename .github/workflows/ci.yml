@@ -219,11 +219,85 @@ jobs:
 
           echo "isolation gate executed for real: $summary"
 
+  coverage:
+    name: Coverage gate on app/Domain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ENV-22: coverage needs a driver, and the local stack has none. PCOV
+      # rather than Xdebug — it is an order of magnitude faster and this gate
+      # runs on every pull request.
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
+          coverage: pcov
+
+      - uses: ramsey/composer-install@v3
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # TST-1: 80% of app/Domain. The threshold lives in composer.json and is
+      # deliberately not repeated here, so raising it stays a one-line change.
+      - name: Pest with coverage restricted to app/Domain
+        run: composer test:coverage
+
+  security-audit:
+    name: Dependency audit
+    # SEC-12. Shared with nightly.yml so the severity threshold cannot end up
+    # meaning two different things in two files.
+    uses: ./.github/workflows/dependency-audit.yml
+
+  migrate-from-zero:
+    name: Migrate from zero and compare the schema
+    # ENV-10. Shared with nightly.yml for the same reason.
+    uses: ./.github/workflows/schema-drift.yml
+
+  widget-build:
+    name: Widget build and size budget
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # WGT-2 / NFR-3: the 80 KB gzipped budget. Both scripts are stubs until
+      # M3 — the job exists now so M3 replaces a script and not a pipeline.
+      - run: npm run widget:build
+
+      - run: npm run widget:size
+
+  plugin-lint:
+    name: WordPress plugin lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # WPP-11: phpcs against the WordPress ruleset. A stub until M4, for the
+      # same reason as widget-build.
+      - run: npm run plugin:lint
+
   ci-passed:
     name: CI passed
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, static-analysis, test-sqlite, test-mysql, tenancy-isolation]
+    needs: [lint, static-analysis, test-sqlite, test-mysql, tenancy-isolation, coverage, security-audit, migrate-from-zero, widget-build, plugin-lint]
     steps:
       # A single check to make required in branch protection. Without this,
       # adding a job later means remembering to mark it required by hand.

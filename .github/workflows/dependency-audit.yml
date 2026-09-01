@@ -1,0 +1,98 @@
+name: Dependency audit
+
+# SEC-12. Called by ci.yml on every pull request and by nightly.yml on a cron —
+# an advisory published after a branch merged is exactly the one a nightly run
+# is for. Extracted rather than copied: two divergent copies of a severity
+# threshold is how one of them quietly stops blocking anything.
+on:
+  workflow_call:
+    inputs:
+      php-version:
+        description: 'PHP version. ADR-0014, Option B: 8.4 everywhere.'
+        type: string
+        required: false
+        default: '8.4'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: composer audit and npm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php-version }}
+          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # High and critical fail the build; anything lower is printed for a human
+      # to open an issue about. Both tools exit non-zero on any finding, so the
+      # exit code is discarded and the severities are read from the JSON — but a
+      # run that produced no parseable JSON is a failure, not a clean bill of
+      # health. That distinction is the whole reason this is not a one-liner.
+      - name: composer audit
+        run: |
+          composer audit --locked --abandoned=report --format=json > composer-audit.json || true
+
+          if ! jq empty composer-audit.json 2>/dev/null; then
+            echo "::error::composer audit produced no parseable JSON. Treating as a failure rather than as 'no advisories'."
+            cat composer-audit.json
+            exit 1
+          fi
+
+          blocking="$(jq '[.advisories[]?[] | select(.severity == "critical" or .severity == "high")] | length' composer-audit.json)"
+          lesser="$(jq '[.advisories[]?[] | select(.severity != "critical" and .severity != "high")] | length' composer-audit.json)"
+
+          if [ "$lesser" != "0" ]; then
+            echo "::notice::composer audit: $lesser advisory/advisories below high severity. Open an issue; not failing the build (SEC-12)."
+            jq -r '.advisories[]?[] | select(.severity != "critical" and .severity != "high") | "  \(.severity)\t\(.packageName)\t\(.title)"' composer-audit.json
+          fi
+
+          if [ "$blocking" != "0" ]; then
+            echo "::error::composer audit: $blocking high or critical advisory/advisories."
+            jq -r '.advisories[]?[] | select(.severity == "critical" or .severity == "high") | "  \(.severity)\t\(.packageName)\t\(.title)\t\(.link)"' composer-audit.json
+            exit 1
+          fi
+
+          echo "composer audit: no high or critical advisories."
+
+      # npm calls the middle band "moderate" where composer calls it "medium".
+      # Same rule, different vocabulary.
+      - name: npm audit
+        run: |
+          npm audit --json > npm-audit.json || true
+
+          if ! jq empty npm-audit.json 2>/dev/null; then
+            echo "::error::npm audit produced no parseable JSON. Treating as a failure rather than as 'no advisories'."
+            cat npm-audit.json
+            exit 1
+          fi
+
+          blocking="$(jq '.metadata.vulnerabilities.critical + .metadata.vulnerabilities.high' npm-audit.json)"
+          lesser="$(jq '.metadata.vulnerabilities.moderate + .metadata.vulnerabilities.low' npm-audit.json)"
+
+          if [ "$lesser" != "0" ]; then
+            echo "::notice::npm audit: $lesser advisory/advisories below high severity. Open an issue; not failing the build (SEC-12)."
+            npm audit --audit-level=low || true
+          fi
+
+          if [ "$blocking" != "0" ]; then
+            echo "::error::npm audit: $blocking high or critical advisory/advisories."
+            npm audit --audit-level=high
+            exit 1
+          fi
+
+          echo "npm audit: no high or critical advisories."
