@@ -61,6 +61,13 @@
             "@php artisan config:clear --ansi",
             "@php vendor/bin/pest --group=fast"
         ],
+        "test:coverage": [
+            "@php artisan config:clear --ansi",
+            "@php vendor/bin/pest -c phpunit.coverage.xml --coverage --coverage-clover=coverage.xml --min=80 --exclude-group=mysql --exclude-group=chromium --exclude-group=external"
+        ],
+        "schema:snapshot": [
+            "@php artisan schema:snapshot --ansi"
+        ],
         "test:mysql": [
             "@php artisan config:clear --ansi",
             "@php vendor/bin/pest --group=mysql"
@@ -122,6 +129,8 @@
         "dev": "artisan serve + queue listener + Vite together.",
         "test": "Pest, excluding the mysql, chromium and external groups (ENV-15). The flag is repeated deliberately: Pest ignores a comma-separated --exclude-group.",
         "test:fast": "The fast group only. Used by the Stop hook.",
+        "test:coverage": "The TST-1 gate: coverage of app/Domain only, failing under 80%. Needs PCOV, so CI only (ENV-22). The threshold lives here and nowhere else.",
+        "schema:snapshot": "Regenerates database/schema/mysql-schema.snapshot.sql, the file the migrate-from-zero gate compares against (ENV-10). Needs a MySQL 8 connection - see docs/ci.md.",
         "test:mysql": "The mysql group. Needs a MySQL 8 instance; normally CI only.",
         "lint": "Pint in fix mode.",
         "lint:test": "Pint in check mode. What CI runs.",

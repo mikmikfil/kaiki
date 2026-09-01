@@ -1,0 +1,48 @@
+name: Nightly
+
+# ENV-25. Nightly exists for the checks that are either too slow to sit on a
+# pull request or that can fail without anybody pushing anything — a security
+# advisory published at 3am is nobody's commit, and it should still turn a
+# build red before the working day starts.
+on:
+  schedule:
+    # 02:00 UTC — 04:00 or 05:00 in Europe/Athens depending on the season, and
+    # in either case before anyone is looking.
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-audit:
+    name: Dependency audit
+    # SEC-12. The same workflow the pull-request run calls, so an advisory can
+    # never be blocking on one path and advisory-only on the other.
+    uses: ./.github/workflows/dependency-audit.yml
+
+  migrate-from-zero:
+    name: Migrate from zero and compare the schema
+    # ENV-10. Also on every pull request; nightly catches the case where a
+    # migration merged from a branch that had not been rebased.
+    uses: ./.github/workflows/schema-drift.yml
+
+  # ---------------------------------------------------------------------------
+  # ENV-25 lists four things. Two of them do not exist yet, and are recorded
+  # here rather than omitted, because "the nightly does not run Playwright" is
+  # a fact somebody should be able to discover from this file.
+  #
+  # playwright:
+  #   The full Playwright suite, including the WordPress site run (TST-3), and
+  #   the axe-core accessibility pass (A11Y-1). The pull-request run gets a
+  #   smoke subset; this one gets everything.
+  #   Arrives with the widget in M3. Entry points already stubbed in
+  #   package.json as `npm run e2e` and `npm run e2e:wp`.
+  #
+  # availability-performance:
+  #   The NFR-1 benchmark: the availability endpoint under 150 ms at p95, on
+  #   MySQL 8 against the seeded dataset NFR-1 defines. Note this runs first at
+  #   the CLOSE OF M2, not at M8 — AVL-12b pulled it forward, because missing
+  #   the threshold is the documented trigger to reopen ADR-0023, and that is
+  #   only affordable while the shape is still cheap to change.
+  # ---------------------------------------------------------------------------

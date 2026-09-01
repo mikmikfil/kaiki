@@ -1,0 +1,122 @@
+name: Schema drift
+
+# ENV-10. Called by ci.yml on every pull request and by nightly.yml on a cron.
+on:
+  workflow_call:
+    inputs:
+      php-version:
+        description: 'PHP version. ADR-0014, Option B: 8.4 everywhere.'
+        type: string
+        required: false
+        default: '8.4'
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    name: Migrate from zero and compare the schema
+    runs-on: ubuntu-latest
+
+    services:
+      # Empty on purpose. The point of this job is the path from nothing to a
+      # schema, which is the path a new production database takes exactly once
+      # and can therefore never be rehearsed anywhere else.
+      mysql:
+        # Pinned to a patch, unlike the floating tag in ci.yml's test-mysql.
+        # That job only needs "a MySQL 8"; this one compares dumped DDL byte
+        # for byte, and the server's rendering of display widths and default
+        # collations moves between patches. A silent image bump would turn
+        # this gate red for a reason that has nothing to do with a migration —
+        # the "gate that cries wolf" the normaliser exists to avoid.
+        # Bumping this means regenerating the snapshot. See docs/ci.md.
+        image: mysql:8.0.40
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: kaiki_schema
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DB_CONNECTION: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_DATABASE: kaiki_schema
+      DB_USERNAME: root
+      DB_PASSWORD: root
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ inputs.php-version }}
+          extensions: fileinfo, pdo_mysql, mysqli, zip, gd, intl, exif, bcmath
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      # `schema:snapshot` shells out to mysqldump through Laravel's own dumper,
+      # and the runner image is not contractually obliged to keep shipping a
+      # MySQL client.
+      - name: Install the MySQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mysql-client
+          mysqldump --version
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # The migrations must actually run. If Laravel ever loads a committed dump
+      # instead — which it does for any file at database/schema/mysql-schema.sql —
+      # this job would compare the snapshot with itself and report green forever.
+      # Hence the snapshot's deliberate filename, and hence reading the output.
+      - name: Migrate from an empty MySQL 8 database
+        run: |
+          set -o pipefail
+          php artisan migrate --force 2>&1 | tee migrate.log
+
+          if grep -q 'Loading stored database schemas' migrate.log; then
+            echo "::error::Laravel loaded a stored schema instead of running the migrations. ENV-10 is not being verified — see docs/ci.md."
+            exit 1
+          fi
+
+          if ! grep -q 'Running migrations' migrate.log; then
+            echo "::error::No migration ran against the empty database."
+            exit 1
+          fi
+
+      - name: Dump the schema
+        run: composer schema:snapshot
+
+      - name: Fail on schema drift
+        run: |
+          drift="$(git status --porcelain -- database/schema)"
+
+          if [ -n "$drift" ]; then
+            echo "::error::The committed schema snapshot does not match the migrations. Refresh it with 'composer schema:snapshot', or download the mysql-schema-snapshot artifact from this run — see docs/ci.md."
+            git --no-pager diff -- database/schema
+            git status --porcelain -- database/schema
+            exit 1
+          fi
+
+          echo "Schema snapshot matches the migrations."
+
+      # Always, not only on failure: this artifact is the refresh path for a
+      # developer whose local stack is SQLite and who therefore cannot generate
+      # the snapshot at all (ADR-0015).
+      - name: Upload the regenerated snapshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mysql-schema-snapshot
+          path: database/schema/mysql-schema.snapshot.sql
+          if-no-files-found: warn

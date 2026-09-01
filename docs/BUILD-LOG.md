@@ -13,9 +13,9 @@ Each entry records the **verification actually run** and its **real output** —
 | | |
 |---|---|
 | Milestone | **M0 — Foundation** |
-| Issues closed | #1, #2, #3, #5, #6, #7, #8, #9 of 12 |
+| Issues closed | #1, #2, #3, #4, #5, #6, #7, #8, #9 of 12 |
 | Local stack | Laravel 12.68 · PHP 8.4.24 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest · **cross-tenant isolation gate** — all green |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest · **cross-tenant isolation gate** · coverage 93.9% of `app/Domain` · dependency audits · schema drift — all green |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 **Open, not blocking, and not mine to close:**
@@ -26,6 +26,76 @@ Each entry records the **verification actually run** and its **real output** —
 | Invoice-numbering **gap policy** (ADR-0022) | accountant | M6 |
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
+
+---
+
+## #4 — CI gates: coverage, dependency audits, migration-from-zero, widget and plugin jobs
+
+**Files:** `.github/workflows/{ci,nightly,dependency-audit,schema-drift}.yml`, `app/Console/Commands/SchemaSnapshotCommand.php`, `database/schema/mysql-schema.snapshot.sql`, `phpunit.coverage.xml`, `tests/Unit/CiGatesTest.php`, `docs/ci.md`, `composer.json`, `bootstrap/app.php`, `.gitignore`
+
+With this, **`main` can be branch-protected honestly**: the check list ENV-23 asks for now exists, and one aggregating check makes all of it required.
+
+### The deviation, and why it is not optional
+
+The issue names `database/schema/mysql-schema.sql`. That is the path Laravel itself loads — `MigrateCommand::prepareDatabase()` calls `loadSchemaState()` whenever `! hasRunAnyMigrations()`, and executes the dump **instead of** the migrations. Committing the snapshot there would have meant `migrate-from-zero` comparing the snapshot with itself, and `test-mysql`'s `migrate:fresh` no longer exercising the migrations — both of them reporting green while verifying nothing.
+
+So: the file is `mysql-schema.snapshot.sql`, `.gitignore` blocks `/database/schema/*-schema.sql`, a test asserts no file sits at the loaded path, and the job greps the migrate output for `Loading stored database schemas` and fails on it. Four guards for one trap, because this is the failure mode that leaves no trace.
+
+### The refresh path, walked rather than described
+
+The snapshot cannot be generated locally — it needs MySQL, and the local stack is SQLite (ADR-0015). So the job uploads the regenerated file as an artifact on **every** run, not only on failure. The first CI run went red with nothing committed; the file that made it green came out of that run's artifact unedited. AC 4 asked for a one-command refresh; this is what that command amounts to on a Windows workstation, and it has now been done once for real.
+
+A second, cheaper layer sits in front of it: the snapshot header carries a SHA-256 fingerprint of the migrations that produced it, and a test compares that against the current `database/migrations`. Changing a migration and forgetting to refresh now fails on SQLite in seconds. The fingerprint hashes **normalised** contents — it is written on Linux and checked on Windows, and a CRLF checkout would otherwise reject a correct snapshot.
+
+### Where the numbers ended up
+
+`app/Domain` is at **93.9%** against a floor of 80. Nothing had to be written to reach it: the resolvers and actions from #6 and #7 were already covered by their own feature tests.
+
+### One flaw found in my own guard
+
+`CiGatesTest` asserted `--min=80` literally, which made the test the second place the threshold lived — the exact property it was written to protect. It now asserts that a threshold exists and that `ci.yml` never repeats it, and says nothing about the value. Caught while designing the sabotage, which is the argument for doing sabotage before writing the changelog rather than after.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `composer lint:test` | passed |
+| `composer stan` | `[OK] No errors` |
+| `composer test` | **173 passed** (447 assertions), 11 new |
+| `npm run widget:build` / `widget:size` / `plugin:lint` | all exit 0 against the M0 stubs |
+| Full pipeline green | run [33484640743](https://github.com/mikmikfil/kaiki/actions/runs/33484640743), commit `fcce8f2` — all 11 jobs |
+| `app/Domain` coverage | **93.9%**, floor 80 |
+| Migrations ran for real | drift job log shows `Running migrations`, never `Loading stored database schemas` |
+
+### CI evidence — sabotage, run [33486716892](https://github.com/mikmikfil/kaiki/actions/runs/33486716892), commit `e07367b`
+
+Both gates broken in one commit, so that the blast radius of each was visible against the other.
+
+| Sabotage | Result |
+|---|---|
+| Coverage threshold → 100 | `coverage` red: *"Code coverage below expected 100.0 %, currently 93.9 %"* |
+| One column widened by a byte in the snapshot | `migrate-from-zero` red, diff naming it: `- varchar(81)` / `+ varchar(80)`, with the refresh instruction |
+| Everything else | **green** — Pint, PHPStan, both Pest jobs, the isolation gate, both audits, both stub jobs |
+
+Reverted in `a113af5`. That last row is the half of the claim that is easy to skip: a gate that goes red when something unrelated breaks is not evidence that it watches what it says it watches.
+
+### Review — two blocking findings, both mine
+
+`security-reviewer` and `architect` over the diff. Neither found a way to leak tenant data; this change touches no model, route or migration. Both found real holes anyway.
+
+**The guards missed the path Laravel checks first.** `MigrateCommand::schemaPath()` tries `{connection}-schema.dump` *before* `-schema.sql`. My ignore rule and my test covered only the second, and only for `mysql` — so a developer running `php artisan schema:dump` on the local SQLite stack would write `sqlite-schema.sql` and silently neuter their own `migrate`, with nothing to warn them. Now both extensions are ignored for every connection, and the test globs rather than naming one path.
+
+**ENV-23 lists twelve checks and I shipped eleven.** The missing one is the widget Playwright smoke — and `CiGatesTest` asserted "every ENV-23 job" against a hand-written list that did not include it, so the test was green while the requirement it names was incomplete. That is this file's own doctrine turned inward: a gate that reports green while measuring less than it claims. `widget-e2e` now runs the existing `npm run e2e` stub, symmetrical with `widget-build` and `plugin-lint`.
+
+The audit gate had three ways to **fail open**, all now closed: Composer's severity is nullable and an unclassified advisory sorted into the harmless pile; `.advisories[]?[]` returned zero for output with no `advisories` key at all; and `jq empty` succeeds on an empty file, so "the tool died before writing anything" read as "no advisories". Unclassified now blocks, and the shape is asserted before anything is counted.
+
+The coverage job was the only gate here **without a proof that it ran** — php-code-coverage reports 100% for a source set with zero executable lines, so a broken source filter would have passed at 100% against nothing. It now asserts the clover report measured a non-zero statement count. One reviewer reached this from a false premise (that `app/Domain` is empty — it holds 8 files at 93.9%); the recommendation was right regardless.
+
+**Deferred, with reasons.** Pinning third-party actions to commit SHAs is correct and is *not* done here: it is a repo-wide convention that also covers #3's jobs, and pinning only the new files would be worse than pinning none. Its own issue. Likewise the coverage run excluding the `mysql` group — harmless today, wrong from M2 when AVL-44 can only run on MySQL and its `app/Domain` code would count as uncovered; and the ARC-21c test asserting `composer.json` requires nothing outside the approved list, which is pre-existing and is the one guard that would make ARC-19 mechanical.
+
+### Left for the architect
+
+`docs/spec.md` is not edited — the issue says to propose the wording instead. The proposal, in the pull request and in `docs/ci.md`: the required status check on `main` is the single aggregating job **`CI passed`**, not ten individual checks, so that adding a gate later cannot be forgotten in branch protection.
 
 ---
 
