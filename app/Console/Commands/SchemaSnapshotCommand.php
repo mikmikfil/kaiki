@@ -83,7 +83,13 @@ final class SchemaSnapshotCommand extends Command
         $material = '';
 
         foreach ($files as $file) {
-            $material .= basename($file) . ':' . hash_file('sha256', $file) . "\n";
+            // Normalised, not hash_file(): the fingerprint is written on Linux
+            // in CI and checked on Windows locally, and a checkout configured
+            // for CRLF would otherwise fail this against a snapshot that is
+            // perfectly correct.
+            $contents = str_replace("\r\n", "\n", (string) file_get_contents($file));
+
+            $material .= basename($file) . ':' . hash('sha256', $contents) . "\n";
         }
 
         return hash('sha256', $material);
