@@ -2,6 +2,28 @@
 
 ## M0 — Foundation
 
+### #4 - The rest of the CI gates: coverage, audits, schema drift, widget and plugin jobs
+
+ENV-23 lists the checks that must be required on `main`. #3 delivered five of them; this is the rest, and with it the list a human types into branch protection is finally the list the pipeline produces.
+
+**Coverage is scoped to `app/Domain` and nothing else** (TST-1), through a second PHPUnit config that differs from the first only in its source filter. A whole-application threshold would reward writing tests for Filament resources instead of for the engine, which is the one part of this system that must not be wrong. It currently sits at **93.9%** against a floor of 80. The floor lives in one place - the `--min=` in `composer test:coverage` - and a test asserts the workflow never repeats the number. That test originally pinned `80` itself, which made it the second home for the very value it was guarding; it now asserts only that a threshold exists.
+
+**The schema snapshot is deliberately not named `mysql-schema.sql`.** Laravel loads a dump at that path *instead of* running the migrations whenever none has run yet. Committing one there would have meant the drift job comparing the snapshot against itself, and `test-mysql`'s `migrate:fresh` quietly ceasing to exercise the migrations at all - neither of which would have turned a build red to say so. So the file is `mysql-schema.snapshot.sql`, `.gitignore` blocks the path Laravel watches, a test asserts no such file exists, and the job fails if the migrate output ever reads `Loading stored database schemas`. ENV-10 asks for a guarantee; a guarantee that can evaporate silently is not one.
+
+Refreshing the snapshot is one command, `composer schema:snapshot` - but it needs MySQL, and the local stack is SQLite (ADR-0015), so the job uploads the regenerated file as an artifact on **every** run, red or green. That artifact is the refresh path, and this issue walked it: the first run went red with nothing committed, and the file that fixed it came out of that run unedited.
+
+There is a second, cheaper half to the same guarantee. The snapshot header carries a fingerprint of the migrations that produced it, so changing a migration and forgetting to refresh fails on SQLite in seconds rather than after a MySQL round-trip. The fingerprint hashes normalised contents, because it is written on Linux and checked on Windows and a CRLF checkout would otherwise reject a snapshot that is perfectly correct.
+
+**The audits split on severity** (SEC-12): high and critical fail, anything lower is printed for a human to open an issue about. Both tools exit non-zero on any finding, so the exit code is discarded and the severity read from the JSON - and a run producing no parseable JSON fails rather than being read as a clean bill of health. That distinction is the whole reason it is not a one-liner.
+
+The audit and drift jobs are **reusable workflows** called by both `ci.yml` and `nightly.yml`. Two copies of a severity threshold is how one of them quietly stops blocking anything.
+
+`widget-build` and `plugin-lint` run stubs until M3 and M4. They exist now so those milestones replace a `package.json` script rather than invent a pipeline, and so the required-check list never has to change again.
+
+**Both gates were proven by sabotage**, as the issue asked. The threshold raised to 100 produced "Code coverage below expected 100.0 %, currently 93.9 %"; a single column widened by one byte in the snapshot produced a diff naming it. Every other job stayed green - which is the other half of the claim, that these gates fail for their own reasons and not for each other's.
+
+`docs/ci.md` is new and holds the required-check list, what each red build means, and the refresh path. `docs/spec.md` was not edited: the wording is proposed in the pull request for the architect, as the issue directs.
+
 ### #9 - Filament panels /app and /admin with the owner/manager/crew role matrix
 
 Two panels, strictly separate populations. An operator reaching `/admin` would see every operator's data; a super-admin landing in `/app` has no tenant to scope to. Both are refused outright rather than rendered partially - a partial render is how someone learns what exists behind a wall. Different colours on purpose, because someone who can see every operator's data should be able to tell at a glance which panel they are in.
