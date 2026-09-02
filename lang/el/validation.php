@@ -166,6 +166,11 @@ return [
     'starts_with' => 'Το πεδίο :attribute πρέπει να αρχίζει με κάποιο από τα εξής: :values.',
     'string' => 'Το πεδίο :attribute πρέπει να είναι κείμενο.',
     'timezone' => 'Το πεδίο :attribute πρέπει να είναι έγκυρη ζώνη ώρας.',
+
+    /*
+     * Δεν είναι κανόνας του Laravel — App\Rules\TranslatableRequired (§1.6).
+     */
+    'translatable_required' => 'Το πεδίο :attribute πρέπει να συμπληρωθεί στα: :locales.',
     'unique' => 'Το :attribute χρησιμοποιείται ήδη.',
     'uploaded' => 'Η μεταφόρτωση του :attribute απέτυχε.',
     'uppercase' => 'Το πεδίο :attribute πρέπει να είναι με κεφαλαία γράμματα.',

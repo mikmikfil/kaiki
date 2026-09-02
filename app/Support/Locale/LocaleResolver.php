@@ -189,4 +189,33 @@ final class LocaleResolver
         // offered locales `resolve()` went on to refuse.
         return $narrowed === [] ? $installed : $narrowed;
     }
+
+    /**
+     * The locales a translatable field must be filled in before it may be saved.
+     *
+     * A **third** locale set, deliberately separate from {@see self::installed}
+     * and {@see self::permitted}. `docs/data-model.md` §1.6 requires both `el`
+     * and `en` on every translatable column; EXT-7 says adding `it` or `de`
+     * must be *"a lang-file plus widget-bundle addition only"*. Derive this
+     * from the installed locales and those two rules contradict each other —
+     * shipping German lang files would instantly invalidate every product in
+     * the database and lock operators out of their own catalogue.
+     *
+     * So the requirement is its own list, and growing it is a migration and a
+     * backfill, not a config edit.
+     *
+     * @return list<string>
+     */
+    public static function required(): array
+    {
+        /** @var list<string> $locales */
+        $locales = (array) config('kaiki.i18n.required_locales', [self::FALLBACK]);
+
+        $resolver = new self;
+
+        return array_values(array_unique(array_filter(
+            array_map(static fn (mixed $l): ?string => $resolver->normalise($l), $locales),
+            is_string(...),
+        )));
+    }
 }

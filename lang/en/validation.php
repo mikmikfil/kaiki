@@ -162,6 +162,13 @@ return [
     'starts_with' => 'The :attribute field must start with one of the following: :values.',
     'string' => 'The :attribute field must be a string.',
     'timezone' => 'The :attribute field must be a valid timezone.',
+
+    /*
+     * Not a Laravel rule — App\Rules\TranslatableRequired (data-model §1.6).
+     * `:locales` arrives already rendered as language names, so the message
+     * reads "must be filled in for Ελληνικά, English" rather than "for el, en".
+     */
+    'translatable_required' => 'The :attribute field must be filled in for :locales.',
     'unique' => 'The :attribute has already been taken.',
     'uploaded' => 'The :attribute failed to upload.',
     'uppercase' => 'The :attribute field must be uppercase.',
