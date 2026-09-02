@@ -28,6 +28,8 @@ The chain is also deliberately **not** "any locale that happens to have somethin
 
 `app/Rules` joins the I18N-2 hardcoded-string scan. A validation rule is a sentence an operator reads, and `TranslatableRequired` is the first one in the project — its message names the language ("Ελληνικά, English"), not the ISO code, because the operator picked their language from a switcher that said Ελληνικά.
 
+**One acceptance criterion could not be met as written, and it is worth knowing why.** The issue asks for the search haystack in "a plain **indexed** column". The `*_sort_{locale}` columns are indexed; `search_index` is not, and no declaration would have worked: MySQL 8 refuses an index on a `TEXT` column without a key length, SQLite has no prefix indexes, and a prefix index would buy nothing anyway because `LIKE '%term%'` cannot use a B-tree. The index that *would* help is `FULLTEXT`, which `docs/data-model.md` §0 forbids outright for the same both-engines reason. CAT-6 — authoritative over the issue text — asks only for "a single per-row `search_index` text column containing all locales concatenated and accent-folded", so catalogue search is a tenant-scoped scan over tens to hundreds of rows, exactly as the spec describes it. At real volume the answer is the search backend ADR-0008 already parks as a future ADR, not an index here. The reasoning sits beside the column in the migration rather than only in this file.
+
 
 ## M0 — Foundation
 

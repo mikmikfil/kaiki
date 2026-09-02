@@ -117,6 +117,35 @@ it('finds a row by an accented term typed without accents', function (): void {
     expect($found)->toBe(1);
 })->group('fast', 'i18n');
 
+it('matches καΐκι and καικι against the same records', function (): void {
+    // The issue's own example, verbatim. `ΐ` is iota with both dialytika and
+    // tonos — two marks on one letter — and it is in the word this product is
+    // named after, so it is the case that would be noticed last and hurt most.
+    TranslatableFixture::create([
+        'title' => ['el' => 'Παραδοσιακό καΐκι', 'en' => 'Traditional caique'],
+    ]);
+
+    foreach (['καΐκι', 'καικι', 'ΚΑΪΚΙ', 'Καΐκι'] as $term) {
+        expect(TranslatableFixture::query()->whereTranslationMatches($term)->count())
+            ->toBe(1, "searching for [{$term}] found nothing");
+    }
+})->group('fast', 'i18n');
+
+it('matches a final sigma against stored medial sigma and the reverse', function (): void {
+    // Greek writes the same letter differently at the end of a word, so the
+    // stored haystack holds `οδυσσεασ` with a **medial** sigma. Both directions
+    // are asserted: `οδυσσέας` is a search ending in a final sigma against
+    // that medial one, and `οδυσσεασ` is the reverse.
+    TranslatableFixture::create([
+        'title' => ['el' => 'Οδυσσέας', 'en' => 'Odysseas'],
+    ]);
+
+    foreach (['οδυσσεασ', 'οδυσσέας', 'Οδυσσεας'] as $term) {
+        expect(TranslatableFixture::query()->whereTranslationMatches($term)->count())
+            ->toBe(1, "searching for [{$term}] found nothing");
+    }
+})->group('fast', 'i18n');
+
 it('finds a Greek row from an English term and the reverse', function (): void {
     TranslatableFixture::create([
         'title' => ['el' => 'Σπέτσες', 'en' => 'Spetses'],

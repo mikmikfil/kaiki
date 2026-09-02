@@ -40,6 +40,25 @@ return new class extends Migration
             // The per-row haystack. `text`, not `string`: it holds every locale
             // of every searchable field concatenated, and a product's summary
             // alone runs past 255 characters routinely.
+            //
+            // **Deliberately not indexed**, unlike the sort columns below, and
+            // the reason is worth stating because issue #15 asks for "a plain
+            // indexed column".
+            //
+            // Two things rule an index out, and they compound. MySQL 8 refuses
+            // an index on a `TEXT` column without a key length — `$table->index()`
+            // here is an error, not a slow query — while SQLite has no prefix
+            // indexes at all, so there is no one declaration that runs on both
+            // engines (ENV-12). And a prefix index would buy nothing anyway:
+            // the search is `LIKE '%term%'`, and a leading wildcard cannot use
+            // a B-tree.
+            //
+            // The portable index that would help is `FULLTEXT`, which
+            // `docs/data-model.md` §0 forbids outright for the same
+            // both-engines reason. So catalogue search is a tenant-scoped scan
+            // over tens to hundreds of rows, which is what CAT-6 describes; the
+            // answer at real volume is the search backend ADR-0008 already
+            // parks as a future ADR, not an index here.
             $table->text(TranslationColumns::SEARCH)->nullable();
 
             // One ordering key per locale, indexed — the index is the whole

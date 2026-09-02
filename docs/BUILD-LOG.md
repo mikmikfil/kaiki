@@ -17,7 +17,7 @@ Each entry records the **verification actually run** and its **real output** —
 | M1 | #15 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (345) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — all green |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (351) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — all green |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 **Open, not blocking, and not mine to close:**
@@ -33,7 +33,7 @@ Each entry records the **verification actually run** and its **real output** —
 
 ## #15 — Translatable infrastructure: fallback on attributes, search and sort columns, the ENV-8 gate
 
-**Files:** `app/Observers/SearchIndexObserver.php`, `app/Rules/TranslatableRequired.php`, `app/Exceptions/MissingTranslationException.php`, `app/Support/Locale/TranslationValue.php`, `app/Console/Commands/BackfillTranslationsCommand.php`, `app/Models/Concerns/{HasKaikiTranslations,HasTranslatableSearch}.php`, `config/kaiki.php`, `lang/{el,en}/validation.php`, `tests/Support/{Translatable,Query}/**`, `tests/TestCase.php`, five test files
+**Files:** `app/Observers/SearchIndexObserver.php`, `app/Rules/TranslatableRequired.php`, `app/Exceptions/MissingTranslationException.php`, `app/Support/Locale/TranslationValue.php`, `app/Console/Commands/BackfillTranslationsCommand.php`, `app/Models/Concerns/{HasKaikiTranslations,HasTranslatableSearch}.php`, `config/kaiki.php`, `lang/{el,en}/validation.php`, `tests/Support/{Translatable,Query}/**`, `tests/TestCase.php`, six test files
 
 Completes the work `c27b2f2` landed as deliberate WIP. That commit shipped the two traits, the contract and `LocaleResolver::required()` and said so in its own message: the observer they reference did not exist, `composer stan` was red, and the rule, the backfill, the config block, the gate and every test were unwritten.
 
@@ -53,15 +53,39 @@ The §1.6 requirement is enforced twice — by the observer for imports and the 
 |---|---|
 | `composer lint:test` | `{"tool":"pint","result":"passed"}` |
 | `composer stan` | `[OK] No errors` — from 2 `trait.unused` on `c27b2f2` |
-| `composer test` | **345 passed** (1101 assertions), 50 new; baseline was 295 |
-| `composer test:fast` | 340 passed, **8.41s** (budget: under 30s) |
-| `composer i18n:check` | 119 passed, 2.66s |
+| `composer test` | **351 passed** (1121 assertions), 56 new; baseline was 295 |
+| `composer test:fast` | 346 passed, **8.61s** (budget: under 30s) |
+| `composer i18n:check` | 125 passed |
 | ENV-8 gate, green half | no `json_extract`, `JSON_UNQUOTE`, `->>` or JSON-path column anywhere in `app/` or `database/` |
 | ENV-8 gate, red half | all six forbidden shapes detected in a permanently-wrong fixture; four supported shapes not flagged |
 | Observer writes in one statement | asserted by reading `search_index` back **out of the database**, not off the model |
 | Two-engine folding | tonos, final sigma and case folded on both sides in PHP; no SQL collation relied on |
 | Backfill repair | stale columns rebuilt; `updated_at` unchanged (`2026-01-01` before and after) |
 | Backfill drift check | `--dry-run` exits **1** on drift and writes nothing; exits 0 clean |
+
+### The eight acceptance criteria, against the issue text
+
+Read after the fact — `gh` was authenticated once the work was already committed as `d788863`, so the issue body and its one comment were checked against what had been built rather than the other way round. Seven pass as written; one cannot be satisfied portably and is answered below.
+
+| # | Criterion | Where |
+|---|---|---|
+| 1 | Attribute read in `el` then `en`, missing locale falls back per I18N-5 | `TranslatableFallbackTest` — one test per step, plus the de-duplication case and the short-circuit |
+| 2 | Empty locale refused for fields required in both, message itself localised | `RequiredTranslationsTest` — including the EL message asserted in Greek |
+| 3 | Observer writes folded, final-sigma-normalised, lower-cased concatenation of all locales to a plain column | `TranslatableSearchIndexTest` — **"indexed" is the exception, see below** |
+| 4 | `καΐκι` and `καικι` match the same records | `TranslatableSearchIndexTest` — the issue's own example verbatim, four spellings including `ΐ` (two marks on one letter) |
+| 5 | A search ending in final sigma matches stored medial sigma | `TranslatableSearchIndexTest` — asserted in both directions |
+| 6 | Static check fails CI naming `file:line` | `NoJsonPathQueryTest` — reports `{file}:{line} — "{match}" ({why})`; runs in the `i18n` CI job via `composer i18n:check` |
+| 7 | Ordering uses the companion column, not the JSON | `TranslatableSortTest` — Greek and English orders that genuinely disagree |
+| 8 | A new model's only work is declaring the attribute lists | `TranslatableAdoptionCostTest` — reflection over the fixture: **zero methods** of its own |
+
+**AC 3 says "plain indexed column", and `search_index` is not indexed.** The sort columns are (`varchar(191)`, one index each); the haystack is a `text` column with none, and no declaration would have worked:
+
+- MySQL 8 **refuses** an index on a `TEXT` column without a key length — `$table->index('search_index')` is an error, not a slow query.
+- SQLite has no prefix indexes, so there is no single portable declaration (ENV-12 forbids branching on the driver).
+- A prefix index would buy nothing regardless: the search is `LIKE '%term%'`, and a leading wildcard cannot use a B-tree.
+- The index that *would* help is `FULLTEXT`, which `docs/data-model.md` §0 forbids outright for the same both-engines reason.
+
+`docs/spec.md` CAT-6 — which is authoritative over the issue text — asks for "a single per-row `search_index` text column containing all locales concatenated and accent-folded" and does **not** say indexed; ADR-0008's "plain, indexed" is written around the `*_sort_{locale}` example. So catalogue search is a tenant-scoped scan over tens to hundreds of rows, and the answer at real volume is the search backend ADR-0008 already parks as a future ADR. **Flagged rather than silently skipped, and the reasoning is in the migration beside the column.**
 
 ### Only verified on SQLite
 
@@ -73,12 +97,14 @@ Local runs on SQLite (ENV table above). Three things here can only be confirmed 
 
 ### Deviations and decisions worth naming
 
-1. **The issue text was not read.** `gh` is not authenticated on this machine (`gh auth status`: *"You are not logged into any GitHub hosts"*), so #15's body and comments were unavailable. The work follows the remaining-work list `c27b2f2` wrote for itself, checked against `docs/spec.md` (I18N-4, I18N-5, I18N-7, CAT-6, ENV-8, EXT-7), ADR-0008 and `docs/data-model.md` §1.6 / §3.14 — the contracts the issue cites. **The literal acceptance criteria have not been re-verified against the issue**, and that check should happen before the issue is closed.
-2. **`MissingTranslationException` was not on that list.** `docs/data-model.md` §1.6 is explicit — *"a model observer rejects a translation set missing `el` or `en`"* — and a rule that is only ever a form error is not a rejection. It is thrown from the observer and expected to be unreachable in normal use; the humane version is `TranslatableRequired`.
-3. **`app/Rules` added to the I18N-2 scan.** A validation rule is a sentence an operator reads. It was not scanned because no rule existed until now.
-4. **The backfill runs per tenant.** Not stated anywhere as a requirement, but a sort key resolves against `tenants.default_locale`, so a global run would rewrite a Greek operator's sort keys with English text. `--tenant=` narrows it, mirroring §1.9's `kaiki:reconcile-counters [--tenant=]`.
-5. **`--dry-run` exits 1 on drift.** A preview would exit 0; this is meant to be gateable from the nightly workflow. It is **not yet wired into** `.github/workflows/nightly.yml` — there is nothing to backfill until #16 creates the first translatable table, and a nightly job over zero models is noise.
-6. **PHP 8.4 is not first on this machine's PATH.** `php` resolves to `C:\Users\Mike\php83\php.exe` and every `composer` and `phpstan` invocation dies on Composer's platform check (*"Your Composer dependencies require a PHP version >= 8.4.1. You are running 8.3.33"*). Everything above was run with `C:\Users\Mike\php84` prepended. Worth fixing in the environment rather than per command.
+1. **The issue text was read only after the work was committed.** `gh` was unauthenticated for the whole implementation (`gh auth status`: *"You are not logged into any GitHub hosts"*), so `d788863` was built from the remaining-work list `c27b2f2` wrote for itself, checked against `docs/spec.md` (I18N-4, I18N-5, I18N-7, CAT-6, ENV-8, EXT-7), ADR-0008 and `docs/data-model.md` §1.6 / §3.14 — the contracts the issue cites. The acceptance criteria were then verified against the issue in the table above; the gap it exposed was AC 3's word "indexed", and two ACs (4 and 5) needed their literal examples added as tests rather than approximations of them.
+2. **`GreekTextNormalizer` was not written.** The issue's file list names `app/Support/Text/GreekTextNormalizer.php`, but its own comment says *"Accent folding reuses the shared helper from #12 — do not write a second one"*, and #12 shipped that helper as `app/Support/Text/GreekText.php` with `tests/Unit/Text/GreekTextTest.php`. The comment wins over the file list; a second normaliser is the exact duplication ADR-0008's acceptance note forbids.
+3. **`config/kaiki.php` gained the required-locale policy only.** The issue asks for "supported locales, required-in-both-locales field policy" in that file; supported locales already live in `config('app.available_locales')` and per-tenant in `tenants.supported_locales`, both shipped by #12, and moving them would give the same question two homes.
+4. **`MissingTranslationException` was not on that list.** `docs/data-model.md` §1.6 is explicit — *"a model observer rejects a translation set missing `el` or `en`"* — and a rule that is only ever a form error is not a rejection. It is thrown from the observer and expected to be unreachable in normal use; the humane version is `TranslatableRequired`.
+5. **`app/Rules` added to the I18N-2 scan.** A validation rule is a sentence an operator reads. It was not scanned because no rule existed until now.
+6. **The backfill runs per tenant.** Not stated anywhere as a requirement, but a sort key resolves against `tenants.default_locale`, so a global run would rewrite a Greek operator's sort keys with English text. `--tenant=` narrows it, mirroring §1.9's `kaiki:reconcile-counters [--tenant=]`.
+7. **`--dry-run` exits 1 on drift.** A preview would exit 0; this is meant to be gateable from the nightly workflow. It is **not yet wired into** `.github/workflows/nightly.yml` — there is nothing to backfill until #16 creates the first translatable table, and a nightly job over zero models is noise.
+8. **PHP 8.4 is not first on this machine's PATH.** `php` resolves to `C:\Users\Mike\php83\php.exe` and every `composer` and `phpstan` invocation dies on Composer's platform check (*"Your Composer dependencies require a PHP version >= 8.4.1. You are running 8.3.33"*). Everything above was run with `C:\Users\Mike\php84` prepended. Worth fixing in the environment rather than per command.
 
 ---
 
