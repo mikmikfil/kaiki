@@ -14,10 +14,10 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M1 — Catalogue and availability engine** |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M1 | #15 |
+| M1 | #15, #16 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (351) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — all green |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (426) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — all green except the MySQL schema snapshot, which #16 leaves stale by design (see below) |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 **Open, not blocking, and not mine to close:**
@@ -28,6 +28,53 @@ Each entry records the **verification actually run** and its **real output** —
 | Invoice-numbering **gap policy** (ADR-0022) | accountant | M6 |
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
+
+---
+
+## #16 — Vessels and ports: the first two catalogue tables
+
+**Files:** `database/migrations/2026_09_02_0000{10,11}_create_{ports,vessels}_table.php`, `app/Models/{Port,Vessel}.php`, `app/Enums/Vessel{Type,Status,Amenity}.php`, `app/Domain/Catalog/**`, `app/Exceptions/CapacityLoweringRefused.php`, `app/Observers/VesselObserver.php`, `app/Rules/VesselCapacityNotLowered.php`, `app/Filament/App/Resources/{Vessel,Port}Resource**`, `app/Filament/Forms/TranslatableInput.php`, `app/Policies/{Vessel,Port}Policy.php`, `database/factories/{Port,Vessel}Factory.php`, `database/seeders/DemoCatalogSeeder.php`, `lang/{el,en}/catalog.php`, four test files
+
+Items **10** and **11** of the §6 migration order. `products`, `schedule_rules`, `departures` and `vessel_blocks` all hold foreign keys into these two, and SQLite cannot add a foreign key after the fact, so every column either table will ever need is present today.
+
+### Three things the tests found that reading would not have
+
+**1. `deleted_at` in a unique index disables the index.** TEN-6 names `vessels.name` among the per-tenant uniques and §2.3's index table omitted it, so it is added here and the document amended in the same PR. The first version keyed it `(tenant_id, name, deleted_at)`, to stop a retired boat burning its name. `NULL` is distinct from `NULL` in a unique index on **both** engines, so every live row — all with a null `deleted_at` — stops colliding too and the constraint enforces nothing. Now `(tenant_id, name)`, matching `products_tenant_slug_unique`, which is also the safer half of the trade: a soft-deleted vessel can be restored, and restoring one into a collision is worse than refusing the duplicate.
+
+**2. Laravel's `unique` rule ignores the tenant scope.** It runs through the `DatabasePresenceVerifier`, which builds a raw query, so `BelongsToTenant` does not apply and the form checked every operator on the platform — a second Greek operator adding their own Οδυσσέας was told the name was taken by a fleet they cannot see. Found by a test written to assert the *permissive* direction, which is the direction nobody writes a test for.
+
+**3. `TranslatableRequired` had never fired on an empty field.** Laravel skips a non-implicit rule whenever the value is `null`, `''` or whitespace — every case the rule exists to catch. #15 did not see it because its tests validate whole translation *sets*, and an array is never "empty" by that check; it surfaces the moment a form binds one input per locale. The rule is now `implicit`. This is a latent #15 bug fixed here, not new work.
+
+### `vessels.name` is not translatable and still needs folding
+
+§1.6 says a boat's name is a proper noun, so a plain `orderBy`/`LIKE` looks correct and keeps the ENV-8 gate green. It is still wrong: the divergence ADR-0008 exists to prevent belongs to *Greek text*, not to JSON. MySQL folds tonos when comparing, SQLite does not, so `οδυσσευσ` finds `Οδυσσεύς` in production and misses it locally. `HasTranslatableSearch` grew `$foldedSearch` / `$foldedSort` for plain columns — one `{attribute}_sort` column rather than a per-locale pair, since a proper noun has one form in both languages.
+
+### The capacity guard ships before the tables it guards
+
+`capacity_max` is a **legal** ceiling, but the records that can claim a seat are in `products` (#18) and `departures` (#23). `GuardVesselCapacity` therefore ships against a `VesselCapacityClaims` interface with **zero implementations registered** — it refuses nothing today, correctly, because nothing can yet claim a seat — and a fake source proves the refusal, the localised offender list, the ordering and both enforcement points. #18 and #23 each add one class and one `tag()` line. Two enforcement points again, mirroring #15: `VesselObserver` throws for an import, `VesselCapacityNotLowered` puts the same sentence beside the field, and both delegate to the one Action.
+
+### Two Filament testing traps
+
+`Livewire::test()` never reaches the panel middleware, so `SetLocale` does not run and a component test asserting a Greek label renders in English and passes for the wrong reason — the locale assertions are HTTP tests. And Filament renders the empty state *instead of* the column headers when a table has no rows, so a label assertion against an empty table never sees the label. Both tests seed a row first.
+
+### Verification
+
+| Criterion | Result |
+|---|---|
+| `ports` then `vessels`, §2.3 columns, indexes, FKs | `migrate:fresh` green on SQLite; **MySQL 8 in CI** |
+| `VesselType` — exactly five cases, string column, labels from `enums.php` | `EnumLabelCoverageTest` (reflective) |
+| Buffer inheritance and override (AVL-7) | both cases, plus "tenant default changes → inheriting vessel follows" and resolution outside tenant context |
+| `capacity_max` lowering refused, offenders listed, localised | via the fake claim source; message asserted in Greek and asserted *not* to be the dotted key |
+| Filament CRUD + soft delete for owner/manager; crew refused | `VesselResourceTest`, `PortResourceTest`; `PolicyCoverageTest` proves the policies exist |
+| Labels and messages from lang files, EL and EN | `composer i18n:check` — 138 passed |
+| One-locale save refused per #15's rule | refused on `name.en`, the field that is empty |
+| Isolation harness discovers `Vessel` and `Port` automatically | `ModelIsolationTest` — no hand-written test, which is the criterion |
+
+`composer lint`, `composer stan`, `composer i18n:check` green. `composer test`: **425 passed, 1 failed.**
+
+### The one red test, and why it stays red locally
+
+`CiGatesTest` → "keeps the committed schema snapshot in step with the migrations". Two new migrations changed the fingerprint, and `composer schema:snapshot` **requires a MySQL 8 connection** — the local stack is SQLite by ADR-0015. `docs/ci.md` §"Refreshing it after a migration change" documents exactly this: push the branch, let `migrate-from-zero` go red, download the `mysql-schema-snapshot` artifact and commit it. **That step is outstanding and must be done before this merges.**
 
 ---
 

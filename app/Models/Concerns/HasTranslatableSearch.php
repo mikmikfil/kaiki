@@ -40,11 +40,28 @@ use InvalidArgumentException;
  *     protected array $translatableSearch = ['title', 'summary'];
  *     protected array $translatableSort = ['title'];
  *     protected array $requiredTranslations = ['title'];
+ *
+ *     // Plain columns that still need folding — see below.
+ *     protected array $foldedSearch = ['name'];
+ *     protected array $foldedSort = ['name'];
  * }
  * ```
  *
  * That is the whole per-model cost. The observer is registered by this trait's
  * boot method, so no model ever wires one up itself and none can forget to.
+ *
+ * ## Plain columns
+ *
+ * Not every column that needs folding is JSON. `vessels.name` is a proper noun
+ * and deliberately *not* translatable (`docs/data-model.md` §1.6), yet a plain
+ * `orderBy name` and `where name like` diverge between the engines for exactly
+ * the reason above — MySQL folds Greek tonos when comparing, SQLite does not,
+ * so `οδυσσευς` finds `Οδυσσεύς` in production and misses it locally.
+ *
+ * The divergence is a property of *Greek text*, not of JSON, so `$foldedSearch`
+ * and `$foldedSort` extend the same machinery to plain columns: they feed the
+ * same `search_index` haystack and get a single `{attribute}_sort` companion —
+ * single, not per-locale, because a proper noun has one form in both languages.
  *
  * The lists are read with `property_exists` rather than declared here, because
  * PHP forbids a class redeclaring a trait property with a different default —
@@ -87,6 +104,18 @@ trait HasTranslatableSearch
     }
 
     /** @return list<string> */
+    public function foldedSearchAttributes(): array
+    {
+        return $this->declaredAttributeList('foldedSearch');
+    }
+
+    /** @return list<string> */
+    public function foldedSortAttributes(): array
+    {
+        return $this->declaredAttributeList('foldedSort');
+    }
+
+    /** @return list<string> */
     public function translationSearchValues(): array
     {
         $values = [];
@@ -100,6 +129,46 @@ trait HasTranslatableSearch
         }
 
         return $values;
+    }
+
+    /**
+     * The plain attributes' values, ready to join the same haystack.
+     *
+     * Read through `getAttribute()` rather than `$this->{$attribute}` so a
+     * column with a cast arrives as whatever the cast makes of it and is then
+     * filtered to strings by {@see TranslationValue::strings()}, instead of
+     * fataling on a `BackedEnum` where a string was expected.
+     *
+     * @return list<string>
+     */
+    public function foldedSearchValues(): array
+    {
+        $values = [];
+
+        foreach ($this->foldedSearchAttributes() as $attribute) {
+            foreach (TranslationValue::strings($this->getAttribute($attribute)) as $string) {
+                $values[] = $string;
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * The ordering key for one plain attribute.
+     *
+     * Folded and truncated exactly as {@see self::translationSortValue()} does.
+     * The two feed different columns but the same kind of `ORDER BY`, and a
+     * pair of sort keys built to different conventions is a list that looks
+     * sorted until the first accented row.
+     */
+    public function foldedSortValue(string $attribute): string
+    {
+        $value = implode(' ', TranslationValue::strings($this->getAttribute($attribute)));
+
+        $folded = GreekText::fold($value);
+
+        return mb_substr(trim((string) preg_replace('/\s+/u', ' ', $folded)), 0, self::SORT_VALUE_LENGTH);
     }
 
     /**
@@ -197,6 +266,37 @@ trait HasTranslatableSearch
 
         $query->orderBy(
             $query->qualifyColumn(TranslationColumns::sort($attribute, $locale)),
+            strtolower($direction) === 'desc' ? 'desc' : 'asc',
+        );
+    }
+
+    /**
+     * Order by a plain folded attribute, through its companion column.
+     *
+     * Separate from {@see self::scopeOrderByTranslation()} rather than a flag
+     * on it, because the column names differ in shape — `name_sort` against
+     * `title_sort_el` — and a single method taking a nullable locale would have
+     * to guess which kind it was handed. Guessing wrong produces a column name
+     * that does not exist, which surfaces as a SQL error on a table header
+     * click rather than as anything a reader could predict.
+     *
+     * @param  Builder<static>  $query
+     */
+    public function scopeOrderByFolded(Builder $query, string $attribute, string $direction = 'asc'): void
+    {
+        // Validated against the declared list rather than escaped, for the same
+        // reason as the translatable scope: this becomes a column name, a
+        // column name cannot be bound as a parameter, and Filament passes the
+        // sort column straight from the query string.
+        if (! in_array($attribute, $this->foldedSortAttributes(), true)) {
+            throw new InvalidArgumentException(
+                "[{$attribute}] is not a sortable folded attribute on " . static::class
+                . '. Add it to $foldedSort and create its companion column.',
+            );
+        }
+
+        $query->orderBy(
+            $query->qualifyColumn(TranslationColumns::foldedSort($attribute)),
             strtolower($direction) === 'desc' ? 'desc' : 'asc',
         );
     }

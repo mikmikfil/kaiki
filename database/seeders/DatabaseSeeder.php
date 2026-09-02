@@ -20,5 +20,10 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(DemoTenantSeeder::class);
+
+        // After the tenants, and inside their context: ports and vessels are
+        // tenant-owned, so there is nothing for them to belong to until the
+        // operators above exist.
+        $this->call(DemoCatalogSeeder::class);
     }
 }

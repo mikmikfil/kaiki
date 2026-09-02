@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\Port;
 use App\Models\Tenant;
+use App\Models\Vessel;
 use App\Support\Locale\TranslationColumns;
+use App\Support\Tenancy;
 use Illuminate\Support\Facades\DB;
 
 use function Pest\Laravel\artisan;
@@ -117,11 +120,42 @@ it('refuses a class that is not a translatable-searchable model', function (): v
         ->assertSuccessful();
 })->group('fast', 'i18n');
 
-it('finds nothing to do when no model implements the contract', function (): void {
-    // Discovery over `app/Models`, which today contains no translatable model
-    // at all — `Product`, `Vessel` and the rest are #16 and later. The command
-    // has to say so rather than report a successful backfill of nothing.
+it('discovers the translatable models in app/Models without being told', function (): void {
+    // This test asserted the *opposite* until #16: discovery over `app/Models`
+    // found nothing, because `Port` and `Vessel` are the first translatable
+    // tables in the schema. That is exactly why it was written — the command's
+    // discovery had never run against a real model, and a reflective scan that
+    // silently matches nothing is green forever.
+    //
+    // Rows have to exist for the report to name anything: the command walks
+    // tenants, so an empty database produces an empty table and would pass an
+    // assertion on "did not say there are no models" without discovering one.
+    $tenant = Tenant::factory()->create(['slug' => 'aegean-blue']);
+
+    Tenancy::forTenant($tenant, function (): void {
+        Port::factory()->create();
+        Vessel::factory()->create();
+    });
+
     artisan('kaiki:backfill-translations')
-        ->expectsOutputToContain('No translatable-searchable models found')
+        ->doesntExpectOutputToContain('No translatable-searchable models found')
+        // Named, not counted: a model that quietly dropped out of discovery
+        // would still leave a non-zero row count behind.
+        ->expectsOutputToContain('Port')
+        ->expectsOutputToContain('Vessel')
         ->assertSuccessful();
+})->group('fast', 'i18n');
+
+it('reports no drift over rows the observer wrote', function (): void {
+    // The point of `--dry-run` exiting non-zero on drift is that a clean run is
+    // evidence the observer has been doing its job. Rows written normally must
+    // therefore need no repair at all.
+    $tenant = Tenant::factory()->create();
+
+    Tenancy::forTenant($tenant, function (): void {
+        Port::factory()->count(3)->create();
+        Vessel::factory()->count(2)->create();
+    });
+
+    artisan('kaiki:backfill-translations', ['--dry-run' => true])->assertSuccessful();
 })->group('fast', 'i18n');

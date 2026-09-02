@@ -71,8 +71,15 @@ final class SearchIndexObserver
         // column to write to. Writing one anyway would add an attribute that is
         // not a column and fail the INSERT — which is how "I only wanted
         // sorting" turns into an unrelated SQL error.
-        if ($model->translatableSearchAttributes() !== []) {
-            $index = GreekText::searchIndex($model->translationSearchValues());
+        //
+        // Either list is enough to earn the column: `vessels` is searchable by
+        // a plain `name` and a translatable `description`, and a guest typing a
+        // boat's name must find it without knowing which of the two is JSON.
+        if ($model->translatableSearchAttributes() !== [] || $model->foldedSearchAttributes() !== []) {
+            $index = GreekText::searchIndex([
+                ...$model->translationSearchValues(),
+                ...$model->foldedSearchValues(),
+            ]);
 
             if (self::set($model, TranslationColumns::SEARCH, $index)) {
                 $changed = true;
@@ -90,6 +97,17 @@ final class SearchIndexObserver
                 if (self::set($model, $column, $model->translationSortValue($attribute, $locale))) {
                     $changed = true;
                 }
+            }
+        }
+
+        // One column per plain attribute, not one per locale: the value being
+        // folded is the same in every language, so a per-locale pair would be
+        // two columns guaranteed to hold identical bytes.
+        foreach ($model->foldedSortAttributes() as $attribute) {
+            $column = TranslationColumns::foldedSort($attribute);
+
+            if (self::set($model, $column, $model->foldedSortValue($attribute))) {
+                $changed = true;
             }
         }
 
