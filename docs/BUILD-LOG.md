@@ -12,10 +12,12 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M0 — Foundation** |
-| Issues closed | #1, #2, #3, #4, #5, #6, #7, #8, #9, #10 of 12 |
-| Local stack | Laravel 12.68 · PHP 8.4.24 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest · **cross-tenant isolation gate** · coverage 93.9% of `app/Domain` · dependency audits · schema drift — all green |
+| Milestone | **M1 — Catalogue and availability engine** |
+| M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
+| M1 | #15 |
+| Pulled forward | #44, a read-only slice of M7's `/admin` |
+| Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (345) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — all green |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 **Open, not blocking, and not mine to close:**
@@ -26,6 +28,57 @@ Each entry records the **verification actually run** and its **real output** —
 | Invoice-numbering **gap policy** (ADR-0022) | accountant | M6 |
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
+
+---
+
+## #15 — Translatable infrastructure: fallback on attributes, search and sort columns, the ENV-8 gate
+
+**Files:** `app/Observers/SearchIndexObserver.php`, `app/Rules/TranslatableRequired.php`, `app/Exceptions/MissingTranslationException.php`, `app/Support/Locale/TranslationValue.php`, `app/Console/Commands/BackfillTranslationsCommand.php`, `app/Models/Concerns/{HasKaikiTranslations,HasTranslatableSearch}.php`, `config/kaiki.php`, `lang/{el,en}/validation.php`, `tests/Support/{Translatable,Query}/**`, `tests/TestCase.php`, five test files
+
+Completes the work `c27b2f2` landed as deliberate WIP. That commit shipped the two traits, the contract and `LocaleResolver::required()` and said so in its own message: the observer they reference did not exist, `composer stan` was red, and the rule, the backfill, the config block, the gate and every test were unwritten.
+
+### The red build was red in a way PHPStan could not see
+
+`composer stan` on `c27b2f2` reported **two `trait.unused` errors and nothing else**. It never mentioned the missing `SearchIndexObserver` that `HasTranslatableSearch::boot()` references, because PHPStan skips a trait no class uses — so the one real defect on the branch was invisible behind a lint about tidiness. `TranslatableFixture` is what changes that: it is the first class to use either trait, and with it the traits are analysed like any other code.
+
+### A bug found while writing the tests, in code that was already committed
+
+The §1.6 requirement is enforced twice — by the observer for imports and the API, by `TranslatableRequired` for a person looking at a form. Written as two loops they disagreed, and the disagreement had a direction.
+
+`getTranslations()` drops null and empty-string entries but **keeps `"   "`**. So a whitespace-only English title was refused by the form and accepted by the observer: the only writer that could get the value into the database was the CSV import, which is the one writer with no form in front of it. `TranslationValue::missingLocales()` is now the single implementation both call — and the same class decides blankness for the I18N-5 fallback, so "empty" means one thing in all three places. The whitespace case is a test, and it failed before the fix.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `composer lint:test` | `{"tool":"pint","result":"passed"}` |
+| `composer stan` | `[OK] No errors` — from 2 `trait.unused` on `c27b2f2` |
+| `composer test` | **345 passed** (1101 assertions), 50 new; baseline was 295 |
+| `composer test:fast` | 340 passed, **8.41s** (budget: under 30s) |
+| `composer i18n:check` | 119 passed, 2.66s |
+| ENV-8 gate, green half | no `json_extract`, `JSON_UNQUOTE`, `->>` or JSON-path column anywhere in `app/` or `database/` |
+| ENV-8 gate, red half | all six forbidden shapes detected in a permanently-wrong fixture; four supported shapes not flagged |
+| Observer writes in one statement | asserted by reading `search_index` back **out of the database**, not off the model |
+| Two-engine folding | tonos, final sigma and case folded on both sides in PHP; no SQL collation relied on |
+| Backfill repair | stale columns rebuilt; `updated_at` unchanged (`2026-01-01` before and after) |
+| Backfill drift check | `--dry-run` exits **1** on drift and writes nothing; exits 0 clean |
+
+### Only verified on SQLite
+
+Local runs on SQLite (ENV table above). Three things here can only be confirmed by the CI MySQL job:
+
+1. The fixture table's `json` columns and its two `varchar(191)` indexes on MySQL 8 — the 191 length exists precisely for the `utf8mb4` index-prefix limit that SQLite does not have.
+2. That registering the test-only migration path from `TestCase::refreshApplication()` behaves the same under MySQL. This is the reason the fixture table is a migration rather than a `Schema::create()` in a `beforeEach`: DDL inside `RefreshDatabase`'s transaction is harmless on SQLite and an implicit commit on MySQL, so the wrong choice would leak only in CI.
+3. That `LIKE` against `search_index` returns the same rows on both engines. Both sides are folded in PHP specifically so it should — but "should" is what this project's environment split exists to stop anyone saying.
+
+### Deviations and decisions worth naming
+
+1. **The issue text was not read.** `gh` is not authenticated on this machine (`gh auth status`: *"You are not logged into any GitHub hosts"*), so #15's body and comments were unavailable. The work follows the remaining-work list `c27b2f2` wrote for itself, checked against `docs/spec.md` (I18N-4, I18N-5, I18N-7, CAT-6, ENV-8, EXT-7), ADR-0008 and `docs/data-model.md` §1.6 / §3.14 — the contracts the issue cites. **The literal acceptance criteria have not been re-verified against the issue**, and that check should happen before the issue is closed.
+2. **`MissingTranslationException` was not on that list.** `docs/data-model.md` §1.6 is explicit — *"a model observer rejects a translation set missing `el` or `en`"* — and a rule that is only ever a form error is not a rejection. It is thrown from the observer and expected to be unreachable in normal use; the humane version is `TranslatableRequired`.
+3. **`app/Rules` added to the I18N-2 scan.** A validation rule is a sentence an operator reads. It was not scanned because no rule existed until now.
+4. **The backfill runs per tenant.** Not stated anywhere as a requirement, but a sort key resolves against `tenants.default_locale`, so a global run would rewrite a Greek operator's sort keys with English text. `--tenant=` narrows it, mirroring §1.9's `kaiki:reconcile-counters [--tenant=]`.
+5. **`--dry-run` exits 1 on drift.** A preview would exit 0; this is meant to be gateable from the nightly workflow. It is **not yet wired into** `.github/workflows/nightly.yml` — there is nothing to backfill until #16 creates the first translatable table, and a nightly job over zero models is noise.
+6. **PHP 8.4 is not first on this machine's PATH.** `php` resolves to `C:\Users\Mike\php83\php.exe` and every `composer` and `phpstan` invocation dies on Composer's platform check (*"Your Composer dependencies require a PHP version >= 8.4.1. You are running 8.3.33"*). Everything above was run with `C:\Users\Mike\php84` prepended. Worth fixing in the environment rather than per command.
 
 ---
 

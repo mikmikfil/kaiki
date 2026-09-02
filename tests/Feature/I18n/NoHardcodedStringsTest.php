@@ -35,6 +35,10 @@ function scannedPaths(): array
         'app/Models',
         'app/Policies',
         'app/Support',
+        // A validation rule is a sentence an operator reads, so it belongs here
+        // for the same reason a Filament label does. Added with #15's
+        // TranslatableRequired, the first rule in the project.
+        'app/Rules',
         // Do not exist yet; the scanner skips a missing directory, and listing
         // them now means M2's mail and SMS templates are covered the day they
         // land rather than the day someone remembers (I18N-9).

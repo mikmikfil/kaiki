@@ -89,4 +89,31 @@ return [
         'crew_departure_window_days' => (int) env('KAIKI_CREW_WINDOW_DAYS', 1),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | i18n
+    |--------------------------------------------------------------------------
+    */
+    'i18n' => [
+        /*
+         * The locales a translatable field must be filled in before it may be
+         * saved (`docs/data-model.md` §1.6: "Both keys are required on write;
+         * a model observer rejects a translation set missing `el` or `en`").
+         *
+         * A **third** locale list, deliberately not derived from
+         * `app.available_locales`. EXT-7 says adding `it` or `de` must be "a
+         * lang-file plus widget-bundle addition only" — derive this from the
+         * installed locales and shipping German lang files would instantly
+         * invalidate every product in every catalogue and lock operators out of
+         * their own data. Growing this list is a migration and a backfill, not
+         * a config edit.
+         *
+         * Not env-settable for the same reason. An environment variable that
+         * silently relaxes a data requirement means staging and production
+         * disagree about what a valid product is, and the import that passed in
+         * staging is the one that fails on launch day.
+         */
+        'required_locales' => ['el', 'en'],
+    ],
+
 ];

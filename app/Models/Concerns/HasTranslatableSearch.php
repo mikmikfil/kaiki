@@ -6,8 +6,10 @@ namespace App\Models\Concerns;
 
 use App\Models\Contracts\TranslatableSearchable;
 use App\Observers\SearchIndexObserver;
+use App\Rules\TranslatableRequired;
 use App\Support\Locale\LocaleResolver;
 use App\Support\Locale\TranslationColumns;
+use App\Support\Locale\TranslationValue;
 use App\Support\Text\GreekText;
 use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
@@ -91,7 +93,7 @@ trait HasTranslatableSearch
 
         foreach ($this->translatableSearchAttributes() as $attribute) {
             foreach ($this->getTranslations($attribute) as $translation) {
-                foreach (self::flattenTranslation($translation) as $string) {
+                foreach (TranslationValue::strings($translation) as $string) {
                     $values[] = $string;
                 }
             }
@@ -114,21 +116,30 @@ trait HasTranslatableSearch
         /** @var mixed $value */
         $value = $this->getTranslation($attribute, $locale);
 
-        $folded = GreekText::fold(implode(' ', self::flattenTranslation($value)));
+        $folded = GreekText::fold(implode(' ', TranslationValue::strings($value)));
 
         return mb_substr(trim((string) preg_replace('/\s+/u', ' ', $folded)), 0, self::SORT_VALUE_LENGTH);
     }
 
-    /** @return list<string> */
+    /**
+     * Required locales this attribute has no usable translation for.
+     *
+     * Delegated rather than decided here, so this and
+     * {@see TranslatableRequired} cannot answer differently. They
+     * did while this compared key sets: `getTranslations()` drops null and
+     * empty-string entries but keeps `"   "`, so an operator who tabbed past
+     * the English field was refused by the form and accepted by the observer —
+     * and the import, which never sees a form, was therefore the only writer
+     * that could get the value in.
+     *
+     * @return list<string>
+     */
     public function missingTranslationLocales(string $attribute): array
     {
-        // `getTranslations()` already drops null and empty-string entries, so
-        // a key present but blank counts as missing — which is the behaviour
-        // CAT-15 wants: an operator who tabbed past the English field has not
-        // translated the product.
-        $present = array_keys($this->getTranslations($attribute));
-
-        return array_values(array_diff(LocaleResolver::required(), $present));
+        return TranslationValue::missingLocales(
+            $this->getTranslations($attribute),
+            LocaleResolver::required(),
+        );
     }
 
     /**
@@ -228,36 +239,5 @@ trait HasTranslatableSearch
         }
 
         return array_values(array_filter($value, 'is_string'));
-    }
-
-    /**
-     * Every string inside a translation, however deeply nested.
-     *
-     * `products.includes` is a translatable *array* and `itinerary_stops` is a
-     * translatable array of objects (`docs/data-model.md` sections 3.5 and
-     * 3.6). A guest searching for a stop on the itinerary has to find the
-     * product it belongs to.
-     *
-     * @return list<string>
-     */
-    private static function flattenTranslation(mixed $value): array
-    {
-        if (is_string($value)) {
-            return [$value];
-        }
-
-        if (! is_array($value)) {
-            return [];
-        }
-
-        $strings = [];
-
-        foreach ($value as $item) {
-            foreach (self::flattenTranslation($item) as $string) {
-                $strings[] = $string;
-            }
-        }
-
-        return $strings;
     }
 }

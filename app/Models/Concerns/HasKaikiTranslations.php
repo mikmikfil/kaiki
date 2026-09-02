@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models\Concerns;
 
 use App\Support\Locale\LocaleResolver;
+use App\Support\Locale\TranslationValue;
 use App\Support\Tenancy;
 use Spatie\Translatable\HasTranslations;
 
@@ -60,14 +61,14 @@ trait HasKaikiTranslations
     {
         $value = $this->packageTranslation($key, $locale, false);
 
-        if (! $useFallbackLocale || ! self::translationIsBlank($value)) {
+        if (! $useFallbackLocale || ! TranslationValue::isBlank($value)) {
             return $value;
         }
 
         foreach ($this->translationFallbackLocales($locale) as $candidate) {
             $fallback = $this->packageTranslation($key, $candidate, false);
 
-            if (! self::translationIsBlank($fallback)) {
+            if (! TranslationValue::isBlank($fallback)) {
                 return $fallback;
             }
         }
@@ -101,19 +102,5 @@ trait HasKaikiTranslations
         }
 
         return $chain;
-    }
-
-    /**
-     * Is there nothing usable here?
-     *
-     * `[]` counts, because the translatable **array** columns (`includes`,
-     * `excludes`, `what_to_bring` — `docs/data-model.md` §3.5) fall back on an
-     * empty list exactly as a string field falls back on an empty string. A
-     * product with an empty Greek inclusions list should show the English one
-     * rather than nothing.
-     */
-    private static function translationIsBlank(mixed $value): bool
-    {
-        return $value === null || $value === '' || $value === [];
     }
 }
