@@ -87,13 +87,17 @@ Read after the fact — `gh` was authenticated once the work was already committ
 
 `docs/spec.md` CAT-6 — which is authoritative over the issue text — asks for "a single per-row `search_index` text column containing all locales concatenated and accent-folded" and does **not** say indexed; ADR-0008's "plain, indexed" is written around the `*_sort_{locale}` example. So catalogue search is a tenant-scoped scan over tens to hundreds of rows, and the answer at real volume is the search backend ADR-0008 already parks as a future ADR. **Flagged rather than silently skipped, and the reasoning is in the migration beside the column.**
 
-### Only verified on SQLite
+### Confirmed on MySQL 8, which is the whole point of ADR-0008
 
-Local runs on SQLite (ENV table above). Three things here can only be confirmed by the CI MySQL job:
+Three things could only be checked by the CI MySQL job. All three now are — [run 33641854446](https://github.com/mikmikfil/kaiki/actions/runs/33641854446) on PR [#45](https://github.com/mikmikfil/kaiki/pull/45), all 14 checks green:
 
-1. The fixture table's `json` columns and its two `varchar(191)` indexes on MySQL 8 — the 191 length exists precisely for the `utf8mb4` index-prefix limit that SQLite does not have.
-2. That registering the test-only migration path from `TestCase::refreshApplication()` behaves the same under MySQL. This is the reason the fixture table is a migration rather than a `Schema::create()` in a `beforeEach`: DDL inside `RefreshDatabase`'s transaction is harmless on SQLite and an implicit commit on MySQL, so the wrong choice would leak only in CI.
-3. That `LIKE` against `search_index` returns the same rows on both engines. Both sides are folded in PHP specifically so it should — but "should" is what this project's environment split exists to stop anyone saying.
+1. **The fixture table on MySQL 8.** `json` columns and two `varchar(191)` indexes built without complaint; the 191 length exists precisely for the `utf8mb4` index-prefix limit SQLite does not have.
+2. **The test-only migration path** registered from `TestCase::refreshApplication()` behaves identically under MySQL. This is why the fixture table is a migration rather than a `Schema::create()` in a `beforeEach`: DDL inside `RefreshDatabase`'s transaction is harmless on SQLite and an **implicit commit** on MySQL, so the wrong choice would have leaked in CI and nowhere else.
+3. **`LIKE` against `search_index` returns the same rows on both engines.** `Pest on MySQL 8 + Redis` reports **351 passed (1121 assertions)** — the same count and the same assertions as SQLite locally, with `it matches καΐκι and καικι against the same records` and `it matches a final sigma against stored medial sigma and the reverse` both passing there.
+
+Point 3 is worth stating plainly, because **it is the claim ADR-0008's Option A rests on.** Folding both sides in PHP was chosen over letting the database compare, precisely so that a Greek search cannot return one set of boats locally and a different set in production. Two engines producing identical results is the evidence for that decision rather than a restatement of it — and had the numbers diverged, what failed would have been the ADR, not this code.
+
+The `mysql` group itself also executed for real (`1 passed (2 assertions)`), so the job is not passing on an empty filter.
 
 ### Deviations and decisions worth naming
 
