@@ -17,7 +17,7 @@ Each entry records the **verification actually run** and its **real output** —
 | M1 | #15, #16 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (426) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — all green except the MySQL schema snapshot, which #16 leaves stale by design (see below) |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (426) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 **Open, not blocking, and not mine to close:**
@@ -70,11 +70,19 @@ Items **10** and **11** of the §6 migration order. `products`, `schedule_rules`
 | One-locale save refused per #15's rule | refused on `name.en`, the field that is empty |
 | Isolation harness discovers `Vessel` and `Port` automatically | `ModelIsolationTest` — no hand-written test, which is the criterion |
 
-`composer lint`, `composer stan`, `composer i18n:check` green. `composer test`: **425 passed, 1 failed.**
+`composer lint`, `composer stan`, `composer i18n:check` green. `composer test`: **425 passed, 1 failed** before the snapshot refresh below; **426 passed** after it.
 
-### The one red test, and why it stays red locally
+### The one red test, and the CI round-trip that closed it
 
-`CiGatesTest` → "keeps the committed schema snapshot in step with the migrations". Two new migrations changed the fingerprint, and `composer schema:snapshot` **requires a MySQL 8 connection** — the local stack is SQLite by ADR-0015. `docs/ci.md` §"Refreshing it after a migration change" documents exactly this: push the branch, let `migrate-from-zero` go red, download the `mysql-schema-snapshot` artifact and commit it. **That step is outstanding and must be done before this merges.**
+`CiGatesTest` → "keeps the committed schema snapshot in step with the migrations" was the only failure at commit time. Two new migrations changed the fingerprint, and `composer schema:snapshot` **requires a MySQL 8 connection** — the local stack is SQLite by ADR-0015 — so it could not be regenerated locally by any means.
+
+`docs/ci.md` §"Refreshing it after a migration change" describes the path, and PR [#46](https://github.com/mikmikfil/kaiki/pull/46) walked it. Run [33727830006](https://github.com/mikmikfil/kaiki/actions/runs/33727830006) opened red on **four** jobs — `Pest on SQLite`, `Pest on MySQL 8 + Redis`, `Coverage gate on app/Domain` and `Migrate from zero and compare the schema` — all four tracing to that one assertion, not to four problems. The `mysql-schema-snapshot` artifact from that run was downloaded and committed.
+
+The artifact was diffed against the committed file before it was trusted, rather than dropped in on the strength of the job name: **the only removed line is the fingerprint**, and the only additions are the `ports` and `vessels` table blocks. A snapshot refresh is the one commit in this repository that a reviewer cannot read line by line, so the check that nothing else moved has to be mechanical.
+
+That diff is also the first MySQL 8 rendering of both tables, and it confirms on the real engine what SQLite could only imply: `vessels_tenant_name_unique` is `(tenant_id, name)` with no `deleted_at`, `search_index` is `text` with no index and the four `KEY`s are the intended ones, `name_sort` is `varchar(191)`, `description`/`specs`/`images` are `json`, and `vessels_home_port_id_foreign` is `ON DELETE SET NULL` against `ports`.
+
+`vendor/bin/pest tests/Unit/CiGatesTest.php` — 11 passed. `composer test:fast` — **421 passed, 14.4s** against the 30s budget.
 
 ---
 
