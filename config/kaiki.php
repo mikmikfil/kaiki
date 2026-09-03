@@ -116,4 +116,96 @@ return [
         'required_locales' => ['el', 'en'],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Branding
+    |--------------------------------------------------------------------------
+    */
+    'branding' => [
+
+        /*
+         * The platform defaults a BrandProfile is created with, so that no
+         * surface ever renders unbranded (spec BRD-3). These values are also
+         * the column defaults in the `brand_profiles` migration — the column
+         * default protects a row written around the observer, this is what the
+         * observer writes, and `BrandProfileDefaultsTest` asserts the two agree
+         * by reading the schema. Two sources that silently disagree would mean
+         * a tenant's brand depending on which code path created it.
+         *
+         * Not env-settable. A platform default that differs between staging and
+         * production means the screenshot in a support ticket does not match
+         * what the operator is looking at.
+         */
+        'defaults' => [
+            'colors' => [
+                'primary' => '#0F62FE',
+                'secondary' => '#0B3D91',
+                'accent' => '#FFB000',
+                'background' => '#FFFFFF',
+                'text' => '#101828',
+            ],
+            'font_family' => 'Inter',
+            'font_source' => 'system',
+            'button_radius_px' => 8,
+            'widget_theme' => 'auto',
+        ],
+
+        /*
+         * WCAG AA, the two thresholds BRD-5 names. Body text on background is
+         * judged at 4.5:1; button text on the primary colour is a UI component
+         * and is judged at 3:1. It **warns and does not block** — an operator
+         * whose brand has been on their boats for fifteen years is not going to
+         * be told by a booking system that it is the wrong colour.
+         */
+        'contrast' => [
+            'body_text_ratio' => 4.5,
+            'ui_component_ratio' => 3.0,
+        ],
+
+        /*
+         * Uploads (BRD-7, SEC-13).
+         */
+        'uploads' => [
+            /*
+             * `local` is `storage/app/private` with Laravel's signed local
+             * serving enabled — outside the web root and reachable only through
+             * a signed URL, which is what SEC-13 asks for. A public disk here
+             * would satisfy the form and quietly fail the requirement.
+             */
+            'disk' => env('KAIKI_BRAND_DISK', 'local'),
+
+            /*
+             * 2 MB, from BRD-7. In kilobytes because that is the unit Laravel's
+             * `max:` validation rule takes, and converting at the call site is
+             * how a limit ends up meaning something different in two places.
+             */
+            'max_kilobytes' => 2048,
+
+            /*
+             * Checked against the file's magic bytes, not its extension and not
+             * the browser-supplied Content-Type (SEC-13). BRD-7 fixes this list
+             * at SVG, PNG and WebP; JPEG is deliberately absent, because a logo
+             * that needs a photographic codec is a logo with a white box around
+             * it on a dark widget.
+             */
+            'mime_types' => ['image/png', 'image/webp', 'image/svg+xml'],
+
+            /*
+             * Fixed widths in pixels, generated synchronously on upload
+             * (ADR-0021, Option A — do not queue conversions). Changing a number
+             * here changes nothing already on disk; `php artisan media:rebuild`
+             * is what applies it to existing files.
+             *
+             * SVG is never in this table and never rasterised: it is already
+             * resolution-independent, and generating a 200px PNG from it would
+             * throw away the only reason to accept the format.
+             */
+            'variants' => [
+                'logo' => [200, 400, 800],
+                'favicon' => [32, 180],
+                'email_header' => [600, 1200],
+            ],
+        ],
+    ],
+
 ];
