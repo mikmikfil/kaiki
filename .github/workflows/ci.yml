@@ -78,6 +78,18 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+          touch database/database.sqlite
+
+      # Scramble infers response shapes by walking the controller, and that
+      # walk reaches Eloquent models — which need their table to resolve
+      # attributes and casts. Without a migrated database the generator dies
+      # with a `QueryException` that reads like a Scramble bug, which is how
+      # #35 found this: the job had simply never had a route that touched a
+      # model before.
+      - name: Migrate from zero on SQLite
+        run: php artisan migrate --force
+        env:
+          DB_CONNECTION: sqlite
 
       # ENV-28. `docs/api.md` is the contract and Scramble generates the
       # implementation's view of it; this reconciles the two. The comparison is
