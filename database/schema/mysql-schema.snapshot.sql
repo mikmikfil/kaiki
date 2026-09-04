@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:44cdc9d0efa5672d09c86265876f57216ec838cb4a3379e953190db53bb98d49
+-- migrations-fingerprint: sha256:40654c62b005d64393abe793fa2fe2c0e315689e13e929baac642b1ad1e84a9d
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -142,6 +142,51 @@ CREATE TABLE `cancellation_policy_tiers` (
   KEY `cxl_tiers_policy_days_idx` (`tenant_id`,`cancellation_policy_id`,`days_before`),
   CONSTRAINT `cancellation_policy_tiers_cancellation_policy_id_foreign` FOREIGN KEY (`cancellation_policy_id`) REFERENCES `cancellation_policies` (`id`) ON DELETE CASCADE,
   CONSTRAINT `cancellation_policy_tiers_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `departures`;
+CREATE TABLE `departures` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tenant_id` bigint unsigned NOT NULL,
+  `product_id` bigint unsigned NOT NULL,
+  `vessel_id` bigint unsigned NOT NULL,
+  `schedule_rule_id` bigint unsigned DEFAULT NULL,
+  `local_date` date NOT NULL,
+  `local_time` time NOT NULL,
+  `starts_at_utc` timestamp NOT NULL,
+  `ends_at_utc` timestamp NOT NULL,
+  `dst_ambiguous` tinyint(1) NOT NULL DEFAULT '0',
+  `capacity` smallint unsigned NOT NULL,
+  `min_pax` smallint unsigned NOT NULL DEFAULT '0',
+  `seats_sold` smallint unsigned NOT NULL DEFAULT '0',
+  `seats_held` smallint unsigned NOT NULL DEFAULT '0',
+  `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'scheduled',
+  `cancel_reason` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `cancelled_at` timestamp NULL DEFAULT NULL,
+  `cancelled_by_user_id` bigint unsigned DEFAULT NULL,
+  `cancellation_note` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_blocked` tinyint(1) NOT NULL DEFAULT '0',
+  `notes` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `completed_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `departures_tenant_prod_start_uq` (`tenant_id`,`product_id`,`starts_at_utc`),
+  UNIQUE KEY `departures_uuid_unique` (`uuid`),
+  KEY `departures_product_id_foreign` (`product_id`),
+  KEY `departures_vessel_id_foreign` (`vessel_id`),
+  KEY `departures_schedule_rule_id_foreign` (`schedule_rule_id`),
+  KEY `departures_cancelled_by_user_id_foreign` (`cancelled_by_user_id`),
+  KEY `departures_avail_idx` (`tenant_id`,`product_id`,`local_date`,`status`),
+  KEY `departures_vessel_window_idx` (`tenant_id`,`vessel_id`,`starts_at_utc`,`ends_at_utc`),
+  KEY `departures_at_risk_idx` (`tenant_id`,`status`,`starts_at_utc`),
+  KEY `departures_tenant_date_idx` (`tenant_id`,`local_date`,`status`),
+  KEY `departures_schedule_rule_idx` (`tenant_id`,`schedule_rule_id`),
+  CONSTRAINT `departures_cancelled_by_user_id_foreign` FOREIGN KEY (`cancelled_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `departures_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `departures_schedule_rule_id_foreign` FOREIGN KEY (`schedule_rule_id`) REFERENCES `schedule_rules` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `departures_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `departures_vessel_id_foreign` FOREIGN KEY (`vessel_id`) REFERENCES `vessels` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `extras`;
 CREATE TABLE `extras` (
@@ -641,3 +686,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (18,'2026_09_02_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (19,'2026_09_02_000021_create_extras_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (20,'2026_09_02_000022_create_product_extra_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (21,'2026_09_02_000023_create_schedule_rules_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (22,'2026_09_02_000024_create_departures_table',1);
