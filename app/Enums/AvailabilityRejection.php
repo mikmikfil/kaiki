@@ -67,6 +67,37 @@ enum AvailabilityRejection: string
     /** The operator's subscription has lapsed (AVL-22.7, TEN-9). */
     case TenantReadOnly = 'tenant_read_only';
 
+    /** A charter start time off the 15-minute grid (AVL-31). */
+    case OffGrid = 'off_grid';
+
+    /** A charter start outside the operator's daily hours (AVL-31). */
+    case OutsideOperatingWindow = 'outside_operating_window';
+
+    /** More extra hours than the operator allows (AVL-31). */
+    case ExtensionTooLong = 'extension_too_long';
+
+    /**
+     * The local time does not exist on that date (ADR-0016).
+     *
+     * Rare, and worth its own code rather than folding into "unavailable": the
+     * guest's remedy is to move by half an hour, and no other reason has that
+     * remedy.
+     */
+    case DstNonExistent = 'dst_non_existent';
+
+    /** A charter with no default start and no proposal (AVL-6). */
+    case NoProposedWindow = 'no_proposed_window';
+
+    /**
+     * Another guest is at the checkout for this window (AVL-33).
+     *
+     * Distinct from `VesselBusy`, and the distinction is worth a code: a hold
+     * lasts twenty minutes, so this is the one unavailability a guest might
+     * reasonably wait out. Reporting it as "booked" would send them away from a
+     * boat that is about to be free again.
+     */
+    case VesselHeld = 'vessel_held';
+
     /** The guest-facing sentence for this code (CNV-11, I18N-1). */
     public function message(): string
     {

@@ -281,4 +281,45 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Availability (AVL-31)
+    |--------------------------------------------------------------------------
+    */
+
+    'availability' => [
+
+        /*
+         * The granularity a guest may propose a charter start on.
+         *
+         * Fifteen minutes is the smallest unit an operator actually schedules
+         * in. Without a grid a guest books 09:07, the crew reads 09:07, and
+         * every downstream display has to decide whether to round it.
+         */
+        'grid_minutes' => 15,
+
+        /*
+         * The daily window a charter may start in, local time (AVL-31 default).
+         *
+         * A product's own `earliest_start_time` and `latest_start_time` win
+         * where the operator set them; this is what applies otherwise. A boat
+         * that can be chartered at 03:00 is a boat whose crew finds out at
+         * 03:00.
+         */
+        'operating_window' => [
+            'earliest' => '06:00',
+            'latest' => '23:00',
+        ],
+
+        /*
+         * How many whole hours a guest may add to a flexible charter.
+         *
+         * Whole hours because `extra_hour_price_cents` is priced by the hour
+         * and half of one has no price. Bounded because an unbounded extension
+         * lets a single request block a vessel calendar for a fortnight.
+         */
+        'max_extension_hours' => 6,
+
+    ],
+
 ];
