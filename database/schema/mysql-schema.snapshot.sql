@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:4cd166965d38c8e5938593d9065103bec9439e16ffec15cb0d18896b4c0f0239
+-- migrations-fingerprint: sha256:44cdc9d0efa5672d09c86265876f57216ec838cb4a3379e953190db53bb98d49
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -406,6 +406,31 @@ CREATE TABLE `role_assignments` (
   CONSTRAINT `role_assignments_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
   CONSTRAINT `role_assignments_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `schedule_rules`;
+CREATE TABLE `schedule_rules` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `product_id` bigint unsigned NOT NULL,
+  `vessel_id` bigint unsigned DEFAULT NULL,
+  `weekday_mask` tinyint unsigned NOT NULL,
+  `start_time` time NOT NULL,
+  `valid_from` date NOT NULL,
+  `valid_until` date DEFAULT NULL,
+  `capacity_override` smallint unsigned DEFAULT NULL,
+  `generate_days_ahead` smallint unsigned NOT NULL DEFAULT '180',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `last_generated_on` date DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `schedule_rules_product_id_foreign` (`product_id`),
+  KEY `schedule_rules_vessel_id_foreign` (`vessel_id`),
+  KEY `schedule_rules_tenant_active_idx` (`tenant_id`,`is_active`,`valid_from`),
+  KEY `schedule_rules_tenant_product_idx` (`tenant_id`,`product_id`),
+  CONSTRAINT `schedule_rules_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `schedule_rules_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `schedule_rules_vessel_id_foreign` FOREIGN KEY (`vessel_id`) REFERENCES `vessels` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `season_date_ranges`;
 CREATE TABLE `season_date_ranges` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -615,3 +640,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (17,'2026_09_02_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (18,'2026_09_02_000020_create_rate_plan_prices_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (19,'2026_09_02_000021_create_extras_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (20,'2026_09_02_000022_create_product_extra_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (21,'2026_09_02_000023_create_schedule_rules_table',1);
