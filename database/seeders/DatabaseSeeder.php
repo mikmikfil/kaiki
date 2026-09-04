@@ -19,6 +19,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Before the tenants, because it belongs to nobody: `vat_rates` is
+        // platform-owned reference data (ADR-0002), and the row it writes is an
+        // explicit placeholder rather than a rate — see the seeder.
+        $this->call(PlaceholderVatRateSeeder::class);
+
         $this->call(DemoTenantSeeder::class);
 
         // After the tenants, and inside their context: ports and vessels are

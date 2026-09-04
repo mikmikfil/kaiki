@@ -2360,31 +2360,32 @@ Rules that produce this order:
 
 ### M1 — Catalog & availability engine
 
-9. `brand_profiles` (FK → `tenants`)
-10. `ports` (FK → `tenants`)
-11. `vessels` (FK → `tenants`, `ports`)
-12. `cancellation_policies` (FK → `tenants`)
-13. `cancellation_policy_tiers` (FK → `tenants`, `cancellation_policies`)
-14. `seasons` (FK → `tenants`)
-15. `season_date_ranges` (FK → `tenants`, `seasons`)
-16. `products` (FK → `tenants`, `vessels`, `ports`, `cancellation_policies`) — **must come after 11–13**
-17. `age_bands` (FK → `tenants`, `products`)
-18. `rate_plans` (FK → `tenants`, `products`, `seasons`)
-19. `rate_plan_prices` (FK → `tenants`, `rate_plans`, `age_bands`)
-20. `extras` (FK → `tenants`)
-21. `product_extra` (FK → `tenants`, `products`, `extras`)
-22. `schedule_rules` (FK → `tenants`, `products`, `vessels`)
-23. `departures` (FK → `tenants`, `products`, `vessels`, `schedule_rules`, `users`)
-24. `ical_feeds` (FK → `tenants`, `vessels`) — **pulled forward from M5** so that…
-25. `ical_sources` (FK → `tenants`, `vessels`) — …
-26. `vessel_blocks` (FK → `tenants`, `vessels`, `ical_sources`, `users`) — …**its `ical_source_id` FK resolves now.** `vessel_blocks.booking_id` is a plain indexed `unsignedBigInteger` **with no FK**, because `bookings` does not exist until M2 and we refuse to add an FK later. Integrity is enforced by the application and the nightly reconciler; cleanup on booking deletion is explicit in the GDPR purge job. The iCal *sync code* still ships in M5 — only the two tables move.
+9. `vat_rates` — **no FKs at all**, and **platform-owned** (no `tenant_id`). It is first in M1 because `products` (17) and `extras` (21) both hold an FK to it, and the rule above forbids adding one later. Added in #47; entries 10–27 were renumbered and the three already-committed migration files renamed to match, so the numeric suffix keeps meaning the item number here.
+10. `brand_profiles` (FK → `tenants`)
+11. `ports` (FK → `tenants`)
+12. `vessels` (FK → `tenants`, `ports`)
+13. `cancellation_policies` (FK → `tenants`)
+14. `cancellation_policy_tiers` (FK → `tenants`, `cancellation_policies`)
+15. `seasons` (FK → `tenants`)
+16. `season_date_ranges` (FK → `tenants`, `seasons`)
+17. `products` (FK → `tenants`, `vessels`, `ports`, `cancellation_policies`, `vat_rates`) — **must come after 9 and 12–14**
+18. `age_bands` (FK → `tenants`, `products`)
+19. `rate_plans` (FK → `tenants`, `products`, `seasons`)
+20. `rate_plan_prices` (FK → `tenants`, `rate_plans`, `age_bands`)
+21. `extras` (FK → `tenants`, `vat_rates`)
+22. `product_extra` (FK → `tenants`, `products`, `extras`)
+23. `schedule_rules` (FK → `tenants`, `products`, `vessels`)
+24. `departures` (FK → `tenants`, `products`, `vessels`, `schedule_rules`, `users`)
+25. `ical_feeds` (FK → `tenants`, `vessels`) — **pulled forward from M5** so that…
+26. `ical_sources` (FK → `tenants`, `vessels`) — …
+27. `vessel_blocks` (FK → `tenants`, `vessels`, `ical_sources`, `users`) — …**its `ical_source_id` FK resolves now.** `vessel_blocks.booking_id` is a plain indexed `unsignedBigInteger` **with no FK**, because `bookings` does not exist until M2 and we refuse to add an FK later. Integrity is enforced by the application and the nightly reconciler; cleanup on booking deletion is explicit in the GDPR purge job. The iCal *sync code* still ships in M5 — only the two tables move.
 
 ### M2 — Booking & payments
 
-27. `integration_credentials` (FK → `tenants`)
-28. `vouchers` (FK → `tenants`, `users`) — **before `bookings`**, so `bookings.voucher_id` can be a real FK. `vouchers.issued_for_booking_id` is the FK-less side of the cycle.
-29. `bookings` (FK → `tenants`, `products`, `vessels`, `departures`, `vouchers`, `users`)
-30. `booking_guests` (FK → `tenants`, `bookings`, `age_bands`, `users`)
+28. `integration_credentials` (FK → `tenants`)
+29. `vouchers` (FK → `tenants`, `users`) — **before `bookings`**, so `bookings.voucher_id` can be a real FK. `vouchers.issued_for_booking_id` is the FK-less side of the cycle.
+30. `bookings` (FK → `tenants`, `products`, `vessels`, `departures`, `vouchers`, `users`)
+31. `booking_guests` (FK → `tenants`, `bookings`, `age_bands`, `users`)
 31. `booking_extras` (FK → `tenants`, `bookings`, `extras`)
 32. `voucher_redemptions` (FK → `tenants`, `vouchers`, `bookings`)
 33. `payments` (FK → `tenants`, `bookings`, self, `users`)

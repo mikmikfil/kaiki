@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\VatRate;
 
 /*
 |--------------------------------------------------------------------------
@@ -85,9 +86,12 @@ return [
         // Access control for users is a policy question (#9).
         User::class,
 
-        // `vat_rates` (#18) is the first genuinely platform-owned reference
-        // table: VAT rates are set by Greek tax law, not by operators. It is
-        // listed here when that migration lands.
+        // The first genuinely platform-owned reference table: VAT rates are
+        // set by Greek tax law, not by operators (#47, ADR-0002 Option A). A
+        // super-admin maintains the rows; an operator only *selects* one per
+        // product or extra, so scoping this per tenant would mean every
+        // operator maintaining their own copy of the tax code.
+        VatRate::class,
     ],
 
 ];
