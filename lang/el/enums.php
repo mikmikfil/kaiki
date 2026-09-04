@@ -90,12 +90,37 @@ return [
     ],
 
     'vessel_amenity' => [
+        // Άνεση στο κατάστρωμα.
         'shade_canopy' => ['label' => 'Τέντα σκίασης'],
-        'sound_system' => ['label' => 'Ηχοσύστημα'],
-        'fridge' => ['label' => 'Ψυγείο'],
-        'snorkelling_gear' => ['label' => 'Εξοπλισμός κατάδυσης'],
-        'wc' => ['label' => 'Τουαλέτα'],
         'sun_deck' => ['label' => 'Ηλιακό κατάστρωμα'],
+        'air_conditioning' => ['label' => 'Κλιματισμός'],
+        'cabin' => ['label' => 'Καμπίνα'],
+        'wc' => ['label' => 'Τουαλέτα'],
+
+        // Θάλασσα και μπάνιο.
+        'swim_ladder' => ['label' => 'Σκάλα μπάνιου'],
+        'freshwater_shower' => ['label' => 'Ντους γλυκού νερού'],
+        'snorkelling_gear' => ['label' => 'Εξοπλισμός κατάδυσης'],
+        'paddleboard' => ['label' => 'Σανίδα SUP'],
+        'fishing_gear' => ['label' => 'Εξοπλισμός ψαρέματος'],
+        'beach_towels' => ['label' => 'Πετσέτες θαλάσσης'],
+
+        // Φαγητό και ποτό.
+        'fridge' => ['label' => 'Ψυγείο'],
+        'drinking_water' => ['label' => 'Πόσιμο νερό'],
+        'galley' => ['label' => 'Κουζίνα'],
+        'barbecue' => ['label' => 'Ψησταριά'],
+        'coffee_machine' => ['label' => 'Καφετιέρα'],
+
+        // Ρεύμα και συνδεσιμότητα.
+        'sound_system' => ['label' => 'Ηχοσύστημα'],
+        'usb_charging' => ['label' => 'Φόρτιση USB'],
+        'wifi' => ['label' => 'Ασύρματο ίντερνετ'],
+
+        // Σε ποιους ταιριάζει το σκάφος.
+        'child_life_jackets' => ['label' => 'Παιδικά σωσίβια'],
+        'wheelchair_accessible' => ['label' => 'Πρόσβαση ΑμεΑ'],
+        'pet_friendly' => ['label' => 'Δεκτά κατοικίδια'],
     ],
 
     'locale' => [
