@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Domain\Catalog\Actions\GuardVesselCapacity;
+use App\Domain\Catalog\Actions\SaveProduct;
 use App\Domain\Media\Actions\StoreUploadedImage;
 use App\Http\Middleware\SetLocale;
 use App\Providers\Filament\PanelRenderHooks;
@@ -42,6 +43,22 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(
             GuardVesselCapacity::class,
             static fn ($app): GuardVesselCapacity => new GuardVesselCapacity($app->tagged(GuardVesselCapacity::TAG)),
+        );
+
+        // Everything that already holds a commitment against a product, so
+        // SaveProduct can refuse a `mode` change after the first booking
+        // (data-model §2.3).
+        //
+        // **Deliberately empty**, exactly like the vessel capacity claims
+        // above: `bookings` does not exist until M2, so nothing can hold one
+        // and the guard correctly refuses nothing. M2 adds one implementation
+        // of ProductBookingCount and one entry here — the refusal, its Greek
+        // message and its tests are already built and proven against a fake.
+        $this->app->tag([], SaveProduct::TAG);
+
+        $this->app->singleton(
+            SaveProduct::class,
+            static fn ($app): SaveProduct => new SaveProduct($app->tagged(SaveProduct::TAG)),
         );
 
         // **GD, named rather than detected.** `intervention/image` will happily

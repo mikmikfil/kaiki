@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:6597049c84c62cd8e35606c8a5653bc225674135e779bb0e0a1eaba5deb5ba53
+-- migrations-fingerprint: sha256:8ab50b26cdd4e8f93df01d36b3ce0e0cd7362acf05a3e835b467639b1ac2bd5f
 
 DROP TABLE IF EXISTS `api_keys`;
 CREATE TABLE `api_keys` (
@@ -195,6 +195,71 @@ CREATE TABLE `ports` (
   KEY `ports_tenant_name_sort_en_idx` (`tenant_id`,`name_sort_en`),
   CONSTRAINT `ports_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `products`;
+CREATE TABLE `products` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tenant_id` bigint unsigned NOT NULL,
+  `vessel_id` bigint unsigned DEFAULT NULL,
+  `slug` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `category` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `mode` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `title` json NOT NULL,
+  `summary` json DEFAULT NULL,
+  `description` json DEFAULT NULL,
+  `duration_minutes` smallint unsigned NOT NULL,
+  `default_start_time` time DEFAULT NULL,
+  `flexible_start` tinyint(1) NOT NULL DEFAULT '0',
+  `earliest_start_time` time DEFAULT NULL,
+  `latest_start_time` time DEFAULT NULL,
+  `check_in_offset_minutes` smallint unsigned NOT NULL DEFAULT '30',
+  `meeting_point_id` bigint unsigned DEFAULT NULL,
+  `includes` json DEFAULT NULL,
+  `excludes` json DEFAULT NULL,
+  `what_to_bring` json DEFAULT NULL,
+  `itinerary_stops` json DEFAULT NULL,
+  `route_map_image_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `images` json NOT NULL,
+  `min_pax` smallint unsigned NOT NULL DEFAULT '0',
+  `max_pax` smallint unsigned NOT NULL,
+  `min_booking_pax` smallint unsigned NOT NULL DEFAULT '1',
+  `cancellation_policy_id` bigint unsigned DEFAULT NULL,
+  `guest_details_required` tinyint(1) NOT NULL DEFAULT '0',
+  `guest_details_deadline_hours` smallint unsigned NOT NULL DEFAULT '48',
+  `vat_rate_id` bigint unsigned DEFAULT NULL,
+  `mydata_income_class` varchar(16) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `price_from_cents` int unsigned DEFAULT NULL,
+  `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'draft',
+  `sort_order` smallint unsigned NOT NULL DEFAULT '0',
+  `meta_title` json DEFAULT NULL,
+  `meta_description` json DEFAULT NULL,
+  `og_image_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_featured` tinyint(1) NOT NULL DEFAULT '0',
+  `search_index` text COLLATE utf8mb4_unicode_ci,
+  `title_sort_el` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `title_sort_en` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `products_tenant_slug_unique` (`tenant_id`,`slug`),
+  UNIQUE KEY `products_uuid_unique` (`uuid`),
+  KEY `products_vessel_id_foreign` (`vessel_id`),
+  KEY `products_meeting_point_id_foreign` (`meeting_point_id`),
+  KEY `products_cancellation_policy_id_foreign` (`cancellation_policy_id`),
+  KEY `products_vat_rate_id_foreign` (`vat_rate_id`),
+  KEY `products_tenant_status_sort_idx` (`tenant_id`,`status`,`sort_order`),
+  KEY `products_tenant_vessel_idx` (`tenant_id`,`vessel_id`),
+  KEY `products_tenant_cat_status_idx` (`tenant_id`,`category`,`status`),
+  KEY `products_tenant_mode_idx` (`tenant_id`,`mode`),
+  KEY `products_tenant_title_sort_el_idx` (`tenant_id`,`title_sort_el`),
+  KEY `products_tenant_title_sort_en_idx` (`tenant_id`,`title_sort_en`),
+  CONSTRAINT `products_cancellation_policy_id_foreign` FOREIGN KEY (`cancellation_policy_id`) REFERENCES `cancellation_policies` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `products_meeting_point_id_foreign` FOREIGN KEY (`meeting_point_id`) REFERENCES `ports` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `products_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `products_vat_rate_id_foreign` FOREIGN KEY (`vat_rate_id`) REFERENCES `vat_rates` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `products_vessel_id_foreign` FOREIGN KEY (`vessel_id`) REFERENCES `vessels` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `role_assignments`;
 CREATE TABLE `role_assignments` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -377,3 +442,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (9,'2026_09_02_0000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (10,'2026_09_02_000012_create_vessels_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (11,'2026_09_02_000013_create_cancellation_policies_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (12,'2026_09_02_000014_create_cancellation_policy_tiers_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (13,'2026_09_02_000015_create_products_table',1);

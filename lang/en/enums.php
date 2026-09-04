@@ -86,6 +86,28 @@ return [
         'webhooks.receive' => ['label' => 'Receive webhooks'],
     ],
 
+    'booking_mode' => [
+        'per_seat' => ['label' => 'Per seat'],
+        'per_vessel' => ['label' => 'Whole boat'],
+        'quote' => ['label' => 'On request'],
+    ],
+
+    'product_category' => [
+        'shared_full_day' => ['label' => 'Shared full day'],
+        'shared_half_day' => ['label' => 'Shared half day'],
+        'private_full_day' => ['label' => 'Private full day'],
+        'private_half_day' => ['label' => 'Private half day'],
+        'sunset' => ['label' => 'Sunset'],
+        'custom' => ['label' => 'Other'],
+    ],
+
+    'product_status' => [
+        'draft' => ['label' => 'Draft'],
+        'active' => ['label' => 'On sale'],
+        'inactive' => ['label' => 'Off sale'],
+        'archived' => ['label' => 'Archived'],
+    ],
+
     'vessel_type' => [
         'catamaran' => ['label' => 'Catamaran'],
         'sailing_yacht' => ['label' => 'Sailing yacht'],

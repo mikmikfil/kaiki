@@ -192,4 +192,30 @@ return [
         ],
     ],
 
+    'product' => [
+        'nav' => 'Trips',
+
+        'model' => [
+            'singular' => 'Trip',
+            'plural' => 'Trips',
+        ],
+
+        'validation' => [
+            'max_pax_over_capacity' => 'You asked for :max_pax passengers, but “:vessel” is licensed for :capacity. The vessel limit is a legal one rather than a preference — lower the number or choose another boat.',
+            'flexible_start_mode' => 'A flexible start time applies only to whole-boat private charters. This trip is “:mode”, where the departure time is shared by everyone on board.',
+            'mode_locked' => '“:title” already has :count bookings, so the selling mode cannot change from “:from” to “:to”. Every departure and every stored price was worked out under the old one. Create a new trip instead.',
+
+            'itinerary' => [
+                'shape' => 'The itinerary is not in a valid form.',
+                'missing_locale' => 'The itinerary is missing for “:locale”. Stops are needed in both languages.',
+                'key' => 'Each stop needs a short identifier of up to :max characters.',
+                'name' => 'Each stop needs a name of up to :max characters, in “:locale” too.',
+                'description' => 'A stop description cannot be longer than :max characters.',
+                'duration' => 'A stop duration must be a positive number of minutes.',
+                'key_mismatch' => 'The stops differ between languages: :keys. Every stop must exist in both, under the same identifier.',
+                'geo_unknown' => 'There are coordinates for stops that do not exist: :keys.',
+            ],
+        ],
+    ],
+
 ];
