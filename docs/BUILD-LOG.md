@@ -14,10 +14,10 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M1 — Catalogue and availability engine** |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M1 | #15, #16 |
+| M1 | #15, #16, #17 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (426) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (534) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 **Open, not blocking, and not mine to close:**
@@ -28,6 +28,78 @@ Each entry records the **verification actually run** and its **real output** —
 | Invoice-numbering **gap policy** (ADR-0022) | accountant | M6 |
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
+
+---
+
+## #17 — BrandProfile: the row that always exists, the sanitisers, and the one upload writer
+
+**Files:** `database/migrations/2026_09_02_000009_create_brand_profiles_table.php`, `app/Models/BrandProfile.php`, `app/Observers/TenantObserver.php`, `app/Enums/{FontSource,WidgetTheme,BrandAsset}.php`, `app/Domain/Branding/Support/{CssSanitizer,SvgSanitizer,ContrastChecker,BrandPayload}.php`, `app/Domain/Branding/Actions/{UpdateBrandProfile,UploadBrandAsset,ResetBrandProfile}.php`, `app/Domain/Media/**`, `app/Exceptions/UploadRefused.php`, `app/Rules/{HexColor,SocialLinks}.php`, `app/Filament/App/Pages/Branding.php`, `app/Policies/BrandProfilePolicy.php`, `app/Console/Commands/MediaRebuildCommand.php`, `config/kaiki.php`, `lang/{el,en}/branding.php`, `database/factories/BrandProfileFactory.php`, six test files
+
+Completes the work `13f2e01` landed as deliberate WIP. That commit shipped the table, the two enums, the config block and the three sanitisers and said in its own message that there was no model, no observer, no factory, no upload Action, no Filament page, no policy, no lang file and **no tests at all** — the sanitisers having been "exercised against a hostile-input table in a scratch script, which is not evidence and does not ship."
+
+### The scratch script could not have caught the bug the first real test found
+
+`SvgSanitizer::sanitize()` threw a `TypeError` on **every SVG it was given**.
+
+`libxml_set_external_entity_loader()` returns `bool(true)`. It does *not* return the callable it replaced — that is `libxml_get_external_entity_loader()`, added in PHP 8.4. So `$previous = libxml_set_external_entity_loader(...)` captured `true`, and the `finally` block handed `true` back to a parameter typed `?callable`:
+
+```
+libxml_set_external_entity_loader(): Argument #1 ($resolver_function)
+must be a valid callback or null, no array or string given
+```
+
+Thrown **after** the sanitised markup had been produced, from a `finally` on the way out. A scratch script that printed the return value saw correct output every time and never reached the exception, because the exception replaced the return rather than corrupting it. Sixteen of seventeen tests in the file failed on their first run.
+
+The test that now covers it installs a sentinel loader, sanitises, and asserts the sentinel is still installed — the loader is disabled for the duration of the parse, and a parse that did not restore it would leave every later XML read in the process (an iCal import, a gateway response) inheriting the change.
+
+### Two more found by tests, both silent in production
+
+**`BrandAsset::column()` returned a column that does not exist.** Written as `$this->value . '_path'`, which is right for three of the four slots and wrong for `email_header_image_path`. `Model::getAttribute()` on a missing column returns null rather than throwing, so the failure mode was: the upload is accepted, the file is written to disk with its variants, `save()` succeeds, and the email header is never set. Nothing anywhere reports it. Caught by the assertion that every enum case names a real column — the only shape of test that could.
+
+**Both JSON columns were being stored as `[]`.** §2.2 documents the default as `{}` and §3.10 documents a keyed object. Laravel's `array` cast encodes an empty PHP array as `[]`, and it round-trips correctly in PHP — `json_decode('[]', true)` and `json_decode('{}', true)` are the same value — so no PHP test can see it. What it means is a column whose JSON shape changes the first time an operator adds a social link. Replaced with explicit accessors using `JSON_FORCE_OBJECT`, pinned by a test that reads through the query builder rather than the model, because the cast is exactly what would hide it.
+
+### The isolation gate's oldest assertion was wrong, not just inconvenient
+
+`ModelIsolationTest` asserted `$class::query()->count() === 0` from the other tenant's context. That was true only while every tenant-owned model was one a test had to create. BRD-3 gives every tenant a brand profile the moment it exists, so tenant A legitimately sees one row — and the case failed.
+
+The temptation is to exempt `BrandProfile`. The assertion is what is wrong: the invariant was never "A sees nothing", it is **"everything A sees belongs to A"**. That is identical for a model with no rows and strictly stronger for a model with some — a leak that returned B's row *alongside* A's would have passed the old count check on any model where A already owned one. Changed, with the reason in the test.
+
+`TenantIsolationHarness` gained a documented `singletons()` map so the gate still builds B's row and still asserts it invisible; it takes the row the observer already made rather than inserting a second the unique index would refuse. **Not an exclusion** — the model stays in every case of the gate.
+
+### Decisions recorded rather than left implicit
+
+- **`docs/data-model.md` §3.15 was amended, and §3.10a added.** The sketched shape was one `primary_on_background` entry with a `passes_aa` flag. BRD-5 names two pairs at two thresholds, so it could not hold the answer, and a bare `passes_aa` cannot say which threshold it was measured against. The stored threshold is what lets the panel show "4.60:1, minimum 3.0:1".
+- **`button_text` is `color_background` on `color_primary`.** §2.2 has no button-text column and this issue was not entitled to add one. Assuming white would quietly pass every dark palette and fail every light one regardless of what the widget draws.
+- **`intervention/image` installed at first use** (ADR-0019 Option A, cited by BRD-7), bound explicitly to **GD**: Imagick is on neither the local stack nor the CI image, and a driver chosen by availability is a resize path tested on neither engine it runs on.
+- **BRD-2 lives in `BrandPayload`, not at an endpoint.** #35, M3's embed bootstrap and the plugin's REST proxy are three separate chances to forget; the two payloads differ by exactly `custom_css` and the test does not care who is asking.
+- **`social_links` survives a reset.** `platformDefaults()` is what a *new* profile starts as; a reset is something an existing operator asks for, and it would otherwise take their Instagram account with it.
+
+### Verification
+
+| Criterion | Result |
+|---|---|
+| `brand_profiles` matches §2.2, unique on `tenant_id` | `migrate:fresh` green on SQLite; **MySQL 8 in CI** |
+| Profile created with platform defaults, **two creation paths** | factory, seeder, and with no tenant context resolved at all |
+| Column defaults and config defaults agree | asserted by reading the schema, so a migration change with no config change fails |
+| Non-`#RRGGBB` colour refused, localised | five spellings, and the row asserted unchanged after the refusal |
+| `custom_css` sanitised on write **and** on read | hostile table; plus a row written around the model with a raw `update()` |
+| Upload: SVG/PNG/WebP ≤ 2 MB, EXIF stripped, SVG sanitised, variants generated | 16 tests; content type from the **bytes**, refusals for size, type, unsafe SVG and undecodable body |
+| Contrast stored, warns without blocking | low-contrast palette saves successfully and records `passes: false` |
+| EL and EN labels, crew refused by policy | HTTP tests for the locales (`Livewire::test()` never runs `SetLocale`), role matrix for the policy |
+| `custom_css` absent from every widget-facing path | `BrandPayload::forWidget()`, asserted on the array **and** on its JSON |
+| Isolation gate discovers `BrandProfile` automatically | no hand-written test, which is the criterion |
+
+`composer lint` green. `composer stan` — **`[OK] No errors`**, level 6, no baseline, no `@phpstan-ignore`. `composer i18n:check` — **140 passed**. `composer test` — **534 passed, 1 failed**.
+
+Six PHPStan findings were fixed at the source rather than suppressed, and one is a house rule worth restating: **`$this` inside a Pest closure is typed `TestCall`**, so `$this->artisan()`, `$this->seed()` and `$this->tenant` are all undefined at level 6 — the same reason #2's smoke test imports the `Pest\Laravel\get` helper. The new tests use `Pest\Laravel\artisan()` / `seed()` and plain functions for fixtures. The other five were chained `->not`: it is a property on `Expectation` and not on the mixin a matcher returns, so a second `->not` in one chain is an undefined property. Split into separate statements.
+
+### The one red test, again
+
+`CiGatesTest` → "keeps the committed schema snapshot in step with the migrations". A new migration changed the fingerprint and `composer schema:snapshot` **requires a MySQL 8 connection**, which the local stack is not (ADR-0015). Identical to #16, and `docs/ci.md` §"Refreshing it after a migration change" is the path: open the PR, download the `mysql-schema-snapshot` artifact, **diff it before trusting it**, commit. The only lines that should move are the fingerprint and the `brand_profiles` block.
+
+### Two i18n allow-list entries, with reasons
+
+`Instagram`, `Facebook`, `TripAdvisor`, `WhatsApp` and `Google Fonts` are identical in `lang/el` and `lang/en`. They are company and product names — an operator looks for the wordmark they know, and translating "Google Fonts" would leave them searching for a product that is not called that anywhere they can look it up. Each is named in `tests/Support/I18n/allow-list.php` with that reason, per I18N-2.
 
 ---
 

@@ -92,7 +92,16 @@ final class SvgSanitizer
 
         // Disabled for the duration of the parse and restored afterwards, so
         // that nothing this application does later inherits the change.
-        $previousLoader = libxml_set_external_entity_loader(static fn (): null => null);
+        //
+        // The previous loader comes from `libxml_get_external_entity_loader()`
+        // and **not** from the return of the setter. The setter returns
+        // `bool(true)`, not the callable it replaced — so the obvious
+        // `$previous = libxml_set_external_entity_loader(...)` restores `true`,
+        // which is a TypeError thrown from a `finally` block, on the way out of
+        // a sanitiser, for every SVG. The getter is PHP 8.4, which this project
+        // requires (ADR-0014).
+        $previousLoader = libxml_get_external_entity_loader();
+        libxml_set_external_entity_loader(static fn (): null => null);
         $previousErrors = libxml_use_internal_errors(true);
 
         try {
@@ -121,11 +130,11 @@ final class SvgSanitizer
     /** Depth-first, over a snapshot of each list because removal mutates the live one. */
     private static function clean(DOMElement $element): void
     {
-        if ($element->attributes !== null) {
-            foreach (iterator_to_array($element->attributes) as $attribute) {
-                if ($attribute instanceof DOMAttr) {
-                    self::cleanAttribute($element, $attribute);
-                }
+        // No null check on `attributes`: it is nullable on `DOMNode` and always
+        // present on a `DOMElement`, which is the only thing this walks.
+        foreach (iterator_to_array($element->attributes) as $attribute) {
+            if ($attribute instanceof DOMAttr) {
+                self::cleanAttribute($element, $attribute);
             }
         }
 
