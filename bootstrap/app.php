@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Middleware\ApiKeyCors;
 use App\Http\Middleware\AuthenticateApiKey;
 use App\Http\Middleware\EnsureTenantIsWritable;
 use App\Http\Middleware\RequireApiKeyCapability;
@@ -45,6 +46,13 @@ return Application::configure(basePath: dirname(__DIR__))
             // exists — the tenant default is step 5 of that chain.
             'locale' => SetLocale::class,
         ]);
+
+        // Per-key CORS from `api_keys.allowed_origins` (SEC-7), and the
+        // preflight answer. **Global**, because a browser sends no
+        // `Authorization` on a preflight and an `OPTIONS` request with no
+        // matching route is a 405 before any group middleware runs. It
+        // no-ops outside `api/*`.
+        $middleware->prepend(ApiKeyCors::class);
 
         $middleware->web(append: [
             SetLocale::class,
