@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:40654c62b005d64393abe793fa2fe2c0e315689e13e929baac642b1ad1e84a9d
+-- migrations-fingerprint: sha256:71984891264f1bf913a9aa551595203b28cc93681b98e6e806db685f1292eeee
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -233,6 +233,53 @@ CREATE TABLE `failed_jobs` (
   `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `ical_feeds`;
+CREATE TABLE `ical_feeds` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `vessel_id` bigint unsigned NOT NULL,
+  `token` char(40) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `include_departures` tinyint(1) NOT NULL DEFAULT '1',
+  `include_blocks` tinyint(1) NOT NULL DEFAULT '1',
+  `include_guest_names` tinyint(1) NOT NULL DEFAULT '0',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `last_accessed_at` timestamp NULL DEFAULT NULL,
+  `access_count` int unsigned NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ical_feeds_tenant_vessel_uq` (`tenant_id`,`vessel_id`),
+  UNIQUE KEY `ical_feeds_token_unique` (`token`),
+  KEY `ical_feeds_vessel_id_foreign` (`vessel_id`),
+  CONSTRAINT `ical_feeds_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `ical_feeds_vessel_id_foreign` FOREIGN KEY (`vessel_id`) REFERENCES `vessels` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `ical_sources`;
+CREATE TABLE `ical_sources` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `vessel_id` bigint unsigned NOT NULL,
+  `name` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `url` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `url_hash` char(64) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `sync_interval_minutes` smallint unsigned NOT NULL DEFAULT '15',
+  `last_synced_at` timestamp NULL DEFAULT NULL,
+  `last_success_at` timestamp NULL DEFAULT NULL,
+  `last_error` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `consecutive_failures` tinyint unsigned NOT NULL DEFAULT '0',
+  `etag` varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `events_imported` int unsigned NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ical_sources_url_hash_uq` (`tenant_id`,`url_hash`),
+  KEY `ical_sources_vessel_id_foreign` (`vessel_id`),
+  KEY `ical_sources_tenant_vessel_idx` (`tenant_id`,`vessel_id`),
+  KEY `ical_sources_sync_idx` (`is_active`,`last_synced_at`),
+  CONSTRAINT `ical_sources_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `ical_sources_vessel_id_foreign` FOREIGN KEY (`vessel_id`) REFERENCES `vessels` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `job_batches`;
 CREATE TABLE `job_batches` (
@@ -630,6 +677,38 @@ CREATE TABLE `vat_rates` (
   UNIQUE KEY `vat_rates_code_from_unique` (`code`,`valid_from`),
   KEY `vat_rates_validity_idx` (`valid_from`,`valid_to`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `vessel_blocks`;
+CREATE TABLE `vessel_blocks` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `vessel_id` bigint unsigned NOT NULL,
+  `starts_at_utc` timestamp NOT NULL,
+  `ends_at_utc` timestamp NOT NULL,
+  `local_date` date NOT NULL,
+  `local_end_date` date NOT NULL,
+  `is_all_day` tinyint(1) NOT NULL DEFAULT '0',
+  `reason` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `booking_id` bigint unsigned DEFAULT NULL,
+  `ical_source_id` bigint unsigned DEFAULT NULL,
+  `external_uid` varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `title` varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `notes` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_by_user_id` bigint unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `vblocks_source_uid_uq` (`tenant_id`,`ical_source_id`,`external_uid`),
+  KEY `vessel_blocks_vessel_id_foreign` (`vessel_id`),
+  KEY `vessel_blocks_ical_source_id_foreign` (`ical_source_id`),
+  KEY `vessel_blocks_created_by_user_id_foreign` (`created_by_user_id`),
+  KEY `vblocks_vessel_window_idx` (`tenant_id`,`vessel_id`,`starts_at_utc`,`ends_at_utc`),
+  KEY `vblocks_booking_idx` (`tenant_id`,`booking_id`),
+  KEY `vblocks_tenant_date_idx` (`tenant_id`,`local_date`),
+  CONSTRAINT `vessel_blocks_created_by_user_id_foreign` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `vessel_blocks_ical_source_id_foreign` FOREIGN KEY (`ical_source_id`) REFERENCES `ical_sources` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `vessel_blocks_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `vessel_blocks_vessel_id_foreign` FOREIGN KEY (`vessel_id`) REFERENCES `vessels` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `vessels`;
 CREATE TABLE `vessels` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -687,3 +766,6 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (19,'2026_09_02_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (20,'2026_09_02_000022_create_product_extra_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (21,'2026_09_02_000023_create_schedule_rules_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (22,'2026_09_02_000024_create_departures_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (23,'2026_09_02_000025_create_ical_feeds_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (24,'2026_09_02_000026_create_ical_sources_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (25,'2026_09_02_000027_create_vessel_blocks_table',1);
