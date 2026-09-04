@@ -8,6 +8,7 @@ use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureTenantIsWritable;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SetLocale;
+use App\Policies\TenantOwnedPolicy;
 use App\Support\Tenancy;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
@@ -38,9 +39,13 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
  * make "which tenant am I acting as" a piece of session state, which is exactly
  * where a cross-tenant mistake becomes possible.
  *
- * `EnsureTenantIsWritable` sits in the panel middleware so a lapsed
- * subscription blocks writes here without any resource having to remember
- * (TEN-9). Reads keep working, because the operator still needs to see their
+ * `EnsureTenantIsWritable` sits in the panel middleware, but **it is not what
+ * blocks a panel write** — see #43. Livewire hands it a synthesized request
+ * carrying the original page-load method, so its safe-method check short
+ * circuits on every Filament action. TEN-9 is enforced in
+ * {@see TenantOwnedPolicy}, which every resource inherits. The
+ * middleware stays for the non-Livewire POSTs, where the method is honest.
+ * Reads keep working either way, because the operator still needs to see their
  * own bookings while sorting out a payment.
  */
 class AppPanelProvider extends PanelProvider

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Http\Responses\ApiErrorResponse;
+use App\Policies\TenantOwnedPolicy;
 use App\Support\Tenancy;
 use Closure;
 use Illuminate\Http\Request;
@@ -20,6 +21,24 @@ use Symfony\Component\HttpFoundation\Response;
  * tourist holding a ticket.
  *
  * Only unsafe HTTP methods are gated. Reads are never blocked here.
+ *
+ * ## This does not, and cannot, protect the panel (#43)
+ *
+ * Every Filament action is a POST to `/livewire/update`, and Livewire re-runs
+ * persistent middleware against a synthesized request that deliberately
+ * restores the *original* page-load method — a `GET` for every panel page. The
+ * safe-method check below therefore short-circuits and the tenant's state is
+ * never consulted.
+ *
+ * Making this treat a Livewire request as unsafe would block that POST
+ * wholesale, and sorting a table, searching, paginating and opening a modal are
+ * all the same POST. So the panel's guard lives in
+ * {@see TenantOwnedPolicy} instead, where the write is already
+ * being authorized.
+ *
+ * This middleware stays because it is honest everywhere the method is: the API
+ * write endpoints, and the non-Livewire POSTs the panel still makes (a file
+ * upload goes to `/livewire/upload-file` as a real POST).
  */
 final class EnsureTenantIsWritable
 {
