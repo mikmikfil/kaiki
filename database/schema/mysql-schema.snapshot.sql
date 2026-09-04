@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:384ecb0276f6ef93b5a4f90b0ca681cf581082ba5e8fdf1234cea6f4f1ae5a16
+-- migrations-fingerprint: sha256:f1719c319eae3ee9a3e9f400f47d5861654d8d48a432b887b21a86354f2c89d2
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -143,6 +143,39 @@ CREATE TABLE `cancellation_policy_tiers` (
   CONSTRAINT `cancellation_policy_tiers_cancellation_policy_id_foreign` FOREIGN KEY (`cancellation_policy_id`) REFERENCES `cancellation_policies` (`id`) ON DELETE CASCADE,
   CONSTRAINT `cancellation_policy_tiers_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `extras`;
+CREATE TABLE `extras` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tenant_id` bigint unsigned NOT NULL,
+  `name` json NOT NULL,
+  `description` json DEFAULT NULL,
+  `pricing_type` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `price_cents` int unsigned DEFAULT NULL,
+  `vat_rate_id` bigint unsigned DEFAULT NULL,
+  `max_qty` smallint unsigned DEFAULT NULL,
+  `is_tenant_wide` tinyint(1) NOT NULL DEFAULT '0',
+  `is_required` tinyint(1) NOT NULL DEFAULT '0',
+  `counts_toward_capacity` tinyint(1) NOT NULL DEFAULT '0',
+  `image_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `sort_order` smallint unsigned NOT NULL DEFAULT '0',
+  `search_index` text COLLATE utf8mb4_unicode_ci,
+  `name_sort_el` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name_sort_en` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `extras_uuid_unique` (`uuid`),
+  KEY `extras_vat_rate_id_foreign` (`vat_rate_id`),
+  KEY `extras_tenant_active_idx` (`tenant_id`,`is_active`,`sort_order`),
+  KEY `extras_tenant_wide_idx` (`tenant_id`,`is_tenant_wide`,`is_active`),
+  KEY `extras_tenant_name_sort_el_idx` (`tenant_id`,`name_sort_el`),
+  KEY `extras_tenant_name_sort_en_idx` (`tenant_id`,`name_sort_en`),
+  CONSTRAINT `extras_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `extras_vat_rate_id_foreign` FOREIGN KEY (`vat_rate_id`) REFERENCES `vat_rates` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `failed_jobs`;
 CREATE TABLE `failed_jobs` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -221,6 +254,27 @@ CREATE TABLE `ports` (
   KEY `ports_tenant_name_sort_el_idx` (`tenant_id`,`name_sort_el`),
   KEY `ports_tenant_name_sort_en_idx` (`tenant_id`,`name_sort_en`),
   CONSTRAINT `ports_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `product_extra`;
+CREATE TABLE `product_extra` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `product_id` bigint unsigned NOT NULL,
+  `extra_id` bigint unsigned NOT NULL,
+  `price_cents_override` int unsigned DEFAULT NULL,
+  `max_qty_override` smallint unsigned DEFAULT NULL,
+  `is_required_override` tinyint(1) DEFAULT NULL,
+  `sort_order` smallint unsigned NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `product_extra_uq` (`tenant_id`,`product_id`,`extra_id`),
+  KEY `product_extra_product_id_foreign` (`product_id`),
+  KEY `product_extra_extra_id_foreign` (`extra_id`),
+  KEY `product_extra_tenant_product_idx` (`tenant_id`,`product_id`,`sort_order`),
+  CONSTRAINT `product_extra_extra_id_foreign` FOREIGN KEY (`extra_id`) REFERENCES `extras` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `product_extra_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `product_extra_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `products`;
 CREATE TABLE `products` (
@@ -510,3 +564,5 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (13,'2026_09_02_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (14,'2026_09_02_000016_create_age_bands_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (15,'2026_09_02_000017_create_seasons_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (16,'2026_09_02_000018_create_season_date_ranges_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (17,'2026_09_02_000019_create_extras_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (18,'2026_09_02_000020_create_product_extra_table',1);

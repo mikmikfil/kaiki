@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -181,6 +182,23 @@ class Product extends Model implements TranslatableSearchable
     public function ageBands(): HasMany
     {
         return $this->hasMany(AgeBand::class)->orderBy('sort_order');
+    }
+
+    /**
+     * The extras this product names explicitly.
+     *
+     * Not the same as "the extras it offers" — a tenant-wide extra applies
+     * without a pivot row at all. `OfferedExtrasResolver` answers that
+     * question; this relation is only the explicit half.
+     *
+     * @return BelongsToMany<Extra, $this, ProductExtra, 'pivot'>
+     */
+    public function extras(): BelongsToMany
+    {
+        return $this->belongsToMany(Extra::class, 'product_extra')
+            ->using(ProductExtra::class)
+            ->withPivot(['price_cents_override', 'max_qty_override', 'is_required_override', 'sort_order'])
+            ->withTimestamps();
     }
 
     /** @return BelongsTo<VatRate, $this> */
