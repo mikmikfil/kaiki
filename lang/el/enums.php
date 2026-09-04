@@ -92,6 +92,12 @@ return [
         'quote' => ['label' => 'Κατόπιν προσφοράς'],
     ],
 
+    'deposit_type' => [
+        'none' => ['label' => 'Ολόκληρο το ποσό'],
+        'percent' => ['label' => 'Ποσοστό του συνόλου'],
+        'fixed' => ['label' => 'Σταθερό ποσό'],
+    ],
+
     'product_category' => [
         'shared_full_day' => ['label' => 'Ημερήσια κοινή εκδρομή'],
         'shared_half_day' => ['label' => 'Ημιήμερη κοινή εκδρομή'],

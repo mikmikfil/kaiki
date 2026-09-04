@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:f1719c319eae3ee9a3e9f400f47d5861654d8d48a432b887b21a86354f2c89d2
+-- migrations-fingerprint: sha256:e9761f514f303ffa8a572211c92e6047d79cb00cc7fff96b8ea4f37035243e2e
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -341,6 +341,52 @@ CREATE TABLE `products` (
   CONSTRAINT `products_vat_rate_id_foreign` FOREIGN KEY (`vat_rate_id`) REFERENCES `vat_rates` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `products_vessel_id_foreign` FOREIGN KEY (`vessel_id`) REFERENCES `vessels` (`id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `rate_plan_prices`;
+CREATE TABLE `rate_plan_prices` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `rate_plan_id` bigint unsigned NOT NULL,
+  `age_band_id` bigint unsigned NOT NULL,
+  `price_cents` int unsigned NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `rate_plan_prices_plan_band_uq` (`tenant_id`,`rate_plan_id`,`age_band_id`),
+  KEY `rate_plan_prices_rate_plan_id_foreign` (`rate_plan_id`),
+  KEY `rate_plan_prices_age_band_id_foreign` (`age_band_id`),
+  KEY `rate_plan_prices_tenant_plan_idx` (`tenant_id`,`rate_plan_id`),
+  CONSTRAINT `rate_plan_prices_age_band_id_foreign` FOREIGN KEY (`age_band_id`) REFERENCES `age_bands` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `rate_plan_prices_rate_plan_id_foreign` FOREIGN KEY (`rate_plan_id`) REFERENCES `rate_plans` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `rate_plan_prices_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `rate_plans`;
+CREATE TABLE `rate_plans` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `product_id` bigint unsigned NOT NULL,
+  `season_id` bigint unsigned DEFAULT NULL,
+  `name` varchar(80) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `vessel_price_cents` int unsigned DEFAULT NULL,
+  `extra_hour_price_cents` int unsigned DEFAULT NULL,
+  `deposit_type` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'none',
+  `deposit_percent` tinyint unsigned DEFAULT NULL,
+  `deposit_fixed_cents` int unsigned DEFAULT NULL,
+  `min_lead_time_hours` smallint unsigned NOT NULL DEFAULT '0',
+  `max_advance_days` smallint unsigned DEFAULT NULL,
+  `min_pax_override` smallint unsigned DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `rate_plans_tenant_prod_season_uq` (`tenant_id`,`product_id`,`season_id`),
+  KEY `rate_plans_product_id_foreign` (`product_id`),
+  KEY `rate_plans_season_id_foreign` (`season_id`),
+  KEY `rate_plans_tenant_product_idx` (`tenant_id`,`product_id`,`is_active`),
+  CONSTRAINT `rate_plans_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `rate_plans_season_id_foreign` FOREIGN KEY (`season_id`) REFERENCES `seasons` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `rate_plans_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `role_assignments`;
 CREATE TABLE `role_assignments` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -564,5 +610,7 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (13,'2026_09_02_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (14,'2026_09_02_000016_create_age_bands_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (15,'2026_09_02_000017_create_seasons_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (16,'2026_09_02_000018_create_season_date_ranges_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (17,'2026_09_02_000019_create_extras_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (18,'2026_09_02_000020_create_product_extra_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (17,'2026_09_02_000019_create_rate_plans_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (18,'2026_09_02_000020_create_rate_plan_prices_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (19,'2026_09_02_000021_create_extras_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (20,'2026_09_02_000022_create_product_extra_table',1);

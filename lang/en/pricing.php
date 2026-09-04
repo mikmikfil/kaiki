@@ -133,4 +133,114 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Rate plans (CAT-10, PRC-23, AVL-19, AVL-20)
+    |--------------------------------------------------------------------------
+    |
+    | A rate plan is the operator's own tool: a guest sees a price, never a
+    | plan. That is why `name` here is a plain text field rather than a
+    | translatable one — it never reaches a public page.
+    |
+    */
+
+    'rate_plan' => [
+        'nav' => 'Rate plans',
+
+        'model' => [
+            'singular' => 'Rate plan',
+            'plural' => 'Rate plans',
+        ],
+
+        'sections' => [
+            'identity' => 'Where it applies',
+            'pricing' => 'Prices',
+            'deposit' => 'Deposit',
+            'window' => 'When you take bookings',
+        ],
+
+        'form' => [
+            'product' => [
+                'label' => 'Trip',
+                'help' => 'A rate plan belongs to one trip.',
+            ],
+            'season' => [
+                'label' => 'Season',
+                'help' => 'Leave empty for the default price — the one used when a date falls in no season. One default per trip.',
+                'default' => 'Default price (no season)',
+            ],
+            'name' => [
+                'label' => 'Name',
+                'help' => 'Your own label, e.g. "Early bird". Guests never see it.',
+            ],
+            'vessel_price_cents' => [
+                'label' => 'Whole boat price',
+                'help' => 'Only for trips chartered as a whole boat.',
+            ],
+            'extra_hour_price_cents' => [
+                'label' => 'Extra hour',
+                'help' => 'Optional. Whole boat only.',
+            ],
+            'prices' => [
+                'label' => 'Price per age band',
+                'help' => 'Per person. Bands with their own price need an amount; bands priced as a share of the base may be left empty.',
+                'band' => 'Band',
+                'price' => 'Price',
+                'empty' => 'This trip has no age bands yet.',
+            ],
+            'deposit_type' => [
+                'label' => 'Deposit',
+                'help' => 'What the guest pays at the moment of booking.',
+            ],
+            'deposit_percent' => [
+                'label' => 'Deposit percentage',
+                'help' => 'Between 1 and 100.',
+            ],
+            'deposit_fixed_cents' => [
+                'label' => 'Deposit amount',
+                'help' => 'A flat amount, whatever the total.',
+            ],
+            'min_lead_time_hours' => [
+                'label' => 'Minimum notice',
+                'help' => 'How many hours before departure bookings close. 0 means up to the last moment.',
+                'suffix' => 'hours',
+            ],
+            'max_advance_days' => [
+                'label' => 'How far ahead',
+                'help' => 'Maximum days before departure. Empty means no limit.',
+                'suffix' => 'days',
+            ],
+            'min_pax_override' => [
+                'label' => 'Minimum passengers',
+                'help' => "Replaces the trip's minimum for this season only. Empty means the trip's minimum applies.",
+            ],
+            'is_active' => [
+                'label' => 'Active',
+                'help' => 'An inactive plan never produces a price.',
+            ],
+        ],
+
+        'table' => [
+            'product' => 'Trip',
+            'season' => 'Season',
+            'name' => 'Name',
+            'price' => 'Price',
+            'deposit' => 'Deposit',
+            'is_active' => 'Active',
+            'default' => 'Default',
+        ],
+
+        'validation' => [
+            'duplicate_default' => 'This trip already has a default price. Choose a season, or edit the existing one.',
+            'deposit_type' => 'Choose how the deposit is taken.',
+            'deposit_percent' => 'The deposit percentage must be between 1 and 100.',
+            'deposit_fixed' => 'The deposit amount must be greater than zero.',
+            'deposit_none_has_value' => 'You chose payment in full but filled in a deposit. Clear the amount or change the deposit type.',
+            'vessel_price_required' => 'This trip is chartered as a whole boat, so it needs a whole boat price.',
+            'no_band_prices_per_vessel' => 'This trip is chartered as a whole boat: it has one price, not per-person prices.',
+            'no_vessel_price_per_seat' => 'This trip is sold per seat, so it has no whole boat price.',
+            'missing_band_prices' => 'A price is missing for: :bands.',
+        ],
+    ],
+
 ];
