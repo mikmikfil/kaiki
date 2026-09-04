@@ -233,4 +233,24 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Platform defaults
+    |--------------------------------------------------------------------------
+    */
+
+    'defaults' => [
+
+        /*
+         * The timezone a tenant gets when they do not choose one (CNV-2).
+         *
+         * Deliberately **not** `config('app.timezone')`, which is UTC: storage
+         * is UTC and display is local, and defaulting display to UTC would be
+         * silently wrong by two or three hours on every departure time an
+         * operator reads.
+         */
+        'timezone' => 'Europe/Athens',
+
+    ],
+
 ];

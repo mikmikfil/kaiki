@@ -162,6 +162,20 @@ return [
         'pet_friendly' => ['label' => 'Δεκτά κατοικίδια'],
     ],
 
+    'departure_status' => [
+        'scheduled' => ['label' => 'Προγραμματισμένη'],
+        'guaranteed' => ['label' => 'Εγγυημένη'],
+        'cancelled' => ['label' => 'Ακυρωμένη'],
+        'completed' => ['label' => 'Ολοκληρωμένη'],
+    ],
+
+    'departure_cancel_reason' => [
+        'weather' => ['label' => 'Καιρός'],
+        'operator' => ['label' => 'Απόφαση του πλοιοκτήτη'],
+        'min_pax' => ['label' => 'Λίγα άτομα'],
+        'vessel_booked_privately' => ['label' => 'Ιδιωτική ναύλωση'],
+    ],
+
     'locale' => [
         'el' => ['label' => 'Ελληνικά', 'short' => 'ΕΛ'],
         'en' => ['label' => 'English', 'short' => 'EN'],

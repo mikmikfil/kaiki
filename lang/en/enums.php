@@ -173,6 +173,20 @@ return [
         'pet_friendly' => ['label' => 'Pets welcome'],
     ],
 
+    'departure_status' => [
+        'scheduled' => ['label' => 'Scheduled'],
+        'guaranteed' => ['label' => 'Guaranteed'],
+        'cancelled' => ['label' => 'Cancelled'],
+        'completed' => ['label' => 'Completed'],
+    ],
+
+    'departure_cancel_reason' => [
+        'weather' => ['label' => 'Weather'],
+        'operator' => ['label' => 'Operator decision'],
+        'min_pax' => ['label' => 'Too few passengers'],
+        'vessel_booked_privately' => ['label' => 'Private charter'],
+    ],
+
     'locale' => [
         'el' => ['label' => 'Ελληνικά', 'short' => 'ΕΛ'],
         'en' => ['label' => 'English', 'short' => 'EN'],
