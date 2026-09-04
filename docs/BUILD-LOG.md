@@ -14,10 +14,10 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M1 — Catalogue and availability engine** |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M1 | #15, #16, #17 |
+| M1 | #15, #16, #17, #47, #23, #18, #19, #20, #22, #21 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (534) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (812) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 **Open, not blocking, and not mine to close:**
@@ -29,6 +29,61 @@ Each entry records the **verification actually run** and its **real output** —
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | **Decided 2026-09-04.** Option A: a tenant-scoped `audit_logs` table, SEC-16's actions plus soft deletes, seven-year retention with the actor as a `user_id`, owner and manager only. Implementation is #53 |
+
+---
+
+## #21 — Rate plans, per-band prices and the deposit rule
+
+`rate_plans` and `rate_plan_prices` per `docs/data-model.md` §2.3, and the four rules that decide what a guest is charged. All four are in `app/Domain/Pricing/Actions/SaveRatePlan.php` rather than in the form, because the importer and the public API will need the same four.
+
+### The rule the database cannot hold
+
+`rate_plans_tenant_prod_season_uq` is `(tenant_id, product_id, season_id)` and the product default is the row with `season_id` **null**. Both MySQL and SQLite treat NULLs as distinct in a unique index, so that constraint permits two default plans for one product and always will. A partial index or an index on an expression would express it and is unportable, which ENV-12 forbids.
+
+`tests/Feature/Pricing/DuplicateDefaultPlanTest.php` therefore asserts **both** halves — that the index really does let a duplicate through (inserting twice through the query builder, bypassing the Action), and that the Action really does not. Without the first assertion, the next reader sees an index whose name promises the invariant, believes the database is holding the line, and deletes the check.
+
+### The other three
+
+- **CAT-5 consistency.** `per_vessel` requires `vessel_price_cents` and refuses band rows; `per_seat` is the reverse; `quote` is permitted for internal reference and never produces a guest-facing price.
+- **Band coverage.** A `multiplier` band derives from the base band, so its row is optional; a `fixed` band and the base band itself have nothing to derive from, so theirs are required. Every missing band is named in one message rather than one per submit.
+- **PRC-23 deposits.** `percent` needs 1–100, `fixed` a positive amount, `none` refuses both — *refused* rather than silently cleared, because an operator who typed a percentage and chose "pay in full" meant one of the two and only they know which. The column the chosen type does not use is cleared on save, so switching back cannot resurrect a stale figure.
+
+### `MoneyInput`, and CNV-1 surviving contact with a form
+
+`app/Filament/Forms/MoneyInput.php` is new and is the first money field in the panel. An operator types «150,50» and the column stores `15050`, with `brick/money` parsing the **string** — the obvious `(float) $state * 100` in between is exactly what CNV-1's *"not even transiently"* is about, since `1.15 * 100` is `114.99999999999999`. The comma is normalised before parsing, which is also why the field is not `numeric()`: a browser number input rejects the decimal comma a Greek keyboard produces.
+
+The panel pages re-key the Action's errors onto `data.*`, so a refusal marks the field that caused it instead of floating above the form as an unattached banner.
+
+### Deviations from the issue as written
+
+1. **The resource lives at `app/Filament/App/Resources/RatePlanResource.php`**, not `app/Filament/Resources/` as the issue listed. The panel-scoped path is the convention every resource since #9 has used.
+2. **No `app/Rules/*` classes.** The issue proposed `OneDefaultRatePlanPerProduct`, `RatePlanMatchesProductMode` and `DepositFieldsConsistent`. All three are cross-table and set-level; a Laravel rule object judges one value and would have had to reach for the product and the sibling rows anyway. They are methods on the Action instead, which is where the importer and the API will call them from.
+3. **Four migration files renumbered.** #22 shipped `extras` and `product_extra` as 19 and 20, which §6 assigns to the rate plan pair. All four renamed so the numeric suffix keeps meaning the item number, as §6 item 9 promises. Neither pair holds an FK to the other, so nothing depends on the relative order — recorded in `docs/data-model.md`.
+
+### Not lost, deferred
+
+`docs/data-model.md` §2.3 calls for a **nightly integrity check reporting duplicate default plans**. It belongs with the other integrity checks in M5. Until then the Action is the only thing holding the line, which is why the test above exists.
+
+### Verification
+
+`composer lint` (Pint, passed), `composer stan` (PHPStan level 6, no errors), `composer i18n:check` (146 passed), `composer test` — **812 passed**, with `CiGatesTest > schema snapshot` red locally as designed, since ADR-0015 puts MySQL in CI only. The snapshot was then refreshed from the `mysql-schema-snapshot` artifact of the branch's own `migrate-from-zero` run, and all **14 required checks** went green before merge (PR #60).
+
+---
+
+## #47, #23, #18, #19, #20, #22 — the M1 catalogue chain
+
+Six issues merged back to back, each gated on the one before it by §6's rule that **no migration ever adds a foreign key to an existing table**. Recorded together rather than as six entries written after the fact: the per-issue narrative is in each pull request, and inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail.
+
+| # | What landed | The part worth remembering |
+|---|---|---|
+| #47 | `vat_rates`, platform-owned, no `tenant_id` | `rate_bp` has **no default** — a VAT column that defaults to anything is a statutory rate hardcoded in a migration (ADR-0002). `NoHardcodedVatRateTest` scans the source for a percentage beside a VAT word; the seeded sandbox rate is 1 basis point, marked «ΠΡΟΣΩΡΙΝΟΣ» |
+| #23 | `cancellation_policies`, tiers, `RefundCalculator` | The calculator is static end to end and takes a `CancellationPolicyData`, never a model — so CXL-1's *"editing a policy must not affect an existing booking"* is a property of the type signature rather than a rule to remember |
+| #18 | `products`, 44 columns, five FKs | Needed both #47 and #23 to exist first. `getTranslations()` returns the `_geo` key as though it were a locale, so the itinerary has its own accessors |
+| #19 | `age_bands`, `AgeBandResolver` | Every CAT-8 rule is set-level, so all of them are in `SaveAgeBands` and reported at once. `countedSeats()` and `totalPersons()` are deliberately separate: an infant on a lap is not a seat and is still a person aboard |
+| #20 | `seasons`, `season_date_ranges` | PRC-4 wants **both** save-time prevention of priority ties and read-time deterministic ordering. `docs/data-model.md` §2.3 said only the second; the note was amended |
+| #22 | `extras`, `product_extra` | Tri-state overrides resolve with `??` and never `?:` — `0` and `false` are real override values, and `?:` would treat both as "inherit" |
+
+Each merged with the same 14 required checks green and its own MySQL snapshot refresh commit.
 
 ---
 
