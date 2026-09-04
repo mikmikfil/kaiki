@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Support;
 
+use App\Models\BrandProfile;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\RoleAssignment;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Observers\TenantObserver;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
@@ -48,6 +50,34 @@ final class TenantIsolationHarness
             RoleAssignment::class => static fn (Tenant $tenant): array => [
                 'user_id' => User::factory()->forTenant($tenant)->create()->getKey(),
             ],
+        ];
+    }
+
+    /**
+     * Models with **exactly one row per tenant**, already created by the
+     * platform before any test asks for one.
+     *
+     * `brand_profiles` has a unique index on `tenant_id` and a row written by
+     * {@see TenantObserver} the moment the tenant exists
+     * (BRD-3), so `factory()->create()` for that tenant is a constraint
+     * violation rather than a fixture. The answer is to hand back the row that
+     * is already there.
+     *
+     * This is **not** an exclusion, and the difference matters: the row is
+     * still built, still queried from the other tenant, and still asserted
+     * invisible. What changes is only where it came from — which is, if
+     * anything, the stronger test, because it is the row production actually
+     * has rather than one a factory invented.
+     *
+     * @return array<class-string<Model>, callable(Tenant): ?Model>
+     */
+    public static function singletons(): array
+    {
+        return [
+            BrandProfile::class => static fn (Tenant $tenant): ?Model => BrandProfile::query()
+                ->withoutGlobalScopes()
+                ->where('tenant_id', $tenant->getKey())
+                ->first(),
         ];
     }
 
@@ -108,6 +138,12 @@ final class TenantIsolationHarness
      */
     public static function makeFor(Tenant $tenant, string $class): Model
     {
+        $existing = (self::singletons()[$class] ?? static fn (): ?Model => null)($tenant);
+
+        if ($existing instanceof Model) {
+            return $existing;
+        }
+
         if (! method_exists($class, 'factory')) {
             throw new RuntimeException(self::missingFactoryMessage($class));
         }

@@ -114,4 +114,15 @@ return [
         'en' => ['label' => 'English', 'short' => 'EN'],
     ],
 
+    'font_source' => [
+        'system' => ['label' => 'System font'],
+        'google' => ['label' => 'Google Fonts'],
+    ],
+
+    'widget_theme' => [
+        'light' => ['label' => 'Light'],
+        'dark' => ['label' => 'Dark'],
+        'auto' => ['label' => 'Match the visitor'],
+    ],
+
 ];

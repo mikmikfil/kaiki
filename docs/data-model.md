@@ -1921,7 +1921,24 @@ Unknown keys are preserved but not rendered. `amenities` values come from a fixe
 { "website": "https://…", "instagram": "https://…", "facebook": "https://…", "tripadvisor": "https://…", "whatsapp": "+30…" }
 ```
 
-All keys optional; values validated as URLs (or E.164 for `whatsapp`). Unknown keys rejected, so the hosted-page footer cannot be turned into an open redirect list.
+All keys optional; values validated as URLs (or E.164 for `whatsapp`). Unknown keys rejected, so the hosted-page footer cannot be turned into an open redirect list. Only `http`/`https` are accepted — `filter_var` with `FILTER_VALIDATE_URL` also passes `ftp://` and `file://`, which in an `href` is at best a broken link. Empty values are dropped rather than stored as empty strings, so "no Facebook page" is an absent key.
+
+### 3.10a `brand_profiles.contrast_warnings`
+
+```json
+{
+  "body_text":   { "ratio": 16.10, "threshold": 4.5, "passes": true },
+  "button_text": { "ratio": 4.60,  "threshold": 3.0, "passes": true }
+}
+```
+
+**Amended in #17.** §3.15 previously sketched this as a single `primary_on_background` entry carrying a `passes_aa` flag. BRD-5 names **two** pairs judged at **two different thresholds** — body text on background at 4.5:1, and button text on the primary colour at 3:1, which is the UI-component figure — so a one-entry shape could not record the result, and a bare `passes_aa` could not say which threshold it was measured against.
+
+Storing the threshold is what lets the panel show *"4.60:1, minimum 3.0:1"* instead of a bare pass or fail, and it means a later change to `config('kaiki.branding.contrast')` shows up as a difference between what was stored and what would be computed now.
+
+`button_text` is measured as `color_background` on `color_primary`. §2.2 has no button-text column and #17 was not entitled to add one; the background colour is what a filled button's label actually renders as. Assuming white instead would quietly pass every dark palette and quietly fail every light one, regardless of what the widget draws.
+
+Written by `App\Domain\Branding\Actions\UpdateBrandProfile` on every save and **only** there — a panel that recomputed it in its own save hook would be a panel whose numbers are right and an API whose numbers are stale.
 
 ### 3.11 `tenants.settings`
 
@@ -1979,7 +1996,7 @@ Additional locales are additive keys; no schema change is needed to support `de`
 |---|---|---|
 | `tenants.supported_locales` | `["el","en"]` | ordered array of ISO 639-1 codes |
 | `vessels.images`, `products.images` | `[{ "path": "…", "alt": {"el":"…","en":"…"}, "sort": 0 }]` | order is the array order; `sort` is advisory |
-| `brand_profiles.contrast_warnings` | `{ "primary_on_background": { "ratio": 3.1, "passes_aa": false } }` | last computed WCAG results |
+| `brand_profiles.contrast_warnings` | `{ "body_text": { "ratio": 16.1, "threshold": 4.5, "passes": true }, "button_text": {...} }` | last computed WCAG results — **amended in #17**, see §3.10a |
 | `payments.raw_payload` | provider-shaped, **encrypted** | never parsed for business logic; support only |
 | `gateway_webhook_events.payload` | provider-shaped, **encrypted** | |
 | `webhook_deliveries.payload` | the outbound event body | exactly what was signed |

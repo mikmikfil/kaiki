@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:4fe3192c2f44fcf470714f9963863d6ffd66b089d91707745c85bd42d9ec898e
+-- migrations-fingerprint: sha256:d001e6dfc9dee561bcfcc84f9c680d48d35d29ff54bcaa747f2ffef506c90576
 
 DROP TABLE IF EXISTS `api_keys`;
 CREATE TABLE `api_keys` (
@@ -33,6 +33,33 @@ CREATE TABLE `api_keys` (
   KEY `api_keys_tenant_type_idx` (`tenant_id`,`type`,`revoked_at`),
   CONSTRAINT `api_keys_created_by_user_id_foreign` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `api_keys_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `brand_profiles`;
+CREATE TABLE `brand_profiles` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `logo_light_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `logo_dark_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `favicon_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email_header_image_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `color_primary` char(7) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '#0F62FE',
+  `color_secondary` char(7) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '#0B3D91',
+  `color_accent` char(7) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '#FFB000',
+  `color_background` char(7) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '#FFFFFF',
+  `color_text` char(7) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT '#101828',
+  `font_family` varchar(80) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'Inter',
+  `font_source` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'system',
+  `button_radius_px` tinyint unsigned NOT NULL DEFAULT '8',
+  `widget_theme` varchar(8) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'auto',
+  `email_footer_text` json DEFAULT NULL,
+  `social_links` json NOT NULL,
+  `custom_css` text COLLATE utf8mb4_unicode_ci,
+  `contrast_warnings` json NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `brand_profiles_tenant_id_unique` (`tenant_id`),
+  CONSTRAINT `brand_profiles_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `cache`;
 CREATE TABLE `cache` (
@@ -289,5 +316,6 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (3,'0001_01_01_0000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (4,'0001_01_01_000003_create_role_assignments_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (5,'0001_01_01_000004_create_api_keys_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (6,'0001_01_01_000005_create_tenant_domains_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (7,'2026_09_02_000010_create_ports_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (8,'2026_09_02_000011_create_vessels_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (7,'2026_09_02_000009_create_brand_profiles_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (8,'2026_09_02_000010_create_ports_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (9,'2026_09_02_000011_create_vessels_table',1);

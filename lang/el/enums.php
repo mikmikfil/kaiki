@@ -103,4 +103,15 @@ return [
         'en' => ['label' => 'English', 'short' => 'EN'],
     ],
 
+    'font_source' => [
+        'system' => ['label' => 'Γραμματοσειρά συστήματος'],
+        'google' => ['label' => 'Google Fonts'],
+    ],
+
+    'widget_theme' => [
+        'light' => ['label' => 'Ανοιχτό'],
+        'dark' => ['label' => 'Σκούρο'],
+        'auto' => ['label' => 'Όπως ο επισκέπτης'],
+    ],
+
 ];

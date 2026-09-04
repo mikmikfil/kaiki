@@ -41,6 +41,18 @@ return [
         // A URL used as a form placeholder. Translating the example domain
         // would suggest the address itself changes with the interface language.
         'api_keys.form.allowed_origins.placeholder' => 'An example URL, not prose.',
+
+        // The four social networks are companies, and an operator looks for
+        // the wordmark they know. "Instagram" is "Instagram" on a Greek phone.
+        'branding.form.social.instagram' => 'Company name, identical in both locales.',
+        'branding.form.social.facebook' => 'Company name, identical in both locales.',
+        'branding.form.social.tripadvisor' => 'Company name, identical in both locales.',
+        'branding.form.social.whatsapp' => 'Company name, identical in both locales.',
+
+        // The name of Google's service, as it appears in their own Greek
+        // interface. Translating it would leave an operator searching for a
+        // product that is not called that anywhere they can look it up.
+        'enums.font_source.google.label' => 'Product name, identical in both locales.',
     ],
 
     'literals' => [

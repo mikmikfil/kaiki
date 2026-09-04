@@ -7,10 +7,13 @@ namespace App\Models;
 use App\Enums\Plan;
 use App\Enums\TenantStatus;
 use App\Models\Concerns\HasUuid;
+use App\Observers\TenantObserver;
 use Database\Factories\TenantFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 use Stancl\Tenancy\Contracts\Tenant as TenantContract;
@@ -50,6 +53,7 @@ use Stancl\Tenancy\Database\Concerns\TenantRun;
  * @property bool $auto_issue_invoice
  * @property array<string, mixed> $settings
  */
+#[ObservedBy(TenantObserver::class)]
 class Tenant extends Model implements TenantContract
 {
     /** @use HasFactory<TenantFactory> */
@@ -100,6 +104,21 @@ class Tenant extends Model implements TenantContract
     public function roleAssignments(): HasMany
     {
         return $this->hasMany(RoleAssignment::class);
+    }
+
+    /**
+     * The operator's brand (BRD-1).
+     *
+     * `HasOne` rather than `HasMany` because the unique index on
+     * `brand_profiles.tenant_id` makes the 1:1 a database fact, and
+     * {@see TenantObserver} means it is never null on a tenant that finished
+     * being created (BRD-3).
+     *
+     * @return HasOne<BrandProfile, $this>
+     */
+    public function brandProfile(): HasOne
+    {
+        return $this->hasOne(BrandProfile::class);
     }
 
     /** Operators in `read_only` or `suspended` cannot write (see #7). */

@@ -46,10 +46,27 @@ it('hides another tenant row from a query by id', function (string $class): void
 
     $rowOfB = TenantIsolationHarness::makeFor($b, $class);
 
-    Tenancy::forTenant($a, function () use ($class, $rowOfB): void {
+    Tenancy::forTenant($a, function () use ($a, $class, $rowOfB): void {
         expect($class::query()->find($rowOfB->getKey()))->toBeNull()
-            ->and($class::query()->whereKey($rowOfB->getKey())->exists())->toBeFalse()
-            ->and($class::query()->count())->toBe(0);
+            ->and($class::query()->whereKey($rowOfB->getKey())->exists())->toBeFalse();
+
+        // **Not `count() === 0`.** That held only while every tenant-owned model
+        // was one a test had to create; `brand_profiles` broke it, because BRD-3
+        // gives *every* tenant exactly one the moment it exists — so tenant A
+        // legitimately sees a row here, its own.
+        //
+        // The invariant was never "A sees nothing". It is "everything A sees
+        // belongs to A", which is the same assertion for a model with no rows
+        // and a stronger one for a model with some: a leak that returned B's row
+        // *alongside* A's would have passed the old count check on any model
+        // where A owned one already.
+        $visible = $class::query()->get();
+
+        foreach ($visible as $row) {
+            expect((int) $row->getAttribute('tenant_id'))->toBe($a->getKey());
+        }
+
+        expect($visible->pluck($rowOfB->getKeyName())->all())->not->toContain($rowOfB->getKey());
     });
 })->with('tenant owned models')->group('tenancy', 'fast');
 

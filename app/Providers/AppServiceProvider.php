@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Domain\Catalog\Actions\GuardVesselCapacity;
+use App\Domain\Media\Actions\StoreUploadedImage;
 use App\Http\Middleware\SetLocale;
 use App\Providers\Filament\PanelRenderHooks;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Intervention\Image\Drivers\Gd\Driver;
+use Intervention\Image\ImageManager;
+use Intervention\Image\Interfaces\ImageManagerInterface;
 use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
@@ -38,6 +42,25 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(
             GuardVesselCapacity::class,
             static fn ($app): GuardVesselCapacity => new GuardVesselCapacity($app->tagged(GuardVesselCapacity::TAG)),
+        );
+
+        // **GD, named rather than detected.** `intervention/image` will happily
+        // pick Imagick when it is present, and Imagick is not installed on the
+        // local Windows stack (ENV-3) nor in the CI image — so a driver chosen
+        // by availability would run one engine in development and a different
+        // one in production, with the resize path tested on neither. GD covers
+        // PNG and WebP on both, which is the whole of BRD-7's raster list.
+        //
+        // Bound to the interface so a test can swap the driver, and so
+        // `media:rebuild` can type-hint it in `handle()`.
+        $this->app->singleton(
+            ImageManagerInterface::class,
+            static fn (): ImageManagerInterface => new ImageManager(new Driver),
+        );
+
+        $this->app->singleton(
+            StoreUploadedImage::class,
+            static fn ($app): StoreUploadedImage => new StoreUploadedImage($app->make(ImageManagerInterface::class)),
         );
     }
 
