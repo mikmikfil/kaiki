@@ -84,4 +84,53 @@ return [
             'refund_percent_range' => 'The refund percentage must be between 0 and 100.',
         ],
     ],
+    'season' => [
+        'nav' => 'Seasons',
+
+        'model' => [
+            'singular' => 'Season',
+            'plural' => 'Seasons',
+        ],
+
+        'form' => [
+            'name' => [
+                'label' => 'Name',
+                'help' => 'How you recognise it — for example “High season”.',
+            ],
+            'code' => [
+                'label' => 'Code',
+                'help' => 'An optional shorthand, for example HIGH26.',
+            ],
+            'priority' => [
+                'label' => 'Priority',
+                'help' => 'When two seasons cover the same date, the higher priority wins. That is how “August bank holiday” beats “Summer”.',
+            ],
+            'is_active' => [
+                'label' => 'Active',
+                'help' => 'An inactive season affects no prices.',
+            ],
+            'ranges' => [
+                'label' => 'Dates',
+                'help' => 'One or more date ranges. Both ends count: 1 June to 15 September includes both days.',
+                'add' => 'Add a range',
+                'starts_on' => 'From',
+                'ends_on' => 'Until',
+            ],
+        ],
+
+        'table' => [
+            'name' => 'Name',
+            'code' => 'Code',
+            'priority' => 'Priority',
+            'ranges' => 'Dates',
+            'is_active' => 'Active',
+        ],
+
+        'validation' => [
+            'self_overlap' => 'The ranges :first and :second in this season overlap. Merge them into one.',
+            'priority_tie' => '“:other” also covers :date at the same priority (:priority). Give one of the two a different priority, otherwise nothing decides which price applies.',
+            'ends_before_starts' => 'The end date cannot be before the start.',
+        ],
+    ],
+
 ];

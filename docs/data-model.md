@@ -633,7 +633,9 @@ Indexes: `seasons_tenant_priority_idx` (`tenant_id`, `priority`, `is_active`); `
 
 Indexes: `season_ranges_tenant_dates_idx` (`tenant_id`, `starts_on`, `ends_on`) — serves `where starts_on <= ? and ends_on >= ?`; `season_ranges_season_idx` (`tenant_id`, `season_id`).
 
-**Notes.** Ranges are **local dates**, not UTC timestamps: a season is a calendar concept ("1 June to 15 September"), and converting it to UTC would move its edges by 3 hours. Ranges may overlap across seasons — that is what `priority` is for. **Ties on priority** (two seasons, same priority, both containing the date) are resolved by `seasons.id ASC` and logged as a configuration warning; the resolver is deterministic, and the panel shows an overlap warning. Ranges *within one season* may not overlap (application-validated).
+**Notes.** Ranges are **local dates**, not UTC timestamps: a season is a calendar concept ("1 June to 15 September"), and converting it to UTC would move its edges by 3 hours. Ranges may overlap across seasons — that is what `priority` is for. **Ties on priority** (two seasons, same priority, both containing the date) are **prevented by validation** — saving such a season is rejected (spec PRC-4, and this note is amended in #20; it previously described only the read-time half). A tie is a configuration mistake an operator can see and fix, and resolving it silently would mean their prices are decided by a row id they never look at.
+
+As defence in depth — for rows that arrived through an import, a direct edit, or before the validation existed — the resolver still orders deterministically: **`priority` DESC, then the narrowest matching range in days ASC, then `seasons.id` ASC**. The middle step was missing from this note and is PRC-4's: a season whose two-week August range matches beats one whose whole-summer range also matches, because the narrower statement is the more specific one. Ranges *within one season* may not overlap (application-validated).
 
 ---
 
