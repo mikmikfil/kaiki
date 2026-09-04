@@ -194,6 +194,19 @@ return [
         'manual' => ['label' => 'Manual'],
     ],
 
+    'availability_rejection' => [
+        'product_not_active' => ['label' => 'This trip is not available at the moment.'],
+        'vessel_not_active' => ['label' => 'This boat is not available at the moment.'],
+        'departure_cancelled' => ['label' => 'This departure was cancelled.'],
+        'lead_time_too_short' => ['label' => 'Booking has closed for this departure.'],
+        'too_far_ahead' => ['label' => 'We are not taking bookings that far ahead yet.'],
+        'vessel_busy' => ['label' => 'The boat is already booked at that time.'],
+        'not_enough_seats' => ['label' => 'There are not enough seats left.'],
+        'legal_capacity_exceeded' => ['label' => 'That would put more people on board than the boat is licensed for.'],
+        'no_counted_pax' => ['label' => 'At least one passenger who takes a seat is needed.'],
+        'tenant_read_only' => ['label' => 'Bookings are not available at the moment.'],
+    ],
+
     'locale' => [
         'el' => ['label' => 'Ελληνικά', 'short' => 'ΕΛ'],
         'en' => ['label' => 'English', 'short' => 'EN'],
