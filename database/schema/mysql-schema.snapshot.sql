@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:eac0f8c8c111ca6b9c4a2bc6d9e803b632d6420bfed0301b5af126ee74117d3e
+-- migrations-fingerprint: sha256:384ecb0276f6ef93b5a4f90b0ca681cf581082ba5e8fdf1234cea6f4f1ae5a16
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -305,6 +305,43 @@ CREATE TABLE `role_assignments` (
   CONSTRAINT `role_assignments_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
   CONSTRAINT `role_assignments_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `season_date_ranges`;
+CREATE TABLE `season_date_ranges` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `season_id` bigint unsigned NOT NULL,
+  `starts_on` date NOT NULL,
+  `ends_on` date NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `season_date_ranges_season_id_foreign` (`season_id`),
+  KEY `season_ranges_tenant_dates_idx` (`tenant_id`,`starts_on`,`ends_on`),
+  KEY `season_ranges_season_idx` (`tenant_id`,`season_id`),
+  CONSTRAINT `season_date_ranges_season_id_foreign` FOREIGN KEY (`season_id`) REFERENCES `seasons` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `season_date_ranges_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `seasons`;
+CREATE TABLE `seasons` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `name` json NOT NULL,
+  `code` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `priority` smallint unsigned NOT NULL DEFAULT '0',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `search_index` text COLLATE utf8mb4_unicode_ci,
+  `name_sort_el` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name_sort_en` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `seasons_tenant_code_uq` (`tenant_id`,`code`),
+  KEY `seasons_tenant_priority_idx` (`tenant_id`,`priority`,`is_active`),
+  KEY `seasons_tenant_name_sort_el_idx` (`tenant_id`,`name_sort_el`),
+  KEY `seasons_tenant_name_sort_en_idx` (`tenant_id`,`name_sort_en`),
+  CONSTRAINT `seasons_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `sessions`;
 CREATE TABLE `sessions` (
   `id` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -471,3 +508,5 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (11,'2026_09_02_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (12,'2026_09_02_000014_create_cancellation_policy_tiers_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (13,'2026_09_02_000015_create_products_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (14,'2026_09_02_000016_create_age_bands_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (15,'2026_09_02_000017_create_seasons_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (16,'2026_09_02_000018_create_season_date_ranges_table',1);
