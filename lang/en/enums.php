@@ -86,6 +86,12 @@ return [
         'webhooks.receive' => ['label' => 'Receive webhooks'],
     ],
 
+    'extra_pricing' => [
+        'per_booking' => ['label' => 'Per booking'],
+        'per_person' => ['label' => 'Per person'],
+        'on_request' => ['label' => 'On request'],
+    ],
+
     'age_band_pricing' => [
         'multiplier' => ['label' => 'Share of the base price'],
         'fixed' => ['label' => 'Its own price'],

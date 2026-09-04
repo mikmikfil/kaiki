@@ -239,4 +239,21 @@ return [
         ],
     ],
 
+    'extra' => [
+        'nav' => 'Extras',
+
+        'model' => [
+            'singular' => 'Extra',
+            'plural' => 'Extras',
+        ],
+
+        'on_request' => 'On request',
+
+        'validation' => [
+            'on_request_has_price' => 'On-request extras carry no price — you agree it with the guest. Either clear the price or change how it is charged.',
+            'price_required' => 'Give it a price, or change how it is charged to on request.',
+            'max_qty_exceeded' => '“:extra” can be added at most :max times per booking.',
+        ],
+    ],
+
 ];
