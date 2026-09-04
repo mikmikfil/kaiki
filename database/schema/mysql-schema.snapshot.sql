@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:97e8bc58732627065d4dfa7189312b9a92f9ef37322c1add8e68f891f897a891
+-- migrations-fingerprint: sha256:6597049c84c62cd8e35606c8a5653bc225674135e779bb0e0a1eaba5deb5ba53
 
 DROP TABLE IF EXISTS `api_keys`;
 CREATE TABLE `api_keys` (
@@ -76,6 +76,45 @@ CREATE TABLE `cache_locks` (
   `expiration` int NOT NULL,
   PRIMARY KEY (`key`),
   KEY `cache_locks_expiration_index` (`expiration`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `cancellation_policies`;
+CREATE TABLE `cancellation_policies` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `name` json NOT NULL,
+  `summary` json DEFAULT NULL,
+  `free_cancellation_hours` smallint unsigned DEFAULT NULL,
+  `weather_refund_percent` tinyint unsigned NOT NULL DEFAULT '100',
+  `force_majeure_voucher_months` tinyint unsigned NOT NULL DEFAULT '18',
+  `no_show_refund_percent` tinyint unsigned NOT NULL DEFAULT '0',
+  `is_default` tinyint(1) NOT NULL DEFAULT '0',
+  `search_index` text COLLATE utf8mb4_unicode_ci,
+  `name_sort_el` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name_sort_en` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `cxl_policies_tenant_default_idx` (`tenant_id`,`is_default`),
+  KEY `cxl_policies_tenant_name_sort_el_idx` (`tenant_id`,`name_sort_el`),
+  KEY `cxl_policies_tenant_name_sort_en_idx` (`tenant_id`,`name_sort_en`),
+  CONSTRAINT `cancellation_policies_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `cancellation_policy_tiers`;
+CREATE TABLE `cancellation_policy_tiers` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `cancellation_policy_id` bigint unsigned NOT NULL,
+  `days_before` smallint unsigned NOT NULL,
+  `refund_percent` tinyint unsigned NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `cxl_tiers_policy_days_uq` (`tenant_id`,`cancellation_policy_id`,`days_before`),
+  KEY `cancellation_policy_tiers_cancellation_policy_id_foreign` (`cancellation_policy_id`),
+  KEY `cxl_tiers_policy_days_idx` (`tenant_id`,`cancellation_policy_id`,`days_before`),
+  CONSTRAINT `cancellation_policy_tiers_cancellation_policy_id_foreign` FOREIGN KEY (`cancellation_policy_id`) REFERENCES `cancellation_policies` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `cancellation_policy_tiers_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `failed_jobs`;
 CREATE TABLE `failed_jobs` (
@@ -336,3 +375,5 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (7,'2026_09_02_0000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (8,'2026_09_02_000010_create_brand_profiles_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (9,'2026_09_02_000011_create_ports_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (10,'2026_09_02_000012_create_vessels_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (11,'2026_09_02_000013_create_cancellation_policies_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (12,'2026_09_02_000014_create_cancellation_policy_tiers_table',1);
