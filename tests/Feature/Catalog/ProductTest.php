@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Catalog\Actions\SaveProduct;
+use App\Domain\Catalog\Support\ProductPublishChecklist;
 use App\Enums\BookingMode;
 use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
@@ -162,7 +163,12 @@ it('clears min_pax and the flexible window when the mode does not use them', fun
     // applying, and a stale value would silently gate departures if they
     // switched back.
     forProduct(function (): void {
-        $product = Product::factory()->flexibleStart()->create(['min_pax' => 0]);
+        // A draft, as the comment above says: the factory's default is
+        // `active`, and CAT-15 refuses an active product with no rate plan.
+        $product = Product::factory()->flexibleStart()->create([
+            'min_pax' => 0,
+            'status' => ProductStatus::Draft,
+        ]);
 
         $saved = app(SaveProduct::class)($product, [
             'mode' => BookingMode::PerSeat,
@@ -198,7 +204,10 @@ it('refuses a mode change once the product has bookings', function (): void {
 it('allows a mode change while nothing has been booked', function (): void {
     // The passing counterpart, and the ordinary case: a draft being shaped.
     forProduct(function (): void {
-        $product = Product::factory()->create(['mode' => BookingMode::PerSeat]);
+        $product = Product::factory()->create([
+            'mode' => BookingMode::PerSeat,
+            'status' => ProductStatus::Draft,
+        ]);
 
         $saved = app(SaveProduct::class)($product, ['mode' => BookingMode::PerVessel]);
 
@@ -230,7 +239,10 @@ it('ships the booking-count guard with no sources registered', function (): void
     // one class and one tag() line. Asserted so that a future implementation
     // being registered is a visible change rather than a silent one.
     forProduct(function (): void {
-        $product = Product::factory()->create(['mode' => BookingMode::PerSeat]);
+        $product = Product::factory()->create([
+            'mode' => BookingMode::PerSeat,
+            'status' => ProductStatus::Draft,
+        ]);
 
         expect(app(SaveProduct::class)($product, ['mode' => BookingMode::Quote])->mode)
             ->toBe(BookingMode::Quote);
@@ -366,3 +378,46 @@ it('is discovered by the cross-tenant isolation gate automatically', function ()
     // The criterion is that no hand-written isolation test is needed.
     expect(TenantIsolationHarness::tenantOwnedModels())->toContain(Product::class);
 })->group('fast', 'tenancy');
+
+it('refuses to publish a product that is missing a CAT-15 prerequisite', function (): void {
+    // The gate is in the Action, not in the form, because the panel is only the
+    // first of three writers — the public API and the WooCommerce importer will
+    // both be able to set a status, and a rule enforced in a Filament resource
+    // is a rule those two do not have.
+    forProduct(function (): void {
+        $product = Product::factory()->create(['status' => ProductStatus::Draft]);
+
+        app(SaveProduct::class)($product, ['status' => ProductStatus::Active->value]);
+    });
+})->throws(ValidationException::class)->group('fast');
+
+it('lists every unmet prerequisite in the refusal', function (): void {
+    forProduct(function (): void {
+        $product = Product::factory()->create([
+            'status' => ProductStatus::Draft,
+            'vessel_id' => null,
+            'meeting_point_id' => null,
+        ]);
+
+        try {
+            app(SaveProduct::class)($product, ['status' => ProductStatus::Active->value]);
+            expect(false)->toBeTrue();
+        } catch (ValidationException $e) {
+            // One line per missing thing, not "something is wrong". An operator
+            // fixing them one submit at a time is an afternoon lost.
+            expect($e->validator->errors()->get('status'))->toHaveCount(
+                count(ProductPublishChecklist::unmet($product)),
+            );
+        }
+    });
+})->group('fast');
+
+it('never blocks a product leaving active', function (): void {
+    // Unpublishing something incomplete is the fix, not another refusal.
+    forProduct(function (): void {
+        $product = Product::factory()->create(['status' => ProductStatus::Active]);
+
+        expect(app(SaveProduct::class)($product, ['status' => ProductStatus::Inactive->value])->status)
+            ->toBe(ProductStatus::Inactive);
+    });
+})->group('fast');

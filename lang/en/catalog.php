@@ -200,6 +200,170 @@ return [
             'plural' => 'Trips',
         ],
 
+        'sections' => [
+            'basics' => 'The basics',
+            'schedule' => 'Times and duration',
+            'content' => 'What the guest sees',
+            'capacity' => 'How many people',
+            'policy' => 'Terms and cancellation',
+            'seo' => 'How it appears on Google',
+            'bands' => 'Age bands',
+            'checklist' => 'Before publishing',
+        ],
+
+        'form' => [
+            'vessel' => [
+                'label' => 'Vessel',
+                'help' => 'The boat that runs this trip. Its passenger certificate is a legal ceiling and is never exceeded.',
+            ],
+            'slug' => [
+                'label' => 'Web address',
+                'help' => 'Lowercase letters and dashes, e.g. "hydra-day-trip". Changing it breaks existing links.',
+            ],
+            'category' => [
+                'label' => 'Kind of trip',
+                'help' => 'Helps a guest filter.',
+            ],
+            'mode' => [
+                'label' => 'How it is sold',
+                'help' => 'Per seat or as a whole boat. It cannot change once the first booking is taken.',
+            ],
+            'title' => [
+                'label' => 'Title',
+                'help' => 'The name of the trip, as a guest sees it.',
+            ],
+            'summary' => [
+                'label' => 'Summary',
+                'help' => 'A sentence or two for lists and search results.',
+            ],
+            'description' => [
+                'label' => 'Description',
+                'help' => 'The whole story of the trip.',
+            ],
+            'duration_minutes' => [
+                'label' => 'Duration',
+                'help' => 'In minutes, from departure to return.',
+                'suffix' => 'minutes',
+            ],
+            'default_start_time' => [
+                'label' => 'Departure time',
+                'help' => 'Local time. Everyone leaves at the same time.',
+            ],
+            'flexible_start' => [
+                'label' => 'Flexible departure time',
+                'help' => 'Private charters only: the guest picks a time inside the window below.',
+            ],
+            'earliest_start_time' => ['label' => 'No earlier than'],
+            'latest_start_time' => ['label' => 'No later than'],
+            'check_in_offset_minutes' => [
+                'label' => 'Check in before',
+                'help' => 'How many minutes before departure you expect the guest at the quay.',
+                'suffix' => 'minutes',
+            ],
+            'meeting_point' => [
+                'label' => 'Meeting point',
+                'help' => 'The port or marina where you meet.',
+            ],
+            'min_pax' => [
+                'label' => 'Minimum to sail',
+                'help' => 'Below this the departure is not guaranteed. Per-seat trips only.',
+            ],
+            'max_pax' => [
+                'label' => 'Maximum passengers',
+                'help' => 'Never above the vessel certificate.',
+            ],
+            'min_booking_pax' => [
+                'label' => 'Minimum per booking',
+                'help' => 'How many seats one guest must book at least.',
+            ],
+            'cancellation_policy' => [
+                'label' => 'Cancellation policy',
+                'help' => 'Leave empty to use your default policy.',
+            ],
+            'vat_rate' => [
+                'label' => 'VAT rate',
+                'help' => 'The rate printed on the receipt.',
+            ],
+            'guest_details_required' => [
+                'label' => 'Collect passenger details',
+                'help' => 'Names and documents, where the port authority requires them.',
+            ],
+            'guest_details_deadline_hours' => [
+                'label' => 'Details deadline',
+                'help' => 'Hours before departure.',
+                'suffix' => 'hours',
+            ],
+            'status' => [
+                'label' => 'Status',
+                'help' => 'It can only go live once everything below is done.',
+            ],
+            'is_featured' => [
+                'label' => 'Featured',
+                'help' => 'Shown first in lists.',
+            ],
+            'meta_title' => [
+                'label' => 'Google title',
+                'help' => 'Left empty, the trip title is used.',
+            ],
+            'meta_description' => [
+                'label' => 'Google description',
+                'help' => 'About 155 characters.',
+            ],
+            'bands' => [
+                'help' => 'Every age belongs to exactly one band. One of them is the base — the others are priced as a share of it.',
+                'add' => 'Add a band',
+                'code' => ['label' => 'Code', 'help' => 'Your own, e.g. "adult".'],
+                'label' => ['label' => 'Name', 'help' => 'The guest reads this when choosing passengers.'],
+                'min_age' => ['label' => 'From age'],
+                'max_age' => ['label' => 'To age', 'help' => 'Empty means no upper limit.'],
+                'counts_toward_capacity' => ['label' => 'Takes a seat', 'help' => 'An infant on a lap does not take a seat.'],
+                'pricing_mode' => ['label' => 'Pricing'],
+                'price_multiplier_bp' => ['label' => 'Share of the base', 'help' => '10000 = 100%, 5000 = 50%.'],
+                'is_base' => ['label' => 'Base band'],
+                'requires_adult' => ['label' => 'Needs an adult'],
+            ],
+        ],
+
+        'table' => [
+            'title' => 'Trip',
+            'vessel' => 'Vessel',
+            'mode' => 'How it is sold',
+            'status' => 'Status',
+            'max_pax' => 'Passengers',
+            'featured' => 'Featured',
+        ],
+
+        'checklist' => [
+            'intro' => 'A trip needs all of these before it can be published.',
+            'unsaved' => 'Save the trip first and you will see what is missing.',
+            'met' => 'Done',
+            'missing' => 'Missing',
+            'vessel' => [
+                'label' => 'Vessel',
+                'unmet' => 'Choose the boat that runs this trip.',
+            ],
+            'meeting_point' => [
+                'label' => 'Meeting point',
+                'unmet' => 'Choose where you meet your guests.',
+            ],
+            'age_bands' => [
+                'label' => 'Age bands',
+                'unmet' => 'Add at least one age band.',
+            ],
+            'rate_plan' => [
+                'label' => 'Rate plan',
+                'unmet' => 'Create an active rate plan for this trip, under "Rate plans".',
+            ],
+            'cancellation_policy' => [
+                'label' => 'Cancellation policy',
+                'unmet' => 'Choose a cancellation policy, or set a default one.',
+            ],
+            'title_locales' => [
+                'label' => 'Title in Greek and English',
+                'unmet' => 'Fill in the title in both languages.',
+            ],
+        ],
+
         'validation' => [
             'max_pax_over_capacity' => 'You asked for :max_pax passengers, but “:vessel” is licensed for :capacity. The vessel limit is a legal one rather than a preference — lower the number or choose another boat.',
             'flexible_start_mode' => 'A flexible start time applies only to whole-boat private charters. This trip is “:mode”, where the departure time is shared by everyone on board.',
