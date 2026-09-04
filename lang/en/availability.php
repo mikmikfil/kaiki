@@ -276,4 +276,21 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Availability — what the guest is told (AVL-22, AVL-26, AVL-29)
+    |--------------------------------------------------------------------------
+    |
+    | The widget runs on somebody else's page and needs a code to decide what to
+    | do; the sentence below it is for the guest.
+    |
+    */
+
+    'request' => [
+        'validation' => [
+            'inverted_range' => 'The end date cannot be before the start.',
+            'range_too_long' => 'You can ask about :max days at a time.',
+        ],
+    ],
+
 ];

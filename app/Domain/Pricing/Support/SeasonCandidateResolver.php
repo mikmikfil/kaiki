@@ -6,6 +6,8 @@ namespace App\Domain\Pricing\Support;
 
 use App\Domain\Catalog\Actions\SaveSeason;
 use App\Models\Season;
+use App\Models\SeasonDateRange;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -66,6 +68,43 @@ final class SeasonCandidateResolver
             ->get();
 
         return self::order($seasons, $date);
+    }
+
+    /**
+     * Every active season with its ranges, from the range side.
+     *
+     * Two queries, flat, whatever the calendar looks like — which is what
+     * NFR-7's five-query budget for a whole availability response has room for.
+     *
+     * The hydration is the part that matters: setting `dateRanges` explicitly
+     * is what stops `contains()` and `narrowestMatchingRangeDays()` lazy-loading
+     * per season further down. That N+1 would be invisible, because every
+     * answer would still be correct.
+     *
+     * Seasons with no ranges are absent by construction, which is right: a
+     * season that covers no dates cannot win a date.
+     *
+     * @return Collection<int, Season>
+     */
+    public static function allWithRanges(): Collection
+    {
+        /** @var Collection<int, SeasonDateRange> $ranges */
+        $ranges = SeasonDateRange::query()
+            ->whereHas('season', static fn (Builder $query): Builder => $query->where('is_active', true))
+            ->with('season')
+            ->get();
+
+        return $ranges
+            ->groupBy('season_id')
+            ->map(function (Collection $group): Season {
+                /** @var Season $season */
+                $season = $group->first()?->season;
+
+                $season->setRelation('dateRanges', $group->values());
+
+                return $season;
+            })
+            ->values();
     }
 
     /**
