@@ -259,4 +259,13 @@ return [
         'empty' => 'Every published trip has a price.',
     ],
 
+    'quote' => [
+        'extra_hours' => 'Extra hours',
+        'on_request' => 'On request',
+
+        'validation' => [
+            'not_sellable' => 'There is no rate plan for :date, so no price can be worked out. Create a rate plan for the trip, or a season that covers the date.',
+        ],
+    ],
+
 ];

@@ -63,6 +63,14 @@ return new class extends Migration
             // NOT NULL boolean later is a table rebuild on SQLite (§6).
             $table->boolean('counts_toward_capacity')->default(false);
 
+            // PRC-9's per-extra flag. `per_person` multiplies by **counted**
+            // pax by default — the seats sold — and by **total** persons when
+            // this is true, for the item an infant also consumes: a lifejacket,
+            // a lunch, a towel. Added in #34, which is the first code that had
+            // to answer the question; the column was missing from §2.3 while
+            // the rule was in the spec.
+            $table->boolean('prices_all_pax')->default(false);
+
             $table->string('image_path', 255)->nullable();
             $table->boolean('is_active')->default(true);
             $table->unsignedSmallInteger('sort_order')->default(0);

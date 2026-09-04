@@ -741,6 +741,7 @@ Indexes / uniques: `rate_plan_prices_plan_band_uq` (`tenant_id`, `rate_plan_id`,
 | `is_tenant_wide` | boolean | no | `false` | true = offered on all products unless the pivot says otherwise |
 | `is_required` | boolean | no | `false` | e.g. compulsory transfer |
 | `counts_toward_capacity` | boolean | no | `false` | reserved for future (e.g. "extra crew seat"); always false in MVP |
+| `prices_all_pax` | boolean | no | `false` | **PRC-9's per-extra flag.** `per_person` multiplies by *counted* pax by default; true multiplies by *total* persons, for an item an infant also consumes — a lifejacket, a lunch, a towel. Added in #34; the rule was in the spec and the column was missing here |
 | `image_path` | varchar(255) | yes | null | |
 | `is_active` | boolean | no | `true` | |
 | `sort_order` | smallint unsigned | no | `0` | |

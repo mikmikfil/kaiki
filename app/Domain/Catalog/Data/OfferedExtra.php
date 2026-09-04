@@ -33,6 +33,7 @@ final class OfferedExtra extends Data
         public readonly ?int $priceCents,
         public readonly ?int $maxQty,
         public readonly bool $isRequired,
+        public readonly bool $pricesAllPax,
         public readonly ?int $vatRateId,
         public readonly int $sortOrder,
     ) {}
@@ -63,6 +64,10 @@ final class OfferedExtra extends Data
             // `??` and never `?:`: the override is tri-state, and `false` is a
             // real answer that must beat the extra's `true`.
             isRequired: $requiredOverride ?? $extra->is_required,
+            // PRC-9's per-extra flag. Not overridable per product: whether an
+            // infant consumes a lifejacket is a fact about the item, not about
+            // the trip it is sold on.
+            pricesAllPax: $extra->prices_all_pax,
             vatRateId: $extra->vat_rate_id,
             sortOrder: $sortOverride ?? $extra->sort_order,
         );
@@ -81,6 +86,18 @@ final class OfferedExtra extends Data
         }
 
         return $this->maxQty === null || $quantity <= $this->maxQty;
+    }
+
+    /**
+     * How many people this extra is priced against (PRC-9).
+     *
+     * **Counted** pax by default — the seats sold — and **total** persons when
+     * `prices_all_pax` is set, because an infant on a lap still eats the lunch
+     * and still wears the lifejacket.
+     */
+    public function paxFor(int $countedPax, int $totalPax): int
+    {
+        return $this->pricesAllPax ? $totalPax : $countedPax;
     }
 
     /**

@@ -208,4 +208,29 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Pricing
+    |--------------------------------------------------------------------------
+    */
+
+    'pricing' => [
+
+        /*
+         * How long a quoted price stands (spec PRC-15).
+         *
+         * A quote is a calculation with a shelf life, not a reservation: it
+         * holds no seat and blocks nothing. The window exists so a guest who
+         * left the checkout open over lunch is re-quoted rather than charged
+         * yesterday's season price, and so the widget can say when the figure
+         * it is showing stops being true.
+         *
+         * Twenty minutes matches the seat-hold window a booking will take in
+         * M2, so a guest who completes checkout inside the quote's life never
+         * sees the price move underneath them.
+         */
+        'quote_ttl_minutes' => 20,
+
+    ],
+
 ];

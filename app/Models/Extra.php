@@ -39,6 +39,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property bool $is_tenant_wide
  * @property bool $is_required
  * @property bool $counts_toward_capacity reserved; always false in MVP
+ * @property bool $prices_all_pax PRC-9: multiply by total persons rather than counted pax
  * @property bool $is_active
  * @property int $sort_order
  */
@@ -83,6 +84,7 @@ class Extra extends Model implements TranslatableSearchable
             'is_tenant_wide' => 'boolean',
             'is_required' => 'boolean',
             'counts_toward_capacity' => 'boolean',
+            'prices_all_pax' => 'boolean',
             'is_active' => 'boolean',
             'sort_order' => 'integer',
         ];

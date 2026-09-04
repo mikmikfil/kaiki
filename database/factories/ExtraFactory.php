@@ -29,6 +29,7 @@ class ExtraFactory extends Factory
             'max_qty' => null,
             'is_tenant_wide' => false,
             'is_required' => false,
+            'prices_all_pax' => false,
             'is_active' => true,
             'sort_order' => 0,
         ];
@@ -58,6 +59,12 @@ class ExtraFactory extends Factory
             'pricing_type' => ExtraPricing::OnRequest,
             'price_cents' => null,
         ]);
+    }
+
+    /** PRC-9: priced against every person aboard, infants included. */
+    public function pricesAllPax(): self
+    {
+        return $this->state(fn (): array => ['prices_all_pax' => true]);
     }
 
     public function requiredExtra(): self
