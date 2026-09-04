@@ -28,6 +28,7 @@ Each entry records the **verification actually run** and its **real output** —
 | Invoice-numbering **gap policy** (ADR-0022) | accountant | M6 |
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
+| ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | **Decided 2026-09-04.** Option A: a tenant-scoped `audit_logs` table, SEC-16's actions plus soft deletes, seven-year retention with the actor as a `user_id`, owner and manager only. Implementation is #53 |
 
 ---
 
