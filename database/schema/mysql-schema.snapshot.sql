@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:d001e6dfc9dee561bcfcc84f9c680d48d35d29ff54bcaa747f2ffef506c90576
+-- migrations-fingerprint: sha256:97e8bc58732627065d4dfa7189312b9a92f9ef37322c1add8e68f891f897a891
 
 DROP TABLE IF EXISTS `api_keys`;
 CREATE TABLE `api_keys` (
@@ -275,6 +275,22 @@ CREATE TABLE `users` (
   KEY `users_tenant_role_idx` (`tenant_id`,`is_super_admin`),
   CONSTRAINT `users_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `vat_rates`;
+CREATE TABLE `vat_rates` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `code` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `rate_bp` smallint unsigned NOT NULL,
+  `vat_category` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `description` json NOT NULL,
+  `valid_from` date NOT NULL,
+  `valid_to` date DEFAULT NULL,
+  `is_selectable` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `vat_rates_code_from_unique` (`code`,`valid_from`),
+  KEY `vat_rates_validity_idx` (`valid_from`,`valid_to`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `vessels`;
 CREATE TABLE `vessels` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -316,6 +332,7 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (3,'0001_01_01_0000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (4,'0001_01_01_000003_create_role_assignments_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (5,'0001_01_01_000004_create_api_keys_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (6,'0001_01_01_000005_create_tenant_domains_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (7,'2026_09_02_000009_create_brand_profiles_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (8,'2026_09_02_000010_create_ports_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (9,'2026_09_02_000011_create_vessels_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (7,'2026_09_02_000009_create_vat_rates_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (8,'2026_09_02_000010_create_brand_profiles_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (9,'2026_09_02_000011_create_ports_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (10,'2026_09_02_000012_create_vessels_table',1);
