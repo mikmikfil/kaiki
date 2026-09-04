@@ -8,6 +8,7 @@ use App\Domain\Availability\Support\Window;
 use App\Enums\DepartureStatus;
 use App\Models\Departure;
 use App\Models\Vessel;
+use App\Models\VesselBlock;
 use Illuminate\Support\Collection;
 
 /**
@@ -26,9 +27,10 @@ use Illuminate\Support\Collection;
  * each remembering to union three tables is four chances to forget one. The
  * forgotten table is always the one that was empty in development.
  *
- * **Today this class knows about one shape.** `vessel_blocks` arrives with #29
- * and per-vessel booking windows in M2; both land here rather than at a call
- * site, and every caller written against this port gains them for free.
+ * **Two of the three shapes are here now.** `departures` arrived with #28 and
+ * `vessel_blocks` with #29; per-vessel booking windows follow in M2, landing
+ * here rather than at a call site, so every caller written against this port
+ * gains them for free.
  *
  * ## What counts as an occupation
  *
@@ -87,7 +89,33 @@ final class VesselCalendar
      */
     public static function isFree(Vessel $vessel, Window $window, ?Departure $excluding = null): bool
     {
-        return self::occupationsFor($vessel, $window, $excluding)->isEmpty();
+        return self::occupationsFor($vessel, $window, $excluding)->isEmpty()
+            && self::blocksFor($vessel, $window)->isEmpty();
+    }
+
+    /**
+     * Blocks occupying `$vessel` during `$window` (AVL-3).
+     *
+     * **A block is always an occupation**, unlike an empty departure (AVL-10):
+     * a boat out of the water for maintenance is out of the water whether or
+     * not anyone wanted it. That asymmetry is the reason the two shapes are
+     * queried separately here rather than folded into one list of intervals.
+     *
+     * @return Collection<int, VesselBlock>
+     */
+    public static function blocksFor(Vessel $vessel, Window $window): Collection
+    {
+        $buffer = $vessel->effectiveTurnaroundBufferMinutes();
+
+        return VesselBlock::query()
+            ->forVessel($vessel->getKey())
+            // Narrowed on `vblocks_vessel_window_idx` by the padded window;
+            // the exact AVL-7 predicate then runs in PHP, because AVL-8 keeps
+            // the buffer out of the query.
+            ->overlapping($window->paddedBy($buffer))
+            ->get()
+            ->filter(static fn (VesselBlock $block): bool => $window->conflictsWith($block->window(), $buffer))
+            ->values();
     }
 
     /**

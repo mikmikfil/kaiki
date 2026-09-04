@@ -218,4 +218,62 @@ return [
         'crew_window' => 'You are seeing the departures of the next few days.',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Vessel blocks (AVL-3, AVL-4)
+    |--------------------------------------------------------------------------
+    */
+
+    'block' => [
+        'nav' => 'Vessel blocks',
+
+        'model' => [
+            'singular' => 'Block',
+            'plural' => 'Blocks',
+        ],
+
+        'sections' => [
+            'what' => 'Which boat, and why',
+            'when' => 'When',
+        ],
+
+        'form' => [
+            'vessel' => ['label' => 'Vessel'],
+            'reason' => [
+                'label' => 'Reason',
+                'help' => 'Blocks from a private charter or an external calendar create themselves.',
+            ],
+            'is_all_day' => [
+                'label' => 'All day',
+                'help' => 'Covers the chosen days in full.',
+            ],
+            'local_date' => ['label' => 'From date'],
+            'local_end_date' => [
+                'label' => 'To date',
+                'help' => 'Included. Empty means the same day.',
+            ],
+            'start_time' => ['label' => 'From time'],
+            'end_time' => ['label' => 'To time'],
+            'title' => ['label' => 'Title'],
+            'notes' => ['label' => 'Notes'],
+        ],
+
+        'table' => [
+            'vessel' => 'Vessel',
+            'local_date' => 'From',
+            'local_end_date' => 'To',
+            'reason' => 'Reason',
+            'title' => 'Title',
+            'all_day' => 'All day',
+        ],
+
+        'validation' => [
+            'inverted_window' => 'The end must be after the start.',
+            'dates_required' => 'Please give a date.',
+            'times_required' => 'Please give a start and end time, or choose "All day".',
+            'dst_nonexistent' => 'The clocks change that day and the time you chose does not exist. Please pick another.',
+            'sold_departures_blocked' => 'Careful: this block covers :count departures that already have bookings. Nothing was cancelled — the decision is yours.',
+        ],
+    ],
+
 ];
