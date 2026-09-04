@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Domain\Catalog\Actions\GuardVesselCapacity;
 use App\Http\Middleware\SetLocale;
 use App\Providers\Filament\PanelRenderHooks;
 use Illuminate\Support\ServiceProvider;
@@ -22,6 +23,22 @@ class AppServiceProvider extends ServiceProvider
         // middleware so it also exists for console commands and jobs, which
         // never pass through the HTTP stack.
         $this->app->singleton('kaiki.request_id', static fn (): string => (string) Str::uuid());
+
+        // Everything that can already have promised seats on a vessel, so
+        // GuardVesselCapacity can ask before `capacity_max` is lowered.
+        //
+        // **Deliberately empty today.** `products.max_pax` arrives with #18 and
+        // `departures.capacity` with #23; until those tables exist nothing can
+        // claim a seat and the guard correctly refuses nothing. Each of those
+        // issues adds one implementation of VesselCapacityClaims and one `tag()`
+        // line here — the Action, the message, its localisation and both
+        // enforcement points are already built and tested.
+        $this->app->tag([], GuardVesselCapacity::TAG);
+
+        $this->app->singleton(
+            GuardVesselCapacity::class,
+            static fn ($app): GuardVesselCapacity => new GuardVesselCapacity($app->tagged(GuardVesselCapacity::TAG)),
+        );
     }
 
     /**

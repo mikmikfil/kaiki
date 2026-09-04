@@ -75,6 +75,29 @@ return [
     | βλέπει αγγλικά και ψάχνει τα ελληνικά πρέπει να αναγνωρίσει τη λέξη
     | «Ελληνικά», όχι τη λέξη «Greek».
     */
+    'vessel_type' => [
+        'catamaran' => ['label' => 'Καταμαράν'],
+        'sailing_yacht' => ['label' => 'Ιστιοπλοϊκό'],
+        'motor' => ['label' => 'Μηχανοκίνητο'],
+        'rib' => ['label' => 'Φουσκωτό'],
+        'traditional_kaiki' => ['label' => 'Παραδοσιακό καΐκι'],
+    ],
+
+    'vessel_status' => [
+        'active' => ['label' => 'Ενεργό'],
+        'inactive' => ['label' => 'Ανενεργό'],
+        'maintenance' => ['label' => 'Σε συντήρηση'],
+    ],
+
+    'vessel_amenity' => [
+        'shade_canopy' => ['label' => 'Τέντα σκίασης'],
+        'sound_system' => ['label' => 'Ηχοσύστημα'],
+        'fridge' => ['label' => 'Ψυγείο'],
+        'snorkelling_gear' => ['label' => 'Εξοπλισμός κατάδυσης'],
+        'wc' => ['label' => 'Τουαλέτα'],
+        'sun_deck' => ['label' => 'Ηλιακό κατάστρωμα'],
+    ],
+
     'locale' => [
         'el' => ['label' => 'Ελληνικά', 'short' => 'ΕΛ'],
         'en' => ['label' => 'English', 'short' => 'EN'],

@@ -423,6 +423,8 @@ Exactly one per tenant.
 | `images` | json | no | `[]` | ordered array of `{path, alt: {el,en}}` |
 | `status` | varchar(16) | no | `active` | `active` \| `inactive` \| `maintenance` — PHP enum `VesselStatus` |
 | `sort_order` | smallint unsigned | no | `0` | |
+| `search_index` | text | yes | null | ADR-0008 companion — folded `name` **and** `description`, all locales, written by `SearchIndexObserver` |
+| `name_sort` | varchar(191) | yes | null | ADR-0008 companion — folded `name`. **One column, not per locale:** `name` is not translatable, so a per-locale pair would always hold identical bytes |
 | timestamps, `deleted_at` | | | | soft deletes |
 
 **Indexes**
@@ -432,8 +434,14 @@ Exactly one per tenant.
 | `vessels_uuid_unique` | `uuid` | |
 | `vessels_tenant_status_idx` | `tenant_id`, `status`, `sort_order` | vessel pickers, calendar timeline column order |
 | `vessels_tenant_home_port_idx` | `tenant_id`, `home_port_id` | port deletion guard |
+| `vessels_tenant_name_sort_idx` | `tenant_id`, `name_sort` | fleet list ordering, portably (§1.6) |
+| `vessels_tenant_name_unique` | `tenant_id`, `name` **unique** | **spec TEN-6**, which names `vessels.name` among the per-tenant uniques. Added in #16; this table previously omitted it. |
 
 **FKs** — `tenant_id` cascade; `home_port_id` → `ports.id` `nullOnDelete` (a deleted port must not delete boats).
+
+**On `vessels_tenant_name_unique` and soft deletes.** `deleted_at` is deliberately **not** part of the key. Adding it looks like it would free a retired boat's name for reuse; it does the opposite. `NULL` is distinct from `NULL` in a unique index on both MySQL and SQLite, so every *live* row — all of which have a null `deleted_at` — would stop colliding too and the constraint would enforce nothing at all. A soft-deleted vessel therefore keeps its name reserved, exactly as `products_tenant_slug_unique` reserves a soft-deleted product's slug. That is also the safer half of the trade: a soft-deleted vessel can be restored, and restoring one into a name collision is a worse failure than refusing the duplicate up front. Freeing the name is a force-delete, which is the owner's call. The same rule must be applied in the *application* layer by hand: Laravel's `unique` validation rule runs through the `DatabasePresenceVerifier`, which builds a raw query, so `BelongsToTenant`'s global scope does not apply and an unscoped rule would check every operator on the platform.
+
+**Why `name` gets a folded companion at all,** despite not being translatable: the divergence ADR-0008 exists to prevent is a property of *Greek text*, not of JSON. MySQL's `utf8mb4_unicode_ci` folds tonos when comparing and SQLite's `BINARY` folds nothing, so a plain `where name like '%οδυσσευσ%'` finds `Οδυσσεύς` in production and misses it locally — different rows on the two engines, which is exactly what CAT-6 forbids. `HasTranslatableSearch` therefore accepts `$foldedSearch` / `$foldedSort` lists for plain columns alongside the translatable ones.
 
 **Notes.** `capacity_max` is the legal ceiling and is validated against every product's `max_pax` and every departure's `capacity` at write time — the DB cannot express it. Lowering `capacity_max` below a live departure's `capacity` is blocked by the application with a list of offending departures. `turnaround_buffer_minutes` is deliberately nullable-with-inheritance rather than defaulted per vessel, so changing the tenant default actually changes behaviour.
 
@@ -457,9 +465,13 @@ Serves both "meeting point" (products) and "home port" (vessels). One table, bec
 | `maps_url` | varchar(255) | yes | null | operator-supplied override for the "open in maps" link |
 | `is_active` | boolean | no | `true` | |
 | `sort_order` | smallint unsigned | no | `0` | |
+| `search_index` | text | yes | null | ADR-0008 companion — folded `name` **and** `instructions`, all locales |
+| `name_sort_{locale}` | varchar(191) | yes | null | ADR-0008 companion, one per installed locale (`name_sort_el`, `name_sort_en`). Per locale, because ordering *is* a per-language question. |
 | timestamps, `deleted_at` | | | | soft deletes |
 
-**Indexes** — `ports_uuid_unique`; `ports_tenant_active_idx` (`tenant_id`, `is_active`, `sort_order`).
+**Indexes** — `ports_uuid_unique`; `ports_tenant_active_idx` (`tenant_id`, `is_active`, `sort_order`); `ports_tenant_name_sort_el_idx` and `ports_tenant_name_sort_en_idx` (`tenant_id`, `name_sort_{locale}`).
+
+`search_index` is **not** indexed on either table, deliberately: MySQL 8 refuses an index on `TEXT` without a key length, SQLite has no prefix index, and `LIKE '%term%'` cannot use a B-tree either way. The argument is recorded in full on #15.
 
 **FKs** — `tenant_id` cascade.
 

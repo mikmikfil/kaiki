@@ -77,6 +77,40 @@ interface TranslatableSearchable
     public function missingTranslationLocales(string $attribute): array;
 
     /**
+     * **Plain** (non-translatable) attributes that feed the `search_index`
+     * column.
+     *
+     * A searchable model is usually a translatable one, but not entirely:
+     * `vessels.name` is a proper noun and deliberately not translatable
+     * (`docs/data-model.md` §1.6), while still being the first thing an
+     * operator types into the search box. Folding it into the same haystack
+     * means one search finds a boat by its name or by its description without
+     * the resource knowing which of the two is JSON.
+     *
+     * @return list<string>
+     */
+    public function foldedSearchAttributes(): array;
+
+    /**
+     * **Plain** attributes that need a folded ordering column.
+     *
+     * @return list<string>
+     */
+    public function foldedSortAttributes(): array;
+
+    /**
+     * The values of {@see self::foldedSearchAttributes()}, as strings.
+     *
+     * @return list<string>
+     */
+    public function foldedSearchValues(): array;
+
+    /**
+     * The ordering key for one plain attribute.
+     */
+    public function foldedSortValue(string $attribute): string;
+
+    /**
      * From `spatie/laravel-translatable`.
      *
      * @param  list<string>|null  $allowedLocales

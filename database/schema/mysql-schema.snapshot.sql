@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:77a712478d3c4279612544ec140be26eec9882ab7139dc3fc9600b44cd2c1d8d
+-- migrations-fingerprint: sha256:4fe3192c2f44fcf470714f9963863d6ffd66b089d91707745c85bd42d9ec898e
 
 DROP TABLE IF EXISTS `api_keys`;
 CREATE TABLE `api_keys` (
@@ -101,6 +101,33 @@ CREATE TABLE `password_reset_tokens` (
   `token` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `ports`;
+CREATE TABLE `ports` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tenant_id` bigint unsigned NOT NULL,
+  `name` json NOT NULL,
+  `address` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `lat` decimal(10,7) DEFAULT NULL,
+  `lng` decimal(10,7) DEFAULT NULL,
+  `instructions` json DEFAULT NULL,
+  `photo_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `maps_url` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `sort_order` smallint unsigned NOT NULL DEFAULT '0',
+  `search_index` text COLLATE utf8mb4_unicode_ci,
+  `name_sort_el` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `name_sort_en` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `ports_uuid_unique` (`uuid`),
+  KEY `ports_tenant_active_idx` (`tenant_id`,`is_active`,`sort_order`),
+  KEY `ports_tenant_name_sort_el_idx` (`tenant_id`,`name_sort_el`),
+  KEY `ports_tenant_name_sort_en_idx` (`tenant_id`,`name_sort_en`),
+  CONSTRAINT `ports_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `role_assignments`;
 CREATE TABLE `role_assignments` (
@@ -221,6 +248,40 @@ CREATE TABLE `users` (
   KEY `users_tenant_role_idx` (`tenant_id`,`is_super_admin`),
   CONSTRAINT `users_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `vessels`;
+CREATE TABLE `vessels` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tenant_id` bigint unsigned NOT NULL,
+  `name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `registration_number` varchar(40) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `length_cm` smallint unsigned DEFAULT NULL,
+  `capacity_max` smallint unsigned NOT NULL,
+  `crew_count` tinyint unsigned NOT NULL DEFAULT '1',
+  `captain_name` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `home_port_id` bigint unsigned DEFAULT NULL,
+  `turnaround_buffer_minutes` smallint unsigned DEFAULT NULL,
+  `description` json DEFAULT NULL,
+  `specs` json NOT NULL,
+  `images` json NOT NULL,
+  `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'active',
+  `sort_order` smallint unsigned NOT NULL DEFAULT '0',
+  `search_index` text COLLATE utf8mb4_unicode_ci,
+  `name_sort` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `vessels_tenant_name_unique` (`tenant_id`,`name`),
+  UNIQUE KEY `vessels_uuid_unique` (`uuid`),
+  KEY `vessels_home_port_id_foreign` (`home_port_id`),
+  KEY `vessels_tenant_status_idx` (`tenant_id`,`status`,`sort_order`),
+  KEY `vessels_tenant_home_port_idx` (`tenant_id`,`home_port_id`),
+  KEY `vessels_tenant_name_sort_idx` (`tenant_id`,`name_sort`),
+  CONSTRAINT `vessels_home_port_id_foreign` FOREIGN KEY (`home_port_id`) REFERENCES `ports` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `vessels_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (1,'0001_01_01_000000_create_users_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (2,'0001_01_01_000001_create_cache_table',1);
@@ -228,3 +289,5 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (3,'0001_01_01_0000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (4,'0001_01_01_000003_create_role_assignments_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (5,'0001_01_01_000004_create_api_keys_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (6,'0001_01_01_000005_create_tenant_domains_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (7,'2026_09_02_000010_create_ports_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (8,'2026_09_02_000011_create_vessels_table',1);

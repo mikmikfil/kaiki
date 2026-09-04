@@ -46,6 +46,26 @@ final class TranslationColumns
     }
 
     /**
+     * The ordering key for a **plain** (non-translatable) column.
+     *
+     * One column, not one per locale, because the value it folds has one form:
+     * `vessels.name` is a proper noun (`docs/data-model.md` §1.6) and reads the
+     * same in Greek and in English. Giving it `name_sort_el` and `name_sort_en`
+     * would be two columns that are always byte-identical.
+     *
+     * It exists at all because a plain `orderBy`/`LIKE` on the raw column is
+     * not portable: MySQL's `utf8mb4_unicode_ci` folds Greek tonos and SQLite's
+     * `BINARY` folds nothing, so searching `οδυσσευς` finds `Οδυσσεύς` in
+     * production and misses it locally. That is the same divergence ADR-0008
+     * built the translatable companions for, and it does not care whether the
+     * column happens to be JSON.
+     */
+    public static function foldedSort(string $attribute): string
+    {
+        return "{$attribute}_sort";
+    }
+
+    /**
      * Every sort column a model needs, for a migration to create.
      *
      * @param  list<string>  $attributes

@@ -86,6 +86,29 @@ return [
         'webhooks.receive' => ['label' => 'Receive webhooks'],
     ],
 
+    'vessel_type' => [
+        'catamaran' => ['label' => 'Catamaran'],
+        'sailing_yacht' => ['label' => 'Sailing yacht'],
+        'motor' => ['label' => 'Motor boat'],
+        'rib' => ['label' => 'RIB'],
+        'traditional_kaiki' => ['label' => 'Traditional kaiki'],
+    ],
+
+    'vessel_status' => [
+        'active' => ['label' => 'Active'],
+        'inactive' => ['label' => 'Inactive'],
+        'maintenance' => ['label' => 'In maintenance'],
+    ],
+
+    'vessel_amenity' => [
+        'shade_canopy' => ['label' => 'Shade canopy'],
+        'sound_system' => ['label' => 'Sound system'],
+        'fridge' => ['label' => 'Fridge'],
+        'snorkelling_gear' => ['label' => 'Snorkelling gear'],
+        'wc' => ['label' => 'WC'],
+        'sun_deck' => ['label' => 'Sun deck'],
+    ],
+
     'locale' => [
         'el' => ['label' => 'Ελληνικά', 'short' => 'ΕΛ'],
         'en' => ['label' => 'English', 'short' => 'EN'],
