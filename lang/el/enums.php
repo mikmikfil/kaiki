@@ -176,6 +176,13 @@ return [
         'vessel_booked_privately' => ['label' => 'Ιδιωτική ναύλωση'],
     ],
 
+    'block_reason' => [
+        'private_booking' => ['label' => 'Ιδιωτική ναύλωση'],
+        'maintenance' => ['label' => 'Συντήρηση'],
+        'external_ical' => ['label' => 'Εξωτερικό ημερολόγιο'],
+        'manual' => ['label' => 'Χειροκίνητη'],
+    ],
+
     'locale' => [
         'el' => ['label' => 'Ελληνικά', 'short' => 'ΕΛ'],
         'en' => ['label' => 'English', 'short' => 'EN'],

@@ -187,6 +187,13 @@ return [
         'vessel_booked_privately' => ['label' => 'Private charter'],
     ],
 
+    'block_reason' => [
+        'private_booking' => ['label' => 'Private charter'],
+        'maintenance' => ['label' => 'Maintenance'],
+        'external_ical' => ['label' => 'External calendar'],
+        'manual' => ['label' => 'Manual'],
+    ],
+
     'locale' => [
         'el' => ['label' => 'Ελληνικά', 'short' => 'ΕΛ'],
         'en' => ['label' => 'English', 'short' => 'EN'],
