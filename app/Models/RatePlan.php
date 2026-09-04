@@ -8,7 +8,9 @@ use App\Domain\Pricing\Actions\SaveRatePlan;
 use App\Domain\Pricing\Support\RefundCalculator;
 use App\Enums\DepositType;
 use App\Models\Concerns\BelongsToTenant;
+use App\Observers\RatePlanObserver;
 use Database\Factories\RatePlanFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -42,6 +44,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int|null $min_pax_override
  * @property bool $is_active
  */
+#[ObservedBy(RatePlanObserver::class)]
 class RatePlan extends Model
 {
     use BelongsToTenant;

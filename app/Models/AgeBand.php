@@ -9,7 +9,9 @@ use App\Enums\AgeBandPricing;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasKaikiTranslations;
 use App\Models\Concerns\HasUuid;
+use App\Observers\AgeBandObserver;
 use Database\Factories\AgeBandFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -52,6 +54,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property bool $requires_adult
  * @property int $sort_order
  */
+#[ObservedBy(AgeBandObserver::class)]
 class AgeBand extends Model
 {
     use BelongsToTenant;

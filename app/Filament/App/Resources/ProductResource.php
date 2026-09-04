@@ -16,6 +16,7 @@ use App\Models\Port;
 use App\Models\Product;
 use App\Models\VatRate;
 use App\Models\Vessel;
+use App\Support\Format\MoneyFormatter;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -445,6 +446,20 @@ class ProductResource extends Resource
 
                 TextColumn::make('max_pax')
                     ->label(__('catalog.product.table.max_pax')),
+
+                // Derived (§1.9), so the list does not fan out across seasons,
+                // plans and bands for every card. **Null renders as nothing**,
+                // never as a zero: a `quote` product has no price by design and
+                // a product with no resolvable plan is not sellable (PRC-5) —
+                // "€0.00" on either is a free trip on a public page.
+                TextColumn::make('price_from_cents')
+                    ->label(__('catalog.product.table.price_from'))
+                    ->formatStateUsing(static fn (?int $state): string => $state === null
+                        ? ''
+                        : __('catalog.product.table.price_from_value', [
+                            'price' => MoneyFormatter::format($state),
+                        ]))
+                    ->alignEnd(),
 
                 IconColumn::make('is_featured')
                     ->label(__('catalog.product.table.featured'))
