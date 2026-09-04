@@ -1909,11 +1909,13 @@ Free-form but validated against a known key list, so the product page renders a 
   "cruising_speed_kn": 9,
   "cabins": 2,
   "wc": 1,
-  "amenities": ["shade_canopy", "sound_system", "fridge", "snorkelling_gear", "wc", "sun_deck"]
+  "amenities": ["shade_canopy", "sun_deck", "wc", "swim_ladder", "freshwater_shower", "fridge", "drinking_water", "sound_system"]
 }
 ```
 
-Unknown keys are preserved but not rendered. `amenities` values come from a fixed list with EL/EN labels in lang files, so the widget can show icons.
+Unknown keys are preserved but not rendered. `amenities` values come from a fixed list — the `App\Enums\VesselAmenity` enum — with EL/EN labels in lang files, so the widget can show icons. Free text here would mean the widget could not map a value to an icon, and "WC" / "wc" / "Τουαλέτα" would be three amenities.
+
+The enum is the list, not the sample above; it is grouped as deck comfort, water and swimming, food and drink, power and connectivity, and who the boat suits. Adding a case is two lang lines and an amendment here — it is deliberately cheap, because an operator who cannot tick the thing that makes their boat worth choosing writes it into the description instead, where nothing can filter or icon it. **Life jackets are absent on purpose:** they are compulsory on every vessel, so listing them advertises the law rather than the boat. Children's jackets are not guaranteed and parents ask specifically, so that case exists.
 
 ### 3.10 `brand_profiles.social_links`
 

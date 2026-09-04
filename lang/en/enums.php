@@ -101,12 +101,37 @@ return [
     ],
 
     'vessel_amenity' => [
+        // Comfort on deck.
         'shade_canopy' => ['label' => 'Shade canopy'],
-        'sound_system' => ['label' => 'Sound system'],
-        'fridge' => ['label' => 'Fridge'],
-        'snorkelling_gear' => ['label' => 'Snorkelling gear'],
-        'wc' => ['label' => 'WC'],
         'sun_deck' => ['label' => 'Sun deck'],
+        'air_conditioning' => ['label' => 'Air conditioning'],
+        'cabin' => ['label' => 'Cabin'],
+        'wc' => ['label' => 'Toilet'],
+
+        // Water and swimming.
+        'swim_ladder' => ['label' => 'Swim ladder'],
+        'freshwater_shower' => ['label' => 'Freshwater shower'],
+        'snorkelling_gear' => ['label' => 'Snorkelling gear'],
+        'paddleboard' => ['label' => 'Paddleboard'],
+        'fishing_gear' => ['label' => 'Fishing gear'],
+        'beach_towels' => ['label' => 'Beach towels'],
+
+        // Food and drink.
+        'fridge' => ['label' => 'Fridge'],
+        'drinking_water' => ['label' => 'Drinking water'],
+        'galley' => ['label' => 'Galley'],
+        'barbecue' => ['label' => 'Barbecue'],
+        'coffee_machine' => ['label' => 'Coffee machine'],
+
+        // Power and connectivity.
+        'sound_system' => ['label' => 'Sound system'],
+        'usb_charging' => ['label' => 'USB charging'],
+        'wifi' => ['label' => 'Wi-Fi'],
+
+        // Who the boat suits.
+        'child_life_jackets' => ['label' => "Children's life jackets"],
+        'wheelchair_accessible' => ['label' => 'Wheelchair accessible'],
+        'pet_friendly' => ['label' => 'Pets welcome'],
     ],
 
     'locale' => [
