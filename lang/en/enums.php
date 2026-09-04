@@ -103,6 +103,12 @@ return [
         'quote' => ['label' => 'On request'],
     ],
 
+    'deposit_type' => [
+        'none' => ['label' => 'The full amount'],
+        'percent' => ['label' => 'A share of the total'],
+        'fixed' => ['label' => 'A flat amount'],
+    ],
+
     'product_category' => [
         'shared_full_day' => ['label' => 'Shared full day'],
         'shared_half_day' => ['label' => 'Shared half day'],

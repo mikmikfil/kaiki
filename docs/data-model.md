@@ -2362,7 +2362,7 @@ Rules that produce this order:
 
 ### M1 — Catalog & availability engine
 
-9. `vat_rates` — **no FKs at all**, and **platform-owned** (no `tenant_id`). It is first in M1 because `products` (17) and `extras` (21) both hold an FK to it, and the rule above forbids adding one later. Added in #47; entries 10–27 were renumbered and the three already-committed migration files renamed to match, so the numeric suffix keeps meaning the item number here.
+9. `vat_rates` — **no FKs at all**, and **platform-owned** (no `tenant_id`). It is first in M1 because `products` (17) and `extras` (21) both hold an FK to it, and the rule above forbids adding one later. Added in #47; entries 10–27 were renumbered and the three already-committed migration files renamed to match, so the numeric suffix keeps meaning the item number here. #22 then shipped `extras` and `product_extra` as 19 and 20; #21 renamed all four files so that `rate_plans` and `rate_plan_prices` take 19 and 20 and the extras pair takes 21 and 22, as listed. Nothing depends on the relative order of those two pairs — neither holds an FK to the other — so the rename is bookkeeping, but the suffix is only useful while it is true.
 10. `brand_profiles` (FK → `tenants`)
 11. `ports` (FK → `tenants`)
 12. `vessels` (FK → `tenants`, `ports`)
