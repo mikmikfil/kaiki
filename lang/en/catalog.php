@@ -218,4 +218,25 @@ return [
         ],
     ],
 
+    'age_band' => [
+        'nav' => 'Age bands',
+
+        'model' => [
+            'singular' => 'Age band',
+            'plural' => 'Age bands',
+        ],
+
+        'validation' => [
+            'empty' => 'Every trip needs at least one age band — otherwise there is nothing to say who may board or what they pay.',
+            'overlap' => '“:first” and “:second” cover the same ages. Every age must belong to exactly one band.',
+            'no_base' => 'One band has to be the base — usually the adult. Every other price is worked out as a share of it.',
+            'many_base' => 'Only one band can be the base. These are marked: :bands.',
+            'none_counted' => 'At least one band must take up a seat. Otherwise the trip would accept unlimited passengers on a boat with a limit.',
+            'multiplier_required' => '“:band” is priced as a share of the base band, so it needs a percentage. For a price of its own, change how it is priced.',
+            'pricing_mode' => 'The pricing mode for “:band” is not recognised.',
+            'label_locale' => '“:band” needs a name in “:locale” too — this is the list a guest chooses from.',
+            'duplicate_code' => 'A code appears twice: :codes. Each band needs its own.',
+        ],
+    ],
+
 ];

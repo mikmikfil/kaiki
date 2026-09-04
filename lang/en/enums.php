@@ -86,6 +86,11 @@ return [
         'webhooks.receive' => ['label' => 'Receive webhooks'],
     ],
 
+    'age_band_pricing' => [
+        'multiplier' => ['label' => 'Share of the base price'],
+        'fixed' => ['label' => 'Its own price'],
+    ],
+
     'booking_mode' => [
         'per_seat' => ['label' => 'Per seat'],
         'per_vessel' => ['label' => 'Whole boat'],

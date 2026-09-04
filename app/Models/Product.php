@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -166,6 +167,20 @@ class Product extends Model implements TranslatableSearchable
     public function cancellationPolicy(): BelongsTo
     {
         return $this->belongsTo(CancellationPolicy::class);
+    }
+
+    /**
+     * The passenger categories this product is sold in (CAT-7).
+     *
+     * Ordered by the operator's own sequence rather than by age: an operator
+     * who puts "Adult" first means it to be first in the booking form, and
+     * sorting by `min_age` would silently promote the infant band.
+     *
+     * @return HasMany<AgeBand, $this>
+     */
+    public function ageBands(): HasMany
+    {
+        return $this->hasMany(AgeBand::class)->orderBy('sort_order');
     }
 
     /** @return BelongsTo<VatRate, $this> */
