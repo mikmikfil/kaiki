@@ -124,6 +124,20 @@ return [
     'branding' => [
 
         /*
+         * How long `GET /api/v1/branding` may be cached, in seconds.
+         *
+         * Sixty, from `docs/api.md` §3.6 — the contract is the authority
+         * (§10.5), and it says 60 where issue #35 said 300. It is both the
+         * server-side cache TTL and the `Cache-Control: max-age`, deliberately:
+         * two numbers would mean a CDN serving something the origin had already
+         * forgotten.
+         *
+         * BRD-8 is what it buys — an operator changes a colour and the widget
+         * picks it up within a minute, with no rebuild.
+         */
+        'cache_ttl_seconds' => 60,
+
+        /*
          * The platform defaults a BrandProfile is created with, so that no
          * surface ever renders unbranded (spec BRD-3). These values are also
          * the column defaults in the `brand_profiles` migration — the column
