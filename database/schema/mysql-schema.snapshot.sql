@@ -6,8 +6,35 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:8ab50b26cdd4e8f93df01d36b3ce0e0cd7362acf05a3e835b467639b1ac2bd5f
+-- migrations-fingerprint: sha256:eac0f8c8c111ca6b9c4a2bc6d9e803b632d6420bfed0301b5af126ee74117d3e
 
+DROP TABLE IF EXISTS `age_bands`;
+CREATE TABLE `age_bands` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tenant_id` bigint unsigned NOT NULL,
+  `product_id` bigint unsigned NOT NULL,
+  `code` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `label` json NOT NULL,
+  `min_age` tinyint unsigned NOT NULL DEFAULT '0',
+  `max_age` tinyint unsigned DEFAULT NULL,
+  `counts_toward_capacity` tinyint(1) NOT NULL DEFAULT '1',
+  `pricing_mode` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'multiplier',
+  `price_multiplier_bp` smallint unsigned DEFAULT NULL,
+  `is_base` tinyint(1) NOT NULL DEFAULT '0',
+  `requires_adult` tinyint(1) NOT NULL DEFAULT '0',
+  `sort_order` smallint unsigned NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `age_bands_tenant_product_code_uq` (`tenant_id`,`product_id`,`code`),
+  UNIQUE KEY `age_bands_uuid_unique` (`uuid`),
+  KEY `age_bands_product_id_foreign` (`product_id`),
+  KEY `age_bands_tenant_product_sort_idx` (`tenant_id`,`product_id`,`sort_order`),
+  CONSTRAINT `age_bands_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `age_bands_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `api_keys`;
 CREATE TABLE `api_keys` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -443,3 +470,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (10,'2026_09_02_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (11,'2026_09_02_000013_create_cancellation_policies_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (12,'2026_09_02_000014_create_cancellation_policy_tiers_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (13,'2026_09_02_000015_create_products_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (14,'2026_09_02_000016_create_age_bands_table',1);
