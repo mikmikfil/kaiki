@@ -140,4 +140,82 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Departures (AVL-11, AVL-12, AVL-52)
+    |--------------------------------------------------------------------------
+    |
+    | Two empty departures may overlap on one boat — an operator schedules two
+    | trips at the same hour and lets the bookings decide. So we warn; we do not
+    | block.
+    |
+    */
+
+    'departure' => [
+        'nav' => 'Departures',
+
+        'model' => [
+            'singular' => 'Departure',
+            'plural' => 'Departures',
+        ],
+
+        'sections' => [
+            'what' => 'Which trip, and when',
+            'seats' => 'Seats',
+            'notes' => 'Notes',
+        ],
+
+        'form' => [
+            'product' => [
+                'label' => 'Trip',
+                'help' => 'Only trips sold per seat have departures.',
+            ],
+            'local_date' => ['label' => 'Date'],
+            'local_time' => [
+                'label' => 'Departure time',
+                'help' => 'Local time.',
+            ],
+            'capacity' => [
+                'label' => 'Seats',
+                'help' => "Empty means whatever the trip says. Never above the vessel's certificate.",
+            ],
+            'notes' => [
+                'label' => 'Notes',
+                'help' => 'For you only. Guests never see these.',
+            ],
+            'confirm_conflict' => [
+                'label' => 'I know — create it anyway',
+                'help' => 'Another departure uses the same boat around that time. That is allowed — as soon as the first seat sells on either, the other stops being sellable.',
+            ],
+        ],
+
+        'table' => [
+            'product' => 'Trip',
+            'local_date' => 'Date',
+            'local_time' => 'Time',
+            'vessel' => 'Vessel',
+            'capacity' => 'Seats',
+            'seats_sold' => 'Sold',
+            'seats_held' => 'In checkout',
+            'status' => 'Status',
+            'source' => 'Source',
+            'manual' => 'Manual',
+            'generated' => 'From a schedule',
+            'dst_ambiguous' => 'Clocks change',
+        ],
+
+        'validation' => [
+            'not_per_seat' => 'Departures only apply to trips sold per seat. This one is ":mode" and is booked as a whole boat.',
+            'no_vessel' => 'This trip has no vessel, so a departure cannot be created for it.',
+            'dst_nonexistent' => 'The time :time does not exist on :date because the clocks change. Choose another time.',
+            'conflict' => 'There are :count departures on the same boat around this time (for example at :first). That is allowed, but please confirm.',
+            'same_product_overlap' => 'This trip already departs at :date :time on the same boat. The same trip cannot depart twice at once.',
+            'sold_time_locked' => 'This departure has :sold bookings, so its date and time cannot move. Cancel it and create a new one if you need to.',
+            'capacity_below_sold' => ':sold seats are already sold. The seat count cannot go below that.',
+            'product_immutable' => "A departure's trip cannot be changed.",
+        ],
+
+        'crew_window' => 'You are seeing the departures of the next few days.',
+    ],
+
 ];
