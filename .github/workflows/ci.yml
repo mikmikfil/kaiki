@@ -398,11 +398,49 @@ jobs:
       # same reason as widget-build.
       - run: npm run plugin:lint
 
+  availability-timezone:
+    name: Availability under a third machine timezone
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+
+      - name: Migrate from zero on SQLite
+        run: php artisan migrate --force
+        env:
+          DB_CONNECTION: sqlite
+
+      # ENV-14. The availability engine converts between a tenant timezone and
+      # UTC constantly, and the machine's own zone must never enter the answer.
+      # Running here under a *third* zone is what makes that testable: UTC would
+      # hide an unconverted value and Europe/Athens would hide an unconverted
+      # tenant. America/Los_Angeles is neither, is on the other side of the date
+      # line from Athens for part of the day, and has its own transitions on
+      # different dates.
+      - name: Pest, availability group under America/Los_Angeles
+        run: php vendor/bin/pest --group=fast --filter='Availability'
+        env:
+          TZ: America/Los_Angeles
+          APP_TIMEZONE: America/Los_Angeles
+
   ci-passed:
     name: CI passed
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, i18n, api-docs-drift, static-analysis, test-sqlite, test-mysql, tenancy-isolation, coverage, security-audit, migrate-from-zero, widget-build, widget-e2e, plugin-lint]
+    needs: [lint, i18n, api-docs-drift, static-analysis, test-sqlite, test-mysql, availability-timezone, tenancy-isolation, coverage, security-audit, migrate-from-zero, widget-build, widget-e2e, plugin-lint]
     steps:
       # A single check to make required in branch protection. Without this,
       # adding a job later means remembering to mark it required by hand.

@@ -30,6 +30,7 @@ Also enable **Require branches to be up to date before merging**. Without it, tw
 | `static-analysis` | PHPStan level 6 with Larastan found something (TST-10). |
 | `test-sqlite` | Pest against the SQLite stack developers actually run on. |
 | `test-mysql` | Pest against MySQL 8 and Redis, plus the `mysql` group — which must execute for real, not skip (ENV-11, TST-8). |
+| `availability-timezone` | The availability group under a **third** machine timezone (ENV-14). UTC would hide an unconverted value and Europe/Athens would hide an unconverted tenant, so the runner is set to `America/Los_Angeles` — neither, and with its own transitions on different dates. |
 | `tenancy-isolation` | A cross-tenant leak. The condition ADR-0001 was accepted on. |
 | `coverage` | `app/Domain` coverage fell below 80% (TST-1). |
 | `security-audit` | A high or critical advisory in Composer or npm dependencies (SEC-12). |
@@ -42,7 +43,7 @@ Also enable **Require branches to be up to date before merging**. Without it, tw
 
 `widget-build`, `widget-e2e` and `plugin-lint` run stubs until M3 and M4. They exist now so those milestones replace a `package.json` script rather than invent a pipeline.
 
-The **branch-protection** list never has to change again — it is one entry, `CI passed`. The job list behind it will still grow, and three are known to be owed: the ENV-14 job running the availability group under a non-UTC machine timezone, the ENV-28 Scramble docs-drift check (issue #11), and the M3 replacement of the Playwright stub with a real run. Each becomes required the moment it joins `ci-passed`'s `needs:`, with nothing to configure.
+The **branch-protection** list never has to change again — it is one entry, `CI passed`. The job list behind it will still grow, and two are known to be owed: the ENV-28 Scramble docs-drift check (issue #11) and the M3 replacement of the Playwright stub with a real run. Each becomes required the moment it joins `ci-passed`'s `needs:`, with nothing to configure. The third, ENV-14's alternate-timezone run, arrived with #32.
 
 ---
 
