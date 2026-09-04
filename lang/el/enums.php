@@ -75,6 +75,28 @@ return [
     | βλέπει αγγλικά και ψάχνει τα ελληνικά πρέπει να αναγνωρίσει τη λέξη
     | «Ελληνικά», όχι τη λέξη «Greek».
     */
+    'booking_mode' => [
+        'per_seat' => ['label' => 'Ανά θέση'],
+        'per_vessel' => ['label' => 'Ολόκληρο το σκάφος'],
+        'quote' => ['label' => 'Κατόπιν προσφοράς'],
+    ],
+
+    'product_category' => [
+        'shared_full_day' => ['label' => 'Ημερήσια κοινή εκδρομή'],
+        'shared_half_day' => ['label' => 'Ημιήμερη κοινή εκδρομή'],
+        'private_full_day' => ['label' => 'Ημερήσια ιδιωτική ναύλωση'],
+        'private_half_day' => ['label' => 'Ημιήμερη ιδιωτική ναύλωση'],
+        'sunset' => ['label' => 'Ηλιοβασίλεμα'],
+        'custom' => ['label' => 'Άλλο'],
+    ],
+
+    'product_status' => [
+        'draft' => ['label' => 'Πρόχειρη'],
+        'active' => ['label' => 'Σε πώληση'],
+        'inactive' => ['label' => 'Εκτός πώλησης'],
+        'archived' => ['label' => 'Αρχειοθετημένη'],
+    ],
+
     'vessel_type' => [
         'catamaran' => ['label' => 'Καταμαράν'],
         'sailing_yacht' => ['label' => 'Ιστιοπλοϊκό'],
