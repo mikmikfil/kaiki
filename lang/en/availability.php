@@ -103,4 +103,41 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Schedule reconciliation (ADR-0009, ADR-0016)
+    |--------------------------------------------------------------------------
+    |
+    | Generation only adds. It never cancels, and never lowers the seats on a
+    | departure that has bookings. So the operator decides, and this is where
+    | they see what is outstanding.
+    |
+    */
+
+    'reconciliation' => [
+        'nav' => 'Needs attention',
+        'title' => 'Schedules needing attention',
+        'intro' => 'These departures no longer agree with their schedule. Nothing is changed automatically — the decision is yours.',
+        'empty' => 'Every schedule agrees with its departures.',
+
+        'table' => [
+            'product' => 'Trip',
+            'local_date' => 'Date',
+            'kind' => 'What happened',
+            'detail' => 'Detail',
+        ],
+
+        'kinds' => [
+            'dst_skipped' => 'That time does not exist',
+            'orphaned' => 'No longer scheduled',
+            'capacity_drift' => 'Different seat count',
+        ],
+
+        'explanations' => [
+            'dst_skipped' => 'The clocks change that day and this time does not exist. No departure was created. Add one manually at a real time if you want it.',
+            'orphaned' => 'The schedule changed and no longer covers this day. The departure is still standing and still sellable — cancel it if you do not want it.',
+            'capacity_drift' => 'The schedule seat count changed, but this departure already has bookings and was left alone.',
+        ],
+    ],
+
 ];

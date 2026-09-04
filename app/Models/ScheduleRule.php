@@ -7,7 +7,9 @@ namespace App\Models;
 use App\Domain\Availability\Support\ScheduleRuleCapacityResolver;
 use App\Domain\Availability\Support\WeekdayMask;
 use App\Models\Concerns\BelongsToTenant;
+use App\Observers\ScheduleRuleObserver;
 use Database\Factories\ScheduleRuleFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -35,6 +37,7 @@ use Illuminate\Support\Carbon;
  * @property bool $is_active
  * @property Carbon|null $last_generated_on
  */
+#[ObservedBy(ScheduleRuleObserver::class)]
 class ScheduleRule extends Model
 {
     use BelongsToTenant;
