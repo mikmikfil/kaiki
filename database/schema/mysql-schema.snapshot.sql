@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:e9761f514f303ffa8a572211c92e6047d79cb00cc7fff96b8ea4f37035243e2e
+-- migrations-fingerprint: sha256:4cd166965d38c8e5938593d9065103bec9439e16ffec15cb0d18896b4c0f0239
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -157,6 +157,7 @@ CREATE TABLE `extras` (
   `is_tenant_wide` tinyint(1) NOT NULL DEFAULT '0',
   `is_required` tinyint(1) NOT NULL DEFAULT '0',
   `counts_toward_capacity` tinyint(1) NOT NULL DEFAULT '0',
+  `prices_all_pax` tinyint(1) NOT NULL DEFAULT '0',
   `image_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `sort_order` smallint unsigned NOT NULL DEFAULT '0',
