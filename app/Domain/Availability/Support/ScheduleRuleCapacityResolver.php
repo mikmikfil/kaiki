@@ -45,18 +45,18 @@ final class ScheduleRuleCapacityResolver
         return $rule->vessel_id ?? $rule->product->vessel_id;
     }
 
-    /** The legal ceiling, or null when no vessel is attached yet. */
+    /**
+     * The legal ceiling, or null when no vessel is attached yet.
+     *
+     * Read through the **relations**, never an ad-hoc `find()`. Eloquent caches
+     * a loaded relation and does not cache a query, and this method is called
+     * once per generated departure — four hundred of them for a daily rule over
+     * the horizon. A `find()` here was exactly that N+1, and it looked like
+     * nothing.
+     */
     public static function vesselCeiling(ScheduleRule $rule): ?int
     {
-        $vesselId = self::vesselId($rule);
-
-        if ($vesselId === null) {
-            return null;
-        }
-
-        $vessel = $rule->vessel_id !== null && $rule->relationLoaded('vessel')
-            ? $rule->vessel
-            : Vessel::query()->find($vesselId);
+        $vessel = $rule->vessel_id !== null ? $rule->vessel : $rule->product->vessel;
 
         return $vessel?->capacity_max;
     }

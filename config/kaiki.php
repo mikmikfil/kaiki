@@ -253,4 +253,32 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Departure generation (ADR-0009)
+    |--------------------------------------------------------------------------
+    */
+
+    'departures' => [
+
+        /*
+         * The rolling horizon, in days (ADR-0009 Option A).
+         *
+         * 400 covers a full season plus the "book next summer" case, and
+         * comfortably exceeds any realistic `max_advance_days`. A per-tenant
+         * override is reserved for later and deliberately not built.
+         */
+        'horizon_days' => 400,
+
+        /*
+         * When the nightly job runs, in the tenant timezone.
+         *
+         * 03:15 rather than a round hour: it is after the DST transitions
+         * (03:00 and 04:00 local) have settled, and off the hour that every
+         * other scheduled job in the world picks.
+         */
+        'nightly_at' => '03:15',
+
+    ],
+
 ];
