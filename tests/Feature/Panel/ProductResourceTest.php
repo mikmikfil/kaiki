@@ -11,6 +11,7 @@ use App\Enums\Role;
 use App\Filament\App\Resources\ProductResource\Pages\CreateProduct;
 use App\Filament\App\Resources\ProductResource\Pages\EditProduct;
 use App\Filament\App\Resources\ProductResource\Pages\ListProducts;
+use App\Filament\App\Widgets\UnsellableProducts;
 use App\Models\AgeBand;
 use App\Models\CancellationPolicy;
 use App\Models\Port;
@@ -286,4 +287,65 @@ it('loads the existing bands into the repeater for editing', function (): void {
 
     // In the operator's own order, which is `sort_order` and not age.
     expect($codes)->toBe(['adult', 'child']);
+})->group('fast');
+
+it('shows a from price, and nothing at all when there is none', function (): void {
+    // PRC-5 and §1.9 together: a `quote` product and a product with no
+    // resolvable plan both have a null `price_from_cents`, and the list must
+    // render nothing rather than "€0.00" — which on a public page would be a
+    // free trip.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $priced = Product::factory()->create(['status' => ProductStatus::Draft]);
+        $base = AgeBand::factory()->create(['product_id' => $priced->getKey()]);
+        $plan = RatePlan::factory()->create(['product_id' => $priced->getKey()]);
+        $plan->prices()->create(['age_band_id' => $base->getKey(), 'price_cents' => 4500]);
+
+        Product::factory()->create([
+            'mode' => BookingMode::Quote,
+            'status' => ProductStatus::Draft,
+        ]);
+    });
+
+    productPageAs($owner, ListProducts::class)
+        ->assertSuccessful()
+        ->assertSee('45.00')
+        ->assertDontSee('0.00');
+})->group('fast');
+
+it('warns the operator about a published trip that cannot be priced', function (): void {
+    // PRC-5 asks for a panel warning **rather than** a guest-facing error. The
+    // guest side is silence, which is right for a tourist and useless for the
+    // operator — who would otherwise hear about it in a phone call.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $product = Product::factory()->create([
+            'status' => ProductStatus::Active,
+            'vessel_id' => Vessel::factory()->create()->getKey(),
+            'meeting_point_id' => Port::factory()->create()->getKey(),
+        ]);
+
+        AgeBand::factory()->create(['product_id' => $product->getKey()]);
+    });
+
+    tenancy()->initialize(productTenantOf($owner));
+
+    expect(UnsellableProducts::canView())->toBeTrue();
+})->group('fast');
+
+it('stops warning once the trip has a plan', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $product = Product::factory()->create(['status' => ProductStatus::Active]);
+        $base = AgeBand::factory()->create(['product_id' => $product->getKey()]);
+        $plan = RatePlan::factory()->create(['product_id' => $product->getKey()]);
+        $plan->prices()->create(['age_band_id' => $base->getKey(), 'price_cents' => 4500]);
+    });
+
+    tenancy()->initialize(productTenantOf($owner));
+
+    expect(UnsellableProducts::canView())->toBeFalse();
 })->group('fast');

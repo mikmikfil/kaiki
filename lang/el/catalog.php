@@ -324,6 +324,8 @@ return [
             'mode' => 'Τρόπος πώλησης',
             'status' => 'Κατάσταση',
             'max_pax' => 'Άτομα',
+            'price_from' => 'Τιμή από',
+            'price_from_value' => 'από :price',
             'featured' => 'Προβεβλημένη',
         ],
 

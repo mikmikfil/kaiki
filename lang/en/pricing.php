@@ -243,4 +243,20 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Trips with no price (PRC-5)
+    |--------------------------------------------------------------------------
+    |
+    | The guest sees nothing — no error, no zero. That is right for them and
+    | useless for the operator, who would otherwise find out from a phone call.
+    |
+    */
+
+    'unsellable' => [
+        'heading' => 'Trips that cannot be sold',
+        'description' => 'These are published but have no rate plan, so guests never see them. Create a rate plan for each one.',
+        'empty' => 'Every published trip has a price.',
+    ],
+
 ];

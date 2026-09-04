@@ -330,6 +330,8 @@ return [
             'mode' => 'How it is sold',
             'status' => 'Status',
             'max_pax' => 'Passengers',
+            'price_from' => 'Price from',
+            'price_from_value' => 'from :price',
             'featured' => 'Featured',
         ],
 

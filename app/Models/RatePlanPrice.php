@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToTenant;
+use App\Observers\RatePlanPriceObserver;
 use Database\Factories\RatePlanPriceFactory;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $age_band_id
  * @property int $price_cents per person
  */
+#[ObservedBy(RatePlanPriceObserver::class)]
 class RatePlanPrice extends Model
 {
     use BelongsToTenant;
