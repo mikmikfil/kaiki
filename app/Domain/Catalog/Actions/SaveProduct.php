@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Catalog\Actions;
 
 use App\Domain\Catalog\Contracts\ProductBookingCount;
+use App\Domain\Catalog\Support\ProductPublishChecklist;
 use App\Enums\BookingMode;
+use App\Enums\ProductStatus;
 use App\Exceptions\ProductModeLocked;
 use App\Models\Product;
 use App\Rules\FlexibleStartOnlyPerVessel;
@@ -39,6 +41,16 @@ use Traversable;
  * the shape #16 used for `GuardVesselCapacity`, and for the same reason:
  * writing the guard when the table arrives means writing it under time pressure
  * in a milestone that is already the largest.
+ *
+ * ## CAT-15 is a gate here, and a checklist in the panel
+ *
+ * A product may not go `active` while a prerequisite is missing. Enforced here
+ * rather than in the Filament resource because the panel is only the first of
+ * three writers — `POST /api/v1/products` and the importer will both be able to
+ * set a status, and a rule that lives in a form is a rule neither of them has.
+ * The refusal names the unmet requirement **keys** from
+ * {@see ProductPublishChecklist}, which the panel renders as a checklist and
+ * the API will return as error codes.
  *
  * ## What is *not* here
  *
@@ -88,10 +100,50 @@ final class SaveProduct
                 $product->latest_start_time = null;
             }
 
+            $this->guardPublishable($product);
+
             $product->save();
 
             return $product->refresh();
         });
+    }
+
+    /**
+     * CAT-15: a product may not go `active` while a prerequisite is missing.
+     *
+     * Checked **after** `fill()` and inside the transaction, on the product as
+     * it would be saved. Checking the attributes array instead would miss the
+     * half of the checklist that lives in other tables, and checking the
+     * unfilled model would refuse an operator who supplied the missing vessel
+     * in the very same submit.
+     *
+     * The exception names the unmet requirement **keys** rather than sentences.
+     * The panel renders them as a checklist, the API will return them as error
+     * codes, and neither has to parse the other's wording.
+     *
+     * A product leaving `active` is never blocked: unpublishing something
+     * incomplete is the fix, not another thing to refuse.
+     *
+     * @throws ValidationException
+     */
+    private function guardPublishable(Product $product): void
+    {
+        if ($product->status !== ProductStatus::Active) {
+            return;
+        }
+
+        $unmet = ProductPublishChecklist::unmet($product);
+
+        if ($unmet === []) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'status' => array_map(
+                static fn (string $key): string => trans("catalog.product.checklist.{$key}.unmet"),
+                $unmet,
+            ),
+        ]);
     }
 
     /**
