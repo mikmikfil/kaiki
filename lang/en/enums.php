@@ -205,6 +205,12 @@ return [
         'legal_capacity_exceeded' => ['label' => 'That would put more people on board than the boat is licensed for.'],
         'no_counted_pax' => ['label' => 'At least one passenger who takes a seat is needed.'],
         'tenant_read_only' => ['label' => 'Bookings are not available at the moment.'],
+        'off_grid' => ['label' => 'Please choose a time on the quarter hour (09:00, 09:15 and so on).'],
+        'outside_operating_window' => ['label' => 'That time is outside the hours this operator sails.'],
+        'extension_too_long' => ['label' => 'That is more extra hours than this trip allows.'],
+        'dst_non_existent' => ['label' => 'The clocks change that day and this time does not exist. Please pick another.'],
+        'no_proposed_window' => ['label' => 'No departure time was given.'],
+        'vessel_held' => ['label' => 'Someone else is checking out for this time. Please try again shortly.'],
     ],
 
     'locale' => [

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\Availability\Support;
 
+use App\Domain\Availability\Contracts\VesselHoldSource;
 use App\Domain\Availability\VesselCalendar;
 use App\Enums\DepartureStatus;
 use App\Models\Departure;
 use App\Models\Product;
 use App\Models\Vessel;
 use App\Models\VesselBlock;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -44,17 +46,35 @@ use Illuminate\Support\Collection;
  * than a stored flag.
  *
  * AVL-9: nothing conflicts with itself.
+ *
+ * ## The fourth source expires, which is why it is asked for every time
+ *
+ * AVL-3.4 counts a `per_vessel` booking in `draft` with an unexpired hold.
+ * Unlike the other three it is not a row that sits there — it occupies the boat
+ * for twenty minutes and then stops, with nothing written and nothing deleted.
+ * AVL-33 depends on exactly that: a hold hides conflicting zero-sold departures
+ * *"but not cancelled"*, and *"if the hold expires they become available
+ * again."*
+ *
+ * The windows come from {@see VesselHoldSource}, which has no implementation
+ * until M2 because `bookings` does not exist — so today it reports none, and
+ * the behaviour is already built and tested.
  */
 final class OccupationCollector
 {
+    /** What M2 tags its hold reader with. Nothing is tagged today. */
+    public const HOLD_SOURCE_TAG = 'availability.vessel-holds';
+
     /**
      * @param  Collection<int, Departure>  $departures  every non-cancelled one in range
      * @param  Collection<int, VesselBlock>  $blocks
+     * @param  list<Window>  $holdWindows  AVL-3.4, empty until M2
      */
     private function __construct(
         private readonly int $bufferMinutes,
         private readonly Collection $departures,
         private readonly Collection $blocks,
+        private readonly array $holdWindows = [],
     ) {}
 
     /** Load everything touching `$range`, in two queries. */
@@ -74,7 +94,39 @@ final class OccupationCollector
             ->orderBy('starts_at_utc')
             ->get();
 
-        return new self($buffer, $departures, VesselCalendar::blocksFor($vessel, $padded));
+        return new self(
+            $buffer,
+            $departures,
+            VesselCalendar::blocksFor($vessel, $padded),
+            self::holdWindows($vessel, $padded),
+        );
+    }
+
+    /**
+     * Private holds currently occupying the boat (AVL-3.4).
+     *
+     * Resolved from the container rather than injected, because this class is
+     * constructed statically from three call sites and threading an optional
+     * dependency through all of them would be worse than one `app()` in a
+     * factory method. There is nothing tagged until M2, so the list is empty.
+     *
+     * @return list<Window>
+     */
+    private static function holdWindows(Vessel $vessel, Window $range): array
+    {
+        $now = Carbon::now();
+        $windows = [];
+
+        /** @var iterable<VesselHoldSource> $sources */
+        $sources = app()->tagged(self::HOLD_SOURCE_TAG);
+
+        foreach ($sources as $source) {
+            foreach ($source->holdWindows($vessel, $range, $now) as $window) {
+                $windows[] = $window;
+            }
+        }
+
+        return $windows;
     }
 
     /**
@@ -114,8 +166,39 @@ final class OccupationCollector
             return false;
         }
 
-        return ! $this->blocks->contains(
+        $blocked = $this->blocks->contains(
             fn (VesselBlock $block): bool => $window->conflictsWith($block->window(), $this->bufferMinutes),
         );
+
+        if ($blocked) {
+            return false;
+        }
+
+        foreach ($this->holdWindows as $hold) {
+            if ($window->conflictsWith($hold, $this->bufferMinutes)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Does a private hold cover this window (AVL-33)?
+     *
+     * Asked separately from {@see self::isFree()} because the *reason* differs:
+     * a departure hidden by somebody else's hold is not "the boat is busy
+     * forever", it is "someone is at the checkout". The distinction matters to
+     * an operator reading the panel and to a guest deciding whether to wait.
+     */
+    public function isHeldPrivately(Window $window): bool
+    {
+        foreach ($this->holdWindows as $hold) {
+            if ($window->conflictsWith($hold, $this->bufferMinutes)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
