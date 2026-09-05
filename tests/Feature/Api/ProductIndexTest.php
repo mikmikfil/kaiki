@@ -285,12 +285,35 @@ it('clamps per_page rather than rejecting it', function (): void {
         ->assertJsonPath('pagination.per_page', 1);
 })->group('fast');
 
+it('reads an unusable per_page as no preference rather than an error', function (): void {
+    [$tenant, $key] = CatalogRequest::key();
+
+    Tenancy::forTenant($tenant, fn () => Product::factory()->create());
+
+    // 200 and the default, not a 422. The contract lists no 422 among this
+    // operation's responses at all, and refusing garbage while clamping an
+    // out-of-range number is an inconsistency a caller has to learn.
+    getJson(CatalogRequest::url('/products', ['per_page' => 'abc']), ['Authorization' => "Bearer {$key}"])
+        ->assertOk()
+        ->assertJsonPath('pagination.per_page', 24);
+})->group('fast');
+
 it('refuses a malformed cursor instead of serving page one', function (): void {
     [$tenant, $key] = CatalogRequest::key();
 
     Tenancy::forTenant($tenant, fn () => Product::factory()->create());
 
     getJson(CatalogRequest::url('/products', ['cursor' => 'not-a-cursor']), ['Authorization' => "Bearer {$key}"])
+        ->assertStatus(400)
+        ->assertJsonPath('error.code', 'invalid_cursor');
+
+    // Over the contract's 512-character cap. Reported as a malformed cursor
+    // rather than as a length violation: it is a value that cannot have come
+    // from `pagination.next_cursor`, which is what the code means.
+    getJson(
+        CatalogRequest::url('/products', ['cursor' => str_repeat('a', 600)]),
+        ['Authorization' => "Bearer {$key}"],
+    )
         ->assertStatus(400)
         ->assertJsonPath('error.code', 'invalid_cursor');
 })->group('fast');

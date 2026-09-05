@@ -17,7 +17,7 @@ Each entry records the **verification actually run** and its **real output** —
 | M1 | #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1340) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1341) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
@@ -72,6 +72,8 @@ The implementation detail that matters: the value reaches the `where` as a plain
 
 `per_page` above the maximum is clamped and not rejected (§3.5), and clamped at the bottom too — `?per_page=0` has no useful reading and a paginator handed a zero throws. A cursor cannot be clamped: Laravel treats an undecodable one as *no cursor* and serves page one, so a sync job losing half a catalogue reports a clean run. `Cursor::fromEncoded()` returning null is exactly §3.5's "malformed or stale", and it is `400 invalid_cursor`.
 
+`ProductIndexRequest::rules()` is therefore **empty**, which is worth stating because an empty `rules()` on a `FormRequest` reads like an oversight. The first draft validated `per_page` as an integer and `cursor` as `max:512`; both produced **`422 validation_failed`**, and the contract lists no 422 among this operation's responses at all — the only request failure it documents is the 400. They were also the wrong answers: `?per_page=abc` reads as "no preference" and takes the default, and a 600-character cursor is not a length violation but a value that cannot have come from `pagination.next_cursor`, which is what `invalid_cursor` means. Every parameter is read through an accessor that states what it does with a value it cannot use.
+
 ### Two `??` chains kept their single owner
 
 `ExtraResource` wraps an `OfferedExtra`, never an `Extra`. The value object owns the per-product override resolution — including the tri-state `is_required`, where `false` must beat the extra's `true` — and a resource reading the model directly would publish the tenant-wide price on a product that charges something else. `Product::effectiveCancellationPolicy()` likewise stays the only place the tenant-default fallback is written.
@@ -98,7 +100,7 @@ The implementation detail that matters: the value reaches the `where` as a plain
 
 ### Verification
 
-`composer lint` (Pint, passed), `composer stan` (PHPStan level 6 + Larastan, **no errors**), `composer i18n:check` (154 passed), `./vendor/bin/pest` — **1340 passed, 1 skipped** (the mysql-tagged concurrency test, ADR-0015). The ENV-28 drift gate reports **4 of 18 contract operations built**, up from 2, with the security schemes matching and no route resolving by database id. CI-only as always: the MySQL schema snapshot, `migrate-from-zero`, and `app/Domain` coverage.
+`composer lint` (Pint, passed), `composer stan` (PHPStan level 6 + Larastan, **no errors**), `composer i18n:check` (154 passed), `./vendor/bin/pest` — **1341 passed, 1 skipped** (the mysql-tagged concurrency test, ADR-0015). The ENV-28 drift gate reports **4 of 18 contract operations built**, up from 2, with the security schemes matching and no route resolving by database id. CI-only as always: the MySQL schema snapshot, `migrate-from-zero`, and `app/Domain` coverage.
 
 ---
 

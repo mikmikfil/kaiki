@@ -26,16 +26,21 @@ use Illuminate\Pagination\Cursor;
  * silently *widen* the result to the whole catalogue, which is the one answer
  * that is definitely wrong.
  *
- * ## Two things do fail
+ * ## One thing fails, and it is not `per_page`
  *
- * `per_page` above the maximum is **clamped, not rejected** (§3.5), so only a
- * non-numeric value is an error. A malformed or stale `cursor` is
- * `400 invalid_cursor` — it cannot be clamped into something meaningful, and
- * silently serving page one to a client that asked for page nine is how a sync
- * job loses half a catalogue without noticing.
+ * `per_page` is **clamped, never rejected** (§3.5) — including a value that is
+ * not a number at all, which reads as "no preference" and takes the default.
+ *
+ * A `cursor` that cannot have come from `pagination.next_cursor` is
+ * `400 invalid_cursor`. It is the one refusal because it is the one value with
+ * no sensible reading: silently serving page one to a client that asked for
+ * page nine is how a sync job loses half a catalogue and reports a clean run.
  */
 final class ProductIndexRequest extends FormRequest
 {
+    /** `docs/api.md`, `CursorQuery`: `schema: { type: string, maxLength: 512 }`. */
+    private const MAX_CURSOR_LENGTH = 512;
+
     /**
      * Authorisation is the API key's, and the `api.scope:products.read`
      * middleware has already settled it before this class is constructed.
@@ -45,13 +50,30 @@ final class ProductIndexRequest extends FormRequest
         return true;
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * **Empty, and that is the design.**
+     *
+     * A rule here produces `422 validation_failed`, and the contract does not
+     * list a 422 among this operation's responses at all — the only request
+     * failure it documents is `400 invalid_cursor`. A first draft validated
+     * `per_page` as an integer and `cursor` as `max:512`, and both turned into
+     * a 422 that no client is told to expect.
+     *
+     * They are also the wrong answers. `?per_page=abc` has an obvious reading
+     * — the default — and §3.5 already says values out of range are clamped
+     * rather than rejected; refusing garbage while clamping a number is an
+     * inconsistency a caller has to learn. And a 600-character cursor is not a
+     * length problem, it is a **malformed cursor**, which §3.5 names and gives
+     * its own code.
+     *
+     * So every query parameter is read through an accessor below, each of which
+     * states what it does with a value it cannot use.
+     *
+     * @return array<string, mixed>
+     */
     public function rules(): array
     {
-        return [
-            'per_page' => ['sometimes', 'integer'],
-            'cursor' => ['sometimes', 'string', 'max:512'],
-        ];
+        return [];
     }
 
     /**
@@ -123,7 +145,11 @@ final class ProductIndexRequest extends FormRequest
             return null;
         }
 
-        if (Cursor::fromEncoded($cursor) === null) {
+        // The contract caps a cursor at 512 characters. Over that is not a
+        // length error to report on its own — it is a value that cannot have
+        // come from `pagination.next_cursor`, which is what `invalid_cursor`
+        // means.
+        if (strlen($cursor) > self::MAX_CURSOR_LENGTH || Cursor::fromEncoded($cursor) === null) {
             throw new HttpResponseException(ApiErrorResponse::fromKey(
                 key: 'api.errors.invalid_cursor',
                 code: 'invalid_cursor',
