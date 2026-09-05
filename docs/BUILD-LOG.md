@@ -12,12 +12,12 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M1 — Catalogue and availability engine** |
+| Milestone | **M1 — Catalogue and availability engine, complete.** Next: M2 — Booking & payments |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M1 | #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37 — only #53 remains |
+| M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1373) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1412) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
@@ -30,7 +30,80 @@ Each entry records the **verification actually run** and its **real output** —
 | Invoice-numbering **gap policy** (ADR-0022) | accountant | M6 |
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
-| ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | **Decided 2026-09-04.** Option A: a tenant-scoped `audit_logs` table, SEC-16's actions plus soft deletes, seven-year retention with the actor as a `user_id`, owner and manager only. Implementation is #53 |
+| ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
+| **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #53 — The operator audit trail, and the two ways a listener lies to you
+
+**Files:** `database/migrations/2026_09_02_000009_create_audit_logs_table.php` plus **nineteen renamed M1 migrations**, `app/Models/AuditLog.php`, `app/Enums/AuditAction.php`, `app/Exceptions/AuditLogIsAppendOnly.php`, `app/Events/{Auditable,RecordSoftDeleted,DepartureCancelled,ApiKeyRevoked}.php`, `app/Listeners/RecordAuditLog.php`, `app/Jobs/RecordAuditLogJob.php`, `app/Domain/Audit/{Actions/RecordAuditEntry,Data/AuditEntryData,Data/AuditContextData}.php`, `app/Providers/AuditServiceProvider.php`, `app/Policies/AuditLogPolicy.php`, `app/Filament/App/Resources/AuditLogResource**`, `app/Console/Commands/PurgeAuditLogCommand.php`, `app/Support/Authorization/Capability.php`, `app/Enums/Concerns/HasTranslatedLabel.php`, `app/Domain/Tenancy/Actions/RevokeApiKey.php`, `config/kaiki.php`, `routes/console.php`, `docs/data-model.md`, `lang/{el,en}/{audit,enums}.php`, four test files
+
+**M1 closes here.** This is ADR-0025 implemented, the gap #42 opened, and SEC-16 satisfied with a table instead of the `Log::info` #10 shipped and called temporary in its own review.
+
+### The shape everybody would reach for first, and why it is wrong
+
+A queued **listener** is the obvious answer and it silently misattributes every row.
+
+Laravel constructs a queued listener **on the worker**. There, `Auth::id()` is null and `Tenancy::current()` holds whatever the previous job left behind — so the actor is lost and the tenant is *somebody else's*, which is the cross-tenant write ADR-0001 and #8's isolation gate exist to prevent. The failure is invisible: rows appear, they look plausible, and they are filed against the wrong operator.
+
+So `RecordAuditLog` is **synchronous** and does two things that touch no database — capture the ambient context, and dispatch `RecordAuditLogJob`. The job is what is queued, and it carries plain data and **no models**: half these rows describe a deletion, so a `SerializesModels` payload would arrive as a `ModelNotFoundException` for exactly the events that matter most.
+
+The issue's requirement — *"a vessel delete that succeeded must not appear to have failed because the trail was unavailable"* — is then covered twice, for two different failures. The dispatch returns before anything is written, which covers a database that was **not there**; `RecordAuditEntry` logs a refused insert rather than throwing, which covers one that **rejected** it.
+
+### Two bugs found in the wiring, both invisible until the wrong moment
+
+1. **Two identical rows for one delete.** Laravel 11+ discovers listeners in `app/Listeners` from their type hints, so `handle(Auditable $event)` was already bound to the interface — and the explicit `Event::listen(Auditable::class, …)` added a second registration. In an audit trail this is worse than a missing row: a trail that double-counts cannot be counted. The provider now registers nothing for it, and a test asserts the binding exists **exactly once**, so discovery being disabled would be a red test rather than a trail that quietly stops.
+
+2. **A wildcard listener and a named one get different arguments.** A wildcard is handed `($eventName, array $payload)`; a named one is handed the dispatch arguments spread, which for a model event is the model itself. Copying the wildcard's signature failed twice over — `ArgumentCountError`, then `TypeError` — and only at the moment a departure is actually cancelled, which is to say in production during an incident.
+
+### The queue lie in the tests, caught by CI
+
+Every audit test passed locally and on the SQLite job, and **all of them failed on `Pest on MySQL 8 + Redis`** — while `writes nothing for an ordinary edit` kept passing, which is what made it look like a data problem rather than an environment one.
+
+`phpunit.xml` sets `QUEUE_CONNECTION=sync`, so the job ran inline by accident. ENV-1 puts a real Redis in that one CI job, where it was enqueued and never executed. The driver is now set explicitly by the tests that assert a row, the queueing is still asserted separately with `Queue::fake()`, and the fix was proved by flipping `phpunit.xml` to the database driver and re-running.
+
+This is the second issue running where the bug was an assumption inherited from the environment rather than anything in the feature.
+
+### Append-only, three times over
+
+ADR-0025: *"an audit row that can be edited is not an audit row."*
+
+- The migration **omits `updated_at`**, which makes the accident impossible.
+- The model **throws** on `updating` and `deleting`, which makes the deliberate attempt impossible.
+- The policy refuses every write ability for **every role including the owner**, which stops the button ever rendering.
+
+Three layers because a missing column is a convention the next reader adds back, and a policy alone is a rule the query builder walks around. The retention purge goes through the query builder as one named method with a docblock beside it — the difference between an exception and a loophole.
+
+### Retention and erasure, which pull against each other
+
+Seven years (`config('kaiki.audit.retention_days')`, 2555), against ADR-0012's ninety days for personal data. Greek bookkeeping wants records available for years and a trail that purges at ninety days cannot answer a dispute about last season — which is the dispute people actually have.
+
+Reconciled by the actor being a **`user_id` and never a name**: a GDPR erasure anonymises the user row, and the trail keeps its timestamps and its causality while no longer identifying a person. There is a test that force-deletes the actor and asserts the row survives with its shape.
+
+`context` is enforced to carry no personal data by a scanner, in the manner of `NoHardcodedVatRateTest` — including the other half, that it does **not** flag `seats_sold` or `environment`. A lint that cries wolf is a lint somebody switches off.
+
+### Scope, which is a privacy decision rather than a convenience
+
+SEC-16's five named actions **plus every soft delete and every reasoned override** — not every state change. ADR-0025 rejected complete history explicitly: *"every extra row is another row naming a person that the retention and erasure story has to account for."*
+
+So there is a test that an ordinary field edit writes **nothing**, and it carries as much weight as the ones asserting a delete writes something. Soft deletes are caught by a wildcard on Eloquent's own event rather than an observer per model — a list of twenty models is a list that goes stale the first time M2 adds a table.
+
+Two of the five actions are not buildable yet: `booking.refunded` and `gdpr.purged` need M2 and M6 subjects. They are enum cases anyway, so the milestone that builds them fires an existing action rather than inventing a spelling, and a test records which are live so the gap stays visible.
+
+### The renumber
+
+`audit_logs` is item **9** — first in M1, ahead of every table whose resource ships a destructive action. All nineteen M1 migration files were renamed so the numeric suffix means the §6 item number again, and §6's M2–M7 entries shifted with it. The file order now also matches §6 for the seasons/products pair, which the files had backwards. `docs/data-model.md` gains §2.8 with the schema, its three indexes and four notes. Nothing is deployed, so the cost is one `migrate:fresh`.
+
+### Things this touched that were not its own
+
+1. **`ModelIsolationTest`** probed cross-tenant updates by writing `updated_at`; `audit_logs` has no such column, and the failure read as a broken gate rather than as this model being different. It now writes the model's own timestamp column, which is stronger — the column being written was never the point.
+2. **`RoleMatrixTest`** required a row for `ViewAuditLog` before it would go green. The gate working as designed.
+3. **#10's revocation test** asserted the `Log::info`. It asserts the row now, which is the change ADR-0025 asked for, and the event moved onto `RevokeApiKey` so the API and the importer are audited too — a line in a Filament closure never would have been.
+
+### Verification
+
+`composer lint` (Pint, passed), `composer stan` (PHPStan level 6 + Larastan, **no errors**), `composer i18n:check` (154 passed), `./vendor/bin/pest` — **1412 passed, 1 skipped**. The MySQL schema snapshot was regenerated from this branch's own `migrate-from-zero` artifact (ENV-10, ADR-0015): the fingerprint moved for two reasons at once, a new table and nineteen renamed files. All **15 required checks** green before merge (PR #77).
 
 ---
 
