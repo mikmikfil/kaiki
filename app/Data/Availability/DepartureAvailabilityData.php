@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Data\Availability;
 
+use App\Domain\Availability\LocalDateTimeResolver;
 use App\Enums\AvailabilityRejection;
 use App\Enums\DepartureStatus;
 use App\Models\Departure;
+use Illuminate\Support\Carbon;
 use Spatie\LaravelData\Data;
 
 /**
@@ -21,6 +23,22 @@ use Spatie\LaravelData\Data;
  * to the widget: a date with a full boat should render differently from a date
  * with no sailing at all, and a guest told "sold out" will come back, while a
  * guest shown a blank calendar concludes the operator has stopped running.
+ *
+ * ## The window is carried both ways, and the UTC half is not decoration
+ *
+ * `docs/api.md`'s `LocalWindow` requires `local_time` **and** `starts_at`, and
+ * says why: the client renders the local strings verbatim and uses the instants
+ * only for countdowns and sorting, so it never converts a timezone and never
+ * gets DST wrong. Deriving the instant in the resource instead would mean
+ * re-doing in the HTTP layer the one conversion ADR-0016 put in
+ * {@see LocalDateTimeResolver} — and doing it from a
+ * date and a wall-clock string, which is exactly the arithmetic that breaks on
+ * the two nights a year it matters.
+ *
+ * `capacity` and `minPax` come along for the same reason: the API's
+ * `DepartureOption` requires both, and re-reading the departures in the
+ * controller to find them would be a second query over rows the engine has
+ * already held.
  */
 final class DepartureAvailabilityData extends Data
 {
@@ -32,7 +50,30 @@ final class DepartureAvailabilityData extends Data
         public readonly bool $isGuaranteed,
         public readonly ?int $priceFromCents = null,
         public readonly ?AvailabilityRejection $rejection = null,
+        public readonly ?string $localDate = null,
+        public readonly ?Carbon $startsAtUtc = null,
+        public readonly ?Carbon $endsAtUtc = null,
+        public readonly bool $dstAmbiguous = false,
+        public readonly int $capacity = 0,
+        public readonly int $minPax = 0,
     ) {}
+
+    /**
+     * How many more capacity-counting passengers would guarantee this sailing
+     * (`DepartureOption.seats_to_guarantee`).
+     *
+     * Null when it is already guaranteed, and null when `min_pax` is zero —
+     * which means "always guaranteed", so there is no shortfall to report. A
+     * zero would read as "one more and we sail", which is a different promise.
+     */
+    public function seatsToGuarantee(): ?int
+    {
+        if ($this->isGuaranteed || $this->minPax <= 0) {
+            return null;
+        }
+
+        return max(0, $this->minPax - max(0, $this->capacity - $this->seatsRemaining));
+    }
 
     public static function available(Departure $departure, int $seatsRemaining, ?int $priceFromCents): self
     {
@@ -43,6 +84,12 @@ final class DepartureAvailabilityData extends Data
             seatsRemaining: $seatsRemaining,
             isGuaranteed: $departure->status === DepartureStatus::Guaranteed,
             priceFromCents: $priceFromCents,
+            localDate: $departure->local_date->toDateString(),
+            startsAtUtc: $departure->starts_at_utc,
+            endsAtUtc: $departure->ends_at_utc,
+            dstAmbiguous: $departure->dst_ambiguous,
+            capacity: $departure->capacity,
+            minPax: $departure->min_pax,
         );
     }
 
@@ -55,6 +102,12 @@ final class DepartureAvailabilityData extends Data
             seatsRemaining: max(0, $seatsRemaining),
             isGuaranteed: $departure->status === DepartureStatus::Guaranteed,
             rejection: $rejection,
+            localDate: $departure->local_date->toDateString(),
+            startsAtUtc: $departure->starts_at_utc,
+            endsAtUtc: $departure->ends_at_utc,
+            dstAmbiguous: $departure->dst_ambiguous,
+            capacity: $departure->capacity,
+            minPax: $departure->min_pax,
         );
     }
 

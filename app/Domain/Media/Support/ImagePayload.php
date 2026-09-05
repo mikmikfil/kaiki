@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Media\Support;
 
+use App\Support\Locale\TranslationValue;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
 
@@ -95,22 +96,6 @@ final class ImagePayload
      */
     public static function alt(mixed $alt, string $locale): ?string
     {
-        if (is_string($alt)) {
-            return $alt === '' ? null : $alt;
-        }
-
-        if (! is_array($alt)) {
-            return null;
-        }
-
-        foreach ([$locale, ...array_keys($alt)] as $candidate) {
-            $value = $alt[$candidate] ?? null;
-
-            if (is_string($value) && $value !== '') {
-                return $value;
-            }
-        }
-
-        return null;
+        return TranslationValue::resolve($alt, $locale);
     }
 }

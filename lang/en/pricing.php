@@ -265,6 +265,10 @@ return [
 
         'validation' => [
             'not_sellable' => 'There is no rate plan for :date, so no price can be worked out. Create a rate plan for the trip, or a season that covers the date.',
+            'voucher_not_supported' => 'Voucher codes are not accepted yet.',
+            'not_quotable' => 'This trip is sold on request, so it has no published price. Send an enquiry instead.',
+            'departure_required' => 'Choose a departure before asking for a price.',
+            'window_required' => 'Choose a date for the charter before asking for a price.',
         ],
     ],
 

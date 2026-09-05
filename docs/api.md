@@ -2841,6 +2841,15 @@ components:
       required: [rate_bp, included, net_cents, vat_cents]
       properties:
         rate_bp: { type: integer, description: Basis points. `1300` = 13.00%., example: 1300 }
+        vat_category:
+          type: [string, "null"]
+          description: |
+            The AADE classification the rate carries (ADR-0002, Option A), from `vat_rates`.
+            Added in #37 at the product owner's request; a myDATA-aware client needs it to
+            reconcile a quote against the invoice that will be issued for it, and deriving it
+            from `rate_bp` client-side would be a second mapping that can disagree with the
+            table. Never the `vat_rates` row id, which stays internal (CNV-8).
+          example: "1"
         included: { type: boolean, example: true }
         net_cents: { type: integer, example: 12611 }
         vat_cents: { type: integer, example: 1639 }

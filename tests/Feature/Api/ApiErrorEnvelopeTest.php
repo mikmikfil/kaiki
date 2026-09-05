@@ -97,10 +97,34 @@ it('returns the envelope for a validation failure', function (): void {
 
     $response->assertJsonPath('error.code', 'validation_failed');
 
-    // §4.1: "Validation errors put the per-field detail in `details` keyed by
-    // request field path." A 422 that does not say which field is a support
-    // ticket rather than an error message.
-    expect($response->json('error.details'))->toHaveKey('pax');
+    // §4.2's shape, and all three parts of it matter.
+    //
+    // The map is nested under `fields` rather than spread across `details`,
+    // because `details` carries other keys on other codes — `max_days` on
+    // `invalid_date_range`, `retry_after_seconds` on `rate_limited` — so a
+    // client reading `details` as "the field errors" breaks on the first one.
+    //
+    // Each entry is an **object**, not a list of strings: `code` is the failing
+    // rule, which is what a form branches on to highlight a field and choose its
+    // own wording without parsing English.
+    //
+    // And `message_el` is per field. §4.1 promises both languages in *every*
+    // error; a top-level pair sitting over English-only field messages keeps
+    // that promise where nobody reads and breaks it where the guest does.
+    //
+    // #35 shipped a flat `details` of message-string lists. The drift gate reads
+    // paths and security schemes, not error shapes, so nothing caught it until
+    // #37 needed the per-field Greek.
+    $fields = $response->json('error.details.fields');
+
+    expect($fields)->toHaveKey('pax')
+        ->and($fields['pax']['code'])->toBe('min')
+        ->and($fields['pax']['message'])->toBeString()
+        ->and($fields['pax']['message'])->not->toBeEmpty()
+        ->and($fields['pax']['message_el'])->toBeString()
+        ->and($fields['pax']['message_el'])->not->toBeEmpty()
+        // Actually the other language, not the same string twice.
+        ->and($fields['pax']['message_el'])->not->toBe($fields['pax']['message']);
 })->group('fast', 'api-docs');
 
 it('returns the envelope for an unauthenticated request', function (): void {

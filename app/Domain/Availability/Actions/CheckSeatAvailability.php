@@ -12,6 +12,7 @@ use App\Domain\Availability\LocalDateTimeResolver;
 use App\Domain\Availability\Support\CountedSeats;
 use App\Domain\Availability\Support\LocalDay;
 use App\Domain\Availability\Support\OccupationCollector;
+use App\Domain\Availability\Support\PartyGuard;
 use App\Domain\Availability\Support\Window;
 use App\Domain\Pricing\Support\RatePlanResolver;
 use App\Domain\Pricing\Support\SeasonCandidateResolver;
@@ -77,8 +78,13 @@ final class CheckSeatAvailability
 {
     public const TAG = 'availability.persons-aboard';
 
+    private readonly PartyGuard $party;
+
     /** @param iterable<DeparturePersonsAboard> $personsAboard */
-    public function __construct(private readonly iterable $personsAboard = []) {}
+    public function __construct(private readonly iterable $personsAboard = [])
+    {
+        $this->party = new PartyGuard($personsAboard);
+    }
 
     /** @return list<AvailabilityDayData> one entry per requested date, always */
     public function __invoke(Product $product, AvailabilityRequestData $request): array
@@ -208,11 +214,11 @@ final class CheckSeatAvailability
 
         // AVL-26, and only when a party was given: an empty request is a
         // calendar asking what exists, not a family asking for four seats.
-        if ($pax !== [] && ! CountedSeats::hasCountedPax($bands, $pax)) {
-            return AvailabilityRejection::NoCountedPax;
-        }
-
-        return null;
+        //
+        // `blanket()` rather than the full check, because only this rule is
+        // date-independent — see {@see PartyGuard::blanket()} for what folding
+        // legal capacity in here would do to the reported reason.
+        return $this->party->blanket($bands, $pax);
     }
 
     /**
@@ -256,21 +262,14 @@ final class CheckSeatAvailability
             return AvailabilityRejection::VesselBusy;
         }
 
-        if ($pax === []) {
-            return null;
-        }
-
-        // AVL-22.3 with AVL-23: counted seats only. `seatsAvailable()` is
-        // `capacity − seats_sold − seats_held` (§2.4, AVL-24).
-        if (CountedSeats::counted($bands, $pax) > $departure->seatsAvailable()) {
-            return AvailabilityRejection::NotEnoughSeats;
-        }
-
-        if ($this->wouldExceedLegalCapacity($departure, $product, $pax)) {
-            return AvailabilityRejection::LegalCapacityExceeded;
-        }
-
-        return null;
+        // AVL-22.3 with AVL-23 and AVL-25. Both live in {@see PartyGuard},
+        // which `POST /price-quote` calls with the same arguments — a party the
+        // calendar accepted and the quote refused is the site contradicting
+        // itself in front of a guest.
+        //
+        // `seatsAvailable()` is `capacity − seats_sold − seats_held` (§2.4,
+        // AVL-24), with expired holds already treated as released (ADR-0005).
+        return $this->party->check($bands, $pax, $product, $departure);
     }
 
     /** AVL-20, in tenant-local calendar days from today. */
@@ -283,28 +282,6 @@ final class CheckSeatAvailability
         $limit = Carbon::parse(LocalDay::today($timezone)->localDate)->addDays($maxAdvanceDays);
 
         return Carbon::parse($departure->local_date->toDateString())->greaterThan($limit);
-    }
-
-    /**
-     * AVL-25: everyone aboard, infants included, against the certificate.
-     *
-     * @param  array<string, int>  $pax
-     */
-    private function wouldExceedLegalCapacity(Departure $departure, Product $product, array $pax): bool
-    {
-        $ceiling = $product->vessel?->capacity_max;
-
-        if ($ceiling === null) {
-            return false;
-        }
-
-        $aboard = 0;
-
-        foreach ($this->personsAboard as $source) {
-            $aboard = max($aboard, $source->personsAboard($departure));
-        }
-
-        return $aboard + CountedSeats::totalPersons($pax) > $ceiling;
     }
 
     /** The UTC window covering every requested local date. */

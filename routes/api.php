@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\AvailabilityController;
 use App\Http\Controllers\Api\V1\BrandingController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\PriceQuoteController;
 use App\Http\Controllers\Api\V1\ProductController;
 use Illuminate\Support\Facades\Route;
 
@@ -88,4 +90,55 @@ Route::middleware([
 ])->group(function (): void {
     Route::get('/products', [ProductController::class, 'index'])->name('api.v1.products.index');
     Route::get('/products/{uuid}', [ProductController::class, 'show'])->name('api.v1.products.show');
+});
+
+/*
+ * Class B — availability (`docs/api.md` §3.6), its own bucket at 1200/240.
+ *
+ * The hot path: a calendar mount fires one of these per month view, so it is
+ * sized twice the catalogue class precisely so a busy operator's own homepage
+ * cannot throttle its own visitors.
+ *
+ * `availability.read` rather than `products.read`. They are separate scopes in
+ * `ApiScope` because a key issued for an SEO sync has no business asking who
+ * has seats left on Tuesday, and a scope that covers both would make that
+ * distinction unexpressible.
+ */
+Route::middleware([
+    'api.key',
+    'tenant',
+    'locale',
+    'api.scope:availability.read',
+    'throttle:api-availability',
+])->group(function (): void {
+    Route::get('/availability', AvailabilityController::class)->name('api.v1.availability');
+});
+
+/*
+ * Class C — pricing (`docs/api.md` §3.6).
+ *
+ * **A POST, and deliberately not a booking write.** It reserves nothing and
+ * changes nothing, so it belongs in the pricing bucket at 600/120 rather than
+ * the write bucket at 60/20 — a guest adjusting the party size would otherwise
+ * be throttled while browsing.
+ *
+ * For the same reason `tenant.writable` is **absent**: SAA-7 closes bookings
+ * for a lapsed subscription, not prices. The refusal a guest needs to see comes
+ * from the availability engine's `tenant_read_only`, at the point of booking.
+ *
+ * The scope is **`availability.read`**, which §2.1's table assigns and which
+ * reads oddly on a POST until the reason lands: a scope licenses what a key may
+ * *ask about*, and this asks what a trip costs. `quotes.write` is for the
+ * operator-built quote flow in M2, where something is actually written — giving
+ * it to this endpoint would mean a widget's publishable key had to hold a write
+ * scope to show a price.
+ */
+Route::middleware([
+    'api.key',
+    'tenant',
+    'locale',
+    'api.scope:availability.read',
+    'throttle:api-pricing',
+])->group(function (): void {
+    Route::post('/price-quote', PriceQuoteController::class)->name('api.v1.price-quote');
 });
