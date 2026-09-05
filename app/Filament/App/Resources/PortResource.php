@@ -153,6 +153,11 @@ class PortResource extends Resource
                         ->label(__('catalog.port.form.photo_path.label'))
                         ->helperText(__('catalog.port.form.photo_path.help'))
                         ->image()
+                        // The disk `GET /api/v1/products` builds URLs from (#36).
+                        // Filament's default follows `FILESYSTEM_DISK`, which is
+                        // `local` — a disk that cannot produce a URL at all, so the
+                        // API returned nothing for every image the panel uploaded.
+                        ->disk((string) config('kaiki.catalog.uploads.disk'))
                         ->directory('ports')
                         ->maxSize(5120),
                 ]),

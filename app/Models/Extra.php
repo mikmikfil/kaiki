@@ -41,6 +41,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property bool $counts_toward_capacity reserved; always false in MVP
  * @property bool $prices_all_pax PRC-9: multiply by total persons rather than counted pax
  * @property bool $is_active
+ * @property string|null $image_path
  * @property int $sort_order
  */
 class Extra extends Model implements TranslatableSearchable

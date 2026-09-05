@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\BrandingController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\ProductController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -58,4 +59,33 @@ Route::middleware([
     'throttle:api-catalog',
 ])->group(function (): void {
     Route::get('/branding', BrandingController::class)->name('api.v1.branding');
+});
+
+/*
+ * Class A, continued — the catalogue reads themselves (#36).
+ *
+ * A separate group because the scope differs: `branding.read` above,
+ * `products.read` here. The rate limiter is the same `api-catalog` bucket on
+ * purpose — §3.6 sets one number for the whole class, and a per-route limit is
+ * how two endpoints in one class quietly stop sharing it.
+ *
+ * **`tenant.writable` is deliberately absent.** SAA-7: a lapsed subscription
+ * closes bookings, not the catalogue. An operator whose card expired should
+ * still have their trips visible on their own website while they sort it out.
+ *
+ * The `{uuid}` segment also accepts a `slug` (`ProductIdentifierPath`), which is
+ * what the hosted page and the WordPress permalink resolve with. It is named
+ * `uuid` because that is the name in the contract, and the CNV-8 gate in
+ * `OpenApiDriftTest` reads route parameter names to prove no endpoint resolves
+ * by database id.
+ */
+Route::middleware([
+    'api.key',
+    'tenant',
+    'locale',
+    'api.scope:products.read',
+    'throttle:api-catalog',
+])->group(function (): void {
+    Route::get('/products', [ProductController::class, 'index'])->name('api.v1.products.index');
+    Route::get('/products/{uuid}', [ProductController::class, 'show'])->name('api.v1.products.show');
 });

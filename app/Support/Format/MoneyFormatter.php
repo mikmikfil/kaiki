@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support\Format;
 
+use App\Support\Tenancy;
 use Brick\Money\Money;
 
 /**
@@ -27,6 +28,22 @@ use Brick\Money\Money;
 final class MoneyFormatter
 {
     public const DEFAULT_CURRENCY = 'EUR';
+
+    /**
+     * The currency the resolved tenant sells in.
+     *
+     * One reader, so that EXT-6's second currency is a data change rather than
+     * a hunt for every `'EUR'` literal in the codebase. Falls back to the
+     * default when there is no tenant — a console command, or the super-admin
+     * panel — rather than throwing, because a missing tenant is not a currency
+     * question.
+     */
+    public static function currency(): string
+    {
+        $currency = Tenancy::current()?->currency;
+
+        return is_string($currency) && $currency !== '' ? $currency : self::DEFAULT_CURRENCY;
+    }
 
     public static function format(
         int $cents,
