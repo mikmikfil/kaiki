@@ -86,7 +86,15 @@ final class ApiKeyCors
         // The exact origin rather than `*`: a wildcard cannot carry credentials
         // and tells every other site it is welcome too.
         $response->headers->set('Access-Control-Allow-Origin', $origin);
-        $response->headers->set('Vary', 'Origin');
+        // Merged, not set. This middleware is prepended globally, so it is the
+        // last thing to touch the response — overwriting here would drop the
+        // `Accept-Language` and `X-Kaiki-Key` that `SetLocale` added, and a
+        // shared cache would start serving one operator's Greek payload to
+        // another's English page (`docs/api.md` §3.1).
+        $response->headers->set('Vary', implode(', ', array_values(array_unique([
+            ...array_filter(array_map(trim(...), explode(',', (string) $response->headers->get('Vary', '')))),
+            'Origin',
+        ]))));
         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
         $response->headers->set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, Accept-Language, If-None-Match');
         $response->headers->set('Access-Control-Expose-Headers', 'ETag, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After');

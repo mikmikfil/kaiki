@@ -201,6 +201,21 @@ class Product extends Model implements TranslatableSearchable
             ->withTimestamps();
     }
 
+    /**
+     * The plans that price this product (§2.3).
+     *
+     * Unordered on purpose. `RatePlanResolver` picks by season and the API's
+     * `booking_window` takes an extreme across the whole set, so no caller has
+     * a position to depend on — and an `ORDER BY` here would be a per-query
+     * cost paid for nothing.
+     *
+     * @return HasMany<RatePlan, $this>
+     */
+    public function ratePlans(): HasMany
+    {
+        return $this->hasMany(RatePlan::class);
+    }
+
     /** @return BelongsTo<VatRate, $this> */
     public function vatRate(): BelongsTo
     {

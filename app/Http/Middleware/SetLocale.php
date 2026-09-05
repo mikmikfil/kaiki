@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Http\Responses\ApiErrorResponse;
 use App\Support\Locale\LocaleResolver;
 use Closure;
 use Illuminate\Http\Request;
@@ -30,12 +31,70 @@ final class SetLocale
 
     public function handle(Request $request, Closure $next): Response
     {
+        $isApi = $request->is('api/v1', 'api/v1/*');
+
+        if ($isApi && ($rejected = $this->resolver->unsupportedApiLocale($request)) !== null) {
+            // `docs/api.md` §3.1. Refused before the controller, and before the
+            // locale is set, so nothing downstream can quietly answer in a
+            // language nobody asked for.
+            return ApiErrorResponse::fromKey(
+                key: 'api.errors.unsupported_locale',
+                code: 'unsupported_locale',
+                status: 400,
+                details: [
+                    'requested' => $rejected,
+                    'supported' => LocaleResolver::permitted(),
+                ],
+            );
+        }
+
         $locale = $this->resolver->resolve($request);
 
         app()->setLocale($locale);
         $this->remember($request, $locale);
 
-        return $next($request);
+        $response = $next($request);
+
+        if ($isApi) {
+            $this->declareLanguage($response, $locale);
+        }
+
+        return $response;
+    }
+
+    /**
+     * Tell caches which language they are holding (`docs/api.md` §3.1).
+     *
+     * Two headers, and the second is the load-bearing one. `Content-Language`
+     * only labels the body; **`Vary` is what stops a shared cache serving a
+     * Greek payload to an English page**, and a CDN in front of this API is the
+     * normal deployment rather than an exotic one.
+     *
+     * `Origin` and `X-Kaiki-Key` are on the list for the same reason: the CORS
+     * headers and the whole payload are per-key, so a response cached against
+     * one operator's key must never be replayed for another's.
+     *
+     * Merged, never set. {@see ApiKeyCors} is prepended
+     * globally, which makes it the *outermost* middleware and therefore the
+     * last to touch the response — a plain `set('Vary', …)` here would be
+     * silently overwritten on its way out, and a cache bug that only appears
+     * behind a CDN is one nobody reproduces locally.
+     */
+    private function declareLanguage(Response $response, string $locale): void
+    {
+        $response->headers->set('Content-Language', $locale);
+
+        $existing = array_filter(array_map(
+            trim(...),
+            explode(',', (string) $response->headers->get('Vary', '')),
+        ));
+
+        $response->headers->set('Vary', implode(', ', array_values(array_unique([
+            ...$existing,
+            'Accept-Language',
+            'Origin',
+            'X-Kaiki-Key',
+        ]))));
     }
 
     /**

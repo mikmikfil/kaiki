@@ -224,6 +224,46 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Catalogue
+    |--------------------------------------------------------------------------
+    */
+
+    'catalog' => [
+
+        /*
+         * Where product, vessel and port images live.
+         *
+         * Separate from `kaiki.branding.uploads.disk`, which defaults to
+         * `local` on purpose: a brand asset may be served through a signed URL
+         * (SEC-13), while a catalogue photo is a public marketing image that
+         * `GET /api/v1/products` hands to a third-party page as a plain URL.
+         *
+         * **The panel writes to this same disk.** Before #36 the two
+         * `FileUpload` fields in `PortResource` and `VesselResource` used
+         * Filament's default, which follows `FILESYSTEM_DISK=local` — and the
+         * `local` disk cannot produce a URL at all. Reader and writer naming
+         * one config value is what stops the API returning a link to a file
+         * nothing can fetch.
+         */
+        'uploads' => [
+            'disk' => env('KAIKI_CATALOG_DISK', 'public'),
+        ],
+
+        /*
+         * `GET /api/v1/products` and `/products/{uuid}`, from `docs/api.md`
+         * §3.5 and §3.6. Both the server-side answer and the `Cache-Control:
+         * max-age`, for the reason the branding block gives: two numbers mean a
+         * CDN serving something the origin has already forgotten.
+         */
+        'api' => [
+            'cache_ttl_seconds' => 60,
+            'per_page' => 24,
+            'max_per_page' => 100,
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Pricing
     |--------------------------------------------------------------------------
     */

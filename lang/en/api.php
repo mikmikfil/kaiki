@@ -15,6 +15,8 @@ return [
         'not_found' => 'That endpoint does not exist. Check the path and the API version.',
         'method_not_allowed' => 'That endpoint does not accept this HTTP method.',
         'validation_failed' => 'Some of the values sent are not valid. See `details` for the fields.',
+        'unsupported_locale' => 'That language is not supported.',
+        'invalid_cursor' => 'The pagination cursor is not valid.',
         'forbidden' => 'That API key is not allowed to perform this action.',
         'gone' => 'That resource is no longer available.',
         'rate_limited' => 'Too many requests. Slow down and retry after the time in `Retry-After`.',

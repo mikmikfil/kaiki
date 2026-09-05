@@ -49,6 +49,21 @@ final class LocaleResolver
 
     public const QUERY_KEY = 'lang';
 
+    /**
+     * The public API's spelling of the same override (`docs/api.md` §3.1).
+     *
+     * Two keys rather than one because they are two contracts with two
+     * audiences and neither may be renamed: `?lang=` is in operators' own links
+     * and in the panel's language switcher, and `?locale=` is what §3.1 and the
+     * `LocaleQuery` parameter promise every API client — the WordPress plugin
+     * passes it when WPML has already decided the page language.
+     *
+     * Both are step 1 of the I18N-5 chain, and the API spelling is checked
+     * first so that a request carrying both is answered by the one the machine
+     * client meant.
+     */
+    public const API_QUERY_KEY = 'locale';
+
     public const SESSION_KEY = 'locale';
 
     public function resolve(Request $request): string
@@ -122,6 +137,7 @@ final class LocaleResolver
         $user = $request->user();
 
         return [
+            $request->query(self::API_QUERY_KEY),
             $request->query(self::QUERY_KEY),
             $request->hasSession() ? $request->session()->get(self::SESSION_KEY) : null,
             $user instanceof User ? $user->locale : null,
@@ -142,6 +158,40 @@ final class LocaleResolver
     private function acceptLanguage(Request $request): array
     {
         return array_values(array_filter($request->getLanguages(), 'is_string'));
+    }
+
+    /**
+     * An explicit `?locale=` this tenant will not serve, or null.
+     *
+     * The one asymmetry between the two surfaces, and it is deliberate.
+     * `resolve()` never throws — a stray `?lang=fr` in a link somebody shared
+     * must not break a public page. But `docs/api.md` §3.1 requires
+     * `400 unsupported_locale` for an explicit `?locale=fr`, because *"a typo
+     * must not silently serve Greek to a French page"*: a machine client that
+     * asked for a language and got a different one has no way to notice.
+     *
+     * So the decision lives here, beside the order it belongs to, and
+     * {@see SetLocale} is still the only caller — ADR-0008's *"nothing else may
+     * re-implement fallback"* holds.
+     *
+     * An unmatched `Accept-Language` is deliberately not covered: §3.1 says it
+     * "is **not** an error; it falls through to the tenant default".
+     */
+    public function unsupportedApiLocale(Request $request): ?string
+    {
+        $asked = $request->query(self::API_QUERY_KEY);
+
+        if (! is_string($asked) || $asked === '') {
+            return null;
+        }
+
+        $normalised = $this->normalise($asked);
+
+        if ($normalised !== null && in_array($normalised, self::permitted(), true)) {
+            return null;
+        }
+
+        return $asked;
     }
 
     /**

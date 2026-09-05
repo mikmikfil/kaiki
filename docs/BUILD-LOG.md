@@ -14,11 +14,13 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M1 — Catalogue and availability engine** |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M1 | #15, #16, #17, #47, #23, #18, #19, #20, #22, #21 |
+| M1 | #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (812) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1341) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
+
+> **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
 
 **Open, not blocking, and not mine to close:**
 
@@ -29,6 +31,76 @@ Each entry records the **verification actually run** and its **real output** —
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | **Decided 2026-09-04.** Option A: a tenant-scoped `audit_logs` table, SEC-16's actions plus soft deletes, seven-year retention with the actor as a `user_id`, owner and manager only. Implementation is #53 |
+
+---
+
+## #36 — `GET /products`, `GET /products/{uuid}`, and the `?locale=` no endpoint had
+
+**Files:** `routes/api.php`, `app/Http/Controllers/Api/V1/ProductController.php`, `app/Http/Requests/Api/V1/ProductIndexRequest.php`, `app/Http/Resources/Api/V1/{ProductListResource,ProductDetailResource,AgeBandResource,ExtraResource,MeetingPointResource,VesselSummaryResource,CancellationPolicySummaryResource}.php`, `app/Domain/Catalog/Queries/PublicProductQuery.php`, `app/Domain/Media/Support/ImagePayload.php`, `app/Support/Locale/LocaleResolver.php`, `app/Http/Middleware/{SetLocale,ApiKeyCors}.php`, `app/Support/Format/MoneyFormatter.php`, `app/Models/{Product,Extra}.php`, `config/kaiki.php`, `lang/{el,en}/api.php`, `app/Filament/App/Resources/{PortResource,VesselResource}.php`, `database/factories/VesselFactory.php`, `tests/Support/Api/CatalogRequest.php`, four test files
+
+### The contract promised a query parameter nothing implemented
+
+`docs/api.md` §3.1 fixes the API's locale order as `?locale=` → `Accept-Language` → tenant default, and `LocaleQuery` is listed on **all sixteen operations**. The implementation's query key is `?lang=` — the panel's spelling, which appears in operators' own links and in the language switcher, and which no API client sends.
+
+So step 1 of the chain was unreachable from the API. Every request fell through to `Accept-Language`, including the WordPress plugin passing the locale WPML had already decided, and **nothing failed** — the response was in *a* language, plausibly the right one, and the parameter was simply ignored. #35 shipped `/branding` against the same middleware without hitting it, because no test asked for a locale by the name the contract uses.
+
+Both keys are now step 1 of `LocaleResolver::requested()`, which ADR-0008 requires be the only implementation of the order. `ProductLocaleTest` asserts each of the three steps separately: a chain tested only end to end passes in a world where two steps are wired to the same signal.
+
+### The 400 is asymmetric on purpose, and the resolver still never throws
+
+§3.1 requires `400 unsupported_locale` for an explicit `?locale=fr`. `LocaleResolver::resolve()` deliberately does not throw — a stray `?lang=fr` in a shared link must not break a public page — so the refusal is a separate question the resolver answers (`unsupportedApiLocale()`) and `SetLocale` acts on, for `api/v1` only.
+
+The asymmetry is the requirement, not a compromise: §3.1's reason is *"a typo must not silently serve Greek to a French page"*, and it is about a machine client, which has no way to notice it got a different language than it asked for. A human on a hosted page does. An unmatched `Accept-Language` stays not-an-error on both surfaces, exactly as §3.1 says.
+
+### `Vary` was being overwritten, and only a CDN would ever have shown it
+
+§3.1 also requires `Content-Language` and `Vary: Accept-Language, Origin, X-Kaiki-Key` on every response. Neither existed. `Vary` is the load-bearing one — without it a shared cache serves one operator's Greek payload to another operator's English page.
+
+`ApiKeyCors` is prepended globally, which makes it the **outermost** middleware and therefore the last to touch the response on the way out. It was calling `set('Vary', 'Origin')`, so anything added further in was already being discarded. Both sides now merge. The failure this would have produced appears only behind a CDN, which is to say only in production.
+
+### A test that omits `Accept-Language` is not testing what it looks like
+
+Asserting the tenant-default step needed an **empty** `Accept-Language` header, not an absent one. Symfony's `Request::create()` — which every Laravel test request goes through — defaults `HTTP_ACCEPT_LANGUAGE` to `en-us,en;q=0.5`. A test that simply leaves the header off is testing step 2 in English while appearing to test step 3, and passes without the tenant default ever being consulted.
+
+### The filters do not validate, and that is WGT-6 rather than laxity
+
+An unknown `category` returns an **empty list**. The `data-category` an operator wrote into their page outlives the products it named, and a red error where the trips used to be is worse than an empty widget.
+
+The implementation detail that matters: the value reaches the `where` as a plain string. Mapping onto `ProductCategory` first and dropping what does not fit would silently **widen** the result to the whole catalogue — the one answer that is certainly wrong, and the one that looks like it works. `mode` and `vessel` follow the same rule; another operator's vessel uuid is an empty 200, because a 404 there is a cross-tenant probe (SEC-2).
+
+### A malformed cursor is the only query-string refusal
+
+`per_page` above the maximum is clamped and not rejected (§3.5), and clamped at the bottom too — `?per_page=0` has no useful reading and a paginator handed a zero throws. A cursor cannot be clamped: Laravel treats an undecodable one as *no cursor* and serves page one, so a sync job losing half a catalogue reports a clean run. `Cursor::fromEncoded()` returning null is exactly §3.5's "malformed or stale", and it is `400 invalid_cursor`.
+
+`ProductIndexRequest::rules()` is therefore **empty**, which is worth stating because an empty `rules()` on a `FormRequest` reads like an oversight. The first draft validated `per_page` as an integer and `cursor` as `max:512`; both produced **`422 validation_failed`**, and the contract lists no 422 among this operation's responses at all — the only request failure it documents is the 400. They were also the wrong answers: `?per_page=abc` reads as "no preference" and takes the default, and a 600-character cursor is not a length violation but a value that cannot have come from `pagination.next_cursor`, which is what `invalid_cursor` means. Every parameter is read through an accessor that states what it does with a value it cannot use.
+
+### Two `??` chains kept their single owner
+
+`ExtraResource` wraps an `OfferedExtra`, never an `Extra`. The value object owns the per-product override resolution — including the tri-state `is_required`, where `false` must beat the extra's `true` — and a resource reading the model directly would publish the tenant-wide price on a product that charges something else. `Product::effectiveCancellationPolicy()` likewise stays the only place the tenant-default fallback is written.
+
+### `booking_window` is a projection, and the eager load is narrowed for it
+
+`min_lead_time_hours` and `max_advance_days` are per rate plan and vary by season, so one product-level pair is necessarily a projection. The contract records the rule in the absence of an ADR — the strictest value across **active** plans — so a client never offers a date the booking endpoint rejects. The relation is loaded through `->active()` rather than whole: an inactive plan tightening a window the operator switched off is the bug this shape prevents, and the test's inactive plan is 999 hours and one day so that counting it would be unmissable.
+
+### Not decided here
+
+`docs/api.md` §9 item 6 — the advisory `from_price_cents` per age band — is **open**, a product-owner choice due before M3. The field is optional in the schema, so omitting it is contract-legal, and `CLAUDE.md` makes an undecided question a hard stop. The substance of the decision is that an advisory band price is a **second pricing surface** and only `/price-quote` binds; two numbers that can disagree in front of a guest is a support incident.
+
+### Two defects found on the way
+
+1. **Panel image uploads were unreachable by URL.** `PortResource` and `VesselResource` upload through Filament's default disk, which follows `FILESYSTEM_DISK=local` — and the `local` disk cannot produce a URL at all. Every image the panel had accepted would have come back as nothing from this endpoint, and `Storage::url()` throws rather than returning null. Reader and writer now name one value, `kaiki.catalog.uploads.disk`, and `ImagePayload` degrades to no-image rather than 500ing the catalogue if a disk is ever misconfigured again.
+2. **`VesselFactory` capped at six vessels per process.** `unique()->randomElement(self::NAMES)` over six Greek boat names; the seventh died with Faker's *"Maximum retries of 10000 reached"*, an error that names nothing and points at the wrong thing. The numeric suffix already carried the uniqueness, so it now carries all of it. #36 needed forty.
+
+### Deviations from the issue as written
+
+1. **The `{uuid}` segment also accepts a slug.** The issue's acceptance criteria name the uuid only; `ProductIdentifierPath` in the contract says *"the product `uuid`, or its tenant-unique `slug`"*, and the hosted page and WordPress permalink resolve with the slug. The contract is the authority (§10.5).
+2. **`mode` and `vessel` filters, and cursor pagination, are implemented.** None are in the issue's criteria; all three are in the contract for this operation.
+3. **The JSON field is `from_price_cents`, not `price_from_cents`.** The issue used the column name. `ProductSummary` uses `from_price_cents`, and the column stays `products.price_from_cents`.
+4. **The locale, `Content-Language` and `Vary` work is cross-cutting** and changes `/branding` as well. It is conformance to a contract already written rather than a contract change, so `docs/api.md` is untouched — but it is larger than "this endpoint", and it is called out here for that reason.
+
+### Verification
+
+`composer lint` (Pint, passed), `composer stan` (PHPStan level 6 + Larastan, **no errors**), `composer i18n:check` (154 passed), `./vendor/bin/pest` — **1341 passed, 1 skipped** (the mysql-tagged concurrency test, ADR-0015). The ENV-28 drift gate reports **4 of 18 contract operations built**, up from 2, with the security schemes matching and no route resolving by database id. CI-only as always: the MySQL schema snapshot, `migrate-from-zero`, and `app/Domain` coverage.
 
 ---
 

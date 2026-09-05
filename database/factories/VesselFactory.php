@@ -42,7 +42,13 @@ class VesselFactory extends Factory
             // Unique per tenant (TEN-6), so the suffix stops a factory that
             // builds two vessels for one tenant from hitting the unique index
             // on a name collision it never asked for.
-            'name' => $this->faker->unique()->randomElement(self::NAMES) . ' ' . $this->faker->numberBetween(1, 999),
+            //
+            // The **suffix** carries the uniqueness, not the name. An earlier
+            // version wrapped `randomElement` in `unique()`, which caps the
+            // factory at six vessels per process — there are six names — and
+            // the seventh dies with Faker's "Maximum retries of 10000 reached"
+            // rather than anything that names a boat. #36 needed forty.
+            'name' => $this->faker->randomElement(self::NAMES) . ' ' . $this->faker->unique()->numberBetween(1, 99999),
             'type' => $this->faker->randomElement(VesselType::cases()),
             'status' => VesselStatus::Active,
             'registration_number' => 'NP ' . $this->faker->numberBetween(1000, 9999),
