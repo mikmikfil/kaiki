@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:71984891264f1bf913a9aa551595203b28cc93681b98e6e806db685f1292eeee
+-- migrations-fingerprint: sha256:ef870c96a50856e0918130e7515717c3fb99ef3ea9a9f746277816a578750dcf
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -60,6 +60,27 @@ CREATE TABLE `api_keys` (
   KEY `api_keys_tenant_type_idx` (`tenant_id`,`type`,`revoked_at`),
   CONSTRAINT `api_keys_created_by_user_id_foreign` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `api_keys_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `audit_logs`;
+CREATE TABLE `audit_logs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `user_id` bigint unsigned DEFAULT NULL,
+  `action` varchar(48) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `subject_type` varchar(96) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `subject_id` bigint unsigned DEFAULT NULL,
+  `subject_label` varchar(191) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `reason` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `context` json NOT NULL,
+  `ip_address` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `audit_logs_user_id_foreign` (`user_id`),
+  KEY `audit_logs_tenant_created_idx` (`tenant_id`,`created_at`),
+  KEY `audit_logs_tenant_actor_idx` (`tenant_id`,`user_id`,`created_at`),
+  KEY `audit_logs_tenant_subject_idx` (`tenant_id`,`subject_type`,`subject_id`),
+  CONSTRAINT `audit_logs_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `audit_logs_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `brand_profiles`;
 CREATE TABLE `brand_profiles` (
@@ -750,22 +771,23 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (3,'0001_01_01_0000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (4,'0001_01_01_000003_create_role_assignments_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (5,'0001_01_01_000004_create_api_keys_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (6,'0001_01_01_000005_create_tenant_domains_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (7,'2026_09_02_000009_create_vat_rates_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (8,'2026_09_02_000010_create_brand_profiles_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (9,'2026_09_02_000011_create_ports_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (10,'2026_09_02_000012_create_vessels_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (11,'2026_09_02_000013_create_cancellation_policies_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (12,'2026_09_02_000014_create_cancellation_policy_tiers_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (13,'2026_09_02_000015_create_products_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (14,'2026_09_02_000016_create_age_bands_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (15,'2026_09_02_000017_create_seasons_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (16,'2026_09_02_000018_create_season_date_ranges_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (17,'2026_09_02_000019_create_rate_plans_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (18,'2026_09_02_000020_create_rate_plan_prices_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (19,'2026_09_02_000021_create_extras_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (20,'2026_09_02_000022_create_product_extra_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (21,'2026_09_02_000023_create_schedule_rules_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (22,'2026_09_02_000024_create_departures_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (23,'2026_09_02_000025_create_ical_feeds_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (24,'2026_09_02_000026_create_ical_sources_table',1);
-INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (25,'2026_09_02_000027_create_vessel_blocks_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (7,'2026_09_02_000009_create_audit_logs_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (8,'2026_09_02_000010_create_vat_rates_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (9,'2026_09_02_000011_create_brand_profiles_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (10,'2026_09_02_000012_create_ports_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (11,'2026_09_02_000013_create_vessels_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (12,'2026_09_02_000014_create_cancellation_policies_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (13,'2026_09_02_000015_create_cancellation_policy_tiers_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (14,'2026_09_02_000016_create_seasons_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (15,'2026_09_02_000017_create_season_date_ranges_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (16,'2026_09_02_000018_create_products_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (17,'2026_09_02_000019_create_age_bands_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (18,'2026_09_02_000020_create_rate_plans_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (19,'2026_09_02_000021_create_rate_plan_prices_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (20,'2026_09_02_000022_create_extras_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (21,'2026_09_02_000023_create_product_extra_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (22,'2026_09_02_000024_create_schedule_rules_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (23,'2026_09_02_000025_create_departures_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (24,'2026_09_02_000026_create_ical_feeds_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (25,'2026_09_02_000027_create_ical_sources_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (26,'2026_09_02_000028_create_vessel_blocks_table',1);

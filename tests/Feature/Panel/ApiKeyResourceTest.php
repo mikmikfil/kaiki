@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Enums\ApiKeyType;
+use App\Enums\AuditAction;
 use App\Enums\Role;
 use App\Filament\App\Resources\ApiKeyResource\Pages\ListApiKeys;
 use App\Models\ApiKey;
+use App\Models\AuditLog;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Tenancy;
@@ -152,8 +154,12 @@ it('rejects a publishable key given a scope its type may not hold', function ():
     expect(ApiKey::query()->count())->toBe(0);
 })->group('fast');
 
-it('revokes a key, keeps the row, and logs the actor', function (): void {
-    $log = Log::spy();
+it('revokes a key, keeps the row, and records the actor in the audit trail', function (): void {
+    // The audit write is a queued job (ADR-0025), so asserting the row needs it
+    // to run inline. `sync` is the test environment's default and is **not** the
+    // MySQL + Redis job's, where ENV-1 uses a real queue — inheriting it is how
+    // this passes locally and fails on the machine that matters.
+    config()->set('queue.default', 'sync');
 
     $owner = OperatorUser::withRole(Role::Owner);
 
@@ -171,11 +177,20 @@ it('revokes a key, keeps the row, and logs the actor', function (): void {
     expect($key->refresh()->revoked_at)->not->toBeNull()
         ->and(ApiKey::query()->count())->toBe(1);
 
-    // SEC-16: actor and timestamp. The timestamp is the log record's own.
-    $log->shouldHaveReceived('info')
-        ->withArgs(fn (string $message, array $context): bool => $message === 'api_key.revoked'
-            && $context['actor_user_id'] === $owner->getKey()
-            && $context['api_key_prefix'] === $key->prefix);
+    // SEC-16, and the assertion this test used to make is the reason ADR-0025
+    // exists. #10 satisfied the requirement with a `Log::info` and said in its
+    // own review that the defence was temporary: a log line is not queryable,
+    // not visible to the operator, has no retention policy and captures no
+    // reason. It is now a row the operator can read for themselves — which
+    // matters most on exactly this action, because a leaked key is the incident
+    // they need to investigate without opening a support ticket.
+    $row = Tenancy::forTenant(tenantOf($owner), fn (): AuditLog => AuditLog::query()->firstOrFail());
+
+    expect($row->action)->toBe(AuditAction::ApiKeyRevoked)
+        ->and($row->user_id)->toBe($owner->getKey())
+        // SEC-3: the prefix identifies the key without being one.
+        ->and($row->subject_label)->toBe($key->prefix)
+        ->and($row->created_at)->not->toBeNull();
 })->group('fast');
 
 it('offers no revoke action on an already revoked key', function (): void {

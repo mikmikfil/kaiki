@@ -230,17 +230,13 @@ class ApiKeyResource extends Resource
                     ->visible(fn (ApiKey $record): bool => ! $record->isRevoked())
                     ->authorize(fn (ApiKey $record): bool => Auth::user()?->can('update', $record) ?? false)
                     ->action(function (ApiKey $record): void {
+                        // The audit trail SEC-16 asks for is now a real row.
+                        // #10 shipped a structured `Log::info` here and said in
+                        // its own review that the defence was temporary; ADR-0025
+                        // decided the table, and `RevokeApiKey` fires the event —
+                        // so the API and the importer are audited too, which a
+                        // line in this closure never would have been.
                         app(RevokeApiKey::class)($record);
-
-                        // The audit trail SEC-16 asks for. There is no audit
-                        // table in the data model and inventing one is a DECIDE
-                        // (CLAUDE.md), so this is a structured line carrying the
-                        // actor and the key — never the hash, never a plaintext.
-                        Log::info('api_key.revoked', [
-                            'api_key_id' => $record->getKey(),
-                            'api_key_prefix' => $record->prefix,
-                            'actor_user_id' => Auth::id(),
-                        ]);
 
                         Notification::make()
                             ->title(__('api_keys.actions.revoke.done', ['name' => $record->name]))

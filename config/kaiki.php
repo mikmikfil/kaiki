@@ -224,6 +224,44 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Audit trail
+    |--------------------------------------------------------------------------
+    */
+
+    'audit' => [
+
+        /*
+         * How long an audit row is kept, in days (ADR-0025 §3).
+         *
+         * **2555 — seven years, not ADR-0012's ninety.** The two requirements
+         * pull in opposite directions and both are real: Greek bookkeeping
+         * wants records available for years, and a trail that purges at ninety
+         * days cannot answer a dispute about last season, which is the dispute
+         * people actually have.
+         *
+         * They are reconciled by storing the actor as a `user_id` and never a
+         * name. A GDPR erasure anonymises the user row; the trail keeps its
+         * timestamps and its causality and simply stops identifying a person.
+         * The legal basis for keeping it is the operator's own bookkeeping and
+         * dispute-resolution obligation, not consent.
+         *
+         * Env-settable so a staging box can keep less, and platform-wide rather
+         * than per tenant: retention is an obligation, not a preference.
+         */
+        'retention_days' => (int) env('KAIKI_AUDIT_RETENTION_DAYS', 2555),
+
+        /*
+         * When the nightly purge runs, platform-default timezone.
+         *
+         * Deliberately not the same minute as the departure generator: two jobs
+         * that both take a while should not contend for the same connection
+         * pool at 03:15 on a single Hetzner box.
+         */
+        'purge_at' => env('KAIKI_AUDIT_PURGE_AT', '04:10'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Catalogue
     |--------------------------------------------------------------------------
     */

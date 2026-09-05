@@ -37,6 +37,10 @@ function matrix(): array
         'view_guest_documents' => [Capability::ViewGuestDocuments, [Role::Owner, Role::Manager]],
         'manage_branding' => [Capability::ManageBranding, [Role::Owner, Role::Manager]],
         'export_data' => [Capability::ExportData, [Role::Owner, Role::Manager]],
+        // ADR-0025 §4. Crew are read-only inside a departure window and an
+        // audit trail is neither — the same line the matrix draws for
+        // financials and guest documents.
+        'view_audit_log' => [Capability::ViewAuditLog, [Role::Owner, Role::Manager]],
 
         // Crew too: what someone needs standing on the quay.
         'view_departures' => [Capability::ViewDepartures, [Role::Owner, Role::Manager, Role::Crew]],
@@ -101,7 +105,10 @@ it('gives crew no pricing, no financials and no guest documents', function (): v
         ->and($crew->hasCapability(Capability::ViewFinancials))->toBeFalse()
         ->and($crew->hasCapability(Capability::ViewGuestDocuments))->toBeFalse()
         ->and($crew->hasCapability(Capability::ManageCatalogue))->toBeFalse()
-        ->and($crew->hasCapability(Capability::ExportData))->toBeFalse();
+        ->and($crew->hasCapability(Capability::ExportData))->toBeFalse()
+        // The trail records who deleted what. A crew member is one of the
+        // people it records, which is its own argument for them not reading it.
+        ->and($crew->hasCapability(Capability::ViewAuditLog))->toBeFalse();
 })->group('fast');
 
 it('refuses a manager billing, API keys and gateway credentials', function (): void {

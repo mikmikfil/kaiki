@@ -116,9 +116,19 @@ it('affects zero rows when updating another tenant row by key', function (string
     $rowOfB = TenantIsolationHarness::makeFor($b, $class);
     $before = $rowOfB->getAttributes();
 
+    // `updated_at` where the model has one, and `created_at` where it does not.
+    //
+    // Not every tenant-owned model is updatable: `audit_logs` is append-only
+    // (ADR-0025) and its migration deliberately omits `updated_at`, so the
+    // obvious column produced *"no such column: updated_at"* — a failure that
+    // reads as a broken gate rather than as this model being different. The
+    // column being written is irrelevant to what is under test; what matters is
+    // that a write scoped to A's tenancy cannot reach B's row.
+    $column = $class::UPDATED_AT ?? $class::CREATED_AT;
+
     $affected = Tenancy::forTenant($a, static fn (): int => $class::query()
         ->whereKey($rowOfB->getKey())
-        ->update(['updated_at' => now()->addYear()]));
+        ->update([$column => now()->addYear()]));
 
     expect($affected)->toBe(0);
 
@@ -129,7 +139,7 @@ it('affects zero rows when updating another tenant row by key', function (string
         ->findOrFail($rowOfB->getKey())
         ->getAttributes());
 
-    expect($after['updated_at'])->toBe($before['updated_at']);
+    expect($after[$column])->toBe($before[$column]);
 })->with('tenant owned models')->group('tenancy', 'fast');
 
 it('affects zero rows when deleting another tenant row by key', function (string $class): void {
