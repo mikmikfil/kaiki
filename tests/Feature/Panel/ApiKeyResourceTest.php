@@ -155,6 +155,12 @@ it('rejects a publishable key given a scope its type may not hold', function ():
 })->group('fast');
 
 it('revokes a key, keeps the row, and records the actor in the audit trail', function (): void {
+    // The audit write is a queued job (ADR-0025), so asserting the row needs it
+    // to run inline. `sync` is the test environment's default and is **not** the
+    // MySQL + Redis job's, where ENV-1 uses a real queue — inheriting it is how
+    // this passes locally and fails on the machine that matters.
+    config()->set('queue.default', 'sync');
+
     $owner = OperatorUser::withRole(Role::Owner);
 
     $key = Tenancy::forTenant(

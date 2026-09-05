@@ -38,9 +38,26 @@ use function Pest\Laravel\artisan;
 |
 */
 
-/** Run a callback as an owner of a fresh tenant, with the queue faked. */
+/**
+ * Run a callback as an owner of a fresh tenant, with the audit write inline.
+ *
+ * ## `queue.default => sync`, stated rather than inherited
+ *
+ * The write is a queued job on purpose, so a test that asserts the **row**
+ * needs the job to have run. Locally that happened by accident — the test
+ * environment's queue is `sync` — and it stopped happening in the one CI job
+ * that uses a real one: ENV-1 puts Redis in the `Pest on MySQL 8 + Redis` job,
+ * where the job was enqueued, never executed, and every row assertion failed
+ * while `writes nothing for an ordinary edit` kept passing.
+ *
+ * Two tests depending on an ambient driver is the kind of green that goes red
+ * on the machine that matters, so it is set here. The queueing itself is
+ * asserted separately, by the `Queue::fake()` test below.
+ */
 function asOperator(callable $callback): mixed
 {
+    config()->set('queue.default', 'sync');
+
     $tenant = Tenant::factory()->create();
     $user = User::factory()->for($tenant)->create();
 
@@ -173,6 +190,8 @@ it('writes nothing for an ordinary edit', function (): void {
 })->group('fast');
 
 it('queues the write so a failing trail cannot fail the delete', function (): void {
+    // Faked **before** `asOperator` sets the sync driver, so this test sees the
+    // dispatch rather than the execution — which is the half it is about.
     Queue::fake();
 
     asOperator(function (): void {
