@@ -183,6 +183,17 @@ return [
         'manual' => ['label' => 'Χειροκίνητη'],
     ],
 
+    'audit_action' => [
+        'vessel.deleted' => ['label' => 'Διαγραφή σκάφους'],
+        'product.deleted' => ['label' => 'Διαγραφή εκδρομής'],
+        'departure.cancelled' => ['label' => 'Ακύρωση αναχώρησης'],
+        'booking.refunded' => ['label' => 'Επιστροφή χρημάτων κράτησης'],
+        'gdpr.purged' => ['label' => 'Διαγραφή προσωπικών δεδομένων'],
+        'api_key.revoked' => ['label' => 'Ανάκληση κλειδιού API'],
+        'record.deleted' => ['label' => 'Διαγραφή εγγραφής'],
+        'override.applied' => ['label' => 'Εφαρμογή παράκαμψης'],
+    ],
+
     'availability_rejection' => [
         'product_not_active' => ['label' => 'Η εκδρομή δεν είναι διαθέσιμη αυτή τη στιγμή.'],
         'vessel_not_active' => ['label' => 'Το σκάφος δεν είναι διαθέσιμο αυτή τη στιγμή.'],

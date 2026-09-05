@@ -1628,6 +1628,39 @@ Indexes: `gdpr_req_tenant_email_idx` (`tenant_id`, `subject_email`); `gdpr_req_t
 | `gdpr_requests` | Auditable, time-boxed subject access and erasure workflows (§10). |
 ---
 
+### 2.8 Audit trail
+
+Added by **#53**, implementing [ADR-0025](adr/0025-operator-audit-log.md) Option A (spec SEC-16). Item **9** in the §6 order — first in M1, ahead of every table whose resource ships a destructive action.
+
+#### `audit_logs`
+
+What the operator's team did that cannot be undone. **Append-only**: never updated, never deleted by application code. ADR-0025's sentence is the whole rule — *"an audit row that can be edited is not an audit row."*
+
+| column | type | null | default | notes |
+|---|---|---|---|---|
+| `id` | bigint unsigned AI | no | — | |
+| `tenant_id` | bigint unsigned | no | — | FK `cascadeOnDelete` |
+| `user_id` | bigint unsigned | yes | null | FK → `users.id` **`nullOnDelete`** — a system action has no actor, and a force-deleted user must not take the trail with them |
+| `action` | varchar(48) | no | — | `App\Enums\AuditAction`, a string column and never a MySQL `ENUM` (CNV-6) |
+| `subject_type` | varchar(96) | yes | null | the model's morph alias or short class name — **never the FQCN**, which cannot be refactored across a seven-year retention |
+| `subject_id` | bigint unsigned | yes | null | **no foreign key** — see the note below |
+| `subject_label` | varchar(191) | yes | null | what the subject was called at the time, captured when the event fires |
+| `reason` | varchar(500) | yes | null | SEC-16's *"reason where applicable"*, in the operator's own words |
+| `context` | json | no | — | small, machine-readable, and **no personal data** (ADR-0025 §3, enforced by a scanner test). NOT NULL with no DB default; the default lives on the model |
+| `ip_address` | varchar(45) | yes | null | 45 = IPv6 with an IPv4 tail. Null for a console action |
+| `created_at` | timestamp | yes | null | **and no `updated_at`** — the column is absent so the accident is impossible, and the model throws so the deliberate attempt is too |
+
+**Indexes.** `audit_logs_tenant_created_idx` (`tenant_id`, `created_at`) — the trail as an operator reads it. `audit_logs_tenant_actor_idx` (`tenant_id`, `user_id`, `created_at`) — the actor filter. `audit_logs_tenant_subject_idx` (`tenant_id`, `subject_type`, `subject_id`) — *"what happened to this vessel"*, which is where an incident starts. `tenant_id` leads all three (§1.2). There is deliberately **no fourth index on `created_at` alone**: the only query that wants one is the nightly retention purge, which is platform-wide rather than tenant-led, and §6 puts measured index additions in M8.
+
+**Notes.**
+
+- **`subject_type`/`subject_id` carry no FK**, following the `vessel_blocks.booking_id` precedent. An audit row must outlive its subject: the subject is usually soft-deleted — half these rows *are* deletions — may be force-deleted, and may be from a table that does not exist until M2. A foreign key would either refuse the delete the row exists to record or cascade away the record of it.
+- **Retention is seven years** (`config('kaiki.audit.retention_days')`, default 2555), not [ADR-0012](adr/0012-guest-document-encryption-and-retention.md)'s ninety days. Greek bookkeeping obligations want records available for years, and a trail that purges at ninety days cannot answer a dispute about last season. It is reconciled with GDPR by storing the actor as a `user_id` and never a name: an erasure anonymises the user row, and the trail keeps its timestamps and causality while no longer identifying a person. The legal basis is the operator's own bookkeeping and dispute-resolution obligation, not consent.
+- **Scope is not every state change.** SEC-16's five named actions, plus every soft delete and every reasoned override. The complete-history option was considered and rejected: most rows would never be read, the table would grow without bound, and every extra row is another row naming a person that retention and erasure have to account for.
+- **Owner and manager read it; crew do not** (`Capability::ViewAuditLog`, TEN-8). Platform-side audit of super-admin impersonation (ARC-21) is M7 and is explicitly *not* this table.
+
+---
+
 ## 3. JSON column shapes
 
 Every JSON column in the schema is listed here with an example and a field table. Rules that apply to all of them:
@@ -2363,40 +2396,41 @@ Rules that produce this order:
 
 ### M1 — Catalog & availability engine
 
-9. `vat_rates` — **no FKs at all**, and **platform-owned** (no `tenant_id`). It is first in M1 because `products` (17) and `extras` (21) both hold an FK to it, and the rule above forbids adding one later. Added in #47; entries 10–27 were renumbered and the three already-committed migration files renamed to match, so the numeric suffix keeps meaning the item number here. #22 then shipped `extras` and `product_extra` as 19 and 20; #21 renamed all four files so that `rate_plans` and `rate_plan_prices` take 19 and 20 and the extras pair takes 21 and 22, as listed. Nothing depends on the relative order of those two pairs — neither holds an FK to the other — so the rename is bookkeeping, but the suffix is only useful while it is true.
-10. `brand_profiles` (FK → `tenants`)
-11. `ports` (FK → `tenants`)
-12. `vessels` (FK → `tenants`, `ports`)
-13. `cancellation_policies` (FK → `tenants`)
-14. `cancellation_policy_tiers` (FK → `tenants`, `cancellation_policies`)
-15. `seasons` (FK → `tenants`)
-16. `season_date_ranges` (FK → `tenants`, `seasons`)
-17. `products` (FK → `tenants`, `vessels`, `ports`, `cancellation_policies`, `vat_rates`) — **must come after 9 and 12–14**
-18. `age_bands` (FK → `tenants`, `products`)
-19. `rate_plans` (FK → `tenants`, `products`, `seasons`)
-20. `rate_plan_prices` (FK → `tenants`, `rate_plans`, `age_bands`)
-21. `extras` (FK → `tenants`, `vat_rates`)
-22. `product_extra` (FK → `tenants`, `products`, `extras`)
-23. `schedule_rules` (FK → `tenants`, `products`, `vessels`)
-24. `departures` (FK → `tenants`, `products`, `vessels`, `schedule_rules`, `users`)
-25. `ical_feeds` (FK → `tenants`, `vessels`) — **pulled forward from M5** so that…
-26. `ical_sources` (FK → `tenants`, `vessels`) — …
-27. `vessel_blocks` (FK → `tenants`, `vessels`, `ical_sources`, `users`) — …**its `ical_source_id` FK resolves now.** `vessel_blocks.booking_id` is a plain indexed `unsignedBigInteger` **with no FK**, because `bookings` does not exist until M2 and we refuse to add an FK later. Integrity is enforced by the application and the nightly reconciler; cleanup on booking deletion is explicit in the GDPR purge job. The iCal *sync code* still ships in M5 — only the two tables move.
+9. `audit_logs` (FK → `tenants`, `users`) — **first in M1** ([ADR-0025](adr/0025-operator-audit-log.md), §2.9). Its only foreign keys are to M0 tables, so it could sit anywhere; it is first because the ADR's consequence is that the trail exists *"before any further resource ships a destructive action"*, and a position in this order is how that stops being an intention. `subject_type`/`subject_id` carry **no FK** — the subject is usually deleted by the time the row is read, may be force-deleted, and may be from a table that does not exist until M2 (the `vessel_blocks.booking_id` precedent).
+10. `vat_rates` — **no FKs at all**, and **platform-owned** (no `tenant_id`). It comes before `products` (18) and `extras` (22), which both hold an FK to it, and the rule above forbids adding one later. Added in #47. The M1 files have been renumbered twice since: #21 settled the rate-plan and extras pairs, and #53 inserted `audit_logs` at 9 and shifted everything below it, renaming every M1 migration file so the numeric suffix means the item number again. The suffix is only useful while it is true.
+11. `brand_profiles` (FK → `tenants`)
+12. `ports` (FK → `tenants`)
+13. `vessels` (FK → `tenants`, `ports`)
+14. `cancellation_policies` (FK → `tenants`)
+15. `cancellation_policy_tiers` (FK → `tenants`, `cancellation_policies`)
+16. `seasons` (FK → `tenants`)
+17. `season_date_ranges` (FK → `tenants`, `seasons`)
+18. `products` (FK → `tenants`, `vessels`, `ports`, `cancellation_policies`, `vat_rates`) — **must come after 10 and 13–15**
+19. `age_bands` (FK → `tenants`, `products`)
+20. `rate_plans` (FK → `tenants`, `products`, `seasons`)
+21. `rate_plan_prices` (FK → `tenants`, `rate_plans`, `age_bands`)
+22. `extras` (FK → `tenants`, `vat_rates`)
+23. `product_extra` (FK → `tenants`, `products`, `extras`)
+24. `schedule_rules` (FK → `tenants`, `products`, `vessels`)
+25. `departures` (FK → `tenants`, `products`, `vessels`, `schedule_rules`, `users`)
+26. `ical_feeds` (FK → `tenants`, `vessels`) — **pulled forward from M5** so that…
+27. `ical_sources` (FK → `tenants`, `vessels`) — …
+28. `vessel_blocks` (FK → `tenants`, `vessels`, `ical_sources`, `users`) — …**its `ical_source_id` FK resolves now.** `vessel_blocks.booking_id` is a plain indexed `unsignedBigInteger` **with no FK**, because `bookings` does not exist until M2 and we refuse to add an FK later. Integrity is enforced by the application and the nightly reconciler; cleanup on booking deletion is explicit in the GDPR purge job. The iCal *sync code* still ships in M5 — only the two tables move.
 
 ### M2 — Booking & payments
 
-28. `integration_credentials` (FK → `tenants`)
-29. `vouchers` (FK → `tenants`, `users`) — **before `bookings`**, so `bookings.voucher_id` can be a real FK. `vouchers.issued_for_booking_id` is the FK-less side of the cycle.
-30. `bookings` (FK → `tenants`, `products`, `vessels`, `departures`, `vouchers`, `users`)
-31. `booking_guests` (FK → `tenants`, `bookings`, `age_bands`, `users`)
-31. `booking_extras` (FK → `tenants`, `bookings`, `extras`)
-32. `voucher_redemptions` (FK → `tenants`, `vouchers`, `bookings`)
-33. `payments` (FK → `tenants`, `bookings`, self, `users`)
-34. `gateway_webhook_events` (FK → `payments`; nullable `tenant_id`)
-35. `quotes` (FK → `tenants`, `bookings`, `users`)
-36. `quote_line_items` (FK → `tenants`, `quotes`)
-37. `enquiries` (FK → `tenants`, `products`, `bookings`, `users`)
-38. `notification_logs` (FK → `tenants`, `bookings`, `departures`)
+29. `integration_credentials` (FK → `tenants`)
+30. `vouchers` (FK → `tenants`, `users`) — **before `bookings`**, so `bookings.voucher_id` can be a real FK. `vouchers.issued_for_booking_id` is the FK-less side of the cycle.
+31. `bookings` (FK → `tenants`, `products`, `vessels`, `departures`, `vouchers`, `users`)
+32. `booking_guests` (FK → `tenants`, `bookings`, `age_bands`, `users`)
+33. `booking_extras` (FK → `tenants`, `bookings`, `extras`)
+34. `voucher_redemptions` (FK → `tenants`, `vouchers`, `bookings`)
+35. `payments` (FK → `tenants`, `bookings`, self, `users`)
+36. `gateway_webhook_events` (FK → `payments`; nullable `tenant_id`)
+37. `quotes` (FK → `tenants`, `bookings`, `users`)
+38. `quote_line_items` (FK → `tenants`, `quotes`)
+39. `enquiries` (FK → `tenants`, `products`, `bookings`, `users`)
+40. `notification_logs` (FK → `tenants`, `bookings`, `departures`)
 
 ### M3 — Widget & hosted pages
 
@@ -2408,22 +2442,22 @@ No new tables. The plugin is a pure API client.
 
 ### M5 — Operations
 
-39. `webhook_endpoints` (FK → `tenants`)
-40. `webhook_deliveries` (FK → `tenants`, `webhook_endpoints`)
-41. `manifest_exports` (FK → `tenants`, `departures`, `bookings`, `users`)
+41. `webhook_endpoints` (FK → `tenants`)
+42. `webhook_deliveries` (FK → `tenants`, `webhook_endpoints`)
+43. `manifest_exports` (FK → `tenants`, `departures`, `bookings`, `users`)
    *(`ical_feeds`, `ical_sources`, `vessel_blocks` already exist from M1.)*
 
 ### M6 — Greek compliance
 
-42. `invoices` (FK → `tenants`, `bookings`, self, `users`)
-43. `charter_agreements` (FK → `tenants`, `bookings`, `users`)
-44. `gdpr_requests` (FK → `tenants`, `users`)
+44. `invoices` (FK → `tenants`, `bookings`, self, `users`)
+45. `charter_agreements` (FK → `tenants`, `bookings`, `users`)
+46. `gdpr_requests` (FK → `tenants`, `users`)
 
 ### M7 — SaaS
 
-45. `subscriptions`, `subscription_items` *(Cashier — tables only; the `tenants` columns landed in M0)*
-46. `import_jobs` (FK → `tenants`, `users`)
-47. `import_job_rows` (FK → `tenants`, `import_jobs`)
+47. `subscriptions`, `subscription_items` *(Cashier — tables only; the `tenants` columns landed in M0)*
+48. `import_jobs` (FK → `tenants`, `users`)
+49. `import_job_rows` (FK → `tenants`, `import_jobs`)
 
 ### M8 — Launch hardening
 

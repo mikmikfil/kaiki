@@ -194,6 +194,17 @@ return [
         'manual' => ['label' => 'Manual'],
     ],
 
+    'audit_action' => [
+        'vessel.deleted' => ['label' => 'Boat deleted'],
+        'product.deleted' => ['label' => 'Trip deleted'],
+        'departure.cancelled' => ['label' => 'Departure cancelled'],
+        'booking.refunded' => ['label' => 'Booking refunded'],
+        'gdpr.purged' => ['label' => 'Personal data purged'],
+        'api_key.revoked' => ['label' => 'API key revoked'],
+        'record.deleted' => ['label' => 'Record deleted'],
+        'override.applied' => ['label' => 'Override applied'],
+    ],
+
     'availability_rejection' => [
         'product_not_active' => ['label' => 'This trip is not available at the moment.'],
         'vessel_not_active' => ['label' => 'This boat is not available at the moment.'],

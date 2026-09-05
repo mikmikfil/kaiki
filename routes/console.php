@@ -37,3 +37,30 @@ Schedule::job(new GenerateDeparturesNightly)
     ->withoutOverlapping()
     ->onOneServer()
     ->name('departures:generate-nightly');
+
+/*
+|--------------------------------------------------------------------------
+| Audit retention (ADR-0025 §3, spec SEC-16)
+|--------------------------------------------------------------------------
+|
+| Seven years, not ADR-0012's ninety days, and the reasoning is in the config
+| block: the trail is kept for the operator's own bookkeeping and dispute
+| obligations, and it survives a GDPR erasure because the actor is a `user_id`
+| rather than a name.
+|
+| **One scheduler entry, deliberately.** ADR-0025 asks for this to be written
+| "alongside the ADR-0012 purge rather than as a second scheduler entry" —
+| that purge does not exist yet, because the personal data it removes arrives
+| with `bookings` in M2. When it lands it joins this line rather than adding
+| another: two retention jobs on two different minutes is how one of them stops
+| running and nobody notices for a year.
+|
+| Not 03:15: the departure generator has that minute, and two long jobs
+| contending for one connection pool on a single Hetzner box is avoidable.
+*/
+Schedule::command('audit:purge')
+    ->dailyAt((string) config('kaiki.audit.purge_at', '04:10'))
+    ->timezone((string) config('kaiki.defaults.timezone', 'Europe/Athens'))
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('audit:purge');

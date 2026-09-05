@@ -36,6 +36,17 @@ enum Capability: string
     case ManageBranding = 'manage_branding';
     case ExportData = 'export_data';
 
+    /**
+     * Read the operator's own audit trail (ADR-0025 §4, SEC-16).
+     *
+     * Its own capability rather than a side effect of `ManageStaff` or
+     * `ViewFinancials`, because the ADR asks for *"who can read the trail"* to
+     * be one line in this matrix. A trail readable as a consequence of some
+     * other permission is a trail whose audience changes the next time that
+     * permission is widened.
+     */
+    case ViewAuditLog = 'view_audit_log';
+
     // Crew as well, within the departure window.
     case ViewDepartures = 'view_departures';
     case ViewPaxList = 'view_pax_list';
@@ -66,7 +77,12 @@ enum Capability: string
             self::ViewFinancials,
             self::ViewGuestDocuments,
             self::ManageBranding,
-            self::ExportData => [Role::Owner, Role::Manager],
+            self::ExportData,
+            // ADR-0025 §4: owner and manager, and crew explicitly not. This
+            // matches the matrix for everything else that is money or
+            // account-level — crew are read-only inside a departure window, and
+            // an audit trail is neither.
+            self::ViewAuditLog => [Role::Owner, Role::Manager],
 
             // Crew: read-only, within the window, and nothing beyond what they
             // need standing on the quay with a passenger list.
@@ -90,7 +106,11 @@ enum Capability: string
             self::ViewPaxList,
             self::ViewManifest,
             self::ViewFinancials,
-            self::ViewGuestDocuments => false,
+            self::ViewGuestDocuments,
+            // Reading the trail is a read, so TEN-9's read-only mode must not
+            // refuse it. A lapsed subscription is exactly when an operator
+            // wants to see what their team did.
+            self::ViewAuditLog => false,
             default => true,
         };
     }
