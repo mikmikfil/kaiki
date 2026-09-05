@@ -28,6 +28,20 @@ trait HasTranslatedLabel
         return $this->line('label');
     }
 
+    /**
+     * The label in one named locale, whatever the request's locale is.
+     *
+     * `docs/api.md` §4.1 requires **both** languages in every API error, always
+     * — a guest can hit a refusal mid-locale-switch, and shipping both strings
+     * removes the whole class of "the error came back in the wrong language".
+     * `label()` answers for the current locale only, which is right for a form
+     * and useless for an envelope that has to carry two.
+     */
+    public function labelIn(string $locale): string
+    {
+        return $this->line('label', $locale);
+    }
+
     /** `enums.api_key_type` for `App\Enums\ApiKeyType`. */
     public static function translationNamespace(): string
     {
@@ -61,12 +75,12 @@ trait HasTranslatedLabel
      * rendered those labels. Doing it this way once, here, means the next enum
      * with a dotted value inherits the fix instead of rediscovering it.
      */
-    protected function line(string $key): string
+    protected function line(string $key, ?string $locale = null): string
     {
         $namespace = static::translationNamespace();
 
         /** @var array<string, mixed> $block */
-        $block = (array) trans($namespace);
+        $block = (array) trans($namespace, [], $locale);
 
         $lines = $block[$this->value] ?? null;
 

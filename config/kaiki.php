@@ -344,6 +344,18 @@ return [
     'availability' => [
 
         /*
+         * How long `GET /api/v1/availability` may be cached, in seconds.
+         *
+         * Thirty, from `docs/api.md` §3.6 — deliberately half the catalogue's
+         * sixty. Availability is the one payload that goes stale because
+         * *somebody else bought a seat*, so it carries the shortest window of
+         * any read in the API. WGT-17's in-memory widget cache sits inside it.
+         */
+        'api' => [
+            'cache_ttl_seconds' => 30,
+        ],
+
+        /*
          * The granularity a guest may propose a charter start on.
          *
          * Fifteen minutes is the smallest unit an operator actually schedules

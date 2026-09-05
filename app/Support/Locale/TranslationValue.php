@@ -27,6 +27,41 @@ use App\Rules\TranslatableRequired;
 final class TranslationValue
 {
     /**
+     * One locale's string out of a raw translation array (§3.1).
+     *
+     * For the values that never went through a model accessor — a
+     * `PriceLineData` label, an image's `alt`, a season name read off a
+     * snapshot. The accessor handles the model case and this handles the rest,
+     * with the **same within-locale fallback**: §3.1 says a field missing `en`
+     * returns the `el` value rather than null, and the reverse also holds.
+     *
+     * A plain string passes through, so a column written before a field became
+     * translatable still reads.
+     */
+    public static function resolve(mixed $value, ?string $locale = null): ?string
+    {
+        if (is_string($value)) {
+            return $value === '' ? null : $value;
+        }
+
+        if (! is_array($value)) {
+            return null;
+        }
+
+        $locale ??= app()->getLocale();
+
+        foreach ([$locale, ...array_keys($value)] as $candidate) {
+            $candidate = $value[$candidate] ?? null;
+
+            if (is_string($candidate) && $candidate !== '') {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Is there nothing a reader could see here?
      *
      * `[]` counts, because the translatable **array** columns (`includes`,

@@ -14,10 +14,10 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M1 — Catalogue and availability engine** |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M1 | #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36 |
+| M1 | #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37 — only #53 remains |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1341) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1373) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
@@ -31,6 +31,88 @@ Each entry records the **verification actually run** and its **real output** —
 | Revisit ADR-0023 against the NFR-1 p95 benchmark | benchmark result | end of M2 |
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | **Decided 2026-09-04.** Option A: a tenant-scoped `audit_logs` table, SEC-16's actions plus soft deletes, seven-year retention with the actor as a `user_id`, owner and manager only. Implementation is #53 |
+
+---
+
+## #37 — `GET /availability`, `POST /price-quote`, and the party rule that had to stop existing twice
+
+**Files:** `routes/api.php`, `app/Http/Controllers/Api/V1/{AvailabilityController,PriceQuoteController}.php`, `app/Http/Requests/Api/V1/{AvailabilityRequest,PriceQuoteRequest}.php`, `app/Http/Resources/Api/V1/{AvailabilityDayResource,PriceQuoteResource}.php`, `app/Enums/{AvailabilityDayStatus,WindowUnavailableReason}.php`, `app/Domain/Availability/Support/PartyGuard.php`, `app/Domain/Availability/Actions/CheckSeatAvailability.php`, `app/Data/Availability/{DepartureAvailabilityData,VesselWindowData}.php`, `app/Domain/Catalog/Queries/PublicProductQuery.php`, `app/Http/Responses/ApiExceptionRenderer.php`, `app/Enums/Concerns/HasTranslatedLabel.php`, `app/Support/Locale/TranslationValue.php`, `app/Domain/Media/Support/ImagePayload.php`, `config/kaiki.php`, `docs/api.md`, `lang/{el,en}/{api,pricing}.php`, four test files
+
+This closes the M1 public API. The engine behind both endpoints is #30, #31, #33 and #34; what landed here is the boundary.
+
+### One rule, two callers, and the reason it could not stay where it was
+
+`POST /price-quote` has to answer *"can this party board this departure"* — AVL-23's seat check, AVL-25's certificate check, AVL-26's counted-pax check. All three were private methods inside `CheckSeatAvailability`.
+
+Copying them would have been the obvious move and it is the one that produces a site contradicting itself: a party the calendar offers and the quote refuses, or the reverse, in front of a guest. So they are extracted into `PartyGuard`, which both call.
+
+**The extraction broke a test, and the test was right.** `CheckSeatAvailability` evaluates a *blanket* rejection once per request — the conditions that do not depend on a date — and a first pass had that call the whole guard. Legal capacity depends on who is already aboard a **specific** departure, so evaluating it blanket refused every date in the range and reported `legal_capacity_exceeded` where the honest answer was `not_enough_seats` on the one sailing the guest asked about. `LegalCapacityTest`'s "reports the seat shortage first" case exists precisely because those two codes send a guest to different remedies. `PartyGuard::blanket()` is now a separate, narrower entry point, and its docblock records why.
+
+### Three vocabularies, and the API's is the smallest
+
+The engine speaks `AvailabilityRejection` — fifteen precise reasons, one per rule. The contract fixes two much smaller sets, and the reduction is lossy on purpose.
+
+- **`AvailabilityDayStatus`** (six cases) is what a calendar cell renders. WGT-16's whole point is that `not_operating`, `sold_out` and `past` are three different sentences to a guest, and collapsing them into "unavailable" produces the grey calendar nobody can act on. Note the ranking: **`sold_out` outranks `past`**, because a date with a full morning sailing and an afternoon one past its lead time is a full day, and "sold out" is the reading that sends a guest to another date rather than to another operator.
+- **`WindowUnavailableReason`** (six cases) is a privacy rule wearing an enum. The contract: *"Never names the conflicting booking or guest — a competitor must not be able to read the operator's calendar in detail."* `VesselBusy` and `VesselHeld` are distinct to the engine and both collapse to `vessel_blocked` here, because the difference tells a caller somebody is at the checkout **right now** for a specific boat on a specific afternoon.
+
+`maintenance` and `external_calendar` are in the enum and are not produced yet. They stay so that M5's iCal sync narrows an existing value rather than adding one — a client that has shipped a `switch` should not have to grow a new arm.
+
+### The read path is advisory, and the controller is where somebody would fix that
+
+ADR-0006, Option A. The seats reported may be stale by the time the guest posts; the authoritative check is M2's locked write path with its conditional counter update. Taking a lock here to make the number exact would serialise the hottest read in the product against every checkout, which the ADR names as explicitly the wrong trade. It is written into the controller docblock because that is the file where the temptation lives.
+
+ADR-0005 is the other half and was already honoured inside the engine: expired holds are filtered lazily, so a stale sweeper can never make a seat look sold.
+
+### PRC-1 is enforced by refusal, not by ignoring
+
+The contract: *"**No price, no total and no discount may appear in this body** — anything money-shaped is rejected as an unknown field."* Ignoring such a field would be safe, since nothing reads one. Refusing is better, and the difference is the integrator who *thinks* they are setting a price: silently dropping the field means they ship a checkout that appears to apply their own discount and find out when a guest is charged the difference.
+
+The check walks the whole body, not the top level — `window.price_cents` is the same assumption wearing a hat — and only money-shaped keys are refused. A `client_version` or a tracking id is harmless, and rejecting every unknown key would make the endpoint brittle for no safety gain.
+
+**It is a `prohibited` rule rather than an `after()` error, and that is a §4.1 requirement.** A message added in `after()` is a finished string in whichever locale was active, and the renderer re-localises by re-running the rules — so a hand-added error has nothing to re-run and comes back with the same sentence in both language slots. `AvailabilityLocaleTest` asserts the two differ, which is what caught it.
+
+### The validation envelope did not match its own contract
+
+§4.2 fixes it as `details.fields` keyed by field path, each entry an object with `code`, `message` and `message_el`. #35 shipped a flat `details` map of message-string lists. The ENV-28 drift gate reads paths and security schemes, not error shapes, so nothing caught it until this issue needed the per-field Greek that AC6 asks for.
+
+All three differences matter. `details` carries other keys on other codes — `max_days` on `invalid_date_range`, `retry_after_seconds` on `rate_limited` — so a client reading `details` as "the field errors" breaks on the first one. `code` is the failing rule, which is what a form branches on to highlight a field without parsing English. And a top-level language pair sitting over English-only field messages keeps §4.1's promise where nobody reads and breaks it where the guest does.
+
+The Greek is obtained by **re-running the validator** under `el` rather than by translating the produced string: a message is assembled from a lang line and its `:attribute` substitutions, so there is nothing left to translate afterwards. `HasTranslatedLabel::labelIn()` is the same need for enum-backed refusals.
+
+### `?pax=` is one integer and the engine wants a party
+
+The contract's parameter is a single number — a calendar asks "can you seat four", not "two adults, a child and an infant". It is assigned to the product's **base** band: the one every other band's price is a multiple of, and by definition one that occupies a seat. That makes the calendar filter a *seat* question, which is the right reading; the legal-capacity question is answered properly at `POST /price-quote` and again, under lock, at checkout.
+
+### The 62-day cap is enforced once and translated twice
+
+`AvailabilityRequestData::forRange()` already refused an over-long range, and it is right that it does — it is the last line of defence for the panel and M3's hosted calendar too. `AvailabilityRequest` calls it and translates the refusal into `422 invalid_date_range` with `from`, `to` and `max_days`, which is what §4.2 names for exactly this. AVL-29 wants a refusal rather than a truncation: a silently trimmed range renders as empty days and the guest concludes the boat does not sail in September.
+
+### NFR-7, asserted as a shape rather than a number
+
+`CheckSeatAvailability` budgets five queries and spends all five, so `PublicProductQuery::findForAvailability()` is a **narrower** load than `find()` — the detail payload's cancellation policy and its tiers are two queries this endpoint never reads.
+
+The test does not assert "five". A request also pays for the key, the tenant and the product, so an absolute number would count things NFR-7 is not about and would need editing whenever the auth path changed. What NFR-7 protects against is a count that **grows with the range**, and that is asserted directly: a 62-day request issues exactly as many queries as a one-day one, for both modes.
+
+Two things had to be got right for that test to mean anything:
+
+1. **The first request on a key writes `api_keys.last_used_at`**, which #6's throttle then suppresses. An unwarmed pair differs by one query for a reason unrelated to the range — and in the direction that makes the *short* request look more expensive. The key is warmed and the result discarded.
+2. **A 62-day range crosses the October clock change.** Hand-written UTC instants made `local_time` and `starts_at_utc` disagree and CNV-3's guard refused the row, correctly. The fixtures use `DepartureFactory::at()`, which writes all three columns through `LocalDateTimeResolver`.
+
+### One contract change, with its reason
+
+`docs/api.md`'s `VatBreakdown` gained **`vat_category`**, per §10.5's procedure. The issue comment asks for it by name: a myDATA-aware client needs the AADE classification to reconcile a quote against the invoice that will be issued for it, and deriving it from `rate_bp` client-side would be a second mapping that can disagree with the `vat_rates` table. `vat_rate_id` is *not* exposed — the snapshot carries it, the wire never does (CNV-8).
+
+### Deviations from the issue as written
+
+1. **The machine codes are lower snake case** — `no_counted_pax`, not the issue's `NO_COUNTED_PAX`. They are `AvailabilityRejection`'s own values, which is what `GET /availability` already returns; two spellings of one code across two endpoints is worse than either spelling.
+2. **`price_token` is not emitted.** The contract lists it as optional and describes it as a handle `POST /bookings` verifies. Nothing verifies it yet, and a token is only as good as the fields it binds — designing it without its verifier means guessing which inputs matter and shipping a signature format that has to change, on a value clients are told is opaque. `expires_at` is returned, because that is what PRC-15 is actually about.
+3. **A `voucher_code` is refused rather than ignored.** PRC-18 is M2 and the contract says an invalid code is *"an error, not a silent no-op"*. A code nothing can redeem is invalid, and a guest who typed one would otherwise be charged full price with no explanation.
+4. **A `mode: quote` product is refused a price.** BKG-24, and the contract's own `PriceQuote.mode` enum has no `quote` case.
+5. **The validation-envelope fix is cross-cutting** and changes every endpoint's 422, including #35's and #36's. It is conformance to a contract already written, not a contract change.
+
+### Verification
+
+`composer lint` (Pint, passed), `composer stan` (PHPStan level 6 + Larastan, **no errors**), `composer i18n:check` (154 passed), `./vendor/bin/pest` — **1373 passed, 1 skipped** (the mysql-tagged concurrency test, ADR-0015). The ENV-28 drift gate reports **6 of 18 contract operations built**, up from 4, security schemes matching. The NFR-1 p95 benchmark is ADR-0023's, pulled forward to the close of M2; until it exists the query-count assertion is the standing evidence.
 
 ---
 

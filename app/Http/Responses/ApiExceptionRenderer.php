@@ -7,7 +7,11 @@ namespace App\Http\Responses;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\App;
+use Illuminate\Support\Facades\Validator as ValidatorFacade;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Validator as ConcreteValidator;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -60,20 +64,105 @@ final class ApiExceptionRenderer
      * A 422 that does not say which field is a support ticket rather than an
      * error message.
      */
+    /**
+     * `422 validation_failed`, in the shape §4.2 fixes.
+     *
+     * ```json
+     * "details": { "fields": { "pax.0.qty": { "code": "min", "message": …, "message_el": … } } }
+     * ```
+     *
+     * **Three things about it are easy to get wrong, and #35 got two of them.**
+     *
+     * 1. The map is nested under `fields`, not spread across `details`. `details`
+     *    carries other keys on other codes — `retry_after_seconds`, `max_days`
+     *    — so a client that reads `details` as "the field errors" breaks the
+     *    first time it meets one of those.
+     * 2. Each entry is an **object**, not a list of strings. `code` is what a
+     *    client branches on: it is the failing rule, so a form can highlight a
+     *    field and pick its own wording without parsing English.
+     * 3. `message_el` is per field. §4.1 promises both languages in *every*
+     *    error, and a top-level pair over English-only field messages keeps the
+     *    promise at the envelope and breaks it where the guest actually reads.
+     *
+     * The Greek is obtained by re-running the same validator under `el` rather
+     * than by translating the produced string, because a message is assembled
+     * from a lang line and its `:attribute` substitutions — there is nothing to
+     * translate after the fact.
+     */
     private static function validation(ValidationException $e): JsonResponse
     {
-        $details = [];
+        $greek = self::messagesIn($e, 'el');
+        $english = self::messagesIn($e, 'en');
+        $failed = $e->validator instanceof ConcreteValidator ? $e->validator->failed() : [];
+
+        $fields = [];
 
         foreach ($e->errors() as $field => $messages) {
-            $details[$field] = array_values(array_filter($messages, 'is_string'));
+            $rules = array_keys((array) ($failed[$field] ?? []));
+
+            $fields[$field] = [
+                // The first failing rule, snake_cased. Laravel reports them
+                // StudlyCase (`RequiredWith`), and every other machine value in
+                // this API is snake — a client should not have to learn a
+                // second convention for one field.
+                'code' => $rules === [] ? 'invalid' : Str::snake((string) $rules[0]),
+                'message' => $english[$field][0] ?? ($messages[0] ?? ''),
+                'message_el' => $greek[$field][0] ?? ($messages[0] ?? ''),
+            ];
         }
 
         return ApiErrorResponse::fromKey(
             key: 'api.errors.validation_failed',
             code: 'validation_failed',
             status: 422,
-            details: $details,
+            details: $fields === [] ? [] : ['fields' => $fields],
         );
+    }
+
+    /**
+     * The same failures, worded in one named locale.
+     *
+     * Rebuilt from the validator's own data, rules and custom messages so that
+     * a `messages()` override on a FormRequest is honoured in both languages —
+     * the alternative is a Greek envelope carrying an English custom message,
+     * which is the exact half-translated failure §4.1 exists to prevent.
+     *
+     * @return array<string, list<string>>
+     */
+    private static function messagesIn(ValidationException $e, string $locale): array
+    {
+        $source = $e->validator;
+
+        // The contract interface exposes neither the data nor the rules, and
+        // only the concrete validator carries the custom messages a FormRequest
+        // may have overridden. Anything else is somebody's own implementation,
+        // and the honest answer there is the messages it already produced.
+        if (! $source instanceof ConcreteValidator) {
+            /** @var array<string, list<string>> $errors */
+            $errors = $e->errors();
+
+            return $errors;
+        }
+
+        $original = App::getLocale();
+
+        try {
+            App::setLocale($locale);
+
+            $validator = ValidatorFacade::make(
+                $source->getData(),
+                $source->getRules(),
+                $source->customMessages,
+                $source->customAttributes,
+            );
+
+            /** @var array<string, list<string>> $errors */
+            $errors = $validator->errors()->toArray();
+
+            return $errors;
+        } finally {
+            App::setLocale($original);
+        }
     }
 
     /**

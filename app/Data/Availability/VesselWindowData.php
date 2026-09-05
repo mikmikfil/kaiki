@@ -7,6 +7,7 @@ namespace App\Data\Availability;
 use App\Domain\Availability\LocalDateTimeResolver;
 use App\Domain\Availability\Support\Window;
 use App\Enums\AvailabilityRejection;
+use Illuminate\Support\Carbon;
 use Spatie\LaravelData\Data;
 
 /**
@@ -25,6 +26,8 @@ final class VesselWindowData extends Data
         public readonly bool $available,
         public readonly ?int $priceFromCents = null,
         public readonly ?AvailabilityRejection $rejection = null,
+        public readonly ?Carbon $startsAtUtc = null,
+        public readonly ?Carbon $endsAtUtc = null,
     ) {}
 
     /**
@@ -42,6 +45,12 @@ final class VesselWindowData extends Data
             available: $available,
             priceFromCents: $available ? $priceFromCents : null,
             rejection: $rejection,
+            // Kept alongside the local strings for the API's `LocalWindow`,
+            // which requires both halves so a client never converts a timezone
+            // itself. The window has already been tested in UTC; carrying the
+            // instants costs nothing and stops the HTTP layer re-deriving them.
+            startsAtUtc: $window->startUtc,
+            endsAtUtc: $window->endUtc,
         );
     }
 

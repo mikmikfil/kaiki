@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Catalog\Queries;
 
+use App\Domain\Availability\Actions\CheckSeatAvailability;
 use App\Domain\Catalog\Support\OfferedExtrasResolver;
 use App\Http\Requests\Api\V1\ProductIndexRequest;
 use App\Models\Product;
@@ -176,6 +177,34 @@ final class PublicProductQuery
     private static function activePlans(HasMany $query): Builder
     {
         return $query->getQuery()->active();
+    }
+
+    /**
+     * One product, loaded for the availability engine rather than for display.
+     *
+     * A narrower load than {@see self::find()} on purpose. NFR-7 budgets five
+     * queries for a 62-day availability answer and the engine spends all five;
+     * anything the controller loads comes out of the same request. The detail
+     * payload's cancellation policy and its tiers are two more queries that
+     * `GET /availability` never reads.
+     *
+     * `vessel` and `ageBands` are not optional: {@see CheckSeatAvailability}
+     * says in its own docblock that it loads them itself if they are missing,
+     * *"which costs two queries the budget does not count and a caller should
+     * not spend"*.
+     */
+    public static function findForAvailability(string $identifier): ?Product
+    {
+        /** @var Product|null $product */
+        $product = Product::query()
+            ->sellable()
+            ->with(['vessel', 'ageBands', 'ratePlans' => self::activePlans(...)])
+            ->where(fn (Builder $q): Builder => $q
+                ->where('uuid', $identifier)
+                ->orWhere('slug', $identifier))
+            ->first();
+
+        return $product;
     }
 
     /**
