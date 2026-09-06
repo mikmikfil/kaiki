@@ -1,50 +1,38 @@
 {{--
-    The operator's landing page (HOS-1).
+    The operator's home page (HOS-1), composed from the blocks of #102.
 
-    **The trips list here is a placeholder the block system replaces.** The
-    editable home page is its own issue; this is the default that issue falls
-    back to for an operator who has configured nothing — so it is written to be
-    the real default rather than scaffolding to delete.
+    **There is no `{!! !!}` in this file or in any block partial.** The operator's
+    prose reaches the page through `App\Domain\Hosted\Support\BlockText`, which
+    returns an `HtmlString` so that `{{ }}` renders it — the one place in the
+    hosted views where operator input becomes markup, and it produces exactly
+    `<p>` and `<br>`.
+
+    An operator who has never opened the editor gets the default layout from
+    `BuildHomePage`, which is the page #101 already served. So this template has
+    no empty state: there is always a page.
 --}}
 @extends('hosted.layout')
 
 @section('title', $tenant->name)
-@section('description', __('hosted.index.meta_description', ['operator' => $tenant->name]))
+@section('description', $metaDescription)
 
 @section('content')
-    <h1>{{ $tenant->name }}</h1>
-
     @if ($readOnly)
-        {{-- HOS-10. The page is complete; only the booking is unavailable, and
-             the sentence says who to contact rather than what went wrong. --}}
+        {{-- HOS-10, first thing on the page rather than beside a booking button
+             that is not there. The sentence says who to contact rather than
+             what went wrong. --}}
         <p class="read-only">{{ __('hosted.read_only', ['email' => $tenant->email]) }}</p>
     @endif
 
-    <h2>{{ __('hosted.index.trips') }}</h2>
-
-    @if ($products->isEmpty())
-        <p>{{ __('hosted.index.no_trips') }}</p>
-    @else
-        <ul class="trips">
-            @foreach ($products as $product)
-                <li class="trip">
-                    <div class="trip-body">
-                        <h3>{{ $product->title }}</h3>
-                        @if ($product->summary)
-                            <p class="summary">{{ $product->summary }}</p>
-                        @endif
-                        <p class="facts">
-                            {{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}
-                            @if ($product->meetingPoint)
-                                · {{ $product->meetingPoint->name }}
-                            @endif
-                            @if ($product->vessel)
-                                · {{ $product->vessel->name }}
-                            @endif
-                        </p>
-                    </div>
-                </li>
-            @endforeach
-        </ul>
-    @endif
+    {{-- Every partial receives what it needs already resolved. A template that
+         queries is a template that queries once per block, and `BuildHomePage`
+         loads the catalogue once for the whole page. --}}
+    @foreach ($blocks as $entry)
+        @include('hosted.blocks.' . $entry['block']->type->value, [
+            'block' => $entry['block'],
+            'products' => $entry['products'],
+            'meetingPoint' => $entry['meetingPoint'],
+            'anchor' => $entry['anchor'],
+        ])
+    @endforeach
 @endsection

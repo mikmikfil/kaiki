@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Hosted;
 
 use App\Domain\Branding\Actions\GetBrandPayload;
+use App\Domain\Hosted\Actions\BuildHomePage;
 use App\Domain\Tenancy\Resolvers\HostedSlugResolver;
-use App\Enums\ProductStatus;
 use App\Http\Middleware\HostedPageHeaders;
-use App\Models\Product;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Http\Request;
@@ -49,15 +48,18 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class HostedPageController
 {
-    public function __construct(private readonly GetBrandPayload $brand) {}
+    public function __construct(
+        private readonly GetBrandPayload $brand,
+        private readonly BuildHomePage $homePage,
+    ) {}
 
     /**
-     * The operator's landing page.
+     * The operator's landing page, composed from the blocks of #102.
      *
-     * **The trips list is the placeholder the block system replaces.** The
-     * editable home page is its own issue; until it lands, an operator's page
-     * shows who they are and what they sell, which is the useful half and the
-     * default that issue will fall back to anyway.
+     * An operator who has never opened the editor is not a special case here:
+     * {@see BuildHomePage} synthesises the default layout, which is the page
+     * #101 already served. So this method has one path and the template has no
+     * empty state.
      */
     public function index(Request $request): Response
     {
@@ -65,12 +67,10 @@ class HostedPageController
         $locale = $this->resolveLocale($request, $tenant);
 
         return $this->render($request, $tenant, 'hosted.index', fn (): array => [
-            'products' => Product::query()
-                ->where('status', ProductStatus::Active)
-                ->with(['vessel', 'meetingPoint'])
-                ->orderBy('sort_order')
-                ->orderBy('id')
-                ->get(),
+            'blocks' => ($this->homePage)($tenant),
+            // The operator's own first paragraph describes their business
+            // better than a template sentence, and it is already written.
+            'metaDescription' => $this->homePage->metaDescription($tenant),
         ], $locale);
     }
 

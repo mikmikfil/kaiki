@@ -28,6 +28,23 @@ return [
 
     // HOS-10. It says who to contact rather than what went wrong — the visitor
     // cannot fix an operator's subscription and does not need to know about it.
+    'blocks' => [
+        'hero' => [
+            'cta' => [
+                'trips' => 'See our trips',
+                'contact' => 'Get in touch',
+            ],
+        ],
+        'contact' => [
+            'heading' => 'Get in touch',
+            'phone' => 'Phone',
+            'email' => 'Email',
+            'address' => 'Address',
+            'meeting_point' => 'Meeting point',
+            'open_in_maps' => 'Open in maps',
+        ],
+    ],
+
     'read_only' => 'Online booking is unavailable just now. Please contact us at :email and we will take your booking directly.',
 
     'footer' => [

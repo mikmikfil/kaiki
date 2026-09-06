@@ -93,6 +93,7 @@ return [
         // ταχυδρομείο» is a phrase nobody types into a form label, and a
         // panel that used it would read as a translation exercise. Added by
         // #89 with the booking panel.
+        'hosted.blocks.contact.email' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
         'bookings.view.email' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
         'bookings.form.guest.email' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
 

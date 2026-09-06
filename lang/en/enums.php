@@ -229,6 +229,29 @@ return [
         'en' => ['label' => 'English', 'short' => 'EN'],
     ],
 
+    'home_block_type' => [
+        'hero' => [
+            'label' => 'Hero',
+            'description' => 'One image, a heading and one button. The first thing a visitor sees.',
+        ],
+        'trips' => [
+            'label' => 'Trips',
+            'description' => 'Your catalogue, all of it or a slice.',
+        ],
+        'story' => [
+            'label' => 'Text',
+            'description' => 'A heading and prose, with an image beside it if you want one. The "about us".',
+        ],
+        'gallery' => [
+            'label' => 'Photographs',
+            'description' => 'A row of images, each with a description in both languages.',
+        ],
+        'contact' => [
+            'label' => 'Contact',
+            'description' => 'Phone, email, address and meeting point — from your own details.',
+        ],
+    ],
+
     'font_source' => [
         'system' => ['label' => 'System font'],
         'google' => ['label' => 'Google Fonts'],

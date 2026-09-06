@@ -12,9 +12,9 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M3 — Hosted pages & widget: #101 built.** M2 complete (all eleven), M1 complete. |
+| Milestone | **M3 — Hosted pages & widget: #101 and #102 built.** M2 complete (all eleven), M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **#101 built** — the hosted page shell. #102 … #111 to come, hosted pages before the widget. |
+| M3 | **#101, #102 built** — the hosted page shell and the editable home page. #103 … #111 to come, hosted pages before the widget. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
@@ -35,6 +35,73 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #102 — The editable home page, and the field that is deliberately not there
+
+Five block types, an editor that arranges them, and a renderer that turns none of the operator's text into markup. A scope addition from the design review of 4 September, not a §7 requirement.
+
+### The decision the issue is actually about
+
+An editable page needs a text field, and a text field is where a rich-text editor goes. It did not go there, and the reasoning is in `HomeBlockType`'s docblock rather than in a commit message because it is the thing a future issue is most likely to undo by accident.
+
+The short form: HOS-8 removed `unsafe-inline` from the hosted page's policy, so a pasted `<script>` would not run **there**. It would still be stored, and the same string is the `meta description`, the WordPress SEO post (WPP-6) and an email — three destinations with no CSP between them. Structured blocks mean the markup is ours in all four places.
+
+The accepted cost is stated rather than hidden: an operator cannot centre a word or link a phrase mid-sentence. The `body` help text says so, in both locales, in the operator's own terms.
+
+### `BlockText`, and why the order of two operations is the class
+
+Escape, then add structure. The other order escapes the tags the class just added, and the fix somebody reaches for at that point is to stop escaping.
+
+It is also not `nl2br(e($text))` — that renders a paragraph break and a wrapped line identically, so the operator types paragraphs and gets none. A blank line is a paragraph; a single newline inside one is a break. Markdown was refused for the same reason as raw HTML: every renderer has a passthrough and most have it on.
+
+### The test that matters
+
+`it('escapes an operator who pastes markup, and the page still has no script tag')` asserts `&lt;script&gt;` is present **and** that `<script` is not — the second half being #101's HOS-4 claim, restated because #102 is the issue that could have broken it.
+
+### Settings are normalised on read, not only on write
+
+`settings` is the one JSON column an operator writes into, so it is where an undocumented setting could arrive by accident. `BlockSettings` names every key per type, coerces to the declared type — a form posts `"1"` and `"3"`, JSON hands them back as strings, and `strict_comparison` then silently never matches — and drops the rest.
+
+Dropping rather than refusing is deliberate, because this runs on **read**: a row written against an older shape must render on a page a guest is looking at. The same pass reconciles `source = category` with no category down to `source = all`, since an empty grid on a home page is worse than showing everything.
+
+### The save replaces rather than diffs
+
+One submission can create, update, delete and reorder. A diff needs an id in the form, and a mismatched id writes one block's text over another's — silently, with the operator's public page as the evidence. Replacement is one delete and one insert in a transaction. The cost is that `uuid` changes on every save; nothing points at a block by uuid today, and the docblock says what changes the day something does.
+
+### Deviations and additions
+
+- **The default layout is not saved.** `BuildHomePage` synthesises hero + trips + contact for an operator with no rows — the page #101 already served — so nothing regressed when the editor shipped. Writing them on first render would make a read request write, on the busiest page in the product, in a possibly read-only tenant, on a crawler.
+- **`meta description` now comes from the operator's first paragraph** when one exists. The generic line became the fallback rather than the default.
+- **Alt text is per image and per locale.** An image with no alt in the current locale falls back to the other rather than to `alt=""`; an image whose description is not written yet is kept rather than costing the operator the other eight photographs.
+- **`ManageBranding`, not `ManageCatalogue`.** A block changes what the business says about itself, not what is for sale. Same job as the logo and the colours.
+- **No live preview.** The preview an operator wants is the page, which is one link away and cannot disagree with itself.
+
+### Things this touched that were not its own
+
+`hosted/index.blade.php` (rewritten around the block loop), `hosted/layout.blade.php` (block styles), `HostedPageController::index()`, `lang/{el,en}/hosted.php`, `lang/{el,en}/enums.php`, and one allow-list entry for `hosted.blocks.contact.email` — the word Greek operators use, alongside the two already there.
+
+### A trap, for the second time
+
+`asOperator()` as a file-local Pest helper collided with the identical helper in `AuditTrailTest`. That is a **fatal error**, not a failed assertion: the suite stops, in a file unrelated to either. `hosted()` did the same in #101. Helpers now live in `Tests\Support\Hosted\OperatorPage`, and twice is a convention rather than an accident.
+
+### Verification
+
+```
+$ vendor/bin/pint --test
+$ vendor/bin/phpstan analyse
+[OK] No errors
+
+$ php artisan test --exclude-group=mysql --exclude-group=chromium --exclude-group=external
+Tests:  1 failed, 2102 passed (6030 assertions)
+
+FAILED  Tests\Unit\CiGatesTest > it keeps the committed schema snapshot in step with the migrations
+```
+
+31 new tests across two files: `HomePageBlockTest` (13), `SaveHomePageTest` (9), plus the nine of `HostedPageAccessTest` re-verified against the block renderer.
+
+**The schema-snapshot failure is now caused by this issue as well as inherited.** #101 added no migration and inherited it; #102 adds `home_page_blocks`, so the fingerprint has genuinely changed and the snapshot is genuinely stale. It still cannot be regenerated here — ENV-10's snapshot comes from a MySQL 8 connection that only CI has, and CI is blocked on the billing issue. This is the first issue where that distinction matters, and it is recorded so the first green run is known to need `schema:snapshot` rather than an investigation.
 
 ---
 

@@ -155,6 +155,60 @@
             padding: 1rem 1.15rem; border-radius: var(--kaiki-radius); margin: 1.5rem 0;
         }
 
+        /* --- home page blocks (#102) ------------------------------ */
+
+        /* Each block owns its vertical rhythm through the gap on `main`
+           rather than through margins, so two adjacent blocks never
+           collapse or double their spacing. */
+        main .wrap { display: flex; flex-direction: column; gap: 3rem; }
+
+        .block { margin: 0; }
+        .block > h2:first-child { margin-top: 0; }
+
+        .hero { display: grid; gap: 1.5rem; }
+        .hero.has-image { grid-template-columns: 1fr; }
+        .hero-image { width: 100%; height: auto; border-radius: 14px; object-fit: cover; aspect-ratio: 16 / 9; }
+        .hero-copy .standfirst { color: var(--ink-soft); font-size: 1.08rem; max-width: 42rem; }
+        .hero-copy .standfirst p { margin: 0 0 .7rem; }
+
+        .cta { margin: 1.25rem 0 0; }
+        .button {
+            display: inline-block; text-decoration: none;
+            background: var(--kaiki-primary); color: #fff;
+            padding: .7rem 1.4rem; border-radius: var(--kaiki-radius);
+            font-weight: 600; font-size: .97rem;
+        }
+
+        .story { display: grid; gap: 1.5rem; align-items: start; }
+        .story-image { width: 100%; height: auto; border-radius: 14px; object-fit: cover; aspect-ratio: 4 / 3; }
+        .prose p { margin: 0 0 .8rem; }
+        .prose p:last-child { margin-bottom: 0; }
+
+        @media (min-width: 46rem) {
+            .story.has-image { grid-template-columns: 1fr 1fr; }
+            /* A class rather than an inline style: HOS-8's policy has no
+               `unsafe-inline`, so a `style` attribute would be dropped and
+               the operator's choice would silently do nothing. */
+            .story.side-left.has-image .story-image { order: -1; }
+        }
+
+        .gallery .shots {
+            list-style: none; margin: 1rem 0 0; padding: 0;
+            display: grid; gap: .8rem;
+            grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+        }
+        .gallery.cols-2 .shots { grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); }
+        .gallery.cols-4 .shots { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+        .gallery .shots img { width: 100%; height: 100%; border-radius: 10px; object-fit: cover; aspect-ratio: 3 / 2; }
+
+        .contact-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .7rem; }
+        .contact-list li { display: grid; gap: .1rem; }
+        .contact-list .label {
+            font-size: .74rem; font-weight: 600; letter-spacing: .07em;
+            color: var(--ink-faint);
+        }
+        .contact-list .instructions { color: var(--ink-soft); font-size: .9rem; }
+
         /* --- footer --- */
 
         footer.site {
