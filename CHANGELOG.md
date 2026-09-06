@@ -2,6 +2,30 @@
 
 ## M2 — Booking & payments
 
+### #82 - The PaymentGateway contract, Viva Smart Checkout and Stripe Checkout
+
+`App\Contracts\PaymentGateway` with **exactly four methods**, and the two real implementations plus the fake that #81's concurrency work runs against.
+
+**Four methods, and a fifth is an ADR.** ADR-0004 item 2 fixes the shape and the reason is not minimalism: Stripe supports card-on-file, stored mandates and off-session charging, and Viva Smart Checkout supports none of them. A contract including them would have one implementation throwing on half its surface — a Stripe client with a Viva-shaped hole rather than an abstraction. The consequence runs through the whole product: a deposit and a balance are two independent checkout sessions (ADR-0004 Option D), because "create a checkout session" is the only primitive both gateways actually share, and PRC-27's balance reminders are mandatory because of it.
+
+**Everything the two gateways disagree about stays inside their own class.** Viva returns an order code rather than a URL and builds the redirect itself, against a *different host* from its API; it is OAuth2 rather than a bearer key, so there is a token round trip Stripe does not have, cached per tenant and environment for a minute less than its own lifetime; and it does not sign its webhooks at all, so verification is a shared secret compared in constant time rather than an HMAC over the body. None of that widened the interface, which is what the abstraction is for.
+
+**PAY-12's two audiences are the whole design of the error path.** A guest whose card was declined needs to know to try another card; they do not need `card_declined: insufficient_funds`, which tells a stranger about their bank balance in a language a developer in California chose and gives them nothing to do. An operator looking at the same failure needs exactly that detail, because they are deciding whether to chase it. So `TranslatableMessage` carries **four** sentences — guest and operator, Greek and English, all resolved at description time — and a test asserts the two audiences never get the same sentence, and that the guest half never contains the gateway's code. Word-bounded, because Viva's codes are single digits and a naive `str_contains` matches any sentence containing "2".
+
+**An unmapped code degrades in both directions at once.** Neither gateway publishes a complete, stable list and both add codes without telling anybody, so the question was never *whether* an unknown code arrives. The guest gets the ordinary "something went wrong" sentence — never nothing, never the code — and the operator gets the raw code **marked unrecognised**, because they are the only person who can report the gap.
+
+**An operator's expired key never tells a guest their card failed.** Every dictionary entry was chosen for what its audience can do about it, and `api_key_expired` maps to the guest's *temporary* message rather than the declined one. Telling a guest their card was refused when the operator's own credentials were rejected is a lie about their bank.
+
+**The fake gateway is a deliverable, not scaffolding**, and the contract test runs against all three implementations for exactly that reason. #81 confirms bookings through it — which is what lets the AVL-44 overselling guarantee be tested without a network — so a fake that drifted from the real gateways would make that guarantee a test of nothing. M3's Playwright run and SAA-9's onboarding test booking need it too.
+
+**No test makes a network call, and that is now asserted rather than assumed.** Both real gateways are driven against recorded fixtures through `Http::fake()`, and seven env values in `phpunit.xml` pin every gateway host to a `.test` domain — reserved by RFC 6761 and unable to resolve, so a request that escapes the fake fails immediately instead of reaching a real payment provider from a CI runner. A test asserts the redirect URL contains `.test` for all three implementations.
+
+**PAY-11's guarantee is structural rather than procedural.** Sandbox must be impossible to enable accidentally, and the mechanism that achieves it is that live and test are **separate rows** (#79's unique index on tenant, provider, environment). Switching is not a toggle; it is entering the other environment's credentials, which nobody does by accident. The environment itself comes from `bookings.is_test` and `GatewayResolver::environmentFor()` takes no parameter to get wrong — a caller that could ask for `test` could ask for it on a live booking, and the guest would be confirmed while nobody was charged. A live booking with no configured gateway resolves to **null**, not the fake: a fake that quietly succeeded would confirm a trip nobody paid for. The fake is reachable only for a sandbox booking, which is SAA-9's onboarding case.
+
+**PHP coerces numeric array keys, and Viva's codes are numbers.** `'2' => [...]` is stored as `2`, so `array_keys()` handed back integers that failed the dictionary's own `string` parameter. Cast at the boundary rather than widening four signatures to `string|int` — an error code is an identifier that happens to look like a number.
+
+Two smaller things: the Stripe webhook verifier checks the **timestamp** as well as the HMAC, because a valid signature over an old payload is a replay and a verifier that ignores the timestamp accepts one forever; and both gateways log a failed call with the tenant and the exception class only, because an HTTP client's exception message routinely contains the authenticated request it made (SEC-9, MYD-15). #79's credential scanner now runs over `app/Domain/Payments` too — that is where a `Log::debug($credential->credentials)` would go while somebody chased a failing checkout.
+
 ### #81 - Confirmation, payments and the voucher ledger — and AVL-44 finally has something to run
 
 **The test the whole engine exists to pass has been a required status check since #4 and had nothing to run until now.** `CLAUDE.md`: a booking that oversold is a guest on a quay with a ticket and no seat. There is no later fix for that.

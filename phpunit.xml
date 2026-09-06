@@ -45,5 +45,26 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!--
+            Gateway hosts, pinned to a domain that cannot resolve.
+
+            RFC 6761 reserves `.test`, so a request that escapes `Http::fake()`
+            fails immediately instead of reaching a real payment provider from a
+            CI runner. `GatewayHostsTest` asserts every configured host ends in
+            `.test` while `APP_ENV=testing`, which is the acceptance criterion
+            in #82: no HTTP client is constructed with a real base URI in the
+            test environment.
+
+            Seven values because Viva splits accounts, api and checkout across
+            two environments and Stripe has one host for both — the asymmetry is
+            real and flattening it here would hide it.
+        -->
+        <env name="KAIKI_STRIPE_BASE_URI" value="https://api.stripe.test"/>
+        <env name="KAIKI_VIVA_ACCOUNTS" value="https://accounts.viva.test"/>
+        <env name="KAIKI_VIVA_API" value="https://api.viva.test"/>
+        <env name="KAIKI_VIVA_CHECKOUT" value="https://www.viva.test"/>
+        <env name="KAIKI_VIVA_DEMO_ACCOUNTS" value="https://demo-accounts.viva.test"/>
+        <env name="KAIKI_VIVA_DEMO_API" value="https://demo-api.viva.test"/>
+        <env name="KAIKI_VIVA_DEMO_CHECKOUT" value="https://demo.viva.test"/>
     </php>
 </phpunit>
