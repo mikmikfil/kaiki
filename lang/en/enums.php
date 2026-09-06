@@ -240,4 +240,32 @@ return [
         'auto' => ['label' => 'Match the visitor'],
     ],
 
+    /*
+    | Integration providers and their environment (data-model §2.7, PAY-4).
+    |
+    | The provider names are vendor trademarks and stay in Latin script in both
+    | languages — a Greek operator looking for "Viva" in a list is looking for
+    | the word on their own Viva dashboard.
+    */
+    'integration_provider' => [
+        'viva' => ['label' => 'Viva Wallet'],
+        'stripe' => ['label' => 'Stripe'],
+        'mydata' => ['label' => 'myDATA (AADE)'],
+        'apifon' => ['label' => 'Apifon'],
+        'yuboto' => ['label' => 'Yuboto'],
+        'twilio' => ['label' => 'Twilio'],
+        'postmark' => ['label' => 'Postmark'],
+    ],
+
+    /*
+    | Deliberately the same two words as `api_key_environment` above. PAY-11
+    | pairs them directly — sandbox mode means a test key reaching test gateway
+    | credentials — and two vocabularies for one concept is how a query
+    | eventually asks the wrong one.
+    */
+    'credential_environment' => [
+        'live' => ['label' => 'Live'],
+        'test' => ['label' => 'Test'],
+    ],
+
 ];

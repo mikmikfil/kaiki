@@ -12,12 +12,13 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M1 — Catalogue and availability engine, complete.** Next: M2 — Booking & payments |
+| Milestone | **M2 — Booking & payments, in progress.** M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
+| M2 | #79 |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1412) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1472) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
@@ -32,6 +33,98 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #79 — `integration_credentials`, and the contradiction that had to be settled before the migration
+
+**Files:** `database/migrations/2026_09_02_000029_create_integration_credentials_table.php`, `app/Models/IntegrationCredential.php`, `app/Enums/{IntegrationProvider,CredentialEnvironment}.php`, `app/Contracts/CredentialVerifier.php`, `app/Domain/Integrations/{Actions/SaveIntegrationCredential,Actions/VerifyIntegrationCredential,Actions/DeactivateIntegrationCredential,Data/IntegrationCredentialData,Data/VerificationResult,Support/CredentialRepository,Support/VerifierRegistry}.php`, `app/Exceptions/IntegrationCredentialIncomplete.php`, `app/Policies/IntegrationCredentialPolicy.php`, `app/Providers/IntegrationServiceProvider.php`, `app/Filament/App/Pages/Integrations.php`, `resources/views/filament/app/pages/integrations.blade.php`, `database/factories/IntegrationCredentialFactory.php`, `lang/{el,en}/{integrations,enums}.php`, `docs/{spec,data-model}.md`, four test files plus a scanner and its fixture
+
+**M2 opens here.** §6 item **29**, and first in the milestone because `payments` (35) and the gateway contract both hold a foreign key to it, and §6's rule is absolute.
+
+### The contradiction, and why the ADR is not overturned
+
+`docs/spec.md` PAY-4 and ADR-0004 Option A named a table `payment_gateway_accounts` (`gateway`, `mode: live|sandbox`, `last_verified_error`). `docs/data-model.md` §2.7 named one `integration_credentials` (`provider`, `environment: live|test`, `last_error`, plus `public_config`, `is_active`, `webhook_secret`). One table, two names, and only one could be built.
+
+The data-model table won on the merits: it is a **strict superset**. It does everything ADR-0004's does and also holds the myDATA, SMS and Postmark credentials, whose alternative is three more tables or a column group on `tenants` — four table rebuilds on SQLite (§0). ADR-0004's actual *decision* is untouched: encrypted cast columns, no external secret store, no per-tenant key separation, one row per tenant per provider per environment. Only its illustrative name is reconciled, the way ADR-0013's colon-form scope examples were corrected on 2026-08-28.
+
+`sandbox` → `test` is the one substantive change, and it went to `docs/spec.md` PAY-4 with the reason in `CHANGELOG.md` per `docs/api.md` §10 item 5. `api_keys.environment` was already `live | test`, and PAY-11 pairs them directly. Two enums are now asserted to have identical case lists, and a second test asserts no case named `sandbox` exists — a vocabulary settled once in a document drifts the first time somebody adds a case to one enum and not the other.
+
+### One column added to §2.7, because ENV-8 left nothing else
+
+The issue's closing note asks for a lookup by provider plus external account id **with no tenant in context** — `gateway_webhook_events.tenant_id` is nullable precisely because a webhook arrives before the tenant is resolved, and this table is what resolves it.
+
+The obvious home is a key in `public_config`. **ENV-8 forbids ordering or filtering on a JSON path**, so that is not available. `external_account_id` is therefore a plain indexed varchar with a deliberately not-tenant-first index, written from the matching `public_config` key on save. The same rule `ical_sources.url_hash` already illustrates.
+
+Two tests keep the pair honest: every provider's `externalAccountField()` must be inside its own `publicFields()` — otherwise the data object reads a key the form never collects, the column stays null, and the resolver silently finds nothing — and an empty identifier must never match the first row with a null column, which is how a webhook gets filed against a stranger. The first of those **failed on its first run**: Stripe's `publicFields()` was `[]` while its external account field was `account_id`.
+
+### The cast is the entire security story, so it is asserted from outside the model
+
+ADR-0004 accepted the residual risk of `APP_KEY` plus a database dump explicitly. That makes "is the cast actually applied" a security assertion, and it is one the model cannot make — a silently dropped cast returns exactly the same string.
+
+So the tests read the raw column through the query builder. They assert the ciphertext contains neither the plaintext nor the field names, **and** that it decodes to Laravel's `{iv, value, mac}` envelope, because an empty column also passes "does not contain the secret".
+
+**The `APP_KEY` rotation test passed for the wrong reason on its first run.** `config()` plus `app()->forgetInstance('encrypter')` looks sufficient and is not: the `Crypt` facade caches its own resolved instance, so the cast kept using the old encrypter and the assertion proved nothing about MAC verification. `Crypt::clearResolvedInstances()` is what makes it real.
+
+### Three layers past the cast, because a cast only protects the database
+
+- `$hidden` — out of `toArray()` and `toJson()`, which is what a log context, a queue payload and a Sentry breadcrumb are built from.
+- `__debugInfo()` — redacted for `dd()` and `var_dump()`, which ignore `$hidden` entirely and are what somebody reaches for while debugging a failing checkout.
+- `NoCredentialLeakTest` — a scanner, because the first two are conventions.
+
+### The scanner's first two findings were both in itself
+
+1. **The `->revealable()` rule was per line.** Pint wraps a fluent chain the moment it passes the line limit, so the realistic three-line shape was invisible — the lesson `LiteralScanner` had already learned and written into its own docblock. It is now per statement, with a fixture written wrapped so the rule cannot silently regress to line-based.
+
+2. **With that fixed, the first thing it flagged was the comment saying never to do it.** `Integrations::providerFields()` carries a note explaining why `->revealable()` must not be used on those fields. A lint that fires on the note explaining the lint is a lint somebody switches off, so comments are blanked before the statement pass — offsets preserved, so line numbers stay true.
+
+The scanner has the third test the VAT scanner taught: that it does **not** fire on a cast list, a `$hidden` array, a redaction, a log line carrying `public_config`, or a credential being used for the thing it is for.
+
+### Verification exists as a seam, and says so rather than lying
+
+Five of the seven providers are not gateways, and `App\Contracts\PaymentGateway` is fixed at four methods by ADR-0004 — none of them this one. So `CredentialVerifier` hangs off the credential and resolves through `VerifierRegistry`.
+
+**The registry is deliberately empty**, the same shape as `GuardVesselCapacity::TAG` and `SaveProduct::TAG`: the clients arrive with the issues that introduce them (Viva and Stripe with the gateway contract, Postmark and the SMS vendors with the notification issue, myDATA in M6), and each adds one `register()` line.
+
+Pressing verify today therefore writes `last_error` with a plain Greek sentence and **not** `verified_at`. Reporting success would put a timestamp on credentials nothing has ever tried, and PAY-11's promise that sandbox mode *"MUST be impossible to enable accidentally"* leans directly on that timestamp meaning something. A test records which providers are live, so the gap stays visible in the suite.
+
+**This is the issue's one delivery deviation.** Its acceptance criterion says "a test call runs"; with no clients in scope, what ships is the seam, the write on both outcomes, and the honest refusal — exercised in tests through registered fakes for the success, rejection and unavailable paths.
+
+### The default flag, in an Action rather than in an index
+
+Exactly one `is_default = true` payment gateway per tenant per environment. A partial unique index would let the database enforce it and partial indexes are not portable to MySQL 8; a plain unique index would forbid a second *non*-default row, which is the ordinary case.
+
+The clearing update and the insert are one transaction with `lockForUpdate()`. The concurrency half is tagged `mysql` rather than skipped — the lock is a no-op on SQLite (ADR-0006), and a vacuous local pass is worse than an honest CI-only one.
+
+Two behaviours that are not in the criterion and are wrong without: `is_default` is **forced off** for the five providers it means nothing for (a flag with no reader is one a later query trusts, handing an email provider to a checkout), and switching off the default **hands it to the surviving usable gateway** — otherwise the operator has a working Stripe row, a default flag on a disabled Viva one, and a checkout outage caused by a checkbox.
+
+### The cached repository, and the cache it deliberately does not use
+
+§2.7 asks for a cached repository so the encrypted column is not decrypted on every request. That is met by a per-request memo on a singleton, with a test asserting the second read runs **no query** and another asserting the binding is a singleton — a second `new` would leave every other assertion passing and the requirement silently false.
+
+Nothing goes to the shared cache. That is Redis in production (ENV-1), and a decrypted gateway secret there moves every operator's live credential out of a column needing `APP_KEY` into a store needing only a connection — undoing PAY-3 to save one `SELECT` on a table with a few rows per tenant. §2.7's "config cache per tenant" is recorded as met by the memo, with the reasoning written into the class.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `php artisan migrate` (SQLite) | table created at position 29 |
+| `composer lint` | clean after fixes |
+| `composer stan` | `[OK] No errors` — two real findings fixed at source, no baseline |
+| `composer test` | **1471 passed**, 1 failed: the ENV-10 schema-snapshot fingerprint |
+| `tests/Feature/Integrations` + `IntegrationsPageTest` | 51 passed |
+
+**The one red test is the expected one and is fixed the documented way.** `CiGatesTest` compares a fingerprint of the migrations against the header of `database/schema/mysql-schema.snapshot.sql`, which needs a MySQL 8 connection to regenerate and the local stack is SQLite (ADR-0015). `docs/ci.md` §"Refreshing it after a migration change" gives the procedure: push, take the `mysql-schema-snapshot` artifact from the run, commit it. That is what happened here.
+
+Not run locally, by environment rather than by choice: the `mysql`-tagged concurrent-default test, and everything else in that job.
+
+### Things this touched that were not its own
+
+1. **The EL/EN parity gate reads a vendor wordmark as untranslated Greek.** Six of the seven provider labels are byte-identical in both files, which is the exact signal that gate exists to catch. Each is named in `tests/Support/I18n/allow-list.php` with its reason — an operator setting up Viva is looking for the word on their own Viva dashboard. `mydata` is **not** among them: it carries the issuing authority in brackets and that part is translated, AADE against ΑΑΔΕ.
+
+2. **`Filament\Pages\BasePage` already has `configureAction()`.** Declaring one with a different signature is a fatal error at boot, not a subtle bug — the save action is named `saveCredentials`.
+
+3. **`abort()` inside a Livewire action tears the component down**, so Filament's `assertNotFound()` macro then reads `mountedActions` on a null instance and reports "Attempt to read property on null" — which looks like a broken test rather than a passing guard. The cross-tenant test asserts the thrown `NotFoundHttpException` and, separately, that the row was not written to.
 
 ---
 

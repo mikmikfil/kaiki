@@ -1550,11 +1550,16 @@ The brief scatters operator credentials across §3 (payment gateways), §10 (myD
 | `verified_at` | timestamp | yes | null | last successful test call |
 | `last_error` | varchar(500) | yes | null | |
 | `webhook_secret` | text | yes | null | **encrypted** — inbound signature secret where the provider issues one |
+| `external_account_id` | varchar(190) | yes | null | the provider's own account identifier (Stripe `acct_…`, Viva source code) — **not a secret**; added by #79 |
 | timestamps | | | | |
 
-Indexes / uniques: `integr_creds_tenant_prov_env_uq` (`tenant_id`, `provider`, `environment`) **unique** — one credential set per provider per environment; `integr_creds_tenant_active_idx` (`tenant_id`, `is_active`, `is_default`).
+Indexes / uniques: `integr_creds_tenant_prov_env_uq` (`tenant_id`, `provider`, `environment`) **unique** — one credential set per provider per environment; `integr_creds_tenant_active_idx` (`tenant_id`, `is_active`, `is_default`); `integr_creds_provider_account_idx` (`provider`, `external_account_id`) — **not tenant-first**, the webhook resolver has no tenant yet.
 
-**Notes.** Exactly one `is_default = true` payment provider per tenant per environment, application-enforced. Credentials are read through a cached repository (`config` cache per tenant, busted on save) so the encrypted column is not decrypted on every request.
+**Notes.** Exactly one `is_default = true` payment provider per tenant per environment, application-enforced — a partial unique index would be the database's job to do it, and partial indexes are not portable to MySQL 8. Credentials are read through a cached repository so the encrypted column is not decrypted on every request; the cache is a **per-request memo on a singleton**, deliberately not the shared cache — Redis in production (ENV-1) — because putting a decrypted gateway secret there would move it out of a column needing `APP_KEY` and into a store needing only a connection, undoing PAY-3 to save one `SELECT`.
+
+`external_account_id` exists because `gateway_webhook_events.tenant_id` is nullable: a webhook arrives before the tenant is resolved, and *this* table is what resolves it, by provider plus the provider's own account id. That is a filter, and **ENV-8 forbids filtering on a JSON path**, so it cannot live inside `public_config`. Same reasoning as `ical_sources.url_hash` — a value you must look rows up by is a plain indexed column, whatever else it travels with. It is written from the matching key in `public_config` on save, so the operator edits one field and both stay in step.
+
+**This table is ADR-0004's `payment_gateway_accounts`.** The ADR named it that with a `gateway` discriminator and a `mode` of `live` | `sandbox`; #79 reconciled `docs/spec.md` PAY-4 to the name and vocabulary here, with the reason in `CHANGELOG.md` (`docs/api.md` §10 item 5). The ADR's decision — encrypted cast columns, no external secret store, no per-tenant key separation, one row per tenant per provider per environment — is honoured in full.
 
 ---
 
