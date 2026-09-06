@@ -1,6 +1,9 @@
 <?php
 
 declare(strict_types=1);
+use App\Domain\Notifications\Gateways\ApifonSmsGateway;
+use App\Domain\Notifications\Gateways\NullSmsGateway;
+use App\Domain\Notifications\Gateways\TwilioSmsGateway;
 
 return [
 
@@ -578,6 +581,66 @@ return [
     | different without touching code — and so the suite can point every call at
     | a host that cannot resolve.
     */
+
+    /*
+    |--------------------------------------------------------------------------
+    | Notifications (spec NTF-1, NTF-2, NTF-5)
+    |--------------------------------------------------------------------------
+    |
+    | **No endpoint is ever written into a class** (`CLAUDE.md`), so the two SMS
+    | providers' hosts live here — and the suite points them at a host that
+    | cannot resolve, exactly as the payment gateways are pinned.
+    |
+    | The gateway map is here rather than in a `match` inside the resolver so
+    | that a deployment can substitute an implementation without a code change,
+    | and so the fallback is a value somebody can read rather than a `default:`
+    | arm somebody has to find.
+    */
+    'notifications' => [
+
+        /*
+         * How long any single provider call may take.
+         *
+         * Ten seconds, like the payment gateways. This runs on a worker rather
+         * than while a guest waits, but a reminder sweep of four hundred
+         * bookings behind a hung provider is a queue that never drains.
+         */
+        'timeout_seconds' => (int) env('KAIKI_SMS_TIMEOUT', 10),
+
+        /*
+         * NTF-2's three implementations, keyed by `NotificationProvider`.
+         *
+         * `null_gateway` is a real entry rather than an absence: it composes,
+         * counts segments and logs, and sends nothing. An operator who has not
+         * configured SMS can therefore *see* that their reminders are being
+         * written and dropped, which is a five-minute fix — where a silent skip
+         * is indistinguishable from a broken platform.
+         */
+        'gateways' => [
+            'apifon' => ApifonSmsGateway::class,
+            'twilio' => TwilioSmsGateway::class,
+            'null_gateway' => NullSmsGateway::class,
+        ],
+
+        'apifon' => [
+            'host' => env('KAIKI_APIFON_HOST', 'https://ars.apifon.com'),
+        ],
+
+        'twilio' => [
+            'host' => env('KAIKI_TWILIO_HOST', 'https://api.twilio.com'),
+        ],
+
+        /*
+         * The ceiling a reminder SMS may cost, in segments (NTF-5).
+         *
+         * Two. Greek falls back to UCS-2 at seventy characters a segment, so a
+         * sentence with a meeting point, a time and a link is already close —
+         * and `SmsComposer` trims the operator's own preamble rather than the
+         * things NTF-5 fixes as mandatory.
+         */
+        'sms_max_segments' => 2,
+
+    ],
 
     'payments' => [
 

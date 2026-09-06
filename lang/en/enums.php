@@ -469,4 +469,72 @@ return [
         'closed' => ['label' => 'Closed'],
     ],
 
+    /*
+    | How a message went out (§2.7).
+    |
+    | `webhook` sits beside the two a guest can read because an operator asking
+    | "did anything reach my system about this booking" wants one timeline
+    | rather than three.
+    */
+    'notification_channel' => [
+        'mail' => ['label' => 'Email'],
+        'sms' => ['label' => 'SMS'],
+        'webhook' => ['label' => 'Webhook'],
+    ],
+
+    /*
+    | Where a send got to (NTF-3, NTF-8).
+    |
+    | `failed` is our side and `bounced` is theirs: an operator can fix the
+    | first and can only telephone about the second, so a status that merged
+    | them would be a feed nobody could act on.
+    */
+    'notification_status' => [
+        'queued' => ['label' => 'Waiting to go'],
+        'sent' => ['label' => 'Sent'],
+        'delivered' => ['label' => 'Delivered'],
+        'bounced' => ['label' => 'Bounced back'],
+        'failed' => ['label' => 'Failed'],
+    ],
+
+    /*
+    | Who carried it (NTF-1, NTF-2).
+    |
+    | `null_gateway` is a real provider rather than an absence: it composes and
+    | logs the message and sends nothing, so an operator with no SMS account can
+    | see that their reminders are being written and dropped.
+    */
+    'notification_provider' => [
+        'postmark' => ['label' => 'Postmark'],
+        'apifon' => ['label' => 'Apifon'],
+        'twilio' => ['label' => 'Twilio'],
+        'null_gateway' => ['label' => 'Not sent — no SMS account'],
+    ],
+
+    /*
+    | The messages this product sends (BKG-13, BKG-16, NTF-7).
+    |
+    | Every one is transactional. The offsets are in the names because they are
+    | the identity: the 48-hour and 24-hour reminders are two different messages
+    | with two different dedupe keys.
+    */
+    'notification_template' => [
+        'booking_confirmed' => ['label' => 'Booking confirmed'],
+        'booking_cancelled' => ['label' => 'Booking cancelled'],
+        'guest_details_requested' => ['label' => 'Passenger details requested'],
+        'guest_details_reminder_48h' => ['label' => 'Passenger details, 48 hours'],
+        'guest_details_reminder_24h' => ['label' => 'Passenger details, 24 hours'],
+        'balance_due_reminder' => ['label' => 'Balance due'],
+        'balance_overdue' => ['label' => 'Balance overdue'],
+        'pre_departure_24h' => ['label' => 'Trip tomorrow'],
+        'charter_agreement_72h' => ['label' => 'Charter agreement, 72 hours'],
+        'charter_agreement_24h' => ['label' => 'Charter agreement, 24 hours'],
+        'voucher_expiry_30d' => ['label' => 'Voucher expires in a month'],
+        'voucher_expiry_7d' => ['label' => 'Voucher expires in a week'],
+        'weather_choice_requested' => ['label' => 'Weather cancellation, choice needed'],
+        'weather_choice_reminder' => ['label' => 'Weather cancellation, reminder'],
+        'weather_choice_applied' => ['label' => 'Weather cancellation, settled'],
+        'quote_sent' => ['label' => 'Quote sent'],
+    ],
+
 ];

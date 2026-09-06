@@ -9,6 +9,7 @@ use App\Providers\BookingServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\Filament\AppPanelProvider;
 use App\Providers\IntegrationServiceProvider;
+use App\Providers\NotificationServiceProvider;
 
 return [
     ApiRateLimitServiceProvider::class,
@@ -16,6 +17,7 @@ return [
     AuditServiceProvider::class,
     BookingServiceProvider::class,
     IntegrationServiceProvider::class,
+    NotificationServiceProvider::class,
     AdminPanelProvider::class,
     AppPanelProvider::class,
 ];

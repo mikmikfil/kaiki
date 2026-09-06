@@ -14,13 +14,13 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M2 — Booking & payments, in progress.** M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M2 | #79, #80, #81, #82, #83, #84, #85, #86 |
+| M2 | #79, #80, #81, #82, #83, #84, #85, #86, #87 |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1865, one failing: the schema snapshot CI cannot regenerate) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1931, one failing: the schema snapshot CI cannot regenerate) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
-| **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83, #84, #85 and #86 cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
+| **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83, #84, #85, #86 and #87 cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
 
@@ -34,6 +34,96 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #87 — Notifications, and the reminder that must not arrive after the boat has left
+
+**Files:** `database/migrations/2026_09_02_000040_create_notification_logs_table.php`, `app/Models/NotificationLog.php`, `app/Enums/{NotificationChannel,NotificationStatus,NotificationProvider,NotificationTemplate}.php`, `app/Contracts/SmsGateway.php`, `app/Domain/Notifications/Gateways/{ApifonSmsGateway,TwilioSmsGateway,NullSmsGateway}.php`, `app/Domain/Notifications/Support/{SmsComposer,SmsGatewayResolver,QuietHours,QuietHoursDecision}.php`, `app/Domain/Notifications/Actions/{SendNotification,SendDueReminders,RetryNotification}.php`, `app/Domain/Notifications/Data/SmsResult.php`, `app/Mail/GuestMail.php`, `resources/views/mail/booking/{html,text}.blade.php`, `app/Listeners/Booking/SendBookingConfirmation.php`, `app/Jobs/Reminders/SendDueRemindersJob.php`, `app/Providers/NotificationServiceProvider.php`, `app/Filament/App/Resources/NotificationLogResource.php` (+ its list page), `app/Policies/NotificationLogPolicy.php`, `lang/{el,en}/{mail,notifications}.php`, `routes/console.php`, `config/kaiki.php`, six test files and a factory
+
+### The requirement whose second half is the whole point
+
+BKG-18 reads:
+
+> *No SMS between 21:00 and 08:00 local time. A reminder that would fall in the window is sent at 08:00, or **dropped and logged** if 08:00 is after the event.*
+
+Deferring to 08:00 is four lines. The clause after the comma is the one that gets skipped, and its failure mode is a *"your trip is tomorrow"* text arriving while the guest is already standing on the boat.
+
+`QuietHours::decide()` therefore returns **three** outcomes rather than a nullable time — send now, send at 08:00, drop — because a null cannot carry a reason, and the requirement says *dropped **and logged***. A reminder that simply vanished is unanswerable when an operator asks *"why did my guest not get the text"*. The dropped row is written with `quiet_hours_would_deliver_after_the_event`, which `NotificationLogResource::explain()` turns into a sentence naming 08:00.
+
+The window is **tenant-local wall-clock**, and two of the nine tests bracket a clock change to prove it: Athens is UTC+3 in July and UTC+2 in January, so 05:00 UTC is 08:00 local for half the year and 07:00 for the other half. A comparison written against UTC hours passes in summer and silently misfires all winter.
+
+### A sweep, not one delayed job per reminder
+
+BKG-13.7 says *"schedule the reminder jobs"*, and the obvious reading is `dispatch()->delay()` once per reminder at confirmation time.
+
+That is the reading that fires anyway. Between confirmation and departure the departure can move, the balance can be paid, the guest details can be completed and the booking can be cancelled — and there is no handle on a queued job to cancel it.
+
+So `SendDueReminders` runs every fifteen minutes, derives BKG-16's schedule from each booking **on the pass**, and evaluates every one of BKG-16's own "suppressed when" conditions at send time. A guest who finishes their passport details an hour before the 48-hour reminder does not get one. Nothing is scheduled ahead, so nothing has to be unscheduled.
+
+### The idempotency key needed a third column, and the bug it prevents is silent
+
+BKG-16 asks for *"idempotent per booking per reminder type"*, which is one indexed read on `notif_logs_tenant_tmpl_idx`.
+
+Written that way it is wrong. BKG-13's confirmation goes out as an **email and a text**, both under `booking_confirmed` — so a key of (booking, template) lets whichever went first suppress the other. It was written that way first, and the SMS test caught it: the log looked entirely healthy and the guest never got the message. `alreadySent()` takes the channel.
+
+Two status decisions inside the same method:
+
+- A `failed` row is **not** counted as sent. Otherwise one provider outage becomes a message the guest never receives and which no later pass ever retries.
+- A `bounced` row **is**. Re-sending to a mailbox that rejected us produces a second bounce and damages the sending domain; NTF-8 flags the booking so a person telephones instead.
+
+### The log row is written before the send
+
+A log written on success is a log of the sends that worked, which is the log nobody needs. The row goes in as `queued` and is updated with whatever came back, so a crash between the two leaves evidence of exactly what was about to happen — and BKG-14's retry button has a record to act on, which a listener that only threw would not have left.
+
+### NTF-5 is an arithmetic requirement, and Greek is where it bites
+
+GSM-7 fits 160 characters in a segment and does **not** contain the Greek lowercase alphabet. An ordinary Greek sentence forces UCS-2 and the segment becomes **70**. `SmsComposer` counts what the operator is billed for rather than what `strlen` returns:
+
+- the GSM-7 alphabet and its escape table, where `€ { } [ ] ~ ^ |` cost **two** septets each;
+- the six-character concatenation header, which drops a multi-segment message to **153** per part in GSM-7 and **67** in UCS-2 — dividing by 160 under-counts exactly the messages that matter;
+- a budget in segments (`kaiki.notifications.sms_max_segments`, default 2), with the **lead trimmed** and the meeting point, the time and the link never touched, because NTF-5 fixes those three as mandatory and a text without a meeting point is a phone call.
+
+Ten tests, including the mixed Greek/Latin string that is one character over the UCS-2 boundary.
+
+### `NullGateway` is a provider, not an absence
+
+NTF-2 names it as the fallback. It records `null_gateway` in the log rather than skipping the row, so a tenant with no SMS account still gets every message composed, counted and logged — and an operator can *see* that their reminders are being written and dropped, which is a five-minute fix. A silent skip is indistinguishable from a broken platform.
+
+### Deviations from the issue as written
+
+**MJML is not used.** The issue names it as an npm dev dependency with compiled HTML committed. Two templates do not justify a Node toolchain, a build step and a second source of truth for every wording change; hand-authored table-based HTML with inline styles satisfies NTF-6, and `TemplateSnapshotTest` asserts the properties MJML would have been bought for — no `<img>`, a plain-text part on every message, no `text-transform`.
+
+**BKG-13's confirmation email and SMS are one listener, not two.** They share the template, the NTF-4 locale resolution and the "did the guest give us a phone number" decision. They stay independently visible because the log has a row per channel, which is what BKG-14 asks the panel to show. The other six of BKG-13's nine listeners are named in `NotificationServiceProvider`'s docblock with the issue or milestone that owns each, rather than left to be rediscovered.
+
+**Listeners are registered explicitly, not by discovery.** `Event::listen` in a dedicated provider, so the nine-row table above it is checkable against the code beside it. Auto-discovery makes "which listeners fire on `BookingConfirmed`" a question answerable only by running the application.
+
+### Things this touched that were not its own
+
+1. **`lang/{el,en}/enums.php`** gained label blocks for the four new enums — `EnumLabelCoverageTest` requires every backed enum to have one in both locales.
+2. **`tests/Support/I18n/allow-list.php`** gained `Apifon`, `Twilio` and `Postmark` as vendor wordmarks identical in both locales — the treatment Viva Wallet and Stripe already had — and `webhook`, which has no Greek word this audience would recognise.
+3. **`config/kaiki.php`** gained the `notifications` block: the two providers' hosts (CLAUDE.md's rule that no endpoint is ever written into a class), a ten-second timeout, the gateway map NTF-2's fallback is an entry in, and `sms_max_segments`. The quiet-hours boundaries are **not** here: 21:00 and 08:00 come from BKG-18 rather than from a deployment, and a configurable value invites somebody to widen the window instead of arguing with the requirement.
+4. **`routes/console.php`** gained the fifteen-minute sweep and a daily `model:prune` for `NotificationLog` — §2.7's twelve months, which is a retention rule and therefore has to be executed by something, not merely documented.
+5. **`bootstrap/providers.php`** registers `NotificationServiceProvider`.
+
+### Verification
+
+```
+$ php artisan test --exclude-group=mysql --exclude-group=chromium --exclude-group=external
+Tests:    1 failed, 1930 passed (5552 assertions)
+
+FAILED  Tests\Unit\CiGatesTest > it keeps the committed schema snapshot in step with the migrations
+```
+
+```
+$ vendor/bin/pint --test
+$ vendor/bin/phpstan analyse
+[OK] No errors
+```
+
+The single failure is **ENV-10's schema-snapshot fingerprint**, inherited by every issue since #83 that adds a migration. The snapshot is generated against MySQL 8, and CI is the only place with a MySQL 8 connection — which is the CI billing block in the Status table above, not a defect in this issue. The same failure stands on #83, #85 and now #87.
+
+The MySQL and chromium groups have not run for this issue for the same reason.
 
 ---
 

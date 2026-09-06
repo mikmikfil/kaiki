@@ -7,6 +7,8 @@ use App\Jobs\ExpireAbandonedCheckoutsJob;
 use App\Jobs\ExpireQuotesJob;
 use App\Jobs\ExpireStaleHoldsJob;
 use App\Jobs\GenerateDeparturesNightly;
+use App\Jobs\Reminders\SendDueRemindersJob;
+use App\Models\NotificationLog;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -165,3 +167,46 @@ Schedule::job(new ExpireQuotesJob)
     ->withoutOverlapping()
     ->onOneServer()
     ->name('quotes:expire');
+
+/*
+|--------------------------------------------------------------------------
+| Guest reminders (spec BKG-16, BKG-18)
+|--------------------------------------------------------------------------
+|
+| **A sweep, not delayed jobs.** BKG-13.7 says "schedule the reminder jobs", and
+| one delayed job per reminder per booking is the obvious reading — and the one
+| that fires anyway when the departure moves, the balance is paid, the details
+| are completed or the booking is cancelled. The schedule is derived from the
+| booking on every pass instead, and every suppression condition in BKG-16's own
+| table is evaluated at send time.
+|
+| Every fifteen minutes. The offsets are hours and days, so a per-minute sweep
+| would be sixty times the queries to send the same message in the same quarter
+| of an hour — and BKG-18's deferral to 08:00 works by the next pass finding the
+| window open, which needs the passes to be frequent rather than instant.
+|
+| Not on the hour, and not at :35 where the weather-choice sweep sits: two long
+| jobs on one Hetzner box contending for the same connection pool is avoidable.
+*/
+Schedule::job(new SendDueRemindersJob)
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('notifications:reminders');
+
+/*
+|--------------------------------------------------------------------------
+| Notification log retention (`docs/data-model.md` §2.7)
+|--------------------------------------------------------------------------
+|
+| Twelve months. Long enough that an operator asking "did the guest ever get the
+| confirmation" six months later gets an answer, and short enough that a table
+| holding every guest's email address does not grow without limit — `to` is
+| personal data and §2.7 puts it in the GDPR export and erase paths.
+*/
+Schedule::command('model:prune', ['--model' => [NotificationLog::class]])
+    ->dailyAt((string) config('kaiki.audit.purge_at', '04:10'))
+    ->timezone((string) config('kaiki.defaults.timezone', 'Europe/Athens'))
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('notifications:prune');

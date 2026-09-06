@@ -79,6 +79,20 @@ return [
         'enums.booking_source.wordpress.label' => 'Product name, identical in both locales.',
         'enums.payment_gateway_name.viva.label' => 'Vendor wordmark, identical in both locales.',
         'enums.payment_gateway_name.stripe.label' => 'Vendor wordmark, identical in both locales.',
+
+        // The three carriers again, under `notification_provider`. A third enum
+        // naming the same companies is not duplication either: the credential
+        // store asks *whose keys are these*, and a log row asks *who carried
+        // this message* — and a `null_gateway` row answers the second with no
+        // company at all, which is the case NTF-2 calls the platform fallback.
+        'enums.notification_provider.postmark.label' => 'Vendor wordmark, identical in both locales.',
+        'enums.notification_provider.apifon.label' => 'Vendor wordmark, identical in both locales.',
+        'enums.notification_provider.twilio.label' => 'Vendor wordmark, identical in both locales.',
+
+        // «Webhook» has no Greek word an operator would recognise. Every Greek
+        // developer and every Greek integration guide says webhook, and a
+        // translation would be a word this audience has to translate back.
+        'enums.notification_channel.webhook.label' => 'Technical term with no Greek equivalent in use.',
     ],
 
     'literals' => [
