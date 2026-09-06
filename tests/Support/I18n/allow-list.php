@@ -53,6 +53,19 @@ return [
         // interface. Translating it would leave an operator searching for a
         // product that is not called that anywhere they can look it up.
         'enums.font_source.google.label' => 'Product name, identical in both locales.',
+
+        // The integration providers are vendor wordmarks. An operator setting up
+        // Viva is looking for the word printed on their own Viva dashboard, and
+        // a transliterated «Biba» would send them hunting for a company that
+        // calls itself nothing of the sort. `mydata` is absent on purpose: it
+        // carries the issuing authority in brackets, and that part *is*
+        // translated — AADE in English, ΑΑΔΕ in Greek.
+        'enums.integration_provider.viva.label' => 'Vendor wordmark, identical in both locales.',
+        'enums.integration_provider.stripe.label' => 'Vendor wordmark, identical in both locales.',
+        'enums.integration_provider.apifon.label' => 'Vendor wordmark, identical in both locales.',
+        'enums.integration_provider.yuboto.label' => 'Vendor wordmark, identical in both locales.',
+        'enums.integration_provider.twilio.label' => 'Vendor wordmark, identical in both locales.',
+        'enums.integration_provider.postmark.label' => 'Vendor wordmark, identical in both locales.',
     ],
 
     'literals' => [

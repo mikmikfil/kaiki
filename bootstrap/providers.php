@@ -7,11 +7,13 @@ use App\Providers\AppServiceProvider;
 use App\Providers\AuditServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\Filament\AppPanelProvider;
+use App\Providers\IntegrationServiceProvider;
 
 return [
     ApiRateLimitServiceProvider::class,
     AppServiceProvider::class,
     AuditServiceProvider::class,
+    IntegrationServiceProvider::class,
     AdminPanelProvider::class,
     AppPanelProvider::class,
 ];

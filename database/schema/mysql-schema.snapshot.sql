@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:ef870c96a50856e0918130e7515717c3fb99ef3ea9a9f746277816a578750dcf
+-- migrations-fingerprint: sha256:ca0465b6ffa8b49d52fd8219328a4359979b3255314458665c9d6dcb809c755d
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -301,6 +301,28 @@ CREATE TABLE `ical_sources` (
   KEY `ical_sources_sync_idx` (`is_active`,`last_synced_at`),
   CONSTRAINT `ical_sources_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
   CONSTRAINT `ical_sources_vessel_id_foreign` FOREIGN KEY (`vessel_id`) REFERENCES `vessels` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `integration_credentials`;
+CREATE TABLE `integration_credentials` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `provider` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `environment` varchar(8) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'live',
+  `credentials` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `public_config` json NOT NULL,
+  `external_account_id` varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `is_default` tinyint(1) NOT NULL DEFAULT '0',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `verified_at` timestamp NULL DEFAULT NULL,
+  `last_error` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `webhook_secret` text COLLATE utf8mb4_unicode_ci,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `integr_creds_tenant_prov_env_uq` (`tenant_id`,`provider`,`environment`),
+  KEY `integr_creds_tenant_active_idx` (`tenant_id`,`is_active`,`is_default`),
+  KEY `integr_creds_provider_account_idx` (`provider`,`external_account_id`),
+  CONSTRAINT `integration_credentials_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `job_batches`;
 CREATE TABLE `job_batches` (
@@ -791,3 +813,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (23,'2026_09_02_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (24,'2026_09_02_000026_create_ical_feeds_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (25,'2026_09_02_000027_create_ical_sources_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (26,'2026_09_02_000028_create_vessel_blocks_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (27,'2026_09_02_000029_create_integration_credentials_table',1);
