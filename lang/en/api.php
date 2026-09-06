@@ -21,6 +21,7 @@ return [
         'forbidden' => 'That API key is not allowed to perform this action.',
         'gone' => 'That resource is no longer available.',
         'rate_limited' => 'Too many requests. Slow down and retry after the time in `Retry-After`.',
+        'enquiry_rejected' => 'That message could not be sent. If you are a person and not a script, please try again in a moment.',
     ],
 
 ];

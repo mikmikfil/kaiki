@@ -957,7 +957,7 @@ The aggregate root. `per_seat` bookings point at a `departure_id`; `per_vessel` 
 | `confirmed_at` | timestamp | yes | null | |
 | `cancelled_at` | timestamp | yes | null | |
 | `cancelled_by` | varchar(16) | yes | null | `guest` \| `operator` \| `system` |
-| `cancel_reason` | varchar(32) | yes | null | `guest_request` \| `weather` \| `operator` \| `min_pax` \| `vessel_booked_privately` \| `payment_failed` \| `hold_expired` |
+| `cancel_reason` | varchar(32) | yes | null | `guest_request` \| `weather` \| `operator` \| `min_pax` \| `vessel_booked_privately` \| `payment_failed` \| `hold_expired` \| `quote_declined` — the last **added by #85**, because BKG-26 names it (*"Declining transitions to `cancelled` with reason `quote_declined`"*) and this list did not have it. Folding it into `guest_request` would be invisible and would destroy the one number a quote-mode operator most wants: how many offers get turned down. That is a pricing signal; a guest cancelling a confirmed booking is not |
 | `checked_in_at` | timestamp | yes | null | whole-booking check-in; per-guest lives on `booking_guests` |
 | `completed_at` | timestamp | yes | null | |
 | `no_show` | boolean | no | `false` | |

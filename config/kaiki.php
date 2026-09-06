@@ -553,6 +553,19 @@ return [
          */
         'weather_choice_reminder_hours' => (int) env('KAIKI_WEATHER_CHOICE_REMINDER_HOURS', 72),
 
+        /*
+         * How long an operator's quote is good for, in days (BKG-26).
+         *
+         * Seven, and it is a **default** rather than a rule: `quotes.valid_until`
+         * is a column and the operator sets it per quote, because a charter for
+         * next weekend and one for next August are not the same offer.
+         *
+         * It matters more than it looks. BKG-25 ties an opt-in vessel hold's
+         * expiry to this date exactly — so a careless thirty-day default would
+         * be a careless thirty days of a boat off sale.
+         */
+        'quote_validity_days' => (int) env('KAIKI_QUOTE_VALIDITY_DAYS', 7),
+
     ],
 
     /*

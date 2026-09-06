@@ -3375,6 +3375,23 @@ components:
           description: |
             **Honeypot.** Must be empty. Never persisted. A filled value is answered
             `422 enquiry_rejected` with no row created and no notification sent.
+        form_rendered_at:
+          type: [string, "null"]
+          format: date-time
+          description: |
+            **Timing check (BKG-29), added by #85.** When the client rendered the form. A
+            submission less than **3 seconds** after it is answered `422 enquiry_rejected`.
+
+            Bounded at one end only, deliberately: a guest who opens the form, is interrupted
+            and submits forty minutes later is not a bot, and an "implausibly slow" rejection
+            would refuse exactly the enquiries an operator most wants. A missing, unparseable
+            or future value is accepted — a client that sends none is an older integration,
+            and a future one is a clock-skewed browser.
+
+            Like the honeypot, this is a cheap filter and not a defence. A client chooses this
+            value, so anybody trying can send whatever they like; what it stops is the scripts
+            that POST to every form they find. The **5 per IP** limit is the number that
+            matters.
         consent:
           type: boolean
           description: The guest agreed to be contacted about this enquiry. Required by the tenant's privacy notice.

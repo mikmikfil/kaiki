@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Jobs\ApplyWeatherChoiceDefaults;
 use App\Jobs\ExpireAbandonedCheckoutsJob;
+use App\Jobs\ExpireQuotesJob;
 use App\Jobs\ExpireStaleHoldsJob;
 use App\Jobs\GenerateDeparturesNightly;
 use Illuminate\Foundation\Inspiring;
@@ -142,3 +143,25 @@ Schedule::job(new ApplyWeatherChoiceDefaults)
     ->withoutOverlapping()
     ->onOneServer()
     ->name('bookings:weather-choices');
+
+/*
+|--------------------------------------------------------------------------
+| Quotes that ran out (spec BKG-26, `docs/data-model.md` §4.4)
+|--------------------------------------------------------------------------
+|
+| **The tidier, not the guarantee** — the same division AVL-38 draws for seat
+| holds. `Quote::canBeAccepted()` reads `valid_until` directly, so a lapsed
+| offer is unacceptable the instant it lapses whether or not this has run. What
+| this does is bring the *status* into line, so the operator's "pending quotes"
+| card stops counting offers nobody can take and any opt-in vessel hold comes
+| off the boat.
+|
+| Every fifteen minutes. Validity is measured in days, so a per-minute sweep
+| would be sixty times the queries to free the same boat in the same quarter of
+| an hour.
+*/
+Schedule::job(new ExpireQuotesJob)
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('quotes:expire');

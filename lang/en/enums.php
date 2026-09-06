@@ -329,6 +329,7 @@ return [
         'vessel_booked_privately' => ['label' => 'The boat was chartered privately'],
         'payment_failed' => ['label' => 'Payment failed'],
         'hold_expired' => ['label' => 'The seats were not paid for in time'],
+        'quote_declined' => ['label' => 'The guest turned down the quote'],
     ],
 
     'voucher_status' => [
@@ -425,6 +426,47 @@ return [
         'cash' => ['label' => 'Money back'],
         'voucher' => ['label' => 'A voucher instead'],
         'waived' => ['label' => 'Nothing back'],
+    ],
+
+    /*
+    | Where a quote stands (§4.4).
+    |
+    | `expired` covers two things on purpose: an offer that ran out of time and
+    | one replaced by a newer version. Either way the link the guest is holding
+    | is no longer the offer, which is what they need to be told.
+    */
+    'quote_status' => [
+        'draft' => ['label' => 'Being written'],
+        'sent' => ['label' => 'Sent to the guest'],
+        'accepted' => ['label' => 'Accepted'],
+        'declined' => ['label' => 'Turned down'],
+        'expired' => ['label' => 'Expired or replaced'],
+    ],
+
+    /*
+    | What a line on a quote is (BKG-27). Discount amounts are positive; the
+    | kind is what carries the minus sign.
+    */
+    'quote_line_kind' => [
+        'charter' => ['label' => 'Charter'],
+        'extra' => ['label' => 'Extra'],
+        'fee' => ['label' => 'Fee'],
+        'discount' => ['label' => 'Discount'],
+    ],
+
+    /*
+    | The enquiry inbox (BKG-28).
+    |
+    | `spam` is kept rather than deleted, so an operator who suspects a real
+    | message was thrown away has somewhere to look.
+    */
+    'enquiry_status' => [
+        'new' => ['label' => 'New'],
+        'in_progress' => ['label' => 'Being handled'],
+        'answered' => ['label' => 'Answered'],
+        'converted' => ['label' => 'Became a booking'],
+        'spam' => ['label' => 'Spam'],
+        'closed' => ['label' => 'Closed'],
     ],
 
 ];

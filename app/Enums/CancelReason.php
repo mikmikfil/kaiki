@@ -13,6 +13,15 @@ use App\Enums\Concerns\HasTranslatedLabel;
  * trips did the weather cost this season, and how many holds expired at
  * checkout. The second is a conversion problem and the first is not, and a
  * free-text column could not tell them apart.
+ *
+ * ## `quote_declined` was in the spec and not in the list
+ *
+ * BKG-26: *"Declining transitions to `cancelled` with reason
+ * `quote_declined`."* `docs/data-model.md` §2.5 enumerated seven reasons and
+ * that was not among them, so #85 added it and reconciled the table. It is
+ * exactly the distinction this enum exists for: a guest who was quoted €950 and
+ * said no is a **pricing** signal, and folding it into `guest_request` would
+ * make the one number a quote-mode operator most wants unaskable.
  */
 enum CancelReason: string
 {
@@ -25,4 +34,7 @@ enum CancelReason: string
     case VesselBookedPrivately = 'vessel_booked_privately';
     case PaymentFailed = 'payment_failed';
     case HoldExpired = 'hold_expired';
+
+    /** The guest read the quote and said no (BKG-26, added by #85). */
+    case QuoteDeclined = 'quote_declined';
 }

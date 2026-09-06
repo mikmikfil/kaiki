@@ -14,13 +14,13 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M2 — Booking & payments, in progress.** M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M2 | #79, #80, #81, #82, #83, #84 |
+| M2 | #79, #80, #81, #82, #83, #84, #85 |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1742) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1823, one failing: the schema snapshot CI cannot regenerate) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
-| **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 and #84 cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
+| **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83, #84 and #85 cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
 
@@ -34,6 +34,91 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #85 — Quotes and enquiries, and the boat a quote does not hold
+
+**Files:** three migrations (§6 items 37–39), `app/Enums/{QuoteStatus,QuoteLineKind,EnquiryStatus}.php` plus a case on `CancelReason`, `app/Models/{Quote,QuoteLineItem,Enquiry}.php`, `app/Domain/Booking/Actions/{BuildQuote,SendQuote,AcceptQuote,DeclineQuote,ExpireQuotes,SubmitEnquiry}.php`, `app/Domain/Booking/Support/QuoteSnapshot.php`, `app/Domain/Booking/Data/EnquiryData.php`, `app/Jobs/ExpireQuotesJob.php`, `app/Events/{QuoteSent,QuoteAccepted,QuoteDeclined,EnquiryReceived}.php`, `app/Http/{Controllers/Api/V1/EnquiryController,Requests/Api/V1/EnquiryCreateRequest,Resources/Api/V1/EnquiryResource}.php`, `app/Policies/{Quote,QuoteLineItem,Enquiry}Policy.php`, `app/Filament/App/Resources/{Quote,Enquiry}Resource*`, `routes/{api,console}.php`, `config/kaiki.php`, `lang/{el,en}/{quotes,enums,api}.php`, five test files and a shared scenario class
+
+### The requirement whose reason is in the requirement
+
+BKG-25 is marked RESOLVED and carries its own justification: *"otherwise a quote request would block a vessel indefinitely."*
+
+That is the whole shape of the feature. A `quote_requested` booking holds **nothing** — no `hold_expires_at`, no `vessel_blocks` row, no counter — and an operator with a dozen open enquiries would otherwise have a boat nobody can buy with nothing in the panel saying why.
+
+The hold is opt-in at the moment of **sending**, it is an ordinary block an operator can see in their own calendar, and its expiry is **equal** to `valid_until`. Not close to it. Two dates that are supposed to match and are entered separately are two dates that will not match.
+
+In the panel the toggle defaults to **off**, which is the requirement rather than a preference, and a test asserts the default rather than the option.
+
+### The re-check §4.4 calls the most important behaviour in quote mode
+
+> *"the boat is not reserved while the guest thinks about it. Acceptance re-checks availability and can fail."*
+
+Read again under a lock, at the instant of acceptance, through `OccupationCollector` — the same reader the calendar and the availability endpoint use, because ADR-0023 hides that union behind one port so a second opinion about "is this boat busy" cannot exist.
+
+On a refusal the guest is told the date has gone, and **the quote stays `sent`**. Marking it `declined` would be tidier and would lose the operator's work over a race the guest did not cause.
+
+### Two orderings that are not obvious and are both load-bearing
+
+1. **The quote's own hold is released before the read, not after.** A quote that held the boat and then refused to let the guest accept *because the boat was held* is a perfect little deadlock, and it is the implementation anybody writes first.
+
+2. **That release happens inside the transaction.** So a refusal rolls it back with everything else, and an operator's hold survives a failed acceptance. Releasing it outside would give the boat away on the one path where the guest did not get it.
+
+### `quote_declined` was in the spec and not in the data model
+
+BKG-26: *"Declining transitions to `cancelled` with reason `quote_declined`."* §2.5's `bookings.cancel_reason` enumerated seven reasons and that was not among them.
+
+Added, and §2.5 reconciled. Folding it into `guest_request` would have been invisible and would have destroyed the one number a quote-mode operator most wants — how many of my offers get turned down. That is a pricing signal, and a guest cancelling a confirmed booking is not.
+
+### An operator's free text, in §3.4's shape, and refunds are the reason
+
+BKG-27 permits free-text lines and constrains everything else: integer cents, and *"still produces a `price_snapshot`."*
+
+`RefundCalculator` takes a frozen policy and a `paid_cents`; CXL-1 makes that the only route to a refund. A quoted booking carrying its totals in some other shape would be a booking the cancellation path could not price. §3.4's `source` field has `quote` in its enumeration for exactly this, and the last test in `QuoteSnapshotTest` feeds an accepted quote's snapshot to the same calculator every other booking uses, unmodified.
+
+Two mappings inside it:
+
+- **`charter` becomes §3.4's `fee`.** It is money the guest pays per booking rather than per person, which is what `fee` means there. Widening §3.4's line kinds would have been the other option and would have touched every existing reader of a snapshot.
+- **No `vat_category`.** ADR-0002 and CAT-11a put the AADE category on the `vat_rates` row and state that the myDATA client *"contains no percent→category mapping"*. A quote carries a rate in basis points and no category; inventing one here would put that mapping back, in the one place nobody would look.
+
+`rate_plan_id` and `season` come back **null**, and honestly so: there was no rate plan and no season, and the provenance for "why this price" is `quote_line:{id}` and the quote row.
+
+### The spam filters are cheap and the code says so
+
+BKG-29 asks for a honeypot and a timing check with no third-party CAPTCHA. Neither stops anybody who is trying — a honeypot is visible in the DOM, and a client-supplied `form_rendered_at` is a number the client chose. What they stop is the scripts that POST to every form they find, which is most of what this endpoint gets. The defence is §3.6's class F: **5 per IP**, four times tighter than anything else in the contract.
+
+Writing that down is the point. A filter whose limits are stated is a filter nobody mistakes for security.
+
+**The timing check is bounded at one end only**, which the issue's own note asked for: too fast refuses, too slow does not. A guest interrupted by a phone call for forty minutes is not a bot, and an "implausibly slow" rejection would refuse exactly the careful enquiries an operator most wants. A missing or unparseable timestamp is accepted — an older client is not an attacker — and so is a future one, which is a clock-skewed browser rather than an attack.
+
+### A contract change, made deliberately
+
+`docs/api.md`'s `EnquiryCreateRequest` gains `form_rendered_at`. §10.5's rule is that the direction of authority runs contract → code, and when the two disagree the fix is *"to change the code, or to change the contract **and say why in `CHANGELOG.md`**"*. There was no field for a timing check and BKG-29 requires one; the reason is in the changelog and in the schema's own description.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `php artisan migrate` (SQLite) | three migrations clean |
+| `composer lint` | passed |
+| `composer stan` | `[OK] No errors` |
+| `composer test` | **1822 passed**, 1 failed: the ENV-10 schema-snapshot fingerprint |
+| `tests/Feature/Quote` + `tests/Feature/Api/EnquiryEndpointTest.php` | 42 passed |
+
+**The snapshot could not be refreshed** — CI is still blocked on account billing. See the CI row at the head of this file.
+
+### Things this touched that were not its own
+
+1. **`CancelReason::QuoteDeclined`**, and §2.5's list with it. See above.
+
+2. **Three policies, because `PolicyCoverageTest` insisted.** Filament *allows* an action when no policy is registered, so a model reachable through a relation manager is writable by every role with nothing in the code saying so. `QuoteLineItemPolicy` exists for that reason and shares `QuotePolicy`'s capabilities exactly — an authorisation that let somebody edit the lines but not the quote would be a way round the policy that governs the total.
+
+3. **Crew read neither screen**, and the quote one changed during the work. `ViewPaxList` was the convenient reading — crew meet the chartered party, after all — and `PaymentPolicy` already had the argument written down: what a guest paid *"is not their business and is the kind of thing that ends up discussed on a quay."* A quote is that sentence in advance. `ViewFinancials`.
+
+4. **`QuoteFactory` tripped `NoHardcodedVatRateTest`** with a `vat_rate_bp` of 1300 — a statutory percentage in the source, which ADR-0002 forbids anywhere. Zero, as `BookingFactory` already does; the rates stay unseeded until an accountant supplies them (CAT-11b).
+
+5. **The Greek `email` label**, caught by the I18N-3 parity gate: identical strings in both files read as untranslated, which is exactly the check working.
 
 ---
 

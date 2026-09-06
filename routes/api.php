@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AvailabilityController;
 use App\Http\Controllers\Api\V1\BrandingController;
+use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\PriceQuoteController;
 use App\Http\Controllers\Api\V1\ProductController;
@@ -141,4 +142,33 @@ Route::middleware([
     'throttle:api-pricing',
 ])->group(function (): void {
     Route::post('/price-quote', PriceQuoteController::class)->name('api.v1.price-quote');
+});
+
+/*
+ * Class F — enquiries (`docs/api.md` §3.6), and the tightest per-IP limit here.
+ *
+ * 120 per key, **5 per IP**. Four times tighter than anything else in the
+ * contract, because this is the one endpoint whose whole purpose is to accept
+ * unstructured text from a stranger — and the honeypot and timing check in
+ * `EnquiryCreateRequest` are filters on top of that number, not instead of it.
+ *
+ * The scope is `bookings.write`, which §2.1's table assigns and which reads
+ * oddly on a form that creates no booking. It is right anyway: an enquiry is
+ * the call to action on a `mode: quote` product where no price is shown, so a
+ * publishable key that may start a booking is exactly the key that may ask a
+ * question. Giving it `products.read` would let an SEO-sync key post messages.
+ *
+ * **`tenant.writable` is absent**, deliberately and unlike every other write.
+ * SAA-7 closes *bookings* for a lapsed subscription. Refusing a guest's
+ * question would cost the operator the enquiry that pays the bill they are
+ * behind on.
+ */
+Route::middleware([
+    'api.key',
+    'tenant',
+    'locale',
+    'api.scope:bookings.write',
+    'throttle:api-enquiries',
+])->group(function (): void {
+    Route::post('/enquiries', EnquiryController::class)->name('api.v1.enquiries.store');
 });
