@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:907f36f36927ab7677f7e1166e5011db7fcf56e84a78b1e91185f870274aecd5
+-- migrations-fingerprint: sha256:b419ba1648ce6358906c91b6f037702f11057e2604d2db683a828ff06d4c39cf
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -214,6 +214,7 @@ CREATE TABLE `bookings` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `balance_due_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `bookings_tenant_reference_uq` (`tenant_id`,`reference`),
   UNIQUE KEY `bookings_uuid_unique` (`uuid`),
@@ -231,6 +232,7 @@ CREATE TABLE `bookings` (
   KEY `bookings_tenant_email_idx` (`tenant_id`,`guest_email`),
   KEY `bookings_tenant_guest_details_idx` (`tenant_id`,`guest_details_status`,`guest_details_deadline_at`),
   KEY `bookings_tenant_created_idx` (`tenant_id`,`created_at`),
+  KEY `bookings_balance_due_idx` (`tenant_id`,`balance_due_at`,`status`),
   CONSTRAINT `bookings_created_by_user_id_foreign` FOREIGN KEY (`created_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `bookings_departure_id_foreign` FOREIGN KEY (`departure_id`) REFERENCES `departures` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `bookings_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT,
@@ -410,6 +412,30 @@ CREATE TABLE `failed_jobs` (
   `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `gateway_webhook_events`;
+CREATE TABLE `gateway_webhook_events` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned DEFAULT NULL,
+  `provider` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `event_id` varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `event_type` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `signature_valid` tinyint(1) NOT NULL DEFAULT '0',
+  `payload` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'received',
+  `payment_id` bigint unsigned DEFAULT NULL,
+  `error_message` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `processed_at` timestamp NULL DEFAULT NULL,
+  `received_at` timestamp NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `gw_events_provider_event_uq` (`provider`,`event_id`),
+  KEY `gateway_webhook_events_tenant_id_foreign` (`tenant_id`),
+  KEY `gateway_webhook_events_payment_id_foreign` (`payment_id`),
+  KEY `gw_events_status_idx` (`status`,`received_at`),
+  CONSTRAINT `gateway_webhook_events_payment_id_foreign` FOREIGN KEY (`payment_id`) REFERENCES `payments` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `gateway_webhook_events_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `ical_feeds`;
 CREATE TABLE `ical_feeds` (
@@ -709,6 +735,7 @@ CREATE TABLE `rate_plans` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `balance_due_days_before_departure` smallint unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `rate_plans_tenant_prod_season_uq` (`tenant_id`,`product_id`,`season_id`),
   KEY `rate_plans_product_id_foreign` (`product_id`),
@@ -865,6 +892,7 @@ CREATE TABLE `tenants` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `balance_due_days_before_departure` smallint unsigned DEFAULT '14',
   PRIMARY KEY (`id`),
   UNIQUE KEY `tenants_uuid_unique` (`uuid`),
   UNIQUE KEY `tenants_slug_unique` (`slug`),
@@ -1066,3 +1094,5 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (30,'2026_09_02_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (31,'2026_09_02_000033_create_booking_extras_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (32,'2026_09_02_000034_create_voucher_redemptions_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (33,'2026_09_02_000035_create_payments_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (34,'2026_09_02_000036_create_gateway_webhook_events_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (35,'2026_09_06_000001_add_balance_due_columns',1);
