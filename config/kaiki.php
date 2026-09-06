@@ -530,4 +530,70 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Payment gateways (PAY-1, PAY-2, ADR-0004)
+    |--------------------------------------------------------------------------
+    |
+    | **No endpoint is ever written into a class** (`CLAUDE.md`). They are here
+    | so that a sandbox, a staging box and a test run can each point somewhere
+    | different without touching code — and so the suite can point every call at
+    | a host that cannot resolve.
+    */
+
+    'payments' => [
+
+        /*
+         * How long any single gateway call may take.
+         *
+         * Short, and deliberately so: this runs while a guest waits on a
+         * checkout button, and AVL-46 forbids holding a row lock across it. Ten
+         * seconds is longer than either gateway's own p99 and short enough that
+         * a hung gateway is a message rather than a timed-out request.
+         */
+        'timeout_seconds' => (int) env('KAIKI_GATEWAY_TIMEOUT', 10),
+
+        /*
+         * How far out of date a signed webhook may be, in seconds (PAY-6).
+         *
+         * A valid signature over an old payload is a **replay**, and a verifier
+         * that only checks the HMAC accepts one forever. Five minutes is
+         * Stripe's own recommendation and is generous enough for clock skew
+         * between their servers and a Hetzner box.
+         */
+        'webhook_tolerance_seconds' => (int) env('KAIKI_WEBHOOK_TOLERANCE', 300),
+
+        'stripe' => [
+            /*
+             * One host for both environments — Stripe distinguishes live from
+             * test by the **key**, which is why a sandbox mix-up there is a
+             * rejected credential rather than a wrong server.
+             */
+            'base_uri' => env('KAIKI_STRIPE_BASE_URI', 'https://api.stripe.com'),
+        ],
+
+        'viva' => [
+            /*
+             * Three hosts per environment, because Viva splits them: the OAuth2
+             * token comes from `accounts`, the order from `api`, and the guest
+             * is sent to `checkout`. The demo and live domains are genuinely
+             * different servers, so an environment mix-up here is a request to
+             * the wrong host rather than a rejected key — a clearer failure,
+             * and the reason these are separate values rather than one with a
+             * path.
+             */
+            'live' => [
+                'accounts' => env('KAIKI_VIVA_ACCOUNTS', 'https://accounts.vivapayments.com'),
+                'api' => env('KAIKI_VIVA_API', 'https://api.vivapayments.com'),
+                'checkout' => env('KAIKI_VIVA_CHECKOUT', 'https://www.vivapayments.com'),
+            ],
+            'demo' => [
+                'accounts' => env('KAIKI_VIVA_DEMO_ACCOUNTS', 'https://demo-accounts.vivapayments.com'),
+                'api' => env('KAIKI_VIVA_DEMO_API', 'https://demo-api.vivapayments.com'),
+                'checkout' => env('KAIKI_VIVA_DEMO_CHECKOUT', 'https://demo.vivapayments.com'),
+            ],
+        ],
+
+    ],
+
 ];

@@ -6,6 +6,10 @@ namespace App\Providers;
 
 use App\Domain\Integrations\Support\CredentialRepository;
 use App\Domain\Integrations\Support\VerifierRegistry;
+use App\Domain\Payments\Gateways\FakeGateway;
+use App\Domain\Payments\Gateways\StripeCheckoutGateway;
+use App\Domain\Payments\Gateways\VivaSmartCheckoutGateway;
+use App\Domain\Payments\Support\GatewayResolver;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -45,5 +49,17 @@ class IntegrationServiceProvider extends ServiceProvider
         $this->app->singleton(VerifierRegistry::class, static function (): VerifierRegistry {
             return new VerifierRegistry;
         });
+
+        // The three gateways and the resolver that picks between them (#82).
+        //
+        // Singletons because the Viva one caches an OAuth2 token per tenant for
+        // the life of the request — a second instance would mint a second token
+        // and double the latency of the slowest step in a booking. The fake is
+        // one for a different reason: `failNext()` is state a test sets on the
+        // instance the code under test will resolve.
+        $this->app->singleton(FakeGateway::class);
+        $this->app->singleton(VivaSmartCheckoutGateway::class);
+        $this->app->singleton(StripeCheckoutGateway::class);
+        $this->app->singleton(GatewayResolver::class);
     }
 }

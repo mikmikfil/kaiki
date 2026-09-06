@@ -14,11 +14,11 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M2 — Booking & payments, in progress.** M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M2 | #79, #80, #81 |
+| M2 | #79, #80, #81, #82 |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1605) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1642) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
@@ -33,6 +33,88 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #82 — The gateway contract, and the two implementations that disagree about everything
+
+**Files:** `app/Contracts/PaymentGateway.php`, `app/Domain/Payments/Data/{RedirectTarget,RefundResult,TranslatableMessage}.php`, `app/Domain/Payments/Gateways/{VivaSmartCheckoutGateway,StripeCheckoutGateway,FakeGateway,GatewayCallFailed}.php`, `app/Domain/Payments/Support/{GatewayResolver,GatewayErrorDictionary}.php`, `app/Providers/IntegrationServiceProvider.php`, `config/kaiki.php`, `lang/{el,en}/payments.php`, `phpunit.xml`, `phpunit.coverage.xml`, three test files
+
+No migration in this one — the first M2 issue without one.
+
+### Four methods, and why the number is the requirement
+
+ADR-0004 item 2 fixes it, and the reason is not minimalism. Stripe supports card-on-file, stored mandates and off-session charging; **Viva Smart Checkout supports none of them.** A contract including any of the three would have one implementation throwing on half its own surface, which is not an abstraction but a Stripe client with a Viva-shaped hole.
+
+The consequence is ADR-0004 Option D and it reaches the whole product: a deposit and a balance are **two independent checkout sessions**, months apart if need be, because "create a checkout session" is the only primitive both gateways genuinely share. Two gateway fees instead of one is the accepted cost, and PRC-27's balance reminders are mandatory rather than optional because of it.
+
+A test asserts the interface has exactly those four method names. A fifth is an ADR, not a commit.
+
+### Everything the two disagree about, absorbed
+
+Three real differences, all handled inside `VivaSmartCheckoutGateway`:
+
+1. **An order code, not a URL.** Stripe returns a hosted link. Viva returns a number, and the redirect is built from it against a **different host from the API** — the sort of thing that reads as a typo until it is written down, which is why the config has three Viva hosts per environment.
+
+2. **OAuth2, not a bearer key.** Every Viva call needs a token minted from client credentials, so there is a round trip Stripe does not have. Cached per tenant and environment, for a minute less than its own expiry — minting one per checkout would double the latency of the slowest step in a booking. Through `Cache`, never `Redis::` (ENV-7).
+
+3. **No webhook signature at all.** Stripe signs `{timestamp}.{payload}` with HMAC-SHA256; Viva authenticates the *receiver* with a shared verification key. Different mechanism, same guarantee, and the difference stops at the class.
+
+`RedirectTarget` carries a URL **and** a reference for exactly this reason: without the reference a webhook cannot find its payment, and Viva's reference is all it gives you.
+
+### PAY-12, and why one message would have been wrong
+
+The requirement asks for four sentences and the asymmetry is the point:
+
+- A **guest** whose card was declined needs to know to try another card. They do not need `card_declined: insufficient_funds` — a stranger telling them about their own bank balance, in English, with nothing to act on.
+- An **operator** looking at the same failure needs precisely that, because they decide whether to chase it.
+
+So `TranslatableMessage` holds guest and operator lines in both languages, resolved at description time rather than at render time — a guest can hit a refusal mid-locale-switch, and `payments.failure_message_el`/`_en` are columns because what the operator was told at the time is part of the record.
+
+Three tests keep it honest: every code resolves in all four slots (a missing key renders *as the key*, which is technically a string and useless), the guest half never contains the code, and the two audiences never get the same sentence. The code check is **word-bounded** — Viva's codes are single digits, and a naive `str_contains` matches any sentence containing "2".
+
+**The dictionary entries were chosen for what the audience can do**, which is why `api_key_expired` maps to the guest's *temporary* message rather than the declined one. An operator's expired key is not the guest's card, and saying it was is a lie about their bank.
+
+### The unmapped path is a designed outcome
+
+Neither gateway publishes a complete, stable list and both add codes without announcing them, so the question was never whether an unknown code arrives. The guest gets the ordinary sentence — never nothing, never the code — and the operator gets the raw code **marked unrecognised**, because they are the only person who can report the gap.
+
+### The fake is a deliverable, and the contract test is why
+
+One test file runs the same assertions against Viva, Stripe **and** the fake. #81 confirms bookings through the fake — that is what lets AVL-44 be tested without a network — so a fake that drifted from the real gateways would quietly turn the overselling guarantee into a test of nothing. M3's Playwright run and SAA-9's onboarding test booking depend on it too.
+
+### No network call, asserted rather than assumed
+
+Both real gateways run against recorded fixtures through `Http::fake()`. Seven env values in `phpunit.xml` (and `phpunit.coverage.xml`, which `CiGatesTest` keeps in step) pin every gateway host to a `.test` domain — reserved by RFC 6761, cannot resolve, so a request that escapes the fake fails immediately rather than reaching a real payment provider from a CI runner. A test asserts every implementation's redirect URL contains `.test`.
+
+Seven values because Viva splits accounts, api and checkout across two environments while Stripe has one host for both. The asymmetry is real and flattening it would hide it.
+
+### PAY-11 is structural, not procedural
+
+*"Sandbox mode MUST be impossible to enable accidentally on a live tenant."* The mechanism is that live and test are **separate rows** — #79's unique index on (tenant, provider, environment) — so switching is not a toggle at all. It is entering the other environment's credentials, which nobody does by accident.
+
+The environment comes from `bookings.is_test`, and `GatewayResolver::environmentFor()` takes no parameter: a caller that could ask for `test` could ask for it on a live booking, and the guest would be confirmed while nobody was charged. Two tests pin the fallbacks in both directions — a test booking never reaches live credentials, and a **live booking with no gateway resolves to null rather than the fake**, because a fake that quietly succeeded would confirm a trip nobody paid for.
+
+### PHP coerces numeric array keys, and Viva's codes are numbers
+
+`'2' => [...]` is stored as `2`, so `array_keys()` returned integers that failed the dictionary's own `string` parameter. Cast at the boundary rather than widening four signatures to `string|int` — an error code is an identifier that happens to look like a number, and the widening would have spread from the dictionary through the message and the exception.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `composer lint` | clean after fixes |
+| `composer stan` | `[OK] No errors` — five real findings fixed at source |
+| `composer test` | **1642 passed, 0 failed** |
+| `tests/Feature/Payments` | 37 passed |
+
+No migration, so no schema snapshot to refresh — the first M2 issue where the local run is the whole story.
+
+### Things this touched that were not its own
+
+1. **#79's credential scanner now runs over `app/Domain/Payments`.** That is where a `Log::debug($credential->credentials)` would be written while somebody chased a failing checkout at eleven at night — the exact moment SEC-9 and MYD-15 are most likely to be forgotten, and a directory the scanner did not previously cover because it did not exist.
+
+2. **The Stripe webhook verifier checks the timestamp as well as the HMAC.** A valid signature over an old payload is a replay, and a verifier that only compares the signature accepts one forever. The tolerance is a config value at five minutes, which is Stripe's own recommendation and generous for clock skew.
 
 ---
 
