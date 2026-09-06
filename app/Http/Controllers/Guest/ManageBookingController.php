@@ -19,6 +19,7 @@ use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -81,6 +82,52 @@ final class ManageBookingController extends GuestPageController
             'canCancel' => self::canCancel($booking),
             'weatherChoiceDue' => self::weatherChoiceIsOpen($booking),
         ]);
+    }
+
+    /**
+     * TOK-6's *"downloadable e-ticket"* (#88's PDF, streamed).
+     *
+     * The file lives on the **private** disk, so there is no URL a web server
+     * will serve and this method is the only way to it. That is the point: a
+     * ticket carries the guest's name, the meeting point and a scannable code,
+     * and on the public disk it would be readable by anybody who guessed a
+     * path, with no session and no policy in the way.
+     *
+     * The credential is the `manage_token` in the URL, exactly as for the page
+     * it is linked from — and the same `GuestTokenPage` middleware sets
+     * `no-store` and `no-referrer` on it, so tapping a download does not send
+     * the token anywhere.
+     *
+     * A booking whose ticket was never generated (BKG-14's failure feed) gets
+     * the same "link not valid" page as a bad token rather than a broken
+     * download, because at a quay the difference is not actionable.
+     */
+    public function ticket(Request $request, string $token): Response
+    {
+        [$booking, $tenant] = $this->resolve($token);
+
+        if ($booking === null || ! $tenant instanceof Tenant) {
+            return $this->linkNotValid($request);
+        }
+
+        $disk = Storage::disk((string) config('kaiki.tickets.disk', 'local'));
+        $path = $booking->eticket_path;
+
+        if ($path === null || ! $disk->exists($path)) {
+            return $this->linkNotValid($request);
+        }
+
+        return response(
+            $disk->get($path) ?? '',
+            Response::HTTP_OK,
+            [
+                'Content-Type' => 'application/pdf',
+                // The reference rather than the uuid: this filename ends up in
+                // a guest's downloads folder, and `KAI-7F3K2.pdf` is the thing
+                // they can find again.
+                'Content-Disposition' => 'inline; filename="' . $booking->reference . '.pdf"',
+            ],
+        );
     }
 
     /** TOK-6's cancel, per policy. */

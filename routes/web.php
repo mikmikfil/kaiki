@@ -66,6 +66,9 @@ Route::post('/webhooks/{provider}', GatewayWebhookController::class)
 */
 Route::middleware(['guest.token', 'guest.throttle'])->group(function (): void {
     Route::get('/b/{token}', [ManageBookingController::class, 'show'])->name('guest.booking');
+    // TOK-6's downloadable e-ticket (#88's PDF, added by #89). A GET, and the
+    // only route to a file on the private disk.
+    Route::get('/b/{token}/ticket', [ManageBookingController::class, 'ticket'])->name('guest.ticket');
     Route::post('/b/{token}/cancel', [ManageBookingController::class, 'cancel'])->name('guest.booking.cancel');
     Route::post('/b/{token}/pay-balance', [ManageBookingController::class, 'payBalance'])->name('guest.booking.pay-balance');
     Route::post('/b/{token}/weather-choice', [ManageBookingController::class, 'weatherChoice'])->name('guest.booking.weather-choice');

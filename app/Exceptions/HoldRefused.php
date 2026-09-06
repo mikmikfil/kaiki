@@ -66,6 +66,20 @@ final class HoldRefused extends RuntimeException
         return new self((string) trans('booking.hold.quote_mode'), 'quote_mode');
     }
 
+    /**
+     * AVL-25, and the one refusal an operator override cannot lift (#89).
+     *
+     * BKG-32 lets a manual booking exceed the departure's own capacity with an
+     * explicit confirmation. It does not — and cannot — let a boat sail
+     * illegally full: `capacity_max` is a certificate rather than a commercial
+     * decision, and the infants a commercial capacity does not count are
+     * exactly the ones a coastguard does.
+     */
+    public static function legalCapacityExceeded(): self
+    {
+        return new self((string) trans('booking.hold.legal_capacity'), 'legal_capacity');
+    }
+
     /** A party of zero capacity-counting pax occupies no seats to hold. */
     public static function nothingToHold(): self
     {

@@ -102,7 +102,12 @@ use Illuminate\Support\Carbon;
  * @property CancelReason|null $cancel_reason
  * @property Carbon|null $terms_accepted_at
  * @property bool $is_test
+ * @property Carbon|null $checked_in_at
+ * @property Carbon|null $completed_at
  * @property bool $no_show
+ * @property string|null $eticket_path
+ * @property string|null $eticket_hash
+ * @property Carbon|null $eticket_generated_at
  */
 class Booking extends Model
 {

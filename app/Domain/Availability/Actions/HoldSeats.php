@@ -63,7 +63,10 @@ final class HoldSeats
      * @throws HoldRefused when the departure cannot fit the party
      * @throws HoldLockUnavailable when another writer will not yield
      */
-    public function __invoke(Booking $booking, Departure $departure): Booking
+    /**
+     * @param  bool  $allowOvercapacity  BKG-32's operator override, added by #89
+     */
+    public function __invoke(Booking $booking, Departure $departure, bool $allowOvercapacity = false): Booking
     {
         if ($booking->mode->value === 'quote') {
             throw HoldRefused::quoteModeHoldsNothing();
@@ -78,16 +81,34 @@ final class HoldSeats
             throw HoldRefused::nothingToHold();
         }
 
-        return HoldLock::run(HoldLock::forDeparture($departure->getKey()), function () use ($booking, $departure, $seats): Booking {
-            return DB::transaction(function () use ($booking, $departure, $seats): Booking {
+        return HoldLock::run(HoldLock::forDeparture($departure->getKey()), function () use ($booking, $departure, $seats, $allowOvercapacity): Booking {
+            return DB::transaction(function () use ($booking, $departure, $seats, $allowOvercapacity): Booking {
                 /** @var Departure $locked */
                 $locked = Departure::query()->lockForUpdate()->findOrFail($departure->getKey());
 
                 $liveHeld = $this->liveHeldSeats($locked, exceptBooking: $booking->getKey());
                 $free = $locked->capacity - $locked->seats_sold - $liveHeld;
 
-                if ($free < $seats) {
+                // BKG-32's override (#89), and the reason it is a *parameter*
+                // rather than a second Action: the seat arithmetic, the lock
+                // and the counter write are identical, and only the refusal
+                // differs. A duplicate hold path would be a second writer of
+                // `seats_held`, which `NoDirectRedisTest` and every invariant
+                // in `CLAUDE.md` exist to prevent.
+                //
+                // It lifts the **commercial** ceiling — the departure's own
+                // `capacity`, a number the operator chose — and touches nothing
+                // else. The legal `capacity_max` (AVL-25) is checked below and
+                // has no override at all: an operator may squeeze one more
+                // person onto a boat they under-sold, and may not sail illegally
+                // full. That is the only reading in which both of BKG-32's
+                // sentences are true.
+                if ($free < $seats && ! $allowOvercapacity) {
                     throw HoldRefused::notEnoughSeats($seats, max(0, $free));
+                }
+
+                if ($allowOvercapacity && $this->wouldSailIllegallyFull($booking, $locked, $seats)) {
+                    throw HoldRefused::legalCapacityExceeded();
                 }
 
                 $expiresAt = self::expiryFrom(now());
@@ -101,6 +122,41 @@ final class HoldSeats
                 return $booking;
             });
         });
+    }
+
+    /**
+     * AVL-25, the check no override reaches.
+     *
+     * *"`total_persons_on_board <= vessel.capacity_max`, where
+     * `total_persons_on_board` counts **every** person including age bands with
+     * `counts_toward_capacity = false`"* — the infants a commercial capacity
+     * deliberately does not count are exactly the ones a coastguard does.
+     *
+     * Only consulted on the override path, because the ordinary path never
+     * reaches a capacity the calendar and {@see PartyGuard} have not already
+     * cleared.
+     */
+    private function wouldSailIllegallyFull(Booking $booking, Departure $departure, int $seats): bool
+    {
+        $ceiling = $departure->vessel?->capacity_max;
+
+        if ($ceiling === null) {
+            return false;
+        }
+
+        $aboard = (int) Booking::query()
+            ->where('departure_id', $departure->getKey())
+            ->whereKeyNot($booking->getKey())
+            ->whereIn('status', array_values(array_map(
+                static fn (BookingStatus $status): string => $status->value,
+                array_filter(
+                    BookingStatus::cases(),
+                    static fn (BookingStatus $status): bool => $status->committingSeats(),
+                ),
+            )))
+            ->sum('pax_total');
+
+        return $aboard + $booking->pax_total > $ceiling;
     }
 
     /** When a hold taken now runs out. */

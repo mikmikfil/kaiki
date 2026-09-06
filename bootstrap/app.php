@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Middleware\ApiKeyCors;
 use App\Http\Middleware\AuthenticateApiKey;
+use App\Http\Middleware\AuthenticateGuestToken;
+use App\Http\Middleware\EnforceIdempotencyKey;
 use App\Http\Middleware\EnsureTenantIsWritable;
 use App\Http\Middleware\GuestTokenPage;
 use App\Http\Middleware\RequireApiKeyCapability;
@@ -54,6 +56,15 @@ return Application::configure(basePath: dirname(__DIR__))
             // group because it is "just an error".
             'guest.token' => GuestTokenPage::class,
             'guest.throttle' => ThrottleTokenLookups::class,
+            // `Idempotency-Key` for every write that needs it, once (§3.4).
+            // One middleware rather than a guard per endpoint: four
+            // hand-rolled copies come out as four dialects, and the fourth is
+            // the one missing the in-flight case.
+            'idempotency' => EnforceIdempotencyKey::class,
+            // `X-Kaiki-Guest-Token` on the three per-booking endpoints, and the
+            // first place in the product where a publishable key is refused
+            // (§2.1). A uuid alone never authorises anything.
+            'api.guest' => AuthenticateGuestToken::class,
         ]);
 
         // Per-key CORS from `api_keys.allowed_origins` (SEC-7), and the

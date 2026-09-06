@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AvailabilityController;
+use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\BrandingController;
 use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\HealthController;
@@ -171,4 +172,78 @@ Route::middleware([
     'throttle:api-enquiries',
 ])->group(function (): void {
     Route::post('/enquiries', EnquiryController::class)->name('api.v1.enquiries.store');
+});
+
+/*
+ * Class D — booking writes, and class E for the one read (`docs/api.md` §3.6).
+ *
+ * 60 per key and 20 per IP on the writes: the tightest limit outside enquiries,
+ * because each of these takes a seat, a gateway session or a refund. The read
+ * sits at 120/60, because a guest refreshing `/b/{token}` on the morning of
+ * their trip is not an attack and must not be throttled into thinking their
+ * booking has vanished.
+ *
+ * **`tenant.writable` is present here and absent from the catalogue reads**, and
+ * that asymmetry is SAA-7: a lapsed subscription stops the operator taking new
+ * money and never touches a guest who already holds a booking. #36 and #37 left
+ * the reads open for exactly that reason; these are the writes it closes.
+ *
+ * `idempotency:required` on all three writes (§3.4), and the middleware is one
+ * class rather than three guards — see `EnforceIdempotencyKey`.
+ *
+ * **`api.guest` is where a publishable key is refused for the first time in the
+ * product.** §2.1's table gives `GET /bookings/{uuid}` and `POST /cancel` to a
+ * `manage_token` or an `sk_` and to nothing else: the caller is claiming to be
+ * a specific guest rather than a specific website, and a `pk_` sits in the
+ * source of somebody's home page. Checkout takes `api.guest:optional`, which is
+ * footnote 1 — a `pk_` may finish the flow it started while the booking is
+ * still a live draft, and not one moment later.
+ */
+Route::middleware([
+    'api.key',
+    'tenant',
+    'tenant.writable',
+    'locale',
+    'api.scope:bookings.write',
+    'throttle:api-booking-writes',
+    'idempotency:required',
+])->group(function (): void {
+    Route::post('/bookings', [BookingController::class, 'store'])->name('api.v1.bookings.store');
+});
+
+Route::middleware([
+    'api.key',
+    'tenant',
+    'locale',
+    'api.scope:bookings.write',
+    'throttle:api-guest',
+    'api.guest:required',
+])->group(function (): void {
+    Route::get('/bookings/{uuid}', [BookingController::class, 'show'])->name('api.v1.bookings.show');
+});
+
+Route::middleware([
+    'api.key',
+    'tenant',
+    'tenant.writable',
+    'locale',
+    'api.scope:bookings.write',
+    'throttle:api-booking-writes',
+    'idempotency:required',
+    'api.guest:optional',
+])->group(function (): void {
+    Route::post('/bookings/{uuid}/checkout', [BookingController::class, 'checkout'])->name('api.v1.bookings.checkout');
+});
+
+Route::middleware([
+    'api.key',
+    'tenant',
+    'tenant.writable',
+    'locale',
+    'api.scope:bookings.write',
+    'throttle:api-booking-writes',
+    'idempotency:required',
+    'api.guest:required',
+])->group(function (): void {
+    Route::post('/bookings/{uuid}/cancel', [BookingController::class, 'cancel'])->name('api.v1.bookings.cancel');
 });

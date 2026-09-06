@@ -644,6 +644,38 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | The public API (`docs/api.md` §3.4)
+    |--------------------------------------------------------------------------
+    */
+    'api' => [
+
+        /*
+         * `Idempotency-Key`, per §3.4.
+         *
+         * **The cache, and not a table.** §3.4 fixes the semantics and the
+         * retention and says nothing about storage. A table would need a
+         * migration, a model, a policy, a purge job and a schedule entry — five
+         * moving parts to hold something worthless after a day that nobody
+         * queries by anything but its exact key. The cache expires its own
+         * rows, which is the whole of the retention requirement.
+         *
+         * The honest cost is that a cache flush forgets in-flight keys. That is
+         * survivable because the Actions behind these endpoints are each
+         * idempotent in their own right — see `IdempotencyStore`.
+         *
+         * `store` is null for the application default: Redis in production,
+         * the database driver locally, and the array driver in tests, which is
+         * exactly the isolation a test wants.
+         */
+        'idempotency' => [
+            'store' => env('KAIKI_IDEMPOTENCY_STORE'),
+            'retention_hours' => (int) env('KAIKI_IDEMPOTENCY_HOURS', 24),
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | E-tickets (spec BKG-13.1, ENV-20, SEC-14)
     |--------------------------------------------------------------------------
     |

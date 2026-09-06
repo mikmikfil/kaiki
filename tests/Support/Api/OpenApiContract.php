@@ -372,6 +372,14 @@ final class OpenApiContract
      * is the type ceiling from SEC-5 and ADR-0013, read from the same enum the
      * middleware enforces with rather than from a second list here.
      *
+     * **`api.guest` is the third signal, added by #89**, and it is the first
+     * one that can *remove* `PublishableKey`. §2.1 gives the per-booking
+     * endpoints to a `manage_token` or an `sk_` and to nothing else — the
+     * caller is claiming to be a specific guest rather than a specific website
+     * — so `api.guest:required` reads as `[GuestToken, SecretKey]` and the
+     * `optional` form, which is footnote 1's widget-finishing-its-own-flow
+     * case, keeps the publishable key beside them.
+     *
      * @return list<string>
      */
     private static function securityFor(RoutingRoute $route): array
@@ -388,6 +396,18 @@ final class OpenApiContract
             if ($entry === 'api.key' || str_starts_with($entry, 'api.key:')) {
                 $accepts = ['PublishableKey', 'SecretKey'];
             }
+        }
+
+        foreach ($middleware as $entry) {
+            if (! is_string($entry) || ! str_starts_with($entry, 'api.guest')) {
+                continue;
+            }
+
+            $mode = str_contains($entry, ':') ? substr($entry, strpos($entry, ':') + 1) : 'required';
+
+            $accepts = $mode === 'optional'
+                ? ['GuestToken', 'PublishableKey', 'SecretKey']
+                : ['GuestToken', 'SecretKey'];
         }
 
         foreach ($middleware as $entry) {

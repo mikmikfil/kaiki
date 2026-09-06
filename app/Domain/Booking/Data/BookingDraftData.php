@@ -63,6 +63,21 @@ final class BookingDraftData extends Data
         public readonly array $utm = [],
         /** Sandbox bookings (PAY-11): excluded from every report and every invoice. */
         public readonly bool $isTest = false,
+        /**
+         * Leave the hold to the caller (BKG-32, added by #89).
+         *
+         * The **only** caller that sets this is {@see CreateManualBooking}, and
+         * only when an operator has explicitly confirmed a capacity override.
+         * `CreateBookingDraft` takes the hold without one, so a party that does
+         * not fit would be refused before the override could apply — skipping
+         * it there and taking it in the manual Action is the only ordering in
+         * which BKG-32's override exists at all.
+         *
+         * A draft with no hold is not a new state: `hold_expires_at` is already
+         * null on a quote-mode booking, and `ExpireStaleHolds` reads the column
+         * rather than assuming one.
+         */
+        public readonly bool $skipHold = false,
     ) {}
 
     /**

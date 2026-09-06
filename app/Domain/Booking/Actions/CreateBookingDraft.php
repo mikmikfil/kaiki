@@ -123,7 +123,7 @@ final class CreateBookingDraft
 
                 'pax_total' => CountedSeats::totalPersons($pax),
                 'pax_capacity_total' => CountedSeats::counted($bands, $pax),
-                'pax_breakdown' => $this->paxBreakdown($bands, $pax),
+                'pax_breakdown' => $this->paxBreakdown($bands, $pax, $quote->snapshot->toArray()['lines'] ?? []),
                 'extras_snapshot' => $this->extrasSnapshot($quote->snapshot->toArray()),
 
                 // CXL-2. Both snapshots, at first persistence, immutable after.
@@ -164,7 +164,7 @@ final class CreateBookingDraft
         // retried with a fresh reference — the seats are gone either way, and
         // burning four more references on a full boat is noise in the one index
         // whose collisions we care about.
-        if ($departure instanceof Departure && ! $isQuoteMode) {
+        if ($departure instanceof Departure && ! $isQuoteMode && ! $data->skipHold) {
             ($this->holdSeats)($booking, $departure);
         }
 
@@ -180,9 +180,14 @@ final class CreateBookingDraft
      * would race, and one would fail anyway with an error nobody had planned
      * for.
      *
+     * **Public since #89**, because {@see ImportBooking} writes a `bookings` row
+     * too and needs the same retry. The alternative — a second copy of the loop
+     * — would be a second answer to "what happens on a reference collision",
+     * and the second copy is the one that swallows a foreign-key violation.
+     *
      * @param  callable(string): Booking  $insert
      */
-    private function insertWithReference(callable $insert): Booking
+    public function insertWithReference(callable $insert): Booking
     {
         $attempts = (int) config('kaiki.booking.reference_attempts');
         $length = (int) config('kaiki.booking.reference_length');
@@ -295,10 +300,19 @@ final class CreateBookingDraft
      *
      * @param  iterable<AgeBand>  $bands
      * @param  array<string, int>  $pax
+     * @param  array<int, array<string, mixed>>  $priceLines  the price snapshot's own lines
      * @return list<array<string, mixed>>
      */
-    private function paxBreakdown(iterable $bands, array $pax): array
+    private function paxBreakdown(iterable $bands, array $pax, array $priceLines = []): array
     {
+        $lines = [];
+
+        foreach ($priceLines as $line) {
+            if (($line['kind'] ?? null) === 'pax' && isset($line['ref'])) {
+                $lines[(string) $line['ref']] = $line;
+            }
+        }
+
         $breakdown = [];
 
         foreach ($bands as $band) {
@@ -308,15 +322,55 @@ final class CreateBookingDraft
                 continue;
             }
 
+            $line = $lines[$band->code] ?? null;
+
             $breakdown[] = [
-                'age_band_id' => $band->getKey(),
+                // **`age_band_uuid`, not `age_band_id`** — corrected by #89.
+                // §3.1 has documented this shape since M1 and the code wrote an
+                // integer key instead, which CNV-8 forbids in any payload: the
+                // snapshot is rendered straight into `GET /bookings/{uuid}`, so
+                // it was a leak from the moment that endpoint existed. Found by
+                // `BookingEndpointTest`'s recursive id scan rather than by
+                // review, and nothing read the id back — `SaveAgeBands` says so
+                // in as many words, that the snapshot exists *instead of* a live
+                // join.
+                'age_band_uuid' => $band->uuid,
                 'code' => $band->code,
+                // The frozen translation §3.1 asks for, "so the email renders
+                // correctly forever". An operator renaming "Ενήλικας" next
+                // season must not rewrite what a guest was shown last year.
+                'label' => $this->frozenLabel($band),
                 'qty' => $quantity,
+                'min_age' => $band->min_age,
+                'max_age' => $band->max_age,
                 'counts_toward_capacity' => (bool) $band->counts_toward_capacity,
+                // Taken from the price snapshot rather than recomputed, so the
+                // two halves of the same booking cannot disagree — the same
+                // reasoning `extrasSnapshot()` gives.
+                'unit_price_cents' => (int) ($line['unit_price_cents'] ?? 0),
+                'total_cents' => (int) ($line['total_cents'] ?? 0),
             ];
         }
 
         return $breakdown;
+    }
+
+    /**
+     * The band's label, frozen per locale (§3.1).
+     *
+     * Read through `getTranslations()` rather than through the accessor, which
+     * would resolve one locale and throw the other away — and the whole point
+     * of freezing it is that a Greek guest's confirmation and an English
+     * guest's ticket both still render years later.
+     *
+     * @return array<string, string>
+     */
+    private function frozenLabel(AgeBand $band): array
+    {
+        /** @var array<string, string> $labels */
+        $labels = $band->getTranslations('label');
+
+        return $labels;
     }
 
     /**

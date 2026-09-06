@@ -26,6 +26,9 @@ return [
         'not_enough_seats' => 'Only :available seat(s) are left on this trip and you asked for :requested. Please choose a smaller party or another time.',
         'quote_mode' => 'This trip is priced on request, so there are no seats to hold.',
         'nothing_to_hold' => 'This booking has nobody in it who takes up a seat.',
+        // AVL-25, added by #89. An operator may squeeze one more person onto
+        // a boat they under-sold; they may not sail illegally full.
+        'legal_capacity' => 'That would put more people aboard than the vessel is licensed to carry. This limit cannot be overridden.',
     ],
 
     'draft' => [

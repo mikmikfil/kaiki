@@ -22,6 +22,24 @@ return [
         'gone' => 'That resource is no longer available.',
         'rate_limited' => 'Too many requests. Slow down and retry after the time in `Retry-After`.',
         'enquiry_rejected' => 'That message could not be sent. If you are a person and not a script, please try again in a moment.',
+        // #89 — the booking endpoints (§3.4, §4.2).
+        //
+        // Every one of these is read by an integrator, not a guest, and each
+        // says what to do next: an error that only names the rule leaves a
+        // developer reading the contract to work out the fix.
+        'idempotency_key_required' => 'This request needs an `Idempotency-Key` header — a UUIDv4 you generate. It lets you retry safely without booking twice.',
+        'idempotency_key_invalid' => 'The `Idempotency-Key` header must be a UUIDv4.',
+        'idempotency_key_reuse' => 'That request key was already used with different data. Generate a new `Idempotency-Key` for a new request.',
+        'idempotency_in_progress' => 'An identical request is still being processed. Retry in a second.',
+        'booking_not_found' => 'No booking matches that reference and credential.',
+        'guest_token_required' => 'This booking needs its own guest token in `X-Kaiki-Guest-Token`. A publishable key is not enough here, because the caller is claiming to be a specific guest.',
+        'product_not_found' => 'That product does not exist, or is not available for booking.',
+        'insufficient_capacity' => 'Those places have just been taken. Choose another departure or a smaller party.',
+        'booking_not_payable' => 'This booking cannot be paid for in its current state.',
+        'booking_not_cancellable' => 'This booking can no longer be cancelled online. Contact the operator.',
+        'deposit_not_available' => 'This trip does not offer a deposit. Pay the full amount instead.',
+        'no_balance_due' => 'There is no balance left to pay on this booking.',
+        'no_gateway_configured' => 'The operator has not connected a payment provider yet. Contact them to complete this booking.',
     ],
 
 ];

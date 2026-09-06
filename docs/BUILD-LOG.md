@@ -12,15 +12,15 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M2 — Booking & payments, in progress.** M1 complete. |
+| Milestone | **M2 — Booking & payments: all eleven issues built.** M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M2 | #79, #80, #81, #82, #83, #84, #85, #86, #87, #88 |
+| M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1992, one failing: the schema snapshot CI cannot regenerate) · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2047, one failing: the schema snapshot CI cannot regenerate) · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
-| **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83, #84, #85, #86, #87 and #88 cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
+| **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
 
@@ -34,6 +34,106 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #89 — The booking API, the first refused `pk_`, and the booking a phone call makes
+
+**Files:** `app/Http/Controllers/Api/V1/BookingController.php`, `app/Http/Requests/Api/V1/{BookingCreateRequest,CheckoutRequest,CancelBookingRequest}.php`, `app/Http/Resources/Api/V1/{BookingResource,CheckoutSessionResource,CancellationResultResource}.php`, `app/Http/Middleware/{EnforceIdempotencyKey,AuthenticateGuestToken}.php`, `app/Domain/Api/Support/{IdempotencyStore,IdempotencyRecord}.php`, `app/Domain/Booking/Actions/{CreateManualBooking,ImportBooking,MintCheckoutSession}.php`, `app/Domain/Booking/Data/ManualBookingAdjustment.php`, `app/Events/CapacityOverridden.php`, `app/Exceptions/CheckoutRefused.php`, `app/Filament/App/Resources/BookingResource.php` (+ three pages), `app/Http/Controllers/Guest/ManageBookingController.php`, `routes/{api,web}.php`, `bootstrap/app.php`, `config/kaiki.php`, `lang/{el,en}/{api,booking,bookings}.php`, five test files and a scenario class
+
+### The first `pk_` refusal in the product
+
+Every SEC-5 test so far has proved a publishable key *can* do something. §2.1's table is the first place one cannot, and the sentence above it is the reason:
+
+> A `uuid` alone never authorises anything.
+
+A `pk_` is in the source of somebody's home page. A publishable key that could read a booking by uuid would turn every uuid that ever appeared in a redirect URL, an analytics payload or a browser history into a guest's name, phone number and itinerary.
+
+Checkout is the exception, and footnote 1 puts a **state** in it: a `pk_` is accepted *"only while the booking is still `draft` with an unexpired hold"*. Both conditions are checked, and neither alone is enough — a `draft` whose hold ran out is a session the widget no longer owns, and "unexpired hold" without the status would also match `pending_payment`, where a second session started by a publishable key is a second charge waiting to happen.
+
+The check lives in **middleware rather than the controller** because it is an authentication question — whether this credential may act at all. A controller that ran first would already have loaded the booking a `pk_` is not entitled to see.
+
+### The guest-token lookup is scoped here and unscoped on the pages
+
+`GuestTokenResolver::booking()` looks a `manage_token` up `withoutTenancy()` because `/b/{token}` has **no tenant** — the token is what resolves one. This request already has one, resolved by the API key before the middleware ran.
+
+So the API's lookup is tenant-scoped, which is both stricter and more correct. A token from another operator's fleet would otherwise render *inside the wrong tenant*, where #8's global scope hides its own product, vessel and meeting point — and the response is a payload of nulls that reads like a bug in the resource rather than a credential used in the wrong place.
+
+### One idempotency middleware, and the case that gets skipped
+
+§3.4 names five. The fourth — *"replay while the first request is still in flight"* — is the one hand-rolled guards miss, and the obvious check-then-write implementation of it has a race exactly the width of the request it is protecting. `Cache::add()` is atomic on every store the platform uses, so the second caller loses and gets `409 idempotency_in_progress`.
+
+The second-most-skipped: a replayed **create returns `201`, not `200`**. The status is stored rather than inferred, because a client that branches on it — and the widget will — otherwise gets a different answer to the same request.
+
+**The record lives in the cache, not a table.** §3.4 fixes the semantics and the 24-hour retention and says nothing about storage. A table would be a migration, a model, a policy, a purge job and a schedule entry for something worthless after a day that nobody queries by anything but its exact key; the cache expires its own rows, which is the whole of the retention requirement. The honest cost is that a flush forgets in-flight keys — survivable **because the Actions behind these endpoints are each idempotent in their own right**, and a design where the middleware were the only guarantee would be the wrong design.
+
+The body hash sorts object keys recursively before hashing, so a client library that reorders JSON on a retry is replaying rather than being told it has a bug. Values are untouched: `{"qty": 2}` and `{"qty": "2"}` are different requests, and a normaliser that made them equal would hide a real one.
+
+### BKG-32 contradicts itself, and this is the reconciliation
+
+> A manual booking may exceed `min_lead_time_hours` and `max_advance_days` restrictions but **MUST NOT exceed capacity or the legal `capacity_max`** (AVL-25). **Capacity override requires an explicit confirmation and is logged.**
+
+Two sentences that cannot both be true of one number. They are both true of **two**:
+
+- the **legal `capacity_max`** is a certificate rather than a commercial decision, and has no override at all;
+- the **departure's own `capacity`** is a number the operator chose, and may be exceeded with an explicit reason, written to the trail as an `override.applied` row carrying the seats requested and the capacity.
+
+An operator may squeeze one more person onto a boat they under-sold. They may not sail illegally full. AVL-25 sharpens it further: it counts *every* person including non-capacity-counting bands, so the infants a commercial capacity ignores are exactly the ones the legal ceiling does not — which is precisely where the two diverge.
+
+`docs/spec.md` marks BKG-32 **RESOLVED by #89** with that reasoning, the third specification contradiction settled this session after CXL-3.3 against ADR-0017 (#84) and BKG-26 against §2.5 (#85).
+
+The lead-time and advance halves needed **no code**: those rules are enforced by the availability *calendar*, which decides what a guest is shown, and never by the draft Action. A manual booking does not go through the calendar, and the panel's departure select says so in its help text rather than leaving an operator to wonder why the list is longer than the website's.
+
+### A CNV-8 breach that a scanner found and review had not
+
+`bookings.pax_breakdown` has carried `age_band_id` since #80. It is rendered straight into `GET /bookings/{uuid}`, so it was an **integer primary key in a public payload** from the moment that endpoint existed — CNV-8's exact prohibition.
+
+`docs/data-model.md` §3.1 has documented the correct shape since M1: `age_band_uuid`, a frozen per-locale `label`, `min_age`, `max_age`, `unit_price_cents` and `total_cents`. The code wrote none of the six. All six now land, the id is gone, and nothing read it back — `SaveAgeBands`'s own docblock says the snapshot exists *instead of* a live join.
+
+Found by walking the response recursively for any key called `id` or ending `_id`, which is the only way a rule about what leaves a payload is kept at all. `BookingResource` still strips `age_band_id` defensively, because bookings created before this issue have one and a frozen snapshot is not rewritten.
+
+### Deviations and additions
+
+**`/b/{token}/ticket` lands here, and belongs to #88.** That issue put the e-ticket on the private disk and said it would be streamed through a controller; the controller was not written. It is now, because `BookingResource.links.ticket_pdf_url` needed something to point at. Noted rather than folded in silently.
+
+**`HoldSeats` gained an `$allowOvercapacity` parameter** rather than a second Action. The lock, the seat arithmetic and the counter write are identical and only the refusal differs; a duplicate hold path would be a **second writer of `seats_held`**, which `NoDirectRedisTest` and `CLAUDE.md`'s first invariant exist to prevent. The AVL-25 check that no override reaches sits beside it.
+
+**`BookingDraftData` gained `skipHold`**, set by exactly one caller. `CreateBookingDraft` takes the hold *without* an override, so a party that does not fit would be refused before the override could apply — skipping it there and taking it in the manual Action is the only ordering in which BKG-32's override exists at all.
+
+**`CreateBookingDraft::insertWithReference()` became public.** `ImportBooking` writes a `bookings` row too and needs the same collision retry (BKG-3, ADR-0007). A second copy of that loop is the copy that swallows a foreign-key violation.
+
+### Things this touched that were not its own
+
+1. **`tests/Unit/Architecture/NoDirectRedisTest.php`** — the hold-column scanner flagged two API resources that **read** `hold_expires_at` into a payload, which the contract requires (§5's countdown). Filtered **by shape rather than by file**, like the existing `casts()` rule: a line is exempt only when its right-hand side reads the very column its key names, so `'hold_expires_at' => $expiresAt` from a resource would still fail. Written as two literal patterns rather than one with a backreference — a bare `\1` inside a PHP double-quoted string is `chr(1)`, and the pattern silently matches nothing, which for a lint means it silently stops linting.
+2. **`tests/Support/I18n/allow-list.php`** gained the two `email` labels, which are the word Greek operators actually use — «ηλεκτρονικό ταχυδρομείο» appears on no real form.
+3. **`app/Models/Booking.php`** gained `@property` lines for `checked_in_at`, `completed_at` and #88's three e-ticket columns; PHPStan could not otherwise see them as dates.
+4. **`tests/Support/Api/OpenApiContract.php`** learned about `api.guest`, which is the first middleware that can *remove* `PublishableKey` from an endpoint's accepted schemes. Without it the ENV-28 drift gate would have reported a security mismatch on three of the four new endpoints.
+5. **`app/Filament/App/Resources/BookingResource.php` is new**, because there was no booking resource in the panel at all. It is a list, a view and BKG-30's create form — deliberately **not** an edit form: changing a confirmed booking's party size, date or total moves seats, invalidates a price snapshot and contradicts a policy snapshot the guest was shown, and each of those has an Action that does it properly.
+
+### Verification
+
+```
+$ vendor/bin/pint --test
+$ vendor/bin/phpstan analyse
+[OK] No errors
+
+$ php artisan test --exclude-group=mysql --exclude-group=chromium --exclude-group=external
+Tests:  1 failed, 2046 passed (5866 assertions)
+
+FAILED  Tests\Unit\CiGatesTest > it keeps the committed schema snapshot in step with the migrations
+```
+
+55 new tests across five files: `BookingEndpointTest` (12), `IdempotencyTest` (10), `BookingCredentialTest` (10), `ManualBookingTest` (13), `ImportedBookingTest` (10).
+
+```
+$ php artisan test tests/Feature/Api/OpenApiDriftTest.php
+contract surface: 11 of 18 operations built
+Tests:  7 passed
+```
+
+The single failure is **ENV-10's schema-snapshot fingerprint**, unchanged since #83 and blocked on the same CI billing issue. #89 adds **no migration**, so it inherits the failure rather than causing one.
+
+The MySQL and chromium groups have not run, for the same reason.
 
 ---
 

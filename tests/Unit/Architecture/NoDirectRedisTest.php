@@ -154,6 +154,31 @@ it('has exactly three writers of the hold columns', function (): void {
         static fn (string $finding): bool => ! str_starts_with($finding, 'app/Domain/Availability/Actions/GenerateDepartures.php'),
     ));
 
+    // An API resource **reads** the column into a payload: `'hold_expires_at'
+    // => $booking->hold_expires_at?->toIso8601ZuluString()`. That is a key in
+    // an array on its way to a JSON body, not a column write, and the contract
+    // requires it — §5's `Booking.hold_expires_at` is the countdown a widget
+    // shows.
+    //
+    // Filtered **by shape rather than by file**, like the `casts()` rule above:
+    // the line is exempt only when its right-hand side reads the very column
+    // its key names. `'hold_expires_at' => $expiresAt` from a resource would
+    // still fail, which is what keeps this a lint rather than a whitelist.
+    $findings = array_values(array_filter($findings, static function (string $finding): bool {
+        // Two literal patterns rather than one with a backreference. A
+        // backreference here has to survive PHP's own string escaping, where a
+        // bare `\1` is chr(1) — a pattern that then matches nothing and a lint
+        // that silently stops linting. Two lines of duplication beats a rule
+        // that looks strict and is not.
+        foreach (['hold_expires_at', 'seats_held'] as $column) {
+            if (preg_match("/'{$column}' => [^=]*->{$column}\b/", $finding) === 1) {
+                return false;
+            }
+        }
+
+        return true;
+    }));
+
     expect($findings)->toBe([], sprintf(
         "Writers of the hold columns outside the three permitted Actions:\n%s\n\n" .
         'AVL-37.5: `HoldSeats`, `ExtendHold` and `ReleaseHold` are the only writers of `hold_expires_at` ' .

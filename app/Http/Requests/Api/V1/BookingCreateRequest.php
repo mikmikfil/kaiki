@@ -1,0 +1,249 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Requests\Api\V1;
+
+use App\Domain\Booking\Actions\CreateManualBooking;
+use App\Domain\Booking\Actions\ImportBooking;
+use App\Domain\Booking\Data\BookingDraftData;
+use App\Domain\Pricing\Actions\ComputePrice;
+use App\Enums\BookingSource;
+use App\Models\AgeBand;
+use App\Models\ApiKey;
+use App\Models\Departure;
+use App\Models\Extra;
+use App\Models\Product;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
+
+/**
+ * `POST /api/v1/bookings` (`docs/api.md` §5, schema `BookingCreateRequest`).
+ *
+ * ## No price crosses this boundary
+ *
+ * PRC-1, and the schema's own first line: *"Contains **no prices**: the server
+ * recomputes from the same inputs it would have used for the price quote."*
+ * The widget runs on somebody else's page, so a `total_cents` field here would
+ * be a number a third party could set. {@see PriceQuoteRequest} refuses one for
+ * the same reason and this reuses its `prohibited` machinery rather than
+ * inventing a second dialect of the same refusal.
+ *
+ * ## `source` accepts three values and refuses two
+ *
+ * > `manual` and `import` are back-office only and are rejected here.
+ *
+ * Not filtered to a default — **rejected**, with a validation error. A public
+ * request claiming to be a manual booking is either a client bug or somebody
+ * trying to skip BKG-32's lead-time rules, and silently rewriting it to
+ * `widget` would hide both. The two back-office sources have their own Actions
+ * ({@see CreateManualBooking} and
+ * {@see ImportBooking}) which never come through
+ * here.
+ *
+ * ## `terms_accepted` is validated as `accepted`, and stored as a timestamp
+ *
+ * GDR-9 wants consent *"with a timestamp and IP"*. The wire format is a boolean
+ * because that is what a checkbox produces; what is written is `now()` and the
+ * request IP, because a boolean records that somebody ticked a box and a
+ * timestamp records when — which is the half that answers a dispute.
+ */
+class BookingCreateRequest extends FormRequest
+{
+    /** @return array<string, mixed> */
+    public function rules(): array
+    {
+        return [
+            'product_uuid' => ['required', 'string', 'max:120'],
+            'departure_uuid' => ['nullable', 'string', 'max:64'],
+
+            'window' => ['nullable', 'array'],
+            'window.local_date' => ['required_with:window', 'date_format:Y-m-d'],
+            'window.local_time' => ['nullable', 'date_format:H:i'],
+            'window.duration_minutes' => ['nullable', 'integer', 'min:1', 'max:1440'],
+
+            'pax' => ['required', 'array', 'min:1'],
+            'pax.*.age_band_uuid' => ['required', 'string', 'max:64'],
+            'pax.*.qty' => ['required', 'integer', 'min:0', 'max:500'],
+
+            'extras' => ['sometimes', 'array'],
+            'extras.*.extra_uuid' => ['required', 'string', 'max:64'],
+            'extras.*.qty' => ['required', 'integer', 'min:1', 'max:500'],
+
+            'voucher_code' => ['nullable', 'string', 'max:24'],
+
+            'guest' => ['required', 'array'],
+            'guest.name' => ['required', 'string', 'max:120'],
+            'guest.email' => ['required', 'email', 'max:190'],
+            'guest.phone' => ['nullable', 'string', 'max:32'],
+            'guest.country' => ['nullable', 'string', 'size:2'],
+
+            'special_requests' => ['nullable', 'string', 'max:2000'],
+            'locale' => ['nullable', 'string', 'in:el,en'],
+            'price_token' => ['nullable', 'string', 'max:500'],
+            'terms_accepted' => ['required', 'accepted'],
+
+            // See the class docblock: rejected rather than filtered.
+            'source' => ['nullable', 'string', 'in:widget,hosted,wordpress'],
+
+            'utm' => ['sometimes', 'array'],
+            'utm.source' => ['nullable', 'string', 'max:120'],
+            'utm.medium' => ['nullable', 'string', 'max:120'],
+            'utm.campaign' => ['nullable', 'string', 'max:120'],
+            'utm.term' => ['nullable', 'string', 'max:120'],
+            'utm.content' => ['nullable', 'string', 'max:120'],
+        ];
+    }
+
+    /** The product, resolved by uuid inside the resolved tenant. */
+    public function product(): ?Product
+    {
+        return Product::query()
+            ->with(['ageBands', 'meetingPoint', 'vessel'])
+            ->where('uuid', (string) $this->input('product_uuid'))
+            ->first();
+    }
+
+    public function departure(): ?Departure
+    {
+        $uuid = $this->input('departure_uuid');
+
+        if (! is_string($uuid) || $uuid === '') {
+            return null;
+        }
+
+        return Departure::query()->where('uuid', $uuid)->first();
+    }
+
+    /**
+     * Pax as {@see ComputePrice} wants it: band **code** to quantity.
+     *
+     * The wire carries uuids (CNV-8 keeps integer keys out of every payload)
+     * and the engine speaks codes, because a code is what the price snapshot
+     * freezes and what survives the band being deleted. The translation happens
+     * once, here, rather than in the Action — which would then have to know
+     * about a transport.
+     *
+     * @return array<string, int>
+     */
+    public function paxByCode(Product $product): array
+    {
+        $byUuid = $product->ageBands->keyBy('uuid');
+
+        $pax = [];
+
+        /** @var array<int, array<string, mixed>> $rows */
+        $rows = $this->input('pax', []);
+
+        foreach ($rows as $row) {
+            $band = $byUuid->get((string) ($row['age_band_uuid'] ?? ''));
+
+            if (! $band instanceof AgeBand) {
+                continue;
+            }
+
+            $qty = (int) ($row['qty'] ?? 0);
+
+            if ($qty > 0) {
+                $pax[$band->code] = ($pax[$band->code] ?? 0) + $qty;
+            }
+        }
+
+        return $pax;
+    }
+
+    /**
+     * Extras as the engine wants them: database id to quantity.
+     *
+     * The one place an integer id is legitimately produced from a payload, and
+     * it never travels back — CNV-8 is a rule about what leaves.
+     *
+     * @return array<int, int>
+     */
+    public function extraQuantities(): array
+    {
+        /** @var array<int, array<string, mixed>> $rows */
+        $rows = $this->input('extras', []);
+
+        $uuids = array_map(static fn (array $row): string => (string) ($row['extra_uuid'] ?? ''), $rows);
+
+        $byUuid = Extra::query()->whereIn('uuid', $uuids)->get()->keyBy('uuid');
+
+        $quantities = [];
+
+        foreach ($rows as $row) {
+            $extra = $byUuid->get((string) ($row['extra_uuid'] ?? ''));
+
+            if ($extra instanceof Extra) {
+                $quantities[(int) $extra->getKey()] = (int) ($row['qty'] ?? 0);
+            }
+        }
+
+        return $quantities;
+    }
+
+    public function toData(Product $product, ?Departure $departure): BookingDraftData
+    {
+        /** @var array<string, mixed> $guest */
+        $guest = $this->input('guest', []);
+
+        /** @var array<string, mixed> $window */
+        $window = $this->input('window', []);
+
+        $date = $departure instanceof Departure
+            ? $departure->local_date->copy()
+            : Carbon::parse((string) ($window['local_date'] ?? $this->input('local_date')));
+
+        return new BookingDraftData(
+            product: $product,
+            date: $date,
+            guestName: (string) ($guest['name'] ?? ''),
+            guestEmail: (string) ($guest['email'] ?? ''),
+            guestPhone: isset($guest['phone']) ? (string) $guest['phone'] : null,
+            guestCountry: isset($guest['country']) ? (string) $guest['country'] : null,
+            locale: (string) ($this->input('locale') ?? app()->getLocale()),
+            source: BookingSource::from((string) ($this->input('source') ?? BookingSource::Widget->value)),
+            paxByCode: $this->paxByCode($product),
+            extraQuantities: $this->extraQuantities(),
+            startTime: isset($window['local_time']) ? (string) $window['local_time'] : null,
+            extraHours: 0,
+            voucherCode: $this->input('voucher_code') === null ? null : (string) $this->input('voucher_code'),
+            specialRequests: $this->input('special_requests') === null ? null : (string) $this->input('special_requests'),
+            // GDR-9: the moment, not the tick. See the class docblock.
+            termsAcceptedAt: Carbon::now(),
+            ipAddress: $this->ip(),
+            userAgent: substr((string) $this->userAgent(), 0, 500),
+            utm: $this->utm(),
+            isTest: $this->isTestKey(),
+        );
+    }
+
+    /** @return array<string, string|null> */
+    private function utm(): array
+    {
+        /** @var array<string, mixed> $utm */
+        $utm = $this->input('utm', []);
+
+        $values = [];
+
+        foreach (['source', 'medium', 'campaign', 'term', 'content'] as $field) {
+            $values[$field] = isset($utm[$field]) ? (string) $utm[$field] : null;
+        }
+
+        return $values;
+    }
+
+    /**
+     * PAY-11's sandbox flag, taken from the **key** and never from the body.
+     *
+     * §3.9: bookings made with a `*_test_` key are `is_test` and purged
+     * nightly. A body field would let a live key mark a booking as a test and
+     * have it vanish overnight, which is a way to lose a real seat.
+     */
+    private function isTestKey(): bool
+    {
+        $apiKey = $this->attributes->get('api_key');
+
+        return $apiKey instanceof ApiKey && $apiKey->environment->isTest();
+    }
+}

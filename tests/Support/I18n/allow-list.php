@@ -89,6 +89,13 @@ return [
         'enums.notification_provider.apifon.label' => 'Vendor wordmark, identical in both locales.',
         'enums.notification_provider.twilio.label' => 'Vendor wordmark, identical in both locales.',
 
+        // «Email» is the word Greek operators actually use — «ηλεκτρονικό
+        // ταχυδρομείο» is a phrase nobody types into a form label, and a
+        // panel that used it would read as a translation exercise. Added by
+        // #89 with the booking panel.
+        'bookings.view.email' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
+        'bookings.form.guest.email' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
+
         // «Webhook» has no Greek word an operator would recognise. Every Greek
         // developer and every Greek integration guide says webhook, and a
         // translation would be a word this audience has to translate back.
