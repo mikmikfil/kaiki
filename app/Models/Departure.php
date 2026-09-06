@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Domain\Availability\Contracts\DepartureExpiredHolds;
 use App\Domain\Availability\LocalDateTimeResolver;
 use App\Domain\Availability\Support\LocalDay;
 use App\Enums\DepartureCancelReason;
@@ -81,6 +82,15 @@ class Departure extends Model
             $departure->assertTimesAgree();
         });
     }
+
+    /**
+     * Held seats whose hold has already lapsed (AVL-38), for this request only.
+     *
+     * Not an attribute and not `$appends`: it is a read-time correction, it is
+     * never persisted, and a departure that has not been hydrated with it
+     * correctly reports zero.
+     */
+    public int $expiredHeldSeats = 0;
 
     /** @return array<string, string> */
     protected function casts(): array
@@ -164,7 +174,41 @@ class Departure extends Model
      */
     public function seatsAvailable(): int
     {
-        return max(0, $this->capacity - $this->seats_sold - $this->seats_held);
+        return max(0, $this->capacity - $this->seats_sold - $this->liveSeatsHeld());
+    }
+
+    /**
+     * `seats_held`, minus the holds that have already run out.
+     *
+     * AVL-38 requires every availability read to treat `hold_expires_at <
+     * now()` as released **without waiting for the sweeper**, and the stored
+     * counter cannot express that on its own — it is a number, and a hold is a
+     * number with an expiry that lives on the booking.
+     *
+     * The correction is supplied by
+     * {@see DepartureExpiredHolds} and
+     * hydrated in batch by the caller, because this is the hottest read in the
+     * product and a per-departure query would be thirty of them for a calendar
+     * month. Unhydrated it is zero, which takes the counter at face value and
+     * errs towards refusing a free seat rather than selling one twice.
+     */
+    public function liveSeatsHeld(): int
+    {
+        return max(0, $this->seats_held - $this->expiredHeldSeats);
+    }
+
+    /**
+     * Set the expired-hold correction for this departure.
+     *
+     * A transient property rather than a column: it is true for the length of
+     * one request and stale a second later, and a column would need the very
+     * sweeper this exists to work without.
+     */
+    public function withExpiredHeldSeats(int $seats): static
+    {
+        $this->expiredHeldSeats = max(0, $seats);
+
+        return $this;
     }
 
     /** Has the operator committed to sailing (§4.2)? */

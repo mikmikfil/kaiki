@@ -969,6 +969,7 @@ The aggregate root. `per_seat` bookings point at a `departure_id`; `per_vessel` 
 | `utm_term` | varchar(120) | yes | null | |
 | `utm_content` | varchar(120) | yes | null | |
 | `referrer_url` | varchar(500) | yes | null | |
+| `terms_accepted_at` | timestamp | yes | null | GDR-9 / BKG-7 consent, **added by #80** — the *fact* of consent with its time; `ip_address` beside it is the evidence, and §2.5 previously listed only the evidence |
 | `ip_address` | varchar(45) | yes | null | IPv6-safe length; also the ναυλοσύμφωνο acceptance evidence |
 | `user_agent` | varchar(500) | yes | null | |
 | `created_by_user_id` | bigint unsigned | yes | null | FK `nullOnDelete` — set for `source = manual` |

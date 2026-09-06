@@ -343,6 +343,21 @@ return [
          */
         'timezone' => 'Europe/Athens',
 
+        /*
+         * The country a bare national phone number is read as (BKG-8).
+         *
+         * BKG-8 says "the guest-selected country or the **tenant** country as
+         * default", and `tenants` has no country column — the operator profile
+         * that would carry one is M7. This is the platform default standing in
+         * for it: every operator this product is built for is Greek, so `GR` is
+         * right for all of them today and the day it stops being right is the
+         * day the column is worth adding.
+         *
+         * It only ever applies to a number with no `+` prefix. One that has one
+         * has already answered the question.
+         */
+        'country' => 'GR',
+
     ],
 
     /*
@@ -423,6 +438,79 @@ return [
          * lets a single request block a vessel calendar for a fortnight.
          */
         'max_extension_hours' => 6,
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Bookings and the seat hold (ADR-0005, ADR-0007)
+    |--------------------------------------------------------------------------
+    */
+
+    'booking' => [
+
+        /*
+         * How long a draft booking holds its seats, in minutes (AVL-38).
+         *
+         * **Global, not per tenant**, and AVL-38 says so outright. A hold is a
+         * promise made to one guest at the expense of every other guest looking
+         * at the same boat, and an operator who sets it to two hours has not
+         * bought themselves anything — they have taken their own inventory off
+         * sale.
+         *
+         * Fifteen minutes is the brief's §5.4 figure. It is **not** the same
+         * setting as `kaiki.pricing.quote_ttl_minutes`, and the two are
+         * deliberately allowed to differ: AVL-40 says a hold does not reserve a
+         * price, and lets the price outlive the hold plus a grace period.
+         */
+        'hold_minutes' => (int) env('KAIKI_HOLD_MINUTES', 15),
+
+        /*
+         * How long a recomputed price may differ from the snapshot before the
+         * guest is shown the difference, in minutes (AVL-40).
+         *
+         * The grace on top of the hold. Without it, a guest who completes
+         * checkout in the last second of their hold is re-quoted for no reason
+         * they can see.
+         */
+        'price_grace_minutes' => 5,
+
+        /*
+         * The `Cache::lock` around a hold write (ADR-0005, AVL-37.2).
+         *
+         * **This is a mutex, not the hold.** Five seconds is a ceiling on a
+         * critical section that takes milliseconds — long enough that a slow
+         * query cannot drop the lock mid-write, short enough that a crashed
+         * process cannot block the boat for a coffee break. The three-second
+         * block is how long a second guest waits before being told to try
+         * again, which is roughly the longest a person will stare at a spinner.
+         */
+        'hold_lock_seconds' => 5,
+        'hold_lock_wait_seconds' => 3,
+
+        /*
+         * How often the stale-hold sweeper runs.
+         *
+         * Every minute, per ADR-0005. Correctness does not depend on it —
+         * every availability read treats an expired hold as released on its own
+         * (AVL-38) — but a seat that reads as free and still counts against the
+         * stored counter is a discrepancy that shows up in the operator's
+         * dashboard, so the counter is tidied promptly rather than eventually.
+         */
+        'sweeper_cron' => env('KAIKI_HOLD_SWEEPER_CRON', '* * * * *'),
+
+        /*
+         * The booking reference (BKG-3, ADR-0007).
+         *
+         * The prefix is config so that a rename changes one value and not the
+         * schema. Five random characters over the 30-symbol alphabet is 24.3
+         * million combinations per tenant; on the fifth collision the generator
+         * widens to six, which is 729 million and is why the column is
+         * `varchar(16)` rather than the ADR's `char(9)`.
+         */
+        'reference_prefix' => env('KAIKI_BOOKING_PREFIX', 'KAI'),
+        'reference_length' => 5,
+        'reference_attempts' => 5,
 
     ],
 

@@ -121,7 +121,16 @@ it('costs the same for 62 days as for one', function (): void {
     // A ceiling as well, so the whole request stays small rather than merely
     // constant. The engine's own budget is five; the rest is the key, the
     // tenant and the product with its vessel, bands and plans.
-    expect(count($wholeRange))->toBeLessThanOrEqual(12, implode("\n", $wholeRange));
+    //
+    // **Thirteen, raised from twelve by #80.** AVL-3.4's fourth occupation
+    // source — a guest holding a private charter on the same boat — could not
+    // be asked before `bookings` existed, so `VesselHoldSource` had no
+    // implementation and cost nothing. It has one now, and it is one query for
+    // the vessel across the whole range: the equality assertion above is what
+    // proves it did not become one per date. Without it two guests can be at
+    // the checkout for the same boat on the same afternoon, which is a worse
+    // outcome than a thirteenth query.
+    expect(count($wholeRange))->toBeLessThanOrEqual(13, implode("\n", $wholeRange));
 })->group('fast');
 
 it('costs the same for a 62-day charter calendar', function (): void {
