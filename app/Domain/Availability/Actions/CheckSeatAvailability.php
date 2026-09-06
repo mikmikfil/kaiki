@@ -7,6 +7,7 @@ namespace App\Domain\Availability\Actions;
 use App\Data\Availability\AvailabilityDayData;
 use App\Data\Availability\AvailabilityRequestData;
 use App\Data\Availability\DepartureAvailabilityData;
+use App\Domain\Availability\Contracts\DepartureExpiredHolds;
 use App\Domain\Availability\Contracts\DeparturePersonsAboard;
 use App\Domain\Availability\LocalDateTimeResolver;
 use App\Domain\Availability\Support\CountedSeats;
@@ -78,6 +79,9 @@ final class CheckSeatAvailability
 {
     public const TAG = 'availability.persons-aboard';
 
+    /** {@see DepartureExpiredHolds} — AVL-38's read-side correction. */
+    public const EXPIRED_HOLDS_TAG = 'availability.expired-holds';
+
     private readonly PartyGuard $party;
 
     /** @param iterable<DeparturePersonsAboard> $personsAboard */
@@ -110,6 +114,13 @@ final class CheckSeatAvailability
 
         $occupations = OccupationCollector::forRange($vessel, $range);
         $departures = $occupations->departuresFor($product, $range);
+
+        // AVL-38's read side, in one query for the whole range. Without it a
+        // hold that lapsed a minute ago still keeps its seats off sale until
+        // the sweeper catches up, so a backlogged queue quietly costs bookings
+        // — and the requirement is explicit that correctness must not depend on
+        // the scheduler having run.
+        self::hydrateExpiredHolds($departures);
 
         $plans = RatePlan::query()
             ->where('product_id', $product->getKey())
@@ -144,6 +155,47 @@ final class CheckSeatAvailability
         }
 
         return $days;
+    }
+
+    /**
+     * Tell each departure how many of its held seats have already lapsed.
+     *
+     * Batched through {@see DepartureExpiredHolds}, whose implementation lives
+     * in `app/Domain/Booking` — the availability engine asks the question and
+     * does not know that `bookings` is where the answer comes from. With no
+     * implementation registered the correction is zero and the stored counter
+     * is taken at face value, which errs towards refusing a free seat rather
+     * than selling one twice.
+     *
+     * @param  Collection<int, Departure>  $departures
+     */
+    private static function hydrateExpiredHolds(Collection $departures): void
+    {
+        if ($departures->isEmpty()) {
+            return;
+        }
+
+        // **Nothing held, nothing to correct, no query.** NFR-7 budgets five
+        // queries for this read whatever the range, and the correction would
+        // have made it six on every request — including the overwhelming
+        // majority where no seat on any date in the range is held by anybody.
+        //
+        // This is not an optimisation that trades correctness for speed: an
+        // expired hold is a subtrahend, and a departure with `seats_held = 0`
+        // has nothing to subtract from. The sixth query is paid only when there
+        // is something for it to find.
+        if ($departures->every(static fn (Departure $departure): bool => $departure->seats_held === 0)) {
+            return;
+        }
+
+        /** @var iterable<DepartureExpiredHolds> $sources */
+        $sources = app()->tagged(self::EXPIRED_HOLDS_TAG);
+
+        foreach ($sources as $source) {
+            foreach ($source->expiredHeldSeats($departures) as $departureId => $seats) {
+                $departures->firstWhere('id', $departureId)?->withExpiredHeldSeats($seats);
+            }
+        }
     }
 
     /**

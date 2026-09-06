@@ -66,6 +66,11 @@ return [
         'enums.integration_provider.yuboto.label' => 'Vendor wordmark, identical in both locales.',
         'enums.integration_provider.twilio.label' => 'Vendor wordmark, identical in both locales.',
         'enums.integration_provider.postmark.label' => 'Vendor wordmark, identical in both locales.',
+
+        // The CMS, not a word. A Greek operator whose site runs on WordPress
+        // calls it WordPress, and «Γουόρντπρες» would be a transliteration
+        // nobody has ever written down.
+        'enums.booking_source.wordpress.label' => 'Product name, identical in both locales.',
     ],
 
     'literals' => [

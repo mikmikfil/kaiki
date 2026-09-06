@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Jobs\ExpireStaleHoldsJob;
 use App\Jobs\GenerateDeparturesNightly;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -64,3 +65,29 @@ Schedule::command('audit:purge')
     ->withoutOverlapping()
     ->onOneServer()
     ->name('audit:purge');
+
+/*
+|--------------------------------------------------------------------------
+| Stale seat holds (ADR-0005, spec AVL-38)
+|--------------------------------------------------------------------------
+|
+| **This is the tidier, not the guarantee**, and the distinction is the whole
+| of AVL-38. A hold is dead the instant `hold_expires_at` passes; every
+| availability read applies that on its own, and `HoldExpiryTest` proves it with
+| this entry never run. What this does is bring `departures.seats_held` back
+| into line, so an operator's dashboard is not showing seats held by nobody.
+|
+| Every minute, per the ADR. `withoutOverlapping` because a slow minute must not
+| stack a second sweep on the first — two sweepers recomputing the same counter
+| would each write a figure the other's uncommitted work made stale.
+| `onOneServer` for the same reason across machines.
+|
+| No timezone: unlike the two above, this is not a daily job at a local hour.
+| It runs every minute everywhere, and a timezone on a per-minute schedule is a
+| line that reads as meaningful and is not.
+*/
+Schedule::job(new ExpireStaleHoldsJob)
+    ->cron((string) config('kaiki.booking.sweeper_cron', '* * * * *'))
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('bookings:expire-holds');

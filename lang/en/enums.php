@@ -268,4 +268,82 @@ return [
         'test' => ['label' => 'Test'],
     ],
 
+    /*
+    | Bookings (§4.1, BKG-3 … BKG-9).
+    |
+    | `draft` and `pending_payment` are the two an operator sees most and the
+    | two most easily confused. The labels say what each *means for the seat*
+    | rather than naming the state — "holding seats" against "at the payment
+    | page" — because that is the difference an operator is actually asking
+    | about when they look at a list.
+    */
+    'booking_status' => [
+        'draft' => ['label' => 'Holding seats'],
+        'quote_requested' => ['label' => 'Quote requested'],
+        'quote_sent' => ['label' => 'Quote sent'],
+        'pending_payment' => ['label' => 'At the payment page'],
+        'confirmed' => ['label' => 'Confirmed'],
+        'checked_in' => ['label' => 'Checked in'],
+        'completed' => ['label' => 'Completed'],
+        'cancelled' => ['label' => 'Cancelled'],
+        'refunded' => ['label' => 'Refunded'],
+        'expired' => ['label' => 'Expired'],
+    ],
+
+    'booking_source' => [
+        'widget' => ['label' => 'Website widget'],
+        'hosted' => ['label' => 'Booking page'],
+        'wordpress' => ['label' => 'WordPress'],
+        'manual' => ['label' => 'Entered by you'],
+        'import' => ['label' => 'Imported'],
+    ],
+
+    'guest_details_status' => [
+        'not_required' => ['label' => 'Not needed'],
+        'pending' => ['label' => 'Waiting on the guest'],
+        'complete' => ['label' => 'Received'],
+    ],
+
+    'guest_document_type' => [
+        'passport' => ['label' => 'Passport'],
+        'id_card' => ['label' => 'ID card'],
+        'other' => ['label' => 'Other document'],
+    ],
+
+    /*
+    | Who cancelled decides the refund: a guest cancellation is judged against
+    | the policy snapshot, an operator or system one is refunded in full
+    | whatever the tiers say.
+    */
+    'cancelled_by' => [
+        'guest' => ['label' => 'The guest'],
+        'operator' => ['label' => 'You'],
+        'system' => ['label' => 'Automatically'],
+    ],
+
+    'cancel_reason' => [
+        'guest_request' => ['label' => 'The guest asked to cancel'],
+        'weather' => ['label' => 'Weather'],
+        'operator' => ['label' => 'You cancelled it'],
+        'min_pax' => ['label' => 'Not enough passengers'],
+        'vessel_booked_privately' => ['label' => 'The boat was chartered privately'],
+        'payment_failed' => ['label' => 'Payment failed'],
+        'hold_expired' => ['label' => 'The seats were not paid for in time'],
+    ],
+
+    'voucher_status' => [
+        'active' => ['label' => 'Can be used'],
+        'redeemed' => ['label' => 'Fully used'],
+        'expired' => ['label' => 'Expired'],
+        'cancelled' => ['label' => 'Cancelled'],
+    ],
+
+    'voucher_reason' => [
+        'weather_cancellation' => ['label' => 'Weather cancellation'],
+        'operator_cancellation' => ['label' => 'You cancelled the trip'],
+        'force_majeure' => ['label' => 'Force majeure'],
+        'goodwill' => ['label' => 'Goodwill'],
+        'manual' => ['label' => 'Issued by hand'],
+    ],
+
 ];

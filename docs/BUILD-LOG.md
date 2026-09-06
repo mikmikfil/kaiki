@@ -14,11 +14,11 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M2 — Booking & payments, in progress.** M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M2 | #79 |
+| M2 | #79, #80 |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1472) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1552) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
@@ -33,6 +33,111 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #80 — The booking aggregate, and the four seams M1 left open
+
+**Files:** four migrations at §6 positions 30–33, `app/Models/{Booking,Voucher,BookingGuest,BookingExtra}.php`, `app/Enums/{BookingStatus,BookingSource,GuestDetailsStatus,GuestDocumentType,CancelledBy,CancelReason,VoucherStatus,VoucherReason}.php`, `app/Domain/Availability/{Actions/HoldSeats,Actions/ExtendHold,Actions/ReleaseHold,Support/HoldLock,Contracts/DepartureExpiredHolds}.php`, `app/Domain/Booking/{Actions/CreateBookingDraft,Actions/ExpireStaleHolds,Data/BookingDraftData,Support/BookingHoldSource,Support/BookingProductCount,Support/LeadGuest}.php`, `app/Support/Booking/BookingReference.php`, `app/Rules/BookingReferenceFormat.php`, `app/Exceptions/{HoldRefused,HoldLockUnavailable}.php`, `app/Events/BookingHoldExpired.php`, `app/Jobs/ExpireStaleHoldsJob.php`, `app/Policies/{Booking,Voucher,BookingGuest,BookingExtra}Policy.php`, `app/Providers/BookingServiceProvider.php`, `config/kaiki.php`, `routes/console.php`, `lang/{el,en}/{booking,enums}.php`, four factories, five test files
+
+The largest issue in M2 and the one every other table in the milestone points at.
+
+### The cycle that has to be broken, permanently
+
+`bookings.voucher_id` is a real foreign key; `vouchers.issued_for_booking_id` points back. SQLite cannot add a foreign key to an existing table (§0), so one side has to give — and §6 settles which: `vouchers` is created first and its back-reference is a plain indexed `unsignedBigInteger` with **no FK, ever**. Integrity is the application's and the nightly reconciler's, the same permanent accommodation `vessel_blocks.booking_id` already carries.
+
+`Voucher::issuedForBooking()` is therefore a method and not a relation, so the absence is visible at the call site rather than looking like an ordinary `belongsTo` that happens to skip referential integrity.
+
+### The hold is data; the lock is a mutex
+
+ADR-0005 opens by saying the two must not be conflated, and the reason is that the rejected design fails silently: a cache-resident hold evaporates on a Redis restart and every boat is sold twice with nothing in any log.
+
+So `HoldDurabilityTest` **flushes the cache mid-hold** and asserts the seats are still held. On Option B that test passes by doing nothing; here it has to survive. A second test takes the lock immediately after a hold is created and asserts it is free — the hold has fifteen minutes to run and the mutex had five seconds, which is what lets the next guest book the remaining seats instead of queueing behind somebody's checkout.
+
+`NoDirectRedisTest` scans `app/` for `Redis::` and `RedisStore`, because a direct call passes every test in CI — where Redis is real — and cannot run at all on the SQLite stack this project develops on. The failure is invisible to whoever writes it.
+
+### Expiry twice over, and which half is the guarantee
+
+AVL-38 asks for both and they fail in opposite directions. The **read side** is the authority: a hold is gone the instant `hold_expires_at` passes. The **sweeper** brings `departures.seats_held` back into line so an operator's dashboard is not showing seats held by nobody.
+
+`HoldExpiryTest` asserts the read-side release **with the sweeper never run**, which is what proves the order of dependence rather than describing it in a comment. The mirror case is asserted too — a live hold is *not* released — because a fast sweeper must never release a hold a read still counts.
+
+Both `HoldSeats` and `ReleaseHold` **recompute** the counter from live holds rather than incrementing or decrementing it. An increment is only correct if every previous one was; a recount is right whatever happened before it, which makes the Actions self-healing, makes a double release safe, and means a sweeper outage costs throughput rather than correctness.
+
+### The four seams, filled together
+
+M1 shipped four interfaces with no implementations, each with a docblock promising M2 would add one class and one `tag()` line. This is that line, four times:
+
+| Seam | Answers | Silent failure without it |
+|---|---|---|
+| `DeparturePersonsAboard` | AVL-25's legal head-count | a boat sails full of infants |
+| `VesselHoldSource` | AVL-3.4's expiring occupation | two guests check out for the same boat |
+| `DepartureExpiredHolds` *(new)* | AVL-38's read-side release | a queue backlog costs bookings |
+| `ProductBookingCount` | can a product's mode still change | a mode change reinterprets a live booking |
+
+Three are one class. They are one question asked three ways — *what do the bookings on this boat currently mean?* — and three files that must agree about "an unexpired hold" are three chances to disagree.
+
+They were wired as a group rather than one at a time because **every one of those failures is quiet**: nothing throws, nothing logs, and the numbers stay plausible.
+
+### The query budget, and why one number moved and the other did not
+
+Filling the seams cost queries, and the two costs were handled differently.
+
+**The read-side correction did not raise the engine's budget.** NFR-7 gives the availability read five queries whatever the range, and asking "which held seats have lapsed" made it six on *every* request — including the overwhelming majority where nothing on any date in the range is held by anybody. It is now skipped when every departure has `seats_held = 0`. That is not a speed-for-correctness trade: an expired hold is a subtrahend and there is nothing to subtract from.
+
+**The API ceiling did move, twelve to thirteen.** `VesselHoldSource` is a query that genuinely has to run — there is no cheap local signal for "is anybody holding this boat privately" the way `seats_held = 0` is one for seats. It is one query for the vessel across the whole range, and the test's own equality assertion (62 days costs what one day costs) is what proves it did not become one per date. Without it two guests can be at the checkout for the same boat on the same afternoon, which is worse than a thirteenth query.
+
+### Two arithmetic slips in the spec, found by writing the code
+
+**BKG-3 item 2 states the alphabet and then miscounts it.** *"The digits and uppercase letters minus `0 O I 1 L U`"* is eight digits plus twenty-two letters — **thirty** symbols, and 30^5 is **24.3 million**. The requirement said 31 and ~28.6 million, which are the figures for a 31-symbol alphabet. The rule is the specification and is unchanged; the two derived numbers are corrected, and `BookingReferenceTest` now asserts the count so they cannot drift apart again.
+
+**ADR-0007's `char(9)` cannot hold what ADR-0007 produces.** Its own collision strategy widens the random part to six characters after five failed attempts, which is ten characters with the prefix. `docs/data-model.md` §2.5 already said `varchar(16)` and is authoritative on schema (`CLAUDE.md`); `docs/spec.md` BKG-3 item 1 is corrected to match.
+
+### The bug only the real prefix could find
+
+`BookingReference::normalise()` maps confusable characters onto what a guest meant — `O` to `0`, `I` and `L` to `1`. The default brand prefix is **`KAI`**, and it contains an `I`.
+
+Mapping across the whole string therefore rewrote every reference's own prefix to `KA1` and then failed to recognise it, so `KAI-7F3K2` — a reference the class had generated a line earlier — did not validate. Every one of the six normalisation cases failed, including the one that was already in canonical form.
+
+The map now applies to the random part only. The prefix is ours and is never ambiguous; only what follows it was ever read off a printed ticket in the wind.
+
+### One column added, because the spec asked for a fact and the schema held its evidence
+
+BKG-7 requires explicit consent to the operator's terms *"with a stored timestamp"* and GDR-9 says it lives on the booking. §2.5 listed `ip_address` and nothing else. `terms_accepted_at` is the fact; the address corroborates it. Added with §2.5 updated to match.
+
+### BKG-8, and the exception that escaped the wrapper
+
+The requirement is one sentence — *a malformed phone blocks SMS but MUST NOT block the booking* — and it is the entire design of `LeadGuest`: nothing throws, an unreadable number is stored as null, the booking proceeds.
+
+**Which is exactly what the first version did not do.** `propaganistas/laravel-phone` wraps `giggsey/libphonenumber`, and catching only the wrapper's `NumberParseException` let the underlying library's own exception escape — turning "the guest typed their number oddly" into a 500, which is precisely the outcome the requirement forbids. The contract is "never throw", so it is now enforced as one.
+
+The MX check has the same posture. A lookup that fails is *cannot tell*, and the address is accepted: DNS is a network call in the middle of a checkout, it fails in sandboxes and behind blocked egress, and a form that refuses an address because a resolver timed out refuses valid customers.
+
+### A new package
+
+`propaganistas/laravel-phone`, first use, from the ADR-0019 shortlist `CLAUDE.md` pre-approves. E.164 normalisation is BKG-8's explicit requirement and hand-rolling it for Greek mobiles alone would be wrong the first time a German guest books.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `php artisan migrate:fresh` (SQLite) | four tables at positions 30–33 |
+| `composer lint` | clean after fixes |
+| `composer stan` | `[OK] No errors` — five real findings fixed at source, no baseline |
+| `composer test` | **1552 passed**, 0 failed (after the snapshot refresh) |
+| `tests/Feature/Booking` + the architecture test | 48 passed |
+
+The snapshot was refreshed the documented way — it needs MySQL 8 and the local stack is SQLite (ADR-0015), so `docs/ci.md`'s procedure applies: push, take the `mysql-schema-snapshot` artifact, commit it.
+
+Not run locally, by environment rather than by choice: the MySQL job. **The AVL-44 two-parallel-confirmations test is not here** — it belongs with confirmation in #81, because there is nothing to confirm yet.
+
+### Things this touched that were not its own
+
+1. **Five PHPStan findings, all real.** Two nullsafe accesses on the left of `??` that PHPStan correctly called unnecessary; a validation rule whose `$fail` signature did not match the interface it implements; and two Pest closures calling `$this->travel()` and `$this->fail()`, which are not statically visible because `$this` is a `TestCall` at analysis time. The last two are the same shape as #79's `withoutExceptionHandling()` — the explicit forms (`Carbon::setTestNow`, capturing the exception) are what both the analyser and a reader can follow, and capturing also fails with a useful sentence when nothing is thrown at all.
+
+2. **The M1 availability scenario builder makes a rate plan but no per-band prices**, because the tests it was written for never ask what anything costs. A booking does, and PRC-5 refuses to price an unsellable product rather than charging zero — so the draft test adds the price row rather than loosening the assertion. A total of zero would have been a free trip passing every arithmetic check on its way to a gateway.
+
+3. **`enums.booking_source.wordpress.label` joins the identical-translations allow-list.** A Greek operator whose site runs on WordPress calls it WordPress.
 
 ---
 
