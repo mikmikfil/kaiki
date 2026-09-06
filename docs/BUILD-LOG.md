@@ -124,7 +124,7 @@ The MX check has the same posture. A lookup that fails is *cannot tell*, and the
 | `php artisan migrate:fresh` (SQLite) | four tables at positions 30–33 |
 | `composer lint` | clean after fixes |
 | `composer stan` | `[OK] No errors` — five real findings fixed at source, no baseline |
-| `composer test` | **1551 passed**, 1 failed: the ENV-10 schema-snapshot fingerprint |
+| `composer test` | **1552 passed**, 0 failed (after the snapshot refresh) |
 | `tests/Feature/Booking` + the architecture test | 48 passed |
 
 The snapshot was refreshed the documented way — it needs MySQL 8 and the local stack is SQLite (ADR-0015), so `docs/ci.md`'s procedure applies: push, take the `mysql-schema-snapshot` artifact, commit it.
