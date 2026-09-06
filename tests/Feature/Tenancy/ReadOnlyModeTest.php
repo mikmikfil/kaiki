@@ -23,8 +23,16 @@ use function Pest\Laravel\postJson;
 beforeEach(function (): void {
     config()->set('kaiki.tenancy.hosted_host', 'book.kaiki.test');
 
+    // `_probe` rather than the bare slug: #101 put a **real** hosted page at
+    // `book.{host}/{slug}`, and a probe sharing that path stopped testing the
+    // middleware and started testing which route Laravel matched first. The
+    // leading underscore is outside the slug pattern those routes are
+    // constrained to, so the two cannot collide again.
+    //
+    // The tenant still resolves from segment 1, which is what these tests are
+    // about — `_probe` is simply not a slug any operator can hold.
     Route::middleware(['tenant', 'tenant.writable'])
-        ->match(['get', 'post'], '/{slug}', fn () => response()->json(['ok' => true]));
+        ->match(['get', 'post'], '/{slug}/_probe', fn () => response()->json(['ok' => true]));
 });
 
 function readOnlyTenant(): Tenant
@@ -35,7 +43,7 @@ function readOnlyTenant(): Tenant
 it('refuses a write for a read-only tenant', function (): void {
     readOnlyTenant();
 
-    postJson('http://book.kaiki.test/lapsed')
+    postJson('http://book.kaiki.test/lapsed/_probe')
         ->assertStatus(403)
         ->assertJsonPath('error.code', 'tenant_read_only');
 })->group('fast');
@@ -45,13 +53,13 @@ it('still serves reads for a read-only tenant', function (): void {
     // in arrears, so guests are never punished for a billing problem.
     readOnlyTenant();
 
-    getJson('http://book.kaiki.test/lapsed')->assertOk()->assertJson(['ok' => true]);
+    getJson('http://book.kaiki.test/lapsed/_probe')->assertOk()->assertJson(['ok' => true]);
 })->group('fast');
 
 it('allows writes for an active tenant', function (): void {
     Tenant::factory()->create(['slug' => 'paying', 'status' => TenantStatus::Active]);
 
-    postJson('http://book.kaiki.test/paying')->assertOk();
+    postJson('http://book.kaiki.test/paying/_probe')->assertOk();
 })->group('fast');
 
 it('allows writes while a payment is merely overdue', function (): void {
@@ -60,19 +68,19 @@ it('allows writes while a payment is merely overdue', function (): void {
     // usually succeeds on retry.
     Tenant::factory()->create(['slug' => 'chasing', 'status' => TenantStatus::PastDue]);
 
-    postJson('http://book.kaiki.test/chasing')->assertOk();
+    postJson('http://book.kaiki.test/chasing/_probe')->assertOk();
 })->group('fast');
 
 it('refuses writes for a suspended tenant', function (): void {
     Tenant::factory()->create(['slug' => 'gone', 'status' => TenantStatus::Suspended]);
 
-    postJson('http://book.kaiki.test/gone')->assertStatus(403);
+    postJson('http://book.kaiki.test/gone/_probe')->assertStatus(403);
 })->group('fast');
 
 it('explains the refusal in both Greek and English', function (): void {
     readOnlyTenant();
 
-    $response = postJson('http://book.kaiki.test/lapsed')->assertStatus(403);
+    $response = postJson('http://book.kaiki.test/lapsed/_probe')->assertStatus(403);
 
     expect($response->json('error.message'))->toContain('read only')
         ->and($response->json('error.message_el'))->toContain('μόνο για ανάγνωση')
@@ -84,11 +92,11 @@ it('refuses a browser write with a localised message rather than JSON', function
     // JSON body they will never see.
     readOnlyTenant();
 
-    post('http://book.kaiki.test/lapsed')->assertStatus(403);
+    post('http://book.kaiki.test/lapsed/_probe')->assertStatus(403);
 })->group('fast');
 
 it('never blocks a safe method', function (): void {
     readOnlyTenant();
 
-    get('http://book.kaiki.test/lapsed')->assertOk();
+    get('http://book.kaiki.test/lapsed/_probe')->assertOk();
 })->group('fast');

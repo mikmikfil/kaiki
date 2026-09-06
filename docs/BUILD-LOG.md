@@ -12,8 +12,9 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M2 — Booking & payments: all eleven issues built.** M1 complete. |
+| Milestone | **M3 — Hosted pages & widget: #101 built.** M2 complete (all eleven), M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
+| M3 | **#101 built** — the hosted page shell. #102 … #111 to come, hosted pages before the widget. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
@@ -34,6 +35,67 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #101 — The hosted page shell, and the route that ate `/app`
+
+HOS-1's `book.{platform-domain}/{operator-slug}`, rendered server-side, in two locales, under a policy with no `unsafe-inline`, with HOS-6's 404, HOS-9's legal footer and HOS-10's read-only page served in full. The first M3 issue, and the first guest surface the platform hosts itself rather than reaching through a token.
+
+### A route that broke eight tests belonging to somebody else
+
+`/{operator}` is one path segment at the root. Registered on every host it matches `/app`, `/admin`, `/up` and any probe route a test file declares — and it did: eight of #7's `TenantResolutionOrderTest` and `ReadOnlyModeTest` cases went red on a change that had nothing to do with tenant resolution.
+
+The first fix attempted was registration order, which is wrong for a reason worth writing down: order is a property of a file, and the next person to tidy `routes/web.php` re-breaks it silently. The fix that holds is `Route::domain((string) config('kaiki.tenancy.hosted_host'))` around the group and `->where('operator', '[a-z0-9][a-z0-9-]*')` on the parameter, and a test that asks for `/aegean-blue-test` on the **default** host, asserts a 404, and then asserts `/app/login` and `/up` still answer. The host is the guard, so the guard is what is asserted rather than the symptom.
+
+Three probe routes in #7's own files had claimed the bare slug this issue now owns. They move to `/{slug}/_probe`, which is not a slug any operator can hold, so they test the resolver rather than the route shadowing it.
+
+### Livewire on a cacheable public page
+
+`HostedPageLocaleTest`'s HOS-4 assertion — `not->toContain('<script')` — failed only when the whole file ran, and passed test by test. Livewire injects its script **and a CSRF token** into every HTML response from the web group once it has booted, so a hosted page served by a worker that had previously served a panel page carried both. On a page a CDN may cache.
+
+`HostedPageHeaders` sets `livewire.inject_assets` to false. The assertion stays in the full-page test rather than moving to one of its own, because a test of its own would have passed.
+
+### The policy, written as three absences
+
+A Content-Security-Policy that is too permissive passes every test asserting the page renders. The three that matter:
+
+- **no `unsafe-inline`** — the brand colours arrive through a `<style>` carrying the per-response nonce. The test extracts the nonce from the **header** and looks for that exact value in the body, so a header and an element that disagreed fail rather than silently drop the operator's colours.
+- **no Google Fonts unless the operator chose one** — WGT-10's rule. A policy that always named `fonts.gstatic.com` would make that requirement decorative and would be wrong for every operator who never picks a font, which is most of them.
+- **no gateway the operator has not connected** — Stripe is configured platform-side, so a `form-action` naming both would pass a test that only asserted Viva's presence. The test asserts Stripe's absence on a Viva-only operator.
+
+`X-Robots-Tag` is deliberately **empty** here, unlike #86's token pages: a hosted page is exactly what an operator wants indexed, and a copied `noindex` would quietly undo HOS-2.
+
+### Deviations and additions
+
+- **`ResolveHostedTenant` renamed to `HostedPageHeaders`** (alias `hosted.page`). It resolved nothing — the `tenant` middleware already had — and a name describing work it does not do is how the next person adds a second resolution path.
+- **`config('kaiki.hosted')` is new**: `powered_by`, `api_origin`, `widget_origin`, `gateway_origins`. Brand decision 6 of 2026-09-04 renders «powered by Kaiki» from the flag rather than the template, so a white-label tier is a config change; the test flips the flag and asserts both directions.
+- **`Tests\Support\Hosted\HostedRequest`** holds `url()` and `headers()`. Two Pest files declaring the same helper `function` is a fatal redeclaration, and a helper taking `$this` is a `TestCall` at analysis time, not a `TestCase` — twenty-nine PHPStan errors, the same shape as `$this->fail()` in #89.
+- The **editable home page is not here.** `hosted.index` lists active products, which is the default the block system of #102 falls back to anyway.
+
+### Things this touched that were not its own
+
+`bootstrap/app.php` (the alias), `routes/web.php`, and the three probe routes above.
+
+### Verification
+
+```
+$ vendor/bin/pint --test
+$ vendor/bin/phpstan analyse
+[OK] No errors
+
+$ php artisan test --exclude-group=mysql --exclude-group=chromium --exclude-group=external
+Tests:  1 failed, 2071 passed (5944 assertions)
+
+FAILED  Tests\Unit\CiGatesTest > it keeps the committed schema snapshot in step with the migrations
+
+$ vendor/bin/pest tests/Feature/Tenancy tests/Feature/Hosted
+Tests:  361 passed (709 assertions)
+```
+
+25 new tests across three files: `HostedPageAccessTest` (9), `HostedPageHeadersTest` (7), `HostedPageLocaleTest` (9).
+
+The single failure is **ENV-10's schema-snapshot fingerprint**, unchanged since #83 and blocked on the same CI billing issue. #101 adds **no migration**, so it inherits the failure rather than causing one. The MySQL and chromium groups have not run, for the same reason.
 
 ---
 

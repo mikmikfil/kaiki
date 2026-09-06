@@ -6,6 +6,7 @@ use App\Http\Controllers\Guest\GuestDetailsController;
 use App\Http\Controllers\Guest\ManageBookingController;
 use App\Http\Controllers\Guest\QuoteController;
 use App\Http\Controllers\Guest\VoucherController;
+use App\Http\Controllers\Hosted\HostedPageController;
 use App\Http\Controllers\Webhooks\GatewayWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -84,3 +85,43 @@ Route::middleware(['guest.token', 'guest.throttle'])->group(function (): void {
 
     Route::get('/v/{code}', [VoucherController::class, 'show'])->name('guest.voucher');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Hosted operator pages (spec HOS-1 … HOS-10)
+|--------------------------------------------------------------------------
+|
+| `book.{platform-domain}/{operator-slug}` — the page an operator with no
+| website of their own hands out, and the first guest-facing surface that is
+| not a token link.
+|
+| **Scoped to the hosted host**, which is the guard rather than the registration
+| order. `{operator}` is a single path segment; on every host it would swallow
+| `/app`, `/admin` and any probe route a test registers — it did, and it broke
+| eight of #7's own tenant-resolution tests the moment it landed. `TEN-4`'s
+| third strategy already reads the first segment as a slug on that host and
+| nowhere else, and `HostedSlugResolver` already declines an operator whose page
+| is switched off, so `tenant` does the resolving and HOS-6's 404 comes for
+| free.
+|
+| No `guest.throttle` here, unlike the token pages: a hosted page is public and
+| indexable by design (HOS-2), and rate-limiting a crawler is how an operator
+| disappears from search. The pages are cacheable reads with no credential in
+| the URL, which is exactly what the token pages are not.
+*/
+Route::domain((string) config('kaiki.tenancy.hosted_host'))
+    ->middleware(['tenant', 'hosted.page', 'locale'])
+    ->group(function (): void {
+        // Constrained to the shape a `tenants.slug` actually has. Without it
+        // `{operator}` matches *any* first segment on this host, including the
+        // `/_probe` route #7's own tenant tests declare — and a catch-all that
+        // swallows a route somebody else registered is a catch-all that will
+        // swallow the next one too.
+        Route::get('/{operator}', [HostedPageController::class, 'index'])
+            ->where('operator', '[a-z0-9][a-z0-9-]*')
+            ->name('hosted.index');
+
+        Route::get('/{operator}/legal', [HostedPageController::class, 'legal'])
+            ->where('operator', '[a-z0-9][a-z0-9-]*')
+            ->name('hosted.legal');
+    });

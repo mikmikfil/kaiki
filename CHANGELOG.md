@@ -1,5 +1,25 @@
 # Changelog
 
+## M3 — Hosted pages & widget
+
+### #101 - The hosted page shell, and the route that ate `/app`
+
+`book.{platform-domain}/{operator-slug}` — HOS-1's page, HOS-4's server-rendered Blade, HOS-5's two locales, HOS-6's 404, HOS-8's policy, HOS-9's legal footer and HOS-10's read-only case. Twenty-five tests, and three of them assert an **absence**, which is the only form these particular requirements can be checked in.
+
+**A single-segment route at the root swallows the application, and it did.** `/{operator}` registered on every host matches `/app`, `/admin`, `/up` and every probe route a test declares; eight of #7's own tenant-resolution tests went red the moment it landed, and they went red for a reason that had nothing to do with tenancy. The fix is not registration order — order is a property of a file somebody can reorganise — it is `Route::domain(config('kaiki.tenancy.hosted_host'))` plus `->where('operator', '[a-z0-9][a-z0-9-]*')`, and a test that asks for `/aegean-blue-test` on the **default** host and asserts a 404 while `/app/login` and `/up` still answer. The host is the guard, so the guard is what is asserted.
+
+**Livewire was appending fifty kilobytes of JavaScript and a CSRF token to a page a CDN may cache.** Not to every response — only to responses served by a worker that had already served a panel page, which is why it passed test-by-test and failed the moment `HostedPageLocaleTest` ran as a file. HOS-4's requirement is that the page is complete without JavaScript, and the only assertion that means anything is `not->toContain('<script')`; that assertion is what caught it. The middleware sets `livewire.inject_assets` to false. A CSRF token on a cacheable public page is the half that would have mattered later.
+
+**The policy is written as three absences, because a permissive CSP passes every test that checks the page renders.** No `unsafe-inline` — the operator's colours arrive through a `<style>` element carrying the per-response nonce the middleware minted, and the test extracts the nonce **from the header** and looks for that exact value in the body, so a header and an element that disagreed would fail rather than silently drop the brand. **No Google Fonts unless the operator chose one** — WGT-10 says the font loads only when configured, and a policy that always named `fonts.gstatic.com` would make that requirement decorative and would be wrong for the majority of operators who never pick a font. **No gateway the operator has not connected** — Stripe is configured on the platform, so a `form-action` that named both would pass a test that only asserted Viva was present.
+
+**A page that is switched off and a slug that belongs to nobody return byte-identical responses.** HOS-6 says 404 and stops there; the friendly *“this operator is not currently available”* version is the one that tells the internet an operator exists, which is exactly what somebody who turned their page off did not want. The test compares the two bodies rather than the two status codes, because a shared status with a different sentence leaks the same fact more slowly.
+
+**`Accept-Language` is deliberately not consulted.** HOS-5 wants a canonical per locale and alternates that point at each other, which needs each locale to have a URL — `?lang=`, the same parameter #86's token pages use, so a guest moving between the two surfaces does not meet two conventions. A German tourist on a Greek operator's page gets the operator's default and a visible switch, not a language the operator never wrote. An unknown `?lang=de` **falls back rather than refusing**: §4.2 gives the API a `400 unsupported_locale` because an integrator benefits from being told, and a tourist does not.
+
+**The controller does not wrap its render in `Tenancy::forTenant()`, and #86's pages must.** A token resolves its own tenant and nothing set one; here TEN-4's third strategy resolved the operator before the middleware chain finished, so the context is live for the whole request and a lazy relation in a template behaves the way it does everywhere else. Two surfaces, two correct answers, and writing down which is which is the point.
+
+Three of #7's tenant-resolution tests had registered probe routes on the bare slug this issue now owns. They move to `/{slug}/_probe` — not a slug any operator can hold — so they test the resolver rather than the route that shadows it.
+
 ## M2 — Booking & payments
 
 ### #89 - The booking API, the first refused `pk_`, and the booking a phone call makes

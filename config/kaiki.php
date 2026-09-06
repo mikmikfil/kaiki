@@ -676,6 +676,55 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Hosted operator pages (spec HOS-1 … HOS-10)
+    |--------------------------------------------------------------------------
+    |
+    | `book.{platform-domain}/{operator-slug}` — the page an operator with no
+    | website of their own hands out. Everything here is an origin or a switch;
+    | the content is theirs.
+    */
+    'hosted' => [
+
+        /*
+         * Brand decision 6 of 2026-09-04: «powered by Kaiki» always, custom
+         * domains included — stricter than what was proposed.
+         *
+         * A flag rather than a line in the template, so a white-label tier is a
+         * configuration change instead of an edit to a Blade file somebody then
+         * has to remember on the next release.
+         */
+        'powered_by' => (bool) env('KAIKI_HOSTED_POWERED_BY', true),
+
+        /*
+         * The origins HOS-8's Content-Security-Policy names.
+         *
+         * Null means "the same origin", which is the ordinary deployment: the
+         * API, the widget and the hosted pages all come from the platform's own
+         * host. They are configurable because a CDN or a separate API host is a
+         * deployment decision (M8) and a policy hard-coded to `self` would have
+         * to be edited to survive it.
+         */
+        'api_origin' => env('KAIKI_HOSTED_API_ORIGIN'),
+        'widget_origin' => env('KAIKI_HOSTED_WIDGET_ORIGIN'),
+
+        /*
+         * Where each gateway sends a guest to pay, keyed by the provider value
+         * in `integration_credentials`.
+         *
+         * Only the ones an operator has actually connected reach the policy —
+         * an operator on Viva alone has no reason for a `form-action` that
+         * admits Stripe, and the narrower it is the less a stored-content bug
+         * could do with it.
+         */
+        'gateway_origins' => [
+            'viva' => env('KAIKI_HOSTED_VIVA_ORIGIN', 'https://www.vivapayments.com'),
+            'stripe' => env('KAIKI_HOSTED_STRIPE_ORIGIN', 'https://checkout.stripe.com'),
+        ],
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | E-tickets (spec BKG-13.1, ENV-20, SEC-14)
     |--------------------------------------------------------------------------
     |

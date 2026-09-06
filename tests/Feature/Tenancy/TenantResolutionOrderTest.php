@@ -38,7 +38,11 @@ beforeEach(function (): void {
         'via' => request()->attributes->get('tenant_resolved_by'),
     ]))->where('any', '.*');
 
-    Route::middleware('tenant')->any('/{slug}', fn () => response()->json([
+    // `/{slug}/_probe` rather than `/{slug}`: #101 put a real hosted page on
+    // that exact path, and a probe registered over it would be testing the
+    // route it shadows rather than the resolver. `_probe` is not a slug any
+    // operator can hold, so the two never collide.
+    Route::middleware('tenant')->any('/{slug}/_probe', fn () => response()->json([
         'tenant' => tenant()?->getKey(),
         'via' => request()->attributes->get('tenant_resolved_by'),
     ]));
@@ -129,11 +133,15 @@ it('normalises a hostname the same way every time it sees it', function (): void
 })->group('fast');
 
 it('resolves from the first path segment on the hosted host', function (): void {
+    // Asserted against the **real hosted page** since #101, which now occupies
+    // `book.{host}/{slug}`. The probe cannot sit there any more, and the page
+    // is the better witness anyway: it only renders at all if this strategy
+    // resolved the operator.
     $tenant = Tenant::factory()->create(['slug' => 'aegean-blue']);
 
     get('http://book.kaiki.test/aegean-blue')
         ->assertOk()
-        ->assertJson(['tenant' => $tenant->getKey(), 'via' => 'hosted_slug']);
+        ->assertSee($tenant->name, escape: false);
 })->group('fast');
 
 it('does not read a path segment as a slug on any other host', function (): void {
@@ -188,7 +196,7 @@ it('prefers a custom domain over the hosted slug', function (): void {
 
     Tenancy::forTenant($hostTenant, fn () => TenantDomain::factory()->create(['hostname' => 'book.kaiki.test']));
 
-    get('http://book.kaiki.test/slug-tenant')
+    get('http://book.kaiki.test/slug-tenant/_probe')
         ->assertOk()
         ->assertJson(['tenant' => $hostTenant->getKey(), 'via' => 'custom_domain']);
 })->group('fast');
@@ -202,7 +210,7 @@ it('prefers the hosted slug over the signed-in user tenant', function (): void {
     $user = User::factory()->forTenant($visiting)->create();
 
     actingAs($user)
-        ->get('http://book.kaiki.test/other-operator')
+        ->get('http://book.kaiki.test/other-operator/_probe')
         ->assertOk()
         ->assertJson(['tenant' => $hosted->getKey(), 'via' => 'hosted_slug']);
 })->group('fast');

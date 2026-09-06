@@ -8,6 +8,7 @@ use App\Http\Middleware\AuthenticateGuestToken;
 use App\Http\Middleware\EnforceIdempotencyKey;
 use App\Http\Middleware\EnsureTenantIsWritable;
 use App\Http\Middleware\GuestTokenPage;
+use App\Http\Middleware\HostedPageHeaders;
 use App\Http\Middleware\RequireApiKeyCapability;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SetLocale;
@@ -65,6 +66,11 @@ return Application::configure(basePath: dirname(__DIR__))
             // first place in the product where a publishable key is refused
             // (§2.1). A uuid alone never authorises anything.
             'api.guest' => AuthenticateGuestToken::class,
+            // The hosted operator pages: which operator, may it be served,
+            // and HOS-8's Content-Security-Policy. Middleware rather than
+            // controller code, for the reason `guest.token` gives — a header
+            // set in a controller is a header the fourth page forgets.
+            'hosted.page' => HostedPageHeaders::class,
         ]);
 
         // Per-key CORS from `api_keys.allowed_origins` (SEC-7), and the
