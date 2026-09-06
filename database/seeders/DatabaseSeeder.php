@@ -30,5 +30,12 @@ class DatabaseSeeder extends Seeder
         // tenant-owned, so there is nothing for them to belong to until the
         // operators above exist.
         $this->call(DemoCatalogSeeder::class);
+
+        // Last, because it needs the ports and vessels above: the rest of the
+        // chain a booking actually requires — age bands, a season, a rate plan,
+        // a schedule and the departures it generates. Without it `/app` has rows
+        // to look at and nothing anybody can book, which is the state a demo is
+        // least useful in.
+        $this->call(DemoBookableSeeder::class);
     }
 }
