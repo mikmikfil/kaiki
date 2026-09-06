@@ -10,6 +10,7 @@ use App\Enums\BookingStatus;
 use App\Enums\CancelledBy;
 use App\Enums\CancelReason;
 use App\Enums\GuestDetailsStatus;
+use App\Enums\WeatherChoice;
 use App\Models\Concerns\BelongsToTenant;
 use Database\Factories\BookingFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -86,6 +87,11 @@ use Illuminate\Support\Carbon;
  * @property int|null $voucher_id
  * @property GuestDetailsStatus $guest_details_status
  * @property Carbon|null $balance_due_at
+ * @property WeatherChoice|null $weather_choice
+ * @property Carbon|null $weather_choice_at
+ * @property string|null $weather_choice_ip
+ * @property Carbon|null $weather_choice_due_at
+ * @property Carbon|null $weather_choice_reminded_at
  * @property Carbon|null $guest_details_deadline_at
  * @property string|null $guest_details_token
  * @property string $manage_token
@@ -162,6 +168,10 @@ class Booking extends Model
             'vat_cents' => 'integer',
             'hold_expires_at' => 'datetime',
             'balance_due_at' => 'datetime',
+            'weather_choice' => WeatherChoice::class,
+            'weather_choice_at' => 'datetime',
+            'weather_choice_due_at' => 'datetime',
+            'weather_choice_reminded_at' => 'datetime',
             'guest_details_deadline_at' => 'datetime',
             'terms_accepted_at' => 'datetime',
             'confirmed_at' => 'datetime',

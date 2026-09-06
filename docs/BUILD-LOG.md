@@ -14,12 +14,13 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M2 — Booking & payments, in progress.** M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M2 | #79, #80, #81, #82, #83 |
+| M2 | #79, #80, #81, #82, #83, #84 |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1683) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1742) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
+| **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 and #84 cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
 
@@ -33,6 +34,98 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #84 — Cancellation and refunds, and the arithmetic two documents disagreed about
+
+**Files:** one migration (six columns, no item number), `app/Enums/{WeatherChoice,RefundMethod}.php`, `app/Domain/Booking/Data/RefundOverride.php`, `app/Domain/Booking/Support/RefundEntitlement.php`, `app/Domain/Booking/Actions/{CancelBooking,RefundBooking,CancelDeparture,ApplyGuestChoice}.php`, `app/Domain/Pricing/Actions/{IssueVoucher,RestoreVoucher}.php`, `app/Jobs/{ExecuteGatewayRefund,ApplyWeatherChoiceDefaults}.php`, `app/Events/{BookingCancelled,BookingRefunded,RefundOverridden,WeatherChoiceRequested,WeatherChoiceReminderDue,WeatherChoiceApplied}.php`, `app/Models/{Booking,Tenant,Payment,VoucherRedemption}.php`, `app/Enums/AuditAction.php`, `config/kaiki.php`, `routes/console.php`, `lang/{el,en}/enums.php`, five test files and a shared scenario class
+
+### Two documents disagreed about a number, and the number is money
+
+The finding of this issue, and it was not in the acceptance criteria.
+
+CXL-3.3: *"`refund_cents = round_half_up(paid_cents * refund_percent / 100)`. The base is the amount actually paid in cash, not the booking total."*
+
+ADR-0017, and the issue's own acceptance criterion restating it: €200 paid with a €120 voucher and €80 cash, cancelled under a 50% policy, gives **€60 to the voucher and €40 in cash**. That is a €100 entitlement — half of €200, not half of the €80 of cash.
+
+Both cannot be implemented. A literal CXL-3.3 returns €40 in total and the ADR's example fails; the ADR's example returns €100 and CXL-3.3's sentence is wrong as written.
+
+Resolved for the ADR. The reasoning, now in the spec: what CXL-3.3 is contrasting `paid_cents` **with** is the *price*, and it exists to stop a guest who paid a 30% deposit being refunded half of a trip they have not paid for. A voucher is not an unpaid balance — it is consideration the guest handed over. The base is therefore `cash + voucher redeemed`, which satisfies the clause's actual concern and reproduces the ADR exactly.
+
+**For a booking with no voucher the two readings are identical**, which is every booking CXL-3.3 was written about. That is why nothing has caught it for four issues.
+
+### `discount_cents` was the wrong source, and #81 was using it
+
+§2.5 defines it as *"voucher + manual discount"*. A manual discount is a **price reduction**, not money anybody paid — split against it and the operator refunds cash they never received, on exactly the bookings they are most likely to have discounted by hand.
+
+`RestoreVoucher::voucherShareOf()` read that column since #81. It reads `voucher_redemptions` now, through a new `usedByBooking()` on the ledger, which is what the issue asked for in its own notes: *"reconstructible, rather than from a denormalised column."* A test sets `discount_cents = 5000` on a booking with an empty ledger and asserts the entitlement does not move.
+
+### The cash half is the remainder, and that is not a style choice
+
+Compute two proportions of one entitlement and they round independently. The guest is then owed a euro more or less than the operator gave back — every time, silently, on the bookings where somebody is already unhappy.
+
+So `RefundEntitlement` computes the voucher share and subtracts. The two sum to the total by construction. The cash half is then clamped at `paid_cents`, which is the guarantee that actually matters: a booking almost entirely covered by credit refunds the €10 of cash and not a cent more.
+
+### A default that disagreed with itself in one of four places
+
+CXL-8's `force_majeure_voucher_months` is 18 — in the column default, in the factory, and in `CancellationPolicyData::fromSnapshot()`. In `RestoreVoucher::issueReplacement()` it was `?? 12`.
+
+A guest whose voucher went through PRC-19.3's expired-voucher branch got twelve months instead of eighteen. Nothing would have reported it; the two paths are otherwise identical and no test compared them.
+
+`IssueVoucher` is the single writer of that date now, reading it off the booking's own frozen snapshot.
+
+### CXL-10's teeth are in its last clause
+
+> *…without silently marking the booking refunded.*
+
+That is the natural shape of the bug, because the status is written by the code that **asked** for the refund rather than by the code that got an answer. A booking that says `refunded` while the money is in the operator's account is a dispute the operator loses without knowing why.
+
+The row is written `pending`; the gateway call is a queued job; only a settlement writes `paid_cents`, `refunded_cents` and the status. A refusal is not an exception — `RefundResult` carries `succeeded: false` for the charge being too old, the balance short, the refund already made — and lands as `failed` with the gateway's own code.
+
+`Payment::scopeNeedingAttention()` is failed **refunds** only. A failed charge is a declined card; a failed refund is money promised and not sent. A feed showing both shows mostly declined cards.
+
+### A weather cancellation moves no money, which needed a new parameter
+
+CXL-6 ends the trip; CXL-7 opens a question. Until the guest answers — or the deadline answers for them — nothing is refunded and no voucher is issued.
+
+`CancelBooking` grew `settle: false` for that one path. It is **not** an override: nobody is overruling the policy, and CXL-5's mandatory reason would be a lie. The entitlement is real and waiting, recorded as `weather_choice_due_at` rather than as a payment row.
+
+### `rebook` issues the same voucher as `voucher`
+
+A decision, stated in the enum. There is no seat-transfer flow: a guest rebooking makes a *new* booking, and a voucher is the only mechanism that carries their money to it. What `rebook` adds is intent — the operator's list can tell "coming back" from "took the credit", and the email carries a link to the product rather than a balance.
+
+Collapsing the cases loses that. Issuing nothing for a rebook strands the money, which is what CXL-7 exists to prevent.
+
+### The choice is recorded by a conditional update, not by a check
+
+`where weather_choice is null` **is** the idempotency guarantee. Two clicks from a guest on a slow connection, or a click racing the deadline sweeper, both arrive; only the call that wrote the row moves money. A `SELECT` first leaves a window two requests drive straight through, and the consequence here is a guest refunded twice — the same reasoning `gateway_webhook_events` and `bookings.reference` follow.
+
+It is also what makes recomputing the entitlement safe: `forWeather()` reads `paid_cents`, and honouring the choice changes `paid_cents`. A second call never gets past the write, so the figure is never recomputed against a booking that has already been refunded. Storing it in a column would be the other way to make it safe, and would put a derived number in the schema for a race that is already closed.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `php artisan migrate` (SQLite) | clean |
+| `composer lint` | clean after fixes |
+| `composer stan` | `[OK] No errors` — two real findings fixed at source |
+| `composer test` | **1741 passed**, 1 failed: the ENV-10 schema-snapshot fingerprint |
+| `tests/Feature/Booking` | 50 passed |
+
+**The snapshot could not be refreshed.** It is generated by CI against MySQL 8, and GitHub Actions is refusing to start any job on this account — *"recent account payments have failed or your spending limit needs to be increased"*. See the note at the head of this file.
+
+### Things this touched that were not its own
+
+1. **`CancelDeparture`, not `WeatherCancelDeparture`.** The issue named the latter. Cancelling a departure for `min_pax` or `vessel_booked_privately` also has to cancel its bookings, and a weather-only Action would have left that path unbuilt with no issue owning it. One Action, with weather as the branch that holds the money back.
+
+2. **No Filament `BookingResource`.** The issue's file list names one and **no issue in the milestone builds it** — the operator booking screen is not in M2's queue. Every acceptance criterion here is a Given/When/Then about behaviour, so the override is a domain Action with a mandatory reason and an `override.applied` audit row, which is what the existing `AuditLogResource` renders as a booking's timeline today. The screen that puts a button on it needs an issue.
+
+3. **`ConfirmFromWebhook` added to `LockDisciplineTest`.** #83's payment-failure path takes all three locks and was never on that list — an ordering obeyed by three files and merely intended by a fourth is the state the test exists to prevent. It passes.
+
+4. **`CancelBooking` added to the hold-column writer list** in `NoDirectRedisTest`. It writes `hold_expires_at => null`, which is AVL-38's release rather than AVL-37.5's creation — the same exemption the four existing enders have, and it can only ever null the column.
+
+5. **`AuditAction::BookingRefunded` flipped to live**, and `NoPersonalDataInAuditContextTest`'s recorded gap narrowed to `['gdpr.purged']`. That test was written in #53 to make this happen.
 
 ---
 

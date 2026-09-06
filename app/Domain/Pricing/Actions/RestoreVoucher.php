@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace App\Domain\Pricing\Actions;
 
 use App\Enums\VoucherReason;
-use App\Enums\VoucherStatus;
 use App\Models\Booking;
 use App\Models\Voucher;
 use App\Models\VoucherRedemption;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Put voucher value back after a cancellation (spec PRC-19.2, PRC-19.4,
@@ -47,6 +45,8 @@ use Illuminate\Support\Str;
  */
 final class RestoreVoucher
 {
+    public function __construct(private readonly IssueVoucher $issueVoucher) {}
+
     /**
      * @param  int  $entitlementCents  the total refund the policy snapshot allows
      * @return int the cents returned to voucher value, which may be zero
@@ -112,6 +112,12 @@ final class RestoreVoucher
      * booking whose voucher covered everything restores everything to the
      * voucher, and one paid entirely in cash restores nothing to it.
      *
+     * The voucher figure comes from the `voucher_redemptions` **ledger** rather
+     * than from `bookings.discount_cents`, which #84 corrected. §2.5 defines
+     * that column as *"voucher + manual discount"*, and a manual discount is a
+     * price reduction rather than consideration the guest handed over —
+     * splitting against it refunds a guest money nobody ever paid.
+     *
      * Public and static because #84's cash half is the remainder — computing it
      * as `entitlement − voucherShare` from this same function is what stops the
      * two halves rounding independently and summing to a euro more than the
@@ -119,9 +125,8 @@ final class RestoreVoucher
      */
     public static function voucherShareOf(Booking $booking, int $entitlementCents): int
     {
-        $voucherUsed = $booking->discount_cents;
-        $cashPaid = $booking->paid_cents;
-        $totalUsed = $voucherUsed + $cashPaid;
+        $voucherUsed = VoucherRedemption::usedByBooking($booking->getKey());
+        $totalUsed = $voucherUsed + $booking->paid_cents;
 
         if ($totalUsed < 1 || $voucherUsed < 1) {
             return 0;
@@ -134,23 +139,22 @@ final class RestoreVoucher
         return min($voucherUsed, max(0, $share));
     }
 
-    /** A fresh voucher carrying restored value from an expired one. */
+    /**
+     * A fresh voucher carrying restored value from an expired one (PRC-19.3).
+     *
+     * The validity used to be read here with a `?? 12` fallback, against a
+     * policy whose documented default — in the column, the factory and the
+     * snapshot reader — is **18**. {@see IssueVoucher} owns that number now, in
+     * one place, and reads it off the booking's own frozen snapshot.
+     */
     private function issueReplacement(Voucher $original, Booking $booking, int $cents, ?string $reason): void
     {
-        $months = (int) ($booking->policy_snapshot['force_majeure_voucher_months'] ?? 12);
-
-        Voucher::query()->create([
-            'uuid' => (string) Str::uuid(),
-            'code' => 'GIFT-' . strtoupper(Str::random(8)),
-            'amount_cents' => $cents,
-            'remaining_cents' => $cents,
-            'currency' => $original->currency,
-            'status' => VoucherStatus::Active,
-            'issued_at' => now(),
-            'expires_at' => now()->addMonths($months),
-            'issued_for_booking_id' => $booking->getKey(),
-            'reason' => VoucherReason::ForceMajeure,
-            'notes' => $reason,
-        ]);
+        ($this->issueVoucher)(
+            booking: $booking,
+            cents: $cents,
+            reason: VoucherReason::ForceMajeure,
+            note: $reason,
+            currency: $original->currency,
+        );
     }
 }

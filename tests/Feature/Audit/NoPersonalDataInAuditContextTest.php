@@ -194,15 +194,15 @@ it('registers the audit listener against the Auditable interface', function (): 
 })->group('fast');
 
 it('keeps every live action wired to something that fires it', function (): void {
-    // The gap ADR-0025 leaves open on purpose: `booking.refunded` and
-    // `gdpr.purged` are on SEC-16's list and their subjects do not exist until
-    // M2 and M6. Recorded here so the gap stays visible rather than becoming
-    // folklore — and so that the milestone which builds them fires an existing
-    // action rather than inventing a spelling.
+    // The gap ADR-0025 left open on purpose, now down to one.
+    // `booking.refunded` was on it until #84 built the refund path and fired
+    // the action rather than inventing a spelling — which is exactly what this
+    // test was written to make happen. `gdpr.purged` waits for ADR-0012's purge
+    // job in M6.
     $notLive = array_values(array_map(
         static fn (AuditAction $a): string => $a->value,
         array_filter(AuditAction::cases(), static fn (AuditAction $a): bool => ! $a->isLive()),
     ));
 
-    expect($notLive)->toBe(['booking.refunded', 'gdpr.purged']);
+    expect($notLive)->toBe(['gdpr.purged']);
 })->group('fast');

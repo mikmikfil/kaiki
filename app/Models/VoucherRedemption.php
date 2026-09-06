@@ -104,4 +104,32 @@ class VoucherRedemption extends Model
 
         return $consumed;
     }
+
+    /**
+     * What voucher value one booking is currently carrying (PRC-19.2).
+     *
+     * The ADR-0017 split reads this rather than `bookings.discount_cents`, and
+     * the difference is not cosmetic. §2.5 defines `discount_cents` as *"voucher
+     * + manual discount"* — a manual discount is a **price reduction**, not
+     * consideration the guest handed over, and a pro-rata split that counted it
+     * would refund a guest money nobody ever paid.
+     *
+     * #84's issue says so outright: compute the split from the ledger, *"which
+     * is reconstructible, rather than from a denormalised column"*. Net of
+     * reversals, so a partially restored booking is not restored twice.
+     */
+    public static function usedByBooking(int $bookingId): int
+    {
+        $rows = static::query()
+            ->where('booking_id', $bookingId)
+            ->get(['amount_cents', 'reversed_amount_cents']);
+
+        $used = 0;
+
+        foreach ($rows as $row) {
+            $used += $row->netCents();
+        }
+
+        return $used;
+    }
 }

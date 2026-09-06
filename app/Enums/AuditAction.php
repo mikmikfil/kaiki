@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Enums;
 
 use App\Enums\Concerns\HasTranslatedLabel;
+use App\Events\BookingRefunded;
 
 /**
  * What an audit row records (ADR-0025 §2, spec SEC-16).
@@ -82,11 +83,21 @@ enum AuditAction: string
      */
     case OverrideApplied = 'override.applied';
 
-    /** The actions whose subjects exist in M1 and that are wired today. */
+    /**
+     * The actions whose subjects exist and that are wired today.
+     *
+     * `booking.refunded` left this list in #84, which is the milestone that
+     * built `bookings` and the refund path — ADR-0025's own note said the gap
+     * was recorded *"so the milestone which builds them fires an existing
+     * action rather than inventing a spelling"*, and that is what
+     * {@see BookingRefunded} does.
+     *
+     * `gdpr.purged` stays: ADR-0012's purge job is M6.
+     */
     public function isLive(): bool
     {
         return match ($this) {
-            self::BookingRefunded, self::GdprPurged => false,
+            self::GdprPurged => false,
             default => true,
         };
     }

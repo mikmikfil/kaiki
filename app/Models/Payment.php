@@ -178,4 +178,27 @@ class Payment extends Model
             PaymentStatus::Processing->value,
         ]);
     }
+
+    /**
+     * The operator's error feed (CXL-10, PAY-12).
+     *
+     * A **failed refund** is the one payment failure an operator has to act on
+     * rather than wait out. A failed charge is a guest whose card was declined
+     * and who will try again or will not; a failed refund is money the operator
+     * has said they would give back and has not, on a booking the guest already
+     * believes is settled.
+     *
+     * It is deliberately not "every failed payment": a feed that shows both
+     * shows mostly declined cards, and the one row that needs a person is
+     * indistinguishable from the forty that do not.
+     *
+     * @param  Builder<Payment>  $query
+     * @return Builder<Payment>
+     */
+    public function scopeNeedingAttention(Builder $query): Builder
+    {
+        return $query
+            ->where('kind', PaymentKind::Refund->value)
+            ->where('status', PaymentStatus::Failed->value);
+    }
 }

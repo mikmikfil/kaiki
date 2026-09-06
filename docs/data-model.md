@@ -240,6 +240,7 @@ The operator. Not tenant-owned (it *is* the tenant). Also the Cashier billable m
 | `turnaround_buffer_minutes` | smallint unsigned | no | `60` | tenant default; a vessel may override |
 | `guest_document_retention_days` | smallint unsigned | no | `90` | GDPR purge horizon for `booking_guests.document_number` |
 | `auto_issue_invoice` | boolean | no | `false` | issue myDATA doc on confirmation |
+| `weather_choice_default` | varchar(16) | yes | `refund` | **added by #84** — CXL-7's operator default, applied when a guest never answers the weather-choice email. `refund` is the platform fallback because it is the only one of the three that cannot leave a guest holding credit they never asked for |
 | `settings` | json | no | `{}` | see §3.11 — low-traffic, never-queried operator preferences only |
 | `stripe_id`, `pm_type`, `pm_last_four`, `trial_ends_at` | Cashier columns | yes | null | added by Cashier's own migration; platform billing only, unrelated to guest payments |
 | timestamps, `deleted_at` | | | | soft deletes |
@@ -970,6 +971,11 @@ The aggregate root. `per_seat` bookings point at a `departure_id`; `per_vessel` 
 | `utm_content` | varchar(120) | yes | null | |
 | `referrer_url` | varchar(500) | yes | null | |
 | `balance_due_at` | timestamp | yes | null | PRC-27.2, **added by #83** — computed and written at confirmation, never derived on read, so the reminder scheduler and the "Υπόλοιπα" dashboard bucket can index it |
+| `weather_choice` | varchar(16) | yes | null | `refund` \| `voucher` \| `rebook` — PHP enum `WeatherChoice`, **added by #84** (CXL-7) |
+| `weather_choice_at` | timestamp | yes | null | **added by #84** — CXL-7 records the choice *"with timestamp and IP"* |
+| `weather_choice_ip` | varchar(45) | yes | null | **added by #84** — the evidence beside the fact, as `ip_address` is beside `terms_accepted_at` |
+| `weather_choice_due_at` | timestamp | yes | null | **added by #84** — when the operator default gets applied instead. Stored rather than derived from `cancelled_at + 14 days`, for PRC-27.2's reason: arithmetic in a `WHERE` clause is a full scan |
+| `weather_choice_reminded_at` | timestamp | yes | null | **added by #84** — CXL-7's 72-hour reminder, once. `notification_logs` (§6 item 40) is #87's, and a reminder whose idempotency waits on a table nobody has built goes out every hour |
 | `terms_accepted_at` | timestamp | yes | null | GDR-9 / BKG-7 consent, **added by #80** — the *fact* of consent with its time; `ip_address` beside it is the evidence, and §2.5 previously listed only the evidence |
 | `ip_address` | varchar(45) | yes | null | IPv6-safe length; also the ναυλοσύμφωνο acceptance evidence |
 | `user_agent` | varchar(500) | yes | null | |
@@ -986,12 +992,13 @@ The aggregate root. `per_seat` bookings point at a `departure_id`; `per_vessel` 
 | `bookings_guest_details_token_unique` | `guest_details_token` | `/g/{token}` — same reasoning; nullable unique |
 | `bookings_tenant_departure_status_idx` | `tenant_id`, `departure_id`, `status` | pax list for a departure; the `seats_sold` reconciliation query |
 | `bookings_tenant_status_starts_idx` | `tenant_id`, `status`, `starts_at_utc` | dashboard "today/tomorrow", reminder scheduler, upcoming lists |
-| `bookings_hold_expiry_idx` | `status`, `hold_expires_at` | **the hold-expiry sweeper runs cross-tenant** (it is a platform job), so this index deliberately does **not** lead with `tenant_id` — the only such index in the schema. Query: `where status in ('draft','pending_payment') and hold_expires_at < now()`. |
+| `bookings_hold_expiry_idx` | `status`, `hold_expires_at` | **the hold-expiry sweeper runs cross-tenant** (it is a platform job), so this index deliberately does **not** lead with `tenant_id`. It was the only such index in the schema until #84 added `bookings_weather_choice_idx` for CXL-7's deadline sweeper, which is a platform job for the same reason — the rule is *"cross-tenant job, no tenant prefix"* rather than a one-off. Query: `where status in ('draft','pending_payment') and hold_expires_at < now()`. |
 | `bookings_vessel_window_idx` | `tenant_id`, `vessel_id`, `starts_at_utc`, `ends_at_utc` | **per-vessel conflict detection** (§7.2) — an unexpired draft/pending private charter blocks the window just like a confirmed one |
 | `bookings_tenant_email_idx` | `tenant_id`, `guest_email` | operator support search; GDPR subject access by email |
 | `bookings_tenant_guest_details_idx` | `tenant_id`, `guest_details_status`, `guest_details_deadline_at` | the −48h / −24h reminder scheduler |
 | `bookings_tenant_created_idx` | `tenant_id`, `created_at` | panel default sort, CSV export windows |
 | `bookings_balance_due_idx` | `tenant_id`, `balance_due_at`, `status` | **added by #83** — PRC-27.5's "Υπόλοιπα / Balances due" bucket and the reminder scheduler. Tenant-first, unlike the hold sweeper's: this is an operator's own dashboard rather than a platform job |
+| `bookings_weather_choice_idx` | `weather_choice_due_at`, `weather_choice` | **added by #84** — CXL-7's deadline sweeper is a **platform job** that runs cross-tenant, so this deliberately does not lead with `tenant_id`. The second such index in the schema, after `bookings_hold_expiry_idx`. Query: `where weather_choice is null and weather_choice_due_at < now()`. An operator never runs it; they look at one booking. |
 
 **FKs** — `tenant_id` cascade; `product_id` / `vessel_id` / `departure_id` `restrictOnDelete` (a booking must never lose its subject); `voucher_id` `nullOnDelete`; `created_by_user_id` `nullOnDelete`.
 
@@ -2431,6 +2438,10 @@ Rules that produce this order:
 ### M2 — Booking & payments
 
 > **Three columns added outside this list by #83**, because PRC-27 and ADR-0018 settled the balance-due policy after §2 was written and the columns it names were never added. `tenants.balance_due_days_before_departure` (nullable, default 14), `rate_plans.balance_due_days_before_departure` (nullable, **no** default — null means "use the tenant's", and a default here would make every plan silently shadow the tenant setting) and `bookings.balance_due_at` (nullable, indexed). All three are additions §6's own rule permits: nullable, no foreign key, constant default where there is one — no table rebuild on SQLite and no locking `ALTER` on MySQL. They are alterations rather than new tables, so the migration carries no item number and a different date prefix says so.
+
+> **Six more added outside this list by #84**, for CXL-6 and CXL-7, which needed somewhere to record a guest's weather-cancellation choice and its two deadlines. `bookings.weather_choice`, `weather_choice_at`, `weather_choice_ip`, `weather_choice_due_at` and `weather_choice_reminded_at`, plus `tenants.weather_choice_default` (nullable, default `refund`). All six are nullable with no foreign key, so §6's rule permits them; the migration carries no item number for the same reason as #83's.
+>
+> **Columns rather than a `booking_weather_choices` table**, because a weather choice is one fact per booking, made once and never superseded — a table would carry a unique index on `booking_id` and one row per booking, which is a column with extra steps and a join on the path of a sweeper that runs every hour.
 
 
 29. `integration_credentials` (FK → `tenants`)

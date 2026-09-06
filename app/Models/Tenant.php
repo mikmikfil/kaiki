@@ -52,6 +52,8 @@ use Stancl\Tenancy\Database\Concerns\TenantRun;
  * @property int $guest_document_retention_days
  * @property bool $auto_issue_invoice
  * @property array<string, mixed> $settings
+ * @property int|null $balance_due_days_before_departure
+ * @property string|null $weather_choice_default
  */
 #[ObservedBy(TenantObserver::class)]
 class Tenant extends Model implements TenantContract

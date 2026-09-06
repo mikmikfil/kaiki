@@ -120,6 +120,12 @@ it('has exactly three writers of the hold columns', function (): void {
         // the payment failed, so the hold ends and a fresh one is attempted
         // through `HoldSeats` — the permitted writer — a line later.
         'app/Domain/Booking/Actions/ConfirmFromWebhook.php',
+
+        // CXL-9's release. A cancelled booking holds nothing, and the column is
+        // what the availability read path checks — a stale future value would
+        // keep the seats notionally held by a booking that has ended. Same
+        // shape as the four above: it can only ever null the column.
+        'app/Domain/Booking/Actions/CancelBooking.php',
     ];
 
     $findings = sourceLinesContaining(

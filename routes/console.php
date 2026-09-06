@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Jobs\ApplyWeatherChoiceDefaults;
 use App\Jobs\ExpireAbandonedCheckoutsJob;
 use App\Jobs\ExpireStaleHoldsJob;
 use App\Jobs\GenerateDeparturesNightly;
@@ -117,3 +118,27 @@ Schedule::job(new ExpireAbandonedCheckoutsJob)
     ->withoutOverlapping()
     ->onOneServer()
     ->name('bookings:expire-checkouts');
+
+/*
+|--------------------------------------------------------------------------
+| The weather-choice clocks (spec CXL-7)
+|--------------------------------------------------------------------------
+|
+| CXL-7 is RESOLVED with its own reason: the brief leaves the no-response case
+| undefined, and *"it must not strand money indefinitely."* A guest who never
+| opens the email otherwise leaves an operator holding money that is not theirs
+| on a booking nobody will ever close.
+|
+| Two clocks, one job: a reminder at 72 hours and the operator's default at 14
+| days. Hourly, because both deadlines are measured in days and a minute-by-
+| minute sweep would be twenty-four times the queries to send the same email at
+| the same hour.
+|
+| Not on the hour: 03:15 and 04:10 already have long jobs, and a queue that
+| wakes three workers on one Hetzner box at the same second is avoidable.
+*/
+Schedule::job(new ApplyWeatherChoiceDefaults)
+    ->hourlyAt(35)
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('bookings:weather-choices');

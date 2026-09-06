@@ -401,4 +401,30 @@ return [
         'orphaned' => ['label' => 'Paid, but unmatched'],
     ],
 
+    /*
+    | The guest's answer after a weather cancellation (CXL-6, CXL-7).
+    |
+    | `rebook` issues the same voucher `voucher` does — there is no
+    | seat-transfer flow, and a voucher is the only thing that carries a guest's
+    | money to a new booking. What it adds is intent, which is why the two are
+    | separate cases rather than one.
+    */
+    'weather_choice' => [
+        'refund' => ['label' => 'Money back'],
+        'voucher' => ['label' => 'A voucher'],
+        'rebook' => ['label' => 'Book another date'],
+    ],
+
+    /*
+    | How an operator settled a refund they overrode (CXL-5).
+    |
+    | `waived` is not a 0% policy outcome: 0% is a term the guest agreed to,
+    | waived is a decision somebody made and has to be able to defend.
+    */
+    'refund_method' => [
+        'cash' => ['label' => 'Money back'],
+        'voucher' => ['label' => 'A voucher instead'],
+        'waived' => ['label' => 'Nothing back'],
+    ],
+
 ];

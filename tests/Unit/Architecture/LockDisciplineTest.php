@@ -45,6 +45,18 @@ function lockedActions(): array
         'app/Domain/Booking/Actions/ConfirmBooking.php',
         'app/Domain/Booking/Actions/StartCheckout.php',
         'app/Domain/Booking/Actions/ExpireAbandonedCheckouts.php',
+
+        // #83's payment-failure path, which takes all three (BKG-12). It was
+        // written to AVL-45's order and never checked against it — an ordering
+        // obeyed by three files and merely intended by a fourth is the state
+        // this test exists to prevent.
+        'app/Domain/Booking/Actions/ConfirmFromWebhook.php',
+
+        // #84's two. `CancelBooking` releases capacity under all three locks
+        // (CXL-9); `CancelDeparture` takes only the departure's, which is
+        // still an order it has to be in.
+        'app/Domain/Booking/Actions/CancelBooking.php',
+        'app/Domain/Booking/Actions/CancelDeparture.php',
     ];
 }
 

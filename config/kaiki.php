@@ -528,6 +528,31 @@ return [
          */
         'checkout_expiry_minutes' => (int) env('KAIKI_CHECKOUT_EXPIRY_MINUTES', 60),
 
+        /*
+         * The weather-cancellation choice deadline, in days (CXL-7).
+         *
+         * Fourteen, and the requirement is marked RESOLVED with its own
+         * reason: the brief leaves the no-response case undefined, and money
+         * that is not the operator's must not sit on a booking nobody will ever
+         * close. A guest who never opens the email is not a guest who forfeited
+         * their refund.
+         *
+         * The *choice* applied at the deadline is per tenant
+         * (`tenants.weather_choice_default`); the deadline itself is not,
+         * because a tenant who set it to a year would have reintroduced exactly
+         * the problem the number exists to solve.
+         */
+        'weather_choice_deadline_days' => (int) env('KAIKI_WEATHER_CHOICE_DAYS', 14),
+
+        /*
+         * The single reminder before it (CXL-7), in hours.
+         *
+         * Seventy-two: long enough that it is not nagging somebody who is still
+         * on the trip they were about to take, short enough to leave eleven
+         * days to act on it.
+         */
+        'weather_choice_reminder_hours' => (int) env('KAIKI_WEATHER_CHOICE_REMINDER_HOURS', 72),
+
     ],
 
     /*
