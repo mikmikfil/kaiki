@@ -62,7 +62,12 @@ use Illuminate\Support\Facades\DB;
 function requiresMysql(): array
 {
     return [
-        static fn (): bool => DB::connection()->getDriverName() !== 'mysql',
+        // **Not `static`.** Pest binds a `->skip()` closure to the test case, and
+        // PHP refuses to bind an instance to a static closure — "Cannot bind an
+        // instance to a static closure", thrown at the moment the test runs.
+        // Which meant the three AVL-44 tests failed on their very first real
+        // execution against MySQL 8, on the skip rather than on the capacity.
+        fn (): bool => DB::connection()->getDriverName() !== 'mysql',
         'AVL-44 requires MySQL 8: SELECT ... FOR UPDATE is a no-op on SQLite (ADR-0006), '
         . 'so a green result here would prove nothing. Run `composer test:mysql`.',
     ];
