@@ -70,6 +70,7 @@ class Tenant extends Model implements TenantContract
     protected function casts(): array
     {
         return [
+            'balance_due_days_before_departure' => 'integer',
             'supported_locales' => 'array',
             'settings' => 'array',
             'plan' => Plan::class,

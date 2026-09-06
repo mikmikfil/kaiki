@@ -64,7 +64,10 @@ use Illuminate\Support\Facades\DB;
  */
 final class ConfirmBooking
 {
-    public function __construct(private readonly ApplyVoucher $applyVoucher) {}
+    public function __construct(
+        private readonly ApplyVoucher $applyVoucher,
+        private readonly ComputeBalanceDueAt $computeBalanceDueAt,
+    ) {}
 
     /**
      * @param  bool  $fromCheckout  true when the seats are already committed by
@@ -126,6 +129,18 @@ final class ConfirmBooking
                 'paid_cents' => $paid,
                 'balance_cents' => max(0, $locked->total_cents - $paid),
                 'refunded_cents' => Payment::refundedCentsFor($locked->getKey()),
+            ])->save();
+
+            // PRC-27.2: **computed and written**, never derived on read, so the
+            // reminder scheduler and the "Υπόλοιπα" dashboard bucket can index
+            // it. Written here rather than by the caller because every
+            // confirmation path passes through this Action, and a due date set
+            // by whoever remembered to is a due date some bookings do not have.
+            //
+            // After the balance is written, because the calculation reads it —
+            // a booking with nothing left to pay gets null.
+            $locked->forceFill([
+                'balance_due_at' => ($this->computeBalanceDueAt)($locked),
             ])->save();
 
             return ['booking' => $locked, 'guaranteed' => $guaranteed];

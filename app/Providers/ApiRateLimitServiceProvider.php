@@ -54,6 +54,8 @@ final class ApiRateLimitServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->registerWebhookLimiter();
+
         foreach (self::CLASSES as $name => [$perKey, $perIp]) {
             RateLimiter::for($name, function (Request $request) use ($perKey, $perIp): array {
                 $key = $request->attributes->get('api_key');
@@ -91,5 +93,27 @@ final class ApiRateLimitServiceProvider extends ServiceProvider
             Response::HTTP_TOO_MANY_REQUESTS,
             details: ['retry_after_seconds' => $retryAfterSeconds],
         )->withHeaders(['Retry-After' => (string) $retryAfterSeconds]);
+    }
+
+    /**
+     * The inbound webhook limiter (spec PAY-7).
+     *
+     * **Not in the §3.6 table above**, and kept out of it on purpose: that table
+     * is the public API's contract, every class in it is documented for
+     * integrators, and a gateway callback is neither. Mixing them would put a
+     * number in the contract that no integrator can act on.
+     *
+     * Keyed on the **IP alone**, because a gateway presents no API key — which
+     * is also the whole reason this limiter exists rather than reusing one.
+     *
+     * The number is generous. Both gateways retry until they get a 2xx, a busy
+     * Saturday can produce a genuine burst, and throttling a real webhook means
+     * refusing to hear that somebody paid. The cap is there to bound a forged
+     * stream, not to police a real one.
+     */
+    private function registerWebhookLimiter(): void
+    {
+        RateLimiter::for('webhooks', static fn (Request $request): Limit => Limit::perMinute(120)
+            ->by((string) $request->ip()));
     }
 }

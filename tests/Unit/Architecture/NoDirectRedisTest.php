@@ -115,6 +115,11 @@ it('has exactly three writers of the hold columns', function (): void {
         'app/Domain/Booking/Actions/StartCheckout.php',
         'app/Domain/Booking/Actions/ExpireAbandonedCheckouts.php',
         'app/Domain/Booking/Support/SeatCommitment.php',
+
+        // BKG-12's release, which is the fourth of AVL-38's four conditions:
+        // the payment failed, so the hold ends and a fresh one is attempted
+        // through `HoldSeats` — the permitted writer — a line later.
+        'app/Domain/Booking/Actions/ConfirmFromWebhook.php',
     ];
 
     $findings = sourceLinesContaining(

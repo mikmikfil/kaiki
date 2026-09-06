@@ -58,6 +58,16 @@ return Application::configure(basePath: dirname(__DIR__))
             SetLocale::class,
         ]);
 
+        /*
+         * A payment gateway holds no session and no CSRF token (PAY-6).
+         *
+         * By path rather than by route name, because the exclusion has to
+         * apply before routing resolves anything — and narrow, so that adding
+         * a second `/webhooks/*` route later is a deliberate act rather than an
+         * accident of a wildcard somebody widened.
+         */
+        $middleware->validateCsrfTokens(except: ['webhooks/*']);
+
         // `SetLocale` must run *after* `ResolveTenant`, because the tenant's
         // `default_locale` is step 5 of the I18N-5 chain.
         //

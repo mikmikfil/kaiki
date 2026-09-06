@@ -60,6 +60,7 @@ class RatePlan extends Model
     protected function casts(): array
     {
         return [
+            'balance_due_days_before_departure' => 'integer',
             'deposit_type' => DepositType::class,
             'vessel_price_cents' => 'integer',
             'extra_hour_price_cents' => 'integer',

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\GatewayWebhookEvent;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\VatRate;
@@ -92,6 +93,28 @@ return [
         // product or extra, so scoping this per tenant would mean every
         // operator maintaining their own copy of the tax code.
         VatRate::class,
+
+        /*
+         * **The third case this list has met, and the only one of its kind.**
+         *
+         * `Tenant` and `User` are platform-owned because they *are* the
+         * platform; `VatRate` because Greek tax law is not an operator's to
+         * maintain. All three are platform-owned forever.
+         *
+         * `GatewayWebhookEvent` is not. It is written **before the tenant is
+         * known** — a payment provider calls with no key, no session and no
+         * subdomain, and the row has to exist before any of that is resolved
+         * (§2.7) — and then *acquires* a tenant once the payment is matched.
+         * `tenant_id` is nullable for exactly that window, and it is the only
+         * nullable-and-later-filled tenant column in the schema.
+         *
+         * It is listed here rather than given `BelongsToTenant` because a
+         * global scope would make the row invisible to the very job whose task
+         * is to work out which tenant it belongs to. Access is a policy
+         * question instead: the platform failure feed reads it, an operator
+         * never does.
+         */
+        GatewayWebhookEvent::class,
     ],
 
 ];

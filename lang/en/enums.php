@@ -385,4 +385,20 @@ return [
         'bank_transfer' => ['label' => 'Bank transfer'],
     ],
 
+    /*
+    | What became of an inbound webhook (§2.7, PAY-7).
+    |
+    | `orphaned` is the one worth reading twice: a verified, genuine payment
+    | that matches no booking. Somebody has been charged and we cannot say for
+    | what — which is a different thing from a failure and a very different
+    | thing from an event we chose not to act on.
+    */
+    'webhook_event_status' => [
+        'received' => ['label' => 'Received'],
+        'processed' => ['label' => 'Processed'],
+        'ignored' => ['label' => 'Not applicable'],
+        'failed' => ['label' => 'Failed'],
+        'orphaned' => ['label' => 'Paid, but unmatched'],
+    ],
+
 ];

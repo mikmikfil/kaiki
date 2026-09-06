@@ -85,6 +85,7 @@ use Illuminate\Support\Carbon;
  * @property int $vat_cents
  * @property int|null $voucher_id
  * @property GuestDetailsStatus $guest_details_status
+ * @property Carbon|null $balance_due_at
  * @property Carbon|null $guest_details_deadline_at
  * @property string|null $guest_details_token
  * @property string $manage_token
@@ -160,6 +161,7 @@ class Booking extends Model
             'vat_rate_bp' => 'integer',
             'vat_cents' => 'integer',
             'hold_expires_at' => 'datetime',
+            'balance_due_at' => 'datetime',
             'guest_details_deadline_at' => 'datetime',
             'terms_accepted_at' => 'datetime',
             'confirmed_at' => 'datetime',
@@ -252,6 +254,22 @@ class Booking extends Model
             ->where('status', BookingStatus::Draft->value)
             ->whereNotNull('hold_expires_at')
             ->where('hold_expires_at', '<', now());
+    }
+
+    /**
+     * Is a balance overdue right now (PRC-27.5)?
+     *
+     * Both halves: there has to be something to pay, and the date has to have
+     * passed. A confirmed booking with `balance_cents = 0` carries a null due
+     * date, and one that is cancelled carries a stale one — neither belongs in
+     * the "Υπόλοιπα" bucket.
+     */
+    public function balanceIsOverdue(): bool
+    {
+        return $this->balance_cents > 0
+            && $this->balance_due_at !== null
+            && $this->balance_due_at->isPast()
+            && $this->status->isLive();
     }
 
     /**

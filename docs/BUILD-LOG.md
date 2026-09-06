@@ -14,11 +14,11 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M2 — Booking & payments, in progress.** M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M2 | #79, #80, #81, #82 |
+| M2 | #79, #80, #81, #82, #83 |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1642) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1680) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
@@ -33,6 +33,108 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #83 — Gateway webhooks, and three columns the data model never had
+
+**Files:** two migrations (§6 item 36, plus a column-addition with no item number), `app/Models/GatewayWebhookEvent.php`, `app/Enums/WebhookEventStatus.php`, `app/Http/Controllers/Webhooks/GatewayWebhookController.php`, `app/Jobs/ProcessGatewayWebhook.php`, `app/Domain/Booking/Actions/{ConfirmFromWebhook,MintBalanceSession,ComputeBalanceDueAt}.php`, `app/Providers/ApiRateLimitServiceProvider.php`, `bootstrap/app.php`, `routes/web.php`, `config/{kaiki,tenancy}.php`, `lang/{el,en}/enums.php`, five test files and a shared scenario class
+
+### The endpoint does four things and then stops
+
+PAY-6 gives it five seconds; both gateways retry anything slower, so a slow endpoint **manufactures** the duplicate deliveries it then has to deduplicate.
+
+1. Verify the signature, **before any parsing**.
+2. Write the row, in its own transaction, with the raw payload.
+3. Answer 2xx.
+4. Queue the work.
+
+No money logic runs in the request. `ProcessGatewayWebhook` does all of it, keyed on the row's id.
+
+### Idempotency is an index, and there are two windows
+
+`gw_events_provider_event_uq` on (provider, event_id) — a duplicate delivery violates it, and **that violation is the answer**: respond 200, do nothing. A prior `SELECT` would leave a window that two concurrent retries drive straight through, the same reasoning §2.5 gives for `bookings.reference`.
+
+The queued job adds `ShouldBeUnique` on the row id, which closes the second window: the index stops a duplicate *row*, that stops a duplicate *job* for one row.
+
+### "Verify before parsing" has a cost, and the cost is the finding
+
+An unverified webhook is still recorded — PAY-7 wants the source IP, because a forged stream from one address is otherwise invisible. But the endpoint never decoded the body, so **it never saw the event id inside it either**, and those rows carry a synthetic `unidentified:` id.
+
+The test asserts exactly that: the row is not findable by the id in the payload it refused, and its stored payload is empty. An unverified webhook contributes nothing at all — including the key we would file it under. That is what the rule costs and precisely what it buys.
+
+### A fifth status, because four could not say what PAY-7 needs
+
+§2.7 lists `received`, `processed`, `ignored`, `failed`. PAY-7 requires a verified webhook for an unknown booking to be *stored and surfaced in the super-admin gateway error feed*.
+
+Under those four it is either **`failed`** — wrong, nothing failed and the signature was good — or **`ignored`**, which is worse: `ignored` means "we looked and decided it did not concern us", and it hides the row from the feed it is supposed to appear in.
+
+`orphaned` is a real payment nobody can match. Somebody has been charged. It needs a person, not a backoff and not a discard, and it needs to be visibly distinct from the event types we simply do not act on — which is a status the feed's query can select on.
+
+### The third case the isolation harness has met
+
+`Tenant` and `User` are platform-owned because they *are* the platform. `VatRate` because Greek tax law is not an operator's to maintain. All three, forever.
+
+`GatewayWebhookEvent` is written **before the tenant is known** and *acquires* one when the payment is matched. It is listed as platform-owned rather than given `BelongsToTenant` because a global scope would hide the row from the very job whose task is to work out whose it is — and `tenant_id` is nullable for exactly that window, the only such column in the schema.
+
+### Three columns PRC-27 needs that §2 never defined
+
+ADR-0018 settled the balance-due policy after `docs/data-model.md` §2 was written, and the columns it names were simply absent: `tenants.balance_due_days_before_departure`, `rate_plans.balance_due_days_before_departure`, `bookings.balance_due_at`.
+
+All three are additions **§6's own rule permits** — nullable, no foreign key, constant default where there is one — so nothing is rebuilt on SQLite and no `ALTER` locks anything on MySQL. They are alterations rather than a new table, so the migration carries no item number and a different date prefix says so.
+
+The rate plan's column has **no default**, and that is the decision worth naming: null means "use the tenant's", and defaulting it to 14 would make every rate plan silently shadow the tenant setting. Identical behaviour until an operator changes the tenant one and nothing happens.
+
+### The 09:00 floor, and the hour that is invisible in one season
+
+`starts_at_utc->subDays(14)->setTime(9, 0)` sets nine o'clock **UTC** — midday in Athens in summer, eleven in winter, moving an hour across each DST boundary. The issue said so outright: *"use `LocalDateTimeResolver`; do not compute `subDays()` on a UTC instant and hope."*
+
+So the subtraction is in local calendar days and the nine o'clock is set in the tenant's timezone. Two tests bracket the clock change:
+
+| Departure | Due date | Local | UTC |
+|---|---|---|---|
+| 20 Aug | 6 Aug | 09:00 | **06:00** |
+| 10 Nov | 27 Oct | 09:00 | **07:00** |
+
+A single-season fixture passes against the broken version.
+
+### A late confirmation is not born overdue
+
+PRC-27.3: confirmed ten days out on a fourteen-day policy, the ordinary due date is already behind us and the guest would receive an overdue notice for money they have had no chance to pay. So it becomes confirmation plus 24 hours — capped at two hours before departure, because a balance due after the boat has sailed is not a due date.
+
+### The balance session is priced when the guest opens the page
+
+ADR-0004 Option D's reason, in its own clause: *"so a legitimately changed balance is charged correctly."* Weeks pass between the confirmation email and the click, and the balance moves — extras added, pax changed, an operator discount applied.
+
+Emailed links point at `/b/{manage_token}`, **never** at a gateway URL. Stripe's expires in 24 hours and Viva's on the order timeout, so a link emailed today is dead by the time a guest opens it in three weeks, and they would have no way back.
+
+### BKG-12's ordering, and a test that needed a real competitor
+
+Seats are in `seats_sold` because BKG-9 committed them at redirect. So on a failed payment they come **out** first, the booking goes back to `draft`, and a fresh hold is attempted — in that order, because the seats being re-taken are the ones just released and a hold attempted first would compete with itself.
+
+Proving the *other* branch — the boat filled while the guest was failing to pay — needed a genuine competing booking rather than a counter set by hand. `HoldSeats` recounts live holds from `bookings` rather than trusting `departures.seats_held`, so a bare counter would have been corrected away and the re-hold would have succeeded. **The test would have passed the wrong branch**, which is the most expensive kind of green.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `php artisan migrate` (SQLite) | both migrations clean |
+| `composer lint` | clean after fixes |
+| `composer stan` | `[OK] No errors` — three real findings fixed at source |
+| `composer test` | **1679 passed**, 1 failed: the ENV-10 schema-snapshot fingerprint |
+| `tests/Feature/Payments` | 75 passed |
+
+The snapshot was refreshed the documented way.
+
+### Things this touched that were not its own
+
+1. **The webhook route is in `routes/web.php`, not under `/api/v1`.** Every route under that prefix is compared against `docs/api.md` §5 by the drift gate, and a gateway callback is not an operation an integrator calls — putting it there would either break the gate or force an endpoint into a contract that does not describe it. CSRF is excluded by path in `bootstrap/app.php`, narrowly, so a second `/webhooks/*` route later is a deliberate act.
+
+2. **A rate limiter kept deliberately out of the §3.6 table.** That table is the public API's contract and every class in it is documented for integrators. A webhook limiter keys on the IP alone — a gateway presents no API key, which is the whole reason it cannot reuse one — and its number is generous, because throttling a real webhook means refusing to hear that somebody paid.
+
+3. **`Log::shouldHaveReceived()` is not statically visible inside a Pest closure**, so the spy returned by `Log::spy()` is asserted on directly. The third instance of this shape after `travel()`, `fail()` and `withoutExceptionHandling()`.
+
+4. **Four test files needed one scenario**, and a Pest `function` is scoped to its file — the second file to call it fails with "undefined function", which reads as a broken test rather than a missing import. `Tests\Support\Payments\WebhookScenario` is a class, and it carries the recorded gateway responses too: a file that forgets those does not fail loudly, it makes a network call.
 
 ---
 
