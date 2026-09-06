@@ -5,9 +5,11 @@ declare(strict_types=1);
 use App\Http\Middleware\ApiKeyCors;
 use App\Http\Middleware\AuthenticateApiKey;
 use App\Http\Middleware\EnsureTenantIsWritable;
+use App\Http\Middleware\GuestTokenPage;
 use App\Http\Middleware\RequireApiKeyCapability;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SetLocale;
+use App\Http\Middleware\ThrottleTokenLookups;
 use App\Http\Responses\ApiExceptionRenderer;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -45,6 +47,13 @@ return Application::configure(basePath: dirname(__DIR__))
             // global because it must run *after* `tenant` wherever a tenant
             // exists — the tenant default is step 5 of that chain.
             'locale' => SetLocale::class,
+            // The four guest pages, where a URL is a credential (TOK-3, TOK-4).
+            // Middleware rather than controller code: a header set in a
+            // controller is a header the fifth token page forgets, and the
+            // failure page is the one most likely to be built outside the
+            // group because it is "just an error".
+            'guest.token' => GuestTokenPage::class,
+            'guest.throttle' => ThrottleTokenLookups::class,
         ]);
 
         // Per-key CORS from `api_keys.allowed_origins` (SEC-7), and the

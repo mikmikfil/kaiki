@@ -14,13 +14,13 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M2 — Booking & payments, in progress.** M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M2 | #79, #80, #81, #82, #83, #84, #85 |
+| M2 | #79, #80, #81, #82, #83, #84, #85, #86 |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1823, one failing: the schema snapshot CI cannot regenerate) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1865, one failing: the schema snapshot CI cannot regenerate) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
-| **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83, #84 and #85 cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
+| **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83, #84, #85 and #86 cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
 
@@ -34,6 +34,86 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #86 — The four tokenised guest pages, where a URL is a credential
+
+**Files:** `app/Domain/Booking/Support/GuestTokenResolver.php`, `app/Domain/Booking/Actions/SaveGuestDetails.php`, `app/Http/Middleware/{GuestTokenPage,ThrottleTokenLookups}.php`, `app/Http/Controllers/Guest/{GuestPageController,ManageBookingController,GuestDetailsController,QuoteController,VoucherController}.php`, `resources/views/guest/**` (layout plus five pages), `routes/web.php`, `bootstrap/app.php`, `lang/{el,en}/guest.php`, `tests/Support/Secrets/CredentialLeakScanner.php`, five test files and a shared scenario class
+
+### The requirement that is not satisfied by doing what it says
+
+TOK-4 asks for *"a generic branded 'link not valid' page … never a distinction between 'not found' and 'expired'."* Write that page and the requirement looks met.
+
+The issue's own note is the half that matters:
+
+> A found-but-expired token that hits the database and a not-found token that short-circuits are distinguishable by response time, and that is the same oracle in a slower form. Look the token up the same way in both cases.
+
+So `GuestTokenResolver` has **no shape check**. A forty-character token, a three-character one and an empty string all reach the same query. The length guard that would obviously belong at the top of `booking()` is deliberately absent and says so in a comment, and `isWellFormed()` exists only for tests to assert the *generator* with — never to gate a lookup.
+
+The test asserts the two bodies are **byte-identical**, not equivalent. The distinction TOK-4 forbids is exactly the kind that creeps back as one helpful extra sentence.
+
+### Two rate limits, and the split is the design
+
+Thirty lookups a minute is **usability**; ten failures a minute is **security**.
+
+One limit of thirty would give an attacker thirty guesses a minute. One limit of ten would throttle a guest who opened their booking in three tabs waiting for a bank app. The two questions are different and so are the numbers.
+
+Two orderings inside that:
+
+- The **failure** counter is incremented *after* the response and only on a 404. Counting on the way in would lock a guest out of their own booking for refreshing it.
+- The failure limit is checked *before* the lookup. Somebody who has spent ten guesses this minute does not get an eleventh however good the token they finally arrive at — which is what stops a guesser confirming a hit.
+
+### `Referrer-Policy` is the header that gets forgotten
+
+`noindex` stops a search engine and `no-store` stops a cache; both are the obvious two. `no-referrer` is the one that matters most here, because `/b/{manage_token}` carries a **map link** (TOK-6) — and a guest who taps it sends the whole URL, token and all, to a map provider in the `Referer` header. So does the font stylesheet, and every image on a page that has one.
+
+All three are middleware. A header set in a controller is a header the fifth token page forgets, and the test asserts them on the **failure page** too — the one an implementation is most likely to build outside the group, because it is "just an error".
+
+### A tenancy bug the scope caught, and the fix that is not eager loading
+
+`response()->view()` defers rendering until the response is **sent**, which is long after `Tenancy::forTenant()` has handed the context back. The first lazy `$booking->product` in the template then throws `TenantContextMissingException`.
+
+That is #8's global scope working exactly as intended. The mistake was rendering outside the tenant, not the scope catching it.
+
+Eager-loading everything the template touches was the other available fix and is the fragile one: it works until somebody adds `$booking->vessel` to the view. `GuestPageController::renderInTenant()` renders **inside** the tenant and returns finished HTML, which is true for whatever the template reaches for.
+
+### TOK-7's nil refund is shown
+
+Where the policy yields nothing, the cancel action still appears, says plainly that no refund is due, and still releases the seat. The reasoning is commercial: an operator would far rather have the place back to resell than have a guest conclude the button is broken and not turn up.
+
+### TOK-13 is asserted, not implemented
+
+Every Action behind these forms was already idempotent, each in its own way — `CancelBooking` returns early on a booking already cancelled, `MintBalanceSession` reuses an open payment row, `ApplyGuestChoice` uses a conditional update a second click loses. Implementing it at the controller would have protected this page and left the API and the panel exposed to the same double click.
+
+The tests submit twice, which is how the requirement words it.
+
+### TOK-10, tested here so it is not discovered in M6
+
+`/g/{guest_details_token}` stays reachable after the deadline and after departure — **read-only, not gone**, because a 404 on a link in a guest's own inbox is indistinguishable from the security failure TOK-4 is about.
+
+After the document purge it still renders: a missing document number is a rendering branch, exactly as the issue asked. A purged row also counts as **complete** rather than flipping the booking back to `pending`, which would put a departure that already sailed into the reminder scheduler.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `composer lint` | passed |
+| `composer stan` | `[OK] No errors` |
+| `composer test` | **1864 passed**, 1 failed: the ENV-10 schema-snapshot fingerprint |
+| `tests/Feature/Guest` | 42 passed |
+
+**No migration**, so the snapshot failure here is inherited from #83's two and #85's three rather than added by this issue. CI is still blocked on account billing.
+
+### Things this touched that were not its own
+
+1. **No migration for the ναυλοσύμφωνο evidence.** TOK-8 asks for a checkbox capturing timestamp and IP; `bookings.terms_accepted_at` and `bookings.ip_address` already exist, and §2.5 describes the second as *"also the ναυλοσύμφωνο acceptance evidence"*. #88's issue title says the `charter_agreements` columns must land early — the *acceptance* evidence already did, in #80.
+
+2. **`CredentialLeakScanner` gained `document_number`.** SEC-14 and GDR-4 make the same demand about a different secret — never a log line, never an exception context — and a second scanner for it would be a second scanner to keep in step. The **Blade-echo** rule deliberately does not cover it: TOK-8 requires the form to render a guest their own passport number so they can correct it, on a page whose URL is already the credential, and what SEC-14 forbids is logs and exceptions, which the sink rules do cover.
+
+3. **Two Pest sharp edges.** `toContain()` is variadic, so a failure message passed as a second argument silently becomes a second needle — a test asserting something nobody wrote. And chaining `->not` after `->toContain()` on a `string|false` expectation is not something PHPStan can follow; both were rewritten as plain `str_contains` with an explicit message.
+
+4. **`Product` has `title`, not `name`.** Two views reached for `->name`, which `$guarded = []` cheerfully accepted into an insert and SQLite refused. Caught by a test rather than by a page.
 
 ---
 

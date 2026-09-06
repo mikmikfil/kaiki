@@ -52,7 +52,18 @@ final class CredentialLeakScanner
      *
      * @var list<string>
      */
-    private const SECRET_ACCESSORS = ['credentials', 'webhook_secret', 'webhookSecret'];
+    /**
+     * The columns this scanner treats as secret.
+     *
+     * The first three are the operator's gateway credentials (SEC-9, MYD-15).
+     * `document_number` joined them in #86: SEC-14 and GDR-4 say a guest's
+     * passport number is `encrypted`, never indexed, and *"never written to a
+     * log or an exception context"* — which is the same rule about a different
+     * secret, and there is no reason to build a second scanner for it.
+     *
+     * @var list<string>
+     */
+    private const SECRET_ACCESSORS = ['credentials', 'webhook_secret', 'webhookSecret', 'document_number'];
 
     /**
      * Calls that publish whatever they are handed.
@@ -226,7 +237,12 @@ final class CredentialLeakScanner
             }
         }
 
-        // A Blade echo of either column.
+        // A Blade echo of a **gateway** credential. `document_number` is
+        // deliberately not in this pattern: TOK-8 requires the guest-details
+        // form to render the number back so a guest can correct their own
+        // passport, on a page whose URL is already the credential. The rule
+        // SEC-14 states is about *logs and exceptions*, and those are the sinks
+        // above — which do cover it.
         if (preg_match('/\{\{.*?(credentials|webhook_secret).*?\}\}/u', $lowerLine) === 1) {
             return 'a credential echoed from Blade';
         }

@@ -86,6 +86,7 @@ return [
             'replaced' => 'This quote was replaced by a newer one. Please use the most recent link the operator sent you.',
             'expired' => 'This quote has expired. Contact the operator if you would still like to go.',
             'unavailable' => 'That date is no longer available. Contact the operator and they will find you another.',
+            'request_new_message' => 'I would still like to go. Could you send me a new quote for booking :reference?',
         ],
     ],
 
