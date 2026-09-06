@@ -111,10 +111,10 @@ Nothing goes to the shared cache. That is Redis in production (ENV-1), and a dec
 | `php artisan migrate` (SQLite) | table created at position 29 |
 | `composer lint` | clean after fixes |
 | `composer stan` | `[OK] No errors` — two real findings fixed at source, no baseline |
-| `composer test` | **1471 passed**, 1 failed: the ENV-10 schema-snapshot fingerprint |
+| `composer test` | **1472 passed**, 0 failed (after the snapshot refresh below) |
 | `tests/Feature/Integrations` + `IntegrationsPageTest` | 51 passed |
 
-**The one red test is the expected one and is fixed the documented way.** `CiGatesTest` compares a fingerprint of the migrations against the header of `database/schema/mysql-schema.snapshot.sql`, which needs a MySQL 8 connection to regenerate and the local stack is SQLite (ADR-0015). `docs/ci.md` §"Refreshing it after a migration change" gives the procedure: push, take the `mysql-schema-snapshot` artifact from the run, commit it. That is what happened here.
+**The snapshot was refreshed the documented way.** `CiGatesTest` compares a fingerprint of the migrations against the header of `database/schema/mysql-schema.snapshot.sql`, which needs a MySQL 8 connection to regenerate while the local stack is SQLite (ADR-0015). `docs/ci.md` §"Refreshing it after a migration change" gives the procedure: push, take the `mysql-schema-snapshot` artifact from that run, commit it. The regenerated file confirms the MySQL 8 shape matches §2.7 column for column — including `public_config` as a plain `json NOT NULL` with no default, which is why the default lives on the model.
 
 Not run locally, by environment rather than by choice: the `mysql`-tagged concurrent-default test, and everything else in that job.
 
@@ -125,6 +125,13 @@ Not run locally, by environment rather than by choice: the `mysql`-tagged concur
 2. **`Filament\Pages\BasePage` already has `configureAction()`.** Declaring one with a different signature is a fatal error at boot, not a subtle bug — the save action is named `saveCredentials`.
 
 3. **`abort()` inside a Livewire action tears the component down**, so Filament's `assertNotFound()` macro then reads `mountedActions` on a null instance and reports "Attempt to read property on null" — which looks like a broken test rather than a passing guard. The cross-tenant test asserts the thrown `NotFoundHttpException` and, separately, that the row was not written to.
+
+4. **`ModelIsolationTest` compared two different things, and the coverage job finally noticed.** The update test read `$before` from the freshly-created model's **in-memory** attributes and `$after` from the database. Several models are written a *second* time by a `saved` observer recomputing a derived column on a related row — `RecomputePriceFrom` reaching `products` from an age band or rate plan, `RecomputeDepartureBlockedFlags` reaching `departures` from a vessel block — so the in-memory timestamp is the one from the first insert and the stored one is a moment later. Normally the same second, so it held.
+
+   It stopped holding on the **coverage job**, where PCOV is slow enough to cross a second boundary, and nowhere else: green locally, green on the SQLite job, green on MySQL, red on coverage with a one-second difference in a timestamp. That reads as a broken cross-tenant isolation guarantee, which is the most alarming thing this suite can say, and it was a measurement artefact. Both readings now come from the stored row, which compares like with like and is the stronger assertion anyway — the state immediately before the attempted write against the state immediately after it.
+
+   Latent since #53 put the timestamp comparison in; this issue is only what tipped it over, by making the run a little longer.
+
 
 ---
 

@@ -30,7 +30,9 @@ The first M2 migration, and the one that had to be right before any of the other
 
 `ManageGatewayCredentials` is owner-only (TEN-8) and the page checks it three times: `canAccess()` for the navigation and the URL, `mount()` for a link already open when a role changed, and every action separately, because a Livewire action is a POST that can be crafted without ever loading the page. An id from another tenant is **not found** rather than found and refused.
 
-Two things outside the issue: the EL/EN parity gate reads six identical vendor wordmarks as untranslated Greek, so each is named in the allow-list with its reason — `mydata` is not among them, because the bracketed authority *is* translated (AADE / ΑΑΔΕ). And `Filament\Pages\BasePage` already has a `configureAction()`, so the save action is `saveCredentials`; the collision is a fatal error at boot rather than anything subtle.
+**A latent flake in the cross-tenant isolation gate, found by the coverage job.** `ModelIsolationTest` read `$before` from a freshly-created model's in-memory attributes and `$after` from the database. Several models are written a second time by a `saved` observer recomputing a derived column on a related row, so the two differ by whatever time elapsed between the insert and that write — normally nothing, but PCOV is slow enough to cross a second boundary. It was green locally, on SQLite and on MySQL, and red on coverage, reporting a one-second timestamp difference that reads as a broken isolation guarantee. Both readings now come from the stored row. Latent since #53; this issue only made the run long enough to tip it.
+
+Two more things outside the issue: the EL/EN parity gate reads six identical vendor wordmarks as untranslated Greek, so each is named in the allow-list with its reason — `mydata` is not among them, because the bracketed authority *is* translated (AADE / ΑΑΔΕ). And `Filament\Pages\BasePage` already has a `configureAction()`, so the save action is `saveCredentials`; the collision is a fatal error at boot rather than anything subtle.
 
 ## M1 — Catalogue and availability engine
 

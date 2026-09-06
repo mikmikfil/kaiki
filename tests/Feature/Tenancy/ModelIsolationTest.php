@@ -114,7 +114,6 @@ it('affects zero rows when updating another tenant row by key', function (string
     $b = Tenant::factory()->create();
 
     $rowOfB = TenantIsolationHarness::makeFor($b, $class);
-    $before = $rowOfB->getAttributes();
 
     // `updated_at` where the model has one, and `created_at` where it does not.
     //
@@ -126,6 +125,32 @@ it('affects zero rows when updating another tenant row by key', function (string
     // that a write scoped to A's tenancy cannot reach B's row.
     $column = $class::UPDATED_AT ?? $class::CREATED_AT;
 
+    // **Both readings come from the database**, and that is not tidiness.
+    //
+    // This read `$rowOfB->getAttributes()` — the freshly-created model's
+    // in-memory attributes — and compared them against a row read back from the
+    // database. For most models the two agree, but several are written a
+    // *second* time by a `saved` observer recomputing a derived column on a
+    // related row: `RecomputePriceFrom` reaches `products` from an age band or
+    // a rate plan, `RecomputeDepartureBlockedFlags` reaches `departures` from a
+    // vessel block. The in-memory timestamp is then the one from the first
+    // insert while the stored one is a moment later — normally the same second,
+    // so the comparison held.
+    //
+    // It stopped holding on the **coverage job**, where PCOV is slow enough to
+    // cross a second boundary, and nowhere else. The gate then reported a
+    // one-second difference in a timestamp, which reads as a broken isolation
+    // guarantee rather than as a test comparing two different things. Reading
+    // the stored row on both sides compares like with like and is the stronger
+    // assertion anyway: the state immediately before the attempted write against
+    // the state immediately after it.
+    $read = static fn (): array => Tenancy::withoutTenancy(static fn (): array => $class::query()
+        ->withoutGlobalScopes()
+        ->findOrFail($rowOfB->getKey())
+        ->getAttributes());
+
+    $before = $read();
+
     $affected = Tenancy::forTenant($a, static fn (): int => $class::query()
         ->whereKey($rowOfB->getKey())
         ->update([$column => now()->addYear()]));
@@ -134,12 +159,7 @@ it('affects zero rows when updating another tenant row by key', function (string
 
     // Read it back outside any tenant to prove the row itself is untouched,
     // not merely that the update reported nothing.
-    $after = Tenancy::withoutTenancy(static fn (): array => $class::query()
-        ->withoutGlobalScopes()
-        ->findOrFail($rowOfB->getKey())
-        ->getAttributes());
-
-    expect($after[$column])->toBe($before[$column]);
+    expect($read()[$column])->toBe($before[$column]);
 })->with('tenant owned models')->group('tenancy', 'fast');
 
 it('affects zero rows when deleting another tenant row by key', function (string $class): void {
