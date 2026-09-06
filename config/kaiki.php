@@ -512,6 +512,22 @@ return [
         'reference_length' => 5,
         'reference_attempts' => 5,
 
+        /*
+         * How long an abandoned checkout keeps its seats, in minutes (BKG-10).
+         *
+         * **The gateway session lifetime plus the grace period, together** —
+         * sixty *total*, not sixty on top of a session that already lasted
+         * thirty. It is a ceiling on how long a seat can be held by silence,
+         * which is the number an operator would want to reason about.
+         *
+         * This exists because BKG-9 commits seats at redirect rather than at
+         * the webhook: the alternative leaves the last seat buyable while a
+         * guest types a card number, and the cost of not doing that is a guest
+         * who closes the tab holding a committed seat that the hold sweeper
+         * cannot touch.
+         */
+        'checkout_expiry_minutes' => (int) env('KAIKI_CHECKOUT_EXPIRY_MINUTES', 60),
+
     ],
 
 ];

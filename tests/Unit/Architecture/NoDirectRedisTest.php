@@ -93,13 +93,28 @@ it('never reaches for Redis directly, so the driver stays a config value', funct
 })->group('fast');
 
 it('has exactly three writers of the hold columns', function (): void {
-    // The three Actions AVL-37.5 names, plus the two places that legitimately
-    // *clear* rather than compute: the sweeper drives `ReleaseHold` and the
-    // factory arranges a past a real Action cannot produce.
+    // The three Actions AVL-37.5 names.
     $permitted = [
         'app/Domain/Availability/Actions/HoldSeats.php',
         'app/Domain/Availability/Actions/ExtendHold.php',
         'app/Domain/Availability/Actions/ReleaseHold.php',
+
+        // **Plus four that end a hold rather than write one**, and the
+        // distinction is the requirement rather than a convenience. AVL-37.5
+        // governs who may *create or extend* a hold, because that is the write
+        // that decides whether a seat is available. AVL-38 separately lists four
+        // conditions on which a hold is released — payment failure, abandonment,
+        // expiry, and successful confirmation, where the seats are converted
+        // rather than returned — and these are three of them plus the
+        // conversion itself.
+        //
+        // Each writes `hold_expires_at => null` or moves `seats_held` into
+        // `seats_sold`. None of them can make a seat appear, which is the
+        // property the rule protects. An eighth writer still fails this test.
+        'app/Domain/Booking/Actions/ConfirmBooking.php',
+        'app/Domain/Booking/Actions/StartCheckout.php',
+        'app/Domain/Booking/Actions/ExpireAbandonedCheckouts.php',
+        'app/Domain/Booking/Support/SeatCommitment.php',
     ];
 
     $findings = sourceLinesContaining(

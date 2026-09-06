@@ -11,6 +11,19 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <!--
+            Its own suite because its tests cannot use `RefreshDatabase`.
+
+            AVL-44 needs two connections looking at the same rows, and
+            `RefreshDatabase` wraps each test in a transaction that is never
+            committed — so a second connection sees an empty database and the
+            test fails on missing fixtures rather than on capacity. These
+            migrate instead, which commits. They are all `@group mysql` and skip
+            loudly anywhere else.
+        -->
+        <testsuite name="Concurrency">
+            <directory>tests/Concurrency</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

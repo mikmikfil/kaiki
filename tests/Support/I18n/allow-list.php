@@ -67,10 +67,18 @@ return [
         'enums.integration_provider.twilio.label' => 'Vendor wordmark, identical in both locales.',
         'enums.integration_provider.postmark.label' => 'Vendor wordmark, identical in both locales.',
 
+        // The same two vendors again, under the `payments.gateway` column's own
+        // enum. Two enums naming one company is not duplication to remove: the
+        // credential store asks *whose keys are these* and the payment row asks
+        // *who took the money*, and a `cash` payment answers the second with no
+        // provider at all.
+
         // The CMS, not a word. A Greek operator whose site runs on WordPress
         // calls it WordPress, and «Γουόρντπρες» would be a transliteration
         // nobody has ever written down.
         'enums.booking_source.wordpress.label' => 'Product name, identical in both locales.',
+        'enums.payment_gateway_name.viva.label' => 'Vendor wordmark, identical in both locales.',
+        'enums.payment_gateway_name.stripe.label' => 'Vendor wordmark, identical in both locales.',
     ],
 
     'literals' => [

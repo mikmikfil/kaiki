@@ -1194,11 +1194,14 @@ Indexes: `vouchers_uuid_unique`; `vouchers_tenant_code_uq` (`tenant_id`, `code`)
 | `redeemed_at` | timestamp | no | — | |
 | `reversed_at` | timestamp | yes | null | set when the booking is cancelled and the value is returned |
 | `reversed_amount_cents` | int unsigned | no | `0` | |
+| `reason` | varchar(32) | yes | null | why the movement happened (PRC-19.4), **added by #81** — nullable because an ordinary redemption at checkout has no reason worth recording |
 | timestamps | | | | **never deleted** |
 
 Indexes / uniques: `voucher_redemptions_v_b_uq` (`tenant_id`, `voucher_id`, `booking_id`) **unique** — a voucher can be applied to a booking once; `voucher_redemptions_tenant_voucher_idx` (`tenant_id`, `voucher_id`) for the `remaining_cents` recomputation.
 
-**Notes.** **[LOCK]** Redemption runs inside a transaction with `lockForUpdate()` on the voucher row, re-reads `remaining_cents`, and rejects if the requested amount exceeds it. Without the lock two concurrent checkouts could both consume the last €50 — the same class of bug as overselling, and it is covered by the same MySQL-only concurrency test file. `restrictOnDelete` on both FKs means a voucher with redemptions cannot be force-deleted; soft delete is the only route. Cancelling a booking writes a reversal on the redemption row and recomputes `remaining_cents` — it does **not** delete the row.
+**Notes.** **PRC-19.4's "reversal row" is a reversal *on* the row**, and the unique index above is why: one row per voucher per booking is what stops a voucher being applied twice to one booking, which is a real double-spend, so a second opposite row cannot exist. `docs/spec.md` PRC-19.4 was reconciled to this by #81. `remaining_cents` is reconstructed as `amount_cents − Σ(amount_cents − reversed_amount_cents)`, and `VoucherLedgerTest` asserts it after every shape of movement.
+
+**[LOCK]** Redemption runs inside a transaction with `lockForUpdate()` on the voucher row, re-reads `remaining_cents`, and rejects if the requested amount exceeds it. Without the lock two concurrent checkouts could both consume the last €50 — the same class of bug as overselling, and it is covered by the same MySQL-only concurrency test file. `restrictOnDelete` on both FKs means a voucher with redemptions cannot be force-deleted; soft delete is the only route. Cancelling a booking writes a reversal on the redemption row and recomputes `remaining_cents` — it does **not** delete the row.
 
 ---
 
