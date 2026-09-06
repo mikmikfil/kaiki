@@ -102,6 +102,15 @@ class Product extends Model implements TranslatableSearchable
     ];
 
     /**
+     * The schema default for `check_in_offset_minutes` (§2.2).
+     *
+     * Named here so {@see App\Domain\Booking\Support\CheckInWindow} has
+     * something to fall back on when the product is not loaded, without a bare
+     * `30` in two files that can drift apart from the migration.
+     */
+    public const DEFAULT_CHECK_IN_OFFSET_MINUTES = 30;
+
+    /**
      * Searched, but not all of it.
      *
      * An operator looking for a trip types its name or a phrase from the

@@ -14,13 +14,13 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M2 — Booking & payments, in progress.** M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M2 | #79, #80, #81, #82, #83, #84, #85, #86, #87 |
+| M2 | #79, #80, #81, #82, #83, #84, #85, #86, #87, #88 |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1931, one failing: the schema snapshot CI cannot regenerate) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1992, one failing: the schema snapshot CI cannot regenerate) · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
-| **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83, #84, #85, #86 and #87 cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
+| **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83, #84, #85, #86, #87 and #88 cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
 
@@ -34,6 +34,106 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #88 — The e-ticket, the check-in on a pier, and an M6 table landing early
+
+**Files:** `database/migrations/2026_09_02_000041_create_charter_agreements_table.php`, `database/migrations/2026_09_06_000003_add_ticket_and_check_in_columns.php`, `app/Models/CharterAgreement.php`, `app/Enums/AgreementStatus.php`, `app/Exceptions/{AgreementEvidenceLocked,CheckInRefused}.php`, `app/Domain/Booking/Support/{CheckInWindow,TicketQr}.php`, `app/Domain/Booking/Data/CheckInOverride.php`, `app/Domain/Booking/Actions/{GenerateETicket,CheckInGuest,MarkNoShow,CompleteDepartures}.php`, `app/Events/{BookingCheckedIn,BookingCompleted,CheckInOverridden}.php`, `app/Listeners/Booking/GenerateETicketOnConfirmation.php`, `app/Jobs/CompleteDeparturesJob.php`, `app/Filament/App/Pages/CheckIn.php` (+ its view), `app/Policies/CharterAgreementPolicy.php`, `resources/views/pdf/e-ticket.blade.php`, `lang/{el,en}/{ticket,checkin}.php`, `routes/console.php`, `config/kaiki.php`, `.github/workflows/ci.yml`, `composer.json`, `package.json`, five test files and two support classes
+
+### A contradiction with three sides, and it is a security decision
+
+The issue's acceptance criterion says the QR carries the booking's **`manage_token`**. `docs/data-model.md` §2.5 says two other things in the same table: `uuid` is *"encoded in the QR ticket"*, and `ticket_code` is *"globally unique; the QR payload"*.
+
+Three answers to one question. The issue's *reasoning* is right — a reference is guessable, and BKG-3's alphabet is about 28.6 million per tenant, which is a printer and a morning. Its *prescription* is wrong, twice:
+
+1. **`manage_token` is per booking.** A family of four would carry four identical QR codes, and the per-guest check-in BKG-21 (*"at least one guest"*) and BKG-23 (*"per guest"*) both require would be impossible to build.
+2. **`manage_token` is the credential for `/b/{manage_token}`**, where a guest can **cancel the booking and take a refund** (TOK-6). Printing it on a sheet of paper that gets handed round, photographed and left on a seat puts the cancel button in anybody's hands.
+
+`uuid` is out for a third reason: CNV-8 makes it the *public* identifier that appears in API responses and widget payloads, and a value that legitimately travels is not a credential.
+
+**`ticket_code` wins, and the schema already knew.** `booking_guests_ticket_code_unique`'s own rationale in the index table reads *"QR scan at check-in resolves with one indexed read and no tenant context"* — which is precisely a crew member standing on a pier with no session and no subdomain. It is per guest, it is forty bits of CSPRNG output past what a printer can brute-force, and it can do exactly one thing, for somebody already signed into the operator's panel.
+
+`docs/data-model.md` §2.5 now carries the three-way comparison and the `uuid` note is corrected. The issue's criterion is knowingly not met as written, and this is the record of why.
+
+### BKG-22 offers an override for one edge and not the other
+
+- **Early** is an operator decision. `CheckInOverride` refuses to be constructed without a reason (CXL-5's pattern, because a Filament validation rule binds one screen and the API and the console command skip it), and `CheckInOverridden` writes an `override.applied` row beside the refund overrides.
+- **Late** has no way through. A check-in recorded after `ends_at_utc` is not an early judgement call; it is a false manifest. There is no parameter on `CheckInGuest` that permits it, and a test passes an override at the late edge to prove it is ignored.
+
+*"Which is logged"* is the clause that gets skipped, and a log line does not satisfy it: it rotates away, and no operator can read one. The row carries the **minutes early** alongside the reason — "four minutes" and "four hours" are different decisions, and neither is legible from a timestamp pair somebody has to subtract by hand a year later.
+
+### The DST trap, in its purest form
+
+BKG-21: *"at `ends_at_utc` plus 3 hours"*. That is an instant plus a duration, and it is the same instant on either side of a clock change. Computing it as *"local finish time plus three hours, converted back"* looks equivalent, reads more naturally, and is wrong by an hour on the last Sunday in October — inside the Greek season, on a day boats are sailing.
+
+`CompleteDepartures` contains no timezone at all, and `CompletionSweepTest` brackets the change with a pair on 24 and 25 October 2026. Neither test alone proves anything: an implementation that used local arithmetic passes the first and fails the second.
+
+### `confirmed` completes as well as `checked_in`
+
+BKG-21 names both, and it is easy to read as a slip. It is not. Small operators do not scan tickets on a six-person day boat, and leaving those bookings `confirmed` forever gives an operator a growing list of trips that apparently never ended — and makes *"how many trips did we run"* a question the platform cannot answer.
+
+Absence of a scan is not evidence of a no-show. BKG-23 makes that an explicit, separate, reversible mark that **does nothing else**: no refund, no cancellation, no seat released, no event, no audit row. That reads like an omission and is the requirement's own last clause. The money question is settled from the policy snapshot frozen at booking (CXL-1) at the moment somebody actually refunds; an action that also moved money would apply today's policy to a booking made under last season's.
+
+### The one Filament surface with a real phone requirement
+
+BKG-20 says *"works on a phone"*, which everywhere else in `/app` would be a courtesy. Here the user is standing on a pier in the sun, holding a phone in one hand, with somebody waiting in front of them — and three things follow, which is why this is a Page and not a Resource:
+
+- the scan box is **first and focused**, so a hardware scanner's carriage return lands in it rather than nowhere;
+- the QR encodes a **URL**, so a phone camera opens `?ticket=…` and resolves the guest with no form submission at all;
+- check-in is **one tap with no confirmation modal**, because the confirmation is the person standing there.
+
+TEN-8's half is structural rather than conditional: there is no price, no payment status and no document number **in the template**, absent rather than hidden behind a role check, because a condition is one edit away from being wrong.
+
+### The `chromium` group had never run anywhere
+
+ENV-20 says *"CI always runs them"*. The group has existed since #2, `composer test` excludes it, and **no CI job referenced it** — so a requirement about PDF rendering was being enforced by nothing at all, and would have stayed that way until somebody opened a blank ticket.
+
+`pdf-chromium` now installs Puppeteer with `PUPPETEER_SKIP_DOWNLOAD`, points it at the runner's own Chrome, runs `--group=chromium`, and is in `ci-passed`'s `needs:`. Locally the four render tests skip through a `->skip()` modifier carrying a sentence that names `KAIKI_CHROME_PATH` — never a silent pass, for the reason `requiresMysql()` gives about SQLite.
+
+### Things this touched that were not its own
+
+1. **`composer.json`** gained `spatie/browsershot` and `bacon/bacon-qr-code`. Both are pre-approved — Browsershot by ARC-20 and ARC-10 (*"dompdf is forbidden"*), the QR library by ADR-0019's named shortlist, whose rule is that each is *"installed only when first used and cited in the pull request that adds it"*. This is that citation.
+2. **`package.json`** gained `puppeteer`. Browsershot drives Chromium through Puppeteer's Node bridge, so it is Browsershot's runtime rather than a new decision; the bundled 150 MB Chromium is skipped in both CI and local install.
+3. **`.github/workflows/ci.yml`** gained `pdf-chromium`, and `docs/ci.md`'s required-checks table gained its row — `CiGatesTest` asserts the two agree, and caught the missing row on the first run.
+4. **`lang/{el,en}/enums.php`** gained the `agreement_status` block; `EnumLabelCoverageTest` requires every backed enum to have one in both locales.
+5. **`app/Models/Product.php`** gained `DEFAULT_CHECK_IN_OFFSET_MINUTES`, so `CheckInWindow` has something to fall back on when the product is not loaded without a bare `30` drifting from the migration.
+6. **`resources/views/pdf/e-ticket.blade.php` renders times with a `null` timezone**, not `config('app.timezone')`. `DateTimeFormatter` resolves the **tenant's** zone when handed none, and the application default is UTC — the first render printed a Greek departure three hours early, on the one document a guest reads standing at a quay. Caught by a test asserting the check-in time, which is why that assertion is against the markup rather than the PDF.
+
+### Verification
+
+```
+$ vendor/bin/pint --test
+$ vendor/bin/phpstan analyse
+[OK] No errors
+
+$ php artisan test --exclude-group=mysql --exclude-group=chromium --exclude-group=external
+Tests:  1 failed, 1991 passed (5699 assertions)
+
+FAILED  Tests\Unit\CiGatesTest > it keeps the committed schema snapshot in step with the migrations
+```
+
+The single failure is **ENV-10's schema-snapshot fingerprint**, which needs the MySQL 8 snapshot only CI can generate — the CI billing block in the Status table above. The same failure stands on #83, #85 and #87.
+
+**The `chromium` group was run for real**, against the Chrome installed on this machine, rather than left to a CI job that cannot start:
+
+```
+$ php artisan test --group=chromium
+✓ it generates a PDF and stores it on the private disk
+✓ it never writes a ticket to the public disk
+✓ it regenerates in place rather than versioning
+✓ it is generated by a queued listener on confirmation
+Tests:  4 passed (9 assertions)
+```
+
+A ticket was also rendered from the seeded demo tenant and looked at: two pages, one per guest, Greek labels, both QR codes scannable, the meeting-point and vessel rows correctly absent where the demo booking has none.
+
+```
+$ composer i18n:check
+Tests:  159 passed (503 assertions)
+```
+
+The MySQL group has not run, for the same billing reason.
 
 ---
 

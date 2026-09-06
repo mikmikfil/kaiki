@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Jobs\ApplyWeatherChoiceDefaults;
+use App\Jobs\CompleteDeparturesJob;
 use App\Jobs\ExpireAbandonedCheckoutsJob;
 use App\Jobs\ExpireQuotesJob;
 use App\Jobs\ExpireStaleHoldsJob;
@@ -210,3 +211,27 @@ Schedule::command('model:prune', ['--model' => [NotificationLog::class]])
     ->withoutOverlapping()
     ->onOneServer()
     ->name('notifications:prune');
+
+/*
+|--------------------------------------------------------------------------
+| Completing what has sailed (spec BKG-21)
+|--------------------------------------------------------------------------
+|
+| > A scheduled job transitions `checked_in` and `confirmed` bookings to
+| > `completed` at `ends_at_utc` plus 3 hours, and transitions the departure to
+| > `completed`.
+|
+| Hourly rather than nightly. BKG-21's own three-hour grace period is the
+| tolerance the requirement asks for, and a nightly sweep would add up to
+| another twenty-four on top of it — a morning trip would still be showing as
+| confirmed at dinner, which is precisely when an operator looks at the day.
+|
+| At :20, away from the hour and away from the other four sweeps. Two long jobs
+| contending for one connection pool on a single Hetzner box is avoidable by
+| choosing a different minute.
+*/
+Schedule::job(new CompleteDeparturesJob)
+    ->hourlyAt(20)
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('bookings:complete');

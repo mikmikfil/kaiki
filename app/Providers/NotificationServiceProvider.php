@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Events\BookingConfirmed;
+use App\Listeners\Booking\GenerateETicketOnConfirmation;
 use App\Listeners\Booking\SendBookingConfirmation;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -24,7 +25,7 @@ use Illuminate\Support\ServiceProvider;
  *
  * | # | Listener | Where |
  * |---|---|---|
- * | 1 | e-ticket PDF with QR | #88 |
+ * | 1 | e-ticket PDF with QR | **here**, added by #88 |
  * | 2 | confirmation email | **here** |
  * | 3 | confirmation SMS | **here**, same listener |
  * | 4 | myDATA invoice | M6 |
@@ -48,5 +49,11 @@ class NotificationServiceProvider extends ServiceProvider
         // BKG-14: each listener is queued and independently retryable, so a
         // Postmark outage cannot roll back a confirmation or stop the e-ticket.
         Event::listen(BookingConfirmed::class, SendBookingConfirmation::class);
+
+        // BKG-13.1. Registered second and running independently: this one
+        // starts a headless Chromium, which is the heaviest of the nine and the
+        // one most likely to fail for reasons that have nothing to do with the
+        // booking. The email must not wait for it and must not be lost with it.
+        Event::listen(BookingConfirmed::class, GenerateETicketOnConfirmation::class);
     }
 }

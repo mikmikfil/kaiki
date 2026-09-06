@@ -448,11 +448,61 @@ jobs:
           TZ: America/Los_Angeles
           APP_TIMEZONE: America/Los_Angeles
 
+  pdf-chromium:
+    name: PDF rendering (Browsershot)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # Browsershot drives Chromium through Puppeteer's Node bridge, so both
+      # halves have to be here: the library, and a browser for it to talk to.
+      # The runner already ships a Chrome, so Puppeteer's own 150 MB download is
+      # skipped and `PUPPETEER_EXECUTABLE_PATH` points at that one.
+      - name: Install Puppeteer without its bundled Chromium
+        run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: '1'
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          touch database/database.sqlite
+
+      - name: Migrate from zero on SQLite
+        run: php artisan migrate --force
+        env:
+          DB_CONNECTION: sqlite
+
+      # ENV-20: *"CI always runs them."* The group is excluded from
+      # `composer test` because a developer without a browser must not get a
+      # false green — which makes this job the only place the PDFs are ever
+      # actually rendered. If it stops running, nothing else notices.
+      - name: Pest, chromium group
+        run: php vendor/bin/pest --group=chromium
+        env:
+          DB_CONNECTION: sqlite
+          KAIKI_CHROME_PATH: /usr/bin/google-chrome
+          PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
+
   ci-passed:
     name: CI passed
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, i18n, api-docs-drift, static-analysis, test-sqlite, test-mysql, availability-timezone, tenancy-isolation, coverage, security-audit, migrate-from-zero, widget-build, widget-e2e, plugin-lint]
+    needs: [lint, i18n, api-docs-drift, static-analysis, test-sqlite, test-mysql, pdf-chromium, availability-timezone, tenancy-isolation, coverage, security-audit, migrate-from-zero, widget-build, widget-e2e, plugin-lint]
     steps:
       # A single check to make required in branch protection. Without this,
       # adding a job later means remembering to mark it required by hand.

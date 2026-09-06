@@ -953,6 +953,9 @@ The aggregate root. `per_seat` bookings point at a `departure_id`; `per_vessel` 
 | `guest_details_deadline_at` | timestamp | yes | null | UTC; reminder scheduler queries this |
 | `guest_details_token` | char(40) | yes | null | **globally unique**, URL-safe; `/g/{token}` |
 | `manage_token` | char(40) | no | — | **globally unique**; `/b/{token}` |
+| `eticket_path` | varchar(255) | yes | null | BKG-13.1, **added by #88** — the generated PDF, on the **private** disk. A plain path column rather than a media table ([ADR-0021](adr/0021-image-and-file-storage.md)), like `invoices.pdf_path` |
+| `eticket_hash` | char(64) | yes | null | **added by #88** — SHA-256 of the file. Proves the ticket a guest presents is the ticket we produced; the alternative, when somebody arrives with a convincing forgery, is an argument |
+| `eticket_generated_at` | timestamp | yes | null | **added by #88** |
 | `hold_expires_at` | timestamp | yes | null | the 15-minute hold (brief §5.4). Non-null only while `status = draft` or `pending_payment` |
 | `confirmed_at` | timestamp | yes | null | |
 | `cancelled_at` | timestamp | yes | null | |
@@ -1019,7 +1022,7 @@ The manifest row. Personal data lives here.
 | column | type | null | default | notes |
 |---|---|---|---|---|
 | `id` | bigint unsigned AI | no | — | |
-| `uuid` | char(36) | no | — | unique — encoded in the QR ticket |
+| `uuid` | char(36) | no | — | unique. **Not** the QR payload — see `ticket_code` below, and the note. Corrected by **#88** |
 | `tenant_id` | bigint unsigned | no | — | FK cascade |
 | `booking_id` | bigint unsigned | no | — | FK cascade |
 | `age_band_id` | bigint unsigned | yes | null | FK `nullOnDelete` |
@@ -1035,6 +1038,7 @@ The manifest row. Personal data lives here.
 | `ticket_code` | char(24) | no | — | **globally unique**; the QR payload |
 | `checked_in_at` | timestamp | yes | null | |
 | `checked_in_by_user_id` | bigint unsigned | yes | null | FK `nullOnDelete` |
+| `no_show` | boolean | no | `false` | BKG-23, **added by #88** — the *per guest* half. A family of four where one person missed the boat is three people who sailed, and `bookings.no_show` cannot say that |
 | `is_lead` | boolean | no | `false` | mirrors the booking's lead guest |
 | `notes` | varchar(255) | yes | null | dietary, mobility |
 | timestamps | | | | hard delete (cascades with the booking) |
@@ -1050,6 +1054,14 @@ The manifest row. Personal data lives here.
 | `bguests_purge_idx` | `document_purged_at`, `created_at` | **cross-tenant** retention sweeper (like the hold sweeper, deliberately not tenant-first) |
 
 **FKs** — `tenant_id` cascade; `booking_id` cascade; `age_band_id` `nullOnDelete`; `checked_in_by_user_id` `nullOnDelete`.
+
+**The QR payload is `ticket_code`, and this table used to say two things about it (settled by #88).** The `uuid` row read *"encoded in the QR ticket"* while `ticket_code` read *"the QR payload"*, and issue #88 asked for the booking's `manage_token`. Three answers to one question, and only one of them works:
+
+- **`ticket_code`** is what `booking_guests_ticket_code_unique` was built for — its own rationale in the index table says *"QR scan at check-in resolves with one indexed read and no tenant context"*, which is exactly a crew member on a pier with a phone.
+- **`uuid`** is CNV-8's *public* identifier: it travels in API responses and widget payloads, so it is not a credential and must not be treated as one.
+- **`manage_token`** fails twice over. It is per **booking**, so a family of four would carry four identical codes and the per-guest check-in BKG-21 and BKG-23 both require would be impossible — and it is the credential for `/b/{manage_token}`, where a guest can **cancel the booking and take a refund**. Printing it on a sheet of paper that gets handed round, photographed and left on a seat puts the cancel button in anybody's hands.
+
+A ticket code can do exactly one thing, and only for somebody already signed into the operator's panel. The `uuid` note above is corrected accordingly.
 
 **Notes.** Rows are created at confirmation, one per capacity-counting **and** non-capacity pax (an infant still needs a manifest line), with `full_name` null; the guest-details flow fills them in. `guest_details_status = complete` when every row has `full_name`, and — when the operator requires documents — `document_number`. `document_number` cannot be searched; the manifest export decrypts row-by-row inside the job and the plaintext never enters a log, a cache or a queue payload. The retention job nulls `document_number` and stamps `document_purged_at` at `departure + tenants.guest_document_retention_days`.
 
@@ -1346,6 +1358,8 @@ myDATA (AADE) document. One booking may have several (an ΑΛΠ plus a later can
 | timestamps | | | | **never deleted** |
 
 Indexes: `charter_agreements_uuid_unique`; `charter_agr_tenant_booking_uq` (`tenant_id`, `booking_id`, `template_version`) **unique** — one agreement per booking per template version, so regeneration under a new version is a new row and the old evidence survives; `charter_agr_tenant_status_idx` (`tenant_id`, `status`) for the "awaiting acceptance" list.
+
+**The table lands in M2, the document in M6 (#88).** §0 forbids adding a foreign key to an existing table on SQLite and this one has three, so the columns are created once with all three or the table is rebuilt later — and a rebuild of a table holding legal evidence is not something anybody should have to do. The same move #29 made for the iCal tables and #47 made for `vat_rates`. Nothing generates an agreement yet; what shipped with the table is the write guard on `CharterAgreement`, because a rule stated only in prose here is the rule the first M6 implementation breaks.
 
 **Notes.** Acceptance evidence (timestamp + IP + user agent + typed name) is the legally interesting part and is never overwritten. Regenerating after the guest accepted is forbidden by the application — you create a new version instead, and the old one goes `void` only by explicit operator action. Operator-uploaded PDF templates are flagged off (brief §10) and add no columns now beyond `template_key`.
 

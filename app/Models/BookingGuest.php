@@ -48,6 +48,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $document_purged_at
  * @property string $ticket_code
  * @property Carbon|null $checked_in_at
+ * @property int|null $checked_in_by_user_id
+ * @property bool $no_show
  * @property bool $is_lead
  */
 class BookingGuest extends Model
@@ -78,6 +80,9 @@ class BookingGuest extends Model
             'checked_in_at' => 'datetime',
             'position' => 'integer',
             'is_lead' => 'boolean',
+            // BKG-23, added by #88. Per guest, because a family of four where
+            // one person missed the boat is three people who sailed.
+            'no_show' => 'boolean',
         ];
     }
 

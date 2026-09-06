@@ -642,6 +642,50 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | E-tickets (spec BKG-13.1, ENV-20, SEC-14)
+    |--------------------------------------------------------------------------
+    |
+    | ENV-20: *"Browsershot requires Chromium. Locally it points at an installed
+    | Chrome through an `.env` path; PDF tests are in the `chromium` group and
+    | are skipped when the path is absent. CI always runs them."*
+    |
+    | So `chrome_path` is the switch that decides whether the PDF tests run at
+    | all — and `Pest.php` skips the group with an **explicit message** rather
+    | than passing quietly, because a silently skipped test is a test that has
+    | stopped existing.
+    */
+    'tickets' => [
+
+        /*
+         * ENV-20's `.env` path. Empty in CI, where the binary is on `PATH`.
+         */
+        'chrome_path' => env('KAIKI_CHROME_PATH'),
+
+        /*
+         * The private disk, and never `public`.
+         *
+         * A ticket carries the guest's name, the meeting point and a scannable
+         * ticket code. On the `public` disk the web server hands it to anybody
+         * who can guess the path, with no session and no policy in the way —
+         * which would be a wider hole than every token page in #86 put
+         * together. It is streamed through a controller instead.
+         */
+        'disk' => env('KAIKI_TICKETS_DISK', 'local'),
+
+        /*
+         * How long a single render may take.
+         *
+         * Thirty seconds. A ticket for fourteen guests is fourteen pages of
+         * inline SVG, and Chromium's cold start on a small Hetzner box is
+         * several seconds of that — but a render still going at thirty seconds
+         * is a render that is not going to finish.
+         */
+        'timeout_seconds' => (int) env('KAIKI_TICKETS_TIMEOUT', 30),
+
+    ],
+
     'payments' => [
 
         /*

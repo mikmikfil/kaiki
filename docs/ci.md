@@ -38,8 +38,13 @@ Also enable **Require branches to be up to date before merging**. Without it, tw
 | `widget-build` | The widget build or its 80 KB gzipped budget (WGT-2, NFR-3). |
 | `widget-e2e` | The widget Playwright smoke run (ENV-23, TST-3). |
 | `plugin-lint` | The WordPress plugin coding standard (WPP-11). |
+| `pdf-chromium` | The `chromium` group — the e-ticket PDF actually rendered by Browsershot (ENV-20, BKG-13.1). Excluded from `composer test`, because a developer with no browser must not get a false green, which makes this the **only** place the PDFs are ever rendered. Added by #88. |
 
 <!-- required-checks:end -->
+
+`pdf-chromium` installs Puppeteer without its bundled Chromium and points it at the runner's own
+Google Chrome — the browser is already on the image, and a second 150 MB download every run buys
+nothing.
 
 `widget-build`, `widget-e2e` and `plugin-lint` run stubs until M3 and M4. They exist now so those milestones replace a `package.json` script rather than invent a pipeline.
 

@@ -470,6 +470,25 @@ return [
     ],
 
     /*
+    | Where a ναυλοσύμφωνο stands (§2.6).
+    |
+    | The document is M6; the table and this enum land in #88 because §0
+    | forbids adding a foreign key to an existing table on SQLite.
+    |
+    | `accepted` has no way out — see `AgreementStatus`. The label says so in
+    | the plainest terms available, because an operator looking for a way to
+    | withdraw an agreement needs to be told to raise a new version rather than
+    | to hunt for a button that is deliberately absent.
+    */
+    'agreement_status' => [
+        'draft' => ['label' => 'Draft'],
+        'generated' => ['label' => 'Generated'],
+        'sent' => ['label' => 'Sent to the guest'],
+        'accepted' => ['label' => 'Accepted by the guest'],
+        'void' => ['label' => 'Withdrawn'],
+    ],
+
+    /*
     | How a message went out (§2.7).
     |
     | `webhook` sits beside the two a guest can read because an operator asking
