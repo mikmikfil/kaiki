@@ -26,23 +26,50 @@ function ciWorkflow(): string
     return base_path('.github/workflows/ci.yml');
 }
 
-it('defines every ENV-23 job in the CI workflow', function (): void {
-    // The spec names twelve checks; composer audit and npm audit share one job.
-    // Playwright and phpcs run stubs until M3 and M4 - the jobs exist now so
-    // those milestones replace a script rather than invent a pipeline.
-    expect(WorkflowFile::jobIds(ciWorkflow()))->toContain(
-        'lint',
-        'static-analysis',
-        'test-sqlite',
-        'test-mysql',
-        'tenancy-isolation',
-        'coverage',
-        'security-audit',
-        'migrate-from-zero',
-        'widget-build',
-        'widget-e2e',
-        'plugin-lint',
-    );
+it('runs every ENV-23 check somewhere in the CI workflow', function (): void {
+    // **Commands, not job names**, since #90 merged sixteen jobs into nine.
+    //
+    // A list of job ids asserted that the *shape* of the pipeline had not
+    // changed, which is not what ENV-23 asks for — it names twelve checks and
+    // says they run, not that each gets its own runner. Worse, a job id is
+    // exactly the thing a refactor renames, so the old test failed on a
+    // rearrangement that dropped nothing and would have passed a rename that
+    // dropped everything.
+    //
+    // The command is the check. If `composer i18n:check` disappears from this
+    // file, the EL/EN gate is gone whatever the jobs are called.
+    $workflow = (string) file_get_contents(ciWorkflow());
+
+    $required = [
+        'composer lint:test' => 'Pint',
+        'composer stan' => 'PHPStan level 6 (TST-10)',
+        'composer i18n:check' => 'EL/EN parity and the hardcoded-string lint (I18N-2, I18N-3)',
+        'composer test:api-docs' => 'the OpenAPI contract drift gate (ENV-28)',
+        'composer test:coverage' => 'the app/Domain coverage gate (TST-1, ENV-22)',
+        'composer test:mysql' => 'the mysql group, run for real (ENV-11, TST-8)',
+        'composer test:tenancy' => 'the cross-tenant isolation gate (ADR-0001)',
+        '--group=chromium' => 'the PDF rendering group (ENV-20)',
+        "--filter='Availability'" => 'the third-timezone availability run (ENV-14)',
+        'npm run widget:build' => 'the widget build (WGT-2)',
+        'npm run widget:size' => 'the 80 KB budget (NFR-3)',
+        'npm run e2e' => 'the Playwright smoke (TST-3)',
+        'npm run plugin:lint' => 'the WordPress plugin standard (WPP-11)',
+        './.github/workflows/dependency-audit.yml' => 'the dependency audit (SEC-12)',
+        './.github/workflows/schema-drift.yml' => 'the schema drift gate (ENV-10)',
+    ];
+
+    $absent = [];
+
+    foreach ($required as $command => $what) {
+        if (! str_contains($workflow, $command)) {
+            $absent[] = sprintf('%s — %s', $command, $what);
+        }
+    }
+
+    expect($absent)->toBe([], implode("\n", [
+        'These ENV-23 checks are no longer run by .github/workflows/ci.yml:',
+        ...$absent,
+    ]));
 })->group('fast');
 
 it('requires every CI job through the single aggregating check', function (): void {

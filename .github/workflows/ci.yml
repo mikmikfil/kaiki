@@ -16,52 +16,37 @@ env:
 permissions:
   contents: read
 
+# ---------------------------------------------------------------------------
+# Nine jobs, and it used to be sixteen (#90).
+#
+# On a private repository every job is billed separately and rounded up to the
+# minute, and each one pays for a runner start, a checkout, a PHP install and a
+# `composer install` before it does anything at all. That fixed overhead is
+# roughly a minute and a half per job — so sixteen jobs spent about twenty-four
+# minutes of overhead to do perhaps six minutes of work, and the account's
+# monthly allowance went in a day.
+#
+# **The cost was the number of jobs, not the work.** So:
+#
+#   - the four fast static checks share one job; they ran on identical setups
+#     and finished in seconds each;
+#   - the suite runs **once**, with coverage. It used to run twice — once plain
+#     and once instrumented — which was the largest duplicate in the file;
+#   - the two "prove it actually executed" gates share a job with the timezone
+#     run, all three being small SQLite suites;
+#   - the four Node checks share a job, because all four are stubs printing one
+#     line until M3 and M4. **They split back out the moment they stop being
+#     stubs** — WGT-2's size budget is a named required check and deserves its
+#     own red square once there is a bundle to measure.
+#
+# Nothing was dropped. Every command that ran before still runs, and a merged
+# job still names the step that failed, which is what somebody reading a red
+# build actually needs.
+# ---------------------------------------------------------------------------
+
 jobs:
-  lint:
-    name: Pint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
-          coverage: none
-
-      - uses: ramsey/composer-install@v3
-
-      - run: composer lint:test
-
-  i18n:
-    name: EL/EN parity and no hardcoded strings
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
-          coverage: none
-
-      - uses: ramsey/composer-install@v3
-
-      - name: Prepare environment
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-
-      # I18N-2 and I18N-3. Its own job rather than relying on `test-sqlite`,
-      # because "the Greek translations are missing" and "a test failed" are
-      # different problems for whoever reads the red build, and the fix paths
-      # have nothing in common. The checks themselves are Pest tests, so there
-      # is one implementation and two ways to invoke it.
-      - name: Lang parity and hardcoded-string lint
-        run: composer i18n:check
-
-  api-docs-drift:
-    name: OpenAPI contract drift
+  static-checks:
+    name: Pint, PHPStan, i18n and the API contract
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -80,12 +65,25 @@ jobs:
           php artisan key:generate
           touch database/database.sqlite
 
-      # Scramble infers response shapes by walking the controller, and that
-      # walk reaches Eloquent models — which need their table to resolve
-      # attributes and casts. Without a migrated database the generator dies
-      # with a `QueryException` that reads like a Scramble bug, which is how
-      # #35 found this: the job had simply never had a route that touched a
-      # model before.
+      - name: Pint
+        run: composer lint:test
+
+      - name: PHPStan level 6
+        run: composer stan
+
+      # I18N-2 and I18N-3. Formerly its own job, on the argument that "the Greek
+      # translations are missing" and "a test failed" are different problems for
+      # whoever reads the red build. That argument is about **legibility**, and a
+      # named step keeps it: GitHub reports which step failed, and this one is
+      # called what it checks.
+      - name: EL/EN parity and hardcoded-string lint
+        run: composer i18n:check
+
+      # Scramble infers response shapes by walking the controller, and that walk
+      # reaches Eloquent models — which need their table to resolve attributes
+      # and casts. Hence the migrate; without it the generator dies with a
+      # `QueryException` that reads like a Scramble bug, which is how #35 found
+      # this.
       - name: Migrate from zero on SQLite
         run: php artisan migrate --force
         env:
@@ -93,9 +91,9 @@ jobs:
 
       # ENV-28. `docs/api.md` is the contract and Scramble generates the
       # implementation's view of it; this reconciles the two. The comparison is
-      # directional until M3 - every route must be documented, while a
-      # documented path with no route yet is "not built" rather than drift.
-      # docs/api.md §10.4 is proposed for that wording in the PR.
+      # directional until the last endpoint lands — every route must be
+      # documented, while a documented path with no route yet is "not built"
+      # rather than drift.
       - name: Regenerate the OpenAPI document
         run: composer api:docs
 
@@ -103,7 +101,7 @@ jobs:
         run: composer test:api-docs
 
       # The generated document is an artefact, never committed. Uploading it on
-      # every run - red or green - is what makes a red build actionable without
+      # every run — red or green — is what makes a red build actionable without
       # a local PHP install, the same way the schema snapshot job works.
       - name: Upload the generated document
         if: always()
@@ -113,33 +111,20 @@ jobs:
           path: build/openapi.generated.json
           if-no-files-found: warn
 
-  static-analysis:
-    name: PHPStan level 6
+  test-suite:
+    name: Pest on SQLite, with the coverage gate
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      # ENV-22: coverage needs a driver, and the local stack has none. PCOV
+      # rather than Xdebug — an order of magnitude faster, and this runs on
+      # every pull request.
       - uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
           extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
-          coverage: none
-
-      - uses: ramsey/composer-install@v3
-
-      - run: composer stan
-
-  test-sqlite:
-    name: Pest on SQLite
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
-          coverage: none
+          coverage: pcov
 
       - uses: ramsey/composer-install@v3
 
@@ -154,7 +139,35 @@ jobs:
         env:
           DB_CONNECTION: sqlite
 
-      - run: composer test
+      # **One run, not two.** This was two jobs: `test-sqlite` ran the suite
+      # plain and `coverage` ran the identical suite again under PCOV.
+      # `test:coverage` excludes exactly the same three groups as `test`, so the
+      # second run only ever confirmed what the first had already proved — at
+      # the price of running two thousand tests twice, on every push.
+      #
+      # TST-1's 80% threshold lives in composer.json and is deliberately not
+      # repeated here, so raising it stays a one-line change.
+      - name: Pest with coverage restricted to app/Domain
+        run: composer test:coverage
+
+      # Every other gate in this file proves it actually ran; this one could
+      # not. php-code-coverage returns 100% for a source set with zero
+      # executable lines, so if the app/Domain filter in phpunit.coverage.xml
+      # ever stopped matching — a rename, a moved namespace, a typo — the gate
+      # would pass at 100% against nothing at all and say so proudly.
+      - name: The coverage gate must have measured something
+        run: |
+          php -r '
+            $report = simplexml_load_file("coverage.xml");
+            $statements = (int) ($report->project->metrics["statements"] ?? 0);
+
+            if ($statements < 1) {
+                fwrite(STDERR, "::error::Coverage measured 0 executable lines. An empty source set reports 100%, so this gate was green while measuring nothing — check the app/Domain filter in phpunit.coverage.xml.\n");
+                exit(1);
+            }
+
+            printf("coverage measured %d executable statements in app/Domain%s", $statements, PHP_EOL);
+          '
 
   test-mysql:
     name: Pest on MySQL 8 + Redis
@@ -252,8 +265,8 @@ jobs:
 
           echo "mysql group executed for real: $summary"
 
-  tenancy-isolation:
-    name: Cross-tenant isolation gate
+  runtime-gates:
+    name: Tenant isolation and the timezone run
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -270,11 +283,17 @@ jobs:
         run: |
           cp .env.example .env
           php artisan key:generate
+          touch database/database.sqlite
+
+      - name: Migrate from zero on SQLite
+        run: php artisan migrate --force
+        env:
+          DB_CONNECTION: sqlite
 
       # ADR-0001 accepted single-database tenancy on the explicit condition that
-      # this suite exists and is a required check. It is the price of the schema,
-      # so it runs as its own job rather than buried inside the general suite:
-      # a red build here should say "tenant isolation" and nothing else.
+      # this suite exists and is a required check. It is the price of the schema
+      # — which is why it keeps its own named step: a red build here should say
+      # "tenant isolation" and nothing else.
       - name: Isolation suite (must actually execute)
         run: |
           set -o pipefail
@@ -299,148 +318,12 @@ jobs:
 
           echo "isolation gate executed for real: $summary"
 
-  coverage:
-    name: Coverage gate on app/Domain
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # ENV-22: coverage needs a driver, and the local stack has none. PCOV
-      # rather than Xdebug — it is an order of magnitude faster and this gate
-      # runs on every pull request.
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
-          coverage: pcov
-
-      - uses: ramsey/composer-install@v3
-
-      - name: Prepare environment
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-
-      # TST-1: 80% of app/Domain. The threshold lives in composer.json and is
-      # deliberately not repeated here, so raising it stays a one-line change.
-      - name: Pest with coverage restricted to app/Domain
-        run: composer test:coverage
-
-      # Every other gate in this file proves it actually ran; this one could
-      # not. php-code-coverage returns 100% for a source set with zero
-      # executable lines, so if the app/Domain filter in phpunit.coverage.xml
-      # ever stopped matching — a rename, a moved namespace, a typo — the gate
-      # would pass at 100% against nothing at all and say so proudly.
-      - name: The coverage gate must have measured something
-        run: |
-          php -r '
-            $report = simplexml_load_file("coverage.xml");
-            $statements = (int) ($report->project->metrics["statements"] ?? 0);
-
-            if ($statements < 1) {
-                fwrite(STDERR, "::error::Coverage measured 0 executable lines. An empty source set reports 100%, so this gate was green while measuring nothing — check the app/Domain filter in phpunit.coverage.xml.\n");
-                exit(1);
-            }
-
-            printf("coverage measured %d executable statements in app/Domain%s", $statements, PHP_EOL);
-          '
-
-  security-audit:
-    name: Dependency audit
-    # SEC-12. Shared with nightly.yml so the severity threshold cannot end up
-    # meaning two different things in two files.
-    uses: ./.github/workflows/dependency-audit.yml
-
-  migrate-from-zero:
-    name: Migrate from zero and compare the schema
-    # ENV-10. Shared with nightly.yml for the same reason.
-    uses: ./.github/workflows/schema-drift.yml
-
-  widget-build:
-    name: Widget build and size budget
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - run: npm ci
-
-      # WGT-2 / NFR-3: the 80 KB gzipped budget. Both scripts are stubs until
-      # M3 — the job exists now so M3 replaces a script and not a pipeline.
-      - run: npm run widget:build
-
-      - run: npm run widget:size
-
-  widget-e2e:
-    name: Widget Playwright smoke
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - run: npm ci
-
-      # ENV-23 names this check explicitly, alongside the build and the size
-      # gate. TST-3 and A11Y-1 fill it in at M3 — the full suite plus the
-      # WordPress site run go to nightly, this one stays a smoke subset.
-      - run: npm run e2e
-
-  plugin-lint:
-    name: WordPress plugin lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-
-      - run: npm ci
-
-      # WPP-11: phpcs against the WordPress ruleset. A stub until M4, for the
-      # same reason as widget-build.
-      - run: npm run plugin:lint
-
-  availability-timezone:
-    name: Availability under a third machine timezone
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
-          coverage: none
-
-      - uses: ramsey/composer-install@v3
-
-      - name: Prepare environment
-        run: |
-          cp .env.example .env
-          php artisan key:generate
-          touch database/database.sqlite
-
-      - name: Migrate from zero on SQLite
-        run: php artisan migrate --force
-        env:
-          DB_CONNECTION: sqlite
-
       # ENV-14. The availability engine converts between a tenant timezone and
       # UTC constantly, and the machine's own zone must never enter the answer.
-      # Running here under a *third* zone is what makes that testable: UTC would
-      # hide an unconverted value and Europe/Athens would hide an unconverted
-      # tenant. America/Los_Angeles is neither, is on the other side of the date
-      # line from Athens for part of the day, and has its own transitions on
+      # Running under a *third* zone is what makes that testable: UTC would hide
+      # an unconverted value and Europe/Athens would hide an unconverted tenant.
+      # America/Los_Angeles is neither, is on the other side of the date line
+      # from Athens for part of the day, and has its own transitions on
       # different dates.
       - name: Pest, availability group under America/Los_Angeles
         run: php vendor/bin/pest --group=fast --filter='Availability'
@@ -498,11 +381,56 @@ jobs:
           KAIKI_CHROME_PATH: /usr/bin/google-chrome
           PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
 
+  node-checks:
+    name: Widget build, size budget, smoke and plugin lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # **These four share a job only while they are stubs.** All four print one
+      # line and exit, so four runners to say four sentences was the clearest
+      # waste in the file.
+      #
+      # ENV-23 names the widget build, the size budget and the Playwright smoke
+      # as separate checks, and WGT-2's 80 KB budget in particular deserves its
+      # own red square once there is a bundle to measure. **Split them back out
+      # in M3**, when `widget:build` stops being an echo — and `plugin-lint` in
+      # M4, for the same reason.
+      - name: Widget build (WGT-2, stub until M3)
+        run: npm run widget:build
+
+      - name: Widget size budget (NFR-3, stub until M3)
+        run: npm run widget:size
+
+      - name: Widget Playwright smoke (TST-3, stub until M3)
+        run: npm run e2e
+
+      - name: WordPress plugin lint (WPP-11, stub until M4)
+        run: npm run plugin:lint
+
+  security-audit:
+    name: Dependency audit
+    # SEC-12. Shared with nightly.yml so the severity threshold cannot end up
+    # meaning two different things in two files.
+    uses: ./.github/workflows/dependency-audit.yml
+
+  migrate-from-zero:
+    name: Migrate from zero and compare the schema
+    # ENV-10. Shared with nightly.yml for the same reason.
+    uses: ./.github/workflows/schema-drift.yml
+
   ci-passed:
     name: CI passed
     runs-on: ubuntu-latest
     if: always()
-    needs: [lint, i18n, api-docs-drift, static-analysis, test-sqlite, test-mysql, pdf-chromium, availability-timezone, tenancy-isolation, coverage, security-audit, migrate-from-zero, widget-build, widget-e2e, plugin-lint]
+    needs: [static-checks, test-suite, test-mysql, runtime-gates, pdf-chromium, node-checks, security-audit, migrate-from-zero]
     steps:
       # A single check to make required in branch protection. Without this,
       # adding a job later means remembering to mark it required by hand.

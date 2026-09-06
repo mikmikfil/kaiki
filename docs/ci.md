@@ -24,29 +24,33 @@ Also enable **Require branches to be up to date before merging**. Without it, tw
 
 | Job | What a red build means |
 |---|---|
-| `lint` | Pint would reformat something. `composer lint` fixes it. |
-| `i18n` | EL and EN lang files disagree on a key, or a user-facing string is hardcoded (I18N-2, I18N-3). `composer i18n:check` reproduces it. |
-| `api-docs-drift` | A route is missing from `docs/api.md` §5, or its security schemes disagree with the contract (ENV-28). `composer api:docs && composer test:api-docs` reproduces it. |
-| `static-analysis` | PHPStan level 6 with Larastan found something (TST-10). |
-| `test-sqlite` | Pest against the SQLite stack developers actually run on. |
+| `static-checks` | Pint would reformat something, PHPStan level 6 found an issue (TST-10), EL and EN disagree on a lang key or a string is hardcoded (I18N-2, I18N-3), or a route is missing from `docs/api.md` §5 (ENV-28). **The failing step is named**, so the four are still told apart at a glance. |
+| `test-suite` | Pest against SQLite — the stack developers actually run on — with the coverage gate on `app/Domain` (TST-1, ENV-22). One run, under PCOV, rather than the same two thousand tests twice. |
 | `test-mysql` | Pest against MySQL 8 and Redis, plus the `mysql` group — which must execute for real, not skip (ENV-11, TST-8). |
-| `availability-timezone` | The availability group under a **third** machine timezone (ENV-14). UTC would hide an unconverted value and Europe/Athens would hide an unconverted tenant, so the runner is set to `America/Los_Angeles` — neither, and with its own transitions on different dates. |
-| `tenancy-isolation` | A cross-tenant leak. The condition ADR-0001 was accepted on. |
-| `coverage` | `app/Domain` coverage fell below 80% (TST-1). |
+| `runtime-gates` | A cross-tenant leak — the condition ADR-0001 was accepted on — or the availability group failing under a **third** machine timezone (ENV-14). UTC would hide an unconverted value and Europe/Athens an unconverted tenant, so the runner is set to `America/Los_Angeles`. |
+| `pdf-chromium` | The `chromium` group — the e-ticket PDF actually rendered by Browsershot (ENV-20, BKG-13.1). Excluded from `composer test`, because a developer with no browser must not get a false green, which makes this the **only** place the PDFs are ever rendered. |
+| `node-checks` | The widget build or its 80 KB gzipped budget (WGT-2, NFR-3), the Playwright smoke (TST-3), or the WordPress plugin standard (WPP-11). All four are stubs until M3 and M4. |
 | `security-audit` | A high or critical advisory in Composer or npm dependencies (SEC-12). |
 | `migrate-from-zero` | The migrations no longer produce the committed schema (ENV-10). |
-| `widget-build` | The widget build or its 80 KB gzipped budget (WGT-2, NFR-3). |
-| `widget-e2e` | The widget Playwright smoke run (ENV-23, TST-3). |
-| `plugin-lint` | The WordPress plugin coding standard (WPP-11). |
-| `pdf-chromium` | The `chromium` group — the e-ticket PDF actually rendered by Browsershot (ENV-20, BKG-13.1). Excluded from `composer test`, because a developer with no browser must not get a false green, which makes this the **only** place the PDFs are ever rendered. Added by #88. |
 
 <!-- required-checks:end -->
+
+**Nine jobs, and it used to be sixteen (#90).** On a private repository every job is billed separately
+and rounded up to the minute, and each one pays for a runner start, a checkout, a PHP install and a
+`composer install` before it does anything. That overhead is about a minute and a half a job — so
+sixteen jobs spent roughly twenty-four minutes of it to do perhaps six minutes of work. The cost was
+the *number* of jobs, not the work, so the four fast static checks were merged, the suite stopped
+running twice (once plain and once under coverage), the two must-execute gates joined the timezone
+run, and the four Node stubs share one runner. **Nothing was dropped**: every command that ran before
+still runs, as a named step.
 
 `pdf-chromium` installs Puppeteer without its bundled Chromium and points it at the runner's own
 Google Chrome — the browser is already on the image, and a second 150 MB download every run buys
 nothing.
 
-`widget-build`, `widget-e2e` and `plugin-lint` run stubs until M3 and M4. They exist now so those milestones replace a `package.json` script rather than invent a pipeline.
+The four checks inside `node-checks` run stubs until M3 and M4, and **split back into their own jobs
+the moment they stop being stubs** — WGT-2's 80 KB budget deserves its own red square once there is a
+bundle to measure.
 
 The **branch-protection** list never has to change again — it is one entry, `CI passed`. The job list behind it will still grow, and two are known to be owed: the ENV-28 Scramble docs-drift check (issue #11) and the M3 replacement of the Playwright stub with a real run. Each becomes required the moment it joins `ci-passed`'s `needs:`, with nothing to configure. The third, ENV-14's alternate-timezone run, arrived with #32.
 
