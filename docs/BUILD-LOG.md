@@ -105,7 +105,7 @@ The index wins: it is what stops one voucher being applied twice to one booking,
 | `php artisan migrate` (SQLite) | both tables at 34–35 |
 | `composer lint` | clean after fixes |
 | `composer stan` | `[OK] No errors` — seven real findings fixed at source, no baseline |
-| `composer test` | **1604 passed**, 1 failed: the ENV-10 schema-snapshot fingerprint |
+| `composer test` | **1605 passed**, 0 failed (after the snapshot refresh) |
 | `tests/Feature/Booking` + the two architecture files | 71 passed |
 | `tests/Concurrency` | skips locally with its reason; **runs in CI** |
 
