@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:502f9c482fc21c1ade570c0c5d09c8fb4268f664cc278af5cc40d8bdc34d006d
+-- migrations-fingerprint: sha256:907f36f36927ab7677f7e1166e5011db7fcf56e84a78b1e91185f870274aecd5
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -520,6 +520,45 @@ CREATE TABLE `password_reset_tokens` (
   `created_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `payments`;
+CREATE TABLE `payments` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tenant_id` bigint unsigned NOT NULL,
+  `booking_id` bigint unsigned NOT NULL,
+  `gateway` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `kind` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `amount_cents` int unsigned NOT NULL,
+  `currency` char(3) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'EUR',
+  `status` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'pending',
+  `gateway_ref` varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `gateway_transaction_ref` varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `refunds_payment_id` bigint unsigned DEFAULT NULL,
+  `idempotency_key` char(40) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `checkout_url` varchar(1000) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `raw_payload` text COLLATE utf8mb4_unicode_ci,
+  `failure_code` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `failure_message_el` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `failure_message_en` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `paid_at` timestamp NULL DEFAULT NULL,
+  `refunded_at` timestamp NULL DEFAULT NULL,
+  `recorded_by_user_id` bigint unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `payments_tenant_idem_uq` (`tenant_id`,`idempotency_key`),
+  UNIQUE KEY `payments_uuid_unique` (`uuid`),
+  KEY `payments_booking_id_foreign` (`booking_id`),
+  KEY `payments_refunds_payment_id_foreign` (`refunds_payment_id`),
+  KEY `payments_recorded_by_user_id_foreign` (`recorded_by_user_id`),
+  KEY `payments_gateway_ref_idx` (`gateway`,`gateway_ref`),
+  KEY `payments_tenant_booking_idx` (`tenant_id`,`booking_id`,`status`),
+  KEY `payments_tenant_status_created_idx` (`tenant_id`,`status`,`created_at`),
+  CONSTRAINT `payments_booking_id_foreign` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `payments_recorded_by_user_id_foreign` FOREIGN KEY (`recorded_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `payments_refunds_payment_id_foreign` FOREIGN KEY (`refunds_payment_id`) REFERENCES `payments` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `payments_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `ports`;
 CREATE TABLE `ports` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -942,6 +981,28 @@ CREATE TABLE `vessels` (
   CONSTRAINT `vessels_home_port_id_foreign` FOREIGN KEY (`home_port_id`) REFERENCES `ports` (`id`) ON DELETE SET NULL,
   CONSTRAINT `vessels_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `voucher_redemptions`;
+CREATE TABLE `voucher_redemptions` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `voucher_id` bigint unsigned NOT NULL,
+  `booking_id` bigint unsigned NOT NULL,
+  `amount_cents` int unsigned NOT NULL,
+  `redeemed_at` timestamp NOT NULL,
+  `reversed_at` timestamp NULL DEFAULT NULL,
+  `reversed_amount_cents` int unsigned NOT NULL DEFAULT '0',
+  `reason` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `voucher_redemptions_v_b_uq` (`tenant_id`,`voucher_id`,`booking_id`),
+  KEY `voucher_redemptions_voucher_id_foreign` (`voucher_id`),
+  KEY `voucher_redemptions_booking_id_foreign` (`booking_id`),
+  KEY `voucher_redemptions_tenant_voucher_idx` (`tenant_id`,`voucher_id`),
+  CONSTRAINT `voucher_redemptions_booking_id_foreign` FOREIGN KEY (`booking_id`) REFERENCES `bookings` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `voucher_redemptions_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `voucher_redemptions_voucher_id_foreign` FOREIGN KEY (`voucher_id`) REFERENCES `vouchers` (`id`) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `vouchers`;
 CREATE TABLE `vouchers` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -1003,3 +1064,5 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (28,'2026_09_02_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (29,'2026_09_02_000031_create_bookings_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (30,'2026_09_02_000032_create_booking_guests_table',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (31,'2026_09_02_000033_create_booking_extras_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (32,'2026_09_02_000034_create_voucher_redemptions_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (33,'2026_09_02_000035_create_payments_table',1);

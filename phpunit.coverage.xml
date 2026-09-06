@@ -20,6 +20,14 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <!--
+            Kept in step with phpunit.xml by `CiGatesTest`, which compares the
+            two skeletons: a coverage config that ran a different set of tests
+            would report a percentage for a suite nobody runs.
+        -->
+        <testsuite name="Concurrency">
+            <directory>tests/Concurrency</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

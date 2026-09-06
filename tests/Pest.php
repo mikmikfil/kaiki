@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -24,6 +25,27 @@ pest()->extend(TestCase::class)
 pest()->extend(TestCase::class)
     ->beforeEach(fn () => Cache::flush())
     ->in('Unit');
+
+/*
+|--------------------------------------------------------------------------
+| Concurrency: the one suite that cannot use RefreshDatabase
+|--------------------------------------------------------------------------
+|
+| AVL-44 needs **two connections looking at the same rows**, and
+| `RefreshDatabase` wraps each test in a transaction that is never committed —
+| so a second connection sees an empty database and the test fails on missing
+| fixtures rather than on capacity. That is a green-for-the-wrong-reason waiting
+| to happen on the one test that must never be wrong.
+|
+| `DatabaseMigrations` commits, which is what makes the second connection able
+| to see anything at all. It is slower; there is one file in here and it is
+| `@group mysql`, so it runs in CI and skips loudly everywhere else.
+|
+*/
+pest()->extend(TestCase::class)
+    ->use(DatabaseMigrations::class)
+    ->beforeEach(fn () => Cache::flush())
+    ->in('Concurrency');
 
 /*
 |--------------------------------------------------------------------------

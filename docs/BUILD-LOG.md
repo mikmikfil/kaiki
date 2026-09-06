@@ -14,11 +14,11 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M2 — Booking & payments, in progress.** M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M2 | #79, #80 |
+| M2 | #79, #80, #81 |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1552) · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1605) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
@@ -33,6 +33,91 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #81 — Confirmation, and the test that has been a required check with nothing to run
+
+**Files:** two migrations at §6 positions 34–35, `app/Models/{Payment,VoucherRedemption}.php`, `app/Enums/{PaymentStatus,PaymentKind,PaymentGatewayName}.php`, `app/Domain/Booking/{Actions/ConfirmBooking,Actions/StartCheckout,Actions/ExpireAbandonedCheckouts,Support/SeatCommitment,Support/LockOrder}.php`, `app/Domain/Pricing/Actions/{ApplyVoucher,RestoreVoucher}.php`, `app/Exceptions/{CapacityExceeded,IllegalStateTransition}.php`, `app/Events/{BookingConfirmed,DepartureGuaranteed}.php`, `app/Jobs/ExpireAbandonedCheckoutsJob.php`, `app/Policies/{Payment,VoucherRedemption}Policy.php`, `config/{kaiki,database}.php`, `phpunit.xml`, `phpunit.coverage.xml`, `tests/Pest.php`, `routes/console.php`, `docs/{spec,data-model}.md`, two factories, five test files
+
+**AVL-44 has been a required status check since #4 and had nothing to run for two milestones.** A required check that silently executes nothing has been protecting nothing.
+
+### The two mechanisms, and why neither is enough alone
+
+**`lockForUpdate()`, unconditionally** (AVL-43.1). It is never skipped or branched "for SQLite compatibility" — the spec calls that a review blocker, and a conditional lock is invisible in a passing suite, so `LockDisciplineTest` reads the source rather than the behaviour.
+
+**A conditional counter update** (AVL-43.2). `WHERE capacity - seats_sold - seats_held >= :n`, evaluated against the row **as it is at write time**, with zero affected rows aborting the transaction. This runs on every driver, which is the point: the lock proves nothing on SQLite, and this is what makes the capacity invariant testable on the stack the code is actually written on.
+
+`ConditionalCounterTest` arranges the stale read by hand — write the row from underneath a model that still remembers the old numbers — so the refusal is exercised locally with no parallelism at all.
+
+### The clamp the tests found, which was an oversell vector
+
+Seats moving from held to sold get a credit for the booking's own hold, so a guest is not made to compete for seats they already hold.
+
+Unclamped, that credit is subtracted whether or not the counter contains it. A booking whose `hold_expires_at` was still set but whose seats had already been released — the sweeper got there first, or a hold was released by hand — subtracted a hold that was not there and **manufactured capacity out of arithmetic**. A departure with one seat, one seat sold, and a stale claim was allowed to confirm.
+
+The credit is now `CASE WHEN seats_held < n THEN seats_held ELSE n END`. `LEAST()` is MySQL's and a two-argument `MIN()` is SQLite's; neither has the other, and this is the one form both understand.
+
+### A real deadlock, found by an architecture test
+
+`ExpireAbandonedCheckouts` locked the booking first. That is the obvious way to write it — the row being expired is the one carrying the `departure_id` the next lock needs — and it is a deadlock: this job and a confirmation racing over the same sailing take the departure and the booking in **opposite orders**. MySQL detects it and kills one after a lock-wait timeout, so the symptom is not a hang but a confirmation that randomly fails under load, which is the condition nobody can reproduce.
+
+The ids now come from the unlocked outer read, which is safe because neither ever changes on a booking; the *status*, which does, is re-checked under the lock.
+
+`LockDisciplineTest` catches this class of thing because AVL-45 is a rule no green test run can demonstrate. It also asserts the lock is never driver-branched, that no external call sits where a lock may be held (AVL-46), and that `BookingConfirmed::dispatch` appears **after** the transaction closes.
+
+### The idempotency bug, and a test that was green for the wrong reason
+
+`ApplyVoucher` runs twice on every booking by design: checkout applies the voucher, confirmation re-validates it under a row lock (PRC-20).
+
+It refused any voucher whose status was `Redeemed`. But **`Redeemed` is derived from the ledger** — applying a voucher marks it so — which meant that on the second call a booking was refused *its own* discount, the discount was cleared, and the total went back up. The BKG-19 zero-total path therefore arrived at a gateway with fifty euros to charge.
+
+The existing idempotency test asserted the redemption count and the voucher's balance. Both stayed correct throughout, because `clearDiscount()` leaves the ledger alone. It never looked at the booking, so it passed. **It does now**, and the assertion is written with the reason attached.
+
+`Cancelled` and expiry remain refusals: those are decisions rather than arithmetic. `$availableNow` already excludes this booking's own share and is the honest answer to "how much can this booking spend".
+
+### The concurrency suite, and why it could not live in `tests/Feature`
+
+Two things had to be true and neither was:
+
+1. **Two connections.** PDO serialises statements on one link, so a "concurrent" pair driven through a single connection is a sequential pair — and a sequential pair passes against an implementation with no locking whatsoever. `mysql_concurrent` is a clone of the default connection onto the same database.
+
+2. **Committed fixtures.** `RefreshDatabase` wraps each test in a transaction that is never committed, so the second connection sees an empty database and the test fails on missing rows rather than on capacity. `tests/Concurrency/` uses `DatabaseMigrations`, which commits.
+
+Pest applies `RefreshDatabase` to everything in `Feature` and the two traits collide outright — a fatal error, not a subtle one. Hence a third test suite, in `phpunit.xml` and `phpunit.coverage.xml` both, and one entry in `tests/Pest.php`.
+
+Everything in it is `@group mysql` and skips with an explicit reason elsewhere (AVL-43.3), through Pest's `->skip()` rather than `markTestSkipped()` — `$this` is a `TestCall` at analysis time, the same thing `travel()` and `fail()` ran into in #80.
+
+### PRC-19.4 asks for a row the schema forbids
+
+The requirement says cancellation *"writes a reversal row"*. `voucher_redemptions_v_b_uq` is unique on (`tenant_id`, `voucher_id`, `booking_id`), so a second opposite row for the same pair cannot exist.
+
+The index wins: it is what stops one voucher being applied twice to one booking, which is a real double-spend, and that is worth more than the symmetry of two rows. A reversal is `reversed_at` and `reversed_amount_cents` **on the row being reversed**; the ledger's arithmetic is `Σ(amount_cents − reversed_amount_cents)`; the movement, its amount, its direction and its time are all still recorded and never deleted, which is what PRC-19.4 actually protects. `docs/spec.md` was reconciled to the data model, which is authoritative on schema, and `reason` was added to §2.5 because the requirement lists it and the table omitted it.
+
+### Four numbers, all recomputed and none incremented
+
+`paid_cents` from `Payment` rows (PAY-10), `remaining_cents` from the ledger (PRC-19.4), `seats_sold` and `seats_held` from live holds. The same reasoning every time: an increment is only correct if every previous one was, and drift in any of these is money or seats somebody reconciles by hand. PRC-26 — `paid_cents + balance_cents = total_cents` — is asserted after every path.
+
+### Verification
+
+| Check | Result |
+|---|---|
+| `php artisan migrate` (SQLite) | both tables at 34–35 |
+| `composer lint` | clean after fixes |
+| `composer stan` | `[OK] No errors` — seven real findings fixed at source, no baseline |
+| `composer test` | **1605 passed**, 0 failed (after the snapshot refresh) |
+| `tests/Feature/Booking` + the two architecture files | 71 passed |
+| `tests/Concurrency` | skips locally with its reason; **runs in CI** |
+
+The snapshot was refreshed the documented way. **AVL-44 itself is verified only in CI** — that is the whole design, and a local pass would be the dangerous outcome rather than the reassuring one.
+
+### Things this touched that were not its own
+
+1. **`phpunit.coverage.xml` had to gain the new suite**, because `CiGatesTest` compares the two skeletons. A coverage config running a different set of tests would report a percentage for a suite nobody runs — the gate working exactly as intended.
+
+2. **`Payment` and `VoucherRedemption` policies refuse deletion for everybody, including the owner.** The base class hands `forceDelete` to the owner, which is right for a vessel and wrong here: a payment that can disappear cannot be reconciled against a bank statement, and a deleted ledger row does not merely lose a record — it silently changes a voucher's balance, in the direction that gives an operator's money away.
+
+3. **The enum is `PaymentGatewayName`, not `PaymentGateway`.** PAY-2 fixes `App\Contracts\PaymentGateway` as the interface the two implementations sit behind, and a collision between an interface and an enum of the same name is waiting for the first person who imports the wrong one — in a file about money.
 
 ---
 

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Jobs\ExpireAbandonedCheckoutsJob;
 use App\Jobs\ExpireStaleHoldsJob;
 use App\Jobs\GenerateDeparturesNightly;
 use Illuminate\Foundation\Inspiring;
@@ -91,3 +92,28 @@ Schedule::job(new ExpireStaleHoldsJob)
     ->withoutOverlapping()
     ->onOneServer()
     ->name('bookings:expire-holds');
+
+/*
+|--------------------------------------------------------------------------
+| Abandoned checkouts (spec BKG-10)
+|--------------------------------------------------------------------------
+|
+| **This one is not a tidier.** The hold sweeper above has a read-side twin —
+| every availability read treats a lapsed hold as released on its own — so a
+| worker outage there costs an inaccurate dashboard. A `pending_payment`
+| booking's seats are in `seats_sold`, which is the number that must be
+| believed, and nothing infers "but that guest left an hour ago". If this stops
+| running, seats stay off sale.
+|
+| That asymmetry is the cost of BKG-9 committing at redirect rather than at the
+| webhook, which is what closes the window where a guest on the gateway page
+| loses the seat they are paying for.
+|
+| Every five minutes, not every minute: the cutoff is an hour, so a
+| minute-by-minute sweep is twelve times the queries and frees no seat sooner.
+*/
+Schedule::job(new ExpireAbandonedCheckoutsJob)
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('bookings:expire-checkouts');

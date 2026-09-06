@@ -346,4 +346,43 @@ return [
         'manual' => ['label' => 'Issued by hand'],
     ],
 
+    /*
+    | Payments (§2.5, PAY-8, PAY-10, ADR-0004 Option D).
+    |
+    | `pending` and `processing` read almost the same and mean different things
+    | to an operator chasing money: one is a guest who was sent to a payment page
+    | and may never have arrived, the other is a gateway that has the money and
+    | has not settled it. Only `succeeded` counts toward what a booking has paid.
+    */
+    'payment_status' => [
+        'pending' => ['label' => 'Waiting for the guest'],
+        'processing' => ['label' => 'With the gateway'],
+        'succeeded' => ['label' => 'Paid'],
+        'failed' => ['label' => 'Declined'],
+        'cancelled' => ['label' => 'Cancelled'],
+    ],
+
+    /*
+    | Deposit and balance are two independent checkout sessions, months apart if
+    | need be (ADR-0004 Option D) — not two halves of one.
+    */
+    'payment_kind' => [
+        'full' => ['label' => 'Paid in full'],
+        'deposit' => ['label' => 'Deposit'],
+        'balance' => ['label' => 'Balance'],
+        'refund' => ['label' => 'Refund'],
+    ],
+
+    /*
+    | Cash and bank transfer never call anything: they are how a manual booking
+    | is recorded as paid (BKG-33), and they are excluded from gateway
+    | reconciliation because there is no gateway to reconcile them against.
+    */
+    'payment_gateway_name' => [
+        'viva' => ['label' => 'Viva Wallet'],
+        'stripe' => ['label' => 'Stripe'],
+        'cash' => ['label' => 'Cash'],
+        'bank_transfer' => ['label' => 'Bank transfer'],
+    ],
+
 ];

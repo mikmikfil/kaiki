@@ -66,6 +66,41 @@ return [
             ]) : [],
         ],
 
+        /*
+         * A second connection onto the same MySQL database, for AVL-44.
+         *
+         * The overselling test needs **two transactions open at once**. One
+         * connection cannot produce that: PDO serialises statements on a single
+         * link, so a "concurrent" pair driven through it is a sequential pair,
+         * and a sequential pair passes against an implementation with no
+         * locking at all. That is the shape of green result ADR-0006 is most
+         * concerned about.
+         *
+         * It is a clone rather than its own credentials, so there is nothing to
+         * keep in step: the same host, the same database, a different link.
+         * Present in every environment and used by exactly one `@group mysql`
+         * test file, which skips loudly where the driver is not MySQL.
+         */
+        'mysql_concurrent' => [
+            'driver' => 'mysql',
+            'url' => env('DB_URL'),
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', '3306'),
+            'database' => env('DB_DATABASE', 'laravel'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => env('DB_CHARSET', 'utf8mb4'),
+            'collation' => env('DB_COLLATION', 'utf8mb4_unicode_ci'),
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'strict' => true,
+            'engine' => null,
+            'options' => extension_loaded('pdo_mysql') ? array_filter([
+                (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
+            ]) : [],
+        ],
+
         'mariadb' => [
             'driver' => 'mariadb',
             'url' => env('DB_URL'),
