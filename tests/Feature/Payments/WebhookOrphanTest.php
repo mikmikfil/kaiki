@@ -34,6 +34,23 @@ use Tests\Support\Payments\WebhookScenario;
 |
 */
 
+beforeEach(function (): void {
+    // **The queue driver is set explicitly, and #53 paid for learning why.**
+    //
+    // `phpunit.xml` sets `QUEUE_CONNECTION=sync`, so `ProcessGatewayWebhook`
+    // runs inline *by accident* locally — and ENV-1 puts a real Redis in the
+    // `Pest on MySQL 8 + Redis` job, where the same dispatch is enqueued and
+    // never executed. Every assertion about an outcome then fails on that one
+    // job while the ones that only inspect the recorded row keep passing, which
+    // makes it look like a data problem rather than an environment one.
+    //
+    // That is exactly what happened to the audit trail in #53, and it happened
+    // again here. Setting it is what makes these tests say what they mean: the
+    // *processing* is under test, and `WebhookQueueingTest` asserts the
+    // queueing separately.
+    config(['queue.default' => 'sync']);
+});
+
 it('stores a verified webhook for an unknown payment and surfaces it', function (): void {
     WebhookScenario::make();
 

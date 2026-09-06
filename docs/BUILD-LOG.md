@@ -18,7 +18,7 @@ Each entry records the **verification actually run** and its **real output** —
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1680) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (1683) · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **all green** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 
 > **Entries missing for #24, #33, #34, #25, #26, #27, #28, #29, #30, #31 and #32.** All eleven are merged on `main`; none has an entry in this file or in `CHANGELOG.md`. They are not written here after the fact on purpose — this file's own rule is that *"inventing entries in this file's usual detail long afterwards would be reconstruction rather than an audit trail"*. The per-issue narrative is in each pull request until somebody who was there writes them.
@@ -38,7 +38,7 @@ Each entry records the **verification actually run** and its **real output** —
 
 ## #83 — Gateway webhooks, and three columns the data model never had
 
-**Files:** two migrations (§6 item 36, plus a column-addition with no item number), `app/Models/GatewayWebhookEvent.php`, `app/Enums/WebhookEventStatus.php`, `app/Http/Controllers/Webhooks/GatewayWebhookController.php`, `app/Jobs/ProcessGatewayWebhook.php`, `app/Domain/Booking/Actions/{ConfirmFromWebhook,MintBalanceSession,ComputeBalanceDueAt}.php`, `app/Providers/ApiRateLimitServiceProvider.php`, `bootstrap/app.php`, `routes/web.php`, `config/{kaiki,tenancy}.php`, `lang/{el,en}/enums.php`, five test files and a shared scenario class
+**Files:** two migrations (§6 item 36, plus a column-addition with no item number), `app/Models/GatewayWebhookEvent.php`, `app/Enums/WebhookEventStatus.php`, `app/Http/Controllers/Webhooks/GatewayWebhookController.php`, `app/Jobs/ProcessGatewayWebhook.php`, `app/Domain/Booking/Actions/{ConfirmFromWebhook,MintBalanceSession,ComputeBalanceDueAt}.php`, `app/Providers/ApiRateLimitServiceProvider.php`, `bootstrap/app.php`, `routes/web.php`, `config/{kaiki,tenancy}.php`, `lang/{el,en}/enums.php`, six test files and a shared scenario class
 
 ### The endpoint does four things and then stops
 
@@ -121,7 +121,7 @@ Proving the *other* branch — the boat filled while the guest was failing to pa
 | `php artisan migrate` (SQLite) | both migrations clean |
 | `composer lint` | clean after fixes |
 | `composer stan` | `[OK] No errors` — three real findings fixed at source |
-| `composer test` | **1679 passed**, 1 failed: the ENV-10 schema-snapshot fingerprint |
+| `composer test` | **1682 passed**, 1 failed: the ENV-10 schema-snapshot fingerprint |
 | `tests/Feature/Payments` | 75 passed |
 
 The snapshot was refreshed the documented way.
@@ -135,6 +135,8 @@ The snapshot was refreshed the documented way.
 3. **`Log::shouldHaveReceived()` is not statically visible inside a Pest closure**, so the spy returned by `Log::spy()` is asserted on directly. The third instance of this shape after `travel()`, `fail()` and `withoutExceptionHandling()`.
 
 4. **Four test files needed one scenario**, and a Pest `function` is scoped to its file — the second file to call it fails with "undefined function", which reads as a broken test rather than a missing import. `Tests\Support\Payments\WebhookScenario` is a class, and it carries the recorded gateway responses too: a file that forgets those does not fail loudly, it makes a network call.
+
+5. **The suite ran the queued job by accident, and only one CI job noticed.** `phpunit.xml` sets `QUEUE_CONNECTION=sync`, so `ProcessGatewayWebhook` executed inline everywhere except the `Pest on MySQL 8 + Redis` job, whose own environment sets `redis` and wins — PHPUnit only applies an `<env>` entry when the variable is not already set. There, the job was enqueued and never run: nine tests failed, and precisely the nine that assert an *outcome*, while every test that only inspects the recorded row stayed green. It reads as a data problem and is an environment one. The two processing files now set the driver themselves, and `WebhookQueueingTest` asserts the other half with `Queue::fake()` — that the endpoint *queues* rather than doing the work in the request, which a sync driver can no longer distinguish. The same shape as #53, on a different table.
 
 ---
 
