@@ -59,4 +59,4 @@ changes, so what visitors see is current without asking every time.
 == Changelog ==
 
 = 0.1.0 =
-* First release: settings, connection test, Greek and English.
+* First release: settings, connection test, the four shortcodes, and Greek and English throughout.

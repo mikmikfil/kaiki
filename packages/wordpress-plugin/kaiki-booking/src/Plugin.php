@@ -10,6 +10,7 @@ declare( strict_types = 1 );
 namespace Kaiki\Booking;
 
 use Kaiki\Booking\Http\Webhook;
+use Kaiki\Booking\Shortcodes\Shortcodes;
 use Kaiki\Booking\Settings\SettingsPage;
 
 defined( 'ABSPATH' ) || exit;
@@ -33,6 +34,10 @@ final class Plugin {
 		// user, no cookie and no admin context, and a route registered only in
 		// `is_admin()` would never exist when Kaiki called.
 		Webhook::register();
+
+		// The four shortcodes (WPP-4). Registered always, because a shortcode in
+		// a page is rendered on the front end and previewed in the editor.
+		Shortcodes::register();
 
 		if ( is_admin() ) {
 			SettingsPage::register();

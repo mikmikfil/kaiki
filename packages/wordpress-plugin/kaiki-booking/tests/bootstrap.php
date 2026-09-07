@@ -148,3 +148,97 @@ function pll_current_language( string $field = 'slug' ) {
 
 	return $GLOBALS['kaiki_test_polylang'] ?? false;
 }
+
+/**
+ * The shortcode registry, which is all `add_shortcode` is.
+ *
+ * @var array<string, callable>
+ */
+$GLOBALS['kaiki_test_shortcodes'] = array();
+
+/**
+ * @param string   $tag      The shortcode name.
+ * @param callable $callback What renders it.
+ */
+function add_shortcode( string $tag, $callback ): void {
+	$GLOBALS['kaiki_test_shortcodes'][ $tag ] = $callback;
+}
+
+/**
+ * @param  array<string, string> $pairs The defaults.
+ * @param  array<string, string> $atts  What was written in the page.
+ * @param  string                $shortcode The name, for the filter WordPress fires.
+ * @return array<string, string>
+ */
+function shortcode_atts( array $pairs, array $atts, string $shortcode = '' ): array {
+	unset( $shortcode );
+
+	$out = array();
+
+	foreach ( $pairs as $name => $default_value ) {
+		$out[ $name ] = array_key_exists( $name, $atts ) ? (string) $atts[ $name ] : $default_value;
+	}
+
+	return $out;
+}
+
+/**
+ * Whether the current user may do something.
+ *
+ * A test sets `$GLOBALS['kaiki_test_can']` to say who is looking. Absent means
+ * a visitor, which is the case that matters most: the messages an editor sees
+ * must never reach one.
+ *
+ * @param string $capability The capability being asked about.
+ */
+function current_user_can( string $capability ): bool {
+	unset( $capability );
+
+	return (bool) ( $GLOBALS['kaiki_test_can'] ?? false );
+}
+
+/**
+ * @param string $text The value to escape.
+ */
+function esc_attr( string $text ): string {
+	return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
+}
+
+/**
+ * @param string $text The value to escape.
+ */
+function esc_html( string $text ): string {
+	return htmlspecialchars( $text, ENT_QUOTES, 'UTF-8' );
+}
+
+/**
+ * @param string $url The value to escape.
+ */
+function esc_url( string $url ): string {
+	return htmlspecialchars( $url, ENT_QUOTES, 'UTF-8' );
+}
+
+/**
+ * @param string $text   The string to translate.
+ * @param string $domain The text domain.
+ */
+function __( string $text, string $domain = 'default' ): string {
+	unset( $domain );
+
+	return $text;
+}
+
+/**
+ * @param string $text   The string to translate and escape.
+ * @param string $domain The text domain.
+ */
+function esc_html__( string $text, string $domain = 'default' ): string {
+	return esc_html( __( $text, $domain ) );
+}
+
+/**
+ * @param string $key The value to reduce to a key.
+ */
+function sanitize_key( string $key ): string {
+	return preg_replace( '/[^a-z0-9_\-]/', '', strtolower( $key ) ) ?? '';
+}

@@ -2,6 +2,18 @@
 
 ## M4 — WordPress plugin
 
+### #114 - The four shortcodes, and a bundle that loads only where it is needed
+
+An operator pastes `[kaiki_booking product="…"]` into a page and takes a booking. That is the plugin's whole promise, and everything after this is a nicer way of producing the same four strings.
+
+**The script tag is written into the shortcode's output rather than enqueued**, and the reason is not style: the widget mounts where its script tag is, so an enqueued bundle would render the booking form in the page footer instead of where the operator put the shortcode. A page with no shortcode on it gets nothing at all — which is the difference between a plugin an agency recommends and one they rip out — and a second shortcode on the same page reuses the bundle rather than fetching it again.
+
+**A misconfigured shortcode says two different things to two different people.** A visitor sees a short neutral line and nothing about us. Whoever can edit the page sees which attribute is missing and what a correct one looks like, because the person who pasted it is the operator or their nephew, at night, once, with nobody to ask — and a shortcode that silently rendered nothing would be an afternoon of their life.
+
+**The trip id is checked rather than trusted.** It is a string a page editor typed, and page editors paste strange things; a value that is not a uuid is refused outright rather than escaped and passed along. An unknown *category*, by contrast, is deliberately not an error: an operator writes one into a page once, and the page outlives the trips it was written for.
+
+`docs/wordpress.md` is the operator's guide — five minutes from installing to a booking form on a page, and the plainest words the subject allows about what the secret key is for and why it must never touch a page.
+
 ### #113 - The API client, the transient cache, and the webhook that busts it
 
 One client, one cache, one failure path. Everything the plugin renders goes through it, because three call sites with three opinions about caching and failure is how a plugin comes to show a stale price on one page and a fatal error on another.

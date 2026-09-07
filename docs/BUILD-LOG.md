@@ -12,10 +12,10 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M4 — WordPress plugin: #112, #113 built.** M3 complete (#101 … #111), M2 complete, M1 complete. |
+| Milestone | **M4 — WordPress plugin: #112 … #114 built.** M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
 | M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
-| M4 | **#112 and #113 built** — the plugin skeleton, its settings screen, the standards gate, and the client, cache and webhook everything else reads through. Six issues written (#112 … #117); #117 needs a real WordPress site, which is the product owner's. |
+| M4 | **#112 … #114 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, and the four shortcodes that are the plugin's whole promise. Six issues written (#112 … #117); #117 needs a real WordPress site, which is the product owner's. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
@@ -36,6 +36,73 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #114 — The four shortcodes, and a bundle that loads only where it is needed
+
+The plugin's whole promise: an operator pastes `[kaiki_booking product="…"]`
+into a page and takes a booking. Everything after this — blocks, Elementor — is a
+nicer way of producing the same four strings.
+
+### Written into the output, not enqueued, and the reason is WGT-7
+
+`wp_enqueue_script` puts a tag in the head or the footer. The widget mounts
+**where its script tag is** — so an enqueued bundle would render the booking form
+at the bottom of the page instead of where the operator put the shortcode, which
+is the one thing the one-line embed promises.
+
+So the tag is written into the shortcode's own output, and a static flag stops a
+second shortcode fetching the bundle twice. The second tag still exists, because
+the widget mounts one instance per `data-key` tag (WGT-8); only the `src` is
+dropped.
+
+**A page with no shortcode gets nothing at all.** That is the difference between
+a plugin an agency recommends and one they rip out, and WordPress makes the lazy
+way easy — hook `wp_enqueue_scripts` and be done. The test asserts it against the
+source rather than a hook registry: a stub answering "no hook fired" would be
+agreeing with itself.
+
+### The messages are for two different people
+
+A **visitor** who meets a misconfigured shortcode sees a short neutral line and
+nothing about us. An **editor** sees which attribute is missing and what a
+correct shortcode looks like — because the person who pasted it is the operator
+or their nephew, at night, once, with nobody to ask, and a shortcode that
+silently rendered nothing would be an afternoon of their life.
+
+The split is `current_user_can( 'edit_posts' )` rather than "is somebody signed
+in": a subscriber with an account is still a visitor.
+
+### The `product` attribute is checked, not trusted
+
+It is a string a page editor typed, and page editors paste strange things. A
+value that is not a uuid is refused rather than escaped and passed on — the
+difference between an attribute and an injection — and the test feeds it
+`"><script>alert(1)</script>` to prove it.
+
+An **unknown category** is deliberately not an error (WGT-6): an operator writes
+one into a page once, and the page outlives the trips it was written for.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `npm run plugin:lint` | phpcs, WordPress ruleset and PHP 8.1 compatibility, clean |
+| `npm run plugin:test` | **35 passed** (12 new) |
+| `composer lint` / `composer stan` | Pint clean; PHPStan level 6, no errors |
+| `composer i18n:check` | 161 passed |
+| `composer test` | **2266 passed, 4 skipped, 1 failed** — the inherited ENV-10 snapshot |
+
+`docs/wordpress.md` is the operator's guide: the five minutes from installing to
+a booking form on a page, the four shortcodes, and — in the plainest words the
+subject allows — what the secret key is for and why it must never touch a page.
+
+Two false positives were fixed on the way, both the same shape and both worth
+naming: a guard that reads **docblocks** flags the sentence explaining why the
+code does the right thing. `SecretKeyScanner` learnt to strip comments in #113;
+the enqueue check learnt it here. A guard that fires on innocent code earns an
+exemption, and after a dozen exemptions it enforces nothing.
 
 ---
 

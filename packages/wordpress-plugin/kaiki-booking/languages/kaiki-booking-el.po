@@ -152,3 +152,18 @@ msgstr "Μυστικό ενημερώσεων"
 
 msgid "Without it, your trips are refreshed on the timer above instead. Give Kaiki this address:"
 msgstr "Χωρίς αυτό, οι εκδρομές σας ανανεώνονται με τον χρονοδιακόπτη πιο πάνω. Δώστε στο Kaiki αυτή τη διεύθυνση:"
+
+msgid "Kaiki Booking has no key yet. Add one under %s and this will start working."
+msgstr "Το Kaiki Booking δεν έχει ακόμη κλειδί. Προσθέστε ένα από το %s και αυτό θα αρχίσει να δουλεύει."
+
+msgid "Only you can see this:"
+msgstr "Αυτό το βλέπετε μόνο εσείς:"
+
+msgid "Settings → Kaiki Booking"
+msgstr "Ρυθμίσεις → Kaiki Booking"
+
+msgid "This booking form needs to know which trip it is for. Use %s, with the trip id from your Kaiki panel."
+msgstr "Αυτή η φόρμα κράτησης πρέπει να ξέρει σε ποια εκδρομή αναφέρεται. Χρησιμοποιήστε %s, με τον κωδικό της εκδρομής από τον πίνακα του Kaiki."
+
+msgid "This calendar needs to know which trip it is for. Use %s, with the trip id from your Kaiki panel."
+msgstr "Αυτό το ημερολόγιο πρέπει να ξέρει σε ποια εκδρομή αναφέρεται. Χρησιμοποιήστε %s, με τον κωδικό της εκδρομής από τον πίνακα του Kaiki."

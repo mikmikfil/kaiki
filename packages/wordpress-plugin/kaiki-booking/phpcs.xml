@@ -85,6 +85,16 @@
         <exclude-pattern>tests/*</exclude-pattern>
     </rule>
 
+    <!--
+        The i18n sniff, in the tests only. The bootstrap *defines* `__()` and
+        `esc_html__()` as stand-ins for WordPress's own, and a sniff that
+        inspects their arguments is inspecting the stub's own parameters as if
+        they were a translator call.
+    -->
+    <rule ref="WordPress.WP.I18n">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
     <rule ref="WordPress.WP.I18n">
         <properties>
             <property name="text_domain" type="array">
