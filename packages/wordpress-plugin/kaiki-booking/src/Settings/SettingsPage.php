@@ -9,6 +9,8 @@ declare( strict_types = 1 );
 
 namespace Kaiki\Booking\Settings;
 
+use Kaiki\Booking\Seo\Sync;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -117,7 +119,22 @@ final class SettingsPage {
 				: 'auto',
 			'cache_ttl'       => (int) ( $input['cache_ttl'] ?? 300 ),
 			'seo_pages'       => ! empty( $input['seo_pages'] ),
+			// A permalink base, not free text: it becomes part of every trip's
+			// URL, and a value with a slash or a space in it produces rewrite
+			// rules that match nothing and a hundred 404s nobody can explain.
+			'trip_base'       => self::clean_base( $input['trip_base'] ?? '' ),
 		);
+	}
+
+	/**
+	 * A permalink base, or the default.
+	 *
+	 * @param mixed $input The submitted value.
+	 */
+	private static function clean_base( $input ): string {
+		$base = sanitize_title( (string) $input );
+
+		return '' === $base ? 'tours' : $base;
 	}
 
 	/**
@@ -319,6 +336,44 @@ final class SettingsPage {
 					<?php if ( $settings['seo_pages'] ) : ?>
 						<tr>
 							<th scope="row">
+								<label for="kaiki_trip_base"><?php echo esc_html__( 'Address for trip pages', 'kaiki-booking' ); ?></label>
+							</th>
+							<td>
+								<code><?php echo esc_html( untrailingslashit( home_url() ) ); ?>/</code>
+								<input type="text" class="small-text code" id="kaiki_trip_base"
+									name="<?php echo esc_attr( Settings::OPTION ); ?>[trip_base]"
+									value="<?php echo esc_attr( $settings['trip_base'] ); ?>">
+								<code>/&hellip;</code>
+								<p class="description">
+									<?php echo esc_html__( 'Change this only if something on your site already uses that word — two things cannot share one address.', 'kaiki-booking' ); ?>
+								</p>
+							</td>
+						</tr>
+
+						<tr>
+							<th scope="row"><?php echo esc_html__( 'Who owns the text', 'kaiki-booking' ); ?></th>
+							<td>
+								<p class="description" style="max-width:44rem">
+									<strong><?php echo esc_html__( 'Kaiki owns the title and the body of a trip page.', 'kaiki-booking' ); ?></strong>
+									<?php echo esc_html__( 'They are rewritten every time you change the trip in Kaiki, so editing them here will not last. Edit the trip in Kaiki instead.', 'kaiki-booking' ); ?>
+								</p>
+								<p class="description" style="max-width:44rem">
+									<strong><?php echo esc_html__( 'You own the short summary, the featured image and the address.', 'kaiki-booking' ); ?></strong>
+									<?php echo esc_html__( 'Once you change the summary on a trip page, this plugin never touches it again. The address of a page never changes after it is created, so links you have shared keep working.', 'kaiki-booking' ); ?>
+								</p>
+								<p class="description" style="max-width:44rem">
+									<?php echo esc_html__( 'A trip you switch off in Kaiki is unpublished here, and one you delete is moved to the trash. Nothing is removed permanently.', 'kaiki-booking' ); ?>
+								</p>
+							</td>
+						</tr>
+
+						<tr>
+							<th scope="row"><?php echo esc_html__( 'Last update', 'kaiki-booking' ); ?></th>
+							<td><?php self::render_sync_status(); ?></td>
+						</tr>
+
+						<tr>
+							<th scope="row">
 								<label for="kaiki_secret_key"><?php echo esc_html__( 'Secret key', 'kaiki-booking' ); ?></label>
 							</th>
 							<td>
@@ -438,5 +493,63 @@ final class SettingsPage {
 			'ok'      => true,
 			'message' => __( 'Connected. This site can read your trips.', 'kaiki-booking' ),
 		);
+	}
+
+	/**
+	 * When the trip pages last updated, and what happened.
+	 *
+	 * The one diagnosis most operators will ever need: *it says it ran at four
+	 * this morning and wrote nothing*. A log file is not somewhere they will
+	 * look, and "it isn't working" with no timestamp is a support conversation
+	 * that starts from nothing.
+	 */
+	private static function render_sync_status(): void {
+		$status = get_option( Sync::STATUS_OPTION );
+
+		if ( ! is_array( $status ) || ! isset( $status['at'] ) ) {
+			echo '<p class="description">' . esc_html__( 'It has not run yet. It runs by itself every hour, and whenever you change something in Kaiki.', 'kaiki-booking' ) . '</p>';
+
+			return;
+		}
+
+		$when = wp_date( 'j M Y, H:i', (int) $status['at'] );
+
+		$error = isset( $status['error'] ) ? (string) $status['error'] : '';
+
+		if ( '' !== $error ) {
+			echo '<p><strong>' . esc_html( self::sync_error( $error ) ) . '</strong></p>';
+			echo '<p class="description">' . esc_html( (string) $when ) . '</p>';
+
+			return;
+		}
+
+		$counts = isset( $status['counts'] ) && is_array( $status['counts'] ) ? $status['counts'] : array();
+
+		$written = (int) ( $counts['created'] ?? 0 ) + (int) ( $counts['updated'] ?? 0 );
+
+		echo '<p>' . esc_html(
+			sprintf(
+				/* translators: 1: a date and time. 2: a whole number of pages. */
+				__( 'Last ran %1$s and updated %2$d page(s).', 'kaiki-booking' ),
+				(string) $when,
+				$written
+			)
+		) . '</p>';
+	}
+
+	/**
+	 * A failure an operator can act on, rather than the word the code uses.
+	 *
+	 * @param string $error `refused`, `unreachable` or `unexpected`.
+	 */
+	private static function sync_error( string $error ): string {
+		switch ( $error ) {
+			case 'refused':
+				return __( 'Kaiki refused the secret key. Check it here, or make a new one in your Kaiki panel.', 'kaiki-booking' );
+			case 'unreachable':
+				return __( 'This site could not reach Kaiki. If it keeps happening, your host may be blocking outgoing connections.', 'kaiki-booking' );
+			default:
+				return __( 'Kaiki answered in a way this plugin did not understand. It will try again on its own.', 'kaiki-booking' );
+		}
 	}
 }

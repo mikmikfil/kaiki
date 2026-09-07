@@ -48,6 +48,48 @@ final class Locale {
 	}
 
 	/**
+	 * The **site's** language, ignoring whatever page we happen to be on.
+	 *
+	 * The sync (WPP-6) runs in WP-Cron, where there is no request, no visitor
+	 * and no language switcher — so {@see self::current()} would return whatever
+	 * the last thing to touch WPML's global left behind, and that is not a thing
+	 * to name an operator's URLs after. A pinned locale still wins, because an
+	 * operator who pinned one meant it.
+	 */
+	public static function site(): string {
+		$pinned = Settings::locale_mode();
+
+		if ( self::GREEK === $pinned || self::ENGLISH === $pinned ) {
+			return $pinned;
+		}
+
+		return self::map( (string) get_locale() );
+	}
+
+	/**
+	 * One language slug, mapped strictly — `null` when it is neither of ours.
+	 *
+	 * The difference from {@see self::map()} matters exactly once: when deciding
+	 * which languages to *create pages in*. A site publishing Greek, English and
+	 * German must not get a German page rendered from the English translation —
+	 * that is a page a German visitor bounces off and a crawler indexes as
+	 * English content on a German URL. Rendering *this* page falls back to
+	 * English instead, because a page in a language the visitor may not read is
+	 * still better than no page.
+	 *
+	 * @param string $locale A WordPress locale, or a language slug.
+	 */
+	public static function of( string $locale ): ?string {
+		$locale = strtolower( $locale );
+
+		if ( str_starts_with( $locale, 'el' ) || str_starts_with( $locale, 'gr' ) ) {
+			return self::GREEK;
+		}
+
+		return str_starts_with( $locale, 'en' ) ? self::ENGLISH : null;
+	}
+
+	/**
 	 * The raw locale WordPress or a translation plugin believes we are in.
 	 */
 	private static function detect(): string {

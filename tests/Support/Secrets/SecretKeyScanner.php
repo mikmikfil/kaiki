@@ -49,7 +49,29 @@ final class SecretKeyScanner
         'src/Settings/SettingsPage.php',
         // Where it is deleted, which is the opposite of a leak.
         'src/Uninstall.php',
+        // The sync itself (#116) — WP-Cron and the verified webhook, which is
+        // exactly the two places WPP-3 item 2 permits. It is a separate class
+        // from `Api\Client` for this reason alone: that one is reached from
+        // shortcodes, blocks and a REST route, and if the two shared a method
+        // this list would have to allow the secret in a file every template
+        // calls, which would make the list worth nothing.
+        'src/Seo/SyncClient.php',
     ];
+
+    /**
+     * The plugin's **own** tests, which are not scanned by reach.
+     *
+     * The guard asks "can this file hand the secret to a template". A test can
+     * hand it to nothing: it does not run in WordPress, it is not loaded by the
+     * plugin, and no request reaches it. It is also where the one assertion that
+     * matters lives — *that the sync sends the secret as a bearer token and no
+     * `Origin`* — which cannot be written without naming the option.
+     *
+     * The value scan is deliberately **not** narrowed: a live `sk_` in a test
+     * fixture is still a live key in the repository, and
+     * {@see self::artefactsCarryingASecret()} keeps looking for one everywhere.
+     */
+    private const NOT_SCANNED_BY_REACH = 'tests/';
 
     /**
      * Files under the plugin that name the secret and are not allowed to.
@@ -74,6 +96,10 @@ final class SecretKeyScanner
             $relative = str_replace('\\', '/', $file->getRelativePathname());
 
             if (in_array($relative, self::ALLOWED, true)) {
+                continue;
+            }
+
+            if (str_starts_with($relative, self::NOT_SCANNED_BY_REACH)) {
                 continue;
             }
 

@@ -12,10 +12,10 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M4 — WordPress plugin: #112 … #115 built.** M3 complete (#101 … #111), M2 complete, M1 complete. |
+| Milestone | **M4 — WordPress plugin: #112 … #116 built.** M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
 | M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
-| M4 | **#112 … #115 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, and the same four through Gutenberg and Elementor. **#116 the SEO pages and #117 the release remain; #117 needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117); #117 needs a real WordPress site, which is the product owner's. |
+| M4 | **#112 … #116 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, the same four through Gutenberg and Elementor, and the SEO trip pages. **#116 had to build `GET /api/v1/sync/products` on the platform first**: specified in `docs/api.md` since M0 and never implemented, so the feature it exists for had nothing to read. It is the only endpoint in the API a publishable key cannot reach. **#117 the release remains; it needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117). |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |

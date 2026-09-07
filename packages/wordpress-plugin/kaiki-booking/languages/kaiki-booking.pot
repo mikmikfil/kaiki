@@ -8,10 +8,22 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Domain: kaiki-booking\n"
 
+msgid "%d minutes"
+msgstr ""
+
+msgid "%d people"
+msgstr ""
+
 msgid "A booking form for one trip: date, party, details, pay."
 msgstr ""
 
 msgid "A month of availability for one trip."
+msgstr ""
+
+msgid "A trip you switch off in Kaiki is unpublished here, and one you delete is moved to the trash. Nothing is removed permanently."
+msgstr ""
+
+msgid "Address for trip pages"
 msgstr ""
 
 msgid "Always English"
@@ -26,6 +38,9 @@ msgstr ""
 msgid "Anything on a page is public. If it ever appears on one, delete the key in your Kaiki panel and make a new one."
 msgstr ""
 
+msgid "Boat"
+msgstr ""
+
 msgid "Bookings are briefly unavailable. Please try again in a moment, or contact us directly."
 msgstr ""
 
@@ -33,6 +48,9 @@ msgid "Cache, in seconds"
 msgstr ""
 
 msgid "Category"
+msgstr ""
+
+msgid "Change this only if something on your site already uses that word — two things cannot share one address."
 msgstr ""
 
 msgid "Choose a trip in the sidebar."
@@ -48,6 +66,12 @@ msgid "Connected. This site can read your trips."
 msgstr ""
 
 msgid "Create a page on this site for each trip"
+msgstr ""
+
+msgid "Departs from"
+msgstr ""
+
+msgid "Duration"
 msgstr ""
 
 msgid "Follow the page (recommended)"
@@ -66,6 +90,9 @@ msgid "How long your trips are remembered on this site. Changes you make in Kaik
 msgstr ""
 
 msgid "Is it connected?"
+msgstr ""
+
+msgid "It has not run yet. It runs by itself every hour, and whenever you change something in Kaiki."
 msgstr ""
 
 msgid "It is used by this site's own scheduled task to read your full catalogue, including trips you have not published. It is never sent to a visitor."
@@ -95,6 +122,9 @@ msgstr ""
 msgid "Kaiki address"
 msgstr ""
 
+msgid "Kaiki answered in a way this plugin did not understand. It will try again on its own."
+msgstr ""
+
 msgid "Kaiki answered, but not in a way this plugin understands. Try again shortly."
 msgstr ""
 
@@ -110,7 +140,13 @@ msgstr ""
 msgid "Kaiki enquiry form"
 msgstr ""
 
+msgid "Kaiki owns the title and the body of a trip page."
+msgstr ""
+
 msgid "Kaiki refused the key. Either it is wrong, or this site (%s) is not on the key's list of allowed addresses — you can add it in your Kaiki panel."
+msgstr ""
+
+msgid "Kaiki refused the secret key. Check it here, or make a new one in your Kaiki panel."
 msgstr ""
 
 msgid "Kaiki tells this site the moment something changes — a new trip, a new price — so visitors never see an out-of-date catalogue. Paste the update secret from your Kaiki panel to switch it on."
@@ -120,6 +156,12 @@ msgid "Kaiki trips"
 msgstr ""
 
 msgid "Language"
+msgstr ""
+
+msgid "Last ran %1$s and updated %2$d page(s)."
+msgstr ""
+
+msgid "Last update"
 msgstr ""
 
 msgid "Leave empty to show every trip."
@@ -137,7 +179,13 @@ msgstr ""
 msgid "No trips found. You can still paste a trip id."
 msgstr ""
 
+msgid "Not included"
+msgstr ""
+
 msgid "Off by default, and the plugin is complete without it. Switched on, each of your trips also becomes a page on this site, so Google finds it here as well as on Kaiki."
+msgstr ""
+
+msgid "Once you change the summary on a trip page, this plugin never touches it again. The address of a page never changes after it is created, so links you have shared keep working."
 msgstr ""
 
 msgid "Only the trip pages need this, and only on this screen."
@@ -176,6 +224,9 @@ msgstr ""
 msgid "There is no key saved yet."
 msgstr ""
 
+msgid "They are rewritten every time you change the trip in Kaiki, so editing them here will not last. Edit the trip in Kaiki instead."
+msgstr ""
+
 msgid "This booking form needs to know which trip it is for. Use %s, with the trip id from your Kaiki panel."
 msgstr ""
 
@@ -183,6 +234,9 @@ msgid "This calendar needs to know which trip it is for. Use %s, with the trip i
 msgstr ""
 
 msgid "This site could not reach Kaiki at all. Check the address above, or try again in a minute."
+msgstr ""
+
+msgid "This site could not reach Kaiki. If it keeps happening, your host may be blocking outgoing connections."
 msgstr ""
 
 msgid "This site is not set up to receive updates."
@@ -200,7 +254,22 @@ msgstr ""
 msgid "Trip pages for search engines"
 msgstr ""
 
+msgid "Trips"
+msgstr ""
+
+msgid "Up to"
+msgstr ""
+
 msgid "Update secret"
+msgstr ""
+
+msgid "What is included"
+msgstr ""
+
+msgid "What to bring"
+msgstr ""
+
+msgid "Who owns the text"
 msgstr ""
 
 msgid "Without it, your trips are refreshed on the timer above instead. Give Kaiki this address:"
@@ -210,6 +279,9 @@ msgid "You do not have permission to change these settings."
 msgstr ""
 
 msgid "You do not have permission to do that."
+msgstr ""
+
+msgid "You own the short summary, the featured image and the address."
 msgstr ""
 
 msgid "Your trips as a grid, with a link to book each one."

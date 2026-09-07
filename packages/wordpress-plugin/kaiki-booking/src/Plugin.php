@@ -13,6 +13,8 @@ use Kaiki\Booking\Blocks\Blocks;
 use Kaiki\Booking\Elementor\Widgets;
 use Kaiki\Booking\Http\Webhook;
 use Kaiki\Booking\Rest\Trips;
+use Kaiki\Booking\Seo\Sync;
+use Kaiki\Booking\Seo\TripPostType;
 use Kaiki\Booking\Shortcodes\Shortcodes;
 use Kaiki\Booking\Settings\SettingsPage;
 
@@ -51,6 +53,13 @@ final class Plugin {
 		// The trip picker the block editor needs. Capability-gated, and it
 		// returns nothing a publishable key could not already read.
 		Trips::register();
+
+		// The SEO trip pages (WPP-6), and the only part of this plugin that
+		// touches the secret key. Both calls are no-ops when the operator has
+		// not switched the feature on — no post type, no schedule, and nothing
+		// that reads a secret.
+		TripPostType::register();
+		Sync::register();
 
 		if ( is_admin() ) {
 			SettingsPage::register();

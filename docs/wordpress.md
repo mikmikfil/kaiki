@@ -94,6 +94,48 @@ a theme file** — anything on a page is public, and a secret key on a page is a
 key somebody else can use. If it ever appears on one, delete it in your Kaiki
 panel and make a new one.
 
+### Where the pages live
+
+`/tours/…` by default. You can change the word on the settings screen, and you
+will need to if something on your site already uses it — two things cannot share
+one address. Changing it moves every trip page, so do it once, early.
+
+### Who owns the text
+
+This is the question this feature generates, so it is worth reading before it
+happens rather than after.
+
+**Kaiki owns the title and the body.** They are rewritten every time you change
+the trip in Kaiki, so editing them in WordPress will not last. Edit the trip in
+Kaiki instead.
+
+**You own the short summary, the featured image and the address.** The plugin
+writes the summary once; the moment you change it, the plugin never touches it
+again. The address of a page never changes after it is created, even if you
+rename the trip in Kaiki — so links you have shared keep working.
+
+### Switching a trip off, and deleting one
+
+A trip you switch off in Kaiki is **unpublished** here: the page stops answering
+and everything about it — the address, the comments, the image you chose — is
+still there when the trip comes back next season. A trip you delete in Kaiki is
+moved to the **trash**. Nothing is ever removed permanently, and nothing is
+removed at all when you delete the plugin: the pages stay in your WordPress, and
+reappear if you install it again.
+
+### If you have a second language
+
+With WPML or Polylang installed, each trip becomes one page per language you
+publish in Kaiki. Without them, each trip becomes one page, in your site's own
+language. A trip you have not translated yet gets no page in that language —
+better than a page whose title is in the wrong one.
+
+### When it runs
+
+Every hour by itself, and immediately whenever you change something in Kaiki.
+The settings screen says when it last ran and what it did; if something is
+wrong, it says that instead.
+
 ---
 
 ## What the plugin does not do

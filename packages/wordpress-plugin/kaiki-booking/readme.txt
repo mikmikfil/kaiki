@@ -44,6 +44,22 @@ plugin is fully functional that way. A secret key is needed only if you switch
 on the optional trip pages, and even then it is used only by this site's own
 scheduled task. Never paste it into a page, a post or a theme file.
 
+= If I turn on trip pages, who owns the text? =
+
+Kaiki owns the title and the body of each trip page: they are rewritten whenever
+you change the trip in Kaiki, so editing them here will not last. You own the
+short summary, the featured image and the address — once you change the summary,
+this plugin never touches it again, and a page's address never changes after it
+is created, so links you have shared keep working.
+
+= What happens to the trip pages if I delete the plugin? =
+
+They stay. A trip you switch off in Kaiki is unpublished and one you delete is
+moved to the trash, but nothing is ever removed permanently — and deleting the
+plugin removes its settings, not your pages. They become invisible while the
+plugin is gone and come back if you install it again. To remove them for good,
+delete them in WordPress before you delete the plugin.
+
 = Will it work with my theme? =
 
 The booking form draws itself inside a shadow root, which means your theme's

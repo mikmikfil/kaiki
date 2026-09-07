@@ -11,6 +11,8 @@ namespace Kaiki\Booking;
 
 defined( 'ABSPATH' ) || exit;
 
+use Kaiki\Booking\Seo\Sync;
+use Kaiki\Booking\Seo\TripPostType;
 use Kaiki\Booking\Settings\Settings;
 
 /**
@@ -37,9 +39,20 @@ final class Uninstall {
 	 */
 	public static function run(): void {
 		require_once __DIR__ . '/Settings/Settings.php';
+		require_once __DIR__ . '/Seo/Sync.php';
+		require_once __DIR__ . '/Seo/TripPostType.php';
 
 		delete_option( Settings::OPTION );
 		delete_option( Settings::SECRET_OPTION );
+		delete_option( Settings::WEBHOOK_SECRET_OPTION );
+
+		// The sync's own bookkeeping (#116): where the traversal was, what it
+		// asked for, how far it has got and how the last run went.
+		delete_option( Sync::CURSOR_OPTION );
+		delete_option( Sync::SINCE_OPTION );
+		delete_option( Sync::MARK_OPTION );
+		delete_option( Sync::STATUS_OPTION );
+		delete_option( TripPostType::BASE_OPTION );
 
 		self::delete_transients();
 
@@ -49,8 +62,26 @@ final class Uninstall {
 			self::delete_network_options();
 		}
 
-		wp_clear_scheduled_hook( 'kaiki_sync_products' );
+		// The real hook name, from the class that schedules it. A literal here
+		// was wrong for a whole milestone — `kaiki_sync_products`, which nothing
+		// ever scheduled — and the failure of a `wp_clear_scheduled_hook` on a
+		// hook that does not exist is silence.
+		wp_clear_scheduled_hook( Sync::HOOK );
 	}
+
+	/**
+	 * ## The trip posts are deliberately left behind
+	 *
+	 * They are an operator's pages: linked to from their own site, shared, and
+	 * indexed. Deleting a hundred of them because a plugin was removed — perhaps
+	 * to reinstall it, perhaps by a host doing housekeeping — is the one
+	 * irreversible thing this file could do, and it would be done silently. The
+	 * same reasoning the sync itself follows: unpublish, trash, never destroy.
+	 *
+	 * They become invisible when the post type stops being registered, and they
+	 * come back if the plugin does. `readme.txt` says so, because an operator
+	 * who wants them gone should be told how rather than surprised.
+	 */
 
 	/**
 	 * Transients, by prefix.
@@ -77,5 +108,6 @@ final class Uninstall {
 	private static function delete_network_options(): void {
 		delete_site_option( Settings::OPTION );
 		delete_site_option( Settings::SECRET_OPTION );
+		delete_site_option( Settings::WEBHOOK_SECRET_OPTION );
 	}
 }

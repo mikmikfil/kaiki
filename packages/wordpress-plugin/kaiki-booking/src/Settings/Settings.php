@@ -39,7 +39,7 @@ final class Settings {
 	/**
 	 * Everything safe to hand to anything.
 	 *
-	 * @return array{publishable_key: string, api_base: string, locale_mode: string, cache_ttl: int, seo_pages: bool}
+	 * @return array{publishable_key: string, api_base: string, locale_mode: string, cache_ttl: int, seo_pages: bool, trip_base: string}
 	 */
 	public static function all(): array {
 		$stored = get_option( self::OPTION, array() );
@@ -58,6 +58,7 @@ final class Settings {
 			'locale_mode'     => self::text( $stored, 'locale_mode', 'auto' ),
 			'cache_ttl'       => self::ttl( $stored ),
 			'seo_pages'       => ! empty( $stored['seo_pages'] ),
+			'trip_base'       => self::text( $stored, 'trip_base', 'tours' ),
 		);
 	}
 
@@ -87,6 +88,17 @@ final class Settings {
 	 */
 	public static function seo_pages_enabled(): bool {
 		return self::all()['seo_pages'];
+	}
+
+	/**
+	 * The permalink base the trip pages live under (WPP-6), default `tours`.
+	 *
+	 * Configurable because the word is already taken on plenty of sites — by a
+	 * page, by a WooCommerce category, by another plugin's post type — and two
+	 * things claiming one URL is a 404 on whichever loses.
+	 */
+	public static function trip_base(): string {
+		return self::all()['trip_base'];
 	}
 
 	/**

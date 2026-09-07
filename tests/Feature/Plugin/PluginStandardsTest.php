@@ -92,7 +92,7 @@ it('cleans up after itself when it is deleted', function (): void {
         ->and($cleanup)->toContain('_transient_');
 })->group('fast');
 
-it('reads the secret key in three files and nowhere else', function (): void {
+it('reads the secret key in four files and nowhere else', function (): void {
     // **The security claim of the milestone.** ADR-0013 Option A confines the
     // secret to WP-Cron and the inbound webhook; the settings screen stores it
     // and the uninstall removes it. Everything else — every shortcode, block,

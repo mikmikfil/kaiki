@@ -2,6 +2,20 @@
 
 ## M4 — WordPress plugin
 
+### #116 - The SEO trip pages, and the only secret key the plugin may hold
+
+Each trip becomes a real page on the operator's own site, at `/tours/…`, with the description and the facts written into the markup and the booking widget under them. Crawlable without JavaScript, bookable with it — the same split the hosted pages make.
+
+**The endpoint it syncs from did not exist.** `GET /api/v1/sync/products` has been specified in `docs/api.md` since M0 — tombstones, unresolved translations, cursor pagination, `meta.sync_cursor` — and was never built, so this feature had nothing to read. Building it first is most of what this issue cost, and it is the only endpoint in the API a publishable key cannot reach: the payload is the whole catalogue including drafts and internal SEO fields, and a `pk_` sits in the source of somebody's home page.
+
+**Unpublish, trash, never delete.** A trip switched off for the season becomes a draft: the URL stops answering and the address, the comments and the operator's chosen image are all still there in April. A trip deleted on the platform is trashed. Nothing is destroyed, including when the plugin itself is deleted — the pages stay, because removing a hundred of somebody's pages as a side effect of removing a plugin is the one irreversible thing the uninstall could do.
+
+**The support question this feature generates is "why did my text change back", so the answer is enforced rather than intended.** Kaiki owns the title and the body. The operator owns the excerpt from the moment they change it — the sync remembers what it wrote and compares before touching it. And the slug never changes after the post exists: renaming a trip on the platform must not break every link anybody has shared, and WordPress leaves no redirect behind.
+
+**A shared host will interrupt a four-hundred-trip sync, so the loop is written for that.** The page cursor is saved after every page and the run resumes there; the high-water mark moves only when a traversal *finishes*, because advancing it per page would step over products an interrupted run never wrote — and those products would never be seen again, with the sync reporting success every hour. A lock stops cron and a webhook running at once, which is otherwise two `wp_insert_post` calls for a product that does not exist yet and a second page at `slug-2`.
+
+Two things found on the way, both in the platform rather than the plugin. The error code for a secret key sent from a browser was spelled `secret_key_from_browser` in the code and `secret_key_in_browser` in the contract — and §4.2 is what clients branch on. And three endpoints had each grown their own copy of the `If-None-Match` comparison; the naive version of it is not obviously wrong, because it works for every client that sends back exactly what it was given.
+
 ### #115 - Gutenberg blocks and Elementor widgets, both rendering through the shortcode
 
 The same four embeds, chosen with a mouse. The spec fixes them as *server-rendered wrappers around the shortcodes*, and that phrase is the whole design.
