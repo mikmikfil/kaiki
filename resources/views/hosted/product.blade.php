@@ -40,6 +40,18 @@
 
     <article class="product">
 
+        {{-- The lead photograph, full width and cropped to a letterbox. A trip
+             page whose first element is a heading over a grid of four small
+             photographs is a catalogue entry; one that opens with the view is a
+             trip. The rest of the operator's photographs follow further down. --}}
+        @if ($images !== [])
+            <div class="product-lead">
+                <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($images[0]['url']) }}"
+                     alt="{{ $images[0]['alt'] ?? $product->title }}"
+                     loading="eager">
+            </div>
+        @endif
+
         <header class="product-head">
             <h1>{{ $product->title }}</h1>
 
@@ -62,21 +74,20 @@
             </ul>
         </header>
 
-        @if ($images !== [])
-            <ul class="shots" role="list">
-                @foreach ($images as $image)
-                    <li><img src="{{ $image['url'] }}" alt="{{ $image['alt'] ?? $product->title }}" loading="lazy"></li>
-                @endforeach
-            </ul>
-        @endif
-
         {{--
             The booking area. Brand decision 3 of 2026-09-04 is **four lines
             above the date picker** — title, duration, port, vessel — and no
             photograph and no summary. The space looks empty in the mockup too,
             and the decision was made against exactly that temptation.
         --}}
-        <section class="booking" id="book" aria-labelledby="booking-heading">
+        {{-- Two columns on a desktop: what the trip is on the left, how to book
+             it on the right, and the booking card **sticky** so it is still on
+             screen when a visitor has read to the bottom of the itinerary. That
+             is the whole reason for the layout — a booking form below three
+             screens of prose is a booking form nobody scrolls back up to. --}}
+        <div class="product-body">
+            <aside class="product-aside">
+                <section class="booking" id="book" aria-labelledby="booking-heading">
             <h2 id="booking-heading" class="sr-only">{{ __('hosted.product.booking.heading') }}</h2>
 
             <dl class="four-lines">
@@ -122,7 +133,10 @@
                     </p>
                 </div>
             @endif
-        </section>
+                </section>
+            </aside>
+
+            <div class="product-main">
 
         @if ($product->description)
             <section class="section">
@@ -275,11 +289,13 @@
         @endif
 
         {{-- This trip's questions plus the operator's, its own first (#103). --}}
-        @include('hosted.partials.faq', [
-            'entries' => $faqs,
-            'heading' => __('hosted.blocks.faq.heading'),
-            'anchor' => 'faq',
-        ])
+            @include('hosted.partials.faq', [
+                'entries' => $faqs,
+                'heading' => __('hosted.blocks.faq.heading'),
+                'anchor' => 'faq',
+            ])
+            </div>
+        </div>
 
         @if ($schema)
             {{-- HOS-2's `Product` and `Event` graph. Nonced for the same reason

@@ -35,12 +35,27 @@ final class HostedAsset
             return null;
         }
 
-        $absolute = Storage::disk('public')->url($path);
+        return self::relative(Storage::disk('public')->url($path));
+    }
 
-        // The path and anything after it, dropping whatever origin the disk
-        // decided to prepend. A disk configured with a real CDN keeps its host,
-        // because then the operator has deliberately put the images somewhere
-        // else and the policy is theirs to widen.
+    /**
+     * An absolute URL of ours, made relative.
+     *
+     * The API hands third-party pages **absolute** URLs, and must: a widget on
+     * an operator's own site cannot resolve `/storage/…` against our origin.
+     * `ImagePayload` therefore builds absolute ones and is right to. A hosted
+     * page is the other case, and this is where the two meet.
+     *
+     * A disk configured with a real CDN keeps its host, because then the
+     * operator has deliberately put their images somewhere else and widening
+     * the policy is their decision rather than ours to make silently.
+     */
+    public static function relative(?string $absolute): ?string
+    {
+        if ($absolute === null || $absolute === '') {
+            return null;
+        }
+
         $host = parse_url($absolute, PHP_URL_HOST);
         $appHost = parse_url((string) config('app.url'), PHP_URL_HOST);
 

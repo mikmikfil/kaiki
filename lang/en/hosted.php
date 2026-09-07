@@ -24,6 +24,10 @@ return [
         'trips' => 'Our trips',
         'no_trips' => 'There are no trips on sale at the moment.',
         'duration' => ':minutes minutes',
+        'view' => 'See this trip',
+        'all_trips' => 'All our trips',
+        'search_prompt' => 'When would you like to sail?',
+        'from' => 'from',
     ],
 
     // HOS-10. It says who to contact rather than what went wrong — the visitor
@@ -44,6 +48,8 @@ return [
         ],
         'contact' => [
             'heading' => 'Get in touch',
+            'write' => 'Write to us',
+            'call' => 'Call us',
             'phone' => 'Phone',
             'email' => 'Email',
             'address' => 'Address',

@@ -80,6 +80,12 @@ final class HostedPageCsp
             // `data:` covers the inline SVG a QR or an icon uses.
             'img-src' => [$self, 'data:'],
 
+            // A hero video, from the same disk as everything else. Without this
+            // the `<video>` is blocked and the page shows its poster for ever —
+            // silently, because a policy violation is logged in the visitor's
+            // console and nowhere we can see.
+            'media-src' => [$self],
+
             // The widget talks to the API. Nothing else on this page makes a
             // request at all.
             'connect-src' => array_values(array_unique(array_filter([

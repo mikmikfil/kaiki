@@ -18,38 +18,59 @@
              loading="lazy">
     @endif
 
-    @if ($block->heading)
-        <h2>{{ $block->heading }}</h2>
-    @endif
+    {{-- Two columns on a wide screen: what to say on the left, how to reach
+         them on the right. One wrapper rather than two, so the grid has
+         something to be a grid of. --}}
+    <div class="contact-inner">
+        <div>
+            @if ($block->heading)
+                <h2>{{ $block->heading }}</h2>
+            @endif
 
-    @if ($block->body)
-        <div class="prose">{{ $block->prose() }}</div>
-    @endif
+            @if ($block->body)
+                <div class="prose">{{ $block->prose() }}</div>
+            @endif
 
-    <ul class="contact-list">
-        @if ($block->setting('show_phone') && $tenant->phone)
-            <li>
+            {{-- Something to press. An address panel with no action in it asks a
+                 visitor to copy an email address by hand, on a phone, which is
+                 the point at which they give up. --}}
+            @if ($tenant->email || $tenant->phone)
+                <p class="contact-actions">
+                    @if ($tenant->email)
+                        <a class="button" href="mailto:{{ $tenant->email }}">{{ __('hosted.blocks.contact.write') }}</a>
+                    @endif
+
+                    @if ($tenant->phone)
+                        <a class="button ghost" href="tel:{{ $tenant->phone }}">{{ __('hosted.blocks.contact.call') }}</a>
+                    @endif
+                </p>
+            @endif
+        </div>
+
+        <ul class="contact-list">
+            @if ($block->setting('show_phone') && $tenant->phone)
+                <li>
                 <span class="label">{{ __('hosted.blocks.contact.phone') }}</span>
                 <a href="tel:{{ $tenant->phone }}">{{ $tenant->phone }}</a>
-            </li>
-        @endif
+                </li>
+            @endif
 
-        @if ($block->setting('show_email') && $tenant->email)
-            <li>
+            @if ($block->setting('show_email') && $tenant->email)
+                <li>
                 <span class="label">{{ __('hosted.blocks.contact.email') }}</span>
                 <a href="mailto:{{ $tenant->email }}">{{ $tenant->email }}</a>
-            </li>
-        @endif
+                </li>
+            @endif
 
-        @if ($block->setting('show_address') && $tenant->address_line1)
-            <li>
+            @if ($block->setting('show_address') && $tenant->address_line1)
+                <li>
                 <span class="label">{{ __('hosted.blocks.contact.address') }}</span>
                 <span>{{ trim($tenant->address_line1 . ' ' . $tenant->postcode . ' ' . $tenant->city) }}</span>
-            </li>
-        @endif
+                </li>
+            @endif
 
-        @if ($meetingPoint)
-            <li>
+            @if ($meetingPoint)
+                <li>
                 <span class="label">{{ __('hosted.blocks.contact.meeting_point') }}</span>
                 <span>
                     {{ $meetingPoint->name }}
@@ -60,7 +81,8 @@
                 @if ($meetingPoint->instructions)
                     <span class="instructions">{{ $meetingPoint->instructions }}</span>
                 @endif
-            </li>
-        @endif
-    </ul>
+                </li>
+            @endif
+        </ul>
+    </div>
 </section>

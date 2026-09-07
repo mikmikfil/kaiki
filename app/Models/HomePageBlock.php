@@ -42,6 +42,7 @@ use Illuminate\Support\HtmlString;
  * @property string|null $heading translatable
  * @property string|null $body translatable, plain text
  * @property string|null $image_path
+ * @property string|null $video_path
  * @property array<int, array<string, mixed>>|null $images
  * @property array<string, mixed>|null $settings
  */

@@ -49,6 +49,11 @@ return [
             'help' => 'Plain text. Leave a blank line between paragraphs. Formatting and links are not supported here — this keeps your page fast and impossible to break.',
         ],
 
+        'video' => [
+            'label' => 'Video (optional)',
+            'help' => 'A short clip for the top of the page — a few seconds, no sound. MP4 or WebM, up to 20 MB. Keep the photograph above as well: it is what a visitor sees until the video loads, and what they see instead if they have asked for less motion.',
+        ],
+
         'image' => [
             'label' => 'Image',
             'help' => 'JPEG, PNG or WebP, up to 4 MB. Wide photographs work best.',

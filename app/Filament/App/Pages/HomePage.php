@@ -139,6 +139,7 @@ class HomePage extends Page implements HasForms
             'heading' => $block->getTranslations('heading'),
             'body' => $block->getTranslations('body'),
             'image_path' => $block->image_path,
+            'video_path' => $block->video_path,
             'images' => $block->images ?? [],
             'settings' => $block->settings(),
         ])->all();
@@ -275,6 +276,12 @@ class HomePage extends Page implements HasForms
             $this->image('image_path')
                 ->visible(fn (Get $get): bool => HomeBlockType::tryFrom((string) $get('type'))?->hasImage() ?? false),
 
+            // The hero only. A video behind a story or a contact panel is
+            // decoration competing with the words next to it; behind a masthead
+            // it is the masthead.
+            $this->video('video_path')
+                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Hero->value),
+
             // --- hero ---
 
             Select::make('settings.cta')
@@ -405,6 +412,32 @@ class HomePage extends Page implements HasForms
      * a page a crawler reads, and streaming them through a controller would put
      * PHP in front of every photograph on the busiest page in the product.
      */
+    /**
+     * The hero's optional video (HOS-1).
+     *
+     * ## Twenty megabytes, and the limit is the point
+     *
+     * A masthead video is a five-second loop of water, not a film. An operator
+     * who uploads a two-minute clip from their phone has made their own home
+     * page unusable on the connection their guests are on — in a harbour, on
+     * roaming data — and they will never see it, because their office has
+     * fibre. The limit is the only thing that says so.
+     *
+     * `mp4` and `webm` and nothing else: between them they play everywhere, and
+     * a `.mov` straight off an iPhone does not play in Chrome on Android at all.
+     */
+    protected function video(string $name): FileUpload
+    {
+        return FileUpload::make($name)
+            ->label(__('home_page.form.video.label'))
+            ->helperText(__('home_page.form.video.help'))
+            ->disk('public')
+            ->directory('home')
+            ->visibility('public')
+            ->maxSize(20480)
+            ->acceptedFileTypes(['video/mp4', 'video/webm']);
+    }
+
     protected function image(string $name): FileUpload
     {
         return FileUpload::make($name)

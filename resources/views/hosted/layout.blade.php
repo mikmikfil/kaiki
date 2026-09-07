@@ -113,7 +113,7 @@
            scrollbar's width. */
         html { overflow-x: hidden; }
 
-        .wrap { max-width: 78rem; margin: 0 auto; padding: 0 1.5rem; }
+        .wrap { max-width: 78rem; margin: 0 auto; padding: 0 clamp(1.25rem, 3vw, 2.5rem); }
 
         /* The reading measure, for blocks that are words rather than layout. */
         .prose, .standfirst { max-width: 44rem; }
@@ -127,7 +127,7 @@
 
         header.site .wrap {
             display: flex; align-items: center; justify-content: space-between;
-            gap: 1rem; padding-block: 1rem;
+            gap: 1rem; padding-block: 1.4rem;
         }
 
         .brand { display: flex; align-items: center; gap: .7rem; text-decoration: none; color: inherit; }
@@ -151,33 +151,160 @@
 
         /* --- content --- */
 
-        main { padding-block: 2.5rem 3.5rem; }
+        main { padding-block: 0 4.5rem; }
 
-        h1 { font-weight: 800; font-size: clamp(1.8rem, 4.5vw, 2.6rem); letter-spacing: -.025em; margin: 0 0 .6rem; text-wrap: balance; }
-        h2 { font-weight: 700; font-size: 1.35rem; letter-spacing: -.015em; margin: 2.5rem 0 1rem; }
+        /* --- typography ----------------------------------------------
+           One scale, declared once, with **visible steps between the levels**.
+           The page had h1 at 2.6rem, h2 at 1.35 and h3 at 1.05: two of those are
+           nearly the same size, so a section heading and a card heading read as
+           the same thing and the page has no shape.
+
+           Weight and colour do the work rather than case. I18N-2 forbids
+           uppercasing Greek — the accents are dropped and the final sigma is
+           argued about — so a design that leaned on capitals would mangle half
+           its audience's names.
+
+           `--step-*` rather than literals, so the ratio between the levels can
+           be changed in one place and stays a ratio. */
+        :root {
+            --step-0: 1rem;
+            --step-1: 1.125rem;
+            --step-2: clamp(1.25rem, 1.6vw, 1.4rem);
+            --step-3: clamp(1.5rem, 2.4vw, 1.9rem);
+            --step-4: clamp(2rem, 4.4vw, 2.9rem);
+            --step-5: clamp(2.2rem, 5vw, 3.4rem);
+        }
+
+        h1 { font-weight: 800; font-size: var(--step-4); line-height: 1.08; letter-spacing: -.03em; margin: 0 0 .7rem; text-wrap: balance; }
+        h2 { font-weight: 700; font-size: var(--step-3); line-height: 1.15; letter-spacing: -.025em; margin: 0 0 1.8rem; text-wrap: balance; }
+        h3 { font-weight: 700; font-size: var(--step-2); line-height: 1.25; letter-spacing: -.018em; margin: 0 0 .5rem; }
+        h4 { font-weight: 600; font-size: var(--step-1); line-height: 1.3; letter-spacing: -.01em; margin: 0 0 .4rem; }
+
+        /* The hero is the one place a bigger step is warranted: it is the only
+           h1 on the page and it has a photograph behind it to hold its own
+           against. */
+        .hero h1 { font-size: var(--step-5); margin-bottom: 1rem; max-width: 24ch; }
+
+        /* A card's heading is an h3 in the outline and should not shout like a
+           section heading. This is the step that was missing. */
+        li.trip h3, .faq-item h3 { font-size: var(--step-1); }
+
+        /* A small label above a heading. Letter-spacing and colour, never
+           capitals. */
+        .eyebrow {
+            font-size: .78rem; font-weight: 600; letter-spacing: .12em;
+            color: color-mix(in srgb, var(--kaiki-primary) 70%, transparent);
+            margin: 0 0 .7rem;
+        }
 
         /* Repeated cards are equal height with their last row pinned to the
            bottom — settled on 4 September, and the reason is that a row of
            cards whose prices sit at different heights reads as a mistake. The
            price row lands here with the product page; the grid is built for it
            now so it does not have to be retrofitted. */
+        /* `auto-fit` with a 19rem floor: three across on a laptop, two on a
+           tablet, one on a phone — and, crucially, the last row stretches to
+           fill rather than leaving a half-width card next to empty space, which
+           is what `auto-fill` did. */
         ul.trips {
             list-style: none; margin: 0; padding: 0;
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
-            gap: 1.1rem;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr));
+            gap: 1.5rem;
         }
 
+        /* No border and no movement on hover. A card that lifts and changes
+           colour when the cursor passes over it is a page that flinches; the
+           shadow below is a resting state rather than a reaction, and the
+           heading's own colour change is all the feedback a link needs. */
         li.trip {
-            background: var(--surface); border: 1px solid var(--rule);
-            border-radius: 14px; padding: 1.15rem 1.25rem;
+            background: var(--surface);
+            border-radius: 16px;
+            overflow: hidden;
             display: flex; flex-direction: column;
+            box-shadow: 0 1px 2px color-mix(in srgb, var(--kaiki-text) 8%, transparent),
+                        0 8px 24px -20px color-mix(in srgb, var(--kaiki-text) 40%, transparent);
         }
 
-        li.trip h3 { margin: 0 0 .4rem; font-size: 1.05rem; font-weight: 700; letter-spacing: -.012em; }
-        li.trip h3 a { color: inherit; text-decoration: none; }
+        /* A fixed ratio, so a row of cards is a row rather than a staircase.
+           `object-fit: cover` means an operator's portrait photograph is cropped
+           rather than letterboxed — a band of white above a boat is worse than a
+           tighter crop of it. */
+        .trip-image {
+            display: block;
+            aspect-ratio: 3 / 2;
+            background: color-mix(in srgb, var(--kaiki-primary) 10%, var(--surface));
+            overflow: hidden;
+        }
+
+        .trip-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+        /* A trip with no photograph. A tinted panel in the operator's own colour
+           rather than a broken box or a stock photograph of somebody else's
+           boat — and it is a deliberate-looking state, because a new operator
+           sees it on every card until they upload something. */
+        .trip-image.is-empty {
+            background:
+                radial-gradient(120% 100% at 30% 20%, color-mix(in srgb, var(--kaiki-primary) 18%, transparent), transparent 70%),
+                color-mix(in srgb, var(--kaiki-primary) 8%, var(--surface));
+        }
+
+        .trip-body { display: flex; flex-direction: column; flex: 1; padding: 1.5rem 1.6rem 1.6rem; }
+
+        li.trip h3 { margin: 0 0 .45rem; font-size: 1.12rem; line-height: 1.25; }
+        li.trip h3 a { color: inherit; }
         li.trip h3 a:hover { color: var(--kaiki-primary); }
-        li.trip .summary { margin: 0 0 .8rem; color: var(--ink-soft); font-size: .93rem; }
-        li.trip .facts { margin: 0 0 .5rem; color: var(--ink-faint); font-size: .84rem; }
+        li.trip .summary { margin: 0 0 .9rem; color: var(--ink-soft); font-size: .94rem; }
+        li.trip .facts { margin: 0 0 1.1rem; color: var(--ink-faint); font-size: .84rem; }
+
+        .trip-foot {
+            margin-top: auto; padding-top: .9rem;
+            border-top: 1px solid var(--rule);
+            display: flex; align-items: center; justify-content: space-between; gap: .8rem;
+        }
+
+        /* The featured rail. A native horizontal scroller: it swipes on a
+           phone, scrolls on a trackpad and answers the arrow keys when focused,
+           and it needs no script — which matters here, because HOS-8's policy
+           has no `unsafe-inline` and a carousel library would be an exception
+           bought for something the browser does already.
+
+           `scroll-padding-inline` keeps a snapped card off the very edge, and
+           the negative margin lets the rail bleed to the page gutter so the
+           sixth card is visibly cut off rather than looking like the last. */
+        .trips-rail {
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(19rem, 22rem);
+            grid-template-columns: none;
+            overflow-x: auto;
+            overscroll-behavior-x: contain;
+            scroll-snap-type: x mandatory;
+            scroll-padding-inline: 1.5rem;
+            padding-bottom: .75rem;
+            margin-inline: -1.5rem;
+            padding-inline: 1.5rem;
+        }
+
+        .trips-rail > li { scroll-snap-align: start; }
+
+        .trips-rail:focus-visible { outline: 2px solid var(--kaiki-accent); outline-offset: 4px; }
+
+        /* A scrollbar an operator's visitor can see, because an invisible one
+           on a desktop is a rail nobody knows scrolls. */
+        .trips-rail { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--kaiki-primary) 40%, transparent) transparent; }
+
+        .trips-more {
+            margin: 3.5rem 0 1.6rem;
+            font-size: var(--step-2);
+            color: var(--ink-soft);
+            font-weight: 600;
+        }
+
+        .trip-price { margin: 0; display: flex; align-items: baseline; gap: .35rem; }
+        /* A quote product has no price element at all (BKG-24), so the button
+           would otherwise slide to the left of the card and break the row. */
+        .trip-foot .button { margin-left: auto; }
+        .trip-price .from { font-size: .8rem; color: var(--ink-faint); }
+        .trip-price strong { font-size: 1.2rem; letter-spacing: -.02em; }
 
         /* --- search (#105) ------------------------------------------ */
 
@@ -230,32 +357,41 @@
         /* Each block owns its vertical rhythm through the gap on `main`
            rather than through margins, so two adjacent blocks never
            collapse or double their spacing. */
-        main .wrap { display: flex; flex-direction: column; gap: 3rem; }
+        /* The vertical rhythm of the whole page, in one place. A home page's
+           sections need room between them or they read as one long column with
+           headings in it — and the sections themselves are big, so the gap has
+           to be bigger than the space inside them or the hierarchy inverts. */
+        main .wrap { display: flex; flex-direction: column; gap: clamp(3.5rem, 7vw, 6rem); }
 
         .block { margin: 0; }
         .block > h2:first-child { margin-top: 0; }
 
-        /* --- the hero ---
-           Full-bleed: it breaks out of `.wrap` to the window edges, because a
-           masthead inside a 78rem column reads as the first item in a list
-           rather than as the top of a page. The copy sits back inside the same
-           column so the text still lines up with everything below it.
+        /* --- the hero ------------------------------------------------
+           Full-bleed, because a masthead inside a 78rem column reads as the
+           first item in a list rather than as the top of a page. The copy sits
+           back inside that column so it lines up with everything below it —
+           which is the whole reason it is not centred: a centred hero over a
+           left-aligned page is two designs on one screen.
 
-           The image is a background rather than an `<img>` **only when there is
-           one**; without it the block is a plain banner in the operator's own
-           primary colour, which is the state a new operator sees before they
-           have uploaded anything and it should look deliberate. */
+           **Tall on purpose.** A hero the height of its text is a coloured band;
+           the point of a photograph of the sea is that you can see some of it. */
         .hero {
             display: grid;
-            gap: 1.5rem;
+            align-items: end;
             margin-inline: calc(50% - 50vw);
+            min-height: min(60vh, 32rem);
             padding: 0;
         }
 
         .hero-copy {
+            width: 100%;
             max-width: 78rem;
             margin: 0 auto;
             padding: 3.5rem 1.5rem;
+            position: relative;
+            z-index: 2;
+            /* Explicit, so a theme or a browser default cannot centre it. */
+            text-align: start;
         }
 
         .hero.has-image {
@@ -263,11 +399,11 @@
             color: #fff;
             background: var(--kaiki-primary);
             isolation: isolate;
+            min-height: min(72vh, 40rem);
         }
 
-        .hero-copy { position: relative; z-index: 2; }
-
-        .hero.has-image .hero-image {
+        .hero.has-image .hero-image,
+        .hero.has-image .hero-video {
             position: absolute;
             inset: 0;
             width: 100%;
@@ -279,10 +415,10 @@
             z-index: 0;
         }
 
-        /* A scrim, so white type stays legible over whatever the operator
-           uploaded — including a bright noon photograph of a white hull. It is
-           built from their own primary rather than from black, so the hero
-           still looks like their brand. */
+        /* A scrim weighted to the bottom, where the type is: white on a bright
+           noon photograph of a white hull is unreadable otherwise. Built from
+           the operator's own primary rather than from black, so the hero still
+           looks like their brand. */
         .hero.has-image::after {
             content: '';
             position: absolute;
@@ -290,30 +426,84 @@
             z-index: 1;
             background: linear-gradient(
                 to bottom,
-                color-mix(in srgb, var(--kaiki-primary) 55%, transparent),
-                color-mix(in srgb, var(--kaiki-primary) 85%, transparent)
+                color-mix(in srgb, var(--kaiki-primary) 25%, transparent) 0%,
+                color-mix(in srgb, var(--kaiki-primary) 55%, transparent) 45%,
+                color-mix(in srgb, var(--kaiki-primary) 88%, transparent) 100%
             );
         }
 
-        .hero.has-image .hero-copy { padding-block: 6rem; }
+        .hero.has-image .hero-copy { padding-block: 5rem 3.5rem; }
         .hero.has-image h1 { color: #fff; }
+        .hero.has-image .eyebrow { color: rgba(255, 255, 255, .78); }
         .hero.has-image .standfirst { color: rgba(255, 255, 255, .92); }
-
-        .hero h1 { font-size: clamp(2rem, 4.2vw, 3.1rem); line-height: 1.1; margin: 0 0 .8rem; letter-spacing: -.02em; }
-        .hero-copy .standfirst { color: var(--ink-soft); font-size: 1.12rem; max-width: 42rem; }
-        .hero-copy .standfirst p { margin: 0 0 .7rem; }
         .hero.has-image .cta .button { background: #fff; border-color: #fff; color: var(--kaiki-primary); }
+        .hero.has-image .cta .button:hover { background: rgba(255, 255, 255, .88); }
+
+        .hero-copy .standfirst { color: var(--ink-soft); font-size: clamp(1.1rem, 1.5vw, 1.3rem); line-height: 1.5; max-width: 38rem; }
+        .hero-copy .standfirst p { margin: 0 0 .7rem; }
+        .hero-copy .standfirst p:last-child { margin-bottom: 0; }
 
         @media (max-width: 40rem) {
-            .hero.has-image .hero-copy { padding-block: 3.5rem; }
+            .hero, .hero.has-image { min-height: 0; }
+            .hero.has-image .hero-copy { padding-block: 3.5rem 2.5rem; }
         }
 
-        .cta { margin: 1.25rem 0 0; }
+        .cta { margin: 1.5rem 0 0; }
+
+        /* The search a visitor came here to use, sitting under the masthead
+           copy. On the hero's photograph it is a solid panel rather than a
+           translucent one: a date field with a photograph showing through it is
+           a date field nobody can read. */
+        .hero-search {
+            margin: 1.75rem 0 0;
+            display: grid;
+            gap: .75rem;
+            grid-template-columns: 1fr;
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 1rem 1.1rem 1.15rem;
+            max-width: 34rem;
+            box-shadow: 0 10px 30px -22px color-mix(in srgb, var(--kaiki-text) 70%, transparent);
+        }
+
+        .hero-search .field { display: grid; gap: .3rem; min-width: 0; }
+
+        .hero-search label {
+            font-size: .74rem; font-weight: 600; letter-spacing: .07em;
+            color: var(--ink-faint);
+        }
+
+        .hero-search input {
+            font: inherit; font-size: .95rem; color: var(--kaiki-text);
+            padding: .6rem .7rem;
+            border: 1px solid var(--rule);
+            border-radius: var(--kaiki-radius);
+            background: #fff;
+            width: 100%;
+        }
+
+        .hero-search button { border: 0; cursor: pointer; font: inherit; justify-content: center; }
+
+        @media (min-width: 34rem) {
+            .hero-search {
+                grid-template-columns: 1fr 7rem auto;
+                align-items: end;
+            }
+        }
         .button {
-            display: inline-block; text-decoration: none;
+            display: inline-flex; align-items: center; gap: .5rem;
+            text-decoration: none;
             background: var(--kaiki-primary); color: #fff;
-            padding: .7rem 1.4rem; border-radius: var(--kaiki-radius);
-            font-weight: 600; font-size: .97rem;
+            border: 1px solid var(--kaiki-primary);
+            padding: .8rem 1.5rem; border-radius: var(--kaiki-radius);
+            font-weight: 600; font-size: .97rem; line-height: 1;
+            transition: background-color .15s ease;
+        }
+        .button:hover { background: color-mix(in srgb, var(--kaiki-primary) 90%, var(--kaiki-text)); border-color: transparent; }
+        .button-small { padding: .55rem 1rem; font-size: .9rem; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .button { transition: none; }
         }
 
         .story { display: grid; gap: 1.5rem; align-items: start; }
@@ -352,10 +542,47 @@
         .crumbs a { color: var(--ink-soft); text-decoration: none; }
         .crumbs a:hover { color: var(--kaiki-primary); }
 
-        .product { display: flex; flex-direction: column; gap: 2.5rem; }
+        .product { display: flex; flex-direction: column; gap: clamp(2rem, 4vw, 3rem); }
 
-        .product-head h1 { margin-bottom: .5rem; }
-        .product-head .standfirst { color: var(--ink-soft); font-size: 1.08rem; max-width: 44rem; margin: 0 0 1rem; }
+        /* The lead photograph. Full width of the column and letterboxed, so the
+           page opens with the view rather than with a heading over a grid of
+           four thumbnails. */
+        .product-lead {
+            border-radius: 20px;
+            overflow: hidden;
+            background: color-mix(in srgb, var(--kaiki-primary) 8%, var(--surface));
+        }
+
+        .product-lead img {
+            display: block; width: 100%; height: 100%;
+            aspect-ratio: 21 / 9; object-fit: cover;
+        }
+
+        .product-head h1 { margin-bottom: .7rem; }
+        .product-head .standfirst { color: var(--ink-soft); font-size: var(--step-1); max-width: 44rem; margin: 0 0 1.2rem; }
+
+        /* --- the two-column body -------------------------------------
+           What the trip is on the left, how to book it on the right, and the
+           booking card sticky so it is still on screen at the bottom of the
+           itinerary. A booking form below three screens of prose is a booking
+           form nobody scrolls back up to.
+
+           One column below 60rem, and the booking card comes **first** there —
+           on a phone the thing a visitor came to do should not be under the
+           whole page. */
+        .product-body { display: grid; gap: clamp(2rem, 4vw, 3.5rem); }
+
+        .product-main { display: flex; flex-direction: column; gap: clamp(2rem, 4vw, 3rem); min-width: 0; }
+
+        @media (min-width: 60rem) {
+            .product-body {
+                grid-template-columns: minmax(0, 1fr) 22rem;
+                align-items: start;
+            }
+
+            .product-aside { order: 2; position: sticky; top: 1.5rem; }
+            .product-main { order: 1; }
+        }
 
         /* Normal case with letter-spacing doing the emphasis. I18N-2 forbids
            the CSS property that would change it — Greek capitals drop their
@@ -366,16 +593,20 @@
             font-size: .86rem; color: var(--ink-faint); letter-spacing: .01em;
         }
         ul.facts li + li::before { content: '·'; margin-right: .9rem; color: var(--rule); }
+        ul.facts { font-size: .92rem; }
 
-        .shots { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem;
-                 grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
-        .shots img { width: 100%; height: 100%; border-radius: 14px; object-fit: cover; aspect-ratio: 3 / 2; }
+        .shots { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem;
+                 grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
+        .shots img { width: 100%; height: 100%; border-radius: 14px; object-fit: cover; aspect-ratio: 3 / 2; display: block; }
 
         /* The booking area. Four lines above the mount, and nothing else —
            brand decision 3 of 2026-09-04. */
         .booking {
-            background: var(--surface); border: 1px solid var(--rule);
-            border-radius: 14px; padding: 1.35rem 1.5rem 1.5rem;
+            background: var(--surface);
+            border-radius: 18px;
+            padding: 1.6rem 1.7rem 1.75rem;
+            box-shadow: 0 1px 2px color-mix(in srgb, var(--kaiki-text) 8%, transparent),
+                        0 14px 40px -28px color-mix(in srgb, var(--kaiki-text) 60%, transparent);
         }
 
         .four-lines { display: grid; gap: .55rem; margin: 0 0 1.1rem; }
@@ -386,9 +617,9 @@
         }
         .four-lines dd { margin: 0; font-weight: 600; }
 
-        .price { margin: 0 0 1.1rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; }
+        .price { margin: 0 0 1.3rem; padding-top: 1.1rem; border-top: 1px solid var(--rule); display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; }
         .price .from { font-size: .85rem; color: var(--ink-faint); }
-        .price strong { font-size: 1.5rem; letter-spacing: -.02em; }
+        .price strong { font-size: var(--step-3); letter-spacing: -.025em; }
         .price .vat { font-size: .82rem; color: var(--ink-faint); flex-basis: 100%; }
 
         .mount .no-js { margin: 0 0 .9rem; color: var(--ink-soft); font-size: .93rem; }
@@ -396,6 +627,7 @@
         .button.ghost { background: transparent; color: var(--kaiki-primary); border: 1px solid var(--kaiki-primary); }
 
         .section > h2:first-child { margin-top: 0; }
+        .section { }
         .section .prose { max-width: 44rem; }
         .muted { color: var(--ink-faint); font-size: .9rem; }
 
@@ -410,15 +642,33 @@
         ol.itinerary h3 { margin: 0 0 .2rem; font-size: 1rem; font-weight: 700; }
         ol.itinerary p { margin: 0; color: var(--ink-soft); font-size: .93rem; }
 
-        ul.departures, ul.bands, ul.tiers { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .45rem; font-size: .95rem; }
-        ul.departures li { display: flex; gap: .8rem; align-items: baseline; }
+        ul.bands, ul.tiers { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .45rem; font-size: .95rem; }
+
+        /* Departures as chips rather than a column. Twenty dates stacked one to
+           a line is a wall a visitor scrolls past; the same twenty in a wrapped
+           row can be read at a glance, which is the actual question — "is there
+           one on Saturday". */
+        ul.departures {
+            list-style: none; margin: 1rem 0 0; padding: 0;
+            display: flex; flex-wrap: wrap; gap: .5rem;
+            font-size: .9rem;
+        }
+
+        ul.departures li {
+            display: flex; gap: .5rem; align-items: baseline;
+            background: var(--surface);
+            border: 1px solid var(--rule);
+            border-radius: 999px;
+            padding: .4rem .85rem;
+        }
+
         .departures .when { font-variant-numeric: tabular-nums; }
         .departures .sold-out { font-size: .78rem; color: var(--kaiki-accent); letter-spacing: .04em; }
         ul.bands li { display: flex; flex-wrap: wrap; gap: .5rem; align-items: baseline; }
 
         /* --- FAQ (#103) --------------------------------------------- */
 
-        .faq-list { display: grid; gap: .6rem; margin-top: 1rem; }
+        .faq-list { display: grid; gap: .8rem; }
 
         .faq-item {
             background: var(--surface); border: 1px solid var(--rule);
@@ -448,14 +698,27 @@
 
         .faq-item .prose { margin-top: .7rem; color: var(--ink-soft); }
 
-        /* --- the contact block, as a banner ---
-           Full-bleed like the hero and for the same reason: it is the end of the
-           page, and a bordered card there reads as one more item rather than as
-           a close. With an image it becomes a banner; without one it is the
-           operator's own primary, which is what a new operator sees. */
+        /* --- the contact block, as a banner ---------------------------
+           Full-bleed like the hero, and for the same reason: it is the end of
+           the page, and a bordered card there reads as one more item rather
+           than as a close.
+
+           Two columns on a wide screen — what to say on the left, how to reach
+           them on the right — because a single column of four short facts at the
+           bottom of a 78rem page reads as a leftover list. */
         .block.contact {
-            margin-inline: calc(50% - 50vw);
-            padding: 3.25rem 0;
+            /* A contained, rounded panel rather than a full-bleed band. The
+               hero is the page's one edge-to-edge element; a second one at the
+               bottom made the page read as two banners with the content
+               squeezed between them.
+
+               Generous vertical room on purpose: this is the end of the page and
+               the last thing a visitor reads before deciding to ring somebody.
+               A panel with tight padding reads as a form; one with space reads
+               as an invitation. */
+            padding: clamp(2.5rem, 6vw, 5rem) clamp(1.4rem, 4vw, 3.5rem);
+            border-radius: 24px;
+            overflow: hidden;
             position: relative;
             isolation: isolate;
             background: color-mix(in srgb, var(--kaiki-primary) 6%, var(--surface));
@@ -464,10 +727,20 @@
         .block.contact > *:not(.contact-image) {
             position: relative;
             z-index: 2;
-            max-width: 78rem;
-            margin-inline: auto;
-            padding-inline: 1.5rem;
         }
+
+        @media (max-width: 40rem) {
+            .block.contact { border-radius: 18px; }
+        }
+
+        .block.contact h2 { max-width: 18ch; margin-bottom: 1rem; font-size: var(--step-3); }
+        .block.contact .prose { max-width: 32rem; margin-bottom: 0; }
+
+        /* A way to act, not only an address. The panel is the last thing on the
+           page and a visitor who has read this far wants to press something. */
+        .contact-actions { margin: 1.75rem 0 0; display: flex; flex-wrap: wrap; gap: .75rem; }
+        .block.contact.has-image .contact-actions .button { background: #fff; border-color: #fff; color: var(--kaiki-primary); }
+        .block.contact.has-image .contact-actions .button.ghost { background: transparent; border-color: rgba(255, 255, 255, .55); color: #fff; }
 
         .block.contact.has-image { color: #fff; background: var(--kaiki-primary); }
 
@@ -480,15 +753,18 @@
             z-index: 0;
         }
 
+        /* Weighted to the left, where the words are, and thinning towards the
+           right so the photograph is still visible behind the details. */
         .block.contact.has-image::after {
             content: '';
             position: absolute;
             inset: 0;
             z-index: 1;
             background: linear-gradient(
-                to right,
-                color-mix(in srgb, var(--kaiki-primary) 88%, transparent),
-                color-mix(in srgb, var(--kaiki-primary) 62%, transparent)
+                100deg,
+                color-mix(in srgb, var(--kaiki-primary) 86%, transparent) 0%,
+                color-mix(in srgb, var(--kaiki-primary) 66%, transparent) 55%,
+                color-mix(in srgb, var(--kaiki-primary) 40%, transparent) 100%
             );
         }
 
@@ -496,24 +772,47 @@
         .block.contact.has-image .label,
         .block.contact.has-image .instructions { color: #fff; }
 
-        .block.contact.has-image .prose { color: rgba(255, 255, 255, .92); }
+        .block.contact.has-image .prose { color: rgba(255, 255, 255, .9); }
+        .block.contact.has-image .contact-list { border-color: rgba(255, 255, 255, .28); }
+        .block.contact.has-image .contact-list li { border-color: rgba(255, 255, 255, .18); }
 
-        .contact-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .7rem; }
-
-        /* Across the banner rather than down it: four short facts stacked in a
-           single column at the bottom of a wide page reads as a leftover list,
-           and the whole point of the banner is that it closes the page. */
-        .block.contact .contact-list {
-            margin-top: 1.5rem;
-            gap: 1.5rem 2.5rem;
-            grid-template-columns: repeat(auto-fit, minmax(14rem, max-content));
+        .contact-list {
+            list-style: none; margin: 2rem 0 0; padding: 0;
+            display: grid; gap: 1.5rem;
         }
-        .contact-list li { display: grid; gap: .1rem; }
+
+        /* No rules between the rows. Four labelled facts with air around them
+           read as an address card; the same four in a ruled table read as a
+           settings screen. */
+        .contact-list li { display: grid; gap: .2rem; }
+
         .contact-list .label {
-            font-size: .74rem; font-weight: 600; letter-spacing: .07em;
+            font-size: .72rem; font-weight: 600; letter-spacing: .1em;
             color: var(--ink-faint);
         }
-        .contact-list .instructions { color: var(--ink-soft); font-size: .9rem; }
+
+        .contact-list li > span:not(.label),
+        .contact-list a { font-size: var(--step-1); font-weight: 600; line-height: 1.3; }
+
+        .contact-list .instructions { font-size: .88rem; font-weight: 400; color: var(--ink-faint); }
+
+        .block.contact.has-image .contact-list .label { color: rgba(255, 255, 255, .72); }
+        .block.contact.has-image .contact-list .instructions { color: rgba(255, 255, 255, .72); }
+
+        /* The two columns. Below this width they stack, and the list keeps its
+           rules — a phone reads a list of labelled rows perfectly well. */
+        @media (min-width: 52rem) {
+            .block.contact .contact-inner {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 3rem;
+                align-items: start;
+            }
+
+            .block.contact .contact-inner > * { min-width: 0; }
+            .contact-list { margin-top: 0; }
+        }
+
 
         /* --- footer --- */
 
