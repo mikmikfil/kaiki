@@ -4,19 +4,25 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Pages;
 
+use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Branding\Actions\ResetBrandProfile;
 use App\Domain\Branding\Actions\UpdateBrandProfile;
 use App\Domain\Branding\Actions\UploadBrandAsset;
 use App\Domain\Branding\Support\ContrastChecker;
 use App\Enums\BrandAsset;
 use App\Enums\FontSource;
+use App\Enums\NotificationTemplate;
 use App\Enums\WidgetTheme;
 use App\Exceptions\UploadRefused;
 use App\Filament\Forms\TranslatableInput;
+use App\Models\Booking;
 use App\Models\BrandProfile;
+use App\Models\Product;
+use App\Models\Tenant;
 use App\Observers\TenantObserver;
 use App\Rules\HexColor;
 use App\Rules\SocialLinks;
+use App\Support\Format\MoneyFormatter;
 use App\Support\Tenancy;
 use Filament\Actions\Action;
 use Filament\Forms\Components\ColorPicker;
@@ -53,12 +59,12 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
  * {@see UploadBrandAsset}. `PATCH /api/v1/branding` will call the same Actions
  * and cannot reach a different conclusion.
  *
- * ## Out of scope here, on purpose
+ * ## The preview, deferred from #17 and landed in #110
  *
- * BRD-4's **live widget and email preview** needs the widget, so it lands in M3
- * with it (#17 says so). What BRD-4 asks for that does *not* need the widget —
- * the contrast warning, logo upload with automatic resize, and reset to
- * defaults — is here.
+ * BRD-4's **live widget and email preview** needed a widget to preview, so #17
+ * shipped everything else — the contrast warning, the logo upload with its
+ * automatic resize, reset to defaults — and left this. The widget exists now,
+ * so {@see self::previewState()} embeds the real one.
  */
 class Branding extends Page implements HasForms
 {
@@ -198,7 +204,9 @@ class Branding extends Page implements HasForms
                         // is a column that turns a typo into a truncation.
                         ->minValue(0)
                         ->maxValue(32)
-                        ->suffix('px'),
+                        ->suffix('px')
+                        ->live(debounce: 400)
+                        ->afterStateUpdated(fn () => $this->previewChanged()),
 
                     Select::make('widget_theme')
                         ->label(__('branding.form.widget_theme.label'))
@@ -262,7 +270,12 @@ class Branding extends Page implements HasForms
             ->label(__("branding.form.{$name}.label"))
             ->helperText(__("branding.form.{$name}.help"))
             ->required()
-            ->rules([new HexColor]);
+            ->rules([new HexColor])
+            // BRD-4's "as they type", debounced: a colour picker being dragged
+            // emits a value per frame, and a round trip per frame would make the
+            // preview slower than saving.
+            ->live(debounce: 400)
+            ->afterStateUpdated(fn () => $this->previewChanged());
     }
 
     /**
@@ -365,10 +378,231 @@ class Branding extends Page implements HasForms
         $this->profile = $profile->refresh();
         $this->mount();
 
+        // And the preview moves with it. The widget is behind `wire:ignore`, so
+        // a re-render leaves its shadow root holding the colours the operator
+        // just discarded unless it is told.
+        $this->previewChanged();
+
         Notification::make()
             ->title(__('branding.actions.reset_done'))
             ->success()
             ->send();
+    }
+
+    /**
+     * Everything BRD-4's live preview needs, resolved server-side (#110).
+     *
+     * ## The real widget, and no credential to draw it with
+     *
+     * The preview embeds the actual bundle rather than a picture of one — a
+     * hand-made preview is a second implementation of the widget's appearance
+     * and is wrong the first time either changes. But a plaintext publishable
+     * key is never stored (only its hash, prefix and last four), so there is
+     * nothing here to authenticate a fetch with, and minting a real key to look
+     * at a colour would be creating a credential for a decoration.
+     *
+     * So the widget's **preview transport** answers from this payload instead:
+     * the operator's own branding and a couple of their own trips, already on
+     * the page. Same bundle, same components, same shadow root.
+     *
+     * @return array{properties: array<string, string>, bundle: string, key: string, email: string, payload: array{branding: array<string, mixed>, products: list<array<string, mixed>>}}
+     */
+    public function previewState(): array
+    {
+        $state = $this->previewFormState();
+        $profile = $this->requireProfile();
+        $properties = $this->previewProperties($state, $profile);
+
+        return [
+            'properties' => $properties,
+            // The **alias**, not a versioned path: the panel should show what
+            // operators are actually running (ADR-0011).
+            'bundle' => url('/widget/kaiki-widget.js'),
+            // The bundle wants a `data-key` to consider itself configured at
+            // all. This one is never sent anywhere — the preview transport
+            // answers before a request is made — and it is not a key shape the
+            // API would accept if it were.
+            'key' => 'pk_preview',
+            'email' => $this->emailPreview($properties),
+            'payload' => [
+                'branding' => $this->previewBranding($state, $profile->font_family),
+                'products' => $this->previewProducts(),
+            ],
+        ];
+    }
+
+    /**
+     * The unsaved form state, or nothing if the form has not been built yet.
+     *
+     * `getState()` validates, and a half-typed hex colour is invalid by
+     * construction — an operator is *always* mid-edit while a live preview is
+     * the point. So this reads the raw state and lets the fallbacks below
+     * handle whatever is not yet a colour.
+     *
+     * @return array<string, mixed>
+     */
+    protected function previewFormState(): array
+    {
+        return $this->data;
+    }
+
+    /**
+     * The operator's unsaved choices as the custom properties WGT-9 fixes.
+     *
+     * @param  array<string, mixed>  $state
+     * @return array<string, string>
+     */
+    protected function previewProperties(array $state, BrandProfile $profile): array
+    {
+        $defaults = (array) config('kaiki.branding.defaults.colors', []);
+
+        // A field the operator has cleared, or is halfway through typing, falls
+        // back to what is saved rather than to nothing: a preview that flashes
+        // black every time somebody selects the text in a colour field is a
+        // preview they will turn off.
+        $colour = static function (string $field, string $fallback) use ($state, $profile): string {
+            $typed = $state[$field] ?? null;
+
+            if (is_string($typed) && preg_match('/^#[0-9A-Fa-f]{6}$/', $typed) === 1) {
+                return $typed;
+            }
+
+            $saved = $profile->{$field};
+
+            return is_string($saved) && $saved !== '' ? $saved : $fallback;
+        };
+
+        $radius = $state['button_radius_px'] ?? null;
+
+        return [
+            '--kaiki-primary' => $colour('color_primary', (string) ($defaults['primary'] ?? '')),
+            '--kaiki-secondary' => $colour('color_secondary', (string) ($defaults['secondary'] ?? '')),
+            '--kaiki-accent' => $colour('color_accent', (string) ($defaults['accent'] ?? '')),
+            '--kaiki-background' => $colour('color_background', (string) ($defaults['background'] ?? '')),
+            '--kaiki-text' => $colour('color_text', (string) ($defaults['text'] ?? '')),
+            '--kaiki-radius' => (is_numeric($radius) ? (int) $radius : $profile->button_radius_px) . 'px',
+        ];
+    }
+
+    /**
+     * Tell the already-mounted widget about a colour that changed.
+     *
+     * Only the properties travel. Re-rendering the page would tear the widget's
+     * shadow root down and build it again on every keystroke — which is why the
+     * embed sits behind `wire:ignore` — so the live half of BRD-4 is six CSS
+     * variables on the host element and nothing else.
+     */
+    public function previewChanged(): void
+    {
+        $this->dispatch(
+            'branding-changed',
+            properties: $this->previewProperties($this->previewFormState(), $this->requireProfile()),
+        );
+    }
+
+    /**
+     * A couple of the operator's own trips, for the list mount to draw.
+     *
+     * Their own rather than invented ones: a preview showing "Sample trip
+     * &euro;99" tells an operator nothing about how their catalogue will look,
+     * and the first thing they check is whether their longest title fits.
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function previewProducts(): array
+    {
+        return Product::query()
+            ->sellable()
+            ->with('meetingPoint')
+            ->orderBy('sort_order')
+            ->limit(2)
+            ->get()
+            ->map(static fn (Product $product): array => [
+                'uuid' => $product->uuid,
+                'slug' => $product->slug,
+                'title' => (string) $product->title,
+                'summary' => $product->summary,
+                'category' => $product->category->value,
+                'mode' => $product->mode->value,
+                'duration_minutes' => $product->duration_minutes,
+                'from_price_cents' => $product->price_from_cents,
+                'from_price_formatted' => $product->price_from_cents === null
+                    ? null
+                    : MoneyFormatter::format($product->price_from_cents, app()->getLocale(), MoneyFormatter::currency()),
+                'booking_url' => null,
+                'meeting_point' => $product->meetingPoint === null ? null : ['name' => (string) $product->meetingPoint->name],
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @param  array<string, mixed>  $state
+     * @return array<string, mixed>
+     */
+    protected function previewBranding(array $state, ?string $storedFont): array
+    {
+        return [
+            // Deliberately empty. The widget writes what this returns into
+            // `:host` inside the shadow root, and the panel writes the
+            // operator's *unsaved* choices onto the host element itself — where
+            // an inline declaration outranks a `:host` rule. Sending saved
+            // colours here as well would mean the preview races itself.
+            'colors' => [],
+            'font' => [
+                'family' => is_string($state['font_family'] ?? null) ? $state['font_family'] : $storedFont,
+                // Never a third-party request from inside the panel (WGT-10).
+                'css_url' => null,
+            ],
+        ];
+    }
+
+    /**
+     * The email half of BRD-4 — the real template, with the unsaved colours.
+     *
+     * Same argument as the widget: `mail.booking.html` is what a guest receives,
+     * so it is what an operator should be shown. A second template built to look
+     * like the first is a promise that they stay in step, and they will not.
+     *
+     * The booking is constructed and never saved. It exists to give the template
+     * the four values it prints — a reference, a name, a date and a balance —
+     * and writing a row into the database to render a picture of one would be
+     * worse than inventing the values.
+     *
+     * Rendered into an `srcdoc` iframe by the view, because this is a whole
+     * document: a doctype, a table layout and inline styles, all of which would
+     * fight the panel's stylesheet if they were inlined into the page.
+     *
+     * @param  array<string, string>  $properties
+     */
+    protected function emailPreview(array $properties): string
+    {
+        $tenant = Tenancy::current();
+
+        if (! $tenant instanceof Tenant) {
+            return '';
+        }
+
+        $brand = app(GetBrandPayload::class)($tenant, app()->getLocale());
+        // The one value the template actually paints with, replaced by what the
+        // operator has typed but has not yet saved.
+        $brand['colors']['primary'] = $properties['--kaiki-primary'];
+
+        $booking = new Booking([
+            'reference' => 'KAI-2026-0001',
+            'guest_name' => __('branding.preview.guest'),
+            'local_date' => now()->addDays(9)->startOfDay(),
+            'local_time' => '10:00:00',
+            'balance_cents' => 12_000,
+            'manage_token' => str_repeat('0', 32),
+        ]);
+
+        return view('mail.booking.html', [
+            'booking' => $booking,
+            'template' => NotificationTemplate::BookingConfirmed,
+            'brand' => $brand,
+            'extra' => [],
+        ])->render();
     }
 
     /**

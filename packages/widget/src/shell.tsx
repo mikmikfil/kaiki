@@ -1,5 +1,5 @@
 import type { Analytics } from './analytics';
-import type { ApiClient } from './api-client';
+import type { Api } from './api-client';
 import type { MountName } from './config';
 import type { Translator } from './i18n';
 import { resolveMount } from './mounts';
@@ -26,7 +26,7 @@ interface ShellProps {
   readonly category: string | null;
   readonly t: Translator;
   readonly poweredBy: boolean;
-  readonly client: ApiClient;
+  readonly client: Api;
   readonly analytics: Analytics;
   readonly locale: string;
 }

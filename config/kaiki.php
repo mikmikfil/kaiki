@@ -170,12 +170,25 @@ return [
          * what the operator is looking at.
          */
         'defaults' => [
+            /*
+             * Hull teal, settled in the design review of 2026-09-04 and landed
+             * in issue 110 with the live preview that shows it.
+             *
+             * It replaced a blue placeholder nobody had chosen. The accent is a
+             * rust orange rather than a second blue because it has to survive
+             * being the only colour on a boat in daylight, and `text` is a very
+             * dark teal rather than near-black so a page of an operator's own
+             * defaults reads as one palette instead of a colour plus some ink.
+             *
+             * The column defaults in the `brand_profiles` migration move with
+             * these five lines. `BrandProfileDefaultsTest` reads both.
+             */
             'colors' => [
-                'primary' => '#0F62FE',
-                'secondary' => '#0B3D91',
-                'accent' => '#FFB000',
+                'primary' => '#0B4F4A',
+                'secondary' => '#063733',
+                'accent' => '#B5511F',
                 'background' => '#FFFFFF',
-                'text' => '#101828',
+                'text' => '#16211F',
             ],
             'font_family' => 'Inter',
             'font_source' => 'system',

@@ -2,6 +2,24 @@
 
 ## M3 — Hosted pages & widget
 
+### #110 - The live preview is the real widget, and three gates on the alias
+
+Two loose ends that belong together: BRD-4's live preview, deferred from #17 because there was no widget to preview, and ADR-0011's distribution and versioning, which is how the widget reaches a page at all.
+
+**The preview embeds the actual bundle.** The alternative — a styled `div` that looks like the widget — is a second implementation of the widget's appearance, and it is wrong the first time either changes. Embedding the real one immediately runs into the security model: a publishable key is stored as a hash, a prefix and its last four characters, so there is no plaintext key on the platform to put in that `<script>` tag, and minting a real credential in order to look at a colour would be absurd. The bundle grew a **preview transport** instead: the panel puts the operator's own branding and two of their own trips on the page, and the widget answers from that. Same bundle, same components, same shadow root. Writes throw rather than pretending, so nothing in a panel can hold a seat nobody sold. Their own trips, not invented ones — the first thing an operator checks is whether their longest title fits.
+
+**Live means custom properties, not a re-fetch.** The branding endpoint returns what is saved, and an operator dragging a colour picker has not saved anything, so a preview that re-fetched would lag by a round trip and a save. The unsaved values are written onto the host element as `--kaiki-*` properties and inherit through the shadow boundary, which is what custom properties do and why the widget uses them. Two consequences follow: the embed sits behind `wire:ignore`, because re-rendering the page around a mounted shadow root would tear it down on every keystroke; and the preview's own payload sends no saved colours at all, because the widget writes those into `:host` and the two would then race, with the winner depending on which finished first.
+
+**The email preview is the real template as well** — the confirmation a guest actually receives, rendered with an unsaved booking and shown in an iframe, because an email is a whole document whose table layout would fight the panel's stylesheet.
+
+**Hull teal, at last.** The platform default colours were still the placeholder blue rather than the palette settled on 4 September. Config and the database column defaults moved together, with the contract, the data model and the mail and PDF fallbacks following. Inter did not change: it was chosen, not inherited.
+
+**Three gates now stand between a build and every operator's page.** The embed names an alias that is repointed on release, which is exactly what makes an operator's snippet permanent and also what makes a bad release reach all of them at once. So the alias moves only after the 80 KB size budget, a Playwright run on all four mounts and an API compatibility check have passed — measured on one bundle, built once, because three jobs each building their own would weigh, exercise and ship three different files. The dependency is the gate, and a test asserts that shape, because a workflow that dropped a check would still pass its own steps and report green.
+
+**The compatibility gate reads the widget's own TypeScript interfaces** rather than a hand-written list of fields, which would be a third opinion agreeing with neither side the day somebody changed one. It found a real drift on its first run: the widget declared a branding field the API has never sent and used it as a fallback in its locale chain — a branch that could not be taken. That is the failure it exists for, because a missing field is `undefined` and `undefined` renders as nothing.
+
+`docs/widget.md` is the operator's guide: the embed, every attribute, the CSP snippet that needs no `unsafe-inline`, the eight analytics events and the short allow-list their payloads pass through.
+
 ### #109 - Custom domains, and the endpoint that has to say no
 
 An operator points `book.theirdomain.gr` at Kaiki with a CNAME and it works, with a certificate, without anybody touching a server. The panel shows the exact record to create, a sweep finishes the verification while they sleep, and the platform URL steps out of the way.

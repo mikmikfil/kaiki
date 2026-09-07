@@ -1,4 +1,4 @@
-import type { ApiClient } from '../api-client';
+import type { Api } from '../api-client';
 
 /**
  * Coming back from the gateway (WGT-20).
@@ -45,7 +45,7 @@ export interface PollResult {
  *   footnote 1). A publishable key alone may not read a booking.
  */
 export async function pollForConfirmation(
-    client: ApiClient,
+    client: Api,
     bookingUuid: string,
     token: string,
     options: {

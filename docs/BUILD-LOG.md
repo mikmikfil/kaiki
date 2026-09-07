@@ -12,14 +12,14 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M3 — Hosted pages & widget: #101 … #109 built.** M2 complete (all eleven), M1 complete. |
+| Milestone | **M3 — Hosted pages & widget: #101 … #110 built.** M2 complete (all eleven), M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **#101 … #109 built** — the hosted pages, all four widget mounts and custom domains. #110 distribution and #111 the Playwright run remain. |
+| M3 | **#101 … #110 built** — the hosted pages, all four widget mounts, custom domains, the live preview and the widget's release gates. **#111, the Playwright run, is all that remains.** |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2212, one failing: the schema snapshot CI cannot regenerate) · **Vitest (75) and the widget's four build gates**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2234, one failing: the schema snapshot CI cannot regenerate) · **Vitest (75) and the widget's four build gates**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -35,6 +35,121 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #110 — The live preview is the real widget, and three gates on the alias
+
+Two loose ends that belong together: **BRD-4's live preview**, deferred from #17
+because there was no widget to preview, and **ADR-0011's distribution** (WGT-4),
+which is how the widget reaches a page at all.
+
+### The preview embeds the bundle, with no key to embed it with
+
+The issue is explicit that the preview must be the real widget, and the reason is
+worth restating: a hand-drawn preview is a second implementation of the widget's
+appearance and it is wrong the first time either changes. So the branding screen
+carries an actual `<script src="/widget/kaiki-widget.js">`.
+
+Which immediately runs into SEC-3. A publishable key is stored as a hash, a prefix
+and its last four characters — **there is no plaintext key on the platform to put
+in that tag**, and minting a real credential in order to look at a colour would be
+absurd. The answer is a **preview transport** in the bundle itself: the panel puts
+the operator's own branding and two of their own trips on the page as
+`__kaikiPreview`, and `previewClient()` answers from that. Same bundle, same
+components, same shadow root; only the transport differs, and the transport is the
+one part of the widget a preview could never exercise anyway. `post()` throws
+rather than pretending, so nothing in a panel can hold a seat nobody sold.
+
+Their **own** trips, not invented ones. The first thing an operator checks is
+whether their longest title fits, and "Sample trip &euro;99" answers a question
+nobody asked.
+
+### Live is six custom properties, not a re-fetch
+
+`GET /api/v1/branding` returns what is **saved**, and an operator dragging a colour
+picker has not saved anything — so a preview that re-fetched would lag by a round
+trip and a save. Instead the unsaved values are written onto the host element as
+`--kaiki-*` properties, which inherit through the shadow boundary; that is what
+custom properties do and it is why WGT-9 uses them.
+
+Two consequences fell out of that and both are load-bearing:
+
+- The embed sits behind **`wire:ignore`**. Livewire re-rendering the page around a
+  mounted shadow root would tear it down on every keystroke, which is the opposite
+  of live. So a colour change travels as a dispatched event carrying only the six
+  properties.
+- The preview payload's `colors` is **deliberately empty**. The widget writes what
+  `/branding` returns into `:host`, and the panel writes the unsaved values onto
+  the host element where an inline declaration outranks a `:host` rule. Sending
+  both would make the preview race itself, and which colour won would depend on
+  which finished first.
+
+Colour fields are `->live(debounce: 400)`. A picker being dragged emits a value per
+frame, and a round trip per frame would make the preview slower than saving.
+
+### The email preview is the real template too
+
+`mail.booking.html` rendered with an **unsaved** `Booking` — a reference, a name, a
+date and a balance, and no row written to look at a picture of one. Same argument
+as the widget: a second template built to look like the first is a promise that
+they stay in step, and they will not. It goes into an `srcdoc` iframe because an
+email is a whole document, doctype and table layout and inline styles, all of which
+would fight the panel's stylesheet if they were inlined into the page.
+
+### Hull teal, at last
+
+The third acceptance criterion asked for the reset defaults to be *"the hull teal
+settled on 2026-09-04, not the old placeholder"*, and they still were the
+placeholder. `config('kaiki.branding.defaults.colors')` and the `brand_profiles`
+column defaults moved **together** — primary `#0B4F4A`, secondary `#063733`, accent
+`#B5511F`, text `#16211F` — with `docs/api.md`, `docs/data-model.md` and the mail
+and PDF fallbacks following. `font_family` did not change: Inter was chosen, not
+inherited.
+
+### The three gates, and what the compatibility one found
+
+`.github/workflows/widget-release.yml`. The bundle is built **once** and downloaded
+by each gate, because three jobs each running their own build would weigh, exercise
+and ship three different bundles. The alias job `needs: [size, smoke,
+compatibility]`, and that dependency **is** the gate: a workflow that skipped a
+check would still pass its own steps and report green, which is why `CiGatesTest`
+asserts the shape rather than the steps.
+
+`smoke` runs the still-stubbed `npm run e2e` and is wired by name, the same
+reasoning `node-checks` in `ci.yml` already carries: the gate starts being honest
+the day #111 fills the script in, with no change to the workflow.
+
+**The compatibility gate reads the widget's own TypeScript interfaces** rather than
+a hand-written list of fields, which would be a third opinion agreeing with neither
+side the day somebody changed one. It found a real drift on its first run: the
+widget's `BrandPayload` declared a `locale` the API has never sent, and
+`index.tsx` used it as the fallback in WGT-15's locale chain — a branch that could
+not be taken. Both are gone. That is exactly the failure this gate exists for: a
+missing field is `undefined`, and `undefined` renders as nothing.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `composer lint` / `composer stan` | Pint clean; PHPStan level 6, no errors |
+| `composer i18n:check` | 159 passed |
+| `composer test` | **2233 passed, 4 skipped, 1 failed** — the inherited ENV-10 snapshot |
+| `npm run widget:build` | 57.6 KB raw, **19.3 KB gzipped** |
+| `npm run widget:size` | **24.1% of the 80 KB budget**, 60.7 KB left |
+| `npm run widget:guards` | no hardcoded colour, no price arithmetic, 71 keys in both locales |
+| `npm run widget:test` | 75 passed |
+| `php artisan widget:publish` | `v0.1.0`, alias repointed, manifest written |
+
+16 new tests: `BrandingPreviewTest` (11) and `WidgetCompatibilityTest` (4), plus
+two shape assertions in `CiGatesTest`.
+
+Two notes for whoever reads this next. The **ENV-10 schema snapshot still fails**,
+as it has since CI was blocked — and the `brand_profiles` default change is now one
+more thing the regeneration has to pick up when a MySQL 8 connection exists again.
+And `branding.preview.widget` had to stop being the word "Widget" in both locales:
+the I18N-3 gate reads an identical Greek string as an untranslated one, which is
+the right default even when the word really is the same.
 
 ---
 

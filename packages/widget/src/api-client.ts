@@ -71,7 +71,25 @@ interface CacheEntry {
   readonly value: unknown;
 }
 
-export class ApiClient {
+/**
+ * What a mount needs from the network, as an interface.
+ *
+ * Extracted for BRD-4's live preview (#110): the branding screen embeds the
+ * **real widget** rather than a picture of one, and inside a panel there is no
+ * publishable key to fetch with — a plaintext key is never stored, only its
+ * hash. So the preview supplies a transport that answers from data the server
+ * already put on the page, and every mount is none the wiser.
+ *
+ * The interface is the smallest thing that makes that possible. Anything a
+ * mount can do to the network, it does through these three methods.
+ */
+export interface Api {
+  get<T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T>;
+  post<T>(path: string, body: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>;
+  invalidate(): void;
+}
+
+export class ApiClient implements Api {
   private readonly cache = new Map<string, CacheEntry>();
 
   constructor(

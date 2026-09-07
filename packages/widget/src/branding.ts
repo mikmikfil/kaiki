@@ -1,4 +1,4 @@
-import type { ApiClient } from './api-client';
+import type { Api } from './api-client';
 
 /**
  * The operator's colours, radius and font, as CSS custom properties (WGT-9, WGT-10).
@@ -47,14 +47,13 @@ export interface BrandPayload {
     readonly css_url?: string | null;
   };
   readonly widget_theme?: string;
-  readonly locale?: string;
   readonly tenant?: { readonly default_locale?: string; readonly name?: string };
 }
 
-const pending = new WeakMap<ApiClient, Promise<BrandPayload>>();
+const pending = new WeakMap<Api, Promise<BrandPayload>>();
 
 /** WGT-8's single fetch, whatever the number of mounts. */
-export function loadBranding(client: ApiClient): Promise<BrandPayload> {
+export function loadBranding(client: Api): Promise<BrandPayload> {
   const existing = pending.get(client);
 
   if (existing !== undefined) {

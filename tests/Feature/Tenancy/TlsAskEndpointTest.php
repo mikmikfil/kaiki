@@ -6,6 +6,7 @@ use App\Enums\DomainStatus;
 use App\Models\Tenant;
 use App\Models\TenantDomain;
 use App\Support\Tenancy;
+use Illuminate\Http\Response;
 use Illuminate\Testing\TestResponse;
 
 use function Pest\Laravel\get;
@@ -26,7 +27,7 @@ use function Pest\Laravel\get;
 |
 */
 
-/** @return TestResponse<\Illuminate\Http\Response> */
+/** @return TestResponse<Response> */
 function askFor(string $hostname): TestResponse
 {
     return get('/tls/ask?domain=' . urlencode($hostname));

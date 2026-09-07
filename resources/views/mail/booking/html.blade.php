@@ -31,7 +31,7 @@
 @php
     /** @var \App\Models\Booking $booking */
     /** @var \App\Enums\NotificationTemplate $template */
-    $accent = $brand['colors']['primary'] ?? '#0B3D91';
+    $accent = $brand['colors']['primary'] ?? '#063733';
     $operator = $brand['tenant']['name'] ?? config('app.name');
     $money = static fn (int $cents): string => number_format($cents / 100, 2, ',', '.') . ' €';
 @endphp

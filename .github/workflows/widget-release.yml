@@ -1,0 +1,188 @@
+name: Widget release
+
+# ---------------------------------------------------------------------------
+# ADR-0011, and the reason it has three gates (WGT-4, issue 110).
+#
+# An operator's embed names the **alias**: `/widget/kaiki-widget.js`. It lives
+# in a WordPress theme, a page builder, a support email somebody pasted in 2027
+# — nowhere anybody is going to edit it. That is the whole value of the alias,
+# and it is also its danger: repointing it ships new code to every embed in
+# production at once, with no staged rollout and nothing an operator can do.
+#
+# So the versioned file is published first and the alias moves **only** after
+# three checks have passed:
+#
+#   1. `size` — the WGT-2 budget, 80 KB gzipped, measured on the artefact that
+#      is about to be published rather than on a fresh build of the same commit.
+#   2. `smoke` — Playwright against that built artefact, on all four mounts.
+#      A unit test suite that mocks the transport cannot tell you the bundle
+#      parses in a browser.
+#   3. `compatibility` — the widget's own expectations of `/api/v1`, read out of
+#      its TypeScript interfaces. A field the widget wants and the API stopped
+#      sending is `undefined`, and `undefined` renders as nothing: the failure
+#      mode is a blank card, not an error.
+#
+# `CiGatesTest` asserts the shape of this file — that `alias` needs all three —
+# because a workflow that skipped a gate would still pass its own steps, and
+# green is exactly what a missing gate looks like.
+#
+# The alias job is what a human triggers. Publishing the versioned file is
+# harmless and happens on the tag; moving the alias is the release.
+# ---------------------------------------------------------------------------
+
+on:
+  push:
+    tags: ['widget-v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version to publish, e.g. v0.2.0. Defaults to packages/widget/package.json.
+        required: false
+        type: string
+
+concurrency:
+  group: widget-release
+  cancel-in-progress: false
+
+env:
+  PHP_VERSION: '8.4'
+
+permissions:
+  contents: read
+
+jobs:
+  # The artefact every gate below measures. Built once: three jobs each running
+  # their own build step would produce three subtly different bundles,
+  # and the one that shipped would be a fourth.
+  build:
+    name: Build the bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build (WGT-1)
+        run: npm run widget:build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: widget-bundle
+          path: packages/widget/dist/kaiki-widget.js
+          retention-days: 7
+
+  size:
+    name: Gate 1 — the 80 KB budget (WGT-2, NFR-3)
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: widget-bundle
+          path: packages/widget/dist
+
+      # Measured on the downloaded artefact, not on a rebuild. The bundle that
+      # is weighed has to be the bundle that ships.
+      - name: Size budget
+        run: npm run widget:size
+
+  smoke:
+    name: Gate 2 — Playwright on all four mounts (TST-3)
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: widget-bundle
+          path: packages/widget/dist
+
+      # Still the stub `e2e` script until #111 fills it in, and deliberately
+      # wired by **name** — the same reasoning as `node-checks` in ci.yml. The
+      # gate's shape is what makes the alias honest, and it starts being honest
+      # the day the script stops being a stub, with no change to this file.
+      - name: Widget Playwright smoke (stub until #111)
+        run: npm run e2e
+
+  compatibility:
+    name: Gate 3 — the widget against /api/v1 (ADR-0011)
+    runs-on: ubuntu-latest
+    needs: [build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - run: cp .env.example .env && php artisan key:generate
+
+      - name: API compatibility
+        run: composer test:widget-compat
+        env:
+          DB_CONNECTION: sqlite
+
+  # The release itself. `needs:` is the gate — a job listed here that goes red
+  # makes this one unreachable, which is the only mechanism that actually stops
+  # a bad bundle reaching every operator's page.
+  alias:
+    name: Publish and repoint the alias (ADR-0011)
+    runs-on: ubuntu-latest
+    needs: [size, smoke, compatibility]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: widget-bundle
+          path: packages/widget/dist
+
+      - run: cp .env.example .env && php artisan key:generate
+
+      # `--as` and not `--version`: Laravel reserves `--version` on every
+      # command and registering it is fatal.
+      - name: Publish the versioned file and repoint the alias
+        run: php artisan widget:publish ${{ inputs.version && format('--as={0}', inputs.version) || '' }}
+
+      - name: What operators are now running
+        run: cat public/widget/manifest.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: widget-release
+          path: public/widget
+          retention-days: 30

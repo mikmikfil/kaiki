@@ -96,6 +96,10 @@
             "@php artisan config:clear --ansi",
             "@php vendor/bin/pest --group=i18n"
         ],
+        "test:widget-compat": [
+            "@php artisan config:clear --ansi",
+            "@php vendor/bin/pest tests/Feature/Api/WidgetCompatibilityTest.php"
+        ],
         "lint": [
             "@php vendor/bin/pint"
         ],
@@ -160,6 +164,7 @@
         "analyse": "PHPStan level 6 with Larastan.",
         "stan": "Alias for analyse.",
         "ci": "lint:test, analyse, test - in that order, failing on the first.",
-        "test:tenancy": "The cross-tenant isolation gate. A required CI check in its own right (ADR-0001)."
+        "test:tenancy": "The cross-tenant isolation gate. A required CI check in its own right (ADR-0001).",
+        "test:widget-compat": "ADR-0011's third release gate: the widget's expectations of /api/v1, read out of its own TypeScript interfaces. The widget-release workflow will not repoint the alias without it."
     }
 }

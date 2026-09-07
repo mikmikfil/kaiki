@@ -1,4 +1,4 @@
-import type { ApiClient, ApiError } from '../api-client';
+import type { Api, ApiError } from '../api-client';
 import { draftFingerprint, IdempotencyKeys } from './idempotency';
 import type { BookingState } from './machine';
 import { draftPayload } from './machine';
@@ -43,7 +43,7 @@ export interface CheckoutResult {
 
 export class BookingApi {
   constructor(
-    private readonly client: ApiClient,
+    private readonly client: Api,
     private readonly keys: IdempotencyKeys = new IdempotencyKeys(),
   ) {}
 

@@ -1,7 +1,7 @@
 import type { ComponentType } from 'preact';
 
 import type { Analytics } from './analytics';
-import type { ApiClient } from './api-client';
+import type { Api } from './api-client';
 import type { MountName } from './config';
 import type { Translator } from './i18n';
 
@@ -31,7 +31,7 @@ export interface MountProps {
    * one per mount (WGT-8). A mount that built its own would be a second branding
    * fetch and a second cache.
    */
-  readonly client: ApiClient;
+  readonly client: Api;
   readonly t: Translator;
   readonly analytics: Analytics;
   readonly locale: string;

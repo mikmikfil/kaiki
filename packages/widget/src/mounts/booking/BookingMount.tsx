@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'preact/hooks';
 
 import type { Analytics } from '../../analytics';
-import type { ApiClient } from '../../api-client';
+import type { Api } from '../../api-client';
 import { BookingApi, isSoldOut, type DraftResult } from '../../booking/api';
 import { holdState } from '../../booking/countdown';
 import { pollForConfirmation } from '../../booking/confirmation';
@@ -41,7 +41,7 @@ import { ReviewStep } from './steps/ReviewStep';
  */
 
 interface BookingMountProps {
-  readonly client: ApiClient;
+  readonly client: Api;
   readonly productUuid: string;
   readonly product: ProductSummary;
   readonly t: Translator;

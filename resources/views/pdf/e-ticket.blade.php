@@ -36,7 +36,7 @@
     use App\Support\Format\DateTimeFormatter;
 
     $locale = $booking->locale;
-    $accent = $brand['colors']['primary'] ?? '#0B3D91';
+    $accent = $brand['colors']['primary'] ?? '#063733';
     $operator = $brand['tenant']['name'] ?? config('app.name');
     // Null, not `config('app.timezone')`: `DateTimeFormatter` resolves the
     // **tenant's** zone when it is handed none, and the application default is

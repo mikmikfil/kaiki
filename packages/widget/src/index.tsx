@@ -1,7 +1,7 @@
 import { render } from 'preact';
 
 import { analytics } from './analytics';
-import { ApiClient } from './api-client';
+import { type Api, ApiClient } from './api-client';
 import { ensureFontLink, loadBranding, type BrandPayload } from './branding';
 import { findEmbeds, readConfig, type WidgetConfig } from './config';
 import { resolveLocale, translator } from './i18n';
@@ -9,6 +9,7 @@ import './mounts/booking/register';
 import './mounts/calendar/CalendarMount';
 import './mounts/enquiry/EnquiryMount';
 import './mounts/list/ListMount';
+import { isPreview, previewClient } from './preview';
 import { createShadowHost } from './shadow';
 import { ErrorState, LoadingState, Shell } from './shell';
 
@@ -94,8 +95,10 @@ function mount(config: WidgetConfig, script: HTMLScriptElement, doc: Document): 
             requested: config.locale,
             documentLang: doc.documentElement.lang,
             // WGT-15's third step: the operator's own house language, which
-            // only the API knows.
-            tenantDefault: brand.tenant?.default_locale ?? brand.locale ?? null,
+            // only the API knows. There used to be a `brand.locale` fallback
+            // behind this; `WidgetCompatibilityTest` showed the API never sends
+            // such a field, so it was a branch that could not be taken.
+            tenantDefault: brand.tenant?.default_locale ?? null,
           }),
         );
 
@@ -148,7 +151,13 @@ function resolveTarget(config: WidgetConfig, script: HTMLScriptElement, doc: Doc
   return anchor;
 }
 
-function clientFor(config: WidgetConfig): ApiClient {
+function clientFor(config: WidgetConfig): Api {
+  // BRD-4's preview: the real widget, answering from data the panel already put
+  // on the page rather than from a key the panel does not have.
+  if (isPreview()) {
+    return previewClient();
+  }
+
   const cacheKey = `${config.apiBase}|${config.key}`;
   const existing = clients.get(cacheKey);
 

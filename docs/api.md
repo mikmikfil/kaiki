@@ -2351,11 +2351,11 @@ components:
       description: Hex `#RRGGBB`, validated server-side. Rendered by the widget as CSS custom properties.
       required: [primary, secondary, accent, background, text]
       properties:
-        primary: { type: string, pattern: '^#[0-9A-Fa-f]{6}$', example: '#0F62FE' }
-        secondary: { type: string, pattern: '^#[0-9A-Fa-f]{6}$', example: '#0B3D91' }
-        accent: { type: string, pattern: '^#[0-9A-Fa-f]{6}$', example: '#FFB000' }
+        primary: { type: string, pattern: '^#[0-9A-Fa-f]{6}$', example: '#0B4F4A' }
+        secondary: { type: string, pattern: '^#[0-9A-Fa-f]{6}$', example: '#063733' }
+        accent: { type: string, pattern: '^#[0-9A-Fa-f]{6}$', example: '#B5511F' }
         background: { type: string, pattern: '^#[0-9A-Fa-f]{6}$', example: '#FFFFFF' }
-        text: { type: string, pattern: '^#[0-9A-Fa-f]{6}$', example: '#101828' }
+        text: { type: string, pattern: '^#[0-9A-Fa-f]{6}$', example: '#16211F' }
       additionalProperties: false
 
     BrandingFont:
@@ -2391,11 +2391,11 @@ components:
             root and never hardcodes a colour. Keys are stable; new keys may be added.
           additionalProperties: { type: string }
           example:
-            --kaiki-primary: '#0F62FE'
-            --kaiki-secondary: '#0B3D91'
-            --kaiki-accent: '#FFB000'
+            --kaiki-primary: '#0B4F4A'
+            --kaiki-secondary: '#063733'
+            --kaiki-accent: '#B5511F'
             --kaiki-background: '#FFFFFF'
-            --kaiki-text: '#101828'
+            --kaiki-text: '#16211F'
             --kaiki-radius: 8px
             --kaiki-font-family: "Inter, system-ui, sans-serif"
         social_links:
@@ -3819,11 +3819,11 @@ components:
             dark_url: 'https://cdn.kaiki.app/t/2c4a6e80/logo-dark.svg'
             favicon_url: 'https://cdn.kaiki.app/t/2c4a6e80/favicon.png'
           colors:
-            primary: '#0F62FE'
-            secondary: '#0B3D91'
-            accent: '#FFB000'
+            primary: '#0B4F4A'
+            secondary: '#063733'
+            accent: '#B5511F'
             background: '#FFFFFF'
-            text: '#101828'
+            text: '#16211F'
           font:
             family: Inter
             source: google
@@ -3831,11 +3831,11 @@ components:
           button_radius_px: 8
           widget_theme: auto
           css_variables:
-            --kaiki-primary: '#0F62FE'
-            --kaiki-secondary: '#0B3D91'
-            --kaiki-accent: '#FFB000'
+            --kaiki-primary: '#0B4F4A'
+            --kaiki-secondary: '#063733'
+            --kaiki-accent: '#B5511F'
             --kaiki-background: '#FFFFFF'
-            --kaiki-text: '#101828'
+            --kaiki-text: '#16211F'
             --kaiki-radius: 8px
             --kaiki-font-family: "Inter, system-ui, sans-serif"
           social_links:
@@ -4924,13 +4924,13 @@ X-RateLimit-Reset: 1785312060
 {
   "data": {
     "tenant": { "uuid": "2c4a6e80-1b3d-4f5a-8c7e-9d0b1a2f3e4c", "name": "Aegean Cruises", "slug": "aegean-cruises", "timezone": "Europe/Athens", "default_locale": "el", "currency": "EUR" },
-    "colors": { "primary": "#0F62FE", "secondary": "#0B3D91", "accent": "#FFB000", "background": "#FFFFFF", "text": "#101828" },
+    "colors": { "primary": "#0B4F4A", "secondary": "#063733", "accent": "#B5511F", "background": "#FFFFFF", "text": "#16211F" },
     "font": { "family": "Inter", "source": "google", "css_url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" },
     "button_radius_px": 8,
     "widget_theme": "auto",
     "css_variables": {
-      "--kaiki-primary": "#0F62FE",
-      "--kaiki-accent": "#FFB000",
+      "--kaiki-primary": "#0B4F4A",
+      "--kaiki-accent": "#B5511F",
       "--kaiki-radius": "8px",
       "--kaiki-font-family": "Inter, system-ui, sans-serif"
     },

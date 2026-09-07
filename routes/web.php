@@ -12,6 +12,7 @@ use App\Http\Controllers\Hosted\RootController;
 use App\Http\Controllers\Hosted\SearchPageController;
 use App\Http\Controllers\TlsAskController;
 use App\Http\Controllers\Webhooks\GatewayWebhookController;
+use App\Http\Controllers\WidgetBundleController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -125,6 +126,30 @@ Route::middleware(['guest.token', 'guest.throttle'])->group(function (): void {
 | disappears from search. The pages are cacheable reads with no credential in
 | the URL, which is exactly what the token pages are not.
 */
+/*
+|--------------------------------------------------------------------------
+| The widget bundle (WGT-4, ADR-0011 Option A)
+|--------------------------------------------------------------------------
+|
+| A **versioned path** that is immutable for a year, and an **alias** that
+| operators embed and that is repointed on release with a five-minute life. The
+| split exists because an operator's `<script src>` lives in a WordPress theme
+| nobody is going to edit: the version moves, the snippet does not.
+|
+| Served by a controller rather than as a static file because **the headers are
+| the feature**, and a file served by the web server carries whatever that
+| server was configured with — an M8 decision, in a different repository, whose
+| failure mode is "the alias was cached for a year by a proxy".
+|
+| No tenant, no key: it is public JavaScript. The credential is the publishable
+| key inside the requests the widget then makes.
+*/
+Route::get('/widget/manifest.json', [WidgetBundleController::class, 'manifest'])->name('widget.manifest');
+Route::get('/widget/kaiki-widget.js', [WidgetBundleController::class, 'alias'])->name('widget.alias');
+Route::get('/widget/{version}/kaiki-widget.js', [WidgetBundleController::class, 'versioned'])
+    ->where('version', 'v[0-9A-Za-z.\-]{1,32}')
+    ->name('widget.versioned');
+
 /*
 |--------------------------------------------------------------------------
 | On-demand TLS: the ask endpoint (HOS-3, ADR-0010 Option A)

@@ -378,11 +378,11 @@ Exactly one per tenant.
 | `logo_dark_path` | varchar(255) | yes | null | |
 | `favicon_path` | varchar(255) | yes | null | |
 | `email_header_image_path` | varchar(255) | yes | null | |
-| `color_primary` | char(7) | no | `#0F62FE` | `#RRGGBB`, validated by regex |
-| `color_secondary` | char(7) | no | `#0B3D91` | |
-| `color_accent` | char(7) | no | `#FFB000` | |
+| `color_primary` | char(7) | no | `#0B4F4A` | `#RRGGBB`, validated by regex |
+| `color_secondary` | char(7) | no | `#063733` | |
+| `color_accent` | char(7) | no | `#B5511F` | |
 | `color_background` | char(7) | no | `#FFFFFF` | |
-| `color_text` | char(7) | no | `#101828` | |
+| `color_text` | char(7) | no | `#16211F` | |
 | `font_family` | varchar(80) | no | `Inter` | curated list or a Google Fonts family name |
 | `font_source` | varchar(16) | no | `system` | `system` \| `google` — controls whether the widget loads a Google Fonts URL at all |
 | `button_radius_px` | tinyint unsigned | no | `8` | 0–32 |

@@ -147,7 +147,7 @@ it('refuses a colour that is not #RRGGBB, with a localised message', function (s
         ->assertHasFormErrors(['color_primary']);
 
     // Unchanged: a refused save must not half-write the row.
-    expect(brandingProfileOf($user)->color_primary)->toBe('#0F62FE');
+    expect(brandingProfileOf($user)->color_primary)->toBe('#0B4F4A');
 })->with([
     'three-digit short form' => ['#FFF'],
     'no hash' => ['0F62FE'],
@@ -265,7 +265,7 @@ it('resets to the platform defaults but keeps the links and the footer', functio
 
     $profile = brandingProfileOf($user);
 
-    expect($profile->color_primary)->toBe('#0F62FE')
+    expect($profile->color_primary)->toBe('#0B4F4A')
         ->and($profile->font_family)->toBe('Inter')
         ->and($profile->button_radius_px)->toBe(8)
         ->and($profile->social_links)->toBe(['website' => 'https://aegean-blue.example'])
@@ -331,5 +331,5 @@ it('shows an operator only their own brand', function (): void {
 
     $state = brandingPageAs($mine)->get('data');
 
-    expect($state['color_primary'])->toBe('#0F62FE');
+    expect($state['color_primary'])->toBe('#0B4F4A');
 })->group('fast');

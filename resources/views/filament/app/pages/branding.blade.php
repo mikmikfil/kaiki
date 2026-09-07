@@ -54,6 +54,10 @@
         @endif
     </section>
 
+    {{-- BRD-4, below the contrast badge and above the form: an operator scrolls
+         down to a field, changes it, and looks back up. --}}
+    @include('filament.app.pages.branding-preview')
+
     <form wire:submit="save">
         {{ $this->form }}
 

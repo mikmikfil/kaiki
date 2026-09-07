@@ -111,6 +111,42 @@ it('schedules the nightly workflow and names its deferred placeholders', functio
         ->and($nightly)->toContain('NFR-1');
 })->group('fast');
 
+it('makes the widget alias unreachable without all three ADR-0011 gates', function (): void {
+    // The alias is what every operator embeds, and repointing it ships to all
+    // of them at once with no staged rollout. ADR-0011 names three checks for
+    // exactly that reason.
+    //
+    // Asserting the **shape** rather than the steps is the point: a workflow
+    // that dropped a gate would still pass its own steps and report green, so
+    // "the release job depends on all three" is the only thing worth pinning.
+    $path = base_path('.github/workflows/widget-release.yml');
+
+    expect(is_file($path))->toBeTrue();
+
+    $gates = WorkflowFile::aggregatedJobIds($path, 'alias');
+
+    sort($gates);
+
+    expect($gates)->toBe(['compatibility', 'size', 'smoke']);
+})->group('fast');
+
+it('runs each widget release gate against the built artefact, not a rebuild', function (): void {
+    $release = (string) file_get_contents(base_path('.github/workflows/widget-release.yml'));
+
+    // One build, downloaded by each gate. Three jobs each running their own
+    // `widget:build` would weigh, exercise and ship three different bundles.
+    expect(substr_count($release, 'npm run widget:build'))->toBe(1);
+    expect(substr_count($release, 'download-artifact'))->toBe(3);
+
+    // The three commands themselves, so a gate cannot be reduced to a job that
+    // needs the others and does nothing.
+    expect($release)->toContain('npm run widget:size')
+        ->and($release)->toContain('npm run e2e')
+        ->and($release)->toContain('composer test:widget-compat')
+        // ADR-0011's publish step, and the only thing that moves the alias.
+        ->and($release)->toContain('artisan widget:publish');
+})->group('fast');
+
 it('keeps the coverage threshold in exactly one place', function (): void {
     $composer = WorkflowFile::composerManifest(base_path('composer.json'));
 

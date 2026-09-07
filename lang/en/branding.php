@@ -111,6 +111,14 @@ return [
         'unchecked' => 'Not checked yet. This runs on your first save.',
     ],
 
+    'preview' => [
+        'heading' => 'Live preview',
+        'body' => 'The real booking widget and the real confirmation email, drawn with the colours below. Change a colour and both follow.',
+        'widget' => 'Booking widget',
+        'email' => 'Confirmation email',
+        'guest' => 'Maria Papadopoulou',
+    ],
+
     'actions' => [
         'save' => 'Save',
         'saved' => 'Branding saved.',
@@ -131,7 +139,7 @@ return [
     ],
 
     'validation' => [
-        'hex_color' => 'Enter a colour in #RRGGBB form, for example #0F62FE.',
+        'hex_color' => 'Enter a colour in #RRGGBB form, for example #0B4F4A.',
         'social_links' => [
             'shape' => 'These links are not in a valid form.',
             'unknown_key' => '“:key” is not an accepted link. Allowed: :allowed.',
