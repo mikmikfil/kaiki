@@ -2,6 +2,20 @@
 
 ## M3 — Hosted pages & widget
 
+### #108 - The other three mounts, and the price that must not reach the DOM
+
+`list`, `calendar` and `enquiry`, which completes the four mounts WGT-5 fixes. A trip grid with category tabs for a landing page, a month of availability for a page that has already sold the trip, and the enquiry form that stands where a booking button would be on a product with no price.
+
+**The 80 KB budget did not need code-splitting after all.** The issue expected this to be where it was spent; four mounts, both locales and the whole booking machine come to **19.1 KB gzipped — 23.9%**. That matters beyond the number, because WGT-1 fixes the bundle as a *single IIFE*: splitting would have traded a fixed requirement for headroom nobody needed. If a later mount changes the arithmetic, that is an ADR rather than a build-config edit.
+
+**A quote product's price does not reach the DOM.** BKG-24 from the widget's side, and the test is written the way the issue asks: it scans the rendered markup for a currency symbol and for the digits, because a price hidden by CSS is still a price in the page. The element is not rendered at all. The API already refuses to send one, so this is the second of two locks on a door an operator cannot re-lock if it fails.
+
+**The calendar says its statuses in words as well as in colour**, because a calendar that only shades cannot be read by a colour-blind guest. Paging forward and back costs one request rather than two, which is WGT-17's cache doing what it was built for — asserted by counting requests across two clicks rather than by trusting it.
+
+**The enquiry honeypot is hidden off-screen, not with `display: none`.** A form filler that skips hidden inputs would skip the trap too, which would leave #85's cheapest spam filter filtering nothing. And a rejection renders the API's own localised sentence rather than "your message failed" — the envelope already explains, in the guest's language, and substituting our own words would swap a specific answer for a vague one.
+
+Two defects surfaced from the tests rather than from a review. A payload that was not an array threw an exception into the host page's console — both mounts now render empty instead, because a widget inside somebody else's site must never put a stack trace in their developer's console. And the enquiry test filled a form and submitted in the same tick, which posted the initial empty state: a Preact state update is scheduled rather than immediate, and the helper now waits for it and says why.
+
 ### #107 - The booking mount, and the key that must not be fresh
 
 The walk that takes the money: a date, a party by age band, extras, contact details and consent, a review carrying the server's own price breakdown, and the gateway. Plus the hold countdown while the guest decides and the confirmation state when they come back. It is the first time M2's whole machine is driven by something other than a test.

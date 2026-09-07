@@ -6,6 +6,9 @@ import { ensureFontLink, loadBranding, type BrandPayload } from './branding';
 import { findEmbeds, readConfig, type WidgetConfig } from './config';
 import { resolveLocale, translator } from './i18n';
 import './mounts/booking/register';
+import './mounts/calendar/CalendarMount';
+import './mounts/enquiry/EnquiryMount';
+import './mounts/list/ListMount';
 import { createShadowHost } from './shadow';
 import { ErrorState, LoadingState, Shell } from './shell';
 

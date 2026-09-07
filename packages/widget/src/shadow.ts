@@ -215,6 +215,64 @@ const BASE_STYLES = `
 .kaiki-button-ghost { background: transparent; color: var(--kaiki-primary); }
 .kaiki-button:disabled { opacity: .5; cursor: not-allowed; }
 
+/* --- the list, calendar and enquiry mounts (issue 108) ------------- */
+
+.kaiki-tabs { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: 1rem; }
+.kaiki-tab {
+  font: inherit; font-size: .85rem; cursor: pointer;
+  background: transparent; color: var(--kaiki-text);
+  border: 1px solid color-mix(in srgb, var(--kaiki-text) 20%, transparent);
+  border-radius: var(--kaiki-radius, 10px);
+  padding: .4rem .8rem; min-height: 40px;
+}
+.kaiki-tab-active { background: var(--kaiki-primary); border-color: var(--kaiki-primary); color: var(--kaiki-background); }
+
+/* Cards are equal height with the price row pinned to the bottom — settled on
+   4 September, because prices at different heights read as a mistake. 14px on
+   cards, the radius variable on controls. */
+.kaiki-cards {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; gap: .9rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+.kaiki-card {
+  display: flex; flex-direction: column;
+  border: 1px solid color-mix(in srgb, var(--kaiki-text) 12%, transparent);
+  border-radius: 14px; padding: 1rem 1.05rem;
+}
+.kaiki-card h3 { margin: 0 0 .35rem; }
+.kaiki-card h3 a { color: inherit; text-decoration: none; }
+.kaiki-card h3 a:hover { text-decoration: underline; text-underline-offset: .16em; }
+.kaiki-card .kaiki-facts { font-size: .82rem; margin-bottom: .6rem; }
+.kaiki-card-price { margin: auto 0 0; padding-top: .6rem; }
+.kaiki-card-price strong { font-size: 1.1rem; }
+.kaiki-on-request { font-weight: 600; color: var(--kaiki-primary); }
+
+.kaiki-calendar-head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: .8rem; }
+.kaiki-days { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; grid-template-columns: repeat(auto-fill, minmax(4.2rem, 1fr)); }
+.kaiki-day {
+  border: 1px solid color-mix(in srgb, var(--kaiki-text) 12%, transparent);
+  border-radius: var(--kaiki-radius, 10px);
+  padding: .4rem .5rem; font-size: .78rem;
+  color: color-mix(in srgb, var(--kaiki-text) 55%, transparent);
+  display: grid; gap: .1rem;
+}
+/* Available days carry the operator's primary as a tint **and** say so in
+   words: a calendar that only shades cannot be read by a colour-blind guest. */
+.kaiki-day-open {
+  border-color: var(--kaiki-primary);
+  background: color-mix(in srgb, var(--kaiki-primary) 8%, var(--kaiki-background));
+  color: var(--kaiki-text);
+}
+.kaiki-day-number { font-weight: 700; font-size: .95rem; }
+
+/* The honeypot: off-screen rather than "display: none", so a form filler that
+   skips hidden inputs still fills it. */
+.kaiki-trap {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .kaiki-root * { transition: none !important; animation: none !important; }
 }

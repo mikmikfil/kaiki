@@ -12,14 +12,14 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M3 — Hosted pages & widget: #101 … #107 built.** M2 complete (all eleven), M1 complete. |
+| Milestone | **M3 — Hosted pages & widget: #101 … #108 built.** M2 complete (all eleven), M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **#101 … #107 built** — the hosted pages, the widget's foundation and the booking mount. #108 … #111 are the other three mounts, custom domains, distribution and the Playwright run. |
+| M3 | **#101 … #108 built** — the hosted pages and **all four widget mounts**. #109 custom domains, #110 distribution, #111 the Playwright run. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2185, one failing: the schema snapshot CI cannot regenerate) · **Vitest (64) and the widget's four build gates**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2185, one failing: the schema snapshot CI cannot regenerate) · **Vitest (75) and the widget's four build gates**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -35,6 +35,74 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #108 — The other three mounts, and the price that must not reach the DOM
+
+`list`, `calendar` and `enquiry`. With them the widget has all four mounts
+WGT-5 fixes, at **19.1 KB gzipped — 23.9% of the 80 KB budget**.
+
+### The budget did not need splitting, and WGT-1 forbids it anyway
+
+The issue expected code-splitting to be the answer here: *"Three more mounts is
+where that budget gets spent."* It was not. Four mounts, seven locales' worth of
+strings and the whole booking machine come to under a quarter of the allowance,
+and **WGT-1 is FIXED on a single IIFE** — so splitting would have traded a
+requirement for headroom that was not needed. If a later mount changes the
+arithmetic, the trade is an ADR rather than a build-config edit.
+
+### `list`: the price a quote product must not have
+
+BKG-24 seen from the widget's side, and the issue is right about how to test it:
+*"A `quote` product whose price is hidden by CSS still has the number in the
+DOM."* So the element is **not rendered at all**, and the test scans the markup
+for a currency symbol and for the digits of the price. Hiding it would pass a
+visibility check and fail this one.
+
+The category tabs are built from **what came back**, not from the enum: a fleet
+selling two kinds of day gets two tabs and not six.
+
+### `calendar`: availability, and nothing that competes with the page it is on
+
+No price and no booking button. This mount goes where the operator's own write-up
+has already sold the trip, and all that is left to say is which days sail. Paging
+forward and back costs **one request**, because WGT-17's cache is keyed on the
+query string — asserted by counting requests across two clicks.
+
+Every day says its status **in words as well as in colour**: a calendar that only
+shades cannot be read by a colour-blind guest (A11Y-1).
+
+### `enquiry`: the honeypot that has to be visible to a robot
+
+`company_website` and `form_rendered_at` are #85's two cheap filters, and the
+honeypot is hidden **off-screen rather than with `display: none`** — a form
+filler that skips hidden inputs would skip the trap, which is the whole point of
+the field. A rejection renders **the API's own sentence** (§4.1) rather than "your
+message failed": the envelope already carries a localised explanation, and
+substituting ours would swap a specific answer for a vague one and drift the day
+the server's changed.
+
+### Two defects the tests found
+
+- **A payload that is not an array threw into the host page's console.** The
+  three-instance test of #106 answers every URL with the branding fixture, so the
+  list mount received an object where the contract promises a list and
+  `.map` exploded. Both mounts now render empty rather than throwing — a widget
+  inside somebody else's page must never put a stack trace in their console.
+- **A Preact state update is scheduled, not immediate.** The enquiry test filled
+  the form and submitted in the same tick, which posted the *initial* state — an
+  empty message. The helper now lets Preact flush, and says why.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `npm run widget:build` | one IIFE, all four mounts registered |
+| `npm run widget:size` | **19.1 KB gzipped, 23.9% of budget**, 60.9 KB left |
+| `npm run widget:guards` | clean — 71 keys in both locales |
+| `npm run widget:test` | **75 passed** across eight files |
+| `composer test` | 2184 passed, 1 failed — the inherited ENV-10 snapshot |
 
 ---
 
