@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Domain\Hosted\Actions\BuildFaqList;
 use App\Domain\Hosted\Support\BlockText;
 use App\Enums\Concerns\HasTranslatedLabel;
 
 /**
- * The five things an operator may put on their home page.
+ * The six things an operator may put on their home page.
  *
  * ## Five types, and no sixth called "HTML"
  *
@@ -26,12 +27,20 @@ use App\Enums\Concerns\HasTranslatedLabel;
  * layout, and BRD-2's CSS sanitiser is not the only thing standing between a
  * pasted snippet and a guest's browser.
  *
- * ## Why these five
+ * ## Why these six
  *
- * They are the page a boat operator actually writes, in the order they write
- * it: who we are with a photograph, what we sell, the paragraph about the
- * family and the boat, the pictures, and how to reach us. A sixth type has to
- * earn its place by being a thing an operator asked for twice.
+ * The first five are the page a boat operator actually writes, in the order they
+ * write it: who we are with a photograph, what we sell, the paragraph about the
+ * family and the boat, the pictures, and how to reach us.
+ *
+ * The sixth is the FAQ, added by #103, and it is what "a type has to earn its
+ * place" was written to mean. It is not a variation on `story` — it is a
+ * different table, with its own rows, its own ordering, its own
+ * published/unpublished state and a `FAQPage` block of structured data that
+ * puts the answers into the search result. The block is a **mount**: it renders
+ * `faqs` rows and carries no content of its own beyond its heading, which is why
+ * an FAQ block on a page with no published entries renders nothing at all
+ * rather than an empty heading.
  */
 enum HomeBlockType: string
 {
@@ -51,6 +60,16 @@ enum HomeBlockType: string
 
     /** Contact details and the meeting point, from the tenant's own record. */
     case Contact = 'contact';
+
+    /**
+     * The operator's tenant-wide FAQ entries (#103).
+     *
+     * Tenant-wide only, deliberately: a product-specific answer on the home page
+     * has no product beside it, and "yes, we stop for a swim" is true of one
+     * trip and false of the next. {@see BuildFaqList}
+     * is where that rule lives.
+     */
+    case Faq = 'faq';
 
     /**
      * Does this type render the operator's prose?
@@ -78,10 +97,18 @@ enum HomeBlockType: string
      * the page the operator was already serving, rather than a blank one they
      * have to rebuild before they can improve it.
      *
+     * ## The FAQ is in the default, and costs nothing when it is empty
+     *
+     * An operator who writes FAQ entries and has never opened the page editor
+     * would otherwise see their answers appear nowhere, and the fix — "add an
+     * FAQ block first" — is a step nobody would guess at. The block renders
+     * nothing at all when there is nothing published, so a page belonging to an
+     * operator who has written no entries is byte for byte the page it was.
+     *
      * @return list<self>
      */
     public static function defaultLayout(): array
     {
-        return [self::Hero, self::Trips, self::Contact];
+        return [self::Hero, self::Trips, self::Faq, self::Contact];
     }
 }

@@ -8,6 +8,7 @@ use App\Domain\Hosted\Support\BlockSettings;
 use App\Domain\Hosted\Support\BlockText;
 use App\Enums\HomeBlockType;
 use App\Enums\ProductStatus;
+use App\Models\Faq;
 use App\Models\HomePageBlock;
 use App\Models\Port;
 use App\Models\Product;
@@ -45,10 +46,12 @@ use Illuminate\Support\Collection;
  */
 class BuildHomePage
 {
+    public function __construct(private readonly BuildFaqList $faqs) {}
+
     /**
      * The page, ready to render: one entry per block, in order.
      *
-     * @return list<array{block: HomePageBlock, products: Collection<int, Product>, meetingPoint: Port|null, anchor: string|null}>
+     * @return list<array{block: HomePageBlock, products: Collection<int, Product>, meetingPoint: Port|null, faqs: Collection<int, Faq>, anchor: string|null}>
      */
     public function __invoke(Tenant $tenant): array
     {
@@ -60,6 +63,13 @@ class BuildHomePage
 
         $catalogue = $blocks->contains(fn (HomePageBlock $block): bool => $block->type === HomeBlockType::Trips)
             ? $this->catalogue()
+            : collect();
+
+        // The tenant-wide entries, loaded once however many FAQ blocks a page
+        // has — and not at all when it has none, which is every page that has
+        // not been edited since #103.
+        $faqs = $blocks->contains(fn (HomePageBlock $block): bool => $block->type === HomeBlockType::Faq)
+            ? ($this->faqs)()
             : collect();
 
         $page = [];
@@ -79,7 +89,16 @@ class BuildHomePage
                 'block' => $block,
                 'products' => $isTrips ? $this->productsFor($block, $catalogue) : collect(),
                 'meetingPoint' => $block->type === HomeBlockType::Contact ? $this->meetingPointFor($block) : null,
-                'anchor' => $anchor ?? ($block->type === HomeBlockType::Contact ? 'contact' : null),
+                // The same collection for every FAQ block on the page. Two of
+                // them is an operator repeating themselves rather than a second
+                // question set, and the alternative — a query per block — is the
+                // thing the catalogue above is loaded once to avoid.
+                'faqs' => $block->type === HomeBlockType::Faq ? $faqs : collect(),
+                'anchor' => $anchor ?? match ($block->type) {
+                    HomeBlockType::Contact => 'contact',
+                    HomeBlockType::Faq => 'faq',
+                    default => null,
+                },
             ];
         }
 
@@ -207,6 +226,7 @@ class BuildHomePage
             $heading = match ($type) {
                 HomeBlockType::Hero => ['el' => $tenant->name, 'en' => $tenant->name],
                 HomeBlockType::Trips => $this->inBothLocales('hosted.index.trips'),
+                HomeBlockType::Faq => $this->inBothLocales('hosted.blocks.faq.heading'),
                 HomeBlockType::Contact => $this->inBothLocales('hosted.blocks.contact.heading'),
                 default => null,
             };

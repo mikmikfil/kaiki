@@ -201,6 +201,38 @@
         .gallery.cols-4 .shots { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
         .gallery .shots img { width: 100%; height: 100%; border-radius: 10px; object-fit: cover; aspect-ratio: 3 / 2; }
 
+        /* --- FAQ (#103) --------------------------------------------- */
+
+        .faq-list { display: grid; gap: .6rem; margin-top: 1rem; }
+
+        .faq-item {
+            background: var(--surface); border: 1px solid var(--rule);
+            border-radius: var(--kaiki-radius); padding: .9rem 1.1rem;
+        }
+
+        /* The whole question is the control, so the tap target is the width of
+           the card rather than the width of the words. */
+        .faq-item summary {
+            cursor: pointer; font-weight: 600; letter-spacing: -.005em;
+            list-style: none; display: flex; gap: .8rem; align-items: baseline;
+            justify-content: space-between;
+        }
+
+        /* Safari draws its own triangle through a pseudo-element the standard
+           `list-style: none` above does not reach. */
+        .faq-item summary::-webkit-details-marker { display: none; }
+
+        /* A sign that turns into a minus. A glyph rather than the words "open"
+           and "close", which would need a case rule I18N-2 forbids on Greek —
+           and which the tests assert this stylesheet does not contain. */
+        .faq-item summary::after {
+            content: '+'; color: var(--kaiki-primary); font-weight: 700;
+            font-size: 1.15rem; line-height: 1;
+        }
+        .faq-item[open] summary::after { content: '−'; }
+
+        .faq-item .prose { margin-top: .7rem; color: var(--ink-soft); }
+
         .contact-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .7rem; }
         .contact-list li { display: grid; gap: .1rem; }
         .contact-list .label {

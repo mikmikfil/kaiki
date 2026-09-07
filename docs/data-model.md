@@ -399,6 +399,50 @@ Exactly one per tenant.
 
 **Notes.** Colours are stored as hex strings rather than parsed components because the only consumers are CSS custom properties and the email templates. `custom_css` is stored raw and sanitised on **read** as well as write, so tightening the sanitiser later does not require a data migration. **Settled: plain path columns, no polymorphic media table.** Modelled here and on `vessels` / `products` / `ports` / `extras`. `spatie/laravel-medialibrary` is rejected — a new package, a new table and a new tenancy-scoping problem for the sake of a handful of upload fields, and tenancy scoping is the one risk this product cannot afford. One `App\Domain\Media\Actions\StoreUploadedImage` validates, resizes with `intervention/image` and writes to disk; conversions are synchronous at fixed documented sizes, with a `media:rebuild` Artisan command for a size change. Galleries are ordered JSON arrays and the Filament form owns reordering. Revisit only if gallery management becomes an operator complaint. (per [ADR-0021](adr/0021-image-and-file-storage.md), Option A)
 
+
+#### `home_page_blocks`
+
+The operator's landing page, as an ordered list of typed blocks (#102). Added by the design review of 2026-09-04, after this document was written — recorded here because it is schema.
+
+| column | type | null | default | notes |
+|---|---|---|---|---|
+| `id` | bigint unsigned AI | no | — | |
+| `uuid` | char(36) | no | — | unique |
+| `tenant_id` | bigint unsigned | no | — | FK cascade |
+| `type` | varchar(32) | no | — | `App\Enums\HomeBlockType`: `hero` \| `trips` \| `story` \| `gallery` \| `contact` \| `faq` |
+| `sort_order` | int unsigned | no | `0` | the operator's own order |
+| `is_visible` | boolean | no | `true` | hidden, not deleted — a gallery taken down for the winter is not retyped in the spring |
+| `heading` | json | yes | null | **translatable**, nullable: a gallery has no heading |
+| `body` | json | yes | null | **translatable**, **plain text, never markup** — rendered only through `BlockText` |
+| `image_path` | varchar(255) | yes | null | ADR-0021 Option A: a path, not a media row |
+| `images` | json | yes | null | the gallery: a list of `{path, alt: {el, en}}` |
+| `settings` | json | yes | null | the per-type knobs, none of them translated; whitelisted by `BlockSettings` |
+| timestamps | | | | |
+
+**Indexes** — `home_page_blocks_render_index` on (`tenant_id`, `is_visible`, `sort_order`): the page is read on every hosted-page request and written almost never.
+
+#### `faqs`
+
+The operator's frequently asked questions (#103), tenant-wide by default with an optional product.
+
+| column | type | null | default | notes |
+|---|---|---|---|---|
+| `id` | bigint unsigned AI | no | — | |
+| `uuid` | char(36) | no | — | unique |
+| `tenant_id` | bigint unsigned | no | — | FK cascade |
+| `product_id` | bigint unsigned | **yes** | null | FK cascade. **Null means the entry is about the operator**, which is the common case |
+| `question` | json | no | — | **translatable** |
+| `answer` | json | no | — | **translatable**, **plain text** — rendered through `BlockText`, like every other piece of operator prose |
+| `sort_order` | int unsigned | no | `0` | the operator's own order; the most-asked question is rarely the first one written |
+| `is_published` | boolean | no | `true` | unpublished entries stay editable in the panel and reach no guest surface |
+| timestamps | | | | |
+
+**Indexes** — `faqs_render_index` on (`tenant_id`, `is_published`, `product_id`, `sort_order`). Every guest-facing query is a tenant, a published flag and a `product_id` that is either null or one value.
+
+**FKs** — `tenant_id` → `tenants.id` cascade; `product_id` → `products.id` cascade (an answer about a trip that no longer exists is an answer nobody can ask about; the tenant-wide entries have a null `product_id` and are untouched).
+
+**Notes.** **Nullable `product_id`, not a `faq_product` pivot.** A pivot sounds more flexible and makes the common case the awkward one: every general answer would have to be attached to every trip the operator owns, and would be wrong again the day they add another. **No ADR-0008 companion columns** — nothing sorts or filters these; the panel orders by `sort_order`, which is a plain integer column, and the realistic list is eight rows. The both-locales rule is applied at the form by `TranslatableRequired` rather than by `SearchIndexObserver`, which only watches `TranslatableSearchable` models.
+
 ---
 
 ### 2.3 Catalog
@@ -2473,7 +2517,12 @@ Rules that produce this order:
 
 ### M3 — Widget & hosted pages
 
-No new tables. Hosted-page custom-domain resolution uses `tenants.custom_domain`, already present.
+Two new tables, both added by the design review of 2026-09-04 rather than by §7 of the spec:
+
+1. `home_page_blocks` (#102) — the editable operator home page. See §2.2.
+2. `faqs` (#103) — depends on `products`, so it lands after M1's catalogue. See §2.2.
+
+Hosted-page custom-domain resolution needs no table: it uses `tenants.custom_domain`, already present.
 
 ### M4 — WordPress plugin
 

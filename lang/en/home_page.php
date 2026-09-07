@@ -100,6 +100,14 @@ return [
             ],
         ],
 
+        // The FAQ block shows the entries from the FAQ screen (#103); it holds
+        // no text of its own beyond the heading, so the editor says where the
+        // questions are written.
+        'faq' => [
+            'label' => 'The questions',
+            'help' => 'This block shows the questions from the FAQ screen — the ones that apply to every trip. Write and reorder them there.',
+        ],
+
         'show_phone' => [
             'label' => 'Show the phone number',
         ],

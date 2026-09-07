@@ -6,6 +6,7 @@ use App\Enums\HomeBlockType;
 use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
 use App\Enums\TenantStatus;
+use App\Models\Faq;
 use App\Models\HomePageBlock;
 use App\Models\Product;
 
@@ -51,11 +52,17 @@ it('renders the default page for an operator who has never opened the editor', f
         ->assertSee(__('hosted.blocks.contact.heading', [], 'el'), escape: false);
 })->group('fast');
 
-it('renders each of the five block types', function (): void {
+it('renders each of the block types', function (): void {
     $tenant = OperatorPage::operator('all-five');
 
     OperatorPage::as($tenant, function (): void {
         $order = 0;
+
+        // #103's FAQ block is a mount: with no published entries it renders
+        // nothing, heading included, for the same reason the empty gallery
+        // does. So it gets a question, exactly as the gallery gets a
+        // photograph.
+        Faq::factory()->asking('Ερώτηση;', 'A question?')->create();
 
         foreach (HomeBlockType::cases() as $type) {
             HomePageBlock::factory()->ofType($type)->at($order++)->create([

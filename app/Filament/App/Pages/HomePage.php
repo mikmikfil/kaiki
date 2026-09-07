@@ -15,6 +15,7 @@ use App\Models\Port;
 use App\Support\Tenancy;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -353,6 +354,17 @@ class HomePage extends Page implements HasForms
                 ->reorderable()
                 ->defaultItems(0)
                 ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Gallery->value),
+
+            // --- faq ---
+
+            // The block carries no content of its own, so the one thing this
+            // slot has to do is say where the content is. Without it an
+            // operator adds an FAQ block, sees a heading field, and concludes
+            // the questions go in the heading.
+            Placeholder::make('faq_hint')
+                ->label(__('home_page.form.faq.label'))
+                ->content(__('home_page.form.faq.help'))
+                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Faq->value),
 
             // --- contact ---
 

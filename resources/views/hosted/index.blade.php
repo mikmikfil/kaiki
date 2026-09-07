@@ -32,6 +32,7 @@
             'block' => $entry['block'],
             'products' => $entry['products'],
             'meetingPoint' => $entry['meetingPoint'],
+            'faqs' => $entry['faqs'],
             'anchor' => $entry['anchor'],
         ])
     @endforeach

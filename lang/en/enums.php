@@ -250,6 +250,10 @@ return [
             'label' => 'Contact',
             'description' => 'Phone, email, address and meeting point — from your own details.',
         ],
+        'faq' => [
+            'label' => 'Frequently asked questions',
+            'description' => 'The entries you write on the FAQ screen. Only the ones about every trip are shown here.',
+        ],
     ],
 
     'font_source' => [

@@ -37,5 +37,11 @@ class DatabaseSeeder extends Seeder
         // to look at and nothing anybody can book, which is the state a demo is
         // least useful in.
         $this->call(DemoBookableSeeder::class);
+
+        // After the products, because one of its entries belongs to a trip: the
+        // FAQ of #103, which is invisible until somebody writes one — the block
+        // renders nothing when there is nothing published, so an unseeded demo
+        // shows the feature as an absence.
+        $this->call(DemoFaqSeeder::class);
     }
 }

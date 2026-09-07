@@ -12,14 +12,14 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M3 — Hosted pages & widget: #101 and #102 built.** M2 complete (all eleven), M1 complete. |
+| Milestone | **M3 — Hosted pages & widget: #101, #102 and #103 built.** M2 complete (all eleven), M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **#101, #102 built** — the hosted page shell and the editable home page. #103 … #111 to come, hosted pages before the widget. |
+| M3 | **#101, #102, #103 built** — the hosted page shell, the editable home page and the FAQ. #104 … #111 to come, hosted pages before the widget. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2047, one failing: the schema snapshot CI cannot regenerate) · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2130, one failing: the schema snapshot CI cannot regenerate) · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -35,6 +35,64 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #103 — Per-operator FAQ, and the first `<script>` a hosted page has ever carried
+
+A `faqs` table, a panel resource, a sixth home-page block type and a `FAQPage` JSON-LD document. A scope addition from the design review of 4 September, like #102, rather than a §7 requirement.
+
+### The decision the issue is about
+
+`product_id` is **nullable**, and the issue's own note says why the other shape is tempting: a `faq_product` pivot sounds more flexible and forces every general answer to be attached to every trip the operator owns. Tenant-wide by default, product-specific by exception.
+
+Every rule that follows from it is in one place, `BuildFaqList`, rather than in the two templates that need it — the product page and the home page would otherwise be two implementations of "published", and only one of them would get fixed.
+
+### Delivered against the Action for one acceptance criterion
+
+*"Given the hosted product page, when it renders, then it shows the entries for that product plus the tenant-wide ones."* **The hosted product page is #104 and does not exist.** The criterion is therefore met at the seam rather than end to end:
+
+- `BuildFaqList` answers a product with that product's entries **plus** the tenant-wide ones, its own first, and excludes another product's — asserted directly in `FaqRenderingTest`.
+- The rendering — the section, the markup, the JSON-LD — is asserted on the home page, through `resources/views/hosted/partials/faq.blade.php`, which is the partial #104 includes.
+
+Stated here rather than left to be discovered: #104 has to include that partial and pass it `BuildFaqList($product)`. It does not re-derive the rule.
+
+### The FAQPage block, and what it put at risk
+
+This is the first `<script>` element a hosted page has ever contained, and #101 asserted there were none. Both halves of that are now asserted deliberately:
+
+| Risk | What was done | Where it is proved |
+|---|---|---|
+| CSP drops the block silently — `script-src` applies whatever the `type`, and there is no `unsafe-inline` | the element carries the per-response nonce | `FaqSeoTest`: the nonce is read **out of the element** and looked for in the header |
+| An operator pastes `</script>` into an answer | `JSON_HEX_TAG\|AMP\|APOS\|QUOT` — the JSON still parses, and the text is returned verbatim | `FaqSeoTest`, by parsing the block, not by matching a string |
+| HOS-4's "no script tag" claim | restated as *exactly one*, and that one is `application/ld+json` | `FaqRenderingTest` |
+
+**Every JSON-LD assertion parses.** A malformed block is discarded by Google without a word, so a test that greps for `FAQPage` passes on markup that achieves nothing.
+
+### Deviations and additions
+
+- **`Faq` is added to `HomeBlockType::defaultLayout()`.** Without it, an operator who writes entries and has never opened the page editor sees them nowhere, and the remedy is a step nobody would guess at. Safe because the block renders **nothing** — heading included — when nothing is published, so a page belonging to an operator with no entries is unchanged.
+- **`DemoFaqSeeder`**, registered after `DemoBookableSeeder` because one of its entries belongs to a product. Without seeded rows the feature reads as an absence on the demo page. Keyed on (`product_id`, `sort_order`) rather than on the question, which is translatable JSON — matching on it would be the JSON-path query `NoJsonPathQueryTest` scans `database/` for.
+- **No ADR-0008 companion columns.** Nothing sorts or filters these; the table orders by `sort_order`, a plain integer. The both-locales rule therefore comes from `TranslatableRequired` at the form rather than from `SearchIndexObserver`, which only watches `TranslatableSearchable` models. The cost is that an import could store a half-translated row; it renders through the I18N-5 fallback, which is better for a guest than a missing section.
+- **`FaqPolicy::reorder()`** exists because Filament calls `can('reorder')` before rendering the drag handles, and a policy without the method denies — the feature would vanish with nothing anywhere saying why.
+- **`ManageBranding`, not `ManageCatalogue`**, on the #102 argument. The two draw the identical line in the TEN-8 matrix, so this is about which sentence the next reader gets; crew reach neither, which is the criterion.
+- **`docs/data-model.md` said M3 adds no tables.** It now documents `faqs` **and** `home_page_blocks`, which #102 added without recording. §2.2 and the M3 migration ordering.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `composer lint` | Pint, clean |
+| `composer stan` | PHPStan level 6, **854 files, no errors** |
+| `composer test` | **2129 passed, 1 failed** — `CiGatesTest > it keeps the committed schema snapshot in step with the migrations` |
+| `php artisan migrate` | `2026_09_07_000001_create_faqs_table` … DONE (SQLite) |
+| `php artisan db:seed --class=DemoFaqSeeder` | four entries on Aegean Blue: three tenant-wide, one on the sunset cruise |
+
+19 new tests across three files: `FaqRenderingTest` (7), `FaqSeoTest` (5), `FaqAccessTest` (7). `HomePageBlockTest`'s "renders each of the block types" now seeds one question, because the FAQ block is a mount and renders nothing without one — the same exception the empty gallery already had.
+
+**The one failure is the inherited ENV-10 schema snapshot.** #102 made it genuine by adding a table; this issue adds another. The fingerprint can only be regenerated against a MySQL 8 connection, which exists only in CI, which is still blocked on the account's billing. The first green run needs `composer schema:snapshot`, not an investigation.
+
+Two mistakes worth recording rather than tidying away. The CSS comment for the FAQ toggle contained the words `text-transform: uppercase` while explaining why they are not used — and `HomePageBlockTest` and `HostedPageLocaleTest` both assert the string does not appear in the body, which a Blade `/* */` comment does. And a first attempt at "renders no section" asserted the absence of `faq-list`, which is in the stylesheet on every page whether or not a section uses it; it asserts the absence of the `<section>` element instead.
 
 ---
 

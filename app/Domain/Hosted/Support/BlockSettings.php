@@ -76,6 +76,12 @@ final class BlockSettings
                 // where the boat leaves from.
                 'meeting_point_id' => null,
             ],
+            // No knobs, and that is the whole shape of the type. The FAQ block
+            // renders `faqs` rows; what it shows is decided by which entries the
+            // operator published and in what order, on the screen where they
+            // wrote them. A `limit` here would be a second place to hide an
+            // answer from a guest.
+            HomeBlockType::Faq => [],
         };
     }
 

@@ -35,6 +35,13 @@ return [
                 'contact' => 'Get in touch',
             ],
         ],
+        // The FAQ block renders `faqs` rows (#103); the heading is the only
+        // text it carries, and this is what it says when the operator has not
+        // written one. A section of questions with no title reads as a mistake
+        // on a scrolling page.
+        'faq' => [
+            'heading' => 'Frequently asked questions',
+        ],
         'contact' => [
             'heading' => 'Get in touch',
             'phone' => 'Phone',
