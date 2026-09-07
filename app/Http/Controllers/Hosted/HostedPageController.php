@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Hosted;
 
 use App\Domain\Branding\Actions\GetBrandPayload;
+use App\Domain\Catalog\Support\SearchFormOptions;
 use App\Domain\Hosted\Actions\BuildHomePage;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -53,6 +54,11 @@ class HostedPageController extends HostedController
 
         return $this->render($request, $tenant, 'hosted.index', fn (): array => [
             'blocks' => ($this->homePage)($tenant),
+            // The hero carries the same search form the search page does, with
+            // the same fields the operator enabled. Resolved here for the same
+            // reason it is there: a template that queries queries on every
+            // render.
+            ...SearchFormOptions::for($tenant),
             // The operator's own first paragraph describes their business
             // better than a template sentence, and it is already written.
             'metaDescription' => $this->homePage->metaDescription($tenant),

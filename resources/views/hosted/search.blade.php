@@ -34,82 +34,11 @@
         <p class="standfirst">{{ __('hosted.search.standfirst') }}</p>
     </header>
 
-    {{-- `method="get"` and no `action`: the form submits to this URL, which is
-         the whole of the interaction. --}}
-    <form class="search-form" method="get">
-        <div class="field">
-            <label for="f-date">{{ __('hosted.search.fields.date') }}</label>
-            <input type="date" id="f-date" name="date" value="{{ $criteria->date->toDateString() }}">
-        </div>
-
-        <div class="field">
-            <label for="f-pax">{{ __('hosted.search.fields.pax') }}</label>
-            <input type="number" id="f-pax" name="pax" min="1" max="500" value="{{ $criteria->pax }}">
-        </div>
-
-        @if ($filters[SearchFilters::PORT] && $ports->isNotEmpty())
-            <div class="field">
-                <label for="f-port">{{ __('hosted.search.fields.port') }}</label>
-                <select id="f-port" name="port">
-                    <option value="">{{ __('hosted.search.any') }}</option>
-                    @foreach ($ports as $port)
-                        <option value="{{ $port->uuid }}" @selected(($applied['port'] ?? null) === $port->uuid)>{{ $port->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-        @endif
-
-        @if ($filters[SearchFilters::TYPE])
-            <div class="field">
-                <label for="f-type">{{ __('hosted.search.fields.type') }}</label>
-                <select id="f-type" name="type">
-                    <option value="">{{ __('hosted.search.any') }}</option>
-                    @foreach ($categories as $value => $label)
-                        <option value="{{ $value }}" @selected(($applied['type'] ?? null) === $value)>{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-        @endif
-
-        @if ($filters[SearchFilters::DURATION])
-            <div class="field">
-                <label for="f-duration">{{ __('hosted.search.fields.duration_max') }}</label>
-                <input type="number" id="f-duration" name="duration_max" min="30" step="30"
-                       value="{{ $applied['duration_max'] ?? '' }}">
-            </div>
-        @endif
-
-        @if ($filters[SearchFilters::PRICE])
-            <div class="field">
-                {{-- Euros, because that is what a guest types. The controller
-                     turns it into cents, which is what everything touching money
-                     works in. --}}
-                <label for="f-price">{{ __('hosted.search.fields.price_max') }}</label>
-                <input type="number" id="f-price" name="price_max" min="0" step="10"
-                       value="{{ $applied['price_max'] ?? '' }}">
-            </div>
-        @endif
-
-        @if ($filters[SearchFilters::VESSEL] && $vessels->isNotEmpty())
-            <div class="field">
-                <label for="f-vessel">{{ __('hosted.search.fields.vessel') }}</label>
-                <select id="f-vessel" name="vessel">
-                    <option value="">{{ __('hosted.search.any') }}</option>
-                    @foreach ($vessels as $vessel)
-                        <option value="{{ $vessel->uuid }}" @selected(($applied['vessel'] ?? null) === $vessel->uuid)>{{ $vessel->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-        @endif
-
-        {{-- The locale travels with the submission, or a Greek visitor lands
-             back on the operator's default language after every search. --}}
-        <input type="hidden" name="lang" value="{{ $locale }}">
-
-        <div class="field submit">
-            <button type="submit" class="button">{{ __('hosted.search.submit') }}</button>
-        </div>
-    </form>
+    @include('hosted.partials.search-form', [
+        'applied' => $applied,
+        'dateValue' => $criteria->date->toDateString(),
+        'paxValue' => $criteria->pax,
+    ])
 
     @if ($results === [])
         {{-- Not an empty grid. The one thing a guest needs here is what to

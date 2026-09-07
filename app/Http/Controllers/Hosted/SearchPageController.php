@@ -9,6 +9,7 @@ use App\Domain\Availability\Actions\SearchCatalogue;
 use App\Domain\Availability\LocalDateTimeResolver;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Catalog\Support\SearchFilters;
+use App\Domain\Catalog\Support\SearchFormOptions;
 use App\Enums\ProductCategory;
 use App\Http\Requests\Api\V1\SearchRequest;
 use App\Models\Port;
@@ -62,13 +63,9 @@ class SearchPageController extends HostedController
         return $this->render($request, $tenant, 'hosted.search', fn (): array => [
             'criteria' => $criteria,
             'results' => ($this->search)($criteria),
-            'filters' => $filters,
-            // The form's own options, resolved here rather than in the template:
-            // a template that queries is a template that queries on every render,
-            // and these two are the whole of what the controls offer.
-            'ports' => $filters[SearchFilters::PORT] ? $this->ports() : collect(),
-            'vessels' => $filters[SearchFilters::VESSEL] ? $this->vessels() : collect(),
-            'categories' => ProductCategory::options(),
+            // The form's own options, resolved once and shared with the home
+            // page's copy of the same form (`SearchFormOptions`).
+            ...SearchFormOptions::for($tenant),
             'metaDescription' => __('hosted.search.meta_description', ['operator' => $tenant->name]),
         ], $locale);
     }

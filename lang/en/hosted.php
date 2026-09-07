@@ -89,6 +89,8 @@ return [
         'booking' => [
             'heading' => 'Book this trip',
             // The four lines above the date picker, brand decision 3.
+            'capacity' => 'Capacity',
+            'and_more' => 'and :count more',
             'trip' => 'Trip',
             'duration' => 'Duration',
             'port' => 'Departs from',

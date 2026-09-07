@@ -81,20 +81,15 @@
             </p>
         @endif
 
-        <form class="hero-search"
-              method="get"
-              action="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">
-            <div class="field">
-                <label for="hero-date">{{ __('hosted.search.fields.date') }}</label>
-                <input type="date" id="hero-date" name="date" value="{{ now($tenant->timezone)->toDateString() }}">
-            </div>
-
-            <div class="field">
-                <label for="hero-pax">{{ __('hosted.search.fields.pax') }}</label>
-                <input type="number" id="hero-pax" name="pax" min="1" max="500" value="2">
-            </div>
-
-            <button type="submit" class="button">{{ __('hosted.search.submit') }}</button>
-        </form>
+        {{-- The same form the search page carries, with the same fields the
+             operator enabled — not a cut-down version of it, because a visitor
+             who filters by port on one page and cannot on the other has learnt
+             something untrue about the site. --}}
+        <div class="hero-search">
+            @include('hosted.partials.search-form', [
+                'action' => route('hosted.search', ['operator' => $tenant->slug]),
+                'idPrefix' => 'hero',
+            ])
+        </div>
     </div>
 </section>

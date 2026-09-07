@@ -113,7 +113,12 @@
            scrollbar's width. */
         html { overflow-x: hidden; }
 
-        .wrap { max-width: 78rem; margin: 0 auto; padding: 0 clamp(1.25rem, 3vw, 2.5rem); }
+        /* 86rem. The trips grid wants three generous columns and the trip page
+           wants a readable main column beside a booking card that is not a
+           sliver; 78 gave three narrow ones and a 22rem aside that had to be
+           argued with. Prose keeps its own measure below — widening the page is
+           not the same as widening the paragraph. */
+        .wrap { max-width: 86rem; margin: 0 auto; padding: 0 clamp(1.25rem, 3vw, 2.5rem); }
 
         /* The reading measure, for blocks that are words rather than layout. */
         .prose, .standfirst { max-width: 44rem; }
@@ -311,23 +316,36 @@
         .search-head .standfirst { color: var(--ink-soft); max-width: 42rem; margin: 0 0 1.5rem; }
 
         .search-form {
-            display: grid; gap: .9rem 1rem; align-items: end;
+            display: grid; gap: 1rem 1.1rem; align-items: end;
             grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-            background: var(--surface); border: 1px solid var(--rule);
-            border-radius: 14px; padding: 1.15rem 1.25rem 1.35rem; margin-bottom: 2rem;
+            background: var(--surface);
+            border-radius: 18px; padding: 1.4rem 1.5rem 1.55rem; margin-bottom: 2.5rem;
+            box-shadow: 0 1px 2px color-mix(in srgb, var(--kaiki-text) 7%, transparent);
         }
 
-        .search-form .field { display: grid; gap: .3rem; }
+        .search-form .field { display: grid; gap: .35rem; min-width: 0; }
         .search-form label {
-            font-size: .74rem; font-weight: 600; letter-spacing: .06em; color: var(--ink-faint);
+            font-size: .74rem; font-weight: 600; letter-spacing: .07em; color: var(--ink-faint);
         }
+
+        /* Fields big enough to hit with a thumb. A search bar on a boat
+           operator's home page is used standing on a quay, one-handed. */
         .search-form input, .search-form select {
-            font: inherit; font-size: .95rem; color: inherit;
-            padding: .55rem .65rem; border: 1px solid var(--rule);
+            font: inherit; font-size: 1rem; color: var(--kaiki-text);
+            padding: .7rem .8rem; border: 1px solid var(--rule);
             border-radius: var(--kaiki-radius); background: #fff; width: 100%;
+            min-height: 2.9rem;
         }
+
+        .search-form input:focus-visible, .search-form select:focus-visible {
+            outline: 2px solid var(--kaiki-primary); outline-offset: 1px; border-color: transparent;
+        }
+
         .search-form .submit { align-self: end; }
-        .search-form button { border: 0; cursor: pointer; font: inherit; }
+        .search-form button {
+            border: 0; cursor: pointer; font: inherit; width: 100%;
+            justify-content: center; min-height: 2.9rem;
+        }
 
         .result-count { color: var(--ink-faint); font-size: .88rem; margin: 0 0 1rem; }
 
@@ -385,9 +403,9 @@
 
         .hero-copy {
             width: 100%;
-            max-width: 78rem;
+            max-width: 86rem;
             margin: 0 auto;
-            padding: 3.5rem 1.5rem;
+            padding: 3.5rem clamp(1.25rem, 3vw, 2.5rem);
             position: relative;
             z-index: 2;
             /* Explicit, so a theme or a browser default cannot centre it. */
@@ -454,41 +472,52 @@
            copy. On the hero's photograph it is a solid panel rather than a
            translucent one: a date field with a photograph showing through it is
            a date field nobody can read. */
+        /* The masthead's copy of the search form. A solid panel rather than a
+           translucent one: a date field with a photograph showing through it is
+           a date field nobody can read.
+
+           It carries **every** field the search page does. A hero form with two
+           of the six teaches a visitor something untrue about the site, and
+           they find out on the next page. */
         .hero-search {
-            margin: 1.75rem 0 0;
-            display: grid;
-            gap: .75rem;
-            grid-template-columns: 1fr;
+            margin: 2rem 0 0;
             background: var(--surface);
-            border-radius: 16px;
-            padding: 1rem 1.1rem 1.15rem;
-            max-width: 34rem;
-            box-shadow: 0 10px 30px -22px color-mix(in srgb, var(--kaiki-text) 70%, transparent);
+            border-radius: 18px;
+            padding: 1.6rem 1.7rem 1.7rem;
+            box-shadow: 0 14px 40px -26px color-mix(in srgb, var(--kaiki-text) 75%, transparent);
         }
 
-        .hero-search .field { display: grid; gap: .3rem; min-width: 0; }
-
-        .hero-search label {
-            font-size: .74rem; font-weight: 600; letter-spacing: .07em;
-            color: var(--ink-faint);
+        .hero-search .search-form {
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            padding: 0;
+            margin: 0;
+            box-shadow: none;
         }
 
-        .hero-search input {
-            font: inherit; font-size: .95rem; color: var(--kaiki-text);
-            padding: .6rem .7rem;
-            border: 1px solid var(--rule);
-            border-radius: var(--kaiki-radius);
-            background: #fff;
-            width: 100%;
-        }
+        /* **One row on a wide screen, and only there.** `auto-fit` wrapped the
+           six fields onto two lines the moment they stopped fitting, which on a
+           masthead reads as a form that has fallen over. Above 64rem every field
+           shares the row and shrinks together; below it they stack, which is the
+           right answer on a phone and the only one that stays legible.
 
-        .hero-search button { border: 0; cursor: pointer; font: inherit; justify-content: center; }
-
-        @media (min-width: 34rem) {
-            .hero-search {
-                grid-template-columns: 1fr 7rem auto;
+           `minmax(0, 1fr)` rather than `1fr`: a grid item's default minimum is
+           its content, so a long port name would push the row wider than the
+           panel and the last field would hang off the edge. */
+        @media (min-width: 64rem) {
+            .hero-search .search-form {
+                display: flex;
+                flex-wrap: nowrap;
                 align-items: end;
+                gap: .85rem;
             }
+
+            .hero-search .search-form .field { flex: 1 1 0; min-width: 0; }
+
+            /* The button is the one thing that should not shrink to fit. */
+            .hero-search .search-form .submit { flex: 0 0 auto; }
+            .hero-search .search-form button { width: auto; padding-inline: 1.6rem; }
         }
         .button {
             display: inline-flex; align-items: center; gap: .5rem;
@@ -538,7 +567,15 @@
             overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
         }
 
-        .crumbs { font-size: .85rem; color: var(--ink-faint); display: flex; gap: .45rem; align-items: baseline; }
+        /* The crumbs sit directly above the page and are part of it, not
+           another block. Without this they inherit the home page's
+           block rhythm — six rems of nothing between a breadcrumb and the
+           photograph it belongs to. */
+        .crumbs {
+            font-size: .85rem; color: var(--ink-faint);
+            display: flex; gap: .45rem; align-items: baseline;
+            margin-bottom: calc(clamp(3.5rem, 7vw, 6rem) * -1 + 1.25rem);
+        }
         .crumbs a { color: var(--ink-soft); text-decoration: none; }
         .crumbs a:hover { color: var(--kaiki-primary); }
 
@@ -576,7 +613,7 @@
 
         @media (min-width: 60rem) {
             .product-body {
-                grid-template-columns: minmax(0, 1fr) 22rem;
+                grid-template-columns: minmax(0, 1fr) 27rem;
                 align-items: start;
             }
 
@@ -604,13 +641,13 @@
         .booking {
             background: var(--surface);
             border-radius: 18px;
-            padding: 1.6rem 1.7rem 1.75rem;
+            padding: clamp(1.75rem, 2.2vw, 2.35rem);
             box-shadow: 0 1px 2px color-mix(in srgb, var(--kaiki-text) 8%, transparent),
                         0 14px 40px -28px color-mix(in srgb, var(--kaiki-text) 60%, transparent);
         }
 
         .four-lines { display: grid; gap: .55rem; margin: 0 0 1.1rem; }
-        .four-lines > div { display: grid; grid-template-columns: 7.5rem 1fr; gap: .8rem; align-items: baseline; }
+        .four-lines > div { display: grid; grid-template-columns: 8.5rem 1fr; gap: .9rem; align-items: baseline; }
         .four-lines dt {
             font-size: .74rem; font-weight: 600; letter-spacing: .07em;
             color: var(--ink-faint); margin: 0;
@@ -621,6 +658,51 @@
         .price .from { font-size: .85rem; color: var(--ink-faint); }
         .price strong { font-size: var(--step-3); letter-spacing: -.025em; }
         .price .vat { font-size: .82rem; color: var(--ink-faint); flex-basis: 100%; }
+
+        /* What the card carries besides the four lines and the price: capacity,
+           the boat, who pays what, the first of the includes, and the
+           cancellation window. All of it is further down the page as well —
+           it is here because a visitor deciding whether to press the button is
+           asking exactly these questions, and scrolling away from the button to
+           answer them is how a booking is abandoned.
+
+           Each row is an icon column and a text column. The icon is fixed at
+           `1.15rem` and aligned to the first line rather than centred, so a row
+           whose value wraps to three lines keeps its icon beside the label. */
+        .booking-extra {
+            margin: 1.4rem 0 0; padding-top: 1.35rem;
+            border-top: 1px solid var(--rule);
+            display: grid; gap: 1.05rem;
+            font-size: .92rem;
+        }
+
+        .booking-extra .extra { display: grid; grid-template-columns: 1.15rem 1fr; gap: .8rem; align-items: start; }
+        .booking-extra .extra > div { display: grid; gap: .22rem; min-width: 0; }
+
+        .booking-extra .icon {
+            width: 1.15rem; height: 1.15rem;
+            color: var(--kaiki-primary);
+            margin-top: .1rem;
+        }
+
+        .booking-extra .label {
+            font-size: .72rem; font-weight: 600; letter-spacing: .08em; color: var(--ink-faint);
+        }
+
+        .booking-extra .muted { color: var(--ink-faint); font-size: .86rem; }
+
+        .booking-extra ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; }
+        .booking-extra ul li { padding-left: 1.2rem; position: relative; color: var(--ink-soft); }
+        .booking-extra ul li::before { position: absolute; left: 0; content: '✓'; color: var(--kaiki-primary); }
+        .booking-extra .more { color: var(--ink-faint); font-size: .85rem; }
+
+        /* The age bands are a list of pairs, not ticks: the marker in front of
+           each one would read as "this is included", which is the opposite of
+           what a band that pays nothing and takes no seat means. */
+        .booking-extra ul.bands { gap: .35rem; margin-top: .1rem; }
+        .booking-extra ul.bands li { padding-left: 0; display: flex; flex-wrap: wrap; gap: .45rem; align-items: baseline; }
+        .booking-extra ul.bands li::before { content: none; }
+        .booking-extra ul.bands strong { color: var(--kaiki-text); font-weight: 600; }
 
         .mount .no-js { margin: 0 0 .9rem; color: var(--ink-soft); font-size: .93rem; }
         .contact-cta { margin: 0; display: flex; flex-wrap: wrap; gap: .6rem; }
@@ -642,7 +724,7 @@
         ol.itinerary h3 { margin: 0 0 .2rem; font-size: 1rem; font-weight: 700; }
         ol.itinerary p { margin: 0; color: var(--ink-soft); font-size: .93rem; }
 
-        ul.bands, ul.tiers { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .45rem; font-size: .95rem; }
+        ul.tiers { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .45rem; font-size: .95rem; }
 
         /* Departures as chips rather than a column. Twenty dates stacked one to
            a line is a wall a visitor scrolls past; the same twenty in a wrapped
@@ -664,7 +746,6 @@
 
         .departures .when { font-variant-numeric: tabular-nums; }
         .departures .sold-out { font-size: .78rem; color: var(--kaiki-accent); letter-spacing: .04em; }
-        ul.bands li { display: flex; flex-wrap: wrap; gap: .5rem; align-items: baseline; }
 
         /* --- FAQ (#103) --------------------------------------------- */
 

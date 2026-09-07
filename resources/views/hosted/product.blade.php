@@ -52,6 +52,13 @@
             </div>
         @endif
 
+        {{-- The two columns begin at the **title**, not below it. A booking card
+             that starts where the prose does sits a screen lower than the thing
+             a visitor came to do — and on a wide monitor it is below the fold
+             while the space beside the heading is empty. --}}
+        <div class="product-body">
+            <div class="product-main">
+
         <header class="product-head">
             <h1>{{ $product->title }}</h1>
 
@@ -74,69 +81,6 @@
             </ul>
         </header>
 
-        {{--
-            The booking area. Brand decision 3 of 2026-09-04 is **four lines
-            above the date picker** — title, duration, port, vessel — and no
-            photograph and no summary. The space looks empty in the mockup too,
-            and the decision was made against exactly that temptation.
-        --}}
-        {{-- Two columns on a desktop: what the trip is on the left, how to book
-             it on the right, and the booking card **sticky** so it is still on
-             screen when a visitor has read to the bottom of the itinerary. That
-             is the whole reason for the layout — a booking form below three
-             screens of prose is a booking form nobody scrolls back up to. --}}
-        <div class="product-body">
-            <aside class="product-aside">
-                <section class="booking" id="book" aria-labelledby="booking-heading">
-            <h2 id="booking-heading" class="sr-only">{{ __('hosted.product.booking.heading') }}</h2>
-
-            <dl class="four-lines">
-                <div><dt>{{ __('hosted.product.booking.trip') }}</dt><dd>{{ $product->title }}</dd></div>
-                <div><dt>{{ __('hosted.product.booking.duration') }}</dt><dd>{{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}</dd></div>
-                <div><dt>{{ __('hosted.product.booking.port') }}</dt><dd>{{ $port?->name ?? '—' }}</dd></div>
-                <div><dt>{{ __('hosted.product.booking.vessel') }}</dt><dd>{{ $product->vessel?->name ?? '—' }}</dd></div>
-            </dl>
-
-            @if (! $isQuote && $fromPriceFormatted)
-                <p class="price">
-                    <span class="from">{{ __('hosted.product.price.from') }}</span>
-                    <strong>{{ $fromPriceFormatted }}</strong>
-                    {{-- Brand decision 4: the sentence, never the rate. The rate
-                         is an invoice matter (M6) and the open question with the
-                         accountant therefore does not block this page. --}}
-                    <span class="vat">{{ __('hosted.product.price.vat_included') }}</span>
-                </p>
-            @endif
-
-            @if ($readOnly)
-                {{-- HOS-10, and the guest is told who to contact rather than
-                     what went wrong with somebody else's subscription. --}}
-                <p class="read-only">{{ __('hosted.read_only', ['email' => $tenant->email]) }}</p>
-            @else
-                {{--
-                    The widget's mount point (#106, #107, #108). Its contents are
-                    the no-JavaScript answer and stay in the markup until the
-                    widget replaces them — so a crawler, a blocked script and a
-                    bad connection all get a way to book rather than an empty box.
-                --}}
-                <div class="mount"
-                     data-kaiki-mount="{{ $isQuote ? 'enquiry' : 'booking' }}"
-                     data-kaiki-product="{{ $product->uuid }}">
-                    <p class="no-js">
-                        {{ $isQuote ? __('hosted.product.booking.enquiry_fallback') : __('hosted.product.booking.fallback') }}
-                    </p>
-                    <p class="contact-cta">
-                        <a class="button" href="mailto:{{ $tenant->email }}">{{ __('hosted.product.booking.email_us') }}</a>
-                        @if ($tenant->phone)
-                            <a class="button ghost" href="tel:{{ $tenant->phone }}">{{ $tenant->phone }}</a>
-                        @endif
-                    </p>
-                </div>
-            @endif
-                </section>
-            </aside>
-
-            <div class="product-main">
 
         @if ($product->description)
             <section class="section">
@@ -235,35 +179,13 @@
             </section>
         @endif
 
-        @if ($product->vessel)
+        {{-- Only the operator's prose about the boat stays here. Its name, type
+             and capacity are in the booking card, where they answer the question
+             a visitor is asking while they choose a date. --}}
+        @if ($product->vessel?->description)
             <section class="section">
                 <h2>{{ __('hosted.product.vessel') }}</h2>
-                <p><strong>{{ $product->vessel->name }}</strong> — {{ $product->vessel->type->label() }}</p>
-                @if ($product->vessel->description)
-                    <div class="prose">{{ \App\Domain\Hosted\Support\BlockText::paragraphs($product->vessel->description) }}</div>
-                @endif
-                <p class="muted">{{ __('hosted.product.vessel_capacity', ['count' => $product->vessel->capacity_max]) }}</p>
-            </section>
-        @endif
-
-        @if ($product->ageBands->isNotEmpty())
-            <section class="section">
-                <h2>{{ __('hosted.product.age_bands') }}</h2>
-                <ul class="bands">
-                    @foreach ($product->ageBands as $band)
-                        <li>
-                            <strong>{{ $band->label }}</strong>
-                            <span class="muted">
-                                {{ $band->max_age !== null
-                                    ? __('hosted.product.age_range', ['from' => $band->min_age, 'to' => $band->max_age])
-                                    : __('hosted.product.age_from', ['from' => $band->min_age]) }}
-                                @unless ($band->counts_toward_capacity)
-                                    · {{ __('hosted.product.no_seat') }}
-                                @endunless
-                            </span>
-                        </li>
-                    @endforeach
-                </ul>
+                <div class="prose">{{ \App\Domain\Hosted\Support\BlockText::paragraphs($product->vessel->description) }}</div>
             </section>
         @endif
 
@@ -295,6 +217,147 @@
                 'anchor' => 'faq',
             ])
             </div>
+
+            {{-- The booking card is **sticky**, so it is still on screen when a
+                 visitor has read to the bottom of the itinerary. A booking form
+                 below three screens of prose is one nobody scrolls back up
+                 to. --}}
+            <aside class="product-aside">
+                <section class="booking" id="book" aria-labelledby="booking-heading">
+            <h2 id="booking-heading" class="sr-only">{{ __('hosted.product.booking.heading') }}</h2>
+
+            <dl class="four-lines">
+                <div><dt>{{ __('hosted.product.booking.trip') }}</dt><dd>{{ $product->title }}</dd></div>
+                <div><dt>{{ __('hosted.product.booking.duration') }}</dt><dd>{{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}</dd></div>
+                <div><dt>{{ __('hosted.product.booking.port') }}</dt><dd>{{ $port?->name ?? '—' }}</dd></div>
+                <div><dt>{{ __('hosted.product.booking.vessel') }}</dt><dd>{{ $product->vessel?->name ?? '—' }}</dd></div>
+            </dl>
+
+            @if (! $isQuote && $fromPriceFormatted)
+                <p class="price">
+                    <span class="from">{{ __('hosted.product.price.from') }}</span>
+                    <strong>{{ $fromPriceFormatted }}</strong>
+                    {{-- Brand decision 4: the sentence, never the rate. The rate
+                         is an invoice matter (M6) and the open question with the
+                         accountant therefore does not block this page. --}}
+                    <span class="vat">{{ __('hosted.product.price.vat_included') }}</span>
+                </p>
+            @endif
+
+            {{-- What a visitor asks with their hand over the button: how many
+                 of us fit, which boat is it, what does a child pay, what is
+                 included, and can I get out of it. Most of it is further down
+                 the page as well — but scrolling away from the button to find it
+                 is how a booking is abandoned, so the short answers live here.
+
+                 Each row is an icon, a label and a value. The icon is decorative
+                 (`hosted.partials.icon` hides it from the accessibility tree);
+                 it is there so the eye can find the row it wants without
+                 reading five labels. --}}
+            <div class="booking-extra">
+                @if (! $isQuote)
+                    <div class="extra">
+                        @include('hosted.partials.icon', ['name' => 'users'])
+                        <div>
+                            <span class="label">{{ __('hosted.product.booking.capacity') }}</span>
+                            <span>{{ __('hosted.product.max_pax', ['count' => $product->max_pax]) }}</span>
+                        </div>
+                    </div>
+                @endif
+
+                @if ($product->vessel)
+                    <div class="extra">
+                        @include('hosted.partials.icon', ['name' => 'boat'])
+                        <div>
+                            <span class="label">{{ __('hosted.product.vessel') }}</span>
+                            <span>{{ $product->vessel->type->label() }}</span>
+                            <span class="muted">{{ __('hosted.product.vessel_capacity', ['count' => $product->vessel->capacity_max]) }}</span>
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Who pays what. A guest with a five-year-old wants this before
+                     they pick a date, not after — and a band that takes no seat
+                     is the one they most need told about. --}}
+                @if ($product->ageBands->isNotEmpty())
+                    <div class="extra">
+                        @include('hosted.partials.icon', ['name' => 'tickets'])
+                        <div>
+                            <span class="label">{{ __('hosted.product.age_bands') }}</span>
+                            <ul class="bands">
+                                @foreach ($product->ageBands as $band)
+                                    <li>
+                                        <strong>{{ $band->label }}</strong>
+                                        <span class="muted">
+                                            {{ $band->max_age !== null
+                                                ? __('hosted.product.age_range', ['from' => $band->min_age, 'to' => $band->max_age])
+                                                : __('hosted.product.age_from', ['from' => $band->min_age]) }}
+                                            @unless ($band->counts_toward_capacity)
+                                                · {{ __('hosted.product.no_seat') }}
+                                            @endunless
+                                        </span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                @endif
+
+                @if (is_array($product->includes) && $product->includes !== [])
+                    <div class="extra">
+                        @include('hosted.partials.icon', ['name' => 'check'])
+                        <div>
+                            <span class="label">{{ __('hosted.product.includes') }}</span>
+                            <ul>
+                                @foreach (array_slice(array_filter($product->includes, fn ($item) => is_string($item) && trim($item) !== ''), 0, 3) as $item)
+                                    <li>{{ $item }}</li>
+                                @endforeach
+                            </ul>
+                            @if (count($product->includes) > 3)
+                                <span class="more">{{ __('hosted.product.booking.and_more', ['count' => count($product->includes) - 3]) }}</span>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
+                @if ($policy && $policy->free_cancellation_hours)
+                    <div class="extra">
+                        @include('hosted.partials.icon', ['name' => 'calendar'])
+                        <div>
+                            <span class="label">{{ __('hosted.product.cancellation') }}</span>
+                            <span>{{ __('hosted.product.free_cancellation', ['hours' => $policy->free_cancellation_hours]) }}</span>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            @if ($readOnly)
+                {{-- HOS-10, and the guest is told who to contact rather than
+                     what went wrong with somebody else's subscription. --}}
+                <p class="read-only">{{ __('hosted.read_only', ['email' => $tenant->email]) }}</p>
+            @else
+                {{--
+                    The widget's mount point (#106, #107, #108). Its contents are
+                    the no-JavaScript answer and stay in the markup until the
+                    widget replaces them — so a crawler, a blocked script and a
+                    bad connection all get a way to book rather than an empty box.
+                --}}
+                <div class="mount"
+                     data-kaiki-mount="{{ $isQuote ? 'enquiry' : 'booking' }}"
+                     data-kaiki-product="{{ $product->uuid }}">
+                    <p class="no-js">
+                        {{ $isQuote ? __('hosted.product.booking.enquiry_fallback') : __('hosted.product.booking.fallback') }}
+                    </p>
+                    <p class="contact-cta">
+                        <a class="button" href="mailto:{{ $tenant->email }}">{{ __('hosted.product.booking.email_us') }}</a>
+                        @if ($tenant->phone)
+                            <a class="button ghost" href="tel:{{ $tenant->phone }}">{{ $tenant->phone }}</a>
+                        @endif
+                    </p>
+                </div>
+            @endif
+                </section>
+            </aside>
         </div>
 
         @if ($schema)
