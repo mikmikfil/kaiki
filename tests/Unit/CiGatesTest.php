@@ -196,12 +196,19 @@ it('exposes the schema snapshot refresh as one composer command', function (): v
         ->and($composer['scripts-descriptions'])->toHaveKey('schema:snapshot');
 })->group('fast');
 
-it('runs every workflow on the one PHP version composer.json requires', function (): void {
+it('runs every workflow on the one PHP version composer.json requires, and names the exception', function (): void {
     // ADR-0014, Option B: 8.4 everywhere. Extracting the audit and schema jobs
     // into reusable workflows gave each of them its own input default, because
     // GitHub does not allow the `env` context in a job's `with:` - so the
     // version genuinely lives in more than one file and this is what keeps
     // those files honest.
+    //
+    // **There is exactly one exception and it is deliberate.** The WordPress
+    // plugin runs on operator hosting (WPP-1, ARC-9), where 8.1 is what a Greek
+    // shared host offers, so `plugin-lint` pins 8.1 and its phpcs run carries a
+    // compatibility ruleset at the same version. Listing it here rather than
+    // ignoring it is the point: a *second* job drifting onto its own version
+    // fails this test, and this one cannot drift silently either.
     $declared = [];
 
     foreach (glob(base_path('.github/workflows/*.yml')) ?: [] as $workflow) {
@@ -209,10 +216,32 @@ it('runs every workflow on the one PHP version composer.json requires', function
     }
 
     $composer = WorkflowFile::composerManifest(base_path('composer.json'));
+    $platform = WorkflowFile::constraintToMajorMinor($composer['require']['php']);
+
+    /** @var array{require: array<string, string>} $plugin */
+    $plugin = json_decode(
+        (string) file_get_contents(base_path('packages/wordpress-plugin/kaiki-booking/composer.json')),
+        true,
+        flags: JSON_THROW_ON_ERROR,
+    );
+
+    $pluginPhp = WorkflowFile::constraintToMajorMinor($plugin['require']['php']);
+
+    $allowed = array_values(array_unique([$platform, $pluginPhp]));
+    $found = array_values(array_unique($declared));
+
+    sort($allowed);
+    sort($found);
 
     expect($declared)->not->toBeEmpty()
-        ->and(array_values(array_unique($declared)))
-        ->toBe([WorkflowFile::constraintToMajorMinor($composer['require']['php'])]);
+        ->and($found)->toBe($allowed);
+
+    // And the exception is the plugin's job, not some other one that happens to
+    // share the number.
+    $quoted = preg_quote($pluginPhp, '/');
+
+    expect((string) file_get_contents(ciWorkflow()))
+        ->toMatch("/plugin-lint:.*?php-version: '{$quoted}'/s");
 })->group('fast');
 
 it('keeps the scripts the CI jobs call, stub or not', function (): void {

@@ -1,0 +1,112 @@
+# Kaiki Booking — translation template.
+# Regenerate with: php packages/wordpress-plugin/tools/extract-strings.php
+msgid ""
+msgstr ""
+"Project-Id-Version: Kaiki Booking\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Domain: kaiki-booking\n"
+
+msgid "Always English"
+msgstr ""
+
+msgid "Always Greek"
+msgstr ""
+
+msgid "Anything on a page is public. If it ever appears on one, delete the key in your Kaiki panel and make a new one."
+msgstr ""
+
+msgid "Cache, in seconds"
+msgstr ""
+
+msgid "Connect this site to your Kaiki account, then put a booking form on any page with a shortcode, a block or an Elementor widget."
+msgstr ""
+
+msgid "Connected. This site can read your trips."
+msgstr ""
+
+msgid "Create a page on this site for each trip"
+msgstr ""
+
+msgid "Follow the page (recommended)"
+msgstr ""
+
+msgid "Following the page uses WPML or Polylang if you have one, and your site language if you do not."
+msgstr ""
+
+msgid "From your Kaiki panel, under API keys. This one is safe on a public page: it can read your catalogue and start a booking, and nothing else."
+msgstr ""
+
+msgid "How long your trips are remembered on this site. Changes you make in Kaiki appear immediately anyway — Kaiki tells this site when something changed."
+msgstr ""
+
+msgid "Is it connected?"
+msgstr ""
+
+msgid "It is used by this site's own scheduled task to read your full catalogue, including trips you have not published. It is never sent to a visitor."
+msgstr ""
+
+msgid "Kaiki Booking"
+msgstr ""
+
+msgid "Kaiki Booking cannot start: its dependencies are missing. Run composer install in the plugin directory, or install the release zip instead of a checkout."
+msgstr ""
+
+msgid "Kaiki address"
+msgstr ""
+
+msgid "Kaiki answered, but not in a way this plugin understands. Try again shortly."
+msgstr ""
+
+msgid "Kaiki refused the key. Either it is wrong, or this site (%s) is not on the key's list of allowed addresses — you can add it in your Kaiki panel."
+msgstr ""
+
+msgid "Language"
+msgstr ""
+
+msgid "Leave this as it is unless you were told otherwise."
+msgstr ""
+
+msgid "Never paste this key into a page, a post, a widget or a theme file."
+msgstr ""
+
+msgid "Off by default, and the plugin is complete without it. Switched on, each of your trips also becomes a page on this site, so Google finds it here as well as on Kaiki."
+msgstr ""
+
+msgid "Only the trip pages need this, and only on this screen."
+msgstr ""
+
+msgid "Publishable key"
+msgstr ""
+
+msgid "Secret key"
+msgstr ""
+
+msgid "Test the connection"
+msgstr ""
+
+msgid "That does not look like a publishable key. A publishable key starts with pk_. Never paste a secret key here — it would be sent to every visitor."
+msgstr ""
+
+msgid "That does not look like a secret key. A secret key starts with sk_."
+msgstr ""
+
+msgid "There is no key saved yet."
+msgstr ""
+
+msgid "This site could not reach Kaiki at all. Check the address above, or try again in a minute."
+msgstr ""
+
+msgid "Trip pages"
+msgstr ""
+
+msgid "Trip pages for search engines"
+msgstr ""
+
+msgid "You do not have permission to change these settings."
+msgstr ""
+
+msgid "You do not have permission to do that."
+msgstr ""
+

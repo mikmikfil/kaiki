@@ -1,5 +1,21 @@
 # Changelog
 
+## M4 — WordPress plugin
+
+### #112 - The plugin skeleton, and the key that must never reach a browser
+
+M4 opens with the WordPress plugin's first files: the header WordPress reads, the settings screen an operator fills in once, the standards gate, and the rule the rest of the milestone depends on.
+
+**PHP 8.1, and that is a fact about the market rather than a preference.** The platform is 8.4 everywhere; Greek shared hosting is where operator sites live and a good half of it is on 8.1, so a plugin that needs 8.3 is one those operators cannot install and will not understand why. The plugin therefore has its own composer constraint, its own phpcs ruleset with a PHP 8.1 compatibility check, and its own CI job on an 8.1 runner. The compatibility ruleset is the half that was missing and the half that matters: a developer writing this has 8.4 habits, and an enum in a property type would pass every other check and fatal on the operator's host.
+
+**The secret key is the security story of the whole milestone, and it is enforced by reach rather than by value.** A standard installation stores a publishable key and nothing else. The secret lives in an option of its own — not in the settings array — so that no code path can hand it to a template by passing "the settings", which is the obvious convenience and exactly how a secret reaches page source. The field is not even rendered until the optional trip pages are switched on: the best way to stop somebody pasting a secret into a page is for them never to have been shown a box asking for one. A scanner allows three files to name the secret at all — where it is defined, where it is typed in, where it is deleted — and fails on a fourth, because nobody writes a key into a template, they pass the reader to one, and no grep for a key can see that. Beside it, SEC-9's actual grep for a live key in anything a browser downloads, which had never been written.
+
+**The connection test says which of three things is wrong.** An operator who has just pasted a key gets one of four sentences: it works and here is whose account it is; the key is wrong; this site is not on the key's list of allowed addresses; the platform is unreachable. They are different problems with different fixes, and the third is the one nobody guesses.
+
+**Greek is compiled, not promised.** The plugin's warnings about the secret key are the reason both locales are a requirement rather than a courtesy — an operator who cannot read the warning is the operator who pastes the key into a page. WordPress reads a compiled `.mo` and `msgfmt` is on neither a Windows machine nor a bare CI runner, so the plugin compiles its own: the format is a header, two offset tables and the strings, and eighty lines of PHP is cheaper than a dependency that only some people can run. Two tests hold the source and the compiled file together.
+
+`plugin-lint` split out of the merged Node stubs, which are now gone entirely — it is phpcs over PHP and never belonged in a Node job.
+
 ## M3 — Hosted pages & widget
 
 ### #111 - The first test that proves a person can buy a boat trip

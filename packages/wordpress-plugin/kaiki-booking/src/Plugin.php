@@ -1,0 +1,47 @@
+<?php
+/**
+ * The plugin's registration, in one place.
+ *
+ * @package Kaiki\Booking
+ */
+
+declare( strict_types = 1 );
+
+namespace Kaiki\Booking;
+
+use Kaiki\Booking\Settings\SettingsPage;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Everything the plugin hooks into WordPress, and nothing that does work.
+ *
+ * A registration class rather than a scattering of `add_action` calls across
+ * files: an operator's support question is usually "what does this plugin do to
+ * my site", and the honest answer should be readable in one screen.
+ */
+final class Plugin {
+
+	/**
+	 * Register everything. Called once, from the plugin file.
+	 */
+	public static function boot(): void {
+		add_action( 'init', array( self::class, 'load_translations' ) );
+
+		if ( is_admin() ) {
+			SettingsPage::register();
+		}
+	}
+
+	/**
+	 * The Greek translations.
+	 *
+	 * WPP-3 asks for the settings page to say what it says **in both locales**,
+	 * and WPP-13 maps a site running WPML, Polylang or plain `el_GR` onto `el`.
+	 * This is the WordPress half of that: an operator whose admin is in Greek
+	 * reads the plugin in Greek, with no setting to find.
+	 */
+	public static function load_translations(): void {
+		load_plugin_textdomain( 'kaiki-booking', false, dirname( plugin_basename( FILE ) ) . '/languages' );
+	}
+}

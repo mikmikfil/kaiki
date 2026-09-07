@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<ruleset name="Kaiki Booking">
+    <description>
+        WPP-11: the WordPress coding standard, plus a PHP 8.1 compatibility check.
+
+        The compatibility ruleset is the half that is easy to forget and expensive
+        to miss: the platform is 8.4 and a developer writing this plugin has 8.4
+        habits, so an enum in a property type or a `readonly` class would pass
+        every other check here and fatal on the operator's host. `testVersion`
+        below is what catches it, and it is the same 8.1 the plugin header
+        declares.
+    </description>
+
+    <file>.</file>
+
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/languages/*</exclude-pattern>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="sp"/>
+    <arg name="parallel" value="8"/>
+
+    <!-- Fail the build on a warning as well as an error. WordPress's own sniffs
+         report most escaping and sanitising problems as warnings, and a warning
+         nobody has to fix is a sniff that is not running. -->
+    <config name="minimum_supported_wp_version" value="6.4"/>
+    <arg name="severity" value="1"/>
+
+    <rule ref="WordPress">
+        <!-- The plugin is namespaced PSR-4 and autoloaded by Composer, so its
+             files are `src/Settings/SettingsPage.php` rather than
+             `class-settings-page.php`. WPP-1 fixes the autoloading; this sniff
+             predates PSR-4 and cannot be satisfied alongside it. -->
+        <exclude name="WordPress.Files.FileName"/>
+    </rule>
+
+    <rule ref="PHPCompatibilityWP"/>
+    <config name="testVersion" value="8.1-"/>
+
+    <!-- Every prefix WPP-11 requires, checked rather than remembered. -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <properties>
+            <property name="prefixes" type="array">
+                <element value="kaiki"/>
+                <element value="Kaiki\Booking"/>
+            </property>
+        </properties>
+    </rule>
+
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array">
+                <element value="kaiki-booking"/>
+            </property>
+        </properties>
+    </rule>
+</ruleset>

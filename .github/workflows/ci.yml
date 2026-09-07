@@ -471,20 +471,31 @@ jobs:
           path: packages/widget/e2e/.results
           retention-days: 7
 
-  node-checks:
-    name: WordPress plugin lint
+  # **The last of #90's four merged Node stubs to split out**, and the one that
+  # never belonged in a Node job at all: it is phpcs, over PHP, against the
+  # WordPress coding standard. It sat there because it printed a sentence.
+  #
+  # It runs on **PHP 8.1**, not the 8.4 everything else uses. That is the whole
+  # point of the job: the plugin runs on operator hosting (WPP-1, ARC-9), a
+  # developer writing it has 8.4 habits, and the compatibility ruleset here is
+  # what catches an enum in a property type before an operator's site fatals on
+  # it.
+  plugin-lint:
+    name: WordPress plugin standard (WPP-11)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: shivammathur/setup-php@v2
         with:
-          node-version: '22'
-          cache: npm
+          php-version: '8.1'
+          coverage: none
 
-      - run: npm ci
+      - name: Install the plugin's own dependencies
+        run: composer install --no-interaction --no-progress
+        working-directory: packages/wordpress-plugin/kaiki-booking
 
-      - name: WordPress plugin lint (WPP-11, stub until M4)
+      - name: phpcs, WordPress ruleset and PHP 8.1 compatibility
         run: npm run plugin:lint
 
   security-audit:
@@ -502,7 +513,7 @@ jobs:
     name: CI passed
     runs-on: ubuntu-latest
     if: always()
-    needs: [static-checks, test-suite, test-mysql, runtime-gates, pdf-chromium, widget-build, widget-e2e, node-checks, security-audit, migrate-from-zero]
+    needs: [static-checks, test-suite, test-mysql, runtime-gates, pdf-chromium, widget-build, widget-e2e, plugin-lint, security-audit, migrate-from-zero]
     steps:
       # A single check to make required in branch protection. Without this,
       # adding a job later means remembering to mark it required by hand.

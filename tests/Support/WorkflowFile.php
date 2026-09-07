@@ -116,6 +116,17 @@ final class WorkflowFile
                 continue;
             }
 
+            // A version written straight into a step's `with:`, which is how the
+            // WordPress plugin's job pins 8.1. Read as well as the two shapes
+            // around it, because a job that quietly chose its own version would
+            // otherwise be invisible to the test that exists to catch exactly
+            // that.
+            if (preg_match('/^\s*php-version:\s*\'(?P<version>\d+\.\d+)\'/', $line, $matches) === 1) {
+                $found[] = $matches['version'];
+
+                continue;
+            }
+
             if (preg_match('/^(?P<indent>\s*)php-version:\s*$/', $line, $matches) !== 1) {
                 continue;
             }

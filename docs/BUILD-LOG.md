@@ -12,14 +12,15 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M3 complete — #101 … #111, all eleven.** M2 complete (all eleven), M1 complete. |
+| Milestone | **M4 — WordPress plugin: #112 built.** M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
 | M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
+| M4 | **#112 built** — the plugin skeleton, its settings screen and the standards gate. Six issues written (#112 … #117); #117 needs a real WordPress site, which is the product owner's. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2257, one failing: the schema snapshot CI cannot regenerate) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2271, one failing: the schema snapshot CI cannot regenerate) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -35,6 +36,98 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #112 — The plugin skeleton, and the key that must never reach a browser
+
+M4 opens with the WordPress plugin's first files: the header WordPress reads,
+the settings screen an operator fills in once, the standards gate, and the rule
+that the rest of the milestone depends on being right.
+
+### PHP 8.1, and it is a market fact rather than a preference
+
+The platform is 8.4 everywhere (ADR-0014). This is not. Greek shared hosting is
+where these sites live and a good half of it is on 8.1 — a plugin that needs 8.3
+is a plugin those operators cannot install and will not understand why.
+
+So the plugin has **its own everything**: its own `composer.json` at `^8.1`, its
+own phpcs ruleset carrying `PHPCompatibilityWP` at `testVersion 8.1-`, and its
+own CI job on an 8.1 runner. `phpstan.neon` already excluded the directory; the
+compatibility ruleset is the half that was missing, and it is the one that
+matters, because a developer writing this plugin has 8.4 habits and an enum in a
+property type would pass every other check here and fatal on the operator's host.
+
+`CiGatesTest` was asserting *"every workflow runs the one PHP version
+composer.json requires"*, and it passed only because its scanner could not see a
+version written into a step's `with:`. It can now, and the test names the
+exception explicitly: the platform's version and the plugin's, and nothing else
+— so a **second** job drifting onto its own version fails, and this one cannot
+drift silently either.
+
+### Two options, and the split is the security model
+
+`kaiki_settings` holds everything an operator configured and everything the front
+end may see. `kaiki_secret_key` holds the one thing it may not, **in an option of
+its own**, so that no code path can hand the secret to a template by passing "the
+settings". That is not hypothetical: a helper returning the whole settings array
+to a view is the obvious convenience, and it is exactly how a secret ends up in
+page source.
+
+ADR-0013 Option A: a standard installation stores a `pk_` and nothing else. The
+secret field is **not rendered at all** until the SEO toggle is on — the best way
+to stop somebody pasting a secret into a page is for them never to have been
+shown a box asking for one. `Settings::secret_key()` returns nothing when the
+feature is off, whatever is still in the database from before.
+
+**The enforcement is by reach, not by value.** `SecretKeyScanner` allows three
+files to name the secret — where it is defined, where it is typed in, where it is
+deleted — and fails on a fourth. Nobody writes a key into a template; they pass
+the reader to one, and a grep for `sk_` cannot see that. The allow-list is short,
+each entry says why it is there, and adding a template to it is a decision
+somebody has to defend in a commit.
+
+Beside it, SEC-9's actual grep, which did not exist anywhere: no built artefact a
+browser downloads may carry something shaped like a live key.
+
+### The connection test says which of three things is wrong
+
+An operator who has just pasted a key wants one of four sentences, and they are
+genuinely different problems with different fixes: it works and here is whose
+account it is; the key is wrong; **this site is not on the key's allowed
+origins**; the platform is unreachable. An operator told only "it did not work"
+changes the wrong one, and the origin case is the one nobody guesses.
+
+### Greek, compiled, because WPP-3 asks for both locales
+
+The strings about the secret key are why that is a requirement rather than a
+courtesy: an operator who cannot read the warning is the operator who pastes the
+key into a page.
+
+WordPress reads a `.mo`, not a `.po`, and `msgfmt` is on neither a Windows
+machine nor a bare GitHub runner — a build step only some people can run is a
+translation that goes stale in silence. So `tools/build-translations.php` writes
+the `.mo` itself: the format is a header, two offset tables and the strings, and
+eighty lines of PHP is cheaper than a dependency. `extract-strings.php` beside it
+regenerates the template, and two tests hold them together — every template
+string has a Greek translation, and the compiled file is not stale.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `npm run plugin:lint` | **phpcs, WordPress ruleset, 6 files, clean** — the stub that printed a sentence is gone |
+| `composer lint` / `composer stan` | Pint clean; PHPStan level 6, no errors |
+| `composer i18n:check` | 161 passed |
+| `composer test` | **2266 passed, 4 skipped, 1 failed** — the inherited ENV-10 snapshot |
+
+10 new tests in `PluginStandardsTest`, plus `SecretKeyScanner`. The secret-reach
+test was checked against a deliberately planted offender rather than only against
+a clean tree: a guard that has never failed is a guard nobody has tested.
+
+`plugin-lint` split out of `node-checks`, which is now empty and gone — the last
+of #90's four merged stubs, and the one that never belonged in a Node job at all,
+since it is phpcs over PHP.
 
 ---
 

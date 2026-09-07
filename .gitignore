@@ -52,3 +52,8 @@ Thumbs.db
 /packages/widget/e2e/.state.json
 /packages/widget/e2e/.results
 /playwright-report
+
+# The WordPress plugin brings its own dev dependencies; the release zip carries
+# a production vendor/ built by the workflow, not this one. The lock file **is**
+# committed, so the linter everybody runs is the same linter.
+/packages/wordpress-plugin/kaiki-booking/vendor
