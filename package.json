@@ -6,13 +6,15 @@
     "scripts": {
         "build": "vite build",
         "dev": "vite",
-        "widget:dev": "node -e \"console.log('widget:dev — the Preact widget lands in M3 (issues #19–#23). Stub.')\"",
-        "widget:build": "node -e \"console.log('widget:build — the Preact widget lands in M3 (issues #19–#23). Stub.')\"",
-        "widget:size": "node -e \"console.log('widget:size — the 80 KB gzipped budget is enforced from M3. Stub.')\"",
+        "widget:dev": "npm -w packages/widget run dev",
+        "widget:build": "npm -w packages/widget run build",
+        "widget:size": "npm -w packages/widget run size",
         "e2e": "node -e \"console.log('e2e — Playwright for hosted pages and the widget lands in M3. Stub.')\"",
         "e2e:wp": "node -e \"console.log('e2e:wp — runs against KAIKI_WP_TEST_URL from .env; lands in M4. Stub.')\"",
         "plugin:lint": "node -e \"console.log('plugin:lint — phpcs against the WordPress ruleset, PHP 8.1 target; lands in M4. Stub.')\"",
-        "mjml:build": "node -e \"console.log('mjml:build — compiles email templates to committed HTML; lands in M2. Stub.')\""
+        "mjml:build": "node -e \"console.log('mjml:build — compiles email templates to committed HTML; lands in M2. Stub.')\"",
+        "widget:guards": "npm -w packages/widget run guards",
+        "widget:test": "npm -w packages/widget run test"
     },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
@@ -22,5 +24,8 @@
         "puppeteer": "^25.10.0",
         "tailwindcss": "^4.0.0",
         "vite": "^7.0.7"
-    }
+    },
+    "workspaces": [
+        "packages/*"
+    ]
 }

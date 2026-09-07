@@ -381,8 +381,16 @@ jobs:
           KAIKI_CHROME_PATH: /usr/bin/google-chrome
           PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
 
-  node-checks:
-    name: Widget build, size budget, smoke and plugin lint
+  # ENV-23 names the widget build and its size budget as checks of their own,
+  # and #106 gave them something to measure — so they left `node-checks` and
+  # took their own red square, which is the split the old comment promised.
+  #
+  # WGT-2's 80 KB budget deserves that square more than anything else here: it
+  # is the constraint that shapes every decision inside the widget, and a budget
+  # buried in a job with three stubs is a budget somebody raises rather than
+  # enforces.
+  widget-build:
+    name: Widget build, size budget and guards
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -394,22 +402,39 @@ jobs:
 
       - run: npm ci
 
-      # **These four share a job only while they are stubs.** All four print one
-      # line and exit, so four runners to say four sentences was the clearest
-      # waste in the file.
-      #
-      # ENV-23 names the widget build, the size budget and the Playwright smoke
-      # as separate checks, and WGT-2's 80 KB budget in particular deserves its
-      # own red square once there is a bundle to measure. **Split them back out
-      # in M3**, when `widget:build` stops being an echo — and `plugin-lint` in
-      # M4, for the same reason.
-      - name: Widget build (WGT-2, stub until M3)
+      - name: Build (WGT-1)
         run: npm run widget:build
 
-      - name: Widget size budget (NFR-3, stub until M3)
+      # WGT-2, and it **fails** over 80 KB gzipped rather than warning.
+      - name: Size budget (WGT-2, NFR-3)
         run: npm run widget:size
 
-      - name: Widget Playwright smoke (TST-3, stub until M3)
+      # The three rules about what is absent: no hardcoded brand colour (WGT-9),
+      # no price arithmetic (WGT-13), and both locale bundles carrying the same
+      # keys (WGT-14, whose "fails the build in CI" is this line).
+      - name: Bundle guards (WGT-9, WGT-13, WGT-14)
+        run: npm run widget:guards
+
+      - name: Vitest
+        run: npm run widget:test
+
+  node-checks:
+    name: Playwright smoke and plugin lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # **These two share a job only while they are stubs**, which is what the
+      # widget checks did until #106 gave them a bundle. `e2e` splits out with
+      # #111 and `plugin-lint` with M4, for the same reason and in the same way.
+      - name: Widget Playwright smoke (TST-3, stub until #111)
         run: npm run e2e
 
       - name: WordPress plugin lint (WPP-11, stub until M4)
@@ -430,7 +455,7 @@ jobs:
     name: CI passed
     runs-on: ubuntu-latest
     if: always()
-    needs: [static-checks, test-suite, test-mysql, runtime-gates, pdf-chromium, node-checks, security-audit, migrate-from-zero]
+    needs: [static-checks, test-suite, test-mysql, runtime-gates, pdf-chromium, widget-build, node-checks, security-audit, migrate-from-zero]
     steps:
       # A single check to make required in branch protection. Without this,
       # adding a job later means remembering to mark it required by hand.

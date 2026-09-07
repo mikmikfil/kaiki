@@ -29,6 +29,11 @@ Thumbs.db
 /database/*.sqlite-shm
 /database/*.sqlite-wal
 /public/widget
+# The widget's build output and its workspace modules. The bundle is published
+# by the release pipeline (ADR-0011), never committed — a checked-in artefact is
+# one somebody edits by hand.
+/packages/*/dist
+/packages/*/node_modules
 # The ENV-10 snapshot is committed as database/schema/*.snapshot.sql. A dump at
 # either of Laravel's own schema paths would be loaded INSTEAD of running the
 # migrations, so a stray one must never reach a commit. The .dump extension is

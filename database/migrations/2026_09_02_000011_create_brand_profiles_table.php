@@ -86,8 +86,13 @@ return new class extends Migration
             $table->unsignedTinyInteger('button_radius_px')->default(8);
 
             // PHP enum `WidgetTheme`. `auto` means the *visitor's*
-            // prefers-color-scheme, not the operator's.
-            $table->string('widget_theme', 8)->default('auto');
+            // prefers-color-scheme, not the operator's — which is why the
+            // default moved to `light` in #106: the design review of 4 September
+            // settled that guest surfaces are light, and an operator's colours
+            // are chosen against white. The value here and
+            // `config('kaiki.branding.defaults.widget_theme')` are compared by
+            // `BrandProfileDefaultsTest`; they move together or the build fails.
+            $table->string('widget_theme', 8)->default('light');
 
             // Translatable (§1.6), and nullable: an operator with nothing to say
             // in a mail footer is ordinary. Because it is nullable it is not in

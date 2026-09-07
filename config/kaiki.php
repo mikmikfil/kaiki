@@ -164,7 +164,22 @@ return [
             'font_family' => 'Inter',
             'font_source' => 'system',
             'button_radius_px' => 8,
-            'widget_theme' => 'auto',
+            /*
+             * Light, not `auto`, since #106.
+             *
+             * Settled in the design review of 2026-09-04: guest-facing surfaces
+             * are light and light/dark is a dashboard concern. `auto` handed the
+             * decision to the visitor's operating system, which meant an
+             * operator's colours — chosen against white, on a boat, in daylight
+             * — were rendered on a dark ground for anybody whose phone was in
+             * night mode, and the operator had no way to see it.
+             *
+             * The column default in the `brand_profiles` migration moves with
+             * this line. `BrandProfileDefaultsTest` reads both and fails when
+             * they disagree, which is the only thing that keeps a config value
+             * and a schema default from drifting apart.
+             */
+            'widget_theme' => 'light',
         ],
 
         /*

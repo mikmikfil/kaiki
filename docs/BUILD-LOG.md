@@ -12,14 +12,14 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M3 — Hosted pages & widget: #101 … #105 built.** M2 complete (all eleven), M1 complete. |
+| Milestone | **M3 — Hosted pages & widget: #101 … #106 built.** M2 complete (all eleven), M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **#101 … #105 built** — the hosted page shell, the editable home page, the FAQ, the product pages and the catalogue search. **The hosted pages are complete; #106 … #111 are the widget.** |
+| M3 | **#101 … #106 built** — the hosted pages complete, and the widget's foundation. #107 … #111 are the four mounts, custom domains, distribution and the Playwright run. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2184, one failing: the schema snapshot CI cannot regenerate) · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2185, one failing: the schema snapshot CI cannot regenerate) · **Vitest (37) and the widget's four build gates**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -35,6 +35,103 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #106 — The widget shell, and three gates built before there was anything to gate
+
+`packages/widget`: Preact and TypeScript, one IIFE, a shadow root, the loader,
+the API client, branding, translations and the analytics events. Everything the
+four mounts stand on and nothing a guest can see yet.
+
+### The budget was built first, on purpose
+
+The issue's own note: *"Build the budget check first, before there is anything to
+measure — a gate added after the fact is a gate that gets raised instead of
+enforced."* `scripts/size.mjs` existed before the first component did.
+
+| | |
+|---|---|
+| Bundle | **21.7 KB raw, 9.0 KB gzipped** |
+| WGT-2 budget | 80 KB gzipped — **11.3% used, 71 KB left** for the four mounts |
+
+Preact rather than React and compiled-in locale bundles rather than fetched ones
+are both consequences of that number, and the headroom is what makes #107's
+booking walk affordable.
+
+### Three rules about absences, checked by reading the build
+
+`scripts/guards.mjs`, because the issue is right that a behavioural test cannot
+see the difference between a colour that came from the API and one that happened
+to match:
+
+1. **No hex colour in the bundle** (WGT-9). Every neutral the widget draws is
+   `color-mix()` of the operator's own `--kaiki-text` or `--kaiki-background`, so
+   there is nothing legitimate for the grep to find — and an operator changing
+   one colour changes the rules, the hovers and the error panel with it, which is
+   what BRD-8 promises them.
+2. **No arithmetic on a `*_cents` value in the source** (WGT-13). The widget
+   never computes a price.
+3. **Both locale bundles carry the same keys** (WGT-14, whose *"fails the build
+   in CI"* is this line).
+
+### What the client does and does not retry
+
+WGT-16, and the two failure modes point in opposite directions. Reads retry twice
+with exponential backoff; **writes never retry**, because a failed `POST
+/bookings` may have created the booking and lost only the response — retrying
+that is how a guest ends up holding two boats. The classification is by **HTTP
+method**, not by an endpoint list, because a list is a thing the next endpoint
+falls off.
+
+Every request has a ten-second deadline: without one the failure is a spinner
+that never resolves, which is the blank widget WGT-16 forbids.
+
+### Deviations and additions
+
+- **The mounts are a registry, not four imports.** #106 builds none of them, and
+  a shell that imported four empty components would leave #107 unpicking which.
+  `registerMount()` is one line for the next issue and lets this one test the
+  state that actually exists: a bundle asked for a mount it does not carry.
+- **`data-api` is deliberately not an attribute.** The API origin comes from the
+  origin the bundle was served from. A configurable one would let a compromised
+  page point a live publishable key at somebody else's server.
+- **`widget_theme` moved from `auto` to `light`** in `config/kaiki.php` **and**
+  in the `brand_profiles` migration, together — `BrandProfileDefaultsTest` reads
+  both and fails when they disagree. `auto` handed the decision to the visitor's
+  operating system, so an operator's colours, chosen against white, rendered on a
+  dark ground for anybody whose phone was in night mode.
+- **`widget-build` left `node-checks`** and took its own required check, which is
+  the split the old comment in `ci.yml` promised for M3. `docs/ci.md` and
+  `CiGatesTest` moved with it, and the stub test became a test that the script is
+  **not** an echo.
+- **npm workspaces**, so `npm -w packages/widget` is the command CLAUDE.md
+  already documents.
+- **jsdom** added as a dev dependency: Vitest needs a DOM to assert a shadow root
+  into, and three widgets on one page is the acceptance criterion that cannot be
+  checked any other way.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `npm run widget:build` | 13 modules, one IIFE, 108 ms |
+| `npm run widget:size` | 9.0 KB gzipped, 11.3% of budget |
+| `npm run widget:guards` | no hardcoded colour, no price arithmetic, 8 keys in both locales |
+| `npm run widget:test` | **37 passed** across five files |
+| `npm -w packages/widget run typecheck` | `tsc --noEmit`, clean |
+| `composer lint` / `composer stan` | Pint clean; PHPStan level 6, no errors |
+| `composer test` | **2184 passed, 1 failed** — the ENV-10 schema snapshot |
+
+The snapshot failure is now **also** this issue's: `widget_theme`'s column default
+changed, so the fingerprint has genuinely moved again. It still needs the MySQL 8
+connection only CI has.
+
+One test-fixture lesson worth recording: `mockResolvedValue(new Response(...))`
+hands back the **same** response object on every call, and a body can be read
+once — so the second read threw, the client correctly reported a network error,
+and three cache tests failed for a reason that had nothing to do with caching.
+The helper now builds a fresh response per call and says why.
 
 ---
 

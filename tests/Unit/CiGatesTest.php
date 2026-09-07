@@ -179,14 +179,35 @@ it('runs every workflow on the one PHP version composer.json requires', function
         ->toBe([WorkflowFile::constraintToMajorMinor($composer['require']['php'])]);
 })->group('fast');
 
-it('keeps the widget and plugin stubs the CI jobs depend on', function (): void {
-    // WGT-2, WPP-11 and the ENV-23 Playwright smoke land in M3 and M4. The jobs
-    // exist now so those milestones fill a pipeline in rather than invent one,
-    // which only works if the scripts they call keep their names.
+it('keeps the scripts the CI jobs call, stub or not', function (): void {
+    // The names are the contract between the workflow and the repository. Four
+    // of these were stubs when the jobs were written so that M3 and M4 could
+    // fill a pipeline in rather than invent one; **`widget:build` and
+    // `widget:size` stopped being stubs in #106** and the assertion did not have
+    // to change, which is the whole point of having made it about the names.
+    //
+    // `e2e` and `plugin:lint` are still stubs, and leave the same way.
     /** @var array{scripts: array<string, string>} $package */
     $package = json_decode((string) file_get_contents(base_path('package.json')), true, flags: JSON_THROW_ON_ERROR);
 
-    expect($package['scripts'])->toHaveKeys(['widget:build', 'widget:size', 'e2e', 'plugin:lint']);
+    expect($package['scripts'])->toHaveKeys([
+        'widget:build', 'widget:size', 'widget:guards', 'widget:test', 'e2e', 'plugin:lint',
+    ]);
+})->group('fast');
+
+it('builds the widget from a real package rather than an echo', function (): void {
+    // The negative half of the assertion above, and the one that would have
+    // caught #106 shipping a workflow that ran a stub: a job named "Widget
+    // build" whose script prints a sentence is a green square that means
+    // nothing.
+    /** @var array{scripts: array<string, string>, workspaces?: list<string>} $package */
+    $package = json_decode((string) file_get_contents(base_path('package.json')), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($package['scripts']['widget:build'])->not->toContain('console.log')
+        ->and($package['scripts']['widget:size'])->not->toContain('console.log')
+        ->and($package['workspaces'] ?? [])->toContain('packages/*')
+        ->and(is_file(base_path('packages/widget/package.json')))->toBeTrue()
+        ->and(is_file(base_path('packages/widget/src/index.tsx')))->toBeTrue();
 })->group('fast');
 
 it('never commits a schema dump at any path Laravel auto-loads', function (): void {

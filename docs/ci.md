@@ -29,7 +29,8 @@ Also enable **Require branches to be up to date before merging**. Without it, tw
 | `test-mysql` | Pest against MySQL 8 and Redis, plus the `mysql` group — which must execute for real, not skip (ENV-11, TST-8). |
 | `runtime-gates` | A cross-tenant leak — the condition ADR-0001 was accepted on — or the availability group failing under a **third** machine timezone (ENV-14). UTC would hide an unconverted value and Europe/Athens an unconverted tenant, so the runner is set to `America/Los_Angeles`. |
 | `pdf-chromium` | The `chromium` group — the e-ticket PDF actually rendered by Browsershot (ENV-20, BKG-13.1). Excluded from `composer test`, because a developer with no browser must not get a false green, which makes this the **only** place the PDFs are ever rendered. |
-| `node-checks` | The widget build or its 80 KB gzipped budget (WGT-2, NFR-3), the Playwright smoke (TST-3), or the WordPress plugin standard (WPP-11). All four are stubs until M3 and M4. |
+| `widget-build` | The widget failed to build (WGT-1), exceeded its **80 KB gzipped** budget (WGT-2, NFR-3), tripped one of the three bundle guards — a hardcoded brand colour (WGT-9), arithmetic on a price (WGT-13), or the two locale bundles disagreeing (WGT-14) — or its Vitest suite went red. |
+| `node-checks` | The Playwright smoke (TST-3) or the WordPress plugin standard (WPP-11). Both are stubs until #111 and M4. |
 | `security-audit` | A high or critical advisory in Composer or npm dependencies (SEC-12). |
 | `migrate-from-zero` | The migrations no longer produce the committed schema (ENV-10). |
 
@@ -48,9 +49,14 @@ still runs, as a named step.
 Google Chrome — the browser is already on the image, and a second 150 MB download every run buys
 nothing.
 
-The four checks inside `node-checks` run stubs until M3 and M4, and **split back into their own jobs
-the moment they stop being stubs** — WGT-2's 80 KB budget deserves its own red square once there is a
-bundle to measure.
+The widget checks left `node-checks` in **#106**, which is when they stopped being stubs and got a
+bundle to measure — the split the previous version of this paragraph promised. WGT-2's 80 KB budget
+now has its own red square, which is what it deserves: it is the constraint that shapes every decision
+inside the widget, and a budget buried in a job with three stubs is a budget somebody raises rather
+than enforces.
+
+The two that remain in `node-checks` are stubs still, and leave the same way: `e2e` with #111 and
+`plugin-lint` with M4.
 
 The **branch-protection** list never has to change again — it is one entry, `CI passed`. The job list behind it will still grow, and two are known to be owed: the ENV-28 Scramble docs-drift check (issue #11) and the M3 replacement of the Playwright stub with a real run. Each becomes required the moment it joins `ci-passed`'s `needs:`, with nothing to configure. The third, ENV-14's alternate-timezone run, arrived with #32.
 

@@ -58,7 +58,10 @@ it('creates a profile with the platform defaults when a tenant is created by fac
         ->and($profile->font_family)->toBe('Inter')
         ->and($profile->font_source)->toBe(FontSource::System)
         ->and($profile->button_radius_px)->toBe(8)
-        ->and($profile->widget_theme)->toBe(WidgetTheme::Auto);
+        // Light since #106, and deliberately not `auto`: guest surfaces are
+        // light (design review, 2026-09-04) and an operator's colours were
+        // chosen against white.
+        ->and($profile->widget_theme)->toBe(WidgetTheme::Light);
 })->group('fast');
 
 it('creates a profile when a tenant is created by the seeder', function (): void {

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://www.schemastore.org/package.json",
+  "name": "@kaiki/widget",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The embeddable Kaiki booking widget (spec WGT-1 … WGT-22).",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "size": "node scripts/size.mjs",
+    "guards": "node scripts/guards.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "jsdom": "^30.0.1",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.7",
+    "vitest": "^3.2.0"
+  }
+}
