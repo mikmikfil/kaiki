@@ -194,6 +194,55 @@ final class VesselCalendar
     }
 
     /**
+     * Everything to **draw** on a fleet's calendar for one window (#119, OPS-3).
+     *
+     * A different question from every other method here, and the difference is
+     * the reason it exists rather than being assembled from them.
+     *
+     * - **It includes empty departures.** AVL-10 says an empty departure
+     *   occupies nothing, which is right for "may I book this boat" and wrong
+     *   for "what is on my calendar". An operator looking at Tuesday needs to
+     *   see the sailing with no passengers on it — that is the one they are
+     *   about to decide whether to cancel.
+     * - **It includes cancelled departures**, faintly, for the same reason. A
+     *   trip that vanished from the calendar the moment it was cancelled reads
+     *   as a mistake, and the operator wants to see that it *was* cancelled.
+     * - **It does not pad by the buffer.** The buffer is drawn on each bar
+     *   rather than used to select, so the window is exactly the day asked for.
+     *
+     * Two queries for the whole fleet. It lives here because ADR-0023 makes
+     * this class *"the only class in the codebase permitted to query vessel
+     * occupancy"*, and a display read is still a read — routing around the port
+     * to draw a picture is how the third occupation shape gets forgotten.
+     *
+     * @param  Collection<int, Vessel>  $vessels
+     * @return array{departures: Collection<int, Departure>, blocks: Collection<int, VesselBlock>}
+     */
+    public static function toDraw(Collection $vessels, Window $window): array
+    {
+        if ($vessels->isEmpty()) {
+            return ['departures' => collect(), 'blocks' => collect()];
+        }
+
+        $ids = $vessels->map(static fn (Vessel $vessel): int => (int) $vessel->getKey())->all();
+
+        return [
+            'departures' => Departure::query()
+                ->whereIn('vessel_id', $ids)
+                ->where('starts_at_utc', '<', $window->endUtc)
+                ->where('ends_at_utc', '>', $window->startUtc)
+                ->with('product')
+                ->orderBy('starts_at_utc')
+                ->get(),
+            'blocks' => VesselBlock::query()
+                ->whereIn('vessel_id', $ids)
+                ->overlapping($window)
+                ->orderBy('starts_at_utc')
+                ->get(),
+        ];
+    }
+
+    /**
      * The conflict query itself — narrowed in SQL, decided in PHP.
      *
      * The range scan uses `departures_vessel_window_idx` over a window padded
