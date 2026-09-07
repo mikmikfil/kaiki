@@ -152,6 +152,30 @@ return [
     */
 
     'departure' => [
+        'weather' => [
+            'action' => 'Cancel for weather',
+            'heading' => 'Cancel these trips for weather',
+            'confirm' => 'Cancel and tell the guests',
+            'default_choice' => 'If a guest does not answer',
+            'default_choice_help' => 'Each guest is asked whether they want a refund, a voucher or a new date. This is what happens to anyone who has not answered after :days days.',
+            'note' => 'Your note',
+            'note_help' => 'For your own records and the audit trail. Guests do not see it.',
+            'summary' => ':departures trip(s), :guests booking(s), :pax passenger(s).',
+            'already_cancelled' => ':count of the trips you chose were already cancelled. Nothing will happen to them.',
+            'nobody' => 'Nobody has booked these trips, so there is nobody to tell.',
+            'what_happens' => 'Every guest below is told the trip is off and asked what they would like. Nothing is refunded until they answer, or until the deadline answers for them.',
+            'sent' => 'Cancelled, and :count guest(s) have been told.',
+            'sent_body' => 'Each of them now has :days days to choose.',
+            'col' => [
+                'guest' => 'Guest',
+                'trip' => 'Trip',
+                'pax' => 'People',
+                'paid' => 'Paid',
+                'refund' => 'Entitled to',
+                'of_which_voucher' => 'incl. :amount back on a voucher',
+                'total' => 'Total',
+            ],
+        ],
         'nav' => 'Departures',
 
         'model' => [

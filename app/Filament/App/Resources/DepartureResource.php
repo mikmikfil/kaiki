@@ -7,12 +7,19 @@ namespace App\Filament\App\Resources;
 use App\Domain\Availability\Actions\CreateManualDeparture;
 use App\Domain\Availability\Actions\UpdateDeparture;
 use App\Domain\Availability\LocalDateTimeResolver;
+use App\Domain\Booking\Actions\CancelBooking;
+use App\Domain\Booking\Actions\CancelDeparture;
+use App\Domain\Operations\Support\WeatherCancellationPreview;
 use App\Enums\BookingMode;
+use App\Enums\DepartureCancelReason;
 use App\Enums\DepartureStatus;
+use App\Enums\WeatherChoice;
 use App\Filament\App\Resources\DepartureResource\Pages;
 use App\Models\Departure;
 use App\Models\Product;
+use App\Models\Tenant;
 use App\Support\Authorization\Capability;
+use App\Support\Tenancy;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Section;
@@ -22,8 +29,10 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -31,6 +40,7 @@ use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -229,7 +239,91 @@ class DepartureResource extends Resource
                     ->label(__('availability.departure.table.status'))
                     ->options(DepartureStatus::options()),
             ])
-            ->actions([EditAction::make()]);
+            ->actions([EditAction::make()])
+            ->bulkActions([self::weatherCancellation()]);
+    }
+
+    /**
+     * OPS-6 and OPS-7: cancel a set of sailings for weather, after showing the
+     * operator exactly who is affected and what each of them is owed.
+     *
+     * ## The preview is the feature; the sending already existed
+     *
+     * {@see CancelDeparture} has done all of this since #84. What an operator
+     * needs at nine in the evening with a forecast on their phone is the list
+     * *before* the button, and without it they ring every guest instead — which
+     * is the work this product exists to remove.
+     *
+     * ## One field, and it is not "what happens to the money"
+     *
+     * CXL-7 gives that choice to the **guest**: refund, voucher or rebook, for
+     * fourteen days. What the operator chooses here is what happens to a guest
+     * who never answers, which is the tenant's standing default and is shown on
+     * the guest's own page — so choosing it here changes what those guests are
+     * told, not only what they eventually get.
+     *
+     * ## Idempotent by construction
+     *
+     * A double click, a browser retry or a re-selected sailing must not refund
+     * twice. `CancelDeparture` returns 0 for a departure already cancelled and
+     * touches nothing, so the safety is in the action rather than in a flag on
+     * this screen.
+     */
+    private static function weatherCancellation(): BulkAction
+    {
+        return BulkAction::make('cancel_weather')
+            ->label(__('availability.departure.weather.action'))
+            ->icon('heroicon-o-cloud')
+            ->color('danger')
+            ->visible(static fn (): bool => Auth::user()?->hasCapability(Capability::ManageBookings) ?? false)
+            ->modalHeading(__('availability.departure.weather.heading'))
+            ->modalSubmitActionLabel(__('availability.departure.weather.confirm'))
+            ->modalContent(static fn (Collection $records) => view(
+                'filament.app.resources.departures.weather-preview',
+                ['preview' => WeatherCancellationPreview::for($records)],
+            ))
+            ->form([
+                Select::make('default_choice')
+                    ->label(__('availability.departure.weather.default_choice'))
+                    ->helperText(__('availability.departure.weather.default_choice_help', [
+                        'days' => CancelDeparture::deadlineDays(),
+                    ]))
+                    ->options(WeatherChoice::options())
+                    ->default(static fn (): string => CancelDeparture::defaultChoiceFor(
+                        Tenancy::current() ?? new Tenant,
+                    )->value)
+                    ->required(),
+                Textarea::make('note')
+                    ->label(__('availability.departure.weather.note'))
+                    ->helperText(__('availability.departure.weather.note_help'))
+                    ->rows(2),
+            ])
+            ->action(static function (Collection $records, array $data): void {
+                $choice = WeatherChoice::from((string) $data['default_choice']);
+
+                // Saved before anything is cancelled, because the guest pages
+                // this creates read it — a default written afterwards would be
+                // read by the first guest to open their link and not by the
+                // job that ran a moment earlier.
+                Tenancy::current()?->forceFill(['weather_choice_default' => $choice->value])->save();
+
+                $cancelled = 0;
+
+                foreach ($records as $departure) {
+                    $cancelled += (new CancelDeparture(app(CancelBooking::class)))(
+                        departure: $departure,
+                        reason: DepartureCancelReason::Weather,
+                        note: ($data['note'] ?? '') !== '' ? (string) $data['note'] : null,
+                        byUserId: Auth::id(),
+                    );
+                }
+
+                Notification::make()
+                    ->success()
+                    ->title(__('availability.departure.weather.sent', ['count' => $cancelled]))
+                    ->body(__('availability.departure.weather.sent_body', ['days' => CancelDeparture::deadlineDays()]))
+                    ->send();
+            });
     }
 
     /**
