@@ -6,11 +6,15 @@ namespace App\Http\Controllers\Hosted;
 
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Tenancy\Resolvers\HostedSlugResolver;
+use App\Enums\DomainStatus;
 use App\Http\Middleware\HostedPageHeaders;
 use App\Models\Tenant;
+use App\Models\TenantDomain;
 use App\Support\Tenancy;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
  * What every hosted page does the same way (spec HOS-4, HOS-5, HOS-6, HOS-10).
@@ -54,6 +58,14 @@ abstract class HostedController
      */
     protected function render(Request $request, Tenant $tenant, string $view, callable $data, string $locale): Response
     {
+        // HOS-7, before anything is composed: there is no point building a page
+        // whose whole job is to be replaced by a redirect.
+        $redirect = $this->customDomainRedirect($request, $tenant);
+
+        if ($redirect !== null) {
+            return $redirect;
+        }
+
         $shared = [
             'tenant' => $tenant,
             'locale' => $locale,
@@ -113,6 +125,59 @@ abstract class HostedController
         app()->setLocale($locale);
 
         return $locale;
+    }
+
+    /**
+     * HOS-7: the platform URL 301s to the operator's own domain.
+     *
+     * *"When a custom domain is active, the `book.{platform-domain}/{slug}` URL
+     * issues a 301 redirect to the custom domain so the two never compete in
+     * search."* Two addresses serving identical pages is the duplicate-content
+     * problem a canonical tag only half solves — a permanent redirect moves the
+     * ranking rather than splitting it.
+     *
+     * **301 and not 302**, deliberately: a temporary redirect tells a search
+     * engine to keep the platform URL indexed, which is exactly the competition
+     * the requirement exists to end. The cost of being wrong is that browsers
+     * cache it, which is also the point.
+     *
+     * Only a **verified** domain redirects. A pending one is a hostname nobody
+     * is serving yet, and redirecting to it would take the operator's page down
+     * until their registrar catches up.
+     */
+    protected function customDomainRedirect(Request $request, Tenant $tenant): ?RedirectResponse
+    {
+        $host = strtolower($request->getHost());
+        $hosted = strtolower((string) config('kaiki.tenancy.hosted_host'));
+
+        // Already on the custom domain, or on a host that is not the platform's
+        // hosted host at all. Nothing to move.
+        if ($host !== $hosted) {
+            return null;
+        }
+
+        $domain = Tenancy::withoutTenancy(static fn (): ?TenantDomain => TenantDomain::query()
+            ->where('tenant_id', $tenant->getKey())
+            ->where('status', DomainStatus::Verified)
+            ->orderBy('id')
+            ->first());
+
+        if ($domain === null) {
+            return null;
+        }
+
+        // The path and query travel with it: a link to one trip on the platform
+        // host must land on that trip, not on the operator's home page. The
+        // slug segment is dropped, because on a custom domain the operator *is*
+        // the site — `/{slug}/sunset` becomes `/sunset`.
+        $path = ltrim((string) $request->getPathInfo(), '/');
+        $withoutSlug = preg_replace('#^' . preg_quote($tenant->slug, '#') . '(/|$)#', '', $path) ?? '';
+        $query = $request->getQueryString();
+
+        return redirect()->away(
+            sprintf('https://%s/%s%s', $domain->hostname, $withoutSlug, $query === null ? '' : '?' . $query),
+            SymfonyResponse::HTTP_MOVED_PERMANENTLY,
+        );
     }
 
     /**

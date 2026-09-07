@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Jobs\ApplyWeatherChoiceDefaults;
+use App\Jobs\CheckCustomDomains;
 use App\Jobs\CompleteDeparturesJob;
 use App\Jobs\ExpireAbandonedCheckoutsJob;
 use App\Jobs\ExpireQuotesJob;
@@ -230,6 +231,29 @@ Schedule::command('model:prune', ['--model' => [NotificationLog::class]])
 | contending for one connection pool on a single Hetzner box is avoidable by
 | choosing a different minute.
 */
+/*
+|--------------------------------------------------------------------------
+| Custom domains — the half of verification an operator is not waiting for
+|--------------------------------------------------------------------------
+|
+| HOS-3 and ADR-0010. An operator adds a CNAME at their registrar and it
+| propagates in anything from a minute to a day; a flow that only checked when
+| they pressed a button would leave them pressing it, or concluding the feature
+| is broken and telephoning about it.
+|
+| Every fifteen minutes rather than nightly, because the wait is the whole
+| experience of setting a domain up — and a lookup per domain across a platform
+| of a few hundred operators is a few hundred DNS queries, which is nothing.
+|
+| A verified domain that stops resolving is recorded and reported here and
+| **keeps serving**: `VerifyDomain` explains why a registrar glitch must not be
+| a kill switch.
+*/
+Schedule::job(new CheckCustomDomains)
+    ->everyFifteenMinutes()
+    ->name('domains:check')
+    ->withoutOverlapping();
+
 Schedule::job(new CompleteDeparturesJob)
     ->hourlyAt(20)
     ->withoutOverlapping()

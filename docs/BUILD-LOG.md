@@ -12,14 +12,14 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M3 — Hosted pages & widget: #101 … #108 built.** M2 complete (all eleven), M1 complete. |
+| Milestone | **M3 — Hosted pages & widget: #101 … #109 built.** M2 complete (all eleven), M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **#101 … #108 built** — the hosted pages and **all four widget mounts**. #109 custom domains, #110 distribution, #111 the Playwright run. |
+| M3 | **#101 … #109 built** — the hosted pages, all four widget mounts and custom domains. #110 distribution and #111 the Playwright run remain. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2185, one failing: the schema snapshot CI cannot regenerate) · **Vitest (75) and the widget's four build gates**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2212, one failing: the schema snapshot CI cannot regenerate) · **Vitest (75) and the widget's four build gates**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -35,6 +35,97 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #109 — Custom domains, and the endpoint that has to say no
+
+An operator points `book.theirdomain.gr` at Kaiki with a CNAME and it works, with
+a certificate, without anybody touching a server.
+
+### The ask endpoint is the whole security story
+
+On-demand TLS means the server obtains a certificate for **whatever hostname
+arrives**, provided `GET /tls/ask` approves it. An endpoint that answered broadly
+would let a stranger point any DNS record at the platform and burn through Let's
+Encrypt's rate limit — for every operator at once, with a DNS record and a
+browser.
+
+So: **200 only for a hostname with a `verified` row.** Not pending, not failed,
+not disabled, not "belongs to a tenant". The refusals are asserted first and in
+every shape, because an approval test passing says nothing about the property
+that matters.
+
+The body is empty and the status identical for a known and an unknown hostname. A
+`404` saying *no such domain* beside a `403` saying *not verified* is a probe
+oracle: ask, and learn which operators exist.
+
+### A domain that stops resolving keeps serving
+
+The acceptance criterion asks for it and it is the humane reading: *"A registrar
+glitch must not take an operator's site down."* From the platform's side a
+resolver hiccup, a maintenance window and a deleted record are the same silence,
+and only one of the three is worth an outage. A failed check on a **verified** row
+is recorded, logged and left verified; a `pending` row that fails becomes
+`failed`, because it never worked.
+
+### Two routing lessons, both expensive
+
+**`/` cannot be registered twice.** Laravel keys its route collection by method +
+domain + URI, so a second `/` with no domain constraint does not compete with the
+first — it **replaces** it. Registering a custom-domain root turned the platform's
+own front page into a 404, and `SmokeTest` was the only thing that noticed. `/` is
+now one route through `RootController`, which asks `CustomDomainResolver` and
+serves the operator's page or the platform's.
+
+**And `/` cannot carry the hosted middleware.** `ResolveTenant` 404s when nothing
+resolves, which is right everywhere except the platform's own root. So
+`HostedRootPipeline` applies the hosted stack **conditionally, inside the
+pipeline** — the resolver decides, and the platform's host passes straight
+through.
+
+The other three custom-domain paths — `/legal`, `/search`, `/{product}` — collide
+with nothing and are ordinary routes behind `CustomDomainOnly`, registered last.
+That middleware is the guard #101's lesson demands: a `/{product}` route at the
+root of every host matches `/app`, `/admin` and every probe route, and the domain
+constraint that fixed it there is unavailable when the hostname is the operator's.
+
+### Deviations and additions
+
+- **The platform's front page is served on the platform's hosts and nowhere
+  else.** An unverified hostname pointed at us used to get the marketing page,
+  which is an impersonation surface for free and a duplicate of our own page in
+  search. It is a 404 now.
+- **`DnsLookup` is a port with a fake**, because a test cannot make a registrar
+  answer "not yet", and one calling `dns_get_record()` would pass on a laptop and
+  fail on a runner behind a proxy.
+- **An A record verifies as well as a CNAME.** A registrar that refuses a CNAME on
+  an apex leaves an operator with an A record at the platform's address, and
+  refusing that would be refusing a domain that works.
+- **`kaiki.tenancy.custom_domain_target`** is separate from `hosted_host` although
+  they are the same string today: a platform behind a CDN points customer domains
+  at the CDN while serving its own pages from the origin. Empty means **nothing
+  verifies**, because an unconfigured platform must not approve certificate
+  requests.
+- **`docs/deployment/caddy.md`** carries the Caddyfile fragment, the `interval`
+  and `burst` reasoning, and what M8 still owes — including a persistent volume
+  for certificate storage, without which every restart re-issues and meets the
+  rate limit the ask endpoint exists to protect.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `composer lint` / `composer stan` | Pint clean; PHPStan level 6, no errors |
+| `composer test` | **2211 passed, 1 failed** — the inherited ENV-10 snapshot |
+
+27 new tests across five files: `CustomDomainTest` (7), `TlsAskEndpointTest` (6),
+`CanonicalRedirectTest` (5), `DomainCheckSweepTest` (3) and `DomainsPageTest` (6),
+plus `FakeDns` in `tests/Support/Tenancy`.
+
+Two PHPStan lessons re-learnt from #89: `$this->dns` inside a Pest closure is a
+`TestCall` at analysis time, so the fake is reached through a file-scoped
+function; and a `TestResponse` return type needs its generic.
 
 ---
 

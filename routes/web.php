@@ -8,13 +8,27 @@ use App\Http\Controllers\Guest\QuoteController;
 use App\Http\Controllers\Guest\VoucherController;
 use App\Http\Controllers\Hosted\HostedPageController;
 use App\Http\Controllers\Hosted\ProductPageController;
+use App\Http\Controllers\Hosted\RootController;
 use App\Http\Controllers\Hosted\SearchPageController;
+use App\Http\Controllers\TlsAskController;
 use App\Http\Controllers\Webhooks\GatewayWebhookController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+/*
+| `/` is **one** route that decides by host (#109).
+|
+| Laravel keys its route collection by method + domain + URI, so a second `/`
+| with no domain constraint does not compete with this one — it *replaces* it.
+| Registering a custom-domain root turned the platform's own front page into a
+| 404, and the smoke test was the only thing that noticed.
+|
+| `RootController` asks whether the hostname resolved through
+| `CustomDomainResolver` — which answers only for a verified row — and serves
+| the operator's home page or the platform's, accordingly.
+*/
+Route::middleware(['hosted.root'])
+    ->get('/', RootController::class)
+    ->name('root');
 
 /*
 |--------------------------------------------------------------------------
@@ -111,6 +125,29 @@ Route::middleware(['guest.token', 'guest.throttle'])->group(function (): void {
 | disappears from search. The pages are cacheable reads with no credential in
 | the URL, which is exactly what the token pages are not.
 */
+/*
+|--------------------------------------------------------------------------
+| On-demand TLS: the ask endpoint (HOS-3, ADR-0010 Option A)
+|--------------------------------------------------------------------------
+|
+| Caddy asks this before obtaining a certificate for a hostname it has never
+| seen. **It is the only genuinely dangerous surface in the custom-domain
+| feature**: an endpoint that answered broadly would let a stranger point DNS at
+| the platform and burn through the certificate authority's rate limit for every
+| operator at once.
+|
+| No `tenant` middleware and no API key — Caddy holds neither, and the question
+| is asked *before* any tenant exists to resolve. The controller crosses tenants
+| explicitly and answers on the row's own `verified` status.
+|
+| Not under `/api/v1`: it is not an operation an integrator calls, and putting it
+| there would force it into a contract that does not describe it — the same
+| reasoning the gateway webhooks are here rather than there.
+*/
+Route::get('/tls/ask', TlsAskController::class)
+    ->middleware('throttle:webhooks')
+    ->name('tls.ask');
+
 Route::domain((string) config('kaiki.tenancy.hosted_host'))
     ->middleware(['tenant', 'hosted.page', 'locale'])
     ->group(function (): void {
@@ -148,3 +185,35 @@ Route::domain((string) config('kaiki.tenancy.hosted_host'))
             ->where('product', '[a-z0-9][a-z0-9-]*')
             ->name('hosted.product');
     });
+
+/*
+|--------------------------------------------------------------------------
+| The same hosted pages, at the root of an operator's own domain (HOS-3)
+|--------------------------------------------------------------------------
+|
+| On `book.{platform-domain}` an operator's pages are `/{slug}`, `/{slug}/search`
+| and `/{slug}/{product}`. On **their** domain there is no slug — they are the
+| site — so the same pages answer at `/`, `/search` and `/{product}`.
+|
+| **Registered last, and guarded by `hosted.custom`.** A `/{product}` route at
+| the root of every host is exactly what broke eight of #7's tests when #101
+| tried it: it matches `/app`, `/admin`, `/up` and every probe route. The domain
+| constraint that fixed it there is unavailable here, because the hostname is
+| the operator's and unknown in advance — so the guard is a middleware that
+| refuses any host which did not resolve through `CustomDomainResolver`, and
+| that resolver only answers for a **verified** row.
+|
+| The controllers are the same ones. `{operator}` is filled from the resolved
+| tenant rather than from the path, which is the only difference between the two
+| shapes of URL.
+*/
+Route::middleware(['tenant', 'hosted.custom', 'hosted.page', 'locale'])->group(function (): void {
+    // No `/` here: it is registered above, once, because a second one would
+    // replace it rather than compete with it. See `RootController`.
+    Route::get('/legal', [HostedPageController::class, 'legal'])->name('hosted.custom.legal');
+    Route::get('/search', [SearchPageController::class, 'show'])->name('hosted.custom.search');
+
+    Route::get('/{product}', [ProductPageController::class, 'show'])
+        ->where('product', '[a-z0-9][a-z0-9-]*')
+        ->name('hosted.custom.product');
+});

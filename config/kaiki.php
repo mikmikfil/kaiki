@@ -73,6 +73,22 @@ return [
          * in seconds rather than needing a deploy.
          */
         'host_cache_seconds' => (int) env('KAIKI_HOST_CACHE_SECONDS', 60),
+
+        /*
+         * What an operator's CNAME must point at for their custom domain to
+         * verify (HOS-3, ADR-0010), added by #109.
+         *
+         * Separate from `hosted_host` because they are the same string today
+         * and need not be tomorrow: a platform behind a CDN points customer
+         * domains at the CDN's hostname while its own pages are served from the
+         * origin. `VerifyDomain` accepts either, so changing this is a config
+         * edit rather than a migration of every verified row.
+         *
+         * **Empty means nothing verifies.** An unconfigured platform must not
+         * approve certificate requests for hostnames it cannot serve — see
+         * `TlsAskController` for why that matters more than it looks.
+         */
+        'custom_domain_target' => env('KAIKI_CUSTOM_DOMAIN_TARGET', env('KAIKI_HOSTED_HOST', 'book.kaiki.test')),
     ],
 
     /*

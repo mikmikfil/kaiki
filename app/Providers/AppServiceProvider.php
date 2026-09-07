@@ -7,6 +7,8 @@ namespace App\Providers;
 use App\Domain\Catalog\Actions\GuardVesselCapacity;
 use App\Domain\Catalog\Actions\SaveProduct;
 use App\Domain\Media\Actions\StoreUploadedImage;
+use App\Domain\Tenancy\Support\DnsLookup;
+use App\Domain\Tenancy\Support\SystemDnsLookup;
 use App\Http\Middleware\SetLocale;
 use App\Providers\Filament\PanelRenderHooks;
 use Illuminate\Support\ServiceProvider;
@@ -79,6 +81,14 @@ class AppServiceProvider extends ServiceProvider
             StoreUploadedImage::class,
             static fn ($app): StoreUploadedImage => new StoreUploadedImage($app->make(ImageManagerInterface::class)),
         );
+
+        // #109: what a custom hostname resolves to (HOS-3, ADR-0010).
+        //
+        // Bound to the interface for the same reason the image manager is — a
+        // test cannot make a registrar answer "not yet", and a test that asked
+        // the real resolver would pass on a laptop and fail on a runner behind
+        // a proxy. `Tests\Support\Tenancy\FakeDns` is what takes its place.
+        $this->app->singleton(DnsLookup::class, SystemDnsLookup::class);
     }
 
     /**

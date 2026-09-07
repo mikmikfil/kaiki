@@ -5,10 +5,12 @@ declare(strict_types=1);
 use App\Http\Middleware\ApiKeyCors;
 use App\Http\Middleware\AuthenticateApiKey;
 use App\Http\Middleware\AuthenticateGuestToken;
+use App\Http\Middleware\CustomDomainOnly;
 use App\Http\Middleware\EnforceIdempotencyKey;
 use App\Http\Middleware\EnsureTenantIsWritable;
 use App\Http\Middleware\GuestTokenPage;
 use App\Http\Middleware\HostedPageHeaders;
+use App\Http\Middleware\HostedRootPipeline;
 use App\Http\Middleware\RequireApiKeyCapability;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SetLocale;
@@ -71,6 +73,19 @@ return Application::configure(basePath: dirname(__DIR__))
             // controller code, for the reason `guest.token` gives — a header
             // set in a controller is a header the fourth page forgets.
             'hosted.page' => HostedPageHeaders::class,
+
+            // #109: lets the hosted pages answer at the **root** of a verified
+            // custom domain without a `/{product}` route at the root of every
+            // host — which is the mistake #101 made and documented. The routes
+            // are registered last and this refuses any host that did not
+            // resolve through `CustomDomainResolver`.
+            'hosted.custom' => CustomDomainOnly::class,
+
+            // #109: `/` is the platform's front page on the platform's host and
+            // an operator's home page on theirs, and `ResolveTenant` 404s when
+            // nothing resolves — so the hosted stack is applied conditionally,
+            // inside the pipeline, rather than on the route.
+            'hosted.root' => HostedRootPipeline::class,
         ]);
 
         // Per-key CORS from `api_keys.allowed_origins` (SEC-7), and the

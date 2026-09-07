@@ -2,6 +2,22 @@
 
 ## M3 — Hosted pages & widget
 
+### #109 - Custom domains, and the endpoint that has to say no
+
+An operator points `book.theirdomain.gr` at Kaiki with a CNAME and it works, with a certificate, without anybody touching a server. The panel shows the exact record to create, a sweep finishes the verification while they sleep, and the platform URL steps out of the way.
+
+**The ask endpoint is the whole security story.** On-demand TLS means the server obtains a certificate for whatever hostname arrives, provided `GET /tls/ask` approves it — so an endpoint that answered broadly would let a stranger point any DNS record at the platform and burn through the certificate authority's rate limit for every operator at once, with a DNS record and a browser. It answers **200 only for a hostname with a verified row**: not pending, not failed, not disabled, not "belongs to a tenant". Its test asserts the refusals first and in every shape, because an approval test passing says nothing about the property that matters. Both refusals are an identical empty 403, since a 404 saying "no such domain" beside a 403 saying "not verified" is a probe oracle for enumerating operators.
+
+**A domain that stops resolving keeps serving.** From the platform's side a resolver hiccup, a registrar's maintenance window and a deleted record are the same silence, and only one of the three is worth taking a working site down for. A failed check on a verified domain is recorded and logged and changes nothing; a pending one that fails becomes failed, because it never worked.
+
+**Verification is a sweep as well as a button.** DNS propagates in anything from a minute to a day, and a flow that only checked on a button press would leave an operator pressing it — or concluding the feature is broken and telephoning. The sweep runs every fifteen minutes beside the others.
+
+Two routing lessons, both expensive and both now written down. **`/` cannot be registered twice**: Laravel keys routes by method, domain and URI, so a second root route does not compete with the first, it replaces it — registering a custom-domain root turned the platform's own front page into a 404 with only the smoke test to notice. And **`/` cannot carry the hosted middleware**, because tenant resolution 404s when nothing resolves, which is right everywhere except there. The root is now one route that asks the resolver, behind a middleware that applies the hosted stack only when the answer is yes.
+
+Two smaller decisions worth the record. The platform's own front page is served **on the platform's hosts and nowhere else** — a hostname somebody pointed at us and never verified used to get our marketing page, which is an impersonation surface for free. And an **A record verifies as well as a CNAME**, because a registrar that refuses a CNAME on an apex leaves an operator with an A record at our address, and refusing that would be refusing a domain that works.
+
+`docs/deployment/caddy.md` carries the Caddyfile fragment and what M8 still owes — including a persistent volume for certificate storage, without which every restart re-issues and meets the very rate limit the ask endpoint protects.
+
 ### #108 - The other three mounts, and the price that must not reach the DOM
 
 `list`, `calendar` and `enquiry`, which completes the four mounts WGT-5 fixes. A trip grid with category tabs for a landing page, a month of availability for a page that has already sold the trip, and the enquiry form that stands where a booking button would be on a product with no price.
