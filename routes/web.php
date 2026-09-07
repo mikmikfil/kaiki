@@ -7,6 +7,7 @@ use App\Http\Controllers\Guest\ManageBookingController;
 use App\Http\Controllers\Guest\QuoteController;
 use App\Http\Controllers\Guest\VoucherController;
 use App\Http\Controllers\Hosted\HostedPageController;
+use App\Http\Controllers\Hosted\ProductPageController;
 use App\Http\Controllers\Webhooks\GatewayWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -124,4 +125,17 @@ Route::domain((string) config('kaiki.tenancy.hosted_host'))
         Route::get('/{operator}/legal', [HostedPageController::class, 'legal'])
             ->where('operator', '[a-z0-9][a-z0-9-]*')
             ->name('hosted.legal');
+
+        // One trip (#104). **Registered after `/legal`**, which is not a style
+        // choice: both match two segments, Laravel takes the first that does,
+        // and the reverse order would make the legal page unreachable for every
+        // operator. The cost is that a product whose slug is literally `legal`
+        // is shadowed — `products_tenant_slug_unique` cannot express that, so it
+        // is written down here and asserted in `ProductPageTest`.
+        Route::get('/{operator}/{product}', [ProductPageController::class, 'show'])
+            ->where('operator', '[a-z0-9][a-z0-9-]*')
+            // The shape a `products.slug` actually has, so a request for an
+            // asset path or an uppercase URL never reaches a detail query.
+            ->where('product', '[a-z0-9][a-z0-9-]*')
+            ->name('hosted.product');
     });

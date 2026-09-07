@@ -52,6 +52,47 @@ return [
         ],
     ],
 
+    'product' => [
+        'breadcrumb' => 'Breadcrumb',
+        'max_pax' => 'Up to :count people',
+        'about' => 'About this trip',
+        'includes' => 'What is included',
+        'excludes' => 'Not included',
+        'what_to_bring' => 'What to bring',
+        'itinerary' => 'The route',
+        'departures' => 'Upcoming departures',
+        'sold_out' => 'Sold out',
+        'meeting_point' => 'Where we meet',
+        'check_in' => 'Please be there :minutes minutes before departure.',
+        'vessel' => 'The boat',
+        'vessel_capacity' => 'Up to :count people on board.',
+        'age_bands' => 'Who pays what',
+        'age_range' => 'ages :from to :to',
+        'age_from' => 'ages :from and over',
+        'no_seat' => 'does not take a seat',
+        'cancellation' => 'Cancellation',
+        'free_cancellation' => 'Free cancellation up to :hours hours before departure.',
+        'tier' => ':days days before departure: :percent% refunded',
+        'weather_refund' => 'If we cancel for weather, you are refunded :percent%.',
+        'price' => [
+            'from' => 'From',
+            // Brand decision 4 of 2026-09-04: the sentence, never the rate. The
+            // rate is printed on the invoice, which is M6.
+            'vat_included' => 'VAT is included in the price',
+        ],
+        'booking' => [
+            'heading' => 'Book this trip',
+            // The four lines above the date picker, brand decision 3.
+            'trip' => 'Trip',
+            'duration' => 'Duration',
+            'port' => 'Departs from',
+            'vessel' => 'Boat',
+            'fallback' => 'Online booking needs JavaScript. Write or call us and we will book it for you.',
+            'enquiry_fallback' => 'This trip is arranged for you. Tell us your dates and how many you are, and we will come back with a price.',
+            'email_us' => 'Email us',
+        ],
+    ],
+
     'read_only' => 'Online booking is unavailable just now. Please contact us at :email and we will take your booking directly.',
 
     'footer' => [

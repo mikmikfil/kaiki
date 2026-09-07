@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Api\V1;
 
+use App\Domain\Hosted\Support\HostedUrl;
 use App\Domain\Media\Support\ImagePayload;
 use App\Enums\BookingMode;
 use App\Models\Product;
 use App\Support\Format\MoneyFormatter;
+use App\Support\Tenancy;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -76,11 +78,11 @@ class ProductListResource extends JsonResource
             'max_pax' => $product->max_pax,
             'is_featured' => $product->is_featured,
             'sort_order' => $product->sort_order,
-            // Hosted pages arrive in M3 (HOS-1). Null rather than absent, for
-            // the reason `custom_css` is null on the branding payload: a client
-            // that branches on presence breaks the day the field starts
-            // carrying a value.
-            'booking_url' => null,
+            // Filled by #104, which built the page it points at. Still null —
+            // never absent — for an operator with `hosted_page_enabled = false`,
+            // because HOS-6 makes that page a 404 and a payload advertising a
+            // dead link is worse than one admitting there is no page.
+            'booking_url' => $this->bookingUrl(),
             'updated_at' => $product->updated_at?->toIso8601String(),
         ];
     }
@@ -97,6 +99,23 @@ class ProductListResource extends JsonResource
         return $this->resource->mode === BookingMode::Quote
             ? null
             : $this->resource->price_from_cents;
+    }
+
+    /**
+     * The hosted page for this trip, when the operator serves one (HOS-1).
+     *
+     * Built through {@see HostedUrl} rather than `route()`: these routes are
+     * registered on `book.{platform-domain}` and `route()` here would resolve
+     * against the API's own host, producing a link that 404s for whoever clicks
+     * it. That is the whole reason the helper exists.
+     */
+    protected function bookingUrl(): ?string
+    {
+        $tenant = Tenancy::current();
+
+        return $tenant !== null && HostedUrl::enabledFor($tenant)
+            ? HostedUrl::product($tenant, $this->resource)
+            : null;
     }
 
     /** The first gallery image, which is what a card renders. */

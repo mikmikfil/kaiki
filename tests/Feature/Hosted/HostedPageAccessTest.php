@@ -37,7 +37,7 @@ it('serves an active operator page', function (): void {
 
     get(HostedRequest::url('/aegean-blue-test'))
         ->assertOk()
-        ->assertSee($tenant->name, escape: false);
+        ->assertSee(e($tenant->name), escape: false);
 })->group('fast');
 
 it('404s an operator whose page is switched off', function (): void {
@@ -75,7 +75,7 @@ it('serves a read-only operator in full, with the booking replaced', function ()
     // HOS-10: the page is complete. Only the booking is missing, and the
     // sentence says who to contact rather than what went wrong.
     $response->assertOk()
-        ->assertSee($tenant->name, escape: false)
+        ->assertSee(e($tenant->name), escape: false)
         ->assertSee($tenant->email, escape: false)
         ->assertSee(__('hosted.read_only', ['email' => $tenant->email]), escape: false);
 })->group('fast');

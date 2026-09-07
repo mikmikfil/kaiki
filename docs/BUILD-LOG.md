@@ -12,14 +12,14 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M3 — Hosted pages & widget: #101, #102 and #103 built.** M2 complete (all eleven), M1 complete. |
+| Milestone | **M3 — Hosted pages & widget: #101 … #104 built.** M2 complete (all eleven), M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **#101, #102, #103 built** — the hosted page shell, the editable home page and the FAQ. #104 … #111 to come, hosted pages before the widget. |
+| M3 | **#101, #102, #103, #104 built** — the hosted page shell, the editable home page, the FAQ and the product pages. #105 … #111 to come, the widget next. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2130, one failing: the schema snapshot CI cannot regenerate) · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2153, one failing: the schema snapshot CI cannot regenerate) · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -35,6 +35,118 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #104 — The product page, and the graph that has to be two types
+
+The page a search engine lands on and the page an operator sends a link to:
+`book.{platform-domain}/{operator-slug}/{product-slug}`, server-rendered, with
+HOS-2's structured data.
+
+### `Product` **and** `Event`, which is the issue's own note and the reason for the shape
+
+A boat trip is a product with a price and a series of dated occurrences, and
+search engines use the two differently — `Product` earns the price, `Event`
+earns the date and the place. So the page carries one `@graph` with one
+`Product` and one `Event` per upcoming departure, the `Event`s pointing back at
+the `Product`'s `@id` rather than repeating it.
+
+Three decisions inside that are worth more than the shape:
+
+- **`AggregateOffer` with `lowPrice`, not `Offer` with `price`.**
+  `price_from_cents` is the cheapest band on the cheapest active plan (#33).
+  Stating it as *the* price puts a number in a search result that a family of
+  four will never be charged.
+- **A quote product has no `offers` key at all.** Not zero, not null — a
+  `Product` with `price: 0` is a free boat trip as far as Google is concerned,
+  and that listing is not something an operator can undo (BKG-24).
+- **Cancelled and blocked departures never reach the graph.** An `Event` for a
+  sailing that is not running is worse than no `Event`, because a search engine
+  will show it, with a date and a place.
+
+`ProductJsonLdTest` parses every assertion out of the actual script element.
+A malformed document is discarded by Google silently, so a test matching the
+string `"Event"` would pass on markup achieving nothing.
+
+### The page has two addresses, and one of them is canonical
+
+`PublicProductQuery::find()` answers a uuid as well as a slug — the widget embed
+carries the uuid and the two are the same resource. That is the duplicate-content
+problem a canonical exists for, so the canonical and both `hreflang` alternates
+are always built from the slug, and `ProductPageLocaleTest` requests the uuid URL
+and asserts it advertises the slug.
+
+### Deviations and additions
+
+- **`HostedController` was extracted.** #101's controller held the tenant, the
+  locale, the alternates and the five shared view variables; #104 was the second
+  page that needed all four. The alternative was a copy, and the failure mode of
+  a copy here is a page that quietly stops carrying the read-only notice or the
+  nonce.
+- **`HostedUrl`** replaces four hand-built strings with one. The panel built the
+  operator URL by hand because `route()` on the panel's host produces a link
+  that 404s; this issue needed the same URL in `booking_url`, `canonical_url`,
+  the page's canonical and its alternates.
+- **`booking_url` and `seo.canonical_url` are filled.** Both were `null` in
+  `docs/api.md` with a comment saying M3 would fill them, and this is the issue
+  that built the page they address. `ProductShowTest` asserted `canonical_url`
+  was null; that assertion encoded the not-yet-built state and now asserts the
+  URL.
+- **`JsonLd` was extracted from #103's `FaqSchema`**, so the escaping — the four
+  `JSON_HEX_*` flags that stop an operator's `</script>` closing the element — is
+  decided once for both blocks rather than twice.
+- **The home page's trip cards became links.** They had nowhere to go until this
+  issue. The whole heading is the link rather than a "read more" underneath it,
+  because a row of identical "read more" links is what a screen-reader user
+  hears when they list the links on a page.
+- **A trip whose slug is `legal` is shadowed** by HOS-9's page: both routes match
+  two segments and Laravel takes the first registered. Reversing the order would
+  make the legal page unreachable for every operator, which is the worse of the
+  two, so the trade is asserted in `ProductPageTest` rather than left to be
+  found.
+- **No per-locale slug.** The acceptance criterion asks for "the product slug for
+  that locale" and `products.slug` is a single column with a
+  `(tenant_id, slug)` unique — per-locale slugs would be a schema change and a
+  URL-structure decision, which is an ADR rather than a line in this issue. Both
+  locales therefore share the slug and differ by `?lang=`, the convention #101
+  settled.
+
+### The flaky test this issue found in #101's file
+
+`HostedPageLocaleTest > it renders every word of content without a single script
+tag` failed once in a full run and passed twice after, with nothing changed
+between. The cause is not the page: `TenantFactory` uses `faker->company()`,
+whose `en_US` last names include `O'Conner` and `O'Hara`, Blade escapes the
+apostrophe to `&#039;`, and the assertion compared the **raw** name against the
+**escaped** body.
+
+Measured rather than guessed: **44 of 2000 generated company names contain an
+apostrophe**, so each such assertion failed about one run in forty-five, and
+there were four of them. All four now compare `e($tenant->name)`.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `composer lint` | Pint, clean |
+| `composer stan` | PHPStan level 6, **866 files, no errors** |
+| `composer test` | **2152 passed, 1 failed** — the inherited ENV-10 schema snapshot |
+| Route check | `/{operator}/legal` still wins over `/{operator}/{product}`, asserted |
+
+23 new tests across four files: `ProductPageTest` (8), `ProductJsonLdTest` (7),
+`ProductPageLocaleTest` (5), `ProductPageNoJsTest` (3), plus `TripPage` in
+`tests/Support/Hosted`.
+
+**The one failure is still the ENV-10 schema snapshot**, inherited from #102 and
+#103 and unchanged by this issue, which adds no migration. It needs the MySQL 8
+connection only CI has.
+
+One fixture mistake worth recording: `TripPage` first set `price_from_cents` on
+the factory, and the page rendered no price. The column is **derived** — the
+age-band and rate-plan observers rewrite it on every write (#33) — so the value
+was null by the time the page ran. The fixture now builds a real rate plan and
+band price, which is the fixture being honest about where a price comes from.
 
 ---
 

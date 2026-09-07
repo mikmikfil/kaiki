@@ -165,6 +165,9 @@ it('renders every word of content without a single script tag', function (): voi
     // on a page a CDN may cache. It only failed when the whole file ran, which
     // is why the assertion is here rather than in a test of its own.
     expect($body)->not->toContain('<script')
-        ->and($body)->toContain($tenant->name)
+        // Escaped, for the reason `HomePageBlockTest` records: a faker company
+        // name with an apostrophe in it is `&#039;` in the markup, and the raw
+        // comparison fails at random.
+        ->and($body)->toContain(e($tenant->name))
         ->and($body)->toContain(__('hosted.footer.operator'));
 })->group('fast');

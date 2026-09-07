@@ -2,6 +2,24 @@
 
 ## M3 — Hosted pages & widget
 
+### #104 - The product page, and the graph that has to be two types
+
+`book.{platform-domain}/{operator-slug}/{product-slug}` — one page per trip, server-rendered, with the SEO metadata and the JSON-LD HOS-2 fixes. The page a search engine lands on and the page an operator sends a link to, and the last hosted surface before the widget.
+
+**`Product` *and* `Event`, which is the whole shape of the structured data.** A boat trip is a product with a price and a series of dated occurrences, and search engines use the two differently — `Product` earns the price, `Event` earns the date and the place. Emitting only the first loses every departure; only the second loses the price. So the page carries one graph with a `Product` and one `Event` per upcoming departure, and three decisions inside it matter more than the shape. The price is an `AggregateOffer`'s `lowPrice` rather than a flat `Offer`, because `price_from_cents` is the cheapest band on the cheapest plan and stating it as *the* price puts a number in a search result a family of four will never be charged. A quote product has **no `offers` key at all** — not zero, not null, because a `Product` with `price: 0` is a free boat trip as far as Google is concerned and that listing is not something an operator can undo. And a cancelled or blocked departure never reaches the graph, because an `Event` for a sailing that is not running is worse than no `Event`: a search engine will show it, with a date and a place.
+
+**Every JSON-LD assertion parses the block.** A malformed document is discarded by Google without a word, so a test matching the string `"Event"` would pass on markup that achieves nothing — including on the day it broke. The `Event` times are asserted at a **December** departure, so the Athens winter offset `+02:00` is what has to come out and a hardcoded `+03:00` fails in the test rather than in a search result six months later.
+
+**The page has two addresses and one canonical.** `PublicProductQuery::find()` answers a uuid as well as a slug, because the widget embed carries the uuid and the two are the same resource — which is exactly the duplicate-content problem a canonical exists to solve. The canonical and both `hreflang` alternates are always the slug's, and the locale test requests the uuid URL to prove it advertises the slug rather than itself.
+
+**Everything renders without JavaScript** (HOS-4), asserted as an absence: every `<script` on the page is `application/ld+json`, there is no Livewire and no CSRF token, and the description, meeting point, itinerary, policy and real departure dates are all in the HTML the server sent. The widget's mount node carries the no-JavaScript answer *inside* it — the operator's email and telephone — so a blocked script, a crawler and a bad connection all get a way to book rather than an empty box.
+
+Two settled design decisions are asserted rather than trusted. **Exactly four lines above the date picker** — title, duration, port, vessel — counted in the markup, because the temptation is to add a photograph when the space looks empty, and it looked empty in the mockup too. And **«Στην τιμή περιλαμβάνεται ΦΠΑ» with no rate printed**, which is why the open VAT-rate question with the accountant does not block this page.
+
+Three things came out of building it. `HostedController` was extracted, because #104 was the second controller needing the same tenant, locale, alternates and shared view data, and the failure mode of a copy is a page that quietly stops carrying the read-only notice or the nonce. `HostedUrl` replaced four hand-built URL strings — `route()` on any other host produces a hosted link that 404s, which the panel had already learnt the hard way. And `booking_url` and `seo.canonical_url`, both `null` in the API contract with a comment saying M3 would fill them, are filled: this is the issue that built the page they address.
+
+**A flake in #101's test file, found and measured rather than shrugged at.** `it renders every word of content without a single script tag` failed once in a full run and passed twice after with nothing changed. The cause was not the page: `TenantFactory` uses `faker->company()`, whose names include `O'Conner Group`, Blade escapes the apostrophe, and the assertion compared the raw name against the escaped body — 44 of 2000 generated names contain one, so it failed about one run in forty-five, four times over. All four assertions now compare the escaped name.
+
 ### #103 - The FAQ, and the nullable column that is the whole data model
 
 Per-operator frequently asked questions: a `faqs` table, a screen to write them on, an FAQ block for the home page, and a `FAQPage` block of structured data so the answers can appear in a search result instead of a link to one. The smallest item in M3 and the one with the clearest return — an operator who answers "do I need to know how to swim" once stops answering it on the telephone.

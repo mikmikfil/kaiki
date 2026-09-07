@@ -18,20 +18,13 @@ use Illuminate\Support\HtmlString;
  * "what happens if it rains" is answered on Google is an operator taking one
  * fewer telephone call.
  *
- * ## Encoded here, escaped here, and never with `{!! !!}`
+ * ## Encoded through {@see JsonLd}, and never with `{!! !!}`
  *
  * A JSON-LD block sits inside a `<script>` element, where Blade's `{{ }}`
  * escaping would corrupt the JSON and `{!! !!}` would print operator text into
- * a script element unescaped. Both are wrong, so neither is used: this returns
- * an {@see HtmlString} of JSON encoded with the four `JSON_HEX_*` flags, which
- * turn `<`, `>`, `&`, `'` and `"` into `\uXXXX` escapes. Those escapes are
- * valid JSON, mean exactly the characters they replace, and cannot close the
- * script element — so an operator who pastes `</script>` into an answer gets
- * their own text back, in the search result and on the page.
- *
- * Unicode is **not** escaped: Greek is the language most of these answers are
- * written in, and rendering every letter as a \uXXXX escape would treble the
- * size of the block on every page for no benefit.
+ * a script element unescaped. Both are wrong, so neither is used — the shared
+ * encoder returns an {@see HtmlString}, and it owns the escaping decision for
+ * this block and for #104's `Product` and `Event` graph alike.
  *
  * ## The `<script>` needs the nonce
  *
@@ -77,13 +70,7 @@ final class FaqSchema
             ])->values()->all(),
         ];
 
-        $json = json_encode(
-            $document,
-            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
-            | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT,
-        );
-
-        return $json === false ? null : new HtmlString($json);
+        return JsonLd::encode($document);
     }
 
     /**

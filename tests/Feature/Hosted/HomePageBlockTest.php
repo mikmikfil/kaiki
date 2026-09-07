@@ -47,7 +47,11 @@ it('renders the default page for an operator who has never opened the editor', f
     // said "Welcome to our boat tours" would ship somebody else's copy to every
     // operator who never edits it.
     $response->assertOk()
-        ->assertSee($tenant->name, escape: false)
+        // `e()` rather than the raw name: a faker company name containing an
+        // apostrophe — O'Conner Group — is escaped by Blade to `&#039;`, and an
+        // unescaped assertion then fails on roughly one run in twenty for a
+        // reason that has nothing to do with the page. Found in #104.
+        ->assertSee(e($tenant->name), escape: false)
         ->assertSee(__('hosted.index.trips', [], 'el'), escape: false)
         ->assertSee(__('hosted.blocks.contact.heading', [], 'el'), escape: false);
 })->group('fast');

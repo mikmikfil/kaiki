@@ -149,8 +149,14 @@ it('returns the full detail payload', function (): void {
         ->assertJsonPath('data.what_to_bring', null)
         ->assertJsonPath('data.check_in_offset_minutes', 30)
         ->assertJsonPath('data.timezone', 'Europe/Athens')
-        ->assertJsonPath('data.seo.canonical_url', null)
         ->assertJsonPath('data.meeting_point.name', 'Zea Marina');
+
+    // Null until #104 built the page it addresses. It is the trip's hosted
+    // page — the address a WordPress SEO sync (WPP-6) points at so the two
+    // never compete in search — and it is on the hosted host, not this one.
+    expect($response->json('data.seo.canonical_url'))
+        ->toEndWith('/sunset-cruise-aegina')
+        ->toContain((string) config('kaiki.tenancy.hosted_host'));
 
     // `default_start_time` is wall time in `HH:MM`, not the driver's
     // `09:00:00` and not an instant.

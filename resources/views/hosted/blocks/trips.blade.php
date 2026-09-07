@@ -17,7 +17,14 @@
         <ul class="trips">
             @foreach ($products as $product)
                 <li class="trip">
-                    <h3>{{ $product->title }}</h3>
+                    {{-- The card became a link in #104, when there was somewhere
+                         for it to go. The whole heading is the target rather
+                         than a "read more" underneath it: a row of identical
+                         "read more" links is what a screen-reader user hears
+                         when they list the links on the page. --}}
+                    <h3>
+                        <a href="{{ route('hosted.product', ['operator' => $tenant->slug, 'product' => $product->slug, 'lang' => $locale]) }}">{{ $product->title }}</a>
+                    </h3>
                     @if ($product->summary)
                         <p class="summary">{{ $product->summary }}</p>
                     @endif

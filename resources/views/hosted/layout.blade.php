@@ -46,8 +46,13 @@
     <title>@yield('title', $tenant->name)</title>
     <meta name="description" content="@yield('description', $tenant->name)">
 
-    {{-- HOS-5: one canonical per locale, and each alternate points at the other. --}}
-    <link rel="canonical" href="{{ $alternates[$locale] }}">
+    {{-- HOS-5: one canonical per locale, and each alternate points at the other.
+
+         The current URL is the right canonical for every page whose only
+         address is the one being read. The product page overrides it, because
+         `PublicProductQuery::find()` also answers a uuid — two URLs for one
+         page, which is the duplicate-content problem this tag exists for. --}}
+    <link rel="canonical" href="@yield('canonical', $alternates[$locale])">
     @foreach ($alternates as $alternate => $url)
         <link rel="alternate" hreflang="{{ $alternate }}" href="{{ $url }}">
     @endforeach
@@ -146,6 +151,8 @@
         }
 
         li.trip h3 { margin: 0 0 .4rem; font-size: 1.05rem; font-weight: 700; letter-spacing: -.012em; }
+        li.trip h3 a { color: inherit; text-decoration: none; }
+        li.trip h3 a:hover { text-decoration: underline; text-underline-offset: .18em; }
         li.trip .summary { margin: 0 0 .8rem; color: var(--ink-soft); font-size: .93rem; }
         li.trip .facts { margin: auto 0 0; color: var(--ink-faint); font-size: .84rem; }
 
@@ -200,6 +207,84 @@
         .gallery.cols-2 .shots { grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); }
         .gallery.cols-4 .shots { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
         .gallery .shots img { width: 100%; height: 100%; border-radius: 10px; object-fit: cover; aspect-ratio: 3 / 2; }
+
+        /* --- product page (#104) ------------------------------------ */
+
+        /* A visible label for a screen reader and nobody else. The booking
+           area needs a heading in the outline (A11Y) and does not want one on
+           the page, because the four lines below it say what it is. */
+        .sr-only {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+        }
+
+        .crumbs { font-size: .85rem; color: var(--ink-faint); display: flex; gap: .45rem; align-items: baseline; }
+        .crumbs a { color: var(--ink-soft); text-decoration: none; }
+        .crumbs a:hover { text-decoration: underline; }
+
+        .product { display: flex; flex-direction: column; gap: 2.5rem; }
+
+        .product-head h1 { margin-bottom: .5rem; }
+        .product-head .standfirst { color: var(--ink-soft); font-size: 1.08rem; max-width: 44rem; margin: 0 0 1rem; }
+
+        /* Normal case with letter-spacing doing the emphasis. I18N-2 forbids
+           the CSS property that would change it — Greek capitals drop their
+           accents — and two tests assert this stylesheet never names it. */
+        ul.facts {
+            list-style: none; margin: 0; padding: 0;
+            display: flex; flex-wrap: wrap; gap: .4rem .9rem;
+            font-size: .86rem; color: var(--ink-faint); letter-spacing: .01em;
+        }
+        ul.facts li + li::before { content: '·'; margin-right: .9rem; color: var(--rule); }
+
+        .shots { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem;
+                 grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); }
+        .shots img { width: 100%; height: 100%; border-radius: 14px; object-fit: cover; aspect-ratio: 3 / 2; }
+
+        /* The booking area. Four lines above the mount, and nothing else —
+           brand decision 3 of 2026-09-04. */
+        .booking {
+            background: var(--surface); border: 1px solid var(--rule);
+            border-radius: 14px; padding: 1.35rem 1.5rem 1.5rem;
+        }
+
+        .four-lines { display: grid; gap: .55rem; margin: 0 0 1.1rem; }
+        .four-lines > div { display: grid; grid-template-columns: 7.5rem 1fr; gap: .8rem; align-items: baseline; }
+        .four-lines dt {
+            font-size: .74rem; font-weight: 600; letter-spacing: .07em;
+            color: var(--ink-faint); margin: 0;
+        }
+        .four-lines dd { margin: 0; font-weight: 600; }
+
+        .price { margin: 0 0 1.1rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; }
+        .price .from { font-size: .85rem; color: var(--ink-faint); }
+        .price strong { font-size: 1.5rem; letter-spacing: -.02em; }
+        .price .vat { font-size: .82rem; color: var(--ink-faint); flex-basis: 100%; }
+
+        .mount .no-js { margin: 0 0 .9rem; color: var(--ink-soft); font-size: .93rem; }
+        .contact-cta { margin: 0; display: flex; flex-wrap: wrap; gap: .6rem; }
+        .button.ghost { background: transparent; color: var(--kaiki-primary); border: 1px solid var(--kaiki-primary); }
+
+        .section > h2:first-child { margin-top: 0; }
+        .section .prose { max-width: 44rem; }
+        .muted { color: var(--ink-faint); font-size: .9rem; }
+
+        .lists { display: grid; gap: 1.75rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); align-items: start; }
+        ul.ticks { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; font-size: .95rem; }
+        ul.ticks li { padding-left: 1.35rem; position: relative; }
+        ul.ticks li::before { position: absolute; left: 0; content: '✓'; color: var(--kaiki-primary); }
+        ul.ticks.excludes li::before { content: '×'; color: var(--kaiki-accent); }
+        ul.ticks.what_to_bring li::before { content: '·'; color: var(--ink-faint); }
+
+        ol.itinerary { margin: 1rem 0 0; padding-left: 1.2rem; display: grid; gap: 1rem; }
+        ol.itinerary h3 { margin: 0 0 .2rem; font-size: 1rem; font-weight: 700; }
+        ol.itinerary p { margin: 0; color: var(--ink-soft); font-size: .93rem; }
+
+        ul.departures, ul.bands, ul.tiers { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .45rem; font-size: .95rem; }
+        ul.departures li { display: flex; gap: .8rem; align-items: baseline; }
+        .departures .when { font-variant-numeric: tabular-nums; }
+        .departures .sold-out { font-size: .78rem; color: var(--kaiki-accent); letter-spacing: .04em; }
+        ul.bands li { display: flex; flex-wrap: wrap; gap: .5rem; align-items: baseline; }
 
         /* --- FAQ (#103) --------------------------------------------- */
 

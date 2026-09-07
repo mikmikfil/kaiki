@@ -181,9 +181,11 @@ final class ProductDetailResource extends ProductListResource
             'meta_title' => $this->resource->meta_title,
             'meta_description' => $this->resource->meta_description,
             'og_image_url' => ImagePayload::url($this->resource->og_image_path),
-            // Both hosted-page fields land in M3 (HOS-2), with the JSON-LD that
-            // consumes them. Null, never absent.
-            'canonical_url' => null,
+            // Filled by #104. The hosted product page is the canonical address
+            // of a trip, and this is what a WordPress SEO sync (WPP-6) points
+            // its own page at so the two never compete in search. Null — never
+            // absent — when the operator serves no hosted pages.
+            'canonical_url' => $this->bookingUrl(),
         ];
     }
 }
