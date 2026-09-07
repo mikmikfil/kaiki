@@ -30,7 +30,8 @@ function filled(): BookingState {
     ...initialState(),
     localDate: '2026-07-18',
     departureUuid: 'departure-uuid',
-    pax: { adult: 2, child: 1 },
+    // Keyed by the band's **uuid**, which is what `PaxSelection` carries.
+    pax: { 'adult-uuid': 2, 'child-uuid': 1 },
     extras: { 'extra-uuid': 1 },
     voucherCode: 'SUMMER',
     guest: {
@@ -152,9 +153,13 @@ describe('the draft payload', () => {
   it('sends the party and the extras as the contract shapes them', () => {
     const payload = draftPayload(filled(), 'product-uuid', 'el');
 
+    // `age_band_uuid`, not `band_code`. These assertions said `band_code` until
+    // issue 111's end-to-end run posted a real booking and the server refused
+    // it — a mock transport never reads a field name, so the wrong one
+    // round-tripped through this suite for two issues.
     expect(payload['pax']).toEqual([
-      { band_code: 'adult', qty: 2 },
-      { band_code: 'child', qty: 1 },
+      { age_band_uuid: 'adult-uuid', qty: 2 },
+      { age_band_uuid: 'child-uuid', qty: 1 },
     ]);
     expect(payload['extras']).toEqual([{ extra_uuid: 'extra-uuid', qty: 1 }]);
     expect(payload['terms_accepted']).toBe(true);
@@ -162,8 +167,18 @@ describe('the draft payload', () => {
   });
 
   it('drops a band nobody booked rather than sending a zero', () => {
-    const payload = draftPayload({ ...filled(), pax: { adult: 2, infant: 0 } }, 'product-uuid', 'en');
+    const payload = draftPayload({ ...filled(), pax: { 'adult-uuid': 2, 'infant-uuid': 0 } }, 'product-uuid', 'en');
 
-    expect(payload['pax']).toEqual([{ band_code: 'adult', qty: 2 }]);
+    expect(payload['pax']).toEqual([{ age_band_uuid: 'adult-uuid', qty: 2 }]);
+  });
+
+  it('calls the lead guest what the contract calls them', () => {
+    // `LeadGuest.name`. The widget's form field is `full_name`, which is the
+    // clearer label for somebody filling one in; `draftPayload` is the one place
+    // the two vocabularies meet, and it used to send the form's word.
+    const payload = draftPayload(filled(), 'product-uuid', 'en') as { guest: Record<string, unknown> };
+
+    expect(Object.keys(payload.guest)).toEqual(['name', 'email', 'phone']);
+    expect(payload.guest['name']).toBe('Μαρία Παπαδοπούλου');
   });
 });

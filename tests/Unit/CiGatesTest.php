@@ -246,6 +246,46 @@ it('builds the widget from a real package rather than an echo', function (): voi
         ->and(is_file(base_path('packages/widget/src/index.tsx')))->toBeTrue();
 })->group('fast');
 
+it('runs the end-to-end suite from Playwright rather than an echo', function (): void {
+    // The same assertion `widget:build` earned in #106, for the same reason: a
+    // job whose command prints a sentence reports green and proves nothing, and
+    // the name in the workflow file cannot tell the two apart.
+    /** @var array{scripts: array<string, string>} $package */
+    $package = json_decode((string) file_get_contents(base_path('package.json')), true, flags: JSON_THROW_ON_ERROR);
+
+    expect($package['scripts']['e2e'])->toContain('playwright test')
+        ->and($package['scripts']['e2e'])->not->toContain('console.log')
+        ->and($package['scripts']['e2e:smoke'])->toContain('--project=smoke');
+
+    expect(is_file(base_path('playwright.config.ts')))->toBeTrue();
+
+    $config = (string) file_get_contents(base_path('playwright.config.ts'));
+
+    // The issue is explicit that the retry policy is a decision, not a default:
+    // *"a suite that retries until green is a suite that will let exactly that
+    // through"*. Playwright retries on CI unless told not to.
+    expect($config)->toMatch('/retries:\s*0/');
+})->group('fast');
+
+it('splits the end-to-end run out of node-checks and gives nightly the rest', function (): void {
+    $ci = (string) file_get_contents(ciWorkflow());
+    $nightly = (string) file_get_contents(base_path('.github/workflows/nightly.yml'));
+
+    // #90 merged four Node stubs into one job and said they would split back out
+    // "the moment they stop being stubs". This is that moment for the second of
+    // them, and the assertion is what stops it quietly re-merging.
+    expect(WorkflowFile::jobIds(ciWorkflow()))->toContain('widget-e2e');
+
+    // The pull request gets the smoke subset; the night gets everything. A
+    // seventy-second hold expiry in front of every push is a wait somebody
+    // eventually deletes.
+    expect($ci)->toContain('npm run e2e:smoke')
+        // The full suite is not run on a pull request: every `npm run e2e` in
+        // ci.yml must be one of the two suffixed forms.
+        ->and(preg_match('/npm run e2e(?![:\w])/', $ci))->toBe(0)
+        ->and($nightly)->toMatch('/run: npm run e2e\s*$/m');
+})->group('fast');
+
 it('never commits a schema dump at any path Laravel auto-loads', function (): void {
     // MigrateCommand::prepareDatabase() runs a dump found at
     // database/schema/{connection}-schema.dump - checked FIRST - or

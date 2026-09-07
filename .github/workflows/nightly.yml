@@ -27,17 +27,57 @@ jobs:
     # migration merged from a branch that had not been rebased.
     uses: ./.github/workflows/schema-drift.yml
 
+  # The full end-to-end suite (TST-3, A11Y-1), which the pull-request run sees
+  # only a smoke subset of. Here because of what it contains: a seventy-second
+  # hold expiry watched on a real clock, an axe pass over every mount, a
+  # keyboard-only booking, and two hostile host pages. None of it belongs in
+  # front of every push, and all of it belongs in front of every morning.
+  playwright:
+    name: The full end-to-end run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - run: cp .env.example .env && php artisan key:generate
+
+      - name: Build and publish the widget
+        run: npm run widget:build && php artisan widget:publish
+
+      - name: Install Chromium
+        run: npm run e2e:install
+
+      - name: The whole suite
+        run: npm run e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-nightly
+          path: packages/widget/e2e/.results
+          retention-days: 14
+
   # ---------------------------------------------------------------------------
-  # ENV-25 lists four things. Two of them do not exist yet, and are recorded
-  # here rather than omitted, because "the nightly does not run Playwright" is
-  # a fact somebody should be able to discover from this file.
+  # ENV-25 lists four things. One of them does not exist yet, and is recorded
+  # here rather than omitted, because "the nightly does not run the benchmark"
+  # is a fact somebody should be able to discover from this file.
   #
-  # playwright:
-  #   The full Playwright suite, including the WordPress site run (TST-3), and
-  #   the axe-core accessibility pass (A11Y-1). The pull-request run gets a
-  #   smoke subset; this one gets everything.
-  #   Arrives with the widget in M3. Entry points already stubbed in
-  #   package.json as `npm run e2e` and `npm run e2e:wp`.
+  # The WordPress site run (`npm run e2e:wp`) joins `playwright` above in M4,
+  # when there is a plugin to run it against.
   #
   # availability-performance:
   #   The NFR-1 benchmark: the availability endpoint under 150 ms at p95, on

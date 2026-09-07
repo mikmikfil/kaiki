@@ -69,15 +69,15 @@ export function boot(doc: Document = document): void {
 }
 
 function mount(config: WidgetConfig, script: HTMLScriptElement, doc: Document): void {
-  const target = resolveTarget(config, script, doc);
+  const placement = resolvePlacement(config, script, doc);
 
-  if (target === null) {
+  if (placement === null) {
     return;
   }
 
   const client = clientFor(config);
   const events = analytics(config.analytics, VERSION);
-  const shadow = createShadowHost(target, doc);
+  const shadow = createShadowHost(placement.parent, doc, placement.before);
 
   // Something on the screen before the first byte of branding arrives.
   const provisional = translator(resolveLocale({ requested: config.locale, documentLang: doc.documentElement.lang }));
@@ -138,17 +138,31 @@ function mount(config: WidgetConfig, script: HTMLScriptElement, doc: Document): 
  * where they want the widget, and the widget appears there. A `data-target`
  * selector is for page builders that will not let a script tag live inside a
  * layout column.
+ *
+ * ## One element in the operator's document, not two
+ *
+ * This used to insert an anchor `<div>` next to the script and put the host
+ * inside it, which meant the widget contributed a `div > div` to a page whose
+ * theme it does not control. Issue 111's hostile-CSS fixture hides exactly that
+ * shape — a page builder reset hiding a container it did not create — and the
+ * whole widget disappeared. Now the host **is** the element, inserted where the
+ * anchor used to go, and it defends itself with inline declarations that no
+ * author stylesheet can outrank (see `shadow.ts`).
  */
-function resolveTarget(config: WidgetConfig, script: HTMLScriptElement, doc: Document): Element | null {
+function resolvePlacement(
+  config: WidgetConfig,
+  script: HTMLScriptElement,
+  doc: Document,
+): { parent: Element; before: Node | null } | null {
   if (config.target !== null) {
-    return doc.querySelector(config.target);
+    const found = doc.querySelector(config.target);
+
+    return found === null ? null : { parent: found, before: null };
   }
 
-  const anchor = doc.createElement('div');
+  const parent = script.parentNode;
 
-  script.parentNode?.insertBefore(anchor, script.nextSibling);
-
-  return anchor;
+  return parent === null ? null : { parent: parent as Element, before: script.nextSibling };
 }
 
 function clientFor(config: WidgetConfig): Api {

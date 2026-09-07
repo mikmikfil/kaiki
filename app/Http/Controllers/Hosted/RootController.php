@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Hosted;
 
+use App\Domain\Hosted\Support\HostedHost;
 use App\Domain\Tenancy\Resolvers\CustomDomainResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\View;
@@ -68,7 +69,7 @@ class RootController extends HostedController
             static fn (mixed $value): string => strtolower((string) parse_url((string) $value, PHP_URL_HOST) ?: (string) $value),
             [
                 ...(array) config('tenancy.central_domains', []),
-                config('kaiki.tenancy.hosted_host'),
+                HostedHost::name(),
                 config('app.url'),
             ],
         );

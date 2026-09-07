@@ -418,8 +418,61 @@ jobs:
       - name: Vitest
         run: npm run widget:test
 
+  # **Split back out of `node-checks` by issue 111**, which is what the old
+  # comment there promised would happen once it stopped being a stub. It takes
+  # real time now — a browser, a server, a seeded database — and it deserves its
+  # own red square, because "the booking flow is broken" and "the plugin linter
+  # is unhappy" are not the same news.
+  #
+  # The **smoke** subset only: all four mounts against the built artefact. The
+  # full suite — the keyboard walk, the axe scan, the hostile-CSS and strict-CSP
+  # fixtures, and the seventy-second hold expiry — runs nightly, because a
+  # seventy-second wait in front of every pull request is a wait somebody
+  # eventually deletes.
+  widget-e2e:
+    name: Widget end-to-end smoke (TST-3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: fileinfo, pdo_sqlite, sqlite3, zip, gd, intl, exif, bcmath
+          coverage: none
+
+      - uses: ramsey/composer-install@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - run: cp .env.example .env && php artisan key:generate
+
+      # The bundle the browser will actually load. Built and published here
+      # rather than downloaded, because this job is about the code on this
+      # branch — the release workflow is where a published artefact is gated.
+      - name: Build and publish the widget
+        run: npm run widget:build && php artisan widget:publish
+
+      - name: Install Chromium
+        run: npm run e2e:install
+
+      - name: Playwright smoke on all four mounts
+        run: npm run e2e:smoke
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-smoke
+          path: packages/widget/e2e/.results
+          retention-days: 7
+
   node-checks:
-    name: Playwright smoke and plugin lint
+    name: WordPress plugin lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -430,12 +483,6 @@ jobs:
           cache: npm
 
       - run: npm ci
-
-      # **These two share a job only while they are stubs**, which is what the
-      # widget checks did until #106 gave them a bundle. `e2e` splits out with
-      # #111 and `plugin-lint` with M4, for the same reason and in the same way.
-      - name: Widget Playwright smoke (TST-3, stub until #111)
-        run: npm run e2e
 
       - name: WordPress plugin lint (WPP-11, stub until M4)
         run: npm run plugin:lint
@@ -455,7 +502,7 @@ jobs:
     name: CI passed
     runs-on: ubuntu-latest
     if: always()
-    needs: [static-checks, test-suite, test-mysql, runtime-gates, pdf-chromium, widget-build, node-checks, security-audit, migrate-from-zero]
+    needs: [static-checks, test-suite, test-mysql, runtime-gates, pdf-chromium, widget-build, widget-e2e, node-checks, security-audit, migrate-from-zero]
     steps:
       # A single check to make required in branch protection. Without this,
       # adding a job later means remembering to mark it required by hand.

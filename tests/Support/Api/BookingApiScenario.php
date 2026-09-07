@@ -55,6 +55,7 @@ use Illuminate\Support\Str;
 final class BookingApiScenario
 {
     /**
+     * @param  list<string>  $allowedOrigins  empty means any, as it does for CORS
      * @return array{tenant: Tenant, product: Product, departure: Departure, band: AgeBand, key: string}
      */
     public static function bookable(
@@ -64,11 +65,13 @@ final class BookingApiScenario
         ?Carbon $startsAt = null,
         ApiKeyType $keyType = ApiKeyType::Publishable,
         ApiKeyEnvironment $environment = ApiKeyEnvironment::Test,
+        array $allowedOrigins = [],
     ): array {
         [$tenant, $key] = CatalogRequest::key(
             type: $keyType,
             scopes: [ApiScope::ProductsRead, ApiScope::AvailabilityRead, ApiScope::BookingsWrite],
             environment: $environment,
+            allowedOrigins: $allowedOrigins,
         );
 
         $startsAt ??= Carbon::now()->addDays(30)->setTime(9, 0);

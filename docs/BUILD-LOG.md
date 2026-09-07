@@ -12,14 +12,14 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M3 — Hosted pages & widget: #101 … #110 built.** M2 complete (all eleven), M1 complete. |
+| Milestone | **M3 complete — #101 … #111, all eleven.** M2 complete (all eleven), M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **#101 … #110 built** — the hosted pages, all four widget mounts, custom domains, the live preview and the widget's release gates. **#111, the Playwright run, is all that remains.** |
+| M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2234, one failing: the schema snapshot CI cannot regenerate) · **Vitest (75) and the widget's four build gates**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2257, one failing: the schema snapshot CI cannot regenerate) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -35,6 +35,141 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #111 — The first test that proves a person can buy a boat trip
+
+M3's closing issue, and the moment `npm run e2e` stopped printing a sentence.
+Playwright drives a real Chromium through the real widget, on a real second
+origin, against a real server, to a real confirmed booking.
+
+**It found nine defects in its first hour, most of them fatal to the product and
+every one of them invisible to every other gate in this repository.** That is the
+entry.
+
+### What it found
+
+| What was wrong | Why nothing caught it |
+|---|---|
+| **The CORS preflight never allowed `Idempotency-Key`** | It is required on every booking POST (§3.4), it makes the request non-simple, and a preflight that does not name it fails. **No widget on any operator's site could ever create a booking.** A test client does not preflight. |
+| `guest.full_name` where the contract says `guest.name` | A mock transport reads no field name. |
+| `pax[].band_code` where the contract says `age_band_uuid` | The same. Two tenants may both call a band `adult`; the uuid is what the server matches. |
+| The checkout request carried no `kind` | Required, so **every** checkout the widget started was refused as invalid. |
+| The guest token was sent as `?token=` | `AuthenticateGuestToken` reads `X-Kaiki-Guest-Token`, so the confirmation poll got a 403 — and a credential in a query string lands in access logs and `Referer` headers anyway. |
+| The return-from-gateway path read `?kaiki_booking=` and `?kaiki_token=` | **Nothing anywhere ever wrote them.** A guest who paid came back to an empty booking form. |
+| A strict CSP silently discarded the widget's stylesheet | `shadow.ts` used to claim a script-created `<style>` was not an inline style for CSP purposes. It is. The widget mounted, worked, and was completely unstyled, with five violations in a console it cannot see. |
+| A host page's `!important` reached inside the shadow root | Inherited properties are decided on the *host element*, which lives in the operator's document. The whole booking form rendered in Comic Sans. |
+| A page-builder reset hid the widget entirely | It inserted an anchor `div` around its host, contributing a `div > div` to a page whose theme it does not control. |
+| The hold countdown was dead code | WGT-19 shows it *"once a draft exists"*, and the draft was created in the same breath as the redirect. It was never on screen for a single frame. |
+| The footer failed WCAG AA at 3.75:1 | Nothing had ever measured it. |
+
+### The sandbox checkout page, which had to exist first
+
+The issue's own criterion — *"it uses the sandbox path, so the suite needs no
+third-party account and no card"* — presumes the sandbox path can be walked in a
+browser. It could not. `FakeGateway` redirected to `gateway.kaiki.test`, chosen
+because it cannot resolve, which was right while nothing was ever going to follow
+it. **SAA-9's "a test booking in sandbox mode" was unbuildable for the same
+reason**: an operator finishing onboarding met a browser error where a payment
+should be.
+
+So `/sandbox/checkout/{reference}` exists now, and its design is four refusals.
+The load-bearing one is the booking's own `is_test`, written at creation from the
+key that created it and never changed — never a config switch, a header or an
+environment check, because PAY-11 says sandbox mode must be impossible to enable
+accidentally on a live tenant and this page's URL is guessable by construction.
+It settles through `ConfirmFromWebhook`, the same action a real webhook uses,
+because BKG-11 makes the webhook the only authority for a successful payment and
+the seat arithmetic on both the success and failure paths is the one place a
+mistake oversells a boat.
+
+`return_url` had been accepted and dropped on the floor since the contract was
+written. It now reaches the payment row — and is **validated against the key's
+allowed origins** on the way, which was a precondition of storing it rather than
+an improvement on it: an unchecked value is an open redirect wearing a payment
+flow's clothes.
+
+### The shape of the run, and three decisions inside it
+
+**A real second origin, not an intercepted route.** The first version fulfilled
+`operator.example` with `page.route()` and could not load the bundle at all —
+Chrome's Local Network Access check refuses a synthesised page's request to a
+loopback address. A launch flag would have fixed it by switching off a browser
+security feature, which is how a suite comes to hide a real cross-origin bug. A
+genuine server on a second port needs no flag and makes every request actually
+cross-origin, so SEC-7 is exercised rather than stepped around — which is exactly
+how the `Idempotency-Key` defect surfaced.
+
+**Retries are zero, and the issue says why**: an intermittent failure in a booking
+flow is a race between the hold, the availability cache and the redirect, and a
+suite that retries until green is a suite that lets it through. Traces,
+screenshots and video are kept on the first failure instead.
+
+**One worker**, because every spec books against one seeded departure with a real
+capacity, and parallel workers would manufacture the very flake the line above
+exists to detect.
+
+### The behaviour changes, and why none was optional
+
+- **The draft is created on arrival at the review step**, not on "pay". WGT-19's
+  countdown is shown "once a draft exists"; review is the earliest point one can
+  exist, because the contract requires a lead guest and the contact step is where
+  one is entered. BKG-9 still keeps the seats merely *held* until the redirect
+  commits them, so nothing is taken from anybody else's boat before this guest
+  goes to pay.
+- **"Start again" after an expiry returns the guest to the date**, not to a review
+  of a booking whose seats went back to the boat. Everything they typed survives
+  (WGT-18).
+- **Styles are adopted, not injected.** A constructed `CSSStyleSheet` is not
+  markup, and `style-src` does not govern it. The `<style>` element stays as the
+  fallback for Safari before 16.4.
+- **Every inherited property is restated inside the shadow root**, where the
+  operator's stylesheet cannot match anything. That is the fix rather than an
+  escalation: there is no war of important flags to lose.
+- **The host element defends five properties inline** — display, visibility,
+  opacity, position, max-height — the one thing an author stylesheet cannot
+  outrank. Anything cosmetic is left alone: a widget that fought the operator's
+  page over a margin would be a widget that never fits into it.
+- **The manage token lives in `sessionStorage` beside the uuid.** WGT-12 names the
+  uuid; reading the booking back needs both. The alternative was a credential in
+  a URL, in the operator's logs and in a `Referer`.
+- **The outcome heading is an `h3`.** A heading that is a styled paragraph is
+  invisible to somebody navigating by headings (A11Y-1).
+- **Secondary text is one value at 70%**, not five percentages. axe found the
+  footer at 3.75:1 against white and the other four could not be checked without
+  reading every rule.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `composer lint` / `composer stan` | Pint clean; PHPStan level 6, no errors |
+| `composer i18n:check` | 159 passed |
+| `composer test` | **2252 passed, 4 skipped, 1 failed** — the inherited ENV-10 snapshot |
+| `npm run widget:test` | 76 passed |
+| `npm run widget:build` | 61.6 KB raw, **20.7 KB gzipped — 25.9% of the 80 KB budget** |
+| `npm run widget:guards` | no hardcoded colour, no price arithmetic, 71 keys in both locales |
+| **`npm run e2e`** | **17 passed** in 1.3 minutes, including a seventy-second hold expiry on a real clock |
+
+32 new tests: 17 Playwright specs, `SandboxCheckoutTest` (9), `CheckoutReturnUrlTest` (5),
+`ViewFrontendLinkTest` (2), two more in `WidgetCompatibilityTest` — which now
+reads the payloads the widget **sends** as well as the fields it reads, closing
+the exact hole three of the defects above came through — one in `CorsTest` and
+two in `CiGatesTest`.
+
+`widget-e2e` split back out of `node-checks`, which is what #90's comment there
+promised would happen the day it stopped being a stub. The pull request gets the
+smoke subset; the full suite runs nightly.
+
+### Two smaller things, asked for while this was being built
+
+A **"View your page"** link at the top of the `/app` sidebar, absent rather than
+dead when HOS-6's switch is off — a button leading to a 404 teaches an operator
+the feature is broken rather than switched off. And `HostedUrl` now recognises a
+loopback host **with a port**, because a developer running the panel and the
+hosted pages on two ports is the ordinary local setup and `https://127.0.0.1` is
+a link that cannot work.
 
 ---
 

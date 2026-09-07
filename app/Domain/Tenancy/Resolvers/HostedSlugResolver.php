@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Tenancy\Resolvers;
 
+use App\Domain\Hosted\Support\HostedHost;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Http\Request;
@@ -25,7 +26,7 @@ final class HostedSlugResolver implements TenantResolver
     public function resolve(Request $request): ?Tenant
     {
         $host = strtolower($request->getHost());
-        $hostedHost = strtolower((string) config('kaiki.tenancy.hosted_host'));
+        $hostedHost = HostedHost::name();
 
         if ($hostedHost === '' || $host !== $hostedHost) {
             return null;

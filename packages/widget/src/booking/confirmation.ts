@@ -67,7 +67,16 @@ export async function pollForConfirmation(
 
         try {
             const response = await client.get<BookingStatusPayload>(`/bookings/${bookingUuid}`, {
-                query: { token },
+                // **A header, not a query parameter.** It was `?token=` until
+                // issue 111's end-to-end run polled a real endpoint and got a
+                // 403: `AuthenticateGuestToken` reads `X-Kaiki-Guest-Token`, and
+                // §3.3 names it in the CORS allow-list for exactly this call.
+                //
+                // A credential in a query string is the wrong place on its own
+                // terms as well — it lands in access logs, in a proxy's cache
+                // key and in a `Referer` — so the contract is right and the
+                // widget was wrong twice over.
+                headers: { 'X-Kaiki-Guest-Token': token },
                 // Never from cache: the whole point of the loop is that the
                 // answer is expected to change while it runs, and WGT-17's
                 // sixty-second window is exactly the length of this poll.

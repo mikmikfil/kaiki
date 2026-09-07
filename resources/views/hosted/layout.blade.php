@@ -94,10 +94,29 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        a { color: var(--kaiki-primary); }
+        /* No underline anywhere, hover included. Colour, weight and position
+           carry the affordance instead; the focus ring below is what keeps a
+           keyboard user able to see where they are, and it is not optional. */
+        a { color: var(--kaiki-primary); text-decoration: none; }
+        a:hover { text-decoration: none; }
         a:focus-visible, button:focus-visible { outline: 2px solid var(--kaiki-accent); outline-offset: 2px; }
 
-        .wrap { max-width: 66rem; margin: 0 auto; padding: 0 1.25rem; }
+        /* 78rem rather than 66. The trips grid wants three columns on a laptop
+           and got two, and a hero image at 66rem is a postcard on a screen that
+           has room for a view. Prose blocks keep their own narrower measure
+           below — a 78rem line of text is unreadable, and widening the page is
+           not the same as widening the paragraph. */
+        /* `100vw` includes the scrollbar, so the full-bleed blocks below would
+           overhang the viewport by its width on every page long enough to have
+           one — a horizontal scrollbar on a page that has nothing to scroll to.
+           Clipping at the root is the fix that does not require knowing the
+           scrollbar's width. */
+        html { overflow-x: hidden; }
+
+        .wrap { max-width: 78rem; margin: 0 auto; padding: 0 1.5rem; }
+
+        /* The reading measure, for blocks that are words rather than layout. */
+        .prose, .standfirst { max-width: 44rem; }
 
         /* --- nav --- */
 
@@ -117,7 +136,7 @@
 
         .site-nav { margin-left: auto; margin-right: .35rem; font-size: .9rem; }
         .site-nav a { text-decoration: none; color: var(--ink-soft); }
-        .site-nav a:hover { text-decoration: underline; text-underline-offset: .18em; }
+        .site-nav a:hover { color: var(--kaiki-primary); }
 
         /* HOS-5 and brand decision 2: a visible switch on every guest surface. */
         .langs { display: flex; gap: .25rem; font-size: .85rem; }
@@ -156,7 +175,7 @@
 
         li.trip h3 { margin: 0 0 .4rem; font-size: 1.05rem; font-weight: 700; letter-spacing: -.012em; }
         li.trip h3 a { color: inherit; text-decoration: none; }
-        li.trip h3 a:hover { text-decoration: underline; text-underline-offset: .18em; }
+        li.trip h3 a:hover { color: var(--kaiki-primary); }
         li.trip .summary { margin: 0 0 .8rem; color: var(--ink-soft); font-size: .93rem; }
         li.trip .facts { margin: 0 0 .5rem; color: var(--ink-faint); font-size: .84rem; }
 
@@ -216,11 +235,78 @@
         .block { margin: 0; }
         .block > h2:first-child { margin-top: 0; }
 
-        .hero { display: grid; gap: 1.5rem; }
-        .hero.has-image { grid-template-columns: 1fr; }
-        .hero-image { width: 100%; height: auto; border-radius: 14px; object-fit: cover; aspect-ratio: 16 / 9; }
-        .hero-copy .standfirst { color: var(--ink-soft); font-size: 1.08rem; max-width: 42rem; }
+        /* --- the hero ---
+           Full-bleed: it breaks out of `.wrap` to the window edges, because a
+           masthead inside a 78rem column reads as the first item in a list
+           rather than as the top of a page. The copy sits back inside the same
+           column so the text still lines up with everything below it.
+
+           The image is a background rather than an `<img>` **only when there is
+           one**; without it the block is a plain banner in the operator's own
+           primary colour, which is the state a new operator sees before they
+           have uploaded anything and it should look deliberate. */
+        .hero {
+            display: grid;
+            gap: 1.5rem;
+            margin-inline: calc(50% - 50vw);
+            padding: 0;
+        }
+
+        .hero-copy {
+            max-width: 78rem;
+            margin: 0 auto;
+            padding: 3.5rem 1.5rem;
+        }
+
+        .hero.has-image {
+            position: relative;
+            color: #fff;
+            background: var(--kaiki-primary);
+            isolation: isolate;
+        }
+
+        .hero-copy { position: relative; z-index: 2; }
+
+        .hero.has-image .hero-image {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 0;
+            /* Above the section's own background colour, which is the fallback
+               while the photograph loads, and below the scrim. */
+            z-index: 0;
+        }
+
+        /* A scrim, so white type stays legible over whatever the operator
+           uploaded — including a bright noon photograph of a white hull. It is
+           built from their own primary rather than from black, so the hero
+           still looks like their brand. */
+        .hero.has-image::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: linear-gradient(
+                to bottom,
+                color-mix(in srgb, var(--kaiki-primary) 55%, transparent),
+                color-mix(in srgb, var(--kaiki-primary) 85%, transparent)
+            );
+        }
+
+        .hero.has-image .hero-copy { padding-block: 6rem; }
+        .hero.has-image h1 { color: #fff; }
+        .hero.has-image .standfirst { color: rgba(255, 255, 255, .92); }
+
+        .hero h1 { font-size: clamp(2rem, 4.2vw, 3.1rem); line-height: 1.1; margin: 0 0 .8rem; letter-spacing: -.02em; }
+        .hero-copy .standfirst { color: var(--ink-soft); font-size: 1.12rem; max-width: 42rem; }
         .hero-copy .standfirst p { margin: 0 0 .7rem; }
+        .hero.has-image .cta .button { background: #fff; border-color: #fff; color: var(--kaiki-primary); }
+
+        @media (max-width: 40rem) {
+            .hero.has-image .hero-copy { padding-block: 3.5rem; }
+        }
 
         .cta { margin: 1.25rem 0 0; }
         .button {
@@ -264,7 +350,7 @@
 
         .crumbs { font-size: .85rem; color: var(--ink-faint); display: flex; gap: .45rem; align-items: baseline; }
         .crumbs a { color: var(--ink-soft); text-decoration: none; }
-        .crumbs a:hover { text-decoration: underline; }
+        .crumbs a:hover { color: var(--kaiki-primary); }
 
         .product { display: flex; flex-direction: column; gap: 2.5rem; }
 
@@ -362,7 +448,66 @@
 
         .faq-item .prose { margin-top: .7rem; color: var(--ink-soft); }
 
+        /* --- the contact block, as a banner ---
+           Full-bleed like the hero and for the same reason: it is the end of the
+           page, and a bordered card there reads as one more item rather than as
+           a close. With an image it becomes a banner; without one it is the
+           operator's own primary, which is what a new operator sees. */
+        .block.contact {
+            margin-inline: calc(50% - 50vw);
+            padding: 3.25rem 0;
+            position: relative;
+            isolation: isolate;
+            background: color-mix(in srgb, var(--kaiki-primary) 6%, var(--surface));
+        }
+
+        .block.contact > *:not(.contact-image) {
+            position: relative;
+            z-index: 2;
+            max-width: 78rem;
+            margin-inline: auto;
+            padding-inline: 1.5rem;
+        }
+
+        .block.contact.has-image { color: #fff; background: var(--kaiki-primary); }
+
+        .block.contact .contact-image {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 0;
+        }
+
+        .block.contact.has-image::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            z-index: 1;
+            background: linear-gradient(
+                to right,
+                color-mix(in srgb, var(--kaiki-primary) 88%, transparent),
+                color-mix(in srgb, var(--kaiki-primary) 62%, transparent)
+            );
+        }
+
+        .block.contact.has-image a,
+        .block.contact.has-image .label,
+        .block.contact.has-image .instructions { color: #fff; }
+
+        .block.contact.has-image .prose { color: rgba(255, 255, 255, .92); }
+
         .contact-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .7rem; }
+
+        /* Across the banner rather than down it: four short facts stacked in a
+           single column at the bottom of a wide page reads as a leftover list,
+           and the whole point of the banner is that it closes the page. */
+        .block.contact .contact-list {
+            margin-top: 1.5rem;
+            gap: 1.5rem 2.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(14rem, max-content));
+        }
         .contact-list li { display: grid; gap: .1rem; }
         .contact-list .label {
             font-size: .74rem; font-weight: 600; letter-spacing: .07em;

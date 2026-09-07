@@ -8,7 +8,7 @@
 <section class="block story side-{{ $block->setting('image_side') }} @if ($block->image_path) has-image @endif">
     @if ($block->image_path)
         <img class="story-image"
-             src="{{ Storage::disk('public')->url($block->image_path) }}"
+             src="{{ \App\Domain\Hosted\Support\HostedAsset::url($block->image_path) }}"
              alt=""
              loading="lazy">
     @endif

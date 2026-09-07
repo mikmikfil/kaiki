@@ -6,8 +6,9 @@ import { BookingApi, isSoldOut, type DraftResult } from '../../booking/api';
 import { holdState } from '../../booking/countdown';
 import { pollForConfirmation } from '../../booking/confirmation';
 import { back, canAdvance, initialState, next, type BookingState, type MachineOptions, type Step } from '../../booking/machine';
+import { draftFingerprint } from '../../booking/idempotency';
 import type { Translator } from '../../i18n';
-import { forgetDraft, rememberDraft } from '../../storage';
+import { forgetDraft, recallDraft, rememberDraft } from '../../storage';
 import { ContactStep } from './steps/ContactStep';
 import { DateStep } from './steps/DateStep';
 import { ExtrasStep } from './steps/ExtrasStep';
@@ -54,7 +55,7 @@ export interface ProductSummary {
   readonly duration_minutes: number;
   readonly meeting_point?: { readonly name?: string } | null;
   readonly vessel?: { readonly name?: string } | null;
-  readonly age_bands?: readonly { readonly code: string; readonly label: string }[];
+  readonly age_bands?: readonly { readonly uuid: string; readonly code: string; readonly label: string }[];
   readonly extras?: readonly { readonly uuid: string; readonly name: string; readonly price_formatted?: string }[];
 }
 
@@ -97,6 +98,77 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
   const advance = useCallback(() => dispatch({ type: 'next', options }), [options]);
   const retreat = useCallback(() => dispatch({ type: 'back', options }), [options]);
 
+  /**
+   * The draft is created on **arrival at the review step**, not on "pay".
+   *
+   * WGT-19 says the countdown is shown *"once a draft exists"*, and until issue
+   * 111 the draft came into existence in the same breath as the redirect — so
+   * the hold lasted no time at all, the countdown was never on screen for a
+   * single frame, and `Hold` and `countdown.ts` were dead code that passed
+   * their own unit tests. The end-to-end run is what made that visible: there
+   * was no moment at which a hold could be watched running out.
+   *
+   * Review is the **earliest** point a draft can exist, because the contract
+   * requires a lead guest and the contact step is where one is entered. It is
+   * also where the guest reads a price and decides, which is exactly the wait a
+   * hold is meant to cover: BKG-9 keeps the seats merely *held* until the
+   * checkout redirect commits them, so nothing is taken from anybody else's
+   * boat before this guest has actually gone to pay.
+   *
+   * The fingerprint guard is what makes going back safe. A guest who returns to
+   * the party step, changes it and comes forward again gets a *new* draft,
+   * because it is a different booking — the old one holds nothing for long and
+   * `ExpireAbandonedCheckouts` clears it.
+   */
+  const fingerprint = draftFingerprint(state);
+
+  useEffect(() => {
+    if (state.step !== 'review' || phase !== 'walking' || draft !== null) {
+      return;
+    }
+
+    let abandoned = false;
+
+    void (async () => {
+      try {
+        const created = await api.createDraft(state, productUuid, locale);
+
+        if (abandoned) {
+          return;
+        }
+
+        if (created.manageToken !== null) {
+          rememberDraft(created.uuid, created.manageToken);
+        }
+
+        setDraft(created);
+        analytics.emit('kaiki:booking-started', { product_uuid: productUuid, pax: countedPax(state) });
+      } catch (error) {
+        if (abandoned) {
+          return;
+        }
+
+        if (isSoldOut(error)) {
+          client.invalidate();
+          setPhase('sold_out');
+          analytics.emit('kaiki:error', { product_uuid: productUuid, error_code: 'insufficient_capacity' });
+
+          return;
+        }
+
+        // Anything else is left for `submit()` to meet and report: a guest who
+        // can still read their review and press pay should be allowed to.
+      }
+    })();
+
+    return () => {
+      abandoned = true;
+    };
+    // `fingerprint` and not `state`: an edit to a field the server does not
+    // deduplicate on must not mint a second draft.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.step, phase, draft, fingerprint, api, productUuid, locale, analytics, client]);
+
   const submit = useCallback(async () => {
     setPhase('submitting');
 
@@ -105,8 +177,9 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
 
       if (created.manageToken !== null) {
         // §2.1 footnote 1: this is the one moment the token exists. It is
-        // stored before anything else can fail.
-        rememberDraft(created.uuid);
+        // stored before anything else can fail, and it is stored **with** the
+        // uuid because reading the booking back needs both.
+        rememberDraft(created.uuid, created.manageToken);
       }
 
       setDraft(created);
@@ -167,14 +240,24 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
   );
 
   useEffect(() => {
-    // Coming back from the gateway is a fresh page load with a uuid in the URL.
-    const params = new URLSearchParams(window.location.search);
-    const bookingUuid = params.get('kaiki_booking');
-    const token = params.get('kaiki_token');
+    // Coming back from the gateway is a fresh page load on the same page, in the
+    // same tab. What survives that is `sessionStorage` — **not** the URL.
+    //
+    // This branch used to read `?kaiki_booking=` and `?kaiki_token=` from the
+    // query string, and nothing anywhere ever wrote them: the return URL sent to
+    // checkout is `window.location.href` unchanged. So the resume could not fire
+    // and a guest coming back from a successful payment was shown an empty
+    // booking form. **Issue 111's end-to-end run is what found it**, which is
+    // the case for having written it: every unit test in the suite mocked the
+    // transport, and no mock has a page reload in it.
+    //
+    // Query parameters were also the wrong place on their own terms — see
+    // `storage.ts` on why a manage token does not belong in a URL.
+    const remembered = recallDraft();
 
-    if (bookingUuid !== null && token !== null) {
+    if (remembered !== null && remembered.token !== null) {
       setPhase('submitting');
-      void resume(bookingUuid, token);
+      void resume(remembered.uuid, remembered.token);
     }
   }, [resume]);
 
@@ -191,7 +274,29 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
   }
 
   if (phase === 'expired') {
-    return <Outcome t={t} heading="booking.expired.heading" body="booking.expired.body" onRetry={() => { setDraft(null); setPhase('walking'); }} retryKey="booking.expired.retry" />;
+    return (
+      <Outcome
+        t={t}
+        heading="booking.expired.heading"
+        body="booking.expired.body"
+        onRetry={() => {
+          // **Back to the date, not back to the review.** The seats went back
+          // to the boat, so the date the guest picked may no longer have room —
+          // returning them to a review of a booking that cannot be made is the
+          // one thing worse than the expiry itself. Everything they typed
+          // survives (WGT-18); only the step moves.
+          //
+          // Resetting the phase alone left them looking at the same expired
+          // screen, because the review step immediately took a fresh draft.
+          // Issue 111's expiry run is what caught it.
+          setDraft(null);
+          dispatch({ type: 'patch', patch: { step: 'date', departureUuid: null } });
+          setPhase('walking');
+          client.invalidate();
+        }}
+        retryKey="booking.expired.retry"
+      />
+    );
   }
 
   if (phase === 'failed') {
@@ -277,9 +382,14 @@ function Outcome({
 }) {
   return (
     // `alert` rather than `status`: this replaced what the guest was doing, and
-    // a screen reader should interrupt rather than wait for a pause (A11Y).
+    // a screen reader should interrupt rather than wait for a pause (A11Y-1).
+    //
+    // `h3` and not a styled paragraph, matching the steps: an outcome that looks
+    // like a heading and is not one is invisible to somebody navigating by
+    // headings, which is how a screen-reader user reads a page they did not
+    // write. It is the same level the steps use, because it replaces one.
     <div class="kaiki-error" role="alert">
-      <p class="kaiki-heading">{t(heading as never)}</p>
+      <h3 class="kaiki-heading">{t(heading as never)}</h3>
       <p>{t(body as never)}</p>
       {onRetry !== undefined && retryKey !== undefined ? (
         <button type="button" class="kaiki-button" onClick={onRetry}>

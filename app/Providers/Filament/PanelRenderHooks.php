@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Domain\Hosted\Support\HostedUrl;
+use App\Models\Tenant;
 use App\Support\Locale\LocaleOptions;
+use App\Support\Tenancy;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\View\View;
@@ -27,6 +30,19 @@ final class PanelRenderHooks
             static fn (): View => self::localeSwitcher(),
         );
 
+        // A way out to the guest's side of the product, from the top of the
+        // sidebar where an operator's eye already is.
+        //
+        // Registered globally and decided **inside** the hook rather than by a
+        // scope. Filament's render-hook scopes name a page or resource class,
+        // not a panel, so scoping this to `/app` would mean listing every page
+        // in it — and the condition that actually matters is a resolved tenant,
+        // which the super-admin at `/admin` never has (ADR-0020).
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::SIDEBAR_NAV_START,
+            static fn (): View => self::viewFrontend(),
+        );
+
         // Login and password reset render a "simple page" with no topbar. This
         // is the one place the switcher matters most: an operator who cannot
         // read the sign-in form has no other way to change the language, and no
@@ -35,6 +51,32 @@ final class PanelRenderHooks
             PanelsRenderHook::SIMPLE_PAGE_START,
             static fn (): View => self::localeSwitcher(alignEnd: true),
         );
+    }
+
+    /**
+     * The operator's own landing page, opened in a new tab.
+     *
+     * ## Why it can be absent
+     *
+     * HOS-6 lets an operator switch their hosted pages off, and the page is then
+     * a 404 — so the link is only rendered when {@see HostedUrl::enabledFor()}
+     * says there is something at the other end. A button that leads to a "not
+     * found" is worse than no button, because the operator concludes the feature
+     * is broken rather than switched off.
+     *
+     * A new tab rather than a navigation: the operator is in the middle of
+     * editing something, and sending them away from a half-finished form to
+     * look at the result of the last one is how work gets lost.
+     */
+    private static function viewFrontend(): View
+    {
+        $tenant = Tenancy::current();
+
+        return view('filament.view-frontend', [
+            'url' => $tenant instanceof Tenant && HostedUrl::enabledFor($tenant)
+                ? HostedUrl::operator($tenant)
+                : null,
+        ]);
     }
 
     private static function localeSwitcher(bool $alignEnd = false): View

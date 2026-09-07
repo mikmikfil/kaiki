@@ -7,6 +7,11 @@ return [
         'brand' => 'Kaiki Platform',
     ],
 
+    'view_frontend' => [
+        'label' => 'View your page',
+        'title' => 'Opens your public page in a new tab',
+    ],
+
     'groups' => [
         'operations' => 'Operations',
         'catalogue' => 'Trips & boats',

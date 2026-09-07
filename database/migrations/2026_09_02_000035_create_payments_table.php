@@ -76,6 +76,13 @@ return new class extends Migration
             // payment up by the URL it redirected to, and the URL stops working
             // long before the row stops mattering.
             $table->string('checkout_url', 1000)->nullable();
+            // Where the guest is sent back to when the gateway is done with
+            // them. `docs/api.md` has accepted `return_url` on checkout since
+            // the contract was written and had nowhere to put it; issue 111
+            // gave it one, because the sandbox checkout page cannot end a test
+            // booking anywhere sensible without it. Same reasoning as the line
+            // above: short-lived, not indexed, nothing looks a payment up by it.
+            $table->string('return_url', 1000)->nullable();
             // **encrypted:array** — a gateway response is not ours to store in
             // the clear.
             $table->text('raw_payload')->nullable();

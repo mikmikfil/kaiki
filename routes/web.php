@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Hosted\Support\HostedHost;
 use App\Http\Controllers\Guest\GuestDetailsController;
 use App\Http\Controllers\Guest\ManageBookingController;
 use App\Http\Controllers\Guest\QuoteController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Hosted\HostedPageController;
 use App\Http\Controllers\Hosted\ProductPageController;
 use App\Http\Controllers\Hosted\RootController;
 use App\Http\Controllers\Hosted\SearchPageController;
+use App\Http\Controllers\SandboxCheckoutController;
 use App\Http\Controllers\TlsAskController;
 use App\Http\Controllers\Webhooks\GatewayWebhookController;
 use App\Http\Controllers\WidgetBundleController;
@@ -105,6 +107,33 @@ Route::middleware(['guest.token', 'guest.throttle'])->group(function (): void {
 
 /*
 |--------------------------------------------------------------------------
+| The sandbox checkout page (spec SAA-9, PAY-11, and issue 111's Playwright run)
+|--------------------------------------------------------------------------
+|
+| Where a **test** booking's payment actually happens. The fake gateway used to
+| redirect to a host that could not resolve, which was fine while nothing was
+| ever going to follow it — SAA-9's "a test booking in sandbox mode" and the
+| end-to-end run both do.
+|
+| Deliberately outside every group above. It carries no tenant middleware (the
+| payment names its own tenant), no `guest.token` (the reference is the
+| credential, and it stops working the moment the payment leaves `pending`), and
+| no throttle beyond the global one — brute-forcing a 24-character random
+| reference to reach a page that refuses everything but a test booking buys
+| nothing.
+|
+| The refusals live in the controller, all four of them, and the load-bearing
+| one is the booking's own `is_test`.
+*/
+Route::get('/sandbox/checkout/{reference}', [SandboxCheckoutController::class, 'show'])
+    ->name('sandbox.checkout');
+Route::post('/sandbox/checkout/{reference}/pay', [SandboxCheckoutController::class, 'pay'])
+    ->name('sandbox.checkout.pay');
+Route::post('/sandbox/checkout/{reference}/fail', [SandboxCheckoutController::class, 'fail'])
+    ->name('sandbox.checkout.fail');
+
+/*
+|--------------------------------------------------------------------------
 | Hosted operator pages (spec HOS-1 … HOS-10)
 |--------------------------------------------------------------------------
 |
@@ -173,7 +202,10 @@ Route::get('/tls/ask', TlsAskController::class)
     ->middleware('throttle:webhooks')
     ->name('tls.ask');
 
-Route::domain((string) config('kaiki.tenancy.hosted_host'))
+// The host **name**, never the authority: `Route::domain()` matches against
+// `$request->getHost()`, which does not include a port, so a constraint carrying
+// one matches nothing and every hosted page 404s. See {@see HostedHost}.
+Route::domain(HostedHost::name())
     ->middleware(['tenant', 'hosted.page', 'locale'])
     ->group(function (): void {
         // Constrained to the shape a `tenants.slug` actually has. Without it

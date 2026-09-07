@@ -119,12 +119,15 @@ it('returns a redirect target with both a url and a reference', function (string
         // Without the reference a webhook cannot find its payment; without the
         // URL there is nowhere to send anybody.
         expect($target)->toBeInstanceOf(RedirectTarget::class)
-            ->and($target->url)->toStartWith('https://')
+            // Absolute, because it is handed to a browser as-is. Not
+            // necessarily `https://`: the fake now points at our own origin
+            // (issue 111), and in a test that origin is `http://localhost`.
+            ->and($target->url)->toMatch('#^https?://#')
             ->and($target->reference)->not->toBeEmpty();
     });
 })->with('gateways')->group('fast');
 
-it('never points a guest at a host that could resolve during a test', function (string $class): void {
+it('never points a guest at a stranger during a test', function (string $class): void {
     fakeCheckoutResponses();
 
     [$tenant, $booking] = gatewayScenario();
@@ -134,9 +137,17 @@ it('never points a guest at a host that could resolve during a test', function (
 
         // The acceptance criterion: no test makes a network call. `Http::fake()`
         // covers the outbound side; this covers the side a browser would follow
-        // if a fixture ever leaked into one. `.test` is reserved by RFC 6761
-        // and cannot resolve.
-        expect($target->url)->toContain('.test');
+        // if a fixture ever leaked into one.
+        //
+        // Two ways to be safe, and **issue 111 added the second**. The external
+        // gateways point at `.test`, reserved by RFC 6761 and unable to resolve.
+        // The fake now points at the sandbox checkout page on **our own
+        // origin** — which is not weaker: a browser following it reaches a page
+        // that refuses everything but a test booking, rather than a DNS error.
+        $host = (string) parse_url($target->url, PHP_URL_HOST);
+
+        expect(str_ends_with($host, '.test') || $host === parse_url((string) config('app.url'), PHP_URL_HOST))
+            ->toBeTrue("A checkout URL pointed at {$host}, which is neither ours nor unresolvable.");
     });
 })->with('gateways')->group('fast');
 

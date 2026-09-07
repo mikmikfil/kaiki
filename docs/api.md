@@ -343,7 +343,7 @@ Preflight is answered **without** authenticating the key (a preflight carries no
 HTTP/1.1 204 No Content
 Access-Control-Allow-Origin: https://aegeancruises.gr
 Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS
-Access-Control-Allow-Headers: Content-Type, X-Kaiki-Key, X-Kaiki-Guest-Token, Idempotency-Key, Accept-Language
+Access-Control-Allow-Headers: Authorization, Content-Type, Accept, Accept-Language, If-None-Match, Idempotency-Key, X-Kaiki-Key, X-Kaiki-Guest-Token
 Access-Control-Expose-Headers: X-Request-Id, X-Kaiki-Api-Version, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After, Idempotency-Replayed, Content-Language
 Access-Control-Max-Age: 600
 Vary: Origin

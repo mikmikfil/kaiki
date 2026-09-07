@@ -46,7 +46,7 @@ export interface ShadowHost {
 
 let instances = 0;
 
-export function createShadowHost(target: Element, doc: Document = document): ShadowHost {
+export function createShadowHost(target: Element, doc: Document = document, before: Node | null = null): ShadowHost {
   const host = doc.createElement('div');
 
   // WGT-8: namespaced, so two widgets on one page are two distinguishable
@@ -54,27 +54,71 @@ export function createShadowHost(target: Element, doc: Document = document): Sha
   instances += 1;
   host.setAttribute('data-kaiki-widget', String(instances));
 
+  // The five properties that decide whether the widget is on the page at all,
+  // set **inline** and `important` — the one thing an author stylesheet cannot
+  // outrank, even with its own `!important`. Anything cosmetic is left alone: a
+  // widget that fought the operator's page over a margin would be a widget that
+  // never fits into it.
+  for (const [property, value] of [
+    ['display', 'block'],
+    ['visibility', 'visible'],
+    ['opacity', '1'],
+    ['position', 'static'],
+    ['max-height', 'none'],
+  ] as const) {
+    host.style.setProperty(property, value, 'important');
+  }
+
   const root = host.attachShadow({ mode: 'open' });
   const slot = doc.createElement('div');
 
   slot.className = 'kaiki-root';
 
-  const style = doc.createElement('style');
+  const brand = adopt(root, BASE_STYLES, doc);
 
-  style.textContent = BASE_STYLES;
-
-  const brandStyle = doc.createElement('style');
-
-  root.append(style, brandStyle, slot);
-  target.appendChild(host);
+  root.appendChild(slot);
+  target.insertBefore(host, before);
 
   return {
     host,
     root,
     slot,
-    applyBranding(brand: BrandPayload): void {
-      brandStyle.textContent = `:host {\n  ${brandProperties(brand)};\n}`;
+    applyBranding(payload: BrandPayload): void {
+      brand(`:host {\n  ${brandProperties(payload)};\n}`);
     },
+  };
+}
+
+/**
+ * Put a stylesheet into a shadow root, and hand back a way to replace a second.
+ *
+ * A **constructed** sheet where the browser has them — it is not markup, so
+ * `style-src` does not govern it — and a `<style>` element where it does not.
+ */
+function adopt(root: ShadowRoot, base: string, doc: Document): (css: string) => void {
+  if (typeof CSSStyleSheet === 'function' && 'adoptedStyleSheets' in root) {
+    try {
+      const baseSheet = new CSSStyleSheet();
+      const brandSheet = new CSSStyleSheet();
+
+      baseSheet.replaceSync(base);
+      root.adoptedStyleSheets = [baseSheet, brandSheet];
+
+      return (css: string): void => brandSheet.replaceSync(css);
+    } catch {
+      // Some engine refused a constructed sheet. Fall through rather than leave
+      // the widget with no styles at all.
+    }
+  }
+
+  const style = doc.createElement('style');
+  const brandStyle = doc.createElement('style');
+
+  style.textContent = base;
+  root.append(style, brandStyle);
+
+  return (css: string): void => {
+    brandStyle.textContent = css;
   };
 }
 
@@ -105,10 +149,31 @@ const BASE_STYLES = `
 .kaiki-root {
   box-sizing: border-box;
   background: var(--kaiki-background);
-  color: var(--kaiki-text);
   border-radius: calc(var(--kaiki-radius, 10px) + 4px);
   border: 1px solid color-mix(in srgb, var(--kaiki-text) 12%, transparent);
   padding: 1.15rem 1.25rem 1.3rem;
+
+  /* **Every inherited property, restated here.**
+     The rules on ':host' above are the polite version and they are not enough:
+     an inherited property is decided on the *host element*, which lives in the
+     operator's document, so a theme with 'font-family: … !important' on '*' wins
+     there and the whole shadow tree inherits it. Issue 111's hostile-CSS fixture
+     rendered the entire booking form in Comic Sans that way.
+     Nothing in the operator's stylesheet can match an element inside a shadow
+     root, so restating them on this element is the fix rather than an
+     escalation — there is no war of important flags to lose. */
+  font-family: var(--kaiki-font);
+  font-size: 16px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: 1.5;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-transform: none;
+  text-align: start;
+  text-indent: 0;
+  white-space: normal;
+  color: var(--kaiki-text);
 }
 
 .kaiki-root *,
@@ -125,7 +190,16 @@ const BASE_STYLES = `
   margin: 0 0 .5rem;
 }
 
-.kaiki-muted { color: color-mix(in srgb, var(--kaiki-text) 65%, transparent); font-size: .9rem; }
+/* Secondary text, defined once.
+   It was five different percentages until issue 111's axe scan found the
+   footer at 3.75:1 against white — below AA — and the other four could not be
+   checked without reading each rule. One value, and 70% is where the operator's
+   own text colour clears 4.5:1 on their own background for the smallest size
+   this file uses. There is no colour named here, because WGT-9 does not allow
+   one: it is a mix of the two the operator chose. */
+.kaiki-root { --kaiki-secondary-text: color-mix(in srgb, var(--kaiki-text) 70%, transparent); }
+
+.kaiki-muted { color: var(--kaiki-secondary-text); font-size: .9rem; }
 
 .kaiki-button {
   font: inherit;
@@ -163,7 +237,7 @@ const BASE_STYLES = `
   padding-top: .7rem;
   border-top: 1px solid color-mix(in srgb, var(--kaiki-text) 10%, transparent);
   font-size: .76rem;
-  color: color-mix(in srgb, var(--kaiki-text) 55%, transparent);
+  color: var(--kaiki-secondary-text);
 }
 
 /* --- the booking walk (issue 107) --------------------------------- */
@@ -172,13 +246,13 @@ const BASE_STYLES = `
 .kaiki-four-lines > div { display: grid; grid-template-columns: 7rem 1fr; gap: .7rem; align-items: baseline; }
 .kaiki-four-lines dt {
   margin: 0; font-size: .72rem; font-weight: 600; letter-spacing: .06em;
-  color: color-mix(in srgb, var(--kaiki-text) 60%, transparent);
+  color: var(--kaiki-secondary-text);
 }
 .kaiki-four-lines dd { margin: 0; font-weight: 600; }
 
 .kaiki-hold {
   margin: 0 0 .9rem; font-size: .85rem;
-  color: color-mix(in srgb, var(--kaiki-text) 65%, transparent);
+  color: var(--kaiki-secondary-text);
 }
 /* The warning uses the operator's accent, which is the colour their own page
    uses for attention — a red this file is not allowed to name would also be a
@@ -201,7 +275,7 @@ const BASE_STYLES = `
 .kaiki-summary { display: grid; gap: .4rem; margin: 0 0 .9rem; }
 .kaiki-summary > div { display: grid; grid-template-columns: 7rem 1fr; gap: .7rem; }
 .kaiki-summary dt, .kaiki-summary dd { margin: 0; }
-.kaiki-summary dt { font-size: .72rem; font-weight: 600; letter-spacing: .06em; color: color-mix(in srgb, var(--kaiki-text) 60%, transparent); }
+.kaiki-summary dt { font-size: .72rem; font-weight: 600; letter-spacing: .06em; color: var(--kaiki-secondary-text); }
 
 .kaiki-lines { list-style: none; margin: 0 0 .8rem; padding: 0; display: grid; gap: .35rem; font-size: .93rem; }
 .kaiki-lines li { display: flex; justify-content: space-between; gap: 1rem; }
@@ -254,7 +328,7 @@ const BASE_STYLES = `
   border: 1px solid color-mix(in srgb, var(--kaiki-text) 12%, transparent);
   border-radius: var(--kaiki-radius, 10px);
   padding: .4rem .5rem; font-size: .78rem;
-  color: color-mix(in srgb, var(--kaiki-text) 55%, transparent);
+  color: var(--kaiki-secondary-text);
   display: grid; gap: .1rem;
 }
 /* Available days carry the operator's primary as a tint **and** say so in

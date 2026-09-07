@@ -30,19 +30,22 @@ Also enable **Require branches to be up to date before merging**. Without it, tw
 | `runtime-gates` | A cross-tenant leak — the condition ADR-0001 was accepted on — or the availability group failing under a **third** machine timezone (ENV-14). UTC would hide an unconverted value and Europe/Athens an unconverted tenant, so the runner is set to `America/Los_Angeles`. |
 | `pdf-chromium` | The `chromium` group — the e-ticket PDF actually rendered by Browsershot (ENV-20, BKG-13.1). Excluded from `composer test`, because a developer with no browser must not get a false green, which makes this the **only** place the PDFs are ever rendered. |
 | `widget-build` | The widget failed to build (WGT-1), exceeded its **80 KB gzipped** budget (WGT-2, NFR-3), tripped one of the three bundle guards — a hardcoded brand colour (WGT-9), arithmetic on a price (WGT-13), or the two locale bundles disagreeing (WGT-14) — or its Vitest suite went red. |
-| `node-checks` | The Playwright smoke (TST-3) or the WordPress plugin standard (WPP-11). Both are stubs until #111 and M4. |
+| `widget-e2e` | The **smoke subset** of the end-to-end run (TST-3): all four mounts, in a real Chromium, against a real server with a seeded database and the freshly published bundle. A red build here means the widget does not work in a browser — which no other job on this list can tell you. The full suite runs nightly. |
+| `node-checks` | The WordPress plugin standard (WPP-11). Still a stub until M4. |
 | `security-audit` | A high or critical advisory in Composer or npm dependencies (SEC-12). |
 | `migrate-from-zero` | The migrations no longer produce the committed schema (ENV-10). |
 
 <!-- required-checks:end -->
 
-**Nine jobs, and it used to be sixteen (#90).** On a private repository every job is billed separately
+**Ten jobs, and it used to be sixteen (#90).** On a private repository every job is billed separately
 and rounded up to the minute, and each one pays for a runner start, a checkout, a PHP install and a
 `composer install` before it does anything. That overhead is about a minute and a half a job — so
 sixteen jobs spent roughly twenty-four minutes of it to do perhaps six minutes of work. The cost was
 the *number* of jobs, not the work, so the four fast static checks were merged, the suite stopped
 running twice (once plain and once under coverage), the two must-execute gates joined the timezone
-run, and the four Node stubs share one runner. **Nothing was dropped**: every command that ran before
+run, and the four Node stubs shared one runner — **two of which have since split back out**, the
+widget build with #106 and the end-to-end run with issue 111, each on the day it stopped being a
+stub and started taking real time. **Nothing was dropped**: every command that ran before
 still runs, as a named step.
 
 `pdf-chromium` installs Puppeteer without its bundled Chromium and points it at the runner's own

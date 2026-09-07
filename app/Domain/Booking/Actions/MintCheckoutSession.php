@@ -63,7 +63,7 @@ final class MintCheckoutSession
      *
      * @throws CheckoutRefused when the requested kind cannot be paid for this booking
      */
-    public function __invoke(Booking $booking, PaymentKind $kind, ?PaymentGatewayName $gateway = null): array
+    public function __invoke(Booking $booking, PaymentKind $kind, ?PaymentGatewayName $gateway = null, ?string $returnUrl = null): array
     {
         if ($kind === PaymentKind::Balance) {
             $target = ($this->mintBalance)($booking);
@@ -119,6 +119,10 @@ final class MintCheckoutSession
             // Un-indexed and short-lived (§2.5): what this redirect is built
             // from, never what a link emailed later is built from (ADR-0004).
             'checkout_url' => $target->url,
+            // Validated against the key's origins by `CheckoutRequest` before it
+            // ever reaches here, because whatever is stored in this column is a
+            // place a browser will be sent (issue 111).
+            'return_url' => $returnUrl,
         ])->save();
 
         return ['booking' => $booking, 'payment' => $payment->refresh(), 'target' => $target];

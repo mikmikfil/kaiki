@@ -96,7 +96,22 @@ final class ApiKeyCors
             'Origin',
         ]))));
         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
-        $response->headers->set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, Accept-Language, If-None-Match');
+        // **The list the widget actually needs**, and it was short of three of
+        // them until issue 111 drove a booking through a real browser.
+        //
+        // `Idempotency-Key` is the one that mattered: it is *required* on every
+        // POST that creates a booking (§3.4), it makes the request non-simple,
+        // and a preflight that does not name it fails — so **no widget on any
+        // operator's site could ever create a booking**, while every server-side
+        // test passed, because a test client does not preflight.
+        //
+        // `X-Kaiki-Key` and `X-Kaiki-Guest-Token` are the contract's own list in
+        // §3.3; `Authorization`, `Accept` and `If-None-Match` are what the
+        // widget and the branding ETag path send today. The union is what is
+        // sent, and §3.3 was updated to match rather than the other way round —
+        // the contract is the authority, and it was already right about the
+        // three that were missing.
+        $response->headers->set('Access-Control-Allow-Headers', 'Authorization, Content-Type, Accept, Accept-Language, If-None-Match, Idempotency-Key, X-Kaiki-Key, X-Kaiki-Guest-Token');
         $response->headers->set('Access-Control-Expose-Headers', 'ETag, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, Retry-After');
         $response->headers->set('Access-Control-Max-Age', '600');
 

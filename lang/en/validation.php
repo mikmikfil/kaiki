@@ -187,7 +187,13 @@ return [
     |
     */
 
-    'custom' => [],
+    'custom' => [
+        // Issue 111. The message says what to do about it — an operator reading
+        // "invalid" would check the URL they typed, not the key's origin list.
+        'return_url' => [
+            'origin' => 'The return address must be on one of the origins this key allows, or a hosted page.',
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------

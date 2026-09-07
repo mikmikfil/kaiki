@@ -46,3 +46,9 @@ Thumbs.db
 /.claude/agent-memory
 /.claude/settings.local.json
 
+
+# The end-to-end run: a database it recreates, a key it mints, and its output.
+/database/e2e.sqlite
+/packages/widget/e2e/.state.json
+/packages/widget/e2e/.results
+/playwright-report

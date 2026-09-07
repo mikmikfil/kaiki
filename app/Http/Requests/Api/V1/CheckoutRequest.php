@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Domain\Hosted\Support\HostedHost;
 use App\Enums\PaymentGatewayName;
 use App\Enums\PaymentKind;
 use App\Http\Middleware\AuthenticateGuestToken;
+use App\Models\ApiKey;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 /**
  * `POST /api/v1/bookings/{uuid}/checkout` (`docs/api.md` §5, schema `CheckoutRequest`).
@@ -20,6 +23,13 @@ use Illuminate\Foundation\Http\FormRequest;
  * arrived at trusting the operator. The origin list is already on the key for
  * CORS (SEC-7), so this is the same list answering a second question rather
  * than a second list to keep in step.
+ *
+ * **The check was written here only in issue 111**, and the reason is worth
+ * recording: until then the field was accepted and then dropped on the floor —
+ * no gateway read it, so an unchecked value could not redirect anybody. The
+ * sandbox checkout page is the first thing that actually sends a browser there,
+ * and a validated field is a precondition of that rather than an improvement
+ * on it.
  *
  * ## `kind` is where the two-session model shows up in the wire format
  *
@@ -48,9 +58,70 @@ class CheckoutRequest extends FormRequest
         ];
     }
 
+    /**
+     * The origin check the schema promises (SEC-7).
+     *
+     * An empty allow-list on the key means any origin — the panel warns an
+     * operator about exactly that — so this is not a second policy, it is the
+     * CORS list answering a second question. A hosted page is always allowed,
+     * because it is a page we serve ourselves.
+     *
+     * @return array<int, callable>
+     */
+    public function after(): array
+    {
+        return [
+            function (Validator $validator): void {
+                $url = $this->input('return_url');
+
+                if (! is_string($url) || $validator->errors()->has('return_url')) {
+                    return;
+                }
+
+                if ($this->isAllowedReturnTarget($url)) {
+                    return;
+                }
+
+                $validator->errors()->add('return_url', (string) __('validation.custom.return_url.origin'));
+            },
+        ];
+    }
+
+    /** The validated destination, or null when the request did not survive. */
+    public function returnUrl(): ?string
+    {
+        $url = $this->input('return_url');
+
+        return is_string($url) && $url !== '' ? $url : null;
+    }
+
     public function kind(): PaymentKind
     {
         return PaymentKind::from((string) $this->input('kind'));
+    }
+
+    private function isAllowedReturnTarget(string $url): bool
+    {
+        $parts = parse_url($url);
+
+        if (! is_array($parts) || ! isset($parts['scheme'], $parts['host'])) {
+            return false;
+        }
+
+        $host = strtolower((string) $parts['host']);
+
+        // A page we serve ourselves — the hosted pages, and the guest booking
+        // page a confirmation links to.
+        if ($host === HostedHost::name() || $host === strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST))) {
+            return true;
+        }
+
+        $port = isset($parts['port']) ? ':' . $parts['port'] : '';
+        $origin = strtolower((string) $parts['scheme']) . '://' . $host . $port;
+
+        $key = $this->attributes->get('api_key');
+
+        return $key instanceof ApiKey && $key->allowsOrigin($origin);
     }
 
     /** Null picks the operator's default, which is what the schema says. */

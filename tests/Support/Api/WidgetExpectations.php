@@ -73,6 +73,79 @@ final class WidgetExpectations
         return $found['name'];
     }
 
+    /**
+     * The keys of the object literal a named function returns.
+     *
+     * The read half of this class asks what the widget *expects*; this asks what
+     * it *sends*, which is the half that was missing when three field names in
+     * `draftPayload` disagreed with the contract for two whole issues — a mock
+     * transport reads no field name, so nothing noticed until a browser posted
+     * to a real endpoint.
+     *
+     * Nested literals are skipped; {@see self::nested()} reads an interface's,
+     * and {@see self::returnedNestedKeys()} reads a function's.
+     *
+     * @return list<string>
+     */
+    public static function returnedKeys(string $path, string $function): array
+    {
+        $body = self::returnBlock($path, $function);
+
+        $depth = 0;
+        $names = [];
+
+        foreach (explode('
+', $body) as $line) {
+            if ($depth === 0 && preg_match('/^\s*(?P<name>[a-z_][a-z0-9_]*)\s*:/i', $line, $matches) === 1) {
+                $names[] = $matches['name'];
+            }
+
+            $depth += substr_count($line, '{') - substr_count($line, '}');
+        }
+
+        return $names;
+    }
+
+    /**
+     * The keys of one nested literal inside a returned object.
+     *
+     * @return list<string>
+     */
+    public static function returnedNestedKeys(string $path, string $function, string $field): array
+    {
+        $body = self::returnBlock($path, $function);
+
+        $pattern = '/^\s*' . preg_quote($field, '/') . '\s*:\s*\{(?P<inner>[^}]*)\}/ms';
+
+        if (preg_match($pattern, $body, $matches) !== 1) {
+            throw new RuntimeException("No nested literal `{$field}` returned by `{$function}` in {$path}.");
+        }
+
+        preg_match_all('/^\s*(?P<name>[a-z_][a-z0-9_]*)\s*:/im', $matches['inner'], $found);
+
+        return $found['name'];
+    }
+
+    private static function returnBlock(string $path, string $function): string
+    {
+        $source = @file_get_contents($path);
+
+        if ($source === false) {
+            throw new RuntimeException("No widget source at {$path}.");
+        }
+
+        // From `return {` inside the named function to the closing brace at the
+        // same indentation. Every payload builder in this package is written
+        // that way, and a parser would be a dependency ARC-19 forbids.
+        $pattern = '/function\s+' . preg_quote($function, '/') . '\s*\([^)]*\)[^{]*\{.*?return \{(?P<body>.*?)^  \};/ms';
+
+        if (preg_match($pattern, $source, $matches) !== 1) {
+            throw new RuntimeException("No object literal returned by `{$function}` in {$path}.");
+        }
+
+        return $matches['body'];
+    }
+
     private static function block(string $path, string $interface): string
     {
         $source = @file_get_contents($path);

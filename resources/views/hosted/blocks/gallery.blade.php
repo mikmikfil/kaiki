@@ -22,7 +22,7 @@
         <ul class="shots">
             @foreach ($images as $image)
                 <li>
-                    <img src="{{ Storage::disk('public')->url($image['path']) }}"
+                    <img src="{{ \App\Domain\Hosted\Support\HostedAsset::url($image['path']) }}"
                          alt="{{ $image['alt'] }}"
                          loading="lazy">
                 </li>

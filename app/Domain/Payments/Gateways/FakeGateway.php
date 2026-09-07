@@ -43,8 +43,24 @@ use Illuminate\Support\Str;
  */
 final class FakeGateway implements PaymentGateway
 {
-    /** The host a fake redirect points at. Never resolvable, on purpose. */
-    public const HOST = 'https://gateway.kaiki.test';
+    /**
+     * Where a sandbox checkout sends the browser.
+     *
+     * **This used to be `https://gateway.kaiki.test`, unresolvable on purpose**,
+     * and that was right while there was nowhere real to go: a fixture leaking
+     * into a browser failed visibly rather than reaching a stranger.
+     *
+     * Issue 111 gave it somewhere real. SAA-9 ends onboarding with *"a test
+     * booking in sandbox mode"*, and a test booking that redirects to a host
+     * that cannot resolve is a promise the product could not keep — the
+     * operator sees a browser error where a payment should be. The destination
+     * is now a page **we serve**, on our own origin, which refuses anything but
+     * a test booking.
+     */
+    public static function checkoutUrl(string $reference): string
+    {
+        return route('sandbox.checkout', ['reference' => $reference]);
+    }
 
     private ?string $nextFailureCode = null;
 
@@ -78,10 +94,10 @@ final class FakeGateway implements PaymentGateway
         $reference = 'fake_' . Str::lower(Str::random(24));
 
         return new RedirectTarget(
-            // A URL shaped like a real one and pointing nowhere. `.test` is
-            // reserved by RFC 6761 and cannot resolve, so a fixture that leaks
-            // into a browser fails visibly rather than reaching a stranger.
-            url: self::HOST . '/checkout/' . $reference,
+            // Our own sandbox page, which refuses anything that is not a test
+            // booking. See {@see self::checkoutUrl()} for why this stopped
+            // being an unresolvable host.
+            url: self::checkoutUrl($reference),
             reference: $reference,
             context: [
                 'booking_uuid' => $booking->uuid,

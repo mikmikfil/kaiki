@@ -24,6 +24,7 @@ final class CatalogRequest
 {
     /**
      * @param  list<ApiScope>  $scopes
+     * @param  list<string>  $allowedOrigins  empty means any, as it does for CORS
      * @return array{0: Tenant, 1: string} the tenant and a usable plaintext key
      */
     public static function key(
@@ -31,6 +32,7 @@ final class CatalogRequest
         ApiKeyType $type = ApiKeyType::Publishable,
         array $scopes = [ApiScope::ProductsRead],
         ApiKeyEnvironment $environment = ApiKeyEnvironment::Live,
+        array $allowedOrigins = [],
     ): array {
         $tenant ??= Tenant::factory()->create();
 
@@ -39,7 +41,7 @@ final class CatalogRequest
             type: $type,
             scopes: $scopes,
             environment: $environment,
-            allowedOrigins: [],
+            allowedOrigins: $allowedOrigins,
         )->plainTextKey);
 
         return [$tenant, $plain];

@@ -18,7 +18,7 @@ export function PartyStep({
   onChange,
 }: {
   readonly state: BookingState;
-  readonly bands: readonly { readonly code: string; readonly label: string }[];
+  readonly bands: readonly { readonly uuid: string; readonly code: string; readonly label: string }[];
   readonly t: Translator;
   readonly onChange: (patch: Partial<BookingState>) => void;
 }) {
@@ -27,19 +27,21 @@ export function PartyStep({
       <h3 class="kaiki-heading">{t('booking.party.heading')}</h3>
 
       {bands.map((band) => (
-        <label class="kaiki-field kaiki-inline" key={band.code}>
+        <label class="kaiki-field kaiki-inline" key={band.uuid}>
           <span>{band.label}</span>
           <input
             type="number"
             min="0"
             max="99"
             inputMode="numeric"
-            value={String(state.pax[band.code] ?? 0)}
+            value={String(state.pax[band.uuid] ?? 0)}
             onInput={(event) =>
               onChange({
                 pax: {
                   ...state.pax,
-                  [band.code]: Math.max(0, Number((event.currentTarget as HTMLInputElement).value) || 0),
+                  // Keyed by uuid, which is what the contract's `PaxSelection`
+                  // carries. The code is the operator's label for it.
+                  [band.uuid]: Math.max(0, Number((event.currentTarget as HTMLInputElement).value) || 0),
                 },
               })
             }

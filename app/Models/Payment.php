@@ -51,6 +51,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $refunds_payment_id
  * @property string $idempotency_key
  * @property string|null $checkout_url
+ * @property string|null $return_url
  * @property array<string, mixed>|null $raw_payload encrypted
  * @property string|null $failure_code
  * @property Carbon|null $paid_at

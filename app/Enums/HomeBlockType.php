@@ -85,7 +85,11 @@ enum HomeBlockType: string
     /** Does this type carry a single image of its own? */
     public function hasImage(): bool
     {
-        return in_array($this, [self::Hero, self::Story], true);
+        // Contact joined the list when the block became a banner: a photograph
+        // of the quay behind a telephone number is the last thing a guest sees
+        // before they call, and an operator who cannot put one there is left
+        // with a grey box at the bottom of an otherwise photographed page.
+        return in_array($this, [self::Hero, self::Story, self::Contact], true);
     }
 
     /**

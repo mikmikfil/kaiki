@@ -6,7 +6,18 @@
     this block cannot disagree with the footer, the product pages or the
     confirmation email about where the boat leaves from.
 --}}
-<section class="block contact" @if ($anchor) id="{{ $anchor }}" @endif>
+<section class="block contact @if ($block->image_path) has-image @endif" @if ($anchor) id="{{ $anchor }}" @endif>
+    @if ($block->image_path)
+        {{-- A banner behind the details, not a picture beside them. Decorative:
+             everything it could say is said in words below it, and a screen
+             reader reading "boat at a quay" before a telephone number is noise
+             in front of the one thing somebody came here for. --}}
+        <img class="contact-image"
+             src="{{ \App\Domain\Hosted\Support\HostedAsset::url($block->image_path) }}"
+             alt=""
+             loading="lazy">
+    @endif
+
     @if ($block->heading)
         <h2>{{ $block->heading }}</h2>
     @endif

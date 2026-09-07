@@ -138,6 +138,35 @@ it('SEC-7: answers a preflight before the route runs', function (): void {
         ->and($response->headers->get('Access-Control-Allow-Headers'))->toContain('If-None-Match');
 })->group('fast');
 
+it('allows every header the widget actually sends, Idempotency-Key included', function (): void {
+    // **The bug issue 111 found, and the reason it could only be found here.**
+    //
+    // `Idempotency-Key` is required on every POST that creates a booking
+    // (§3.4). It is a custom header, so it makes the request non-simple, so the
+    // browser preflights — and a preflight that does not name it fails. No
+    // widget on any operator's site could create a booking, and every
+    // server-side test passed, because a test client does not preflight.
+    //
+    // Asserted header by header rather than as one string, so a future edit
+    // that drops one fails on the name of the one it dropped.
+    $key = corsKey(['https://aegeancruises.gr']);
+
+    $response = call('OPTIONS', '/api/v1/bookings', [], [], [], [
+        'HTTP_ORIGIN' => 'https://aegeancruises.gr',
+        'HTTP_ACCESS_CONTROL_REQUEST_METHOD' => 'POST',
+        'HTTP_ACCESS_CONTROL_REQUEST_HEADERS' => 'content-type,idempotency-key,authorization',
+    ]);
+
+    $allowed = array_map(
+        static fn (string $header): string => strtolower(trim($header)),
+        explode(',', (string) $response->headers->get('Access-Control-Allow-Headers')),
+    );
+
+    foreach (['authorization', 'content-type', 'accept', 'accept-language', 'if-none-match', 'idempotency-key', 'x-kaiki-key', 'x-kaiki-guest-token'] as $header) {
+        expect($allowed)->toContain($header);
+    }
+})->group('fast');
+
 it('exposes the headers a widget actually needs to read', function (): void {
     // A cross-origin caller can read no response header it was not told about,
     // so an unexposed `ETag` makes conditional polling impossible from a browser

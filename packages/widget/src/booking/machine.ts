@@ -32,7 +32,7 @@ export const STEPS = ['date', 'party', 'extras', 'contact', 'review'] as const;
 export type Step = (typeof STEPS)[number];
 
 export interface PaxSelection {
-  readonly band_code: string;
+  readonly age_band_uuid: string;
   readonly qty: number;
 }
 
@@ -145,11 +145,20 @@ export function countedPax(state: BookingState): number {
   return Object.values(state.pax).reduce((total, qty) => total + Math.max(0, qty), 0);
 }
 
-/** The party in the shape `POST /bookings` wants (§3.4). */
+/**
+ * The party in the shape `POST /bookings` wants (§3.4).
+ *
+ * **Keyed by the band's uuid, not its code.** It was the code until issue 111's
+ * end-to-end run posted a real booking and the server refused it: the contract's
+ * `PaxSelection` requires `age_band_uuid`, and a code is an operator-facing
+ * label that two tenants may both call `adult`. Every unit test until then
+ * mocked the transport, so the wrong field name round-tripped happily through a
+ * mock that never read it.
+ */
 export function paxSelections(state: BookingState): PaxSelection[] {
   return Object.entries(state.pax)
     .filter(([, qty]) => qty > 0)
-    .map(([band_code, qty]) => ({ band_code, qty }));
+    .map(([age_band_uuid, qty]) => ({ age_band_uuid, qty }));
 }
 
 export function extraSelections(state: BookingState): ExtraSelection[] {
@@ -178,7 +187,10 @@ export function draftPayload(state: BookingState, productUuid: string, locale: s
     extras: extraSelections(state),
     voucher_code: state.voucherCode.trim() === '' ? null : state.voucherCode.trim(),
     guest: {
-      full_name: state.guest.full_name.trim(),
+      // `name`, because that is what `LeadGuest` is called in the contract. The
+      // widget's own form field stays `full_name` — it is a clearer label for a
+      // person filling one in — and this is the one place the two meet.
+      name: state.guest.full_name.trim(),
       email: state.guest.email.trim(),
       phone: state.guest.phone.trim() === '' ? null : state.guest.phone.trim(),
     },

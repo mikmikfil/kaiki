@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Hosted;
 
 use App\Domain\Branding\Actions\GetBrandPayload;
+use App\Domain\Hosted\Support\HostedHost;
 use App\Domain\Tenancy\Resolvers\HostedSlugResolver;
 use App\Enums\DomainStatus;
 use App\Http\Middleware\HostedPageHeaders;
@@ -148,7 +149,7 @@ abstract class HostedController
     protected function customDomainRedirect(Request $request, Tenant $tenant): ?RedirectResponse
     {
         $host = strtolower($request->getHost());
-        $hosted = strtolower((string) config('kaiki.tenancy.hosted_host'));
+        $hosted = HostedHost::name();
 
         // Already on the custom domain, or on a host that is not the platform's
         // hosted host at all. Nothing to move.

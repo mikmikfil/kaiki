@@ -17,7 +17,7 @@
 <section class="block hero @if ($block->image_path) has-image @endif">
     @if ($block->image_path)
         <img class="hero-image"
-             src="{{ Storage::disk('public')->url($block->image_path) }}"
+             src="{{ \App\Domain\Hosted\Support\HostedAsset::url($block->image_path) }}"
              alt=""
              {{-- Decorative: the heading beside it says the same thing, and a
                   screen reader announcing both reads the operator's name twice. --}}

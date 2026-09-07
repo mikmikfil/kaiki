@@ -71,10 +71,19 @@ final class HostedUrl
      */
     private static function origin(): string
     {
-        $host = (string) config('kaiki.tenancy.hosted_host');
-        $scheme = str_ends_with($host, '.test') || str_starts_with($host, 'localhost') ? 'http' : 'https';
+        $host = HostedHost::authority();
 
-        return sprintf('%s://%s', $scheme, $host);
+        // The authority may carry a port — `127.0.0.1:8001` is what a developer
+        // running two servers sets — so the scheme is decided on the name.
+        $name = HostedHost::name();
+
+        $local = str_ends_with($name, '.test')
+            || $name === 'localhost'
+            || str_ends_with($name, '.localhost')
+            || $name === '127.0.0.1'
+            || $name === '::1';
+
+        return sprintf('%s://%s', $local ? 'http' : 'https', $host);
     }
 
     /**

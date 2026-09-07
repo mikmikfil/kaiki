@@ -127,7 +127,7 @@ final class BookingController
         $booking = $this->booking($request);
 
         try {
-            $result = ($this->mintSession)($booking, $request->kind(), $request->gateway());
+            $result = ($this->mintSession)($booking, $request->kind(), $request->gateway(), $request->returnUrl());
         } catch (CheckoutRefused $refused) {
             return ApiErrorResponse::make(
                 code: $refused->errorCode,

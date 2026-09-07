@@ -77,13 +77,26 @@ export class BookingApi {
    * session. The widget tells them apart by the absence of `redirect_url`, not
    * by the status code, because a client that branched on 200-versus-201 would
    * be reading a fact about HTTP rather than about the booking.
+   *
+   * ## `kind` is sent, and it was not until issue 111
+   *
+   * The contract requires it — `full`, `deposit` or `balance` — and the request
+   * used to carry only `return_url`, so every checkout the widget started was
+   * refused as invalid. It could not have been caught anywhere but in a browser
+   * against the real endpoint: the unit tests mock the transport, and a mock
+   * validates nothing.
+   *
+   * `full` is the widget's only kind today. A deposit is offered by the rate
+   * plan and is a second button that ADR-0004's two-session model already
+   * describes; a balance is paid from the guest's own booking page, never from
+   * an embed.
    */
-  async checkout(bookingUuid: string, returnUrl: string): Promise<CheckoutResult> {
+  async checkout(bookingUuid: string, returnUrl: string, kind: 'full' | 'deposit' = 'full'): Promise<CheckoutResult> {
     const key = this.keys.keyFor('checkout', bookingUuid);
 
     const response = await this.client.post<{ data: Record<string, unknown> }>(
       `/bookings/${bookingUuid}/checkout`,
-      { return_url: returnUrl },
+      { kind, return_url: returnUrl },
       { headers: { 'Idempotency-Key': key } },
     );
 

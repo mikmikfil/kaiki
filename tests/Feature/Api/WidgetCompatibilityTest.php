@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Enums\ApiScope;
 use App\Enums\DepartureStatus;
+use App\Http\Requests\Api\V1\BookingCreateRequest;
+use App\Http\Requests\Api\V1\CheckoutRequest;
 use App\Models\AgeBand;
 use App\Models\Departure;
 use App\Models\Product;
@@ -145,6 +147,64 @@ it('sends every branding field the widget turns into a custom property', functio
 
     expect(array_keys((array) $payload['font']))
         ->toContain(...WidgetExpectations::nested(widgetSource('branding.ts'), 'BrandPayload', 'font'));
+})->group('fast');
+
+it('sends a booking payload the endpoint actually validates', function (): void {
+    // **The half of the gate that was missing.** #110 read the widget's
+    // interfaces and checked the API sent every field they declared. Nothing
+    // checked the fields the widget *sends* — and three of them were wrong:
+    // `guest.full_name` for `guest.name`, `band_code` for `age_band_uuid`, and a
+    // checkout request with no `kind` at all. A mocked transport reads no field
+    // name, so all three round-tripped happily through the unit suite until a
+    // browser posted to a real endpoint.
+    $rules = array_keys((new BookingCreateRequest)->rules());
+
+    $sent = WidgetExpectations::returnedKeys(widgetSource('booking/machine.ts'), 'draftPayload');
+
+    expect($sent)->not->toBeEmpty();
+
+    foreach ($sent as $field) {
+        expect($rules)->toContain($field);
+    }
+
+    // The lead guest, whose field names live one level down.
+    foreach (WidgetExpectations::returnedNestedKeys(widgetSource('booking/machine.ts'), 'draftPayload', 'guest') as $field) {
+        expect($rules)->toContain("guest.{$field}");
+    }
+
+    // And the two collections, whose item shape the contract fixes.
+    foreach (WidgetExpectations::fields(widgetSource('booking/machine.ts'), 'PaxSelection') as $field) {
+        expect($rules)->toContain("pax.*.{$field}");
+    }
+
+    foreach (WidgetExpectations::fields(widgetSource('booking/machine.ts'), 'ExtraSelection') as $field) {
+        expect($rules)->toContain("extras.*.{$field}");
+    }
+})->group('fast');
+
+it('sends a checkout request the endpoint actually validates', function (): void {
+    // `kind` is required and the widget sent only `return_url`, so every
+    // checkout it started was refused. Read off the source rather than repeated
+    // here, for the same reason as everything else in this file.
+    $source = (string) file_get_contents(widgetSource('booking/api.ts'));
+
+    // The body of the `client.post` inside `async checkout(`. Deliberately free
+    // of quote characters, which a PHP single-quoted pattern cannot carry.
+    preg_match('/async checkout\(.*?post<.*?>\(\s*[^,]+,\s*\{(?P<body>[^}]*)\}/s', $source, $matches);
+
+    expect($matches)->toHaveKey('body');
+
+    preg_match_all('/(?P<name>[a-z_][a-z0-9_]*)\s*[,:]/i', $matches['body'], $found);
+
+    $rules = array_keys((new CheckoutRequest)->rules());
+
+    foreach (array_unique($found['name']) as $field) {
+        expect($rules)->toContain($field);
+    }
+
+    // Named explicitly, because its absence is what broke: a regex that matched
+    // nothing would otherwise pass this test.
+    expect($matches['body'])->toContain('kind');
 })->group('fast');
 
 it('answers the paths the widget actually calls, and no others', function (): void {

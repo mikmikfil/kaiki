@@ -59,6 +59,10 @@
             two environments and Stripe has one host for both — the asymmetry is
             real and flattening it here would hide it.
         -->
+        <!-- Pinned, because a developer running the panel and the hosted pages on
+             two ports sets `KAIKI_HOSTED_HOST=127.0.0.1:8001` locally, and the
+             suite must not depend on which ports they chose. -->
+        <env name="KAIKI_HOSTED_HOST" value="book.kaiki.test"/>
         <env name="KAIKI_STRIPE_BASE_URI" value="https://api.stripe.test"/>
         <env name="KAIKI_VIVA_ACCOUNTS" value="https://accounts.viva.test"/>
         <env name="KAIKI_VIVA_API" value="https://api.viva.test"/>
