@@ -2065,11 +2065,14 @@ Written by `App\Domain\Branding\Actions\UpdateBrandProfile` on every save and **
   "notifications": { "reminder_hours": [24], "guest_details_reminder_hours": [48, 24], "bcc_operator": true, "from_name": "Aegean Cruises" },
   "manifest": { "default_columns": ["full_name", "date_of_birth", "nationality", "document_number"], "include_documents": true },
   "checkout": { "require_phone": true, "require_nationality": false, "terms_url": { "el": "…", "en": "…" } },
-  "dashboard": { "at_risk_window_hours": 48 }
+  "dashboard": { "at_risk_window_hours": 48 },
+  "search": { "filters": { "date": true, "port": true, "party": true, "type": true, "duration": false, "price": false, "vessel": false } }
 }
 ```
 
 `booking.hold_minutes` defaults to 15 (brief §5.4) and is the only setting the availability engine reads; it is cached per tenant.
+
+`search.filters` (#105) is which filters the catalogue search offers. It belongs here rather than in columns by the rule above — seven booleans nothing ever queries — and it is read through `App\Domain\Catalog\Support\SearchFilters`, which fills in the missing keys, drops unknown ones and forces `date` and `party` on. A filter set to `false` is **ignored on the way in**, not merely hidden: a crafted query string cannot re-enable one.
 
 ### 3.12 `api_keys.scopes`
 

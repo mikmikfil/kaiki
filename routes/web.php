@@ -8,6 +8,7 @@ use App\Http\Controllers\Guest\QuoteController;
 use App\Http\Controllers\Guest\VoucherController;
 use App\Http\Controllers\Hosted\HostedPageController;
 use App\Http\Controllers\Hosted\ProductPageController;
+use App\Http\Controllers\Hosted\SearchPageController;
 use App\Http\Controllers\Webhooks\GatewayWebhookController;
 use Illuminate\Support\Facades\Route;
 
@@ -126,7 +127,15 @@ Route::domain((string) config('kaiki.tenancy.hosted_host'))
             ->where('operator', '[a-z0-9][a-z0-9-]*')
             ->name('hosted.legal');
 
-        // One trip (#104). **Registered after `/legal`**, which is not a style
+        // The catalogue search (#105), registered before the trip route for the
+        // same reason `/legal` is: two segments, first match wins, and a
+        // shadowed search page would be the feature unreachable for everybody
+        // rather than one operator renaming a slug.
+        Route::get('/{operator}/search', [SearchPageController::class, 'show'])
+            ->where('operator', '[a-z0-9][a-z0-9-]*')
+            ->name('hosted.search');
+
+        // One trip (#104). **Registered after `/legal` and `/search`**, which is not a style
         // choice: both match two segments, Laravel takes the first that does,
         // and the reverse order would make the legal page unreachable for every
         // operator. The cost is that a product whose slug is literally `legal`

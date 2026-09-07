@@ -119,6 +119,81 @@ final class VesselCalendar
     }
 
     /**
+     * Which of these boats are busy at all during `$window` (#105).
+     *
+     * The same question as {@see self::isFree()}, asked about a fleet in **two
+     * queries instead of two per boat**. The catalogue search needs it for every
+     * charter an operator sells, and the per-vessel form would make the search
+     * N+1 across the fleet — which is the failure its own acceptance criterion
+     * names.
+     *
+     * It lives here rather than in the search Action because ADR-0023 says this
+     * class is *"the only class in the codebase permitted to query vessel
+     * occupancy"*. A bulk read is still a read: routing around the port to make
+     * it fast is how the third occupation shape gets forgotten in M2.
+     *
+     * The AVL-10 rule holds — an empty departure is not an occupation — and so
+     * does AVL-7's buffer, applied per vessel because each may have its own.
+     *
+     * @param  Collection<int, Vessel>  $vessels
+     * @return list<int> the ids of the vessels that are **not** free
+     */
+    public static function occupiedVesselIds(Collection $vessels, Window $window): array
+    {
+        if ($vessels->isEmpty()) {
+            return [];
+        }
+
+        // Padded by the **largest** buffer in the set, so the scan is one query
+        // and can only over-fetch; each vessel's own buffer then decides in PHP,
+        // which is AVL-8's rule about never joining the buffer into the query.
+        $buffer = (int) $vessels->max(
+            static fn (Vessel $vessel): int => $vessel->effectiveTurnaroundBufferMinutes(),
+        );
+
+        $padded = $window->paddedBy($buffer);
+        $ids = $vessels->map(static fn (Vessel $vessel): int => (int) $vessel->getKey())->all();
+
+        $departures = Departure::query()
+            ->whereIn('vessel_id', $ids)
+            ->whereNot('status', DepartureStatus::Cancelled)
+            ->where('starts_at_utc', '<', $padded->endUtc)
+            ->where('ends_at_utc', '>', $padded->startUtc)
+            ->get()
+            // AVL-10: an empty departure occupies nothing.
+            ->filter(static fn (Departure $departure): bool => $departure->seats_sold > 0 || $departure->seats_held > 0);
+
+        $blocks = VesselBlock::query()
+            ->whereIn('vessel_id', $ids)
+            ->overlapping($padded)
+            ->get();
+
+        $occupied = [];
+
+        foreach ($vessels as $vessel) {
+            $own = $vessel->effectiveTurnaroundBufferMinutes();
+            $key = (int) $vessel->getKey();
+
+            $busy = $departures
+                ->where('vessel_id', $key)
+                ->contains(static fn (Departure $departure): bool => $window->conflictsWith(
+                    Window::of($departure->starts_at_utc, $departure->ends_at_utc),
+                    $own,
+                ));
+
+            $blocked = $blocks
+                ->where('vessel_id', $key)
+                ->contains(static fn (VesselBlock $block): bool => $window->conflictsWith($block->window(), $own));
+
+            if ($busy || $blocked) {
+                $occupied[] = $key;
+            }
+        }
+
+        return $occupied;
+    }
+
+    /**
      * The conflict query itself — narrowed in SQL, decided in PHP.
      *
      * The range scan uses `departures_vessel_window_idx` over a window padded

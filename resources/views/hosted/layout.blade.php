@@ -115,6 +115,10 @@
         .brand img { max-height: 44px; width: auto; }
         .brand .name { font-weight: 800; font-size: 1.15rem; letter-spacing: -.02em; }
 
+        .site-nav { margin-left: auto; margin-right: .35rem; font-size: .9rem; }
+        .site-nav a { text-decoration: none; color: var(--ink-soft); }
+        .site-nav a:hover { text-decoration: underline; text-underline-offset: .18em; }
+
         /* HOS-5 and brand decision 2: a visible switch on every guest surface. */
         .langs { display: flex; gap: .25rem; font-size: .85rem; }
         .langs a {
@@ -154,7 +158,47 @@
         li.trip h3 a { color: inherit; text-decoration: none; }
         li.trip h3 a:hover { text-decoration: underline; text-underline-offset: .18em; }
         li.trip .summary { margin: 0 0 .8rem; color: var(--ink-soft); font-size: .93rem; }
-        li.trip .facts { margin: auto 0 0; color: var(--ink-faint); font-size: .84rem; }
+        li.trip .facts { margin: 0 0 .5rem; color: var(--ink-faint); font-size: .84rem; }
+
+        /* --- search (#105) ------------------------------------------ */
+
+        .search-head .standfirst { color: var(--ink-soft); max-width: 42rem; margin: 0 0 1.5rem; }
+
+        .search-form {
+            display: grid; gap: .9rem 1rem; align-items: end;
+            grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+            background: var(--surface); border: 1px solid var(--rule);
+            border-radius: 14px; padding: 1.15rem 1.25rem 1.35rem; margin-bottom: 2rem;
+        }
+
+        .search-form .field { display: grid; gap: .3rem; }
+        .search-form label {
+            font-size: .74rem; font-weight: 600; letter-spacing: .06em; color: var(--ink-faint);
+        }
+        .search-form input, .search-form select {
+            font: inherit; font-size: .95rem; color: inherit;
+            padding: .55rem .65rem; border: 1px solid var(--rule);
+            border-radius: var(--kaiki-radius); background: #fff; width: 100%;
+        }
+        .search-form .submit { align-self: end; }
+        .search-form button { border: 0; cursor: pointer; font: inherit; }
+
+        .result-count { color: var(--ink-faint); font-size: .88rem; margin: 0 0 1rem; }
+
+        /* The price row is pinned to the bottom of the card, so a row of cards
+           has its prices on one line — settled on 4 September, because prices at
+           different heights read as a mistake. */
+        .party-price { margin: auto 0 0; padding-top: .7rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem; }
+        .party-price strong { font-size: 1.25rem; letter-spacing: -.02em; }
+        .party-price .for-party { font-size: .85rem; color: var(--ink-soft); }
+        .party-price .vat { flex-basis: 100%; font-size: .78rem; color: var(--ink-faint); }
+        .party-price .on-request { font-weight: 600; color: var(--kaiki-primary); }
+
+        .empty {
+            background: var(--surface); border: 1px solid var(--rule);
+            border-radius: 14px; padding: 1.5rem 1.6rem;
+        }
+        .empty h2 { margin-top: 0; }
 
         /* HOS-10: the booking area, replaced by a sentence. */
         .read-only {
@@ -356,6 +400,13 @@
                 <span class="name">{{ $tenant->name }}</span>
             @endif
         </a>
+
+        {{-- The search of #105, reachable from every hosted page. A feature a
+             guest cannot find is a feature the operator paid for and nobody
+             uses. --}}
+        <nav class="site-nav">
+            <a href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.search.nav') }}</a>
+        </nav>
 
         <nav class="langs" aria-label="{{ __('hosted.nav.language') }}">
             @foreach (['el' => 'ΕΛ', 'en' => 'EN'] as $code => $label)

@@ -44,7 +44,16 @@ final class PaxLineBuilder
     public static function build(RatePlan $plan, iterable $bands, array $paxByCode): array
     {
         $bands = $bands instanceof Collection ? $bands : collect($bands);
-        $prices = $plan->prices()->pluck('price_cents', 'age_band_id');
+
+        // The **loaded** relation when the caller has one. `$plan->prices()`
+        // queries every time it is called, which is one query per product for a
+        // caller pricing a catalogue — the N+1 #105's search is shaped to avoid,
+        // and invisible from here. Behaviour is identical either way; what
+        // changes is whether the caller is allowed to have paid for the rows
+        // already.
+        $prices = $plan->relationLoaded('prices')
+            ? $plan->prices->pluck('price_cents', 'age_band_id')
+            : $plan->prices()->pluck('price_cents', 'age_band_id');
         $basePrice = self::basePriceCents($bands, $prices);
 
         $lines = [];

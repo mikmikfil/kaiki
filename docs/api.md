@@ -310,7 +310,7 @@ Classes, per 60-second sliding window:
 | Class | Endpoints | Per key | Per IP |
 |---|---|---|---|
 | **A — catalog reads** | `GET /branding`, `GET /products`, `GET /products/{uuid}` | 600 | 120 |
-| **B — availability** | `GET /availability` | 1200 | 240 |
+| **B — availability** | `GET /availability`, `GET /search` | 1200 | 240 |
 | **C — pricing** | `POST /price-quote` | 600 | 120 |
 | **D — booking writes** | `POST /bookings`, `POST /bookings/{uuid}/checkout`, `POST /bookings/{uuid}/cancel`, `POST /quotes/{token}/accept`, `POST /quotes/{token}/decline` | 60 | 20 |
 | **E — guest reads/writes** | `GET /bookings/{uuid}`, `GET|PUT /guest-details/{token}`, `GET /quotes/{token}` | 120 | 60 |
@@ -322,7 +322,7 @@ Classes **B** and **C** are the hot path — a calendar mount fires one availabi
 
 `429` bodies use the standard error envelope with code `rate_limited` and `details.retry_after_seconds`.
 
-Availability and product reads are additionally **cached** — `Cache-Control: public, max-age=60` on `/branding` and `/products`, `max-age=30` on `/availability`, `no-store` on everything guest-specific. A cache hit does not consume rate-limit quota at the edge, but the origin limit still applies.
+Availability and product reads are additionally **cached** — `Cache-Control: public, max-age=60` on `/branding` and `/products`, `max-age=30` on `/availability` and `/search`, `no-store` on everything guest-specific. A cache hit does not consume rate-limit quota at the edge, but the origin limit still applies.
 
 ### 3.7 CORS
 
@@ -900,6 +900,127 @@ paths:
         '401': { $ref: '#/components/responses/Unauthorized' }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+        '500': { $ref: '#/components/responses/ServerError' }
+
+  /api/v1/search:
+    get:
+      operationId: searchCatalogue
+      summary: Search one operator's catalogue for a date and a party
+      description: |
+        The answer to *"what can I do on Saturday, for four people, leaving from Piraeus"*.
+
+        `GET /availability` answers for **one** product, which is right for a product page
+        and useless for a catalogue. This is the other question: which of an operator's
+        trips can take this party on this date, what does it cost **them**, and when does
+        the next one leave.
+
+        **The price is for the party asked about, not a from-price.** `party_price_cents`
+        is `pax` guests priced against the product's base age band on the resolved rate
+        plan for that date. A grid showing "from €65" that becomes €162.50 at checkout is
+        the search experience guests telephone to avoid. A party with children gets an
+        exact figure from `POST /price-quote`, which prices every band.
+
+        **A `quote` product is listed with no price at all** (BKG-24), as
+        `availability: on_request`. A `per_vessel` charter carries the whole-boat price
+        for the day.
+
+        **Filters the operator has switched off are ignored, not honoured.** Which filters
+        an operator exposes is their choice (`tenants.settings.search.filters`); a crafted
+        query string cannot re-enable one, because a hidden filter that still works is a
+        setting that only appears to exist. `meta.filters_enabled` says which were applied.
+
+        This endpoint is **advisory**, exactly like `GET /availability` (ADR-0006): seats
+        reported here may be stale by the time a guest posts, and the authoritative check
+        is the locked write path.
+      tags: [Availability]
+      security:
+        - PublishableKey: []
+        - SecretKey: []
+      parameters:
+        - name: date
+          in: query
+          description: The local date to search, in the tenant's timezone.
+          required: true
+          schema: { type: string, format: date }
+          example: "2026-07-18"
+        - name: pax
+          in: query
+          description: |
+            Party size, counted as capacity-taking guests. Priced against the product's
+            base age band; omit for a party of one.
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 500, default: 1 }
+          example: 4
+        - name: port
+          in: query
+          description: Meeting-point UUID. Ignored when the operator has switched the port filter off.
+          required: false
+          schema: { type: string, format: uuid }
+        - name: type
+          in: query
+          description: Product category. Ignored when the operator has switched the type filter off.
+          required: false
+          schema:
+            type: string
+            enum: [shared_full_day, shared_half_day, private_full_day, private_half_day, sunset, custom]
+        - name: duration_max
+          in: query
+          description: Longest acceptable trip, in minutes. Off by default; ignored unless the operator enabled it.
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 10080 }
+        - name: price_max
+          in: query
+          description: |
+            Highest acceptable **party** price, in integer cents — compared against
+            `party_price_cents`, not against a per-person figure. Off by default.
+          required: false
+          schema: { type: integer, minimum: 0 }
+        - name: vessel
+          in: query
+          description: Vessel UUID. Off by default; ignored unless the operator enabled it.
+          required: false
+          schema: { type: string, format: uuid }
+        - $ref: '#/components/parameters/LocaleQuery'
+        - $ref: '#/components/parameters/AcceptLanguageHeader'
+      responses:
+        '200':
+          description: The trips that can take this party on this date, cheapest party price first.
+          headers:
+            Cache-Control: { $ref: '#/components/headers/CacheControl' }
+            Content-Language: { $ref: '#/components/headers/ContentLanguage' }
+            X-RateLimit-Remaining: { $ref: '#/components/headers/RateLimitRemaining' }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/SearchResult' }
+                  meta:
+                    type: object
+                    required: [date, pax, currency, timezone, filters_enabled, applied]
+                    properties:
+                      date: { type: string, format: date }
+                      pax: { type: integer, example: 4 }
+                      currency: { type: string, example: EUR }
+                      timezone: { type: string, example: Europe/Athens }
+                      filters_enabled:
+                        type: array
+                        description: The filters this operator exposes. Anything else in the query string was ignored.
+                        items: { type: string, enum: [date, port, party, type, duration, price, vessel] }
+                        example: [date, port, party, type]
+                      applied:
+                        type: object
+                        description: The filters that actually shaped this result set, after the operator's settings were applied.
+                        additionalProperties: true
+                        example: { port: "7c9e6679-7425-40de-944b-e07fc1f90ae7" }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
         '422': { $ref: '#/components/responses/UnprocessableEntity' }
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '500': { $ref: '#/components/responses/ServerError' }
@@ -2715,6 +2836,56 @@ components:
           oneOf:
             - $ref: '#/components/schemas/VesselSummary'
             - type: "null"
+      additionalProperties: false
+
+    SearchResult:
+      type: object
+      description: |
+        One trip that can take the searched party on the searched date.
+
+        A `ProductSummary` plus the two things a from-price grid cannot give: what this
+        party pays, and when the next sailing leaves. `party_price_cents` is null only for
+        `availability: on_request` — a `quote` product, which never shows a price (BKG-24).
+      required: [product, availability, party_price_cents, party_price_formatted, next_departure]
+      properties:
+        product: { $ref: '#/components/schemas/ProductSummary' }
+        availability:
+          type: string
+          enum: [available, on_request]
+          description: |
+            `available` — a sailing this party can still book on that date.
+            `on_request` — a `quote` product, listed without a price; the operator answers.
+        party_price_cents:
+          type: [integer, "null"]
+          description: What the searched party pays, VAT included (PRC-13). Null for `on_request`.
+          example: 18000
+        party_price_formatted:
+          type: [string, "null"]
+          description: The same amount rendered in the request locale. A convenience; the cents are the truth.
+          example: "180,00 €"
+        next_departure:
+          oneOf:
+            - $ref: '#/components/schemas/SearchDeparture'
+            - type: "null"
+          description: |
+            The soonest sailing on the searched date this party fits into. Null for a
+            `per_vessel` charter, whose day is a window rather than a departure, and for
+            an `on_request` product.
+
+    SearchDeparture:
+      type: object
+      required: [uuid, starts_at, local_date, local_time, seats_available]
+      properties:
+        uuid: { type: string, format: uuid }
+        starts_at: { type: string, format: date-time, description: The instant, in the tenant's timezone with its offset. }
+        local_date: { type: string, format: date }
+        local_time: { type: string, pattern: '^\d{2}:\d{2}$', example: "18:30" }
+        seats_available:
+          type: integer
+          description: |
+            Advisory, exactly as on `GET /availability` (ADR-0006). Holds count against it
+            and expired holds are treated as released on read.
+          example: 6
       additionalProperties: false
 
     AvailabilityDay:

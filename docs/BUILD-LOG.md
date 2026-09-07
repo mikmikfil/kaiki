@@ -12,14 +12,14 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M3 — Hosted pages & widget: #101 … #104 built.** M2 complete (all eleven), M1 complete. |
+| Milestone | **M3 — Hosted pages & widget: #101 … #105 built.** M2 complete (all eleven), M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **#101, #102, #103, #104 built** — the hosted page shell, the editable home page, the FAQ and the product pages. #105 … #111 to come, the widget next. |
+| M3 | **#101 … #105 built** — the hosted page shell, the editable home page, the FAQ, the product pages and the catalogue search. **The hosted pages are complete; #106 … #111 are the widget.** |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2153, one failing: the schema snapshot CI cannot regenerate) · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2184, one failing: the schema snapshot CI cannot regenerate) · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -35,6 +35,105 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #105 — Catalogue search, the party price, and the filter that must actually be off
+
+`GET /api/v1/search` and `book.{platform-domain}/{operator-slug}/search`. The
+answer to *"what can I do on Saturday, for four people, leaving from Piraeus"*,
+which `GET /availability` cannot give: it answers for one product at a time.
+
+### The contract went first (ENV-28)
+
+`docs/api.md` gained the path, its seven parameters, the `SearchResult` and
+`SearchDeparture` schemas, the class **B** rate-limit row and the `max-age=30`
+sentence **before** any code existed, and the drift gate stayed green through
+both halves — first as a documented-but-unbuilt operation, then as a built one.
+
+### The party price is the feature
+
+A grid showing *"από 65 €"* that charges 162,50 € at checkout is the search
+experience guests telephone to avoid, so `party_price_cents` is `pax` guests
+priced against the product's base band on the plan resolved for that date —
+`PaxLineBuilder`, so PRC-6's rounding order is the arithmetic the checkout will
+do. A `quote` product carries **no price at all** (BKG-24) and sorts last;
+`price_from_cents` is still in the nested summary, because both numbers are true
+and a card can show them together.
+
+### Bounded, and asserted as a shape rather than a number
+
+`CheckSeatAvailability` costs five queries **per product**. Looping it over a
+catalogue is the obvious build and would be a hundred queries for a fleet of
+twenty. `SearchCatalogue` inverts it: one date, five loads, everything else
+decided in PHP.
+
+`SearchQueryCountTest` asserts **a search across twelve trips issues exactly as
+many queries as one across two**, which is the claim the criterion actually
+makes — an absolute number would be counting the auth path and would need
+editing whenever that changed.
+
+Two things had to move for that to be true:
+
+- **`PaxLineBuilder` now prefers the loaded `prices` relation.** It called
+  `$plan->prices()`, which queries every time — one per product, invisible from
+  the call site. Behaviour is identical; what changed is that a caller is
+  allowed to have paid for the rows already.
+- **`VesselCalendar::occupiedVesselIds()`** answers "which of these boats are
+  busy" for a fleet in two queries instead of two per boat. It went **into** the
+  port rather than around it: ADR-0023 makes this class the only one permitted
+  to query occupancy, and a bulk read is still a read.
+
+### The disabled filter, which is the issue's own note
+
+*"Hiding it in the template and honouring it in the controller is the version
+that passes a visual review."* So `SearchFilters` is read on the way **in** —
+by `SearchRequest` for the API and by `SearchPageController` for the page — and a
+switched-off filter arrives at the Action as null. `SearchFilterTest` compares
+the **result set** of a crafted request against the unfiltered one and asserts
+they are identical; a page that merely stopped drawing the control passes a
+screenshot review and fails that.
+
+Defaults are the design review's: date, port, party and type on; duration, price
+and vessel off. Date and party are **fixed on** — a search with neither is a
+catalogue listing, which the home page already is — and the settings screen shows
+them disabled rather than hiding them, so an operator does not hunt for a switch
+that is not there.
+
+### Deviations and additions
+
+- **The search is a shortlist, and says so.** It applies the conditions a guest
+  chooses between and leaves the full AVL-22 ladder to `GET /availability`,
+  which the guest reaches next. Re-implementing all seven would be a second copy
+  of the engine, and the second copy drifts. The cost — a trip can appear here
+  and be refused a minute later — is ADR-0006's existing bargain, stated again.
+- **`pax` is one integer, not a band breakdown.** A search box that asked for
+  ages would be a booking form; `POST /price-quote` prices a family exactly.
+- **A new Filament page** rather than a section on the branding screen, gated on
+  the brand profile because the choice is the same job as the logo and the
+  colours. No new capability, and crew reach none of the three.
+- **`/{operator}/search` is registered before `/{operator}/{product}`**, so a
+  trip slugged `search` is shadowed — the same trade `legal` already made, and
+  for the same reason.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `composer lint` | Pint, clean |
+| `composer stan` | PHPStan level 6, **880 files, no errors** |
+| `composer test` | **2183 passed, 1 failed** — the inherited ENV-10 schema snapshot |
+| Drift gate | green before the route existed and after it landed |
+
+31 new tests across five files: `SearchEndpointTest` (9), `SearchFilterTest` (7),
+`SearchQueryCountTest` (3), `SearchPageTest` (6), `SearchSettingsTest` (6), plus
+`SearchScenario` in `tests/Support/Api`.
+
+One harness fact worth writing down: **the tenancy package keeps the initialised
+tenant for the life of the process**, so a settings change made between two test
+requests is not seen by the second. `SearchPageTest` uses a second operator
+rather than asserting around it — a property of the test harness, not of the
+page.
 
 ---
 

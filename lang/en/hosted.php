@@ -93,6 +93,32 @@ return [
         ],
     ],
 
+    'search' => [
+        'title' => 'Find a trip',
+        'standfirst' => 'Pick a date and tell us how many you are. Prices are for your whole party.',
+        'meta_description' => 'Search the trips :operator is running, by date, harbour and party size.',
+        'nav' => 'Find a trip',
+        'any' => 'Any',
+        'submit' => 'Search',
+        'on_request' => 'Price on request',
+        'count' => '{1} One trip found|[2,*] :count trips found',
+        'for_party' => '{1} for one person|[2,*] for :count people',
+        'fields' => [
+            'date' => 'Date',
+            'pax' => 'How many of you',
+            'port' => 'Leaving from',
+            'type' => 'Kind of trip',
+            'duration_max' => 'No longer than (minutes)',
+            'price_max' => 'Up to (€, whole party)',
+            'vessel' => 'Boat',
+        ],
+        'empty' => [
+            'heading' => 'Nothing sails that day for that many',
+            'body' => 'Try another date, or a smaller party — most boats have space midweek.',
+            'contact' => 'Or write to :email and we will find something.',
+        ],
+    ],
+
     'read_only' => 'Online booking is unavailable just now. Please contact us at :email and we will take your booking directly.',
 
     'footer' => [

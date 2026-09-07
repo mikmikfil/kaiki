@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\EnquiryController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\PriceQuoteController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\SearchController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -114,6 +115,20 @@ Route::middleware([
     'throttle:api-availability',
 ])->group(function (): void {
     Route::get('/availability', AvailabilityController::class)->name('api.v1.availability');
+
+    /*
+     * The catalogue search (#105) shares this group deliberately.
+     *
+     * `availability.read` rather than `products.read`, because that is what it
+     * discloses: which boats have seats on Saturday. A key issued for an SEO
+     * sync has no business asking that, and putting search in the catalogue
+     * scope would make the distinction `ApiScope` draws unenforceable.
+     *
+     * Class B for the same reason — the payload carries seat counts, so it
+     * caches for thirty seconds like availability rather than sixty like the
+     * catalogue.
+     */
+    Route::get('/search', SearchController::class)->name('api.v1.search');
 });
 
 /*

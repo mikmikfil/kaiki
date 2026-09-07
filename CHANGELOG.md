@@ -2,6 +2,22 @@
 
 ## M3 — Hosted pages & widget
 
+### #105 - Catalogue search, the party price, and the filter that must actually be off
+
+`GET /api/v1/search` and a `book.{platform-domain}/{operator-slug}/search` page: the answer to *"what can I do on Saturday, for four people, leaving from Piraeus"*. `GET /availability` answers for one product at a time, which is right for a product page and useless for a catalogue, so this is a new endpoint rather than a loop over the old one. **The contract went into `docs/api.md` first** (ENV-28) — path, parameters, `SearchResult` schema, rate-limit class, cache header — and the drift gate stayed green through both halves, first as a documented-but-unbuilt operation and then as a built one.
+
+**The party price is the whole feature.** A grid showing "από 65 €" that charges 162,50 € at checkout is the search experience every competitor has and the reason guests telephone instead. So each result carries what *this* party pays: `pax` guests priced against the product's base band on the rate plan resolved for that date, through the same `PaxLineBuilder` the checkout uses, so PRC-6's rounding order is the arithmetic that will actually be charged. A quote product carries **no price at all** (BKG-24) and sorts last — "ask us" is not an answer to "how much", but it stays on the page because for half these operators the charter is the business.
+
+**It does not scale with the catalogue, and the test says so as a shape rather than a number.** `CheckSeatAvailability` costs five queries per product; looping it over twenty trips is a hundred queries and a page an operator complains about. `SearchCatalogue` inverts the question — one date, five loads, everything else decided in PHP — and `SearchQueryCountTest` asserts that **a search across twelve trips issues exactly as many queries as one across two**. An absolute number would be counting the auth path and would need editing every time that changed. Two things moved to make it true: `PaxLineBuilder` now prefers the loaded `prices` relation rather than querying per call, and `VesselCalendar` gained a bulk occupancy read — put **into** the port rather than around it, because ADR-0023 makes that class the only one permitted to ask, and a bulk read is still a read.
+
+**A filter the operator switched off is ignored, not hidden.** The issue's own note names the failure: hiding the control in the template and honouring the parameter in the controller passes a visual review and fails the operator who turned it off precisely because their answer would be embarrassing. So the settings are read on the way *in* — by the form request for the API and by the controller for the page — and a disabled filter reaches the engine as nothing at all. The test compares the **result set** of a crafted request against the unfiltered one and asserts they are identical.
+
+The defaults are the design review's: date, port, party size and trip type shown; duration, price ceiling and vessel available but off. Date and party size are fixed on, because a search with neither is a catalogue listing and the home page already is one — and the new settings screen shows them **disabled rather than hidden**, so an operator does not hunt for a switch that is not there.
+
+**The page is a plain `GET` form** (HOS-4), which is what a search is anyway: the query string is the state, the server renders the results, and there is no script on the page at all. That the URL carries the search is the point rather than a side effect — a guest can send "Saturday, four of us, from Piraeus" to whoever they are travelling with. Nothing matching says what to change, naming the date and the party size, rather than showing an empty grid.
+
+Scope stated rather than implied: this is a **shortlist**. It applies the conditions a guest is choosing between and leaves the full AVL-22 ladder to the product page they reach next, because a search that re-implemented all seven would be a second copy of the availability engine and the second copy is the one that drifts. `pax` is one integer rather than a band breakdown — a search box that asked for ages would be a booking form, and `POST /price-quote` prices a family exactly.
+
 ### #104 - The product page, and the graph that has to be two types
 
 `book.{platform-domain}/{operator-slug}/{product-slug}` — one page per trip, server-rendered, with the SEO metadata and the JSON-LD HOS-2 fixes. The page a search engine lands on and the page an operator sends a link to, and the last hosted surface before the widget.
