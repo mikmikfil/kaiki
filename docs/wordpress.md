@@ -22,6 +22,22 @@ That is the whole setup. Everything below is optional.
 
 ---
 
+## Blocks and Elementor
+
+If you use the block editor, insert **Kaiki booking form**, **Kaiki trips**,
+**Kaiki availability calendar** or **Kaiki enquiry form** and pick the trip from
+a list — no ids to copy. Elementor has the same four widgets with the same
+options.
+
+Whichever you use, the page ends up identical: the blocks and the widgets are
+wrappers around the shortcodes below, not separate implementations of them.
+
+The editor shows a description of the block rather than a live booking form, on
+purpose — a working form inside a page editor is how somebody accidentally makes
+a real booking while laying out a page.
+
+---
+
 ## The four shortcodes
 
 | Shortcode | What appears |

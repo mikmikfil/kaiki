@@ -2,6 +2,18 @@
 
 ## M4 — WordPress plugin
 
+### #115 - Gutenberg blocks and Elementor widgets, both rendering through the shortcode
+
+The same four embeds, chosen with a mouse. The spec fixes them as *server-rendered wrappers around the shortcodes*, and that phrase is the whole design.
+
+**The tempting alternative is a JavaScript block that mounts the widget in the editor.** It demonstrates better, it gives you two rendering paths to keep in step for ever, and the editor one puts a working booking form inside a page editor — which is how somebody accidentally makes a real booking while laying out a page. So every block and every Elementor widget calls the shortcode's own callback, and a test holds the two editors together: the same four embeds, the same two questions, and callbacks that exist. The failure it prevents is undramatic — somebody adds an attribute to the block because that is where they were working, and the Elementor version quietly does not have it, discovered six months later by an operator who uses the other one.
+
+**No build step**, deliberately. The editor script is plain JavaScript against the globals WordPress already ships. A bundler would add a Node build to a PHP plugin that has none, for four blocks whose entire interface is a select and a text field — and a build nobody can run is a block nobody can fix.
+
+**The trip picker is why this cost more than the shortcodes did.** An operator picks "the sunset one" instead of pasting a uuid, because nobody knows a uuid. The route behind it is capability-gated *and* returns only what the public key could already read, in that order: a route whose safety depended solely on a capability check is one plugin conflict away from being public. When Kaiki cannot be reached the picker degrades to a plain field holding whatever the block already had, so an operator can still save the page they are working on.
+
+**The translation was half-done and looked finished.** The block editor reads a JSON file, never the compiled `.mo` — so a plugin shipping only the `.mo` has a Greek settings page and an English block panel on the same site, which reads as sloppiness rather than as a missing file and nobody reports it. The extractor now reads JavaScript as well as PHP, and the build writes both files from the one source.
+
 ### #114 - The four shortcodes, and a bundle that loads only where it is needed
 
 An operator pastes `[kaiki_booking product="…"]` into a page and takes a booking. That is the plugin's whole promise, and everything after this is a nicer way of producing the same four strings.

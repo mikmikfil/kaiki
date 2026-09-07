@@ -202,3 +202,26 @@ it('ships a compiled translation, because WordPress does not read a .po', functi
 
     expect($header['count'])->toBeGreaterThanOrEqual(count($wanted[0]));
 })->group('fast', 'i18n');
+
+it('ships the JavaScript translations as well as the PHP ones', function (): void {
+    // `wp.i18n.__` in the block editor reads a **JSON** file, never the `.mo` —
+    // so a plugin that shipped only the `.mo` would have a Greek settings page
+    // and an English block panel on the same site, which reads as the
+    // translation being half-done rather than as a missing file.
+    //
+    // WordPress finds it by an md5 of the script's path relative to the plugin,
+    // which is why the name looks like a hash and why it has to be regenerated
+    // when the script moves.
+    $expected = pluginPath('languages/kaiki-booking-el-' . md5('assets/blocks.js') . '.json');
+
+    expect(is_file($expected))->toBeTrue(
+        'No JavaScript translations. Run `php packages/wordpress-plugin/tools/build-translations.php`.'
+    );
+
+    /** @var array{locale_data: array{messages: array<string, mixed>}} $json */
+    $json = json_decode((string) file_get_contents($expected), true, flags: JSON_THROW_ON_ERROR);
+
+    // A string only the block editor uses, so a JSON built from the wrong
+    // source would not have it.
+    expect($json['locale_data']['messages'])->toHaveKey('Choose a trip…');
+})->group('fast', 'i18n');

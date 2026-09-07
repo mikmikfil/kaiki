@@ -167,3 +167,57 @@ msgstr "Αυτή η φόρμα κράτησης πρέπει να ξέρει σ�
 
 msgid "This calendar needs to know which trip it is for. Use %s, with the trip id from your Kaiki panel."
 msgstr "Αυτό το ημερολόγιο πρέπει να ξέρει σε ποια εκδρομή αναφέρεται. Χρησιμοποιήστε %s, με τον κωδικό της εκδρομής από τον πίνακα του Kaiki."
+
+msgid "Category"
+msgstr "Κατηγορία"
+
+msgid "From your Kaiki panel, on the trip."
+msgstr "Από τον πίνακα του Kaiki, στην καρτέλα της εκδρομής."
+
+msgid "Kaiki"
+msgstr "Kaiki"
+
+msgid "Kaiki availability calendar"
+msgstr "Ημερολόγιο διαθεσιμότητας Kaiki"
+
+msgid "Kaiki booking form"
+msgstr "Φόρμα κράτησης Kaiki"
+
+msgid "Kaiki enquiry form"
+msgstr "Φόρμα ερωτήματος Kaiki"
+
+msgid "Kaiki trips"
+msgstr "Εκδρομές Kaiki"
+
+msgid "Leave empty to show every trip."
+msgstr "Αφήστε το κενό για να εμφανίζονται όλες οι εκδρομές."
+
+msgid "Trip id"
+msgstr "Κωδικός εκδρομής"
+
+msgid "A booking form for one trip: date, party, details, pay."
+msgstr "Φόρμα κράτησης για μία εκδρομή: ημερομηνία, άτομα, στοιχεία, πληρωμή."
+
+msgid "A month of availability for one trip."
+msgstr "Ένας μήνας διαθεσιμότητας για μία εκδρομή."
+
+msgid "An enquiry form, for trips with no published price."
+msgstr "Φόρμα ερωτήματος, για εκδρομές χωρίς δημοσιευμένη τιμή."
+
+msgid "Choose a trip in the sidebar."
+msgstr "Διαλέξτε εκδρομή από την πλαϊνή στήλη."
+
+msgid "Choose a trip…"
+msgstr "Διαλέξτε εκδρομή…"
+
+msgid "Kaiki could not be reached."
+msgstr "Δεν ήταν δυνατή η επικοινωνία με το Kaiki."
+
+msgid "No trips found. You can still paste a trip id."
+msgstr "Δεν βρέθηκαν εκδρομές. Μπορείτε πάντως να επικολλήσετε κωδικό εκδρομής."
+
+msgid "Trip"
+msgstr "Εκδρομή"
+
+msgid "Your trips as a grid, with a link to book each one."
+msgstr "Οι εκδρομές σας σε πλέγμα, με σύνδεσμο κράτησης για την καθεμία."

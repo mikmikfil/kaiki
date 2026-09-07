@@ -9,7 +9,10 @@ declare( strict_types = 1 );
 
 namespace Kaiki\Booking;
 
+use Kaiki\Booking\Blocks\Blocks;
+use Kaiki\Booking\Elementor\Widgets;
 use Kaiki\Booking\Http\Webhook;
+use Kaiki\Booking\Rest\Trips;
 use Kaiki\Booking\Shortcodes\Shortcodes;
 use Kaiki\Booking\Settings\SettingsPage;
 
@@ -38,6 +41,16 @@ final class Plugin {
 		// The four shortcodes (WPP-4). Registered always, because a shortcode in
 		// a page is rendered on the front end and previewed in the editor.
 		Shortcodes::register();
+
+		// The same four embeds through the two editors an operator may be using
+		// (WPP-5). Each registration is a no-op when its editor is absent, which
+		// is the ordinary case for both.
+		Blocks::register();
+		Widgets::register();
+
+		// The trip picker the block editor needs. Capability-gated, and it
+		// returns nothing a publishable key could not already read.
+		Trips::register();
 
 		if ( is_admin() ) {
 			SettingsPage::register();

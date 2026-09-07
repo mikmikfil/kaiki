@@ -22,7 +22,11 @@ $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, Fil
 $strings = [];
 
 foreach ($files as $file) {
-    if ($file->getExtension() !== 'php' || str_contains((string) $file, 'vendor')) {
+    // JavaScript as well as PHP. The block editor's own labels go through
+    // `wp.i18n.__` with the same text domain, and an extractor that read only
+    // PHP would leave them out of the template — so they would look translated
+    // (the call is there) and appear in English (the string is not).
+    if (! in_array($file->getExtension(), ['php', 'js'], true) || str_contains((string) $file, 'vendor')) {
         continue;
     }
 

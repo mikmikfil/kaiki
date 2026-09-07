@@ -8,10 +8,19 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Domain: kaiki-booking\n"
 
+msgid "A booking form for one trip: date, party, details, pay."
+msgstr ""
+
+msgid "A month of availability for one trip."
+msgstr ""
+
 msgid "Always English"
 msgstr ""
 
 msgid "Always Greek"
+msgstr ""
+
+msgid "An enquiry form, for trips with no published price."
 msgstr ""
 
 msgid "Anything on a page is public. If it ever appears on one, delete the key in your Kaiki panel and make a new one."
@@ -21,6 +30,15 @@ msgid "Bookings are briefly unavailable. Please try again in a moment, or contac
 msgstr ""
 
 msgid "Cache, in seconds"
+msgstr ""
+
+msgid "Category"
+msgstr ""
+
+msgid "Choose a trip in the sidebar."
+msgstr ""
+
+msgid "Choose a trip…"
 msgstr ""
 
 msgid "Connect this site to your Kaiki account, then put a booking form on any page with a shortcode, a block or an Elementor widget."
@@ -38,6 +56,9 @@ msgstr ""
 msgid "Following the page uses WPML or Polylang if you have one, and your site language if you do not."
 msgstr ""
 
+msgid "From your Kaiki panel, on the trip."
+msgstr ""
+
 msgid "From your Kaiki panel, under API keys. This one is safe on a public page: it can read your catalogue and start a booking, and nothing else."
 msgstr ""
 
@@ -48,6 +69,9 @@ msgid "Is it connected?"
 msgstr ""
 
 msgid "It is used by this site's own scheduled task to read your full catalogue, including trips you have not published. It is never sent to a visitor."
+msgstr ""
+
+msgid "Kaiki"
 msgstr ""
 
 msgid "Kaiki Booking"
@@ -74,13 +98,31 @@ msgstr ""
 msgid "Kaiki answered, but not in a way this plugin understands. Try again shortly."
 msgstr ""
 
+msgid "Kaiki availability calendar"
+msgstr ""
+
+msgid "Kaiki booking form"
+msgstr ""
+
+msgid "Kaiki could not be reached."
+msgstr ""
+
+msgid "Kaiki enquiry form"
+msgstr ""
+
 msgid "Kaiki refused the key. Either it is wrong, or this site (%s) is not on the key's list of allowed addresses — you can add it in your Kaiki panel."
 msgstr ""
 
 msgid "Kaiki tells this site the moment something changes — a new trip, a new price — so visitors never see an out-of-date catalogue. Paste the update secret from your Kaiki panel to switch it on."
 msgstr ""
 
+msgid "Kaiki trips"
+msgstr ""
+
 msgid "Language"
+msgstr ""
+
+msgid "Leave empty to show every trip."
 msgstr ""
 
 msgid "Leave this as it is unless you were told otherwise."
@@ -90,6 +132,9 @@ msgid "Live updates"
 msgstr ""
 
 msgid "Never paste this key into a page, a post, a widget or a theme file."
+msgstr ""
+
+msgid "No trips found. You can still paste a trip id."
 msgstr ""
 
 msgid "Off by default, and the plugin is complete without it. Switched on, each of your trips also becomes a page on this site, so Google finds it here as well as on Kaiki."
@@ -143,6 +188,12 @@ msgstr ""
 msgid "This site is not set up to receive updates."
 msgstr ""
 
+msgid "Trip"
+msgstr ""
+
+msgid "Trip id"
+msgstr ""
+
 msgid "Trip pages"
 msgstr ""
 
@@ -159,5 +210,8 @@ msgid "You do not have permission to change these settings."
 msgstr ""
 
 msgid "You do not have permission to do that."
+msgstr ""
+
+msgid "Your trips as a grid, with a link to book each one."
 msgstr ""
 

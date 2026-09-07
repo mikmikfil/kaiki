@@ -12,10 +12,10 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M4 — WordPress plugin: #112 … #114 built.** M3 complete (#101 … #111), M2 complete, M1 complete. |
+| Milestone | **M4 — WordPress plugin: #112 … #115 built.** M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
 | M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
-| M4 | **#112 … #114 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, and the four shortcodes that are the plugin's whole promise. Six issues written (#112 … #117); #117 needs a real WordPress site, which is the product owner's. |
+| M4 | **#112 … #115 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, and the same four through Gutenberg and Elementor. **#116 the SEO pages and #117 the release remain; #117 needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117); #117 needs a real WordPress site, which is the product owner's. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
@@ -36,6 +36,90 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #115 — Gutenberg blocks and Elementor widgets, both rendering through the shortcode
+
+The same four embeds, chosen with a mouse. WPP-5 fixes them as **server-rendered
+wrappers around the shortcodes**, and that phrase is the whole design.
+
+### The tempting alternative, and why it is wrong
+
+A JavaScript block that mounts the widget in the editor demonstrates better. It
+also gives you **two rendering paths to keep in step for ever** — and the editor
+one puts a working booking form inside a page editor, which is how somebody
+accidentally makes a real booking while laying out a page.
+
+So every block's `render_callback` and every Elementor widget's `render()` call
+the shortcode's own callback. There is one implementation of the markup in this
+plugin, and `EditorParityTest` is what keeps it that way: the two editors offer
+the same four embeds, ask for the same two things, and name callbacks that exist.
+The failure it prevents is undramatic — somebody adds an attribute to the block
+because that is where they were working, and the Elementor version quietly does
+not have it, discovered six months later by an operator who uses the other one.
+
+### No build step, deliberately
+
+The editor script is plain JavaScript against the `wp.*` globals WordPress
+already ships. `@wordpress/scripts` would give JSX and a bundler and would add a
+Node build to a PHP plugin that has none — for four blocks whose entire interface
+is a select and a text field. **A build nobody can run is a block nobody can
+fix**, and the person who will need to fix it is the operator's web person.
+
+### The trip picker is why this issue cost more than the shortcodes did
+
+`GET /kaiki/v1/trips`, capability-gated, so an operator picks "the sunset one"
+instead of pasting a uuid. **Nobody knows a uuid.**
+
+Two locks, and the second is the one that matters: the route returns only what a
+publishable key could already read, because it proxies `GET /products` with the
+`pk_`. A route whose safety depended solely on a capability check is a route one
+plugin conflict away from being public.
+
+When Kaiki cannot be reached the picker degrades to a text field holding whatever
+the block already had, rather than disappearing and taking the value with it —
+an operator must be able to save the page they are working on (WPP-14).
+
+### Elementor's class is declared inside a hook
+
+`Widget_Base` does not exist on a site without Elementor, and a class extending a
+missing class is a fatal error the moment the autoloader is asked for it. So the
+widget is in a file that is `require`d from inside `elementor/widgets/register`,
+which only fires when Elementor is running, and is deliberately not reachable
+through PSR-4.
+
+### The translation was half-done and looked finished
+
+`wp.i18n.__` in the block editor reads a **JSON** file, never the `.mo`. A plugin
+shipping only a `.mo` has a Greek settings page and an English block panel on the
+same site — which reads as a sloppy translation rather than as a missing file,
+and nobody reports it.
+
+Two fixes, both small and both the sort of thing that never gets done later:
+`extract-strings.php` now reads JavaScript as well as PHP, so the editor's own
+labels are in the template at all; and `build-translations.php` writes the JSON
+beside the `.mo` from the same `.po`. That is normally `wp i18n make-json`, which
+would mean WP-CLI on every machine that builds; the format is a dictionary and it
+is nine lines.
+
+Sixty-nine strings, both files, with a test asserting the JSON exists and carries
+a string only the editor uses.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `npm run plugin:lint` | phpcs, WordPress ruleset and PHP 8.1 compatibility, clean |
+| `npm run plugin:test` | **40 passed** (5 new) |
+| `composer lint` / `composer stan` | Pint clean; PHPStan level 6, no errors |
+| `composer test` | **2267 passed, 4 skipped, 1 failed** — the inherited ENV-10 snapshot |
+
+One earlier test had to be narrowed rather than exempted. `Blocks.php` genuinely
+calls `wp_enqueue_script` — for the **editor** script, which is admin-only and is
+not the widget bundle — so the assertion became "no file both knows the bundle's
+URL and enqueues a script" instead of banning the function. An exempted guard
+soon enforces nothing.
 
 ---
 

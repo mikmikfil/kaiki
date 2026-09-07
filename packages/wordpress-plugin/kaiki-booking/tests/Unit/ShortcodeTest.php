@@ -69,28 +69,40 @@ final class ShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'data-mount="list"', $second );
 	}
 
-	public function test_a_page_with_no_shortcode_loads_nothing(): void {
+	public function test_the_widget_bundle_is_never_enqueued_globally(): void {
 		// The difference between a plugin an agency recommends and one they rip
-		// out. Asserted against the source rather than against a hook registry,
-		// because the claim is that the plugin **never** enqueues the bundle
-		// globally — and a stub that answered "no hook fired" would be agreeing
-		// with itself.
+		// out: a page with no Kaiki shortcode on it has no booking script.
 		//
 		// It is also why the tag is written into the shortcode's output rather
-		// than enqueued: the widget mounts where its script tag is (WGT-7), and
+		// than enqueued — the widget mounts where its script tag is (WGT-7), and
 		// an enqueued one would put the booking form in the footer.
+		//
+		// Asserted as "no file both knows the bundle's URL and enqueues a
+		// script". `Blocks.php` legitimately enqueues the **editor** script,
+		// which is admin-only and is not this; a check that banned the function
+		// outright would have had to be exempted, and an exempted guard soon
+		// enforces nothing.
 		$files = glob( dirname( __DIR__, 2 ) . '/src/*/*.php' );
 
 		$this->assertNotEmpty( $files );
 
 		foreach ( (array) $files as $file ) {
-			// Comments stripped first. `Bundle`'s own docblock explains why it
-			// does *not* enqueue, and an assertion that read docblocks would
-			// fail on the sentence saying it does the right thing.
+			$code = self::code_of( (string) $file );
+
+			if ( ! str_contains( $code, 'wp_enqueue_script' ) ) {
+				continue;
+			}
+
 			$this->assertStringNotContainsString(
-				'wp_enqueue_script',
-				self::code_of( (string) $file ),
-				basename( (string) $file ) . ' enqueues the bundle; it must be written by the shortcode that needs it.'
+				'kaiki-widget.js',
+				$code,
+				basename( (string) $file ) . ' enqueues the widget bundle; it must be written by the shortcode that needs it.'
+			);
+
+			$this->assertStringNotContainsString(
+				'Bundle::url',
+				$code,
+				basename( (string) $file ) . ' enqueues the widget bundle; it must be written by the shortcode that needs it.'
 			);
 		}
 	}
