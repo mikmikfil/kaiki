@@ -96,6 +96,16 @@ enum AuditAction: string
     case PaymentRecorded = 'payment.recorded';
 
     /**
+     * A passenger list carrying document numbers left the building
+     * (OPS-10, GDR-6).
+     *
+     * GDR-6 claims those numbers appear in the manifest export and nowhere
+     * else. This row is what makes the claim checkable rather than asserted:
+     * if they left, they left through here.
+     */
+    case ManifestGenerated = 'manifest.generated';
+
+    /**
      * The actions whose subjects exist and that are wired today.
      *
      * `booking.refunded` left this list in #84, which is the milestone that

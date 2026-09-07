@@ -357,6 +357,28 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Exports
+    |--------------------------------------------------------------------------
+    */
+
+    'exports' => [
+        /*
+         * The CSV field separator (OPS-8, OPS-17).
+         *
+         * A comma, and configurable because it is a property of the operator's
+         * *machine* rather than of the data: Excel in a Greek locale splits on
+         * a semicolon, so a technically correct comma-separated file opens as
+         * one column and the harbourmaster cannot read it.
+         *
+         * Left as a comma by default because that is what everything except
+         * Excel expects, and because an operator who needs the other one has a
+         * support conversation rather than a broken file.
+         */
+        'csv_separator' => env('KAIKI_CSV_SEPARATOR', ','),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Pricing
     |--------------------------------------------------------------------------
     */

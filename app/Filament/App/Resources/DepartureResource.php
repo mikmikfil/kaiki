@@ -14,6 +14,7 @@ use App\Enums\BookingMode;
 use App\Enums\DepartureCancelReason;
 use App\Enums\DepartureStatus;
 use App\Enums\WeatherChoice;
+use App\Filament\App\Resources\DepartureResource\Actions\ManifestAction;
 use App\Filament\App\Resources\DepartureResource\Pages;
 use App\Models\Departure;
 use App\Models\Product;
@@ -239,7 +240,7 @@ class DepartureResource extends Resource
                     ->label(__('availability.departure.table.status'))
                     ->options(DepartureStatus::options()),
             ])
-            ->actions([EditAction::make()])
+            ->actions([ManifestAction::make(), EditAction::make()])
             ->bulkActions([self::weatherCancellation()]);
     }
 

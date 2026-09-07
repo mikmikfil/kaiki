@@ -194,6 +194,17 @@ return [
         'manual' => ['label' => 'Manual'],
     ],
 
+    'manifest_column' => [
+        'full_name' => ['label' => 'Full name'],
+        'date_of_birth' => ['label' => 'Date of birth'],
+        'nationality' => ['label' => 'Nationality'],
+        'document_type' => ['label' => 'Document'],
+        'document_number' => ['label' => 'Document number'],
+        'reference' => ['label' => 'Booking'],
+        'age_band' => ['label' => 'Passenger type'],
+        'checked_in' => ['label' => 'Checked in'],
+    ],
+
     'audit_action' => [
         'vessel.deleted' => ['label' => 'Boat deleted'],
         'product.deleted' => ['label' => 'Trip deleted'],
@@ -204,6 +215,7 @@ return [
         'record.deleted' => ['label' => 'Record deleted'],
         'override.applied' => ['label' => 'Override applied'],
         'payment.recorded' => ['label' => 'Payment recorded by hand'],
+        'manifest.generated' => ['label' => 'Passenger list with document numbers generated'],
     ],
 
     'availability_rejection' => [

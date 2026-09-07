@@ -183,6 +183,17 @@ return [
         'manual' => ['label' => 'Χειροκίνητη'],
     ],
 
+    'manifest_column' => [
+        'full_name' => ['label' => 'Ονοματεπώνυμο'],
+        'date_of_birth' => ['label' => 'Ημερομηνία γέννησης'],
+        'nationality' => ['label' => 'Υπηκοότητα'],
+        'document_type' => ['label' => 'Έγγραφο'],
+        'document_number' => ['label' => 'Αριθμός εγγράφου'],
+        'reference' => ['label' => 'Κράτηση'],
+        'age_band' => ['label' => 'Κατηγορία επιβάτη'],
+        'checked_in' => ['label' => 'Επιβιβάστηκε'],
+    ],
+
     'audit_action' => [
         'vessel.deleted' => ['label' => 'Διαγραφή σκάφους'],
         'product.deleted' => ['label' => 'Διαγραφή εκδρομής'],
@@ -193,6 +204,7 @@ return [
         'record.deleted' => ['label' => 'Διαγραφή εγγραφής'],
         'override.applied' => ['label' => 'Εφαρμογή παράκαμψης'],
         'payment.recorded' => ['label' => 'Καταχώριση πληρωμής με το χέρι'],
+        'manifest.generated' => ['label' => 'Έκδοση κατάστασης επιβατών με αριθμούς εγγράφων'],
     ],
 
     'availability_rejection' => [
