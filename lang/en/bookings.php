@@ -34,6 +34,20 @@ return [
         'total' => 'Total',
     ],
 
+    'payment' => [
+        'action' => 'Record a payment',
+        'amount' => 'How much arrived',
+        'owed' => 'Still owed: :amount',
+        'how' => 'How it arrived',
+        'reference' => 'Reference',
+        'reference_help' => 'A receipt number or a bank reference, for your own records.',
+        'recorded' => 'The payment is recorded.',
+        'too_much' => 'That is more than is owed on this booking (:balance).',
+        'not_positive' => 'Enter an amount greater than zero.',
+        'wrong_gateway' => 'Only cash and bank transfers are recorded by hand. A card payment arrives by itself.',
+        'not_live' => 'This booking is cancelled, so no payment can be recorded against it.',
+    ],
+
     'view' => [
         'trip' => 'The trip',
         'guest' => 'The guest',

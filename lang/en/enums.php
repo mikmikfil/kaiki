@@ -203,6 +203,7 @@ return [
         'api_key.revoked' => ['label' => 'API key revoked'],
         'record.deleted' => ['label' => 'Record deleted'],
         'override.applied' => ['label' => 'Override applied'],
+        'payment.recorded' => ['label' => 'Payment recorded by hand'],
     ],
 
     'availability_rejection' => [

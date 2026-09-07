@@ -192,6 +192,7 @@ return [
         'api_key.revoked' => ['label' => 'Ανάκληση κλειδιού API'],
         'record.deleted' => ['label' => 'Διαγραφή εγγραφής'],
         'override.applied' => ['label' => 'Εφαρμογή παράκαμψης'],
+        'payment.recorded' => ['label' => 'Καταχώριση πληρωμής με το χέρι'],
     ],
 
     'availability_rejection' => [

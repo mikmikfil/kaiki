@@ -84,6 +84,18 @@ enum AuditAction: string
     case OverrideApplied = 'override.applied';
 
     /**
+     * Money an operator recorded by hand: cash on the boat, a bank transfer
+     * (BKG-33, OPS-5).
+     *
+     * Its own case rather than `override.applied`, because it overrides
+     * nothing — it is a statement that money arrived, made by a person, with no
+     * gateway behind it to corroborate. That is precisely why it is in the
+     * trail: every other succeeded payment in the system can be checked against
+     * a settlement file, and these cannot.
+     */
+    case PaymentRecorded = 'payment.recorded';
+
+    /**
      * The actions whose subjects exist and that are wired today.
      *
      * `booking.refunded` left this list in #84, which is the milestone that
