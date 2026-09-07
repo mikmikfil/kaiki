@@ -34,6 +34,8 @@ final class Settings {
 
 	public const SECRET_OPTION = 'kaiki_secret_key';
 
+	public const WEBHOOK_SECRET_OPTION = 'kaiki_webhook_secret';
+
 	/**
 	 * Everything safe to hand to anything.
 	 *
@@ -109,6 +111,22 @@ final class Settings {
 		}
 
 		$stored = get_option( self::SECRET_OPTION, '' );
+
+		return is_string( $stored ) ? trim( $stored ) : '';
+	}
+
+	/**
+	 * The shared secret the inbound webhook is verified with (WPP-8).
+	 *
+	 * In an option of its own for the same reason the API secret is: it must be
+	 * impossible to hand to a template by passing "the settings". It is a
+	 * weaker credential — it authenticates a call *to* this site and can read
+	 * nothing — but it is still the thing that stops a stranger flushing an
+	 * operator's cache on a loop, and there is no reason for it to travel with
+	 * the values a page renders.
+	 */
+	public static function webhook_secret(): string {
+		$stored = get_option( self::WEBHOOK_SECRET_OPTION, '' );
 
 		return is_string( $stored ) ? trim( $stored ) : '';
 	}

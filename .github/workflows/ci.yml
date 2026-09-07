@@ -498,6 +498,15 @@ jobs:
       - name: phpcs, WordPress ruleset and PHP 8.1 compatibility
         run: npm run plugin:lint
 
+      # The handful of decisions that must not be wrong and do not need
+      # WordPress to check: the webhook's signature and its replay window, the
+      # cache key that keeps two operators apart, and WPP-13's locale order.
+      # Everything else about the plugin is the Playwright run's, against a real
+      # site (WPP-15) — but that run needs a site somebody has to provide, and
+      # unverified HMAC verification is not a thing to ship while waiting.
+      - name: The plugin's own unit tests
+        run: npm run plugin:test
+
   security-audit:
     name: Dependency audit
     # SEC-12. Shared with nightly.yml so the severity threshold cannot end up

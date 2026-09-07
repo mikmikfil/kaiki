@@ -17,6 +17,9 @@ msgstr ""
 msgid "Anything on a page is public. If it ever appears on one, delete the key in your Kaiki panel and make a new one."
 msgstr ""
 
+msgid "Bookings are briefly unavailable. Please try again in a moment, or contact us directly."
+msgstr ""
+
 msgid "Cache, in seconds"
 msgstr ""
 
@@ -53,6 +56,15 @@ msgstr ""
 msgid "Kaiki Booking cannot start: its dependencies are missing. Run composer install in the plugin directory, or install the release zip instead of a checkout."
 msgstr ""
 
+msgid "Kaiki Booking: Kaiki answered unexpectedly. If this continues, the address under Settings may be wrong."
+msgstr ""
+
+msgid "Kaiki Booking: Kaiki refused the key. Check it under Settings, and check that this site is on the key's list of allowed addresses."
+msgstr ""
+
+msgid "Kaiki Booking: this site could not reach Kaiki. Visitors are seeing a short message instead of the booking form."
+msgstr ""
+
 msgid "Kaiki address"
 msgstr ""
 
@@ -62,10 +74,16 @@ msgstr ""
 msgid "Kaiki refused the key. Either it is wrong, or this site (%s) is not on the key's list of allowed addresses — you can add it in your Kaiki panel."
 msgstr ""
 
+msgid "Kaiki tells this site the moment something changes — a new trip, a new price — so visitors never see an out-of-date catalogue. Paste the update secret from your Kaiki panel to switch it on."
+msgstr ""
+
 msgid "Language"
 msgstr ""
 
 msgid "Leave this as it is unless you were told otherwise."
+msgstr ""
+
+msgid "Live updates"
 msgstr ""
 
 msgid "Never paste this key into a page, a post, a widget or a theme file."
@@ -92,16 +110,34 @@ msgstr ""
 msgid "That does not look like a secret key. A secret key starts with sk_."
 msgstr ""
 
+msgid "That request could not be read."
+msgstr ""
+
+msgid "That request could not be verified."
+msgstr ""
+
+msgid "That request is too old."
+msgstr ""
+
 msgid "There is no key saved yet."
 msgstr ""
 
 msgid "This site could not reach Kaiki at all. Check the address above, or try again in a minute."
 msgstr ""
 
+msgid "This site is not set up to receive updates."
+msgstr ""
+
 msgid "Trip pages"
 msgstr ""
 
 msgid "Trip pages for search engines"
+msgstr ""
+
+msgid "Update secret"
+msgstr ""
+
+msgid "Without it, your trips are refreshed on the timer above instead. Give Kaiki this address:"
 msgstr ""
 
 msgid "You do not have permission to change these settings."

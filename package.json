@@ -15,6 +15,7 @@
         "e2e:wp": "node -e \"console.log('e2e:wp — runs against KAIKI_WP_TEST_URL from .env; lands in M4. Stub.')\"",
         "plugin:lint": "composer --working-dir=packages/wordpress-plugin/kaiki-booking run lint",
         "plugin:lint:fix": "composer --working-dir=packages/wordpress-plugin/kaiki-booking run lint:fix",
+        "plugin:test": "composer --working-dir=packages/wordpress-plugin/kaiki-booking run test",
         "mjml:build": "node -e \"console.log('mjml:build — compiles email templates to committed HTML; lands in M2. Stub.')\"",
         "widget:guards": "npm -w packages/widget run guards",
         "widget:test": "npm -w packages/widget run test"

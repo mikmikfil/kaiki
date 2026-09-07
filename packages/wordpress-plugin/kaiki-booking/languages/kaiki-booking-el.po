@@ -116,3 +116,39 @@ msgstr "Δεν έχετε δικαίωμα να το κάνετε αυτό."
 
 msgid "It is used by this site's own scheduled task to read your full catalogue, including trips you have not published. It is never sent to a visitor."
 msgstr "Το χρησιμοποιεί η προγραμματισμένη εργασία αυτού του ιστότοπου για να διαβάσει ολόκληρο τον κατάλογό σας, μαζί με τις εκδρομές που δεν έχετε δημοσιεύσει. Δεν στέλνεται ποτέ σε επισκέπτη."
+
+msgid "Bookings are briefly unavailable. Please try again in a moment, or contact us directly."
+msgstr "Οι κρατήσεις δεν είναι προσωρινά διαθέσιμες. Δοκιμάστε ξανά σε λίγο ή επικοινωνήστε απευθείας μαζί μας."
+
+msgid "Kaiki Booking: Kaiki answered unexpectedly. If this continues, the address under Settings may be wrong."
+msgstr "Kaiki Booking: το Kaiki απάντησε απροσδόκητα. Αν συνεχιστεί, ίσως η διεύθυνση στις ρυθμίσεις να είναι λάθος."
+
+msgid "Kaiki Booking: Kaiki refused the key. Check it under Settings, and check that this site is on the key's list of allowed addresses."
+msgstr "Kaiki Booking: το Kaiki απέρριψε το κλειδί. Ελέγξτε το στις ρυθμίσεις, και ελέγξτε ότι αυτός ο ιστότοπος βρίσκεται στη λίστα επιτρεπόμενων διευθύνσεων του κλειδιού."
+
+msgid "Kaiki Booking: this site could not reach Kaiki. Visitors are seeing a short message instead of the booking form."
+msgstr "Kaiki Booking: ο ιστότοπος δεν μπόρεσε να επικοινωνήσει με το Kaiki. Οι επισκέπτες βλέπουν ένα σύντομο μήνυμα αντί για τη φόρμα κράτησης."
+
+msgid "Kaiki tells this site the moment something changes — a new trip, a new price — so visitors never see an out-of-date catalogue. Paste the update secret from your Kaiki panel to switch it on."
+msgstr "Το Kaiki ενημερώνει τον ιστότοπο τη στιγμή που κάτι αλλάζει — νέα εκδρομή, νέα τιμή — ώστε οι επισκέπτες να μη βλέπουν ποτέ παλιό κατάλογο. Επικολλήστε το μυστικό ενημερώσεων από τον πίνακα του Kaiki για να το ενεργοποιήσετε."
+
+msgid "Live updates"
+msgstr "Άμεσες ενημερώσεις"
+
+msgid "That request could not be read."
+msgstr "Το αίτημα δεν μπόρεσε να διαβαστεί."
+
+msgid "That request could not be verified."
+msgstr "Το αίτημα δεν μπόρεσε να επαληθευτεί."
+
+msgid "That request is too old."
+msgstr "Το αίτημα είναι πολύ παλιό."
+
+msgid "This site is not set up to receive updates."
+msgstr "Αυτός ο ιστότοπος δεν έχει ρυθμιστεί να λαμβάνει ενημερώσεις."
+
+msgid "Update secret"
+msgstr "Μυστικό ενημερώσεων"
+
+msgid "Without it, your trips are refreshed on the timer above instead. Give Kaiki this address:"
+msgstr "Χωρίς αυτό, οι εκδρομές σας ανανεώνονται με τον χρονοδιακόπτη πιο πάνω. Δώστε στο Kaiki αυτή τη διεύθυνση:"

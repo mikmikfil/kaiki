@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="tests/bootstrap.php"
+         colors="true"
+         failOnWarning="true"
+         failOnRisky="true"
+         cacheDirectory=".phpunit.cache">
+    <!--
+        The plugin's own unit tests, on the plugin's own PHP version.
+
+        Deliberately small. WPP-15 puts the real testing in a Playwright run
+        against a real WordPress site; what runs here is the handful of decisions
+        that must not be wrong and do not need WordPress to check — the webhook's
+        signature and its replay window, the cache key that keeps two operators
+        apart, and WPP-13's locale order.
+
+        Anything that needs WordPress to behave like WordPress belongs in the
+        Playwright run, and adding a WordPress test harness here to chase it
+        would be building the second thing ADR-0015 decided against.
+    -->
+    <testsuites>
+        <testsuite name="plugin">
+            <directory>tests/Unit</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory>src</directory>
+        </include>
+    </source>
+</phpunit>

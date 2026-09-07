@@ -49,6 +49,42 @@
         </properties>
     </rule>
 
+    <!--
+        The test bootstrap defines `get_option`, `set_transient` and friends: it
+        stands in for WordPress so the plugin's arithmetic can be tested without
+        it. Those doubles **cannot** be prefixed — a prefixed `kaiki_get_option`
+        would not be the function the plugin calls — so the two sniffs about
+        global names are switched off there and only there.
+
+        Everything else still applies to the tests: escaping, formatting,
+        documentation, and the PHP 8.1 compatibility check.
+    -->
+    <rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
+    <rule ref="WordPress.WP.GlobalVariablesOverride">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
+    <!--
+        And the documentation sniffs, in the tests only.
+
+        A test method's name is its description — `test_a_stale_timestamp_is_
+        refused` says more than a docblock above it would — and a docblock on
+        every `setUp()` is noise that trains people to skim docblocks. The
+        reasoning that matters in a test file is in the class docblock and beside
+        the assertions, where it explains *why the case exists*, and no sniff can
+        check for that.
+    -->
+    <rule ref="Squiz.Commenting.FunctionComment">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
+    <rule ref="Generic.Commenting.DocComment">
+        <exclude-pattern>tests/*</exclude-pattern>
+    </rule>
+
     <rule ref="WordPress.WP.I18n">
         <properties>
             <property name="text_domain" type="array">

@@ -2,6 +2,20 @@
 
 ## M4 — WordPress plugin
 
+### #113 - The API client, the transient cache, and the webhook that busts it
+
+One client, one cache, one failure path. Everything the plugin renders goes through it, because three call sites with three opinions about caching and failure is how a plugin comes to show a stale price on one page and a fatal error on another.
+
+**A failure is a value rather than an exception**, and that is what makes WPP-14 easy to obey: an exception in a shortcode callback *is* a fatal error on an operator's page — WordPress does not catch it for you — so a caller that ignores a failure here renders an empty list instead of a white screen, which is the right way round for the mistake to go. Three named failures, because an operator told only "it did not work" changes the wrong thing: unreachable, refused, and answered-unexpectedly.
+
+**The stale rule is deliberately narrow.** A catalogue read falls back to the last good answer when Kaiki cannot be reached at all — a week-old trip list beats a hole in an operator's page. Availability never does: a guest shown seats that are gone books a boat that is full. A refused key does not fall back either, because it is a configuration problem rather than an outage, and serving yesterday's catalogue would hide it until the operator noticed bookings had stopped.
+
+**The cache key is a promise about who may see an entry.** It carries the path, the query, the language and a hash of the key, so a site serving two languages — or reconfigured with another operator's key — cannot serve one catalogue on the other's page, which would have looked completely normal. It is hashed rather than readable because a transient name lands in the options table, which is in every database backup an agency emails around. The flush is coarse on purpose: working out which of a hundred cached reads an update touched would be a second implementation of the catalogue's shape, wrong the first time a field moves.
+
+**The webhook is verified before it is parsed.** A payload parsed before it is verified is a payload an attacker chose, and it is one line in the wrong order that no test catches by accident. Three refusals, all of them needed: a wrong signature; a timestamp outside five minutes, because a signature over a body would otherwise stay valid for ever and a captured request replays next year; and an event id already seen, because a sender that retries is ordinary behaviour rather than an attack. A replay is answered 200 — from the sender's side it succeeded, and an error would make it retry for ever.
+
+**The plugin got a small test suite, for an uncomfortable reason.** Its real testing is a Playwright run against a real WordPress site, and that site is something the product owner has to provide. Shipping unverified HMAC verification while waiting for it is not a thing to do — so the plugin now carries about forty lines of WordPress stubs and its own PHPUnit run over exactly the decisions that must not be wrong and do not need WordPress to check: the signature, the replay window, the cache key and the language order. It is not a WordPress test harness and does not pretend to be one.
+
 ### #112 - The plugin skeleton, and the key that must never reach a browser
 
 M4 opens with the WordPress plugin's first files: the header WordPress reads, the settings screen an operator fills in once, the standards gate, and the rule the rest of the milestone depends on.

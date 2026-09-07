@@ -9,6 +9,7 @@ declare( strict_types = 1 );
 
 namespace Kaiki\Booking;
 
+use Kaiki\Booking\Http\Webhook;
 use Kaiki\Booking\Settings\SettingsPage;
 
 defined( 'ABSPATH' ) || exit;
@@ -27,6 +28,11 @@ final class Plugin {
 	 */
 	public static function boot(): void {
 		add_action( 'init', array( self::class, 'load_translations' ) );
+
+		// Registered on every request, admin or not: a webhook arrives with no
+		// user, no cookie and no admin context, and a route registered only in
+		// `is_admin()` would never exist when Kaiki called.
+		Webhook::register();
 
 		if ( is_admin() ) {
 			SettingsPage::register();

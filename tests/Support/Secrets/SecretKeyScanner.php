@@ -77,9 +77,9 @@ final class SecretKeyScanner
                 continue;
             }
 
-            $contents = (string) $file->getContents();
+            $code = self::withoutComments((string) $file->getContents());
 
-            if (str_contains($contents, 'secret_key()') || str_contains($contents, 'SECRET_OPTION')) {
+            if (str_contains($code, 'secret_key()') || str_contains($code, 'SECRET_OPTION')) {
                 $found[] = $relative;
             }
         }
@@ -87,6 +87,40 @@ final class SecretKeyScanner
         sort($found);
 
         return $found;
+    }
+
+    /**
+     * The same file with its comments removed.
+     *
+     * A docblock that *mentions* the reader — `{@see Settings::secret_key()}`,
+     * explaining why a class does not call it — is not a leak, and a guard that
+     * flagged it would earn an exemption. After a dozen exemptions a guard
+     * enforces nothing, which is the posture `CredentialLeakScanner` already
+     * takes: match the shape that actually leaks, and nothing that merely looks
+     * like it.
+     *
+     * `token_get_all` rather than a regex, because a comment containing a quote
+     * is where a regex gets this wrong.
+     */
+    private static function withoutComments(string $source): string
+    {
+        $kept = '';
+
+        foreach (token_get_all($source) as $token) {
+            if (is_array($token)) {
+                if ($token[0] === T_COMMENT || $token[0] === T_DOC_COMMENT) {
+                    continue;
+                }
+
+                $kept .= $token[1];
+
+                continue;
+            }
+
+            $kept .= $token;
+        }
+
+        return $kept;
     }
 
     /**

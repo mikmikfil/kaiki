@@ -12,10 +12,10 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M4 — WordPress plugin: #112 built.** M3 complete (#101 … #111), M2 complete, M1 complete. |
+| Milestone | **M4 — WordPress plugin: #112, #113 built.** M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
 | M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
-| M4 | **#112 built** — the plugin skeleton, its settings screen and the standards gate. Six issues written (#112 … #117); #117 needs a real WordPress site, which is the product owner's. |
+| M4 | **#112 and #113 built** — the plugin skeleton, its settings screen, the standards gate, and the client, cache and webhook everything else reads through. Six issues written (#112 … #117); #117 needs a real WordPress site, which is the product owner's. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
@@ -36,6 +36,110 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #113 — The API client, the transient cache, and the webhook that busts it
+
+How the plugin talks to Kaiki: one client, one cache, one failure path.
+Everything the plugin renders after this goes through it, which is the point —
+three call sites with three opinions about caching and failure is how a plugin
+comes to show a stale price on one page and a fatal error on another.
+
+### A failure is a value, not an exception
+
+WPP-14: *"A platform outage MUST NOT produce a PHP fatal error or a blank
+page."* Returning `ApiResult` rather than throwing is what makes that easy to
+obey — an exception in a shortcode callback **is** a fatal error on an
+operator's page, WordPress does not catch it for you, and every call site would
+otherwise have to remember a `try`. A caller that ignores the failure renders an
+empty list instead of a white screen, which is the right way round for the
+mistake to go.
+
+Three named failures, because they need three different sentences and, for an
+editor, three different actions: `unreachable`, `refused`, `unexpected`. An
+operator told only "it did not work" changes the wrong one.
+
+### The stale rule is narrow, and the narrowness is the decision
+
+A catalogue read falls back to the **last good answer** when Kaiki cannot be
+reached — a stale trip list is better than a hole in an operator's page, and the
+entry lives a week, which covers an outage nobody is awake for.
+
+**Availability never does.** A guest shown seats that are gone books a boat that
+is full, and WGT-17's sixty seconds is already the compromise. `get_fresh()`
+exists so a caller says which kind of read it is, rather than the cache guessing.
+
+A **refused key** does not fall back either. It is a configuration problem, not
+an outage, and serving yesterday's catalogue would hide it until the operator
+noticed bookings had stopped.
+
+### The cache key is a promise about who may see the entry
+
+It carries the path, the query, the locale and a hash of the publishable key. A
+site serving two languages, or reconfigured with another operator's key, cannot
+serve one's catalogue on the other's page — and it would have looked completely
+normal. The key is hashed rather than readable, because a transient name lands
+in `wp_options`, which is in every database backup an agency emails around.
+
+The flush is coarse on purpose. The platform's message says *something* changed;
+working out which of a hundred cached reads it touched would be a second
+implementation of the catalogue's shape, wrong the first time a field moves.
+Re-reading a trip list costs one request. Serving a wrong one costs a wrong price
+on a page. The **last-good** entries survive a flush: they are the outage net,
+and an operator editing a title should not remove it.
+
+### The webhook, verified before it is parsed
+
+A payload parsed before it is verified is a payload an attacker chose. It is one
+line in the wrong order and no test catches it by accident, so this follows the
+platform's own `GatewayWebhookController` rather than inventing a second opinion.
+
+Three refusals, all needed. A **wrong signature**, obviously. A **stale
+timestamp**, because a signature over a body stays valid for ever otherwise and a
+captured request replays next year. A **seen event id**, because a sender that
+retries is not an attack but ordinary behaviour, and the second delivery must be
+a no-op rather than a second flush.
+
+The reply to a replay is **200**, not 4xx: from the sender's side it succeeded,
+and an error would make it retry for ever.
+
+`permission_callback` returns `'__return_true'`, which reads as a missing check
+and is not one — the HMAC **is** the authorisation, and a server-to-server call
+has no user, no cookie and no nonce to check instead. The docblock says so beside
+the line, because that is where somebody reviewing it will be looking.
+
+### The plugin got a test suite, and the reason is uncomfortable
+
+WPP-15 puts the plugin's real testing in a Playwright run against a real
+WordPress site, and that run needs a site the product owner has to provide.
+Shipping **unverified HMAC verification** while waiting for it is not a thing to
+do — so the plugin has about forty lines of WordPress stubs and PHPUnit on its
+own PHP version, covering exactly the decisions that must not be wrong and do not
+need WordPress to check: the signature, the replay window, the cache key, and
+WPP-13's locale order.
+
+It is not a WordPress test harness and does not pretend to be one. Anything that
+needs WordPress to *behave* like WordPress is still the Playwright run's, which
+is what ADR-0015 decided.
+
+`SecretKeyScanner` learnt to strip comments on the way: the `Client`'s docblock
+explains why it does **not** call `Settings::secret_key()`, and a guard that
+flagged that would have earned an exemption — after a dozen of those a guard
+enforces nothing.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `npm run plugin:lint` | phpcs, WordPress ruleset and PHP 8.1 compatibility, clean |
+| `npm run plugin:test` | **23 passed** |
+| `composer lint` / `composer stan` | Pint clean; PHPStan level 6, no errors |
+| `composer i18n:check` | 161 passed |
+| `composer test` | **2266 passed, 4 skipped, 1 failed** — the inherited ENV-10 snapshot |
+
+The Greek translation moved with the code: 46 strings, compiled, with the parity
+test as the thing that notices when it does not.
 
 ---
 

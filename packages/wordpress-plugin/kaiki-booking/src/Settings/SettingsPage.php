@@ -73,6 +73,17 @@ final class SettingsPage {
 
 		register_setting(
 			self::GROUP,
+			Settings::WEBHOOK_SECRET_OPTION,
+			array(
+				'type'              => 'string',
+				'sanitize_callback' => 'sanitize_text_field',
+				'default'           => '',
+				'show_in_rest'      => false,
+			)
+		);
+
+		register_setting(
+			self::GROUP,
 			Settings::SECRET_OPTION,
 			array(
 				'type'              => 'string',
@@ -160,8 +171,9 @@ final class SettingsPage {
 			wp_die( esc_html__( 'You do not have permission to change these settings.', 'kaiki-booking' ) );
 		}
 
-		$settings = Settings::all();
-		$secret   = get_option( Settings::SECRET_OPTION, '' );
+		$settings       = Settings::all();
+		$secret         = get_option( Settings::SECRET_OPTION, '' );
+		$webhook_secret = get_option( Settings::WEBHOOK_SECRET_OPTION, '' );
 
 		?>
 		<div class="wrap">
@@ -256,6 +268,30 @@ final class SettingsPage {
 								value="<?php echo esc_attr( (string) $settings['cache_ttl'] ); ?>">
 							<p class="description">
 								<?php echo esc_html__( 'How long your trips are remembered on this site. Changes you make in Kaiki appear immediately anyway — Kaiki tells this site when something changed.', 'kaiki-booking' ); ?>
+							</p>
+						</td>
+					</tr>
+				</table>
+
+				<h2 class="title"><?php echo esc_html__( 'Live updates', 'kaiki-booking' ); ?></h2>
+
+				<p class="description" style="max-width:44rem">
+					<?php echo esc_html__( 'Kaiki tells this site the moment something changes — a new trip, a new price — so visitors never see an out-of-date catalogue. Paste the update secret from your Kaiki panel to switch it on.', 'kaiki-booking' ); ?>
+				</p>
+
+				<table class="form-table" role="presentation">
+					<tr>
+						<th scope="row">
+							<label for="kaiki_webhook_secret"><?php echo esc_html__( 'Update secret', 'kaiki-booking' ); ?></label>
+						</th>
+						<td>
+							<input type="password" class="regular-text code" id="kaiki_webhook_secret"
+								name="<?php echo esc_attr( Settings::WEBHOOK_SECRET_OPTION ); ?>"
+								value="<?php echo esc_attr( is_string( $webhook_secret ) ? $webhook_secret : '' ); ?>"
+								autocomplete="off">
+							<p class="description">
+								<?php echo esc_html__( 'Without it, your trips are refreshed on the timer above instead. Give Kaiki this address:', 'kaiki-booking' ); ?>
+								<code><?php echo esc_html( rest_url( \Kaiki\Booking\Http\Webhook::NAMESPACE . \Kaiki\Booking\Http\Webhook::ROUTE ) ); ?></code>
 							</p>
 						</td>
 					</tr>
