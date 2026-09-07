@@ -55,7 +55,16 @@ final class AuthenticateApiKey
         // Failing loudly is the point — quiet success would mean an operator
         // shipping their secret key in a web page and never finding out.
         if (! $apiKey->type->isPublic() && $request->headers->has('Origin')) {
-            return $this->reject('api.errors.secret_key_from_browser', 'secret_key_from_browser', 403);
+            // The code is `secret_key_in_browser`, spelled the way §4.2 spells
+            // it. Clients branch on `error.code` and never on `message`, so the
+            // table in the contract is the name — a synonym here is a client
+            // that handles the case in the document and not the one in the wire.
+            return ApiErrorResponse::fromKey(
+                key: 'api.errors.secret_key_in_browser',
+                code: 'secret_key_in_browser',
+                status: 403,
+                details: ['origin' => (string) $request->headers->get('Origin')],
+            );
         }
 
         if ($apiKey->type->isPublic() && ! $apiKey->allowsOrigin($request->headers->get('Origin'))) {

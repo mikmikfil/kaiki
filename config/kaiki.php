@@ -344,6 +344,14 @@ return [
             'cache_ttl_seconds' => 60,
             'per_page' => 24,
             'max_per_page' => 100,
+
+            /*
+             * `GET /api/v1/sync/products` asks for a page and gets the largest
+             * one there is: §3.5 gives it a default and a maximum of 100, both.
+             * A sync wants as few round trips as it can have, and the cap is
+             * what stops one call asking for the whole catalogue at once.
+             */
+            'sync_per_page' => 100,
         ],
     ],
 

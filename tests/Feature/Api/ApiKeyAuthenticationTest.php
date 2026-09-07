@@ -155,7 +155,7 @@ it('rejects a secret key that arrives with an Origin header', function (): void 
     withHeaders(['Authorization' => "Bearer {$key}", 'Origin' => 'https://operator.example'])
         ->getJson('/_test/read')
         ->assertStatus(403)
-        ->assertJsonPath('error.code', 'secret_key_from_browser');
+        ->assertJsonPath('error.code', 'secret_key_in_browser');
 })->group('fast');
 
 it('enforces the origin allow-list on a publishable key', function (): void {

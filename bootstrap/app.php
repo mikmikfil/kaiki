@@ -12,6 +12,7 @@ use App\Http\Middleware\GuestTokenPage;
 use App\Http\Middleware\HostedPageHeaders;
 use App\Http\Middleware\HostedRootPipeline;
 use App\Http\Middleware\RequireApiKeyCapability;
+use App\Http\Middleware\RequireSecretKey;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SetLocale;
 use App\Http\Middleware\ThrottleTokenLookups;
@@ -44,6 +45,12 @@ return Application::configure(basePath: dirname(__DIR__))
             // publishable key is refused a privileged write without the
             // application ever loading the record (spec SEC-5).
             'api.scope' => RequireApiKeyCapability::class,
+            // Refuses a publishable key outright (#116). One endpoint needs it
+            // — the catalogue sync — and the reason is what that feed carries
+            // rather than what it does: drafts, archived trips and internal SEO
+            // fields. Not a scope, because `products.read` is in a publishable
+            // key's default set and the axis here is the credential's kind.
+            'api.secret' => RequireSecretKey::class,
             // Resolves exactly one tenant by the fixed TEN-4 order, or 404s.
             'tenant' => ResolveTenant::class,
             // Refuses unsafe methods for a tenant in read-only mode (TEN-9).
@@ -148,6 +155,8 @@ return Application::configure(basePath: dirname(__DIR__))
         //
         // The chain, and why it is this way:
         //   AuthenticateApiKey       a bad key is 401, before anything loads
+        //   RequireSecretKey         a publishable key on the sync feed is 403
+        //                            before the catalogue is queried (#116)
         //   RequireApiKeyCapability  a scope refusal is 403 "without the
         //                            application ever loading the record" (SEC-5)
         //   ResolveTenant            exactly one tenant, or 404
@@ -155,7 +164,8 @@ return Application::configure(basePath: dirname(__DIR__))
         //   EnsureTenantIsWritable   last, so its refusal is already localised
         $middleware->prependToPriorityList(SubstituteBindings::class, ResolveTenant::class);
         $middleware->prependToPriorityList(ResolveTenant::class, RequireApiKeyCapability::class);
-        $middleware->prependToPriorityList(RequireApiKeyCapability::class, AuthenticateApiKey::class);
+        $middleware->prependToPriorityList(RequireApiKeyCapability::class, RequireSecretKey::class);
+        $middleware->prependToPriorityList(RequireSecretKey::class, AuthenticateApiKey::class);
         $middleware->appendToPriorityList(ResolveTenant::class, SetLocale::class);
         $middleware->appendToPriorityList(SetLocale::class, EnsureTenantIsWritable::class);
     })

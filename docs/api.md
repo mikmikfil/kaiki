@@ -428,6 +428,7 @@ Every code this API can emit. Messages below are the canonical strings; interpol
 | `api_key_expired` | 401 | This API key has expired. | Αυτό το κλειδί API έχει λήξει. | `expired_at` |
 | `insufficient_scope` | 403 | This key is not allowed to perform this action. | Αυτό το κλειδί δεν επιτρέπεται να εκτελέσει αυτή την ενέργεια. | `required_scope`, `key_type` |
 | `secret_key_in_browser` | 403 | A secret key cannot be used from a browser. Use a publishable key. | Το μυστικό κλειδί δεν μπορεί να χρησιμοποιηθεί από φυλλομετρητή. Χρησιμοποιήστε δημόσιο κλειδί. | `origin` |
+| `secret_key_required` | 403 | This endpoint requires a secret key. | Αυτό το endpoint απαιτεί μυστικό κλειδί. | `key_type` |
 | `origin_not_allowed` | 403 | This website is not authorised to use this key. | Αυτός ο ιστότοπος δεν έχει εξουσιοδότηση για αυτό το κλειδί. | `origin`, `hint` |
 | `invalid_guest_token` | 401 | This link is not valid. | Αυτός ο σύνδεσμος δεν είναι έγκυρος. | — |
 | `guest_token_expired` | 410 | This link has expired. | Αυτός ο σύνδεσμος έχει λήξει. | `expired_at` |
@@ -440,6 +441,7 @@ Every code this API can emit. Messages below are the canonical strings; interpol
 |---|---|---|---|---|
 | `validation_failed` | 422 | Please check the details you entered. | Ελέγξτε τα στοιχεία που συμπληρώσατε. | `fields{}` — see below |
 | `unsupported_locale` | 400 | That language is not supported. | Αυτή η γλώσσα δεν υποστηρίζεται. | `requested`, `supported` |
+| `invalid_updated_since` | 400 | The `updated_since` value is not a valid date and time. | Η τιμή `updated_since` δεν είναι έγκυρη ημερομηνία και ώρα. | `updated_since` |
 | `invalid_cursor` | 400 | The pagination cursor is not valid. | Ο δείκτης σελιδοποίησης δεν είναι έγκυρος. | — |
 | `invalid_date_range` | 422 | The date range is not valid. | Το εύρος ημερομηνιών δεν είναι έγκυρο. | `from`, `to`, `max_days` |
 | `unsupported_media_type` | 415 | Requests must be sent as JSON. | Τα αιτήματα πρέπει να αποστέλλονται σε μορφή JSON. | `received` |
@@ -1695,6 +1697,15 @@ paths:
         Unlike `GET /products`, translatable fields are returned **unresolved**, as
         `{"el": …, "en": …}` objects, because the plugin creates one CPT entry per language
         for WPML/Polylang and needs both.
+
+        `product` is always filled on a live row — the schema permits null, and the example
+        below shows one, but a mirror needs the language-free facts (duration, capacity,
+        images, the boat, the cancellation tiers) as well as the prose, and `translations`
+        carries only the prose. It is absent on a tombstone.
+
+        A publishable key is refused `403 secret_key_required` before the catalogue is
+        queried, and an `updated_since` that cannot be parsed is `400 invalid_updated_since`
+        rather than a silent full or empty sync.
       tags: [Sync]
       security:
         - SecretKey: []

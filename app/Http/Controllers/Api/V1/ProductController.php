@@ -8,9 +8,9 @@ use App\Domain\Catalog\Queries\PublicProductQuery;
 use App\Http\Requests\Api\V1\ProductIndexRequest;
 use App\Http\Resources\Api\V1\ProductDetailResource;
 use App\Http\Resources\Api\V1\ProductListResource;
+use App\Http\Responses\ConditionalJson;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\CursorPaginator;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
@@ -113,59 +113,16 @@ final class ProductController
     /**
      * The response, with the conditional-request machinery §3.7 promises.
      *
-     * The ETag is **strong and computed from the payload**, the same choice
-     * `BrandingController` made and for the same reason: hashing what is about
-     * to be sent means the tag cannot disagree with the body. A stamp taken
-     * from `max(updated_at)` would look right and drift the moment anything
-     * else fed the payload — the locale, a rate plan going inactive, an extra
-     * being renamed — none of which touch `products.updated_at`.
-     *
-     * A 304 carries no body, still costs rate-limit quota, and is the cheapest
-     * correct way for the WordPress plugin to poll.
+     * {@see ConditionalJson} computes the ETag from the payload and answers the
+     * conditional request; all this endpoint adds is its own `max-age`, which
+     * §3.6 fixes at 60 seconds for the catalogue class.
      *
      * @param  array<string, mixed>  $payload
      */
     private function cacheable(Request $request, array $payload): SymfonyResponse
     {
-        $etag = '"' . hash('sha256', (string) json_encode($payload)) . '"';
-
-        $headers = [
-            'ETag' => $etag,
+        return ConditionalJson::respond($request, $payload, [
             'Cache-Control' => 'public, max-age=' . (int) config('kaiki.catalog.api.cache_ttl_seconds', 60),
-        ];
-
-        if ($this->matches($request, $etag)) {
-            return response()->noContent(SymfonyResponse::HTTP_NOT_MODIFIED)
-                ->withHeaders($headers);
-        }
-
-        return (new JsonResponse($payload, SymfonyResponse::HTTP_OK))->withHeaders($headers);
-    }
-
-    /**
-     * Does the client already hold this exact payload?
-     *
-     * `If-None-Match` may carry a list, and a weak validator arrives prefixed
-     * `W/`. Comparing the raw header against our own tag would miss both and
-     * turn every conditional request into a full response — the failure nobody
-     * notices, because everything still works.
-     */
-    private function matches(Request $request, string $etag): bool
-    {
-        $header = $request->headers->get('If-None-Match');
-
-        if ($header === null) {
-            return false;
-        }
-
-        foreach (explode(',', $header) as $candidate) {
-            $candidate = trim($candidate);
-
-            if ($candidate === '*' || ltrim($candidate, 'W/') === $etag) {
-                return true;
-            }
-        }
-
-        return false;
+        ]);
     }
 }

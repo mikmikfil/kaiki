@@ -6,11 +6,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Enums\ApiKeyEnvironment;
+use App\Http\Responses\ConditionalJson;
 use App\Models\ApiKey;
 use App\Support\Tenancy;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 /**
@@ -52,54 +51,10 @@ final class BrandingController
             $key instanceof ApiKey && $key->environment === ApiKeyEnvironment::Test,
         );
 
-        $etag = '"' . hash('sha256', (string) json_encode($data)) . '"';
-
-        if ($this->matches($request, $etag)) {
-            return response()->noContent(SymfonyResponse::HTTP_NOT_MODIFIED)
-                ->withHeaders($this->cacheHeaders($etag));
-        }
-
-        return (new JsonResponse(['data' => $data], Response::HTTP_OK))
-            ->withHeaders($this->cacheHeaders($etag));
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function cacheHeaders(string $etag): array
-    {
-        return [
-            'ETag' => $etag,
-            // 60 seconds, from `docs/api.md` §3.6. The contract is the
-            // authority (§10.5), and it says 60 where the issue said 300.
+        // 60 seconds, from `docs/api.md` §3.6. The contract is the authority
+        // (§10.5), and it says 60 where the issue said 300.
+        return ConditionalJson::respond($request, ['data' => $data], [
             'Cache-Control' => 'public, max-age=' . (int) config('kaiki.branding.cache_ttl_seconds', 60),
-        ];
-    }
-
-    /**
-     * Does the client already have this exact payload?
-     *
-     * `If-None-Match` may carry a list, and a weak validator arrives prefixed
-     * `W/`. Comparing the raw header against our own tag would miss both and
-     * turn every conditional request into a full response — which is the
-     * failure mode nobody notices, because everything still works.
-     */
-    private function matches(Request $request, string $etag): bool
-    {
-        $header = $request->headers->get('If-None-Match');
-
-        if ($header === null) {
-            return false;
-        }
-
-        foreach (explode(',', $header) as $candidate) {
-            $candidate = trim($candidate);
-
-            if ($candidate === '*' || ltrim($candidate, 'W/') === $etag) {
-                return true;
-            }
-        }
-
-        return false;
+        ]);
     }
 }

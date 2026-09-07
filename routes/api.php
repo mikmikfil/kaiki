@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\PriceQuoteController;
 use App\Http\Controllers\Api\V1\ProductController;
 use App\Http\Controllers\Api\V1\SearchController;
+use App\Http\Controllers\Api\V1\SyncProductController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -261,4 +262,35 @@ Route::middleware([
     'api.guest:required',
 ])->group(function (): void {
     Route::post('/bookings/{uuid}/cancel', [BookingController::class, 'cancel'])->name('api.v1.bookings.cancel');
+});
+
+/*
+ * Class H — the catalogue sync (`docs/api.md` §3.6), and the only route in this
+ * file that a publishable key cannot reach.
+ *
+ * `api.secret` is the difference. The payload is the whole catalogue including
+ * `draft`, `inactive` and `archived` products and the operator's internal SEO
+ * fields — the one read an unfriendly party would want — and a publishable key
+ * sits in the source of somebody's home page (ADR-0013 Option A, §2.2). It is
+ * not expressible as a scope: `products.read` is in a publishable key's default
+ * read set, so granting this feed by scope would be the mistake rather than the
+ * fix.
+ *
+ * `tenant.writable` is absent for the reason the catalogue reads give: SAA-7
+ * closes bookings for a lapsed subscription, not the catalogue. An operator's
+ * WordPress site should not start unpublishing their trips because a card
+ * expired.
+ *
+ * 120 per key and 120 per IP — the only class whose two numbers are equal,
+ * because there is no browser here to tell apart from the server behind it.
+ */
+Route::middleware([
+    'api.key',
+    'api.secret',
+    'tenant',
+    'locale',
+    'api.scope:products.read',
+    'throttle:api-sync',
+])->group(function (): void {
+    Route::get('/sync/products', SyncProductController::class)->name('api.v1.sync.products');
 });

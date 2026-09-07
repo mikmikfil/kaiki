@@ -380,6 +380,12 @@ final class OpenApiContract
      * `optional` form, which is footnote 1's widget-finishing-its-own-flow
      * case, keeps the publishable key beside them.
      *
+     * **`api.secret` is the fourth, added by #116.** It is the plainest of them:
+     * the route says a publishable key may not call it at all, and the contract
+     * says `security: [SecretKey]`. Read last so it wins — a route carrying both
+     * it and an `api.scope:` that a `pk_` could hold accepts a secret key and
+     * nothing else.
+     *
      * @return list<string>
      */
     private static function securityFor(RoutingRoute $route): array
@@ -425,6 +431,12 @@ final class OpenApiContract
         }
 
         sort($accepts);
+
+        foreach ($middleware as $entry) {
+            if ($entry === 'api.secret') {
+                $accepts = ['SecretKey'];
+            }
+        }
 
         return $accepts;
     }
