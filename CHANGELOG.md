@@ -2,6 +2,22 @@
 
 ## M3 — Hosted pages & widget
 
+### #107 - The booking mount, and the key that must not be fresh
+
+The walk that takes the money: a date, a party by age band, extras, contact details and consent, a review carrying the server's own price breakdown, and the gateway. Plus the hold countdown while the guest decides and the confirmation state when they come back. It is the first time M2's whole machine is driven by something other than a test.
+
+**Back navigation never losing data is a property of the design rather than something to remember.** It is the most commonly broken thing in a multi-step form and it breaks the same way every time — each step owns its own state, going back unmounts the component, and the answers go with it. So the machine owns one state object and the steps are views onto it; there is no code path that clears an answer, because `back()` moves a cursor. The test walks to the end, walks back to the beginning and asserts **every field individually**, since `toEqual` on the whole object would pass on a machine that reset everything to the same defaults it started with. The extras step is skipped symmetrically for a product with none, so a guest going back from contact lands on party rather than on a step they have never seen.
+
+**The idempotency key is per intention, and this is the requirement most likely to be built backwards.** The instinct is a key per request; §3.4's whole mechanism depends on it being per intention, so a retry replays the first answer instead of creating a second booking. A widget minting a fresh key each attempt double-books on a flaky connection **and every server-side test of the middleware still passes** — from the server's side, two keys are two intentions, which is a true statement about a false situation. The key here is bound to what makes this draft *this* draft: the date, the party, the extras, the voucher. Changing the guest's telephone number does not mint a new one; changing the party does. And a new draft key never invalidates the checkout key of a booking already on its way to a gateway.
+
+**Three states after "pay", and only one of them is a claim.** The ordinary gateway redirect; a direct confirmation when a voucher covered the whole total (BKG-19), detected by the absence of `redirect_url` rather than by a status code, because 200-versus-201 is a fact about HTTP and not about the booking; and the sixty-second poll on the way back, which reports **pending** — an email will follow — when the webhook has not landed. Never "confirmed". A redirect is a guest pressing a button on somebody else's page; the webhook is the money moving, and #82's design refuses to conflate them anywhere else either.
+
+The poll reads past the cache, which the client gained an opt-out for: WGT-17's cache window is sixty seconds and the poll is sixty seconds long, so a cached read would have re-read its own first response and concluded nothing ever happened.
+
+Two smaller things. The last seats going while a guest decides (AVL-39) renders as a sentence in their language with fresh availability behind it, not as an error dialog they start over from. And the date step is a **native `<input type="date">`** rather than a calendar — the 80 KB budget meeting A11Y-1, since the native control is keyboard-operable, labelled and localised by the guest's own device and costs nothing; the month grid with availability shading belongs to #108's calendar mount.
+
+The bundle is now **16.2 KB gzipped, 20.2% of the budget**, leaving 63.8 KB for the three mounts that follow.
+
 ### #106 - The widget shell, and three gates built before there was anything to gate
 
 `packages/widget` — Preact and TypeScript, built by Vite into a single IIFE, rendering inside a Shadow DOM. The loader, the API client, the branding, the translations, the analytics events and the storage rule: everything the four mounts stand on, and nothing a guest can see yet. It is the hardest piece in M3 because it runs inside **somebody else's page**, with their CSS, their security policy, their page builder and possibly three copies of itself.

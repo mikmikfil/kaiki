@@ -42,6 +42,18 @@ interface RequestOptions {
   readonly query?: Record<string, string | number | undefined | null>;
   readonly body?: unknown;
   readonly cacheKey?: string;
+  /**
+   * Opt out of WGT-17's cache for a read whose whole purpose is that the answer
+   * changes while you are asking — the WGT-20 confirmation poll, which would
+   * otherwise re-read its own first response for sixty seconds and conclude
+   * nothing ever happened.
+   */
+  readonly cache?: boolean;
+  /**
+   * Extra headers for this request — in practice §3.4's `Idempotency-Key`,
+   * which is per **intention** and therefore cannot live on the client.
+   */
+  readonly headers?: Record<string, string>;
   readonly signal?: AbortSignal;
 }
 
@@ -90,7 +102,7 @@ export class ApiClient {
   private async request<T>(path: string, options: RequestOptions): Promise<T> {
     const method = options.method ?? 'GET';
     const url = this.url(path, options.query);
-    const cacheKey = options.cacheKey ?? (method === 'GET' ? url : null);
+    const cacheKey = options.cache === false ? null : (options.cacheKey ?? (method === 'GET' ? url : null));
 
     if (cacheKey !== null) {
       const hit = this.cache.get(cacheKey);
@@ -152,6 +164,7 @@ export class ApiClient {
           Authorization: `Bearer ${this.publishableKey}`,
           Accept: 'application/json',
           ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+          ...(options.headers ?? {}),
         },
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
         // No cookies, ever (WGT-12, GDR-12). The key is the credential and a

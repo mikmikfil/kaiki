@@ -166,6 +166,55 @@ const BASE_STYLES = `
   color: color-mix(in srgb, var(--kaiki-text) 55%, transparent);
 }
 
+/* --- the booking walk (issue 107) --------------------------------- */
+
+.kaiki-four-lines { display: grid; gap: .4rem; margin: 0 0 1rem; }
+.kaiki-four-lines > div { display: grid; grid-template-columns: 7rem 1fr; gap: .7rem; align-items: baseline; }
+.kaiki-four-lines dt {
+  margin: 0; font-size: .72rem; font-weight: 600; letter-spacing: .06em;
+  color: color-mix(in srgb, var(--kaiki-text) 60%, transparent);
+}
+.kaiki-four-lines dd { margin: 0; font-weight: 600; }
+
+.kaiki-hold {
+  margin: 0 0 .9rem; font-size: .85rem;
+  color: color-mix(in srgb, var(--kaiki-text) 65%, transparent);
+}
+/* The warning uses the operator's accent, which is the colour their own page
+   uses for attention — a red this file is not allowed to name would also be a
+   colour nobody chose. */
+.kaiki-hold-warning { color: var(--kaiki-accent); font-weight: 600; }
+
+.kaiki-step { display: grid; gap: .8rem; margin-bottom: 1.1rem; }
+.kaiki-field { display: grid; gap: .3rem; font-size: .9rem; }
+.kaiki-field > span { font-weight: 600; }
+.kaiki-field input, .kaiki-field textarea {
+  font: inherit; color: inherit; background: var(--kaiki-background);
+  border: 1px solid color-mix(in srgb, var(--kaiki-text) 22%, transparent);
+  border-radius: var(--kaiki-radius, 10px);
+  padding: .55rem .65rem; min-height: 44px; width: 100%;
+}
+.kaiki-inline { grid-template-columns: 1fr 5rem; align-items: center; }
+.kaiki-consent { grid-template-columns: auto 1fr; align-items: start; gap: .6rem; }
+.kaiki-consent input { min-height: 0; width: auto; }
+
+.kaiki-summary { display: grid; gap: .4rem; margin: 0 0 .9rem; }
+.kaiki-summary > div { display: grid; grid-template-columns: 7rem 1fr; gap: .7rem; }
+.kaiki-summary dt, .kaiki-summary dd { margin: 0; }
+.kaiki-summary dt { font-size: .72rem; font-weight: 600; letter-spacing: .06em; color: color-mix(in srgb, var(--kaiki-text) 60%, transparent); }
+
+.kaiki-lines { list-style: none; margin: 0 0 .8rem; padding: 0; display: grid; gap: .35rem; font-size: .93rem; }
+.kaiki-lines li { display: flex; justify-content: space-between; gap: 1rem; }
+.kaiki-amount { font-variant-numeric: tabular-nums; }
+
+.kaiki-total { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; margin: 0 0 .6rem; }
+.kaiki-total strong { font-size: 1.35rem; letter-spacing: -.02em; }
+.kaiki-total .kaiki-muted { flex-basis: 100%; font-size: .78rem; }
+
+.kaiki-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }
+.kaiki-button-ghost { background: transparent; color: var(--kaiki-primary); }
+.kaiki-button:disabled { opacity: .5; cursor: not-allowed; }
+
 @media (prefers-reduced-motion: reduce) {
   .kaiki-root * { transition: none !important; animation: none !important; }
 }

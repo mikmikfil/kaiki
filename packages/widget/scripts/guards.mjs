@@ -50,6 +50,12 @@ if (!existsSync(bundle)) {
   // unlikely in a minified bundle, so every hit is reported rather than
   // filtered. A false positive here is a minute of somebody's time; a missed
   // one is an operator's brand colour quietly ignored.
+  //
+  // The one false positive that actually happens: **an issue number in a CSS
+  // comment**. `#107` is a valid three-digit hex colour, and the widget's
+  // stylesheet is a template literal, so the comment survives into the bundle.
+  // Write it as `issue 107`. The alternative — teaching this regex about
+  // comments — would be teaching it to ignore a place a colour can hide.
   if (hex.length > 0) {
     failures.push(
       `WGT-9: the bundle contains ${hex.length} hex colour(s): ${[...new Set(hex)].slice(0, 8).join(', ')}\n` +

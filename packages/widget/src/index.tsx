@@ -5,6 +5,7 @@ import { ApiClient } from './api-client';
 import { ensureFontLink, loadBranding, type BrandPayload } from './branding';
 import { findEmbeds, readConfig, type WidgetConfig } from './config';
 import { resolveLocale, translator } from './i18n';
+import './mounts/booking/register';
 import { createShadowHost } from './shadow';
 import { ErrorState, LoadingState, Shell } from './shell';
 
@@ -102,6 +103,9 @@ function mount(config: WidgetConfig, script: HTMLScriptElement, doc: Document): 
             category={config.category}
             t={t}
             poweredBy={true}
+            client={client}
+            analytics={events}
+            locale={t.locale}
           />,
           shadow.slot,
         );

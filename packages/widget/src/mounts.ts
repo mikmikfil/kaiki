@@ -1,6 +1,9 @@
 import type { ComponentType } from 'preact';
 
+import type { Analytics } from './analytics';
+import type { ApiClient } from './api-client';
 import type { MountName } from './config';
+import type { Translator } from './i18n';
 
 /**
  * The registry the four mounts plug into (#107, #108).
@@ -23,6 +26,15 @@ import type { MountName } from './config';
 export interface MountProps {
   readonly productUuid: string | null;
   readonly category: string | null;
+  /**
+   * The shared client, translator and event emitter of #106 — one per page, not
+   * one per mount (WGT-8). A mount that built its own would be a second branding
+   * fetch and a second cache.
+   */
+  readonly client: ApiClient;
+  readonly t: Translator;
+  readonly analytics: Analytics;
+  readonly locale: string;
 }
 
 export type MountComponent = ComponentType<MountProps>;

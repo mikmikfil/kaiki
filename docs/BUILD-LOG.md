@@ -12,14 +12,14 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M3 — Hosted pages & widget: #101 … #106 built.** M2 complete (all eleven), M1 complete. |
+| Milestone | **M3 — Hosted pages & widget: #101 … #107 built.** M2 complete (all eleven), M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **#101 … #106 built** — the hosted pages complete, and the widget's foundation. #107 … #111 are the four mounts, custom domains, distribution and the Playwright run. |
+| M3 | **#101 … #107 built** — the hosted pages, the widget's foundation and the booking mount. #108 … #111 are the other three mounts, custom domains, distribution and the Playwright run. |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2185, one failing: the schema snapshot CI cannot regenerate) · **Vitest (37) and the widget's four build gates**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2185, one failing: the schema snapshot CI cannot regenerate) · **Vitest (64) and the widget's four build gates**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -35,6 +35,102 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #107 — The booking mount, and the key that must not be fresh
+
+The walk that takes the money: date, party by age band, extras, contact and
+consent, review with the server's own breakdown, and the gateway. Plus the hold
+countdown while the guest decides and the confirmation state when they come
+back.
+
+| | |
+|---|---|
+| Bundle | 16.2 KB gzipped — **20.2% of WGT-2's 80 KB**, 63.8 KB left for #108's three mounts |
+| Tests | 27 new (`booking-machine` 12, `booking-flow` 15), **64 in the widget suite** |
+
+### Back navigation is a property of the design, not a thing to remember
+
+WGT-18's *"back navigation never loses entered data"* is the most commonly
+broken thing in a multi-step form, and it breaks the same way every time: each
+step owns its state, going back unmounts the component, the answers go with it.
+
+So **the machine owns one state object and the steps are views onto it**. There
+is no code path in `booking/machine.ts` that clears an answer — `back()` moves a
+cursor. The test walks to the end, walks back to the beginning and asserts every
+field individually, because `toEqual` on the whole object would pass on a machine
+that reset everything to the same defaults it started from.
+
+The extras step is **skipped symmetrically** for a product with none, so a guest
+going back from contact lands on party rather than on a step they have never
+seen.
+
+### The idempotency key is per intention, which is the requirement most likely to be built backwards
+
+The issue says so and it is right. The instinct is a key per request; §3.4's
+mechanism depends on it being per **intention**, so that a retry replays the
+first answer rather than creating a second booking. A widget minting a fresh key
+per attempt double-books on a flaky connection and **every server-side test of
+the middleware still passes** — from the server's side two keys are two
+intentions, which is a true statement about a false situation.
+
+`IdempotencyKeys.keyFor('draft', fingerprint)` is bound to what makes this draft
+this draft — the date, the party, the extras, the voucher. Changing the guest's
+telephone number does not mint a new key; changing the party does. And a new
+draft key never invalidates the checkout key of a booking already on its way to
+a gateway, which is its own test.
+
+### Three states after "pay", and only one of them is a claim
+
+- **A gateway redirect**, the ordinary path.
+- **A direct confirmation** when a voucher covered the total: BKG-19 and PRC-22,
+  detected by the **absence of `redirect_url`** rather than by a status code,
+  because 200-versus-201 is a fact about HTTP and not about the booking.
+- **The WGT-20 poll** on the way back: sixty seconds of `GET /bookings/{uuid}`,
+  and when the webhook has not landed the answer is *pending* — an email will
+  follow — never *confirmed*. The issue's note is the reasoning: a redirect is a
+  guest pressing a button; the webhook is the money moving.
+
+The poll reads with `cache: false`, which the client gained for it. WGT-17's
+cache window is sixty seconds and the poll is sixty seconds long, so a cached
+read would have re-read its own first response and concluded nothing ever
+happened.
+
+### Deviations and additions
+
+- **A native `<input type="date">`** rather than a calendar. The budget meets
+  A11Y-1: the native control is keyboard-operable, labelled and localised by the
+  guest's own device, and costs nothing. #108's calendar mount is where a month
+  grid with availability shading belongs.
+- **The mount is loaded by a wrapper that fetches the product**, so
+  `BookingMount` renders what it is given and the machine and the flow are
+  testable with no network at all.
+- **`MountProps` grew** the shared client, translator, emitter and locale. A
+  mount building its own client would be a second branding fetch and a second
+  cache, which is what WGT-8 exists to prevent.
+- **`ApiClient` gained per-request headers and a cache opt-out**, both for this
+  issue and both narrow: the header carries the idempotency key, and the opt-out
+  exists for the one read whose purpose is that the answer changes while you ask.
+
+### The guard caught the issue number
+
+`#107` in a CSS comment is a valid three-digit hex colour, and the widget's
+stylesheet is a template literal, so the comment reached the bundle and WGT-9's
+grep failed the build. The comment now reads `issue 107` and the guard's docblock
+says why — teaching the regex about comments would be teaching it to ignore a
+place a colour can hide.
+
+### Verification
+
+| Command | Result |
+|---|---|
+| `npm run widget:build` | 29 modules, one IIFE |
+| `npm run widget:size` | **16.2 KB gzipped, 20.2% of budget** |
+| `npm run widget:guards` | clean — 45 keys in both locales |
+| `npm run widget:test` | **64 passed** across seven files |
+| `npm -w packages/widget run typecheck` | clean |
+| `composer test` | 2184 passed, 1 failed — the inherited ENV-10 snapshot |
 
 ---
 

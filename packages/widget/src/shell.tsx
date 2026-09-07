@@ -1,6 +1,8 @@
+import type { Analytics } from './analytics';
+import type { ApiClient } from './api-client';
+import type { MountName } from './config';
 import type { Translator } from './i18n';
 import { resolveMount } from './mounts';
-import type { MountName } from './config';
 
 /**
  * What the widget renders around a mount, and instead of one when it cannot.
@@ -24,14 +26,28 @@ interface ShellProps {
   readonly category: string | null;
   readonly t: Translator;
   readonly poweredBy: boolean;
+  readonly client: ApiClient;
+  readonly analytics: Analytics;
+  readonly locale: string;
 }
 
-export function Shell({ mount, productUuid, category, t, poweredBy }: ShellProps) {
+export function Shell({ mount, productUuid, category, t, poweredBy, client, analytics, locale }: ShellProps) {
   const Mount = resolveMount(mount);
 
   return (
     <div class="kaiki-shell">
-      {Mount === null ? <MissingMount t={t} /> : <Mount productUuid={productUuid} category={category} />}
+      {Mount === null ? (
+        <MissingMount t={t} />
+      ) : (
+        <Mount
+          productUuid={productUuid}
+          category={category}
+          client={client}
+          t={t}
+          analytics={analytics}
+          locale={locale}
+        />
+      )}
 
       {poweredBy ? <p class="kaiki-footer">{t('widget.powered_by')}</p> : null}
     </div>
