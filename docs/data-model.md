@@ -239,7 +239,7 @@ The operator. Not tenant-owned (it *is* the tenant). It was also the Cashier bil
 | `is_sandbox` | boolean | no | `false` | sandbox tenants' bookings are `is_test` and purged nightly |
 | `turnaround_buffer_minutes` | smallint unsigned | no | `60` | tenant default; a vessel may override |
 | `guest_document_retention_days` | smallint unsigned | no | `90` | GDPR purge horizon for `booking_guests.document_number` |
-| `auto_issue_invoice` | boolean | no | `false` | issue myDATA doc on confirmation |
+| `auto_issue_invoice` | boolean | no | `false` | **Superseded 2026-09-08** by `invoice_auto_issue` (default **true**) and `invoice_auto_issue_delay_minutes` (default 15), which are what MYD-3.2 and ADR-0003 actually name. The old column defaulted `false` against a requirement that says auto-issue is on; rather than flip a default sitting in every seeded tenant, the pair was added and this one left in place unread. Remove it in a migration of its own once nothing references it | issue myDATA doc on confirmation |
 | `weather_choice_default` | varchar(16) | yes | `refund` | **added by #84** — CXL-7's operator default, applied when a guest never answers the weather-choice email. `refund` is the platform fallback because it is the only one of the three that cannot leave a guest holding credit they never asked for |
 | `settings` | json | no | `{}` | see §3.11 — low-traffic, never-queried operator preferences only |
 | `trial_ends_at` | timestamp | yes | null | when the trial ends. The Cashier columns beside it — `stripe_id`, `pm_type`, `pm_last_four` — were **removed by ADR-0028** along with the provider. Whichever provider replaces it, its columns are an edit to the M0 migration and a `migrate:fresh`, never an `ALTER` (§0). |
@@ -1330,7 +1330,7 @@ myDATA (AADE) document. One booking may have several (an ΑΛΠ plus a later can
 | `type` | varchar(16) | no | — | `alp` (ΑΛΠ, retail receipt) \| `tpy` (ΤΠΥ, services invoice — requires the guest's ΑΦΜ) \| `credit` (cancellation/credit note) — PHP enum `InvoiceType`. **Latin keys, Greek labels in lang files** — a Greek enum value in a `varchar` is a portability and tooling hazard. |
 | `cancels_invoice_id` | bigint unsigned | yes | null | FK → `invoices.id` `nullOnDelete` — set on credit notes |
 | `series` | varchar(16) | no | — | operator's series (`A`) |
-| `number` | int unsigned | no | — | sequential within `(tenant, series, year)` |
+| `number` | int unsigned | **yes** | null | sequential within `(tenant, series, year)`. **Nullable until allocated** — corrected 2026-09-08 when the table was built: this row said `no` while the **[LOCK]** note below said nullable, and the note is right. MYD-4.2 allocates at the send attempt, so a `pending` document that is never submitted must be able to exist without a number |
 | `year` | smallint unsigned | no | — | fiscal year; part of the uniqueness key |
 | `issued_at` | timestamp | yes | null | set when AADE accepts |
 | `mark` | varchar(40) | yes | null | myDATA MARK |

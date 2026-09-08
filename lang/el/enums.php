@@ -621,6 +621,19 @@ return [
         'abandoned' => ['label' => 'Εγκαταλείφθηκε'],
     ],
 
+    'invoice_type' => [
+        'alp' => ['label' => 'Απόδειξη λιανικής'],
+        'tpy' => ['label' => 'Τιμολόγιο υπηρεσιών'],
+        'credit' => ['label' => 'Πιστωτικό σημείωμα'],
+    ],
+
+    'invoice_status' => [
+        'pending' => ['label' => 'Σε αναμονή'],
+        'sent' => ['label' => 'Καταχωρήθηκε'],
+        'failed' => ['label' => 'Απέτυχε'],
+        'cancelled' => ['label' => 'Ακυρώθηκε'],
+    ],
+
     'failure_source' => [
         'notification' => ['label' => 'Μήνυμα'],
         'payment' => ['label' => 'Πληρωμή'],

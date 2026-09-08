@@ -45,6 +45,165 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## M6 opens — the invoice foundation, without the credentials
+
+> **MYD-2…MYD-5**, **MYD-8**, **ADR-0003**, **ADR-0022** — the tables, the two
+> pure decisions, and the number allocator.
+
+### What this is, and what it deliberately is not
+
+M6 is myDATA, and the AADE client needs credentials the product owner does not
+have yet. Waiting for them would idle the milestone, so this is **everything in
+M6 that a test can prove without a tax authority on the other end**: the schema,
+ΑΦΜ validation, the ΑΛΠ/ΤΠΥ decision, and invoice numbering.
+
+The client itself is next and will be built behind a gateway interface with a
+null implementation, the same shape `app/Domain/Notifications/Gateways` already
+uses for SMS — so a credential arriving later is a config change rather than a
+rewrite.
+
+### `number` is nullable, and `docs/data-model.md` disagreed with itself
+
+§4.6's column grid said `number` is `no` null. Its own **[LOCK]** note, two
+paragraphs down, said *"`number` is nullable until allocated"* and spent a
+paragraph explaining why. The note wins and the grid is corrected in this
+commit, because the rule it protects is the design: **MYD-4.2 allocates at the
+send attempt, never at row creation**, so a document written and never submitted
+does not burn a number. A non-null column forces a number onto every `pending`
+row and defeats that entirely.
+
+Worth recording as a class of problem rather than a typo: a spec that states a
+fact twice will eventually state it two ways, and the second statement is
+usually the considered one.
+
+### The numbering guarantee is three layers, and the middle one is the real one
+
+1. **[LOCK]** `lockForUpdate()` on the `series_counters` row. Makes a collision
+   rare.
+2. `unique(tenant_id, series, year, number)`. Makes it **impossible**.
+3. A retry when (2) fires anyway. Makes it invisible.
+
+`MAX(number) + 1` was never an option: two requests reading it at the same
+instant see the same maximum, and the window is small and the consequence is a
+duplicated invoice number in a Greek series — not a bug an operator reports, a
+question they answer to their accountant.
+
+**On SQLite the lock is a no-op** (§0), so on every developer's machine layers 2
+and 3 are the only ones running. That is a good argument for the layer that has
+to hold being the one that holds everywhere, and it is why the duplicate test
+writes the collision by hand rather than racing two processes: a race that
+passes once has proved nothing.
+
+The counter row is created on first use, so nothing is seeded at the turn of the
+year and an operator who starts trading in July does not begin at a number their
+books cannot explain.
+
+### The year is the tenant's, and a test caught me getting the clock wrong
+
+`AllocateInvoiceNumber` reads the year in the **operator's** timezone. 23:30 on
+31 December in Athens is already 1 January in UTC, and an operator whose last
+document of the year landed in next year's series would be explaining that to an
+accountant.
+
+The reset test originally set the clock to 22:00 UTC on 31 December to mean
+"late on the last day". In Athens that is already 1 January, so both allocations
+landed in the same year and the test failed — correctly. The clock was wrong, not
+the allocator, and the fixed test now says so in a comment so the next person
+does not reach for the same obvious hour.
+
+### ΑΦΜ validation is arithmetic, on purpose
+
+MYD-3.5 makes validation a **precondition** of issuing a ΤΠΥ, and a precondition
+that needs a network call is a precondition that fails when the network does — on
+a Saturday in August, on the confirmation page, in front of a guest. The Greek
+modulus-11 checksum catches the overwhelmingly common error, which is a typo, and
+needs nothing. Whether the number belongs to a trading company is a question only
+AADE can answer and is not asked here.
+
+Two details that are each one test:
+
+- **`% 11 % 10`.** A remainder of 10 is a check digit of 0. Leaving the second
+  modulus out rejects one valid number in eleven.
+- **Nine zeros fail.** They satisfy the arithmetic and are not an ΑΦΜ — and they
+  are exactly what an empty padded field becomes.
+
+Foreign numbers get a shape check, not a checksum. Every member state has its own
+scheme and reimplementing twenty-six from memory is how a valid Italian VAT
+number gets refused at a Greek checkout. Any leading pair of letters is stripped
+so «IT12345678901» and «DE123456789» work alongside «EL094014201» — general
+rather than three special cases.
+
+### A bad ΑΦΜ never stops a sale
+
+MYD-3.5, and the rule the whole resolver is shaped around. An invalid number
+produces an **ΑΛΠ plus an operator-visible warning**, not an error. The guest is
+not held up, the operator is told, and a customer who really needed the invoice
+is fixed with a credit note and a re-issue. The alternative is a ΤΠΥ that AADE
+refuses days later, discovered by the wrong person at the worst time.
+
+`InvoiceTypeResolver::explain()` returns the type and the reason in one pass
+rather than offering a second `reasonFor()`, so the two can never disagree — the
+copy is always the one that goes stale.
+
+A name with no number is *not* a warning: somebody typed their employer into the
+wrong box, and putting the ordinary case in a warning list buries the two rows a
+month that are real.
+
+### Three gates in this repository caught things before I did
+
+- `ModelIsolationTest` refused three tenant-owned models with no factory, with a
+  message that says why removing them from the suite is not the fix.
+- `PolicyCoverageTest` refused them with no policy.
+- `EnumLabelCoverageTest` refused two enums with no Greek labels.
+
+All three are the kind of gate that is worth more than the test it replaced.
+
+### Two policies say `false` out loud
+
+`InvoicePolicy::delete()` and `forceDelete()` return false for **everyone,
+including the owner**: §1.4 puts invoices among the rows no code path removes,
+and a soft delete is a delete a person can perform. `SeriesCounterPolicy` and
+`InvoiceNumberGapPolicy` refuse every write for the same reason — a counter
+edited by hand is how a series gains a duplicate, and a gap that can be tidied
+away is a gap that will be, on the one afternoon the record matters.
+
+### `auto_issue_invoice` was already there, defaulting the wrong way
+
+`tenants.auto_issue_invoice` exists and defaults **false**; MYD-3.2 and ADR-0003
+both say auto-issue defaults **on**. Rather than flip a default that already sits
+in every seeded tenant inside an additive migration — which is how a test that
+has passed for months starts failing for a reason nobody can find — the pair the
+requirement actually names was added (`invoice_auto_issue`,
+`invoice_auto_issue_delay_minutes`) and the old column is marked superseded in
+`docs/data-model.md`. It should be dropped in a migration of its own.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Compliance/     32 passed
+vendor/bin/pest --parallel --processes=12     2621 passed
+vendor/bin/pint --test                        passed
+vendor/bin/phpstan analyse                    [OK] No errors
+```
+
+The one failure is the MySQL schema snapshot — and this time with a real cause
+rather than only the billing block: **four new migrations move its hash.** CI is
+the only place with MySQL 8 and has been unable to start a job since 2026-09-06.
+
+### Still owed by a person, not by code
+
+- **The VAT rates themselves** (MYD-6a). The mechanism is complete and the
+  numbers are an accountant's answer. No code, seeder or fixture presents a
+  percentage as authoritative, and `NoHardcodedVatRateTest` enforces that.
+- **The gap policy** (MYD-4.6). ADR-0022 was accepted on engineering grounds;
+  whether *any* gap is acceptable in a Greek series is not an engineering
+  question. If gaps are ruled out, **only the allocation instant moves** —
+  after AADE returns a MARK rather than before the attempt — and nothing in
+  `AllocateInvoiceNumber` assumes which side of that it is on.
+- **AADE test credentials**, for the client itself.
+
+---
+
 ## Giving a colleague a login — the screen that was never written
 
 > **TEN-8** *"`owner` — everything including billing, API keys, gateway

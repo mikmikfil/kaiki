@@ -636,6 +636,19 @@ return [
         'abandoned' => ['label' => 'Abandoned'],
     ],
 
+    'invoice_type' => [
+        'alp' => ['label' => 'Retail receipt'],
+        'tpy' => ['label' => 'Services invoice'],
+        'credit' => ['label' => 'Credit note'],
+    ],
+
+    'invoice_status' => [
+        'pending' => ['label' => 'Pending'],
+        'sent' => ['label' => 'Registered'],
+        'failed' => ['label' => 'Failed'],
+        'cancelled' => ['label' => 'Cancelled'],
+    ],
+
     'failure_source' => [
         'notification' => ['label' => 'Message'],
         'payment' => ['label' => 'Payment'],
