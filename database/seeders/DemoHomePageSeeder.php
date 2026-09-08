@@ -27,10 +27,10 @@ use Illuminate\Support\Facades\Storage;
  *
  * ## The order is the page an operator writes
  *
- * Masthead, who we are, what we sell, the questions, how to reach us. The story
- * sits second on purpose: a guest who has just read the headline is deciding
- * whether these are people they want to spend a day at sea with, and the answer
- * to that is the paragraph about the family and the boat — not the price list.
+ * Masthead, what we sell, who we are, the questions, how to reach us. The story
+ * sits **after** the trips: somebody arriving on this page came to look at boat
+ * trips, and the paragraph about the family reads better as the reason to book
+ * the one they have just been looking at than as an obstacle in front of it.
  *
  * {@see HomeBlockType::defaultLayout()} deliberately does **not** include it,
  * and that stays true: the default is what an operator gets before they have
@@ -79,7 +79,16 @@ class DemoHomePageSeeder extends Seeder
                     'en' => 'Small groups, experienced skippers, and a sea we have known since we were children.',
                 ],
                 'image' => 'demo-hero.jpg',
-                'settings' => ['cta' => 'trips'],
+                // No button. The search form is directly beneath the
+                // standfirst and is what a visitor actually came to use —
+                // a "see our trips" button above it competes with the thing
+                // it is standing in front of.
+                'settings' => ['cta' => 'none'],
+            ],
+            [
+                'type' => HomeBlockType::Trips,
+                'heading' => ['el' => 'Οι εκδρομές μας', 'en' => 'Our trips'],
+                'settings' => ['source' => BlockSettings::SOURCE_ALL, 'limit' => 6],
             ],
             [
                 // The "about us". Title and prose on the left, photograph on the
@@ -93,12 +102,7 @@ class DemoHomePageSeeder extends Seeder
                     'en' => "We started with one wooden kaiki and two brothers who did not want to work in an office.\n\nThirty years on the fleet is bigger, but the day is the same: we leave early, we stop where the water is clear, and we are back before the sun goes down. We never take more people than the boat carries comfortably.",
                 ],
                 'image' => 'demo-story.jpg',
-                'settings' => ['image_side' => 'right'],
-            ],
-            [
-                'type' => HomeBlockType::Trips,
-                'heading' => ['el' => 'Οι εκδρομές μας', 'en' => 'Our trips'],
-                'settings' => ['source' => BlockSettings::SOURCE_ALL, 'limit' => 6],
+                'settings' => ['image_side' => 'left'],
             ],
             [
                 'type' => HomeBlockType::Faq,

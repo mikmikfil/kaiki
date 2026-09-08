@@ -66,6 +66,17 @@
                 {{ __('weather.open_calendar') }}
             </x-filament::link>
         </x-slot>
+        {{-- Where the numbers came from.
+
+             The name is asked of the provider rather than written here, so it
+             cannot go on crediting Open-Meteo after the binding is swapped for
+             a paid endpoint — and for Open-Meteo it is a condition of the
+             CC BY 4.0 licence rather than a courtesy. --}}
+        <p class="kw-source">
+            <a href="{{ $this->getSource()->url }}" target="_blank" rel="noopener noreferrer">
+                {{ __('weather.source', ['name' => $this->getSource()->name]) }}
+            </a>
+        </p>
     </x-filament::section>
 
     <style>
@@ -104,6 +115,10 @@
         .kw-bft { display: block; font-size: 1rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
         .kw-day.is-over .kw-bft { color: rgb(var(--warning-700)); }
         .kw-src { display: block; font-size: .6rem; color: rgb(var(--gray-400)); }
+
+        /* Quiet on purpose: a credit line, not a row of the panel. */
+        .kw-source { margin-top: .9rem; font-size: .68rem; color: rgb(var(--gray-400)); }
+        .kw-source a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 
         .kw-affected { font-size: .8rem; color: rgb(var(--gray-700)); }
         .kw-clear { font-size: .8rem; color: rgb(var(--gray-400)); }

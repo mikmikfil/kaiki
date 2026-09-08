@@ -29,6 +29,8 @@ return [
     'affected' => ':departures αναχωρήσεις · :passengers επιβάτες κλεισμένοι',
     'nothing_booked' => 'Δύσκολος καιρός, αλλά χωρίς κρατήσεις.',
 
+    'source' => 'Πρόγνωση από :name',
+
     'open_calendar' => 'Άνοιγμα ημερολογίου',
 
 ];

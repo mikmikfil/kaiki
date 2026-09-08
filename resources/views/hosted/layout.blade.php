@@ -261,10 +261,19 @@
         li.trip .summary { margin: 0 0 .9rem; color: var(--ink-soft); font-size: .94rem; }
         li.trip .facts { margin: 0 0 1.1rem; color: var(--ink-faint); font-size: .84rem; }
 
+        /* Price on its own line, the button on the next one across the card.
+           Side by side, the button was as wide as its own two words and sat in
+           the corner of a photograph-led card, which reads as a footnote rather
+           than the thing the card is asking you to do — and on a narrow rail
+           item the price and the button were fighting over the same row.
+
+           `margin-top: auto` still pins the whole foot to the bottom, so a row
+           of cards has its prices and its buttons on the same two lines however
+           long the summaries above them run (settled 4 September). */
         .trip-foot {
             margin-top: auto; padding-top: .9rem;
             border-top: 1px solid var(--rule);
-            display: flex; align-items: center; justify-content: space-between; gap: .8rem;
+            display: flex; flex-direction: column; align-items: stretch; gap: .75rem;
         }
 
         /* The featured rail. A native horizontal scroller: it swipes on a
@@ -307,7 +316,10 @@
         .trip-price { margin: 0; display: flex; align-items: baseline; gap: .35rem; }
         /* A quote product has no price element at all (BKG-24), so the button
            would otherwise slide to the left of the card and break the row. */
-        .trip-foot .button { margin-left: auto; }
+        /* Full width of the card's text column — which is inset by the body's
+           own padding, so it stops short of the card edge rather than running
+           into it. */
+        .trip-foot .button { width: 100%; justify-content: center; }
         .trip-price .from { font-size: .8rem; color: var(--ink-faint); }
         .trip-price strong { font-size: 1.2rem; letter-spacing: -.02em; }
 
@@ -540,6 +552,11 @@
            wedge of empty space under it that reads as a layout mistake. */
         .story { display: grid; gap: 2rem; align-items: center; }
         .story-image { width: 100%; height: auto; border-radius: 14px; object-fit: cover; aspect-ratio: 4 / 3; }
+        /* Breathing room on both sides of the prose, on top of the grid gap.
+           A paragraph that runs to the very edge of its column reads as though
+           it has been cropped rather than laid out, and the block is the one
+           place on the page where somebody is asked to read more than a line. */
+        .story-copy { padding-inline: clamp(0rem, 3vw, 2.5rem); }
         .prose p { margin: 0 0 .8rem; }
         .prose p:last-child { margin-bottom: 0; }
 
@@ -548,7 +565,13 @@
                it, not a photograph with a caption — half the row for the image
                makes the picture the subject and squeezes the paragraphs into a
                narrow column that is harder to read. */
-            .story.has-image { grid-template-columns: 3fr 2fr; }
+            .story.has-image { grid-template-columns: 2fr 1fr; }
+            /* The ratio follows the content, not the position. `order` moves
+               the image into the first column, so without this the photograph
+               inherits the wide column meant for the prose and the two swap
+               sizes as well as sides — the picture becomes the subject and the
+               paragraphs are squeezed into a third of the row. */
+            .story.side-left.has-image { grid-template-columns: 1fr 2fr; }
             /* A class rather than an inline style: HOS-8's policy has no
                `unsafe-inline`, so a `style` attribute would be dropped and
                the operator's choice would silently do nothing.

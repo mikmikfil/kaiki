@@ -6,6 +6,7 @@ namespace App\Domain\Operations\Weather;
 
 use App\Contracts\WeatherProvider;
 use App\Domain\Operations\Support\Beaufort;
+use App\Domain\Operations\Support\WeatherSource;
 use App\Domain\Operations\Support\WindForecast;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Support\Facades\Cache;
@@ -157,6 +158,13 @@ final class OpenMeteoProvider implements WeatherProvider
         }
 
         return $out === [] ? null : $out;
+    }
+
+    public function source(): WeatherSource
+    {
+        // Not read from config. The credit belongs to whoever answered the
+        // request, and this class is the only thing that knows that.
+        return new WeatherSource('Open-Meteo', 'https://open-meteo.com/');
     }
 
     private static function baseUri(): string

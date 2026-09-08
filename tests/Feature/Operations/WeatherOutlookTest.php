@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Contracts\WeatherProvider;
 use App\Domain\Operations\Support\WeatherOutlook;
+use App\Domain\Operations\Support\WeatherSource;
 use App\Domain\Operations\Support\WindForecast;
 use App\Enums\DepartureStatus;
 use App\Models\Departure;
@@ -49,6 +50,11 @@ function stubWeather(?array $days): void
         public function dailyWind(float $latitude, float $longitude, string $timezone, int $days): ?array
         {
             return $this->days;
+        }
+
+        public function source(): WeatherSource
+        {
+            return new WeatherSource('Test', 'https://example.test/');
         }
     });
 }

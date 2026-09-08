@@ -30,6 +30,8 @@ return [
     'affected' => ':departures departures · :passengers passengers booked',
     'nothing_booked' => 'Rough, but nothing booked.',
 
+    'source' => 'Forecast by :name',
+
     'open_calendar' => 'Open the calendar',
 
 ];

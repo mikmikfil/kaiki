@@ -7,6 +7,7 @@ namespace App\Filament\App\Widgets;
 use App\Contracts\WeatherProvider;
 use App\Domain\Operations\Support\FirstSteps;
 use App\Domain\Operations\Support\WeatherOutlook as Outlook;
+use App\Domain\Operations\Support\WeatherSource;
 use App\Domain\Operations\Support\WindForecast;
 use App\Filament\App\Pages\Calendar;
 use App\Models\Vessel;
@@ -70,6 +71,18 @@ class WeatherOutlook extends Widget
     public function getRows(): array
     {
         return self::rows();
+    }
+
+    /**
+     * Who to credit, asked of whoever answered the request.
+     *
+     * Not a constant in the template: the binding is meant to be swapped for a
+     * paid endpoint before this reaches a paying operator, and a hardcoded
+     * credit would keep naming Open-Meteo for data that was not theirs.
+     */
+    public function getSource(): WeatherSource
+    {
+        return app(WeatherProvider::class)->source();
     }
 
     /** The weather-cancellation preview, which is where a decision is made. */

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Contracts;
 
+use App\Domain\Operations\Support\WeatherSource;
 use App\Domain\Operations\Support\WindForecast;
 
 /**
@@ -40,4 +41,15 @@ interface WeatherProvider
      * @return list<WindForecast>|null null when the forecast could not be obtained
      */
     public function dailyWind(float $latitude, float $longitude, string $timezone, int $days): ?array;
+
+    /**
+     * Who to credit for the numbers.
+     *
+     * On the contract rather than in a template or a config key, because the
+     * panel names its source and the name has to stay true when the binding
+     * changes — crediting Open-Meteo for somebody else's data is a licence
+     * claim, not a stale string. For Open-Meteo it is also an obligation:
+     * CC BY 4.0 makes attribution a condition of use.
+     */
+    public function source(): WeatherSource;
 }
