@@ -440,7 +440,10 @@
            the point of a photograph of the sea is that you can see some of it. */
         .hero {
             display: grid;
-            align-items: end;
+            /* Centred in the band rather than sitting on its floor. With the
+               copy centred horizontally too, hanging it from the bottom left a
+               tall empty field above it and a crowded strip below. */
+            align-items: center;
             margin-inline: calc(50% - 50vw);
             min-height: min(60vh, 32rem);
             padding: 0;
@@ -454,14 +457,18 @@
                shape read as an accident rather than as a decision. One property,
                used by both, cannot drift apart.
 
-               **48rem, settled on 8 September** after trying it at both ends.
-               54rem was too wide left-aligned; 36rem was right for a block
-               pushed against the left edge but looked pinched once the copy was
-               centred, because a centred block reads narrower than it is. This
-               sits between them: about 60 characters, which is inside the
-               comfortable range for a paragraph, and wide enough that the
-               heading is not forced into a stack of short lines. */
-            --hero-measure: min(48rem, 100%);
+               **The search card reads it too**, so the heading, the paragraph
+               and the form share one edge. They did not: the copy was held to a
+               measure and the form ran the full width of the hero, which left
+               the words floating above a bar half again as wide as they were.
+               One measure for all three is what makes the hero one block rather
+               than two.
+
+               56rem, settled on 8 September after trying 54, 36 and 48. The
+               number is a compromise between two opposite pulls — a paragraph
+               wants about 60 characters and a four-field form wants room — and
+               it is the form that decides the floor. */
+            --hero-measure: min(56rem, 100%);
             width: 100%;
             max-width: 86rem;
             margin: 0 auto;
@@ -547,7 +554,12 @@
            of the six teaches a visitor something untrue about the site, and
            they find out on the next page. */
         .hero-search {
-            margin: 2rem 0 0;
+            /* The card carries the measure, not the form inside it. Putting it
+               on `.search-form` shrank the four fields and left the white box
+               they sit in running the full width of the hero — the constraint
+               applied to the wrong box, which is only visible by looking. */
+            max-width: var(--hero-measure);
+            margin: 2rem auto 0;
             background: var(--surface);
             border-radius: 18px;
             padding: 1.6rem 1.7rem 1.7rem;
