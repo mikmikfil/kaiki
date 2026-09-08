@@ -27,6 +27,7 @@ use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\DeleteAction;
@@ -37,8 +38,10 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Str;
 
 /**
  * The trip, on `/app` (spec CAT-4, CAT-5, CAT-7, CAT-15, SEC-3, TEN-8, I18N-1).
@@ -110,6 +113,13 @@ class ProductResource extends Resource
                         __('catalog.product.form.title.label'),
                         __('catalog.product.form.title.help'),
                         maxLength: 160,
+                        // The Greek title seeds the slug, and only the Greek
+                        // one: it is the language every operator fills in, and
+                        // two tabs racing to write the same field would let
+                        // whichever was blurred last decide the address.
+                        configure: static fn (TextInput $input, string $locale): TextInput => $locale === 'el'
+                            ? $input->live(onBlur: true)->afterStateUpdated(static::fillSlug(...))
+                            : $input,
                     ),
 
                     TextInput::make('slug')
@@ -394,6 +404,56 @@ class ProductResource extends Resource
     }
 
     /**
+     * Greeklish, from the Greek title, and only into an empty slug.
+     *
+     * ## Why it never overwrites
+     *
+     * The slug is the trip's public address. Once a page has been shared, put in
+     * an email or indexed, changing it breaks the link — so an operator who has
+     * typed one, or who is editing a trip that has been live all season, must
+     * never have it rewritten because they fixed a typo in the title.
+     *
+     * Auto-filling only into an empty field gives the useful half (nobody has to
+     * invent `iliovasilema-stin-aigina` by hand) without the dangerous half.
+     *
+     * ## `Str::slug($title, '-', 'el')`
+     *
+     * Laravel's own Greek transliteration map, not a hand-written table:
+     * «Ηλιοβασίλεμα στην Αίγινα» becomes `hliovasilema-stin-aighina`. A map of
+     * our own would be one more thing to get wrong for ξ, ψ and the accented
+     * vowels, and it would drift from the one the framework already ships.
+     */
+    public static function fillSlug(Get $get, Set $set, ?string $state): void
+    {
+        $slug = self::slugFor(
+            is_string($get('slug')) ? $get('slug') : null,
+            $state,
+        );
+
+        if ($slug !== null) {
+            $set('slug', $slug);
+        }
+    }
+
+    /**
+     * The slug to write, or null to leave the field alone.
+     *
+     * Split out from the Filament closure so the rule can be tested without a
+     * form: `Get` and `Set` are objects bound to a live component, and a rule
+     * this consequential should not be reachable only through a browser.
+     */
+    public static function slugFor(?string $existing, ?string $title): ?string
+    {
+        if ($existing !== null && trim($existing) !== '') {
+            return null;
+        }
+
+        $title = trim((string) $title);
+
+        return $title === '' ? null : Str::slug($title, '-', 'el');
+    }
+
+    /**
      * One line per CAT-15 requirement, met or not.
      *
      * On an unsaved product half the checklist cannot be answered — a rate plan
@@ -405,20 +465,39 @@ class ProductResource extends Resource
      */
     public static function checklistSchema(): array
     {
-        return array_map(
-            static fn (string $requirement): Component => Placeholder::make("checklist_{$requirement}")
-                ->label(__("catalog.product.checklist.{$requirement}.label"))
-                ->content(static function (?Product $record) use ($requirement): string {
-                    if ($record === null || ! $record->exists) {
-                        return __('catalog.product.checklist.unsaved');
+        return [
+            Placeholder::make('publish_checklist')
+                // No label: the section already carries one, and a second
+                // heading above a single row of chips is a heading for nothing.
+                ->hiddenLabel()
+                ->content(static function (?Product $record): View {
+                    $items = [];
+                    $remaining = 0;
+
+                    foreach (ProductPublishChecklist::requirements() as $requirement) {
+                        $met = $record !== null
+                            && $record->exists
+                            && ProductPublishChecklist::satisfies($record, $requirement);
+
+                        if (! $met) {
+                            $remaining++;
+                        }
+
+                        $items[] = [
+                            'met' => $met,
+                            'label' => __("catalog.product.checklist.{$requirement}.label"),
+                            'unmet' => __("catalog.product.checklist.{$requirement}.unmet"),
+                        ];
                     }
 
-                    return ProductPublishChecklist::satisfies($record, $requirement)
-                        ? __('catalog.product.checklist.met')
-                        : __("catalog.product.checklist.{$requirement}.unmet");
-                }),
-            ProductPublishChecklist::requirements(),
-        );
+                    return view('filament.app.product-checklist', [
+                        'record' => $record,
+                        'items' => $items,
+                        'remaining' => $remaining,
+                    ]);
+                })
+                ->columnSpanFull(),
+        ];
     }
 
     public static function table(Table $table): Table

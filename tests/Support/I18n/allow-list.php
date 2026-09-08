@@ -109,6 +109,11 @@ return [
         'webhooks.nav' => 'Technical term with no Greek equivalent in use.',
         'webhooks.singular' => 'Technical term with no Greek equivalent in use.',
         'webhooks.plural' => 'Technical term with no Greek equivalent in use.',
+
+        // The product owner asked for the field to say «slug» rather than
+        // «Διεύθυνση στο ίντερνετ», which described the thing without
+        // naming it. Anybody who touches this field knows the word.
+        'catalog.product.form.slug.label' => 'Technical term with no Greek equivalent in use.',
         'enums.failure_source.outbound_webhook.label' => 'Technical term with no Greek equivalent in use.',
     ],
 

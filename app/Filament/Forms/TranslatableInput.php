@@ -43,16 +43,30 @@ final class TranslatableInput
      *
      * @param  string  $name  the translatable attribute, e.g. `name`
      */
-    public static function text(string $name, string $label, ?string $helperText = null, bool $required = true, ?int $maxLength = null): Component
-    {
-        return self::tabs($name, $label, $helperText, static function (string $path, string $locale) use ($required, $maxLength): TextInput {
+    /**
+     * @param  Closure(TextInput, string): TextInput|null  $configure  applied per
+     *                                                                 locale after the input is built, for a form that has to react to
+     *                                                                 one language's field — the trip slug is generated from the Greek
+     *                                                                 title, and nothing else in the product needs to know that.
+     */
+    public static function text(
+        string $name,
+        string $label,
+        ?string $helperText = null,
+        bool $required = true,
+        ?int $maxLength = null,
+        ?Closure $configure = null,
+    ): Component {
+        return self::tabs($name, $label, $helperText, static function (string $path, string $locale) use ($required, $maxLength, $configure): TextInput {
             $input = TextInput::make($path);
 
             if ($maxLength !== null) {
                 $input->maxLength($maxLength);
             }
 
-            return self::applyRequired($input, $locale, $required);
+            $input = self::applyRequired($input, $locale, $required);
+
+            return $configure === null ? $input : $configure($input, $locale);
         });
     }
 

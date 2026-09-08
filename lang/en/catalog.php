@@ -222,7 +222,7 @@ return [
                 'help' => 'The boat that runs this trip. Its passenger certificate is a legal ceiling and is never exceeded.',
             ],
             'slug' => [
-                'label' => 'Web address',
+                'label' => 'Slug',
                 'help' => 'Lowercase letters and dashes, e.g. "hydra-day-trip". Changing it breaks existing links.',
             ],
             'category' => [
@@ -344,6 +344,8 @@ return [
             'intro' => 'A trip needs all of these before it can be published.',
             'unsaved' => 'Save the trip first and you will see what is missing.',
             'met' => 'Done',
+            'ready' => 'All done — this trip can be published.',
+            'remaining' => 'One thing still missing.|:count things still missing.',
             'missing' => 'Missing',
             'vessel' => [
                 'label' => 'Vessel',
