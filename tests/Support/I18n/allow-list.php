@@ -98,6 +98,8 @@ return [
         'bookings.form.guest.email' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
         'attention.under_minimum.title' => 'Placeholders only — ":trip · :time" has no words of its own to translate.',
         'exports.columns.bookings.guest_email' => 'The word Greek operators use; a CSV header a Greek accountant reads as Email.',
+        'staff.form.email.label' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
+        'staff.table.email' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
 
         // «Webhook» has no Greek word an operator would recognise. Every Greek
         // developer and every Greek integration guide says webhook, and a

@@ -1,5 +1,5 @@
 {
-  "takenAt": "2026-09-08T15:48:06.299Z",
+  "takenAt": "2026-09-08T16:03:21.716Z",
   "shots": [
     {
       "name": "dashboard",
@@ -84,6 +84,10 @@
     {
       "name": "audit-logs",
       "url": "/app/audit-logs"
+    },
+    {
+      "name": "staff",
+      "url": "/app/staff"
     },
     {
       "name": "api-keys",

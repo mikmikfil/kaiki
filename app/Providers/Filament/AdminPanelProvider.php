@@ -52,6 +52,19 @@ class AdminPanelProvider extends PanelProvider
             ->defaultAvatarProvider(InitialsAvatarProvider::class)
             ->path('admin')
             ->login()
+            /*
+             * Password reset, which the panel did not have.
+             *
+             * Two things needed it. A colleague invited through
+             * {@see \App\Domain\Tenancy\Actions\InviteStaffMember} sets their
+             * own password through this flow, so without the routes registered
+             * the invitation link 404s — worse than no invitation, because the
+             * owner believes they sent one. And an operator who forgot their
+             * password had no way back in at all: there was no reset route on
+             * either panel, so the only recovery was somebody editing the
+             * database.
+             */
+            ->passwordReset()
             ->colors([
                 'primary' => Color::Rose,
             ])

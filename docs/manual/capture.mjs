@@ -91,6 +91,7 @@ const PANEL_SHOTS = [
   ['failures', '/app/failures'],
   ['notification-logs', '/app/notification-logs'],
   ['audit-logs', '/app/audit-logs'],
+  ['staff', '/app/staff'],
   ['api-keys', '/app/api-keys'],
   ['webhook-endpoints', '/app/webhook-endpoints'],
   ['branding', '/app/branding'],

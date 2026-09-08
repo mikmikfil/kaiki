@@ -177,10 +177,10 @@ it('shows an owner all six figures', function (): void {
 })->group('fast');
 
 it('reads the window from configuration rather than a literal', function (): void {
-    [$crew] = crewWindowFixture();
-
-    $this->actingAs($crew);
-
+    // No signed-in user here on purpose: the two things asserted are the config
+    // read and the date arithmetic, and neither depends on who is asking. The
+    // question of *whether* the window binds somebody is `applies()`, which the
+    // screen tests above cover from both sides.
     config()->set('kaiki.panel.crew_departure_window_days', 3);
 
     expect(CrewWindow::days())->toBe(3)

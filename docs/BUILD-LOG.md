@@ -40,8 +40,121 @@ Each entry records the **verification actually run** and its **real output** —
 | ~~**A billing provider for M7**, after Cashier came out with Stripe~~ | ~~product owner~~ | ~~M7~~ — **Decided 2026-09-08: Viva Wallet, the same gateway operators use for guests (ADR-0028 as amended).** |
 | **Whether the full hosted site is a paid tier**, and what each plan gets | product owner | before `Plan`'s three predicates get their first caller — ADR-0029 settles the *shape* of the switch, not the price |
 | **Open-Meteo's commercial subscription**, or another provider — the free endpoint is non-commercial only (ADR-0027) | product owner | before a paying operator sees «Καιρός» |
-| **No screen for adding staff.** `ManageStaff`, `UserPolicy`, `RoleAssignmentPolicy` and the Greek strings all exist; the screen was never written, so an owner cannot hand a skipper a login through the product | product owner | before the first operator hires anybody — raised 2026-09-08 |
+| ~~**No screen for adding staff.**~~ | ~~product owner~~ | ~~before the first operator hires anybody~~ — **built 2026-09-08**, along with the password reset both panels also lacked. |
 | **A date filter on the departures list.** #129 found it has none; the default ascending sort happens to put today first with the current seed, so an operator tapping the "sailing today and tomorrow" figure lands on the whole table | product owner | a screen change, not a bug — decide whether the figure should filter or the list should default to today |
+
+---
+
+## Giving a colleague a login — the screen that was never written
+
+> **TEN-8** *"`owner` — everything including billing, API keys, gateway
+> credentials, tenant deletion."* And `Capability::ManageStaff`, which has
+> existed since M0 with no way to exercise it.
+
+### The gap was invisible because a missing screen looks like one you have not needed
+
+`UserPolicy`, `RoleAssignmentPolicy`, `Capability::ManageStaff`, the last-owner
+guard on `RoleAssignment::deleting` and the Greek strings «Ομάδα», «Ανάθεση
+ρόλου» and «Αφαίρεση ρόλου` were all written when the roles were, in M0. The
+screen was not, and neither was a command.
+
+So **from M0 until today an owner could not hand their skipper a login**. Every
+role `docs/spec.md` describes was reachable only by editing the database. Nothing
+failed, no test went red, and no requirement was violated — because no
+requirement says a staff screen exists. The spec defines the roles and never
+says how somebody gets one.
+
+Found while writing the manual's chapter on the three roles: a chapter that
+explains what each role may do has to begin by explaining how a person acquires
+one, and there was no answer to write down.
+
+### Password reset did not exist either, on either panel
+
+`filament.app.auth` had exactly two routes: login and logout. An operator who
+forgot their password had **no way back in** — the only recovery was somebody
+editing the database, which is the same answer as the staff gap and for the same
+reason: the flow was never asked for out loud.
+
+`->passwordReset()` on both panels. It is a prerequisite here rather than a
+bonus: the invitation is a reset link, and a link that 404s is worse than no
+invitation because the owner believes they sent one.
+
+### The inviter never chooses a password, and that is the design
+
+The account is created with a 64-character random string nobody ever sees, and
+the colleague sets their own through the reset flow. The alternative — an owner
+typing a password into a form and reading it down the telephone — puts a working
+credential into a chat window, a notebook and the memory of somebody who will
+not always work here, and leaves it usable by them afterwards.
+
+**The link is a password-reset token, deliberately, rather than a bespoke
+invitation token.** Laravel's tokens are already hashed at rest, single-use,
+expiring on their own schedule and invalidated the moment they are spent. A
+second token type would be a second chance to get all four wrong, on the one
+link that opens an operator's whole business.
+
+`InviteStaffMember` commits the user and their roles in one transaction — a
+colleague with a login and no role signs in and sees nothing, which reads as a
+broken product rather than an incomplete invitation — and sends the mail
+**after** the commit, because a mail server that is briefly down must not roll
+back an account that was created correctly. A colleague who never received the
+message can be sent it again; one whose account vanished cannot.
+
+### `User` has no `BelongsToTenant`, so this screen scopes itself
+
+A person can hold roles at two operators — the same skipper working for two
+companies is ordinary here — so `User` is deliberately outside the global scope
+that protects every other resource in this panel (data-model §2.1). The
+`where('tenant_id', …)` on `StaffResource::getEloquentQuery()` is therefore not
+belt-and-braces: without it this screen lists every account on the platform. It
+is asserted from both sides.
+
+### Four decisions worth stating
+
+**The email address cannot be edited.** It is the login and it is where the
+reset link goes, so changing somebody else's is not an edit — it is a handover of
+their account to a different inbox.
+
+**The status column reads `email_verified_at`.** An invitation that was never
+opened looks identical to a working account on every other column, and the
+operator finds out on the morning the person cannot sign in.
+
+**"Send again" is offered only to somebody who has not been in.** A "choose your
+password" link arriving at a colleague who already has one reads as a security
+incident.
+
+**Nobody gets a button to delete themselves.** `UserPolicy::delete()` refuses it
+and Filament therefore does not render the action; deleting your own account is
+a support conversation, not a control beside your own name in a list.
+
+### The last-owner guard is reached rather than reimplemented
+
+Editing roles deletes and re-inserts rather than diffing, because the guard lives
+on `RoleAssignment::deleting`. A diff that removed the final owner role would
+have to know it was about to — and two implementations of "is this the last
+owner" is one too many. The swap is one transaction, so a refusal leaves the
+person with the roles they had rather than with none, and the thrown
+`LastOwnerException` becomes a sentence rather than a five hundred.
+
+### Not built, and named
+
+No two-factor (ADR-0024 is still Proposed, SEC-15 wants it for operators and
+requires it for super-admins). No self-service profile page — a colleague can
+change their own password through the reset flow and nothing else. Both are
+larger than this gap and neither is what stopped an owner hiring anybody.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Panel/StaffInvitationTest.php    9 passed
+vendor/bin/pest --parallel --processes=12                      2575 passed
+vendor/bin/pint --test                                         passed
+vendor/bin/phpstan analyse                                     [OK] No errors
+```
+
+And in the browser at `/app/staff`: the three demo staff with their roles as
+badges, «Διαγραφή» correctly absent on the signed-in owner's own row, and the
+invitation modal showing each role with its description.
 
 ---
 
