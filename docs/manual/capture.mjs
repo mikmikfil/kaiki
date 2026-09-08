@@ -87,6 +87,7 @@ const PANEL_SHOTS = [
   ['quotes', '/app/quotes'],
   ['enquiries', '/app/enquiries'],
   ['faqs', '/app/faqs'],
+  ['invoices', '/app/invoices'],
   ['exports', '/app/exports'],
   ['failures', '/app/failures'],
   ['notification-logs', '/app/notification-logs'],

@@ -1,5 +1,5 @@
 {
-  "takenAt": "2026-09-08T16:03:21.716Z",
+  "takenAt": "2026-09-08T19:54:23.828Z",
   "shots": [
     {
       "name": "dashboard",
@@ -68,6 +68,10 @@
     {
       "name": "faqs",
       "url": "/app/faqs"
+    },
+    {
+      "name": "invoices",
+      "url": "/app/invoices"
     },
     {
       "name": "exports",
