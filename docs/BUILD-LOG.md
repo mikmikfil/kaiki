@@ -45,6 +45,114 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## The AADE client, built around not having one
+
+> **MYD-5**, **MYD-9**, **MYD-10**, **MYD-14**, **MYD-15**, **MYD-4.4**.
+
+### The interface exists because the credentials do not
+
+`MyDataGateway` is a seam for three reasons, and the third is what decided it.
+MYD-11 selects an endpoint per environment, which is wiring. MYD-1 issues under
+the *operator's* credentials, so the object is resolved per tenant rather than
+injected at boot. And the platform has no AADE account, which would have idled
+the milestone if the client were welded into the issuing path.
+
+Behind the interface, `NullMyDataGateway` is bound today and every other part of
+M6 is built and proved against `FakeMyDataGateway`. A credential arriving in
+November is one line in `AppServiceProvider`.
+
+### The null gateway refuses, the SMS one swallows, and both are right
+
+`NullSmsGateway` reports success: an unsent text is a small loss and a broken
+reminder sweep is a large one. This is the opposite case and takes the opposite
+answer.
+
+An invoice marked `sent` claims a document exists in a state tax register. A null
+gateway reporting success would give an operator a shelf of invoices their books
+say were filed and AADE has never heard of — discovered during an audit, by the
+worst possible person, at the worst possible moment. So it refuses, and it is not
+retryable either: retrying will not conjure a credential, and eight attempts
+would bury the one line they need to read.
+
+The invoice lands in the failure feed saying «Δεν έχει συνδεθεί το myDATA». An
+operator finds out on day one that issuing is off, which is what silence would
+have prevented.
+
+### Refused, unreachable, and why collapsing them breaks a queue both ways
+
+`MyDataResult` has three outcomes, and the middle one is the one people forget.
+
+**Refused** — AADE answered, and the answer is no. A malformed ΑΦΜ will be
+malformed in six hours. Retrying is eight attempts at something that was never
+going to work, filling the failure feed with noise.
+
+**Unreachable** — nobody answered. The payload may be perfect.
+
+A single "failed" state retries what cannot succeed and, once somebody notices
+and turns retries down, stops retrying what would have.
+
+### The error dictionary's honest state
+
+MYD-9 asks for plain-Greek explanations in `docs/compliance/mydata-errors.md`,
+loaded from lang at runtime. The mechanism is complete; **the table has six
+entries and only one is an AADE code.**
+
+That is deliberate. Without an AADE account there is no way to verify a mapping,
+and a confidently wrong Greek explanation is worse than none — an operator will
+act on it. So `243` (the one the spec names) is mapped, the transport outcomes
+are mapped, and everything else falls back to an entry that shows **AADE's own
+message verbatim** beside "show this to your accountant".
+
+The file marks every row by provenance and says outright that somebody with a
+developer account must walk it against the official list before go-live. A short
+honest table beats a long plausible one.
+
+### `last_error_message_el` was not Greek, and a test found it
+
+The column is named `_el` and is written by a **queue worker**, which holds
+whatever locale the last job on it set. The first version called `__()` and the
+test — running in English — got English into a column whose name promises Greek.
+An operator's failure feed would have carried English on a busy morning and Greek
+on a quiet one, from the same error, with nobody able to work out why.
+
+`AadeErrors::inGreek()` pins it. The same defect `GuestMail` was written to
+avoid, in the same place: a worker with no request behind it has no locale worth
+trusting.
+
+### And a guard that had never fired
+
+BKG-34 says an imported booking never produces an invoice. The check read
+`$booking->source === 'import'` — but `source` is cast to `BookingSource`, so the
+comparison was never true and the guard did nothing at all. An imported booking
+would have been invoiced a second time in the operator's own series. Exactly the
+shape a requirement acquires when nothing exercises it.
+
+### The number is taken in the job, immediately before the call
+
+MYD-4.2. Not at dispatch: a job sitting in a queue for an hour must not be
+holding a number. Not at row creation: a document that is never submitted must
+not burn one. `AllocateInvoiceNumber` is idempotent, so a job that crashed after
+allocating does not take a second on its next run.
+
+When a send then fails permanently, `invoice_number_gaps` records the number, the
+reason and the moment — MYD-4.4, and the answer to an accountant's question about
+a hole in the series.
+
+**⚠ If the gap policy is ruled out** (spec §16.3), the change is one line in this
+job: allocate after a MARK comes back rather than before the call. Nothing in the
+allocator assumes which side it is on.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Compliance/    48 passed
+vendor/bin/pest --parallel --processes=12    2637 passed
+vendor/bin/pint --test                       passed
+vendor/bin/phpstan analyse                   [OK] No errors
+```
+
+---
+
 ## M6 opens — the invoice foundation, without the credentials
 
 > **MYD-2…MYD-5**, **MYD-8**, **ADR-0003**, **ADR-0022** — the tables, the two

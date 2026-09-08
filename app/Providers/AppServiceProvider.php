@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Contracts\MyDataGateway;
 use App\Domain\Catalog\Actions\GuardVesselCapacity;
 use App\Domain\Catalog\Actions\SaveProduct;
+use App\Domain\Compliance\Gateways\NullMyDataGateway;
 use App\Domain\Media\Actions\StoreUploadedImage;
 use App\Domain\Tenancy\Support\DnsLookup;
 use App\Domain\Tenancy\Support\SystemDnsLookup;
@@ -89,6 +91,24 @@ class AppServiceProvider extends ServiceProvider
         // the real resolver would pass on a laptop and fail on a runner behind
         // a proxy. `Tests\Support\Tenancy\FakeDns` is what takes its place.
         $this->app->singleton(DnsLookup::class, SystemDnsLookup::class);
+
+        /*
+         * The AADE client (MYD-1, MYD-11, M6).
+         *
+         * **The null one, today, and that is a deliberate default rather than a
+         * placeholder.** The platform has no AADE credentials, and a binding
+         * that reached for a real endpoint would fail at the moment of issuance
+         * with a transport error rather than at the moment of configuration
+         * with a sentence. `NullMyDataGateway` refuses cleanly and puts «Δεν
+         * έχει συνδεθεί το myDATA» in front of the operator — see its docblock
+         * for why it refuses rather than swallowing, which is the opposite of
+         * what the SMS null gateway does and for a good reason.
+         *
+         * When credentials exist this becomes a resolver reading the tenant's
+         * `IntegrationCredential`, the same shape `SmsGatewayResolver` has. The
+         * interface is what makes that a one-line change here.
+         */
+        $this->app->bind(MyDataGateway::class, NullMyDataGateway::class);
     }
 
     /**
