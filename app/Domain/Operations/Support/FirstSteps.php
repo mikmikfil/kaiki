@@ -9,6 +9,7 @@ use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Product;
 use App\Models\Vessel;
+use App\Support\Tenancy;
 
 /**
  * What an operator with no bookings yet should do next (spec OPS-1).
@@ -54,6 +55,20 @@ final class FirstSteps
      */
     public static function applies(): bool
     {
+        // No tenant is "not applicable", never an exception.
+        //
+        // Every dashboard widget's `canView()` runs through here and `bookings`
+        // is tenant-owned, so without this a request that reaches a widget
+        // before a tenant is resolved raises `TenantContextMissingException`
+        // instead of rendering — and the operator gets a stack trace naming a
+        // model they never asked about.
+        //
+        // False is the honest answer as well as the safe one: "has this
+        // operator started trading" has no meaning when there is no operator.
+        if (! Tenancy::check()) {
+            return false;
+        }
+
         return ! Booking::query()->exists();
     }
 

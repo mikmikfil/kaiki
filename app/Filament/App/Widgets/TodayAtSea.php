@@ -56,6 +56,14 @@ class TodayAtSea extends Widget
 
     public static function canView(): bool
     {
+        // Negating `applies()` is not enough on its own: with no tenant it
+        // answers false, and the negation would then say *show me* — on the one
+        // request that cannot query anything. The tenant check has to be its
+        // own clause rather than a consequence of somebody else's.
+        if (! Tenancy::check()) {
+            return false;
+        }
+
         // Nothing to draw before there is a boat, and `FirstSteps` is already
         // telling that operator to add one.
         return ! FirstSteps::applies();

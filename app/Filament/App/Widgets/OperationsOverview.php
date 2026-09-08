@@ -10,6 +10,7 @@ use App\Filament\App\Resources\BookingResource;
 use App\Filament\App\Resources\DepartureResource;
 use App\Filament\App\Resources\QuoteResource;
 use App\Support\Format\MoneyFormatter;
+use App\Support\Tenancy;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
@@ -46,6 +47,16 @@ class OperationsOverview extends StatsOverviewWidget
      */
     public static function canView(): bool
     {
+        // With no tenant resolved, `applies()` answers false and the negation
+        // would show six figures that cannot be counted — `DashboardFigures`
+        // queries tenant-owned models and `BelongsToTenant` throws rather than
+        // returning nothing (TEN-4). The guard is the widget's own, because a
+        // predicate that depends on the *negation* of somebody else's guard
+        // inverts the moment that guard becomes defensive.
+        if (! Tenancy::check()) {
+            return false;
+        }
+
         return ! FirstSteps::applies();
     }
 

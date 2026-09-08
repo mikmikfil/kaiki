@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Filament\App\Pages;
 
 use App\Domain\Availability\Support\DepartureReconciler;
+use App\Exceptions\TenantContextMissingException;
 use App\Models\ScheduleRule;
+use App\Support\Tenancy;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Gate;
 
@@ -43,9 +45,31 @@ class DepartureReconciliation extends Page
      *
      * A permanently visible "no problems" page is furniture, and an operator
      * who learns to ignore a menu item will ignore it on the day it matters.
+     *
+     * ## The tenant check is not redundant, and its absence is a panel-wide 500
+     *
+     * Filament calls this while building the **navigation**, which happens on
+     * every page in the panel. `DepartureReconciler::all()` queries a
+     * tenant-owned model, and `BelongsToTenant` **throws**
+     * {@see TenantContextMissingException} rather than
+     * returning nothing when no tenant is resolved (TEN-4).
+     *
+     * So on any request that reaches navigation without a resolved tenant, this
+     * one predicate takes down every screen in `/app` — not only this page —
+     * with an exception naming `ScheduleRule`, a model this page barely
+     * mentions and that the operator was nowhere near. `canAccess()` does not
+     * save it: a `Gate` check on a *class*, unlike one on a record, is answered
+     * from the role matrix and never touches the database.
+     *
+     * The guard costs one null check and the failure it prevents is total, so
+     * it goes first.
      */
     public static function shouldRegisterNavigation(): bool
     {
+        if (! Tenancy::check()) {
+            return false;
+        }
+
         return self::canAccess() && DepartureReconciler::all()->isNotEmpty();
     }
 
