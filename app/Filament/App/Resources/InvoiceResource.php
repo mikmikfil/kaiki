@@ -12,6 +12,7 @@ use App\Jobs\SubmitInvoiceToMyData;
 use App\Models\Invoice;
 use App\Support\Authorization\Capability;
 use App\Support\Format\MoneyFormatter;
+use App\Support\Tenancy;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
@@ -239,6 +240,21 @@ class InvoiceResource extends Resource
      */
     public static function getNavigationBadge(): ?string
     {
+        // The login page builds the navigation too, and has no tenant. Third
+        // time in this panel — {@see EnquiryResource::getNavigationBadge()} and
+        // {@see NotificationLogResource::getNavigationBadge()} both carry the
+        // same guard and both carry a comment saying why, and this class was
+        // written today without either. The consequence is not a missing badge:
+        // `BelongsToTenant` throws rather than scoping to nobody (TEN-4), so
+        // `/app/login` 500s and the panel is unreachable for everybody,
+        // including the person trying to sign in and fix it.
+        //
+        // Asserted for every badge in the panel by `NavigationBadgeTest`, so
+        // there is no fourth time.
+        if (! Tenancy::check()) {
+            return null;
+        }
+
         $failed = static::getEloquentQuery()->where('status', InvoiceStatus::Failed)->count();
 
         return $failed === 0 ? null : (string) $failed;
