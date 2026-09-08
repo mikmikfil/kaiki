@@ -272,13 +272,9 @@
                 <section class="booking" id="book" aria-labelledby="booking-heading">
             <h2 id="booking-heading" class="sr-only">{{ __('hosted.product.booking.heading') }}</h2>
 
-            <dl class="four-lines">
-                <div><dt>{{ __('hosted.product.booking.trip') }}</dt><dd>{{ $product->title }}</dd></div>
-                <div><dt>{{ __('hosted.product.booking.duration') }}</dt><dd>{{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}</dd></div>
-                <div><dt>{{ __('hosted.product.booking.port') }}</dt><dd>{{ $port?->name ?? '—' }}</dd></div>
-                <div><dt>{{ __('hosted.product.booking.vessel') }}</dt><dd>{{ $product->vessel?->name ?? '—' }}</dd></div>
-            </dl>
-
+            {{-- The price first, because it is the fact a visitor is deciding
+                 on. It used to sit under four lines of what they are already
+                 looking at. --}}
             @if (! $isQuote && $fromPriceFormatted)
                 <p class="price">
                     <span class="from">{{ __('hosted.product.price.from') }}</span>
@@ -290,92 +286,12 @@
                 </p>
             @endif
 
-            {{-- What a visitor asks with their hand over the button: how many
-                 of us fit, which boat is it, what does a child pay, what is
-                 included, and can I get out of it. Most of it is further down
-                 the page as well — but scrolling away from the button to find it
-                 is how a booking is abandoned, so the short answers live here.
-
-                 Each row is an icon, a label and a value. The icon is decorative
-                 (`hosted.partials.icon` hides it from the accessibility tree);
-                 it is there so the eye can find the row it wants without
-                 reading five labels. --}}
-            <div class="booking-extra">
-                @if (! $isQuote)
-                    <div class="extra">
-                        @include('hosted.partials.icon', ['name' => 'users'])
-                        <div>
-                            <span class="label">{{ __('hosted.product.booking.capacity') }}</span>
-                            <span>{{ __('hosted.product.max_pax', ['count' => $product->max_pax]) }}</span>
-                        </div>
-                    </div>
-                @endif
-
-                @if ($product->vessel)
-                    <div class="extra">
-                        @include('hosted.partials.icon', ['name' => 'boat'])
-                        <div>
-                            <span class="label">{{ __('hosted.product.vessel') }}</span>
-                            <span>{{ $product->vessel->type->label() }}</span>
-                            <span class="muted">{{ __('hosted.product.vessel_capacity', ['count' => $product->vessel->capacity_max]) }}</span>
-                        </div>
-                    </div>
-                @endif
-
-                {{-- Who pays what. A guest with a five-year-old wants this before
-                     they pick a date, not after — and a band that takes no seat
-                     is the one they most need told about. --}}
-                @if ($product->ageBands->isNotEmpty())
-                    <div class="extra">
-                        @include('hosted.partials.icon', ['name' => 'tickets'])
-                        <div>
-                            <span class="label">{{ __('hosted.product.age_bands') }}</span>
-                            <ul class="bands">
-                                @foreach ($product->ageBands as $band)
-                                    <li>
-                                        <strong>{{ $band->label }}</strong>
-                                        <span class="muted">
-                                            {{ $band->max_age !== null
-                                                ? __('hosted.product.age_range', ['from' => $band->min_age, 'to' => $band->max_age])
-                                                : __('hosted.product.age_from', ['from' => $band->min_age]) }}
-                                            @unless ($band->counts_toward_capacity)
-                                                · {{ __('hosted.product.no_seat') }}
-                                            @endunless
-                                        </span>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    </div>
-                @endif
-
-                @if (is_array($product->includes) && $product->includes !== [])
-                    <div class="extra">
-                        @include('hosted.partials.icon', ['name' => 'check'])
-                        <div>
-                            <span class="label">{{ __('hosted.product.includes') }}</span>
-                            <ul>
-                                @foreach (array_slice(array_filter($product->includes, fn ($item) => is_string($item) && trim($item) !== ''), 0, 3) as $item)
-                                    <li>{{ $item }}</li>
-                                @endforeach
-                            </ul>
-                            @if (count($product->includes) > 3)
-                                <span class="more">{{ __('hosted.product.booking.and_more', ['count' => count($product->includes) - 3]) }}</span>
-                            @endif
-                        </div>
-                    </div>
-                @endif
-
-                @if ($policy && $policy->free_cancellation_hours)
-                    <div class="extra">
-                        @include('hosted.partials.icon', ['name' => 'calendar'])
-                        <div>
-                            <span class="label">{{ __('hosted.product.cancellation') }}</span>
-                            <span>{{ __('hosted.product.free_cancellation', ['hours' => $policy->free_cancellation_hours]) }}</span>
-                        </div>
-                    </div>
-                @endif
-            </div>
+            <dl class="four-lines">
+                <div><dt>{{ __('hosted.product.booking.trip') }}</dt><dd>{{ $product->title }}</dd></div>
+                <div><dt>{{ __('hosted.product.booking.duration') }}</dt><dd>{{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}</dd></div>
+                <div><dt>{{ __('hosted.product.booking.port') }}</dt><dd>{{ $port?->name ?? '—' }}</dd></div>
+                <div><dt>{{ __('hosted.product.booking.vessel') }}</dt><dd>{{ $product->vessel?->name ?? '—' }}</dd></div>
+            </dl>
 
             @if ($readOnly)
                 {{-- HOS-10, and the guest is told who to contact rather than
@@ -431,6 +347,123 @@
                             defer></script>
                 </div>
             @endif
+
+            {{-- What a visitor asks with their hand over the button: how many of
+                 us fit, which boat is it, what does a child pay, what is
+                 included, and can I get out of it.
+
+                 **Folded, and under the button rather than above it.** All five
+                 answers used to be open, between the price and the form — so the
+                 card was eight hundred pixels tall, the thing a visitor came to
+                 do was at the bottom of it, and on a laptop the button was below
+                 the fold on a card whose whole purpose is to keep it in view.
+                 Folded, the card is short enough to be seen whole, and the guest
+                 with a five-year-old still gets their answer in one click
+                 without leaving the button.
+
+                 A `<details>` rather than a scripted panel: it opens with no
+                 JavaScript, it is a disclosure to a screen reader without an
+                 attribute anybody has to remember, and the browser's own
+                 find-in-page opens it (`hidden="until-found"` is the default for
+                 details content in Chromium). HOS-8 removed `unsafe-inline`
+                 from the policy and this needs no exception to it. --}}
+            <div class="booking-more">
+                @php
+                    $includes = is_array($product->includes)
+                        ? array_values(array_filter($product->includes, fn ($item) => is_string($item) && trim($item) !== ''))
+                        : [];
+                @endphp
+
+                @if (! $isQuote || $product->vessel || $includes !== [])
+                    <details class="fold">
+                        <summary>{{ __('hosted.product.booking.details') }}</summary>
+                        <div class="fold-body">
+                            @if (! $isQuote)
+                                <div class="extra">
+                                    @include('hosted.partials.icon', ['name' => 'users'])
+                                    <div>
+                                        <span class="label">{{ __('hosted.product.booking.capacity') }}</span>
+                                        <span>{{ __('hosted.product.max_pax', ['count' => $product->max_pax]) }}</span>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if ($product->vessel)
+                                <div class="extra">
+                                    @include('hosted.partials.icon', ['name' => 'boat'])
+                                    <div>
+                                        <span class="label">{{ __('hosted.product.vessel') }}</span>
+                                        <span>{{ $product->vessel->type->label() }}</span>
+                                        <span class="muted">{{ __('hosted.product.vessel_capacity', ['count' => $product->vessel->capacity_max]) }}</span>
+                                    </div>
+                                </div>
+                            @endif
+
+                            @if ($includes !== [])
+                                <div class="extra">
+                                    @include('hosted.partials.icon', ['name' => 'check'])
+                                    <div>
+                                        <span class="label">{{ __('hosted.product.includes') }}</span>
+                                        <ul>
+                                            @foreach (array_slice($includes, 0, 3) as $item)
+                                                <li>{{ $item }}</li>
+                                            @endforeach
+                                        </ul>
+                                        @if (count($includes) > 3)
+                                            <span class="more">{{ __('hosted.product.booking.and_more', ['count' => count($includes) - 3]) }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+                    </details>
+                @endif
+
+                {{-- Who pays what. A guest with a five-year-old wants this before
+                     they pick a date, not after — and a band that takes no seat
+                     is the one they most need told about. --}}
+                @if ($product->ageBands->isNotEmpty())
+                    <details class="fold">
+                        <summary>{{ __('hosted.product.age_bands') }}</summary>
+                        <div class="fold-body">
+                            <div class="extra">
+                                @include('hosted.partials.icon', ['name' => 'tickets'])
+                                <div>
+                                    <ul class="bands">
+                                        @foreach ($product->ageBands as $band)
+                                            <li>
+                                                <strong>{{ $band->label }}</strong>
+                                                <span class="muted">
+                                                    {{ $band->max_age !== null
+                                                        ? __('hosted.product.age_range', ['from' => $band->min_age, 'to' => $band->max_age])
+                                                        : __('hosted.product.age_from', ['from' => $band->min_age]) }}
+                                                    @unless ($band->counts_toward_capacity)
+                                                        · {{ __('hosted.product.no_seat') }}
+                                                    @endunless
+                                                </span>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                @endif
+
+                @if ($policy && $policy->free_cancellation_hours)
+                    <details class="fold">
+                        <summary>{{ __('hosted.product.cancellation') }}</summary>
+                        <div class="fold-body">
+                            <div class="extra">
+                                @include('hosted.partials.icon', ['name' => 'calendar'])
+                                <div>
+                                    <span>{{ __('hosted.product.free_cancellation', ['hours' => $policy->free_cancellation_hours]) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
+                @endif
+            </div>
                 </section>
             </aside>
         </div>

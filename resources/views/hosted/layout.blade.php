@@ -259,7 +259,17 @@
         li.trip h3 a { color: inherit; }
         li.trip h3 a:hover { color: var(--kaiki-primary); }
         li.trip .summary { margin: 0 0 .9rem; color: var(--ink-soft); font-size: .94rem; }
-        li.trip .facts { margin: 0 0 1.1rem; color: var(--ink-faint); font-size: .84rem; }
+        /* Two facts behind two icons, stacked rather than run together with
+           dots: at a card width of about 19rem the old single line wrapped
+           mid-value, so a port and a boat became four ragged lines with dots
+           floating between them. */
+        li.trip .facts {
+            margin: 0 0 1.1rem; color: var(--ink-faint); font-size: .84rem;
+            display: grid; gap: .3rem;
+        }
+
+        li.trip .facts span { display: inline-flex; align-items: center; gap: .45rem; min-width: 0; }
+        li.trip .facts .icon { inline-size: .95rem; block-size: .95rem; flex: none; color: var(--kaiki-primary); }
 
         /* Price on its own line, the button on the next one across the card.
            Side by side, the button was as wide as its own two words and sat in
@@ -330,6 +340,60 @@
             font-size: var(--step-2);
             color: var(--ink-soft);
             font-weight: 600;
+        }
+
+        /* --- section headings, from the design of 8 September ---------
+           A short rule in the operator's own colour under every section
+           heading, and on the trips block the way out of it on the same line.
+
+           The rule is `::after` on the heading rather than a border on the
+           block, so it is as wide as a hand rather than as wide as the page —
+           the point of it is to mark where a section starts, and a full-width
+           border does the opposite by drawing a lid over everything below. */
+        .block > h2::after,
+        .block-head h2::after,
+        .story-copy > h2::after,
+        .trips-more::after {
+            content: '';
+            display: block;
+            inline-size: 2.6rem;
+            block-size: 3px;
+            margin-block-start: .7rem;
+            border-radius: 2px;
+            background: var(--kaiki-primary);
+        }
+
+        .block-head {
+            display: flex; flex-wrap: wrap; align-items: baseline;
+            justify-content: space-between; gap: .6rem 1.5rem;
+        }
+
+        .block-head h2 { margin-block-end: 0; }
+
+        .see-all {
+            color: var(--kaiki-primary); text-decoration: none;
+            font-size: .93rem; font-weight: 600;
+            display: inline-flex; align-items: center; gap: .4rem;
+            /* WCAG 2.5.8: a link on its own line is a tap target. */
+            min-block-size: 2.75rem;
+        }
+
+        .see-all::after { content: '→'; transition: transform .15s ease; }
+        .see-all:hover::after { transform: translateX(3px); }
+
+        @media (prefers-reduced-motion: reduce) { .see-all::after { transition: none; } }
+
+        /* The operator's name above a block heading: letterspaced, and in
+           whatever case they typed it.
+
+           I18N-2 forbids the CSS property that would change the case, and two
+           tests assert this stylesheet never names it — Greek capitals drop
+           their accents, so a browser asked to shout «Ποιοι είμαστε» produces a
+           spelling no Greek would write. Spacing is the whole effect here. */
+        .eyebrow {
+            margin: 0 0 .5rem;
+            font-size: .74rem; font-weight: 600; letter-spacing: .14em;
+            color: var(--ink-faint);
         }
 
         .trip-price { margin: 0; display: flex; align-items: baseline; gap: .35rem; }
@@ -625,6 +689,19 @@
             .hero-search .search-form .submit { flex: 0 0 auto; }
             .hero-search .search-form button { width: auto; padding-inline: 1.6rem; }
         }
+        /* The icon beside each field label. Muted rather than in the brand
+           colour: six accent-coloured marks above six fields would read as six
+           things needing attention, which is the opposite of what a form full
+           of optional filters should look like. */
+        .search-form label {
+            display: inline-flex; align-items: center; gap: .4rem;
+        }
+
+        .search-form label .icon {
+            inline-size: .95rem; block-size: .95rem; flex: none;
+            color: var(--ink-faint);
+        }
+
         .button {
             display: inline-flex; align-items: center; gap: .5rem;
             text-decoration: none;
@@ -636,6 +713,21 @@
         }
         .button:hover { background: color-mix(in srgb, var(--kaiki-primary) 90%, var(--kaiki-text)); border-color: transparent; }
         .button-small { padding: .55rem 1rem; font-size: .9rem; }
+
+        /* An arrow on the buttons that go somewhere, and only those. A button
+           that submits a form or opens a mail client is not a way forward
+           through the page, and an arrow on it would be a lie about where it
+           leads. `::after` rather than a character in the string, so no
+           translator has to carry punctuation in a translation file. */
+        .button.arrow::after { content: '→'; transition: transform .15s ease; }
+        .button.arrow:hover::after { transform: translateX(3px); }
+
+        @media (prefers-reduced-motion: reduce) { .button.arrow::after { transition: none; } }
+
+        /* The magnifier inside «Αναζήτηση». It is `1em`, so it tracks the
+           button's own font size rather than needing a second number when the
+           button changes size on a phone. */
+        .button .icon { inline-size: 1.05em; block-size: 1.05em; flex: none; }
 
         @media (prefers-reduced-motion: reduce) {
             .button { transition: none; }
@@ -671,10 +763,23 @@
            the duplication. */
         .booking:has(.mount > [data-kaiki-widget]) > .four-lines { display: none; }
 
-        /* And the rule that divided them from the price goes with them. A
-           hairline is a separator between two things; with the four lines
-           hidden it became the first mark in the card, drawn above nothing. */
-        .booking:has(.mount > [data-kaiki-widget]) > .price { border-top: 0; padding-top: 0; }
+        /* And the widget's own frame comes off, because this card is already
+           one. Left on, the trip page drew a white bordered box inside a white
+           bordered box — two radii, two paddings and two backgrounds, with the
+           date picker at the centre of the onion.
+
+           These four custom properties are the only thing about this page that
+           reaches into the widget's shadow root, and they reach it the way
+           custom properties reach anything: by inheriting. The widget declares
+           them with the frame as the default, so it keeps the frame on every
+           other website — where it is a stranger in somebody else's page and
+           does have to say where it begins. */
+        .mount > [data-kaiki-widget] {
+            --kaiki-surface-background: transparent;
+            --kaiki-surface-border: 0;
+            --kaiki-surface-radius: 0;
+            --kaiki-surface-padding: 0;
+        }
 
         .story { display: grid; gap: 2rem; align-items: center; }
         .story-image { width: 100%; height: auto; border-radius: 14px; object-fit: cover; aspect-ratio: 4 / 3; }
@@ -776,9 +881,19 @@
            itinerary. A booking form below three screens of prose is a booking
            form nobody scrolls back up to.
 
-           One column below 60rem, and the booking card comes **first** there —
-           on a phone the thing a visitor came to do should not be under the
-           whole page. */
+           One column below 60rem, in source order — so on a phone the booking
+           card is **last**, under the itinerary and the FAQ. This comment used
+           to claim the opposite and no rule ever did it: `order` is set only
+           inside the media query below, which is the desktop case.
+
+           Hoisting it is not a one-line change and should not be pretended to
+           be. `.product-main` opens with the title and the standfirst, so an
+           `order: -1` on the aside puts a price and a date picker above the
+           name of the trip they belong to. Doing it properly means lifting
+           `.product-head` out of the left column so that a phone reads
+           photograph, title, card, and then the page — which is a markup change
+           to the trip page, not a rule here. Written down rather than left as a
+           comment that lies about the layout. */
         .product-body { display: grid; gap: clamp(2rem, 4vw, 3.5rem); }
 
         .product-main { display: flex; flex-direction: column; gap: clamp(2rem, 4vw, 3rem); min-width: 0; }
@@ -826,55 +941,98 @@
         }
         .four-lines dd { margin: 0; font-weight: 600; }
 
-        .price { margin: 0 0 1.3rem; padding-top: 1.1rem; border-top: 1px solid var(--rule); display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; }
+        /* No rule above it any more: it is the first thing in the card. */
+        .price { margin: 0 0 1.3rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; }
         .price .from { font-size: .85rem; color: var(--ink-faint); }
         .price strong { font-size: var(--step-3); letter-spacing: -.025em; }
         .price .vat { font-size: .82rem; color: var(--ink-faint); flex-basis: 100%; }
 
-        /* What the card carries besides the four lines and the price: capacity,
-           the boat, who pays what, the first of the includes, and the
-           cancellation window. All of it is further down the page as well —
-           it is here because a visitor deciding whether to press the button is
-           asking exactly these questions, and scrolling away from the button to
-           answer them is how a booking is abandoned.
+        /* What the card carries besides the price and the form: capacity, the
+           boat, who pays what, the first of the includes, and the cancellation
+           window. A visitor deciding whether to press the button is asking
+           exactly these, and scrolling away from the button to answer them is
+           how a booking is abandoned — so they stay in the card.
 
-           Each row is an icon column and a text column. The icon is fixed at
-           `1.15rem` and aligned to the first line rather than centred, so a row
-           whose value wraps to three lines keeps its icon beside the label. */
-        .booking-extra {
-            margin: 1.4rem 0 0; padding-top: 1.35rem;
+           **Folded, and below the form.** Open, the five of them made the card
+           816 pixels tall with the date picker at the bottom of it: on a laptop
+           the button was below the fold, on a card whose entire purpose is to
+           keep the button in view. Three disclosures put the card at about a
+           third of that and cost one click to the guest who wants an answer.
+
+           `<details>` and nothing else. It opens without JavaScript, it is a
+           disclosure to a screen reader with no attribute to remember, and
+           find-in-page opens it — none of which is true of a scripted panel,
+           and HOS-8 took `unsafe-inline` out of the policy. */
+        .booking-more {
+            margin: 1.4rem 0 0; padding-top: .35rem;
             border-top: 1px solid var(--rule);
-            display: grid; gap: 1.05rem;
             font-size: .92rem;
         }
 
-        .booking-extra .extra { display: grid; grid-template-columns: 1.15rem 1fr; gap: .8rem; align-items: start; }
-        .booking-extra .extra > div { display: grid; gap: .22rem; min-width: 0; }
+        .fold { border-bottom: 1px solid var(--rule-soft, var(--rule)); }
+        .fold:last-child { border-bottom: 0; }
 
-        .booking-extra .icon {
+        .fold > summary {
+            list-style: none; cursor: pointer;
+            display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+            padding: .85rem 0;
+            font-weight: 600; color: var(--kaiki-text);
+            /* WCAG 2.5.8 — the whole row is the target, not the words. */
+            min-block-size: 2.75rem;
+        }
+
+        .fold > summary::-webkit-details-marker { display: none; }
+        .fold > summary::marker { content: ''; }
+        .fold > summary:hover { color: var(--kaiki-primary); }
+        .fold > summary:focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 3px; border-radius: 4px; }
+
+        /* The chevron, drawn rather than fetched: two borders and a rotation.
+           It points down when the fold is shut and up when it is open, which is
+           the only signal on the row that it does anything at all. */
+        .fold > summary::after {
+            content: ''; flex: none;
+            inline-size: .5rem; block-size: .5rem;
+            border-right: 2px solid var(--ink-faint);
+            border-bottom: 2px solid var(--ink-faint);
+            transform: rotate(45deg) translate(-2px, -2px);
+            transition: transform .15s ease;
+        }
+
+        .fold[open] > summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
+
+        @media (prefers-reduced-motion: reduce) {
+            .fold > summary::after { transition: none; }
+        }
+
+        .fold-body { padding: 0 0 1.1rem; display: grid; gap: 1.05rem; }
+
+        .booking-more .extra { display: grid; grid-template-columns: 1.15rem 1fr; gap: .8rem; align-items: start; }
+        .booking-more .extra > div { display: grid; gap: .22rem; min-width: 0; }
+
+        .booking-more .icon {
             width: 1.15rem; height: 1.15rem;
             color: var(--kaiki-primary);
             margin-top: .1rem;
         }
 
-        .booking-extra .label {
+        .booking-more .label {
             font-size: .72rem; font-weight: 600; letter-spacing: .08em; color: var(--ink-faint);
         }
 
-        .booking-extra .muted { color: var(--ink-faint); font-size: .86rem; }
+        .booking-more .muted { color: var(--ink-faint); font-size: .86rem; }
 
-        .booking-extra ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; }
-        .booking-extra ul li { padding-left: 1.2rem; position: relative; color: var(--ink-soft); }
-        .booking-extra ul li::before { position: absolute; left: 0; content: '✓'; color: var(--kaiki-primary); }
-        .booking-extra .more { color: var(--ink-faint); font-size: .85rem; }
+        .booking-more ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; }
+        .booking-more ul li { padding-left: 1.2rem; position: relative; color: var(--ink-soft); }
+        .booking-more ul li::before { position: absolute; left: 0; content: '✓'; color: var(--kaiki-primary); }
+        .booking-more .more { color: var(--ink-faint); font-size: .85rem; }
 
         /* The age bands are a list of pairs, not ticks: the marker in front of
            each one would read as "this is included", which is the opposite of
            what a band that pays nothing and takes no seat means. */
-        .booking-extra ul.bands { gap: .35rem; margin-top: .1rem; }
-        .booking-extra ul.bands li { padding-left: 0; display: flex; flex-wrap: wrap; gap: .45rem; align-items: baseline; }
-        .booking-extra ul.bands li::before { content: none; }
-        .booking-extra ul.bands strong { color: var(--kaiki-text); font-weight: 600; }
+        .booking-more ul.bands { gap: .35rem; margin-top: .1rem; }
+        .booking-more ul.bands li { padding-left: 0; display: flex; flex-wrap: wrap; gap: .45rem; align-items: baseline; }
+        .booking-more ul.bands li::before { content: none; }
+        .booking-more ul.bands strong { color: var(--kaiki-text); font-weight: 600; }
 
         .mount .no-js { margin: 0 0 .9rem; color: var(--ink-soft); font-size: .93rem; }
         .contact-cta { margin: 0; display: flex; flex-wrap: wrap; gap: .6rem; }
@@ -1040,6 +1198,10 @@
         .block.contact.has-image a,
         .block.contact.has-image .label,
         .block.contact.has-image .instructions { color: #fff; }
+
+        /* The eyebrow over a photograph. `--ink-faint` is a grey chosen against
+           an off-white page and it disappears on a dark one. */
+        .block.contact.has-image .eyebrow { color: rgba(255, 255, 255, .72); }
 
         .block.contact.has-image .prose { color: rgba(255, 255, 255, .9); }
         .block.contact.has-image .contact-list { border-color: rgba(255, 255, 255, .28); }

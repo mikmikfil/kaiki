@@ -148,10 +148,23 @@ const BASE_STYLES = `
 
 .kaiki-root {
   box-sizing: border-box;
-  background: var(--kaiki-background);
-  border-radius: calc(var(--kaiki-radius, 10px) + 4px);
-  border: 1px solid color-mix(in srgb, var(--kaiki-text) 12%, transparent);
-  padding: 1.15rem 1.25rem 1.3rem;
+
+  /* The frame, and the four variables that let a host page take it off.
+
+     A custom property set on the host element inherits through the shadow
+     boundary, which is the only thing about a page that may reach in here — and
+     that is deliberate: it can restyle the surface the widget sits on and
+     nothing else.
+
+     Why it is needed: on Kaiki's own hosted trip page the widget is dropped
+     into a card the page has already drawn, and the result was a white bordered
+     box inside a white bordered box, two radii and two paddings deep. On
+     somebody else's site the frame is right and stays the default — there, the
+     widget is a stranger in a page and has to say where it begins. */
+  background: var(--kaiki-surface-background, var(--kaiki-background));
+  border-radius: var(--kaiki-surface-radius, calc(var(--kaiki-radius, 10px) + 4px));
+  border: var(--kaiki-surface-border, 1px solid color-mix(in srgb, var(--kaiki-text) 12%, transparent));
+  padding: var(--kaiki-surface-padding, 1.15rem 1.25rem 1.3rem);
 
   /* **Every inherited property, restated here.**
      The rules on ':host' above are the polite version and they are not enough:

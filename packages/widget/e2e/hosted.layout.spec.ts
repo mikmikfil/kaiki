@@ -57,6 +57,35 @@ test.describe('hosted page layout', () => {
     expect(article.y).toBeGreaterThanOrEqual(crumbs.y + crumbs.height + AIR);
   });
 
+  test('the booking card is one box, not a box inside a box', async ({ page }) => {
+    const { tenant_slug: tenant, product_slug: product } = world();
+
+    await page.goto(`/${tenant}/${product}?lang=el`);
+
+    // The widget draws itself into a shadow root, which is why this assertion
+    // exists in a browser and nowhere else: the nested frame was invisible to
+    // every test in the repository and visible to anybody who opened the page.
+    const root = page.locator('.kaiki-root');
+    await root.waitFor();
+
+    const frame = await root.evaluate((el) => {
+      const cs = getComputedStyle(el);
+
+      return {
+        border: cs.borderTopWidth,
+        radius: cs.borderTopLeftRadius,
+        padding: cs.paddingTop,
+      };
+    });
+
+    expect(frame).toEqual({ border: '0px', radius: '0px', padding: '0px' });
+
+    // …and the card around it still has one, so this is "the frame moved out",
+    // not "the frame went away".
+    const card = await page.locator('.booking').evaluate((el) => getComputedStyle(el).borderTopLeftRadius);
+    expect(card).not.toBe('0px');
+  });
+
   test('the search page opens below the header', async ({ page }) => {
     const { tenant_slug: tenant } = world();
 

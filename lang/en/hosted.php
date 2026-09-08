@@ -25,6 +25,7 @@ return [
         'no_trips' => 'There are no trips on sale at the moment.',
         'duration' => ':minutes minutes',
         'view' => 'See this trip',
+        'see_all' => 'See every trip',
         'all_trips' => 'All our trips',
         'search_prompt' => 'When would you like to sail?',
         'from' => 'from',
@@ -90,6 +91,7 @@ return [
         'booking' => [
             'heading' => 'Book this trip',
             // The four lines above the date picker, brand decision 3.
+            'details' => 'Trip details',
             'capacity' => 'Capacity',
             'and_more' => 'and :count more',
             'trip' => 'Trip',
