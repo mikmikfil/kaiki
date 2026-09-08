@@ -45,6 +45,82 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## The invoice PDF, and the QR that is absent rather than invented
+
+> **MYD-12**.
+
+### "Once issued" is the operative clause
+
+A PDF of a `pending` document would look official and carry neither a number nor
+a MARK — handed to a guest, then contradicted by the real one a minute later. A
+PDF of a `failed` one is worse: it says a sale was filed that was not. Anything
+that is not `sent` is refused.
+
+### The QR is AADE's URL or nothing
+
+`qr_url` comes back **with** the MARK and points at the tax authority's own
+verification page. It is issued, not derived, so this code cannot construct one.
+
+A document that somehow reached `sent` without one therefore prints without a
+square. A QR pointing somewhere plausible is worse than no QR, because somebody
+will scan it — possibly a tax inspector — and believe the answer.
+
+### Rendered once, and the bytes do not move
+
+A guest opening their booking four times does not start four headless browsers.
+More importantly, an invoice regenerated on each request is one whose printed
+copy and screen copy can disagree, and that is a conversation nobody wants with
+an accountant.
+
+### The locale bug, for the third time in three places
+
+The first render printed **«Retail receipt» directly under «ΑΛΠ Α/2026/1»**. The
+type label inherited whatever locale was current — for a queue worker, whatever
+the last job set — while every other word on the page is Greek by law rather than
+by preference.
+
+Pinned around the render and restored in a `finally`, so a worker is never left
+in Greek for the next tenant's English guest.
+
+That is the same defect `GuestMail` was written to avoid and that
+`AadeErrors::inGreek()` was written to avoid earlier today. Three occurrences in
+one codebase says it is not a slip but a **shape**: anything rendered off the
+request path inherits a locale nobody set, and every such place needs the
+question asked deliberately.
+
+### Everything comes off the invoice row
+
+Not the booking, not `vat_rates`. The row was frozen at issuance from a snapshot
+frozen at pricing time, and reaching past it would let a vessel renamed in March
+or a statutory rate changed in April rewrite a document AADE registered in
+February.
+
+Private disk, uuid filename — «ΑΛΠ Α/2026/41» has slashes and Greek in it, and a
+filename is not where to discover how a storage driver feels about either.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Compliance/InvoicePdfTest.php   7 passed
+vendor/bin/pest --parallel --processes=12                     2695 passed
+vendor/bin/pint --test                                        passed
+vendor/bin/phpstan analyse                                    [OK] No errors
+```
+
+The seven render real PDFs. And the document was looked at: reference, legal
+identity, VAT split, MARK, QR, and the test-environment line at the foot.
+
+### This closes M6's buildable half
+
+What remains needs a person, not an afternoon:
+
+- **VAT rates** (MYD-6a) — an accountant.
+- **The gap policy** (MYD-4.6) — an accountant.
+- **The ναυλοσύμφωνο's ΚΥΑ text** (CMP-6) — a lawyer.
+- **AADE credentials**, for the client itself.
+
+---
+
 ## The invoices screen, and a warning that only appears when it is true
 
 > **MYD-5**, **MYD-10**, **MYD-11**, **TEN-8**.
