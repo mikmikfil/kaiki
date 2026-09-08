@@ -45,6 +45,97 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## Credit notes, and the two listeners BKG-13 and CXL-11 were waiting for
+
+> **MYD-13**, **CXL-11**, **BKG-13.4**, **ADR-0003**, **ADR-0025**.
+
+### A refund answers an invoice; it does not delete one
+
+§1.4 puts invoices among the rows nothing removes, and a document registered with
+AADE cannot be withdrawn by deleting a row here — the register holds it. What a
+refund produces is a **second document** pointing at the first.
+
+The **partial** refund is the ordinary case, not the edge. A weather cancellation
+under a policy returning 60% is the most common refund this product will ever
+issue, which is why the amount is a parameter, why several credit notes may point
+at one invoice, and why `IssueInvoice` exempts credit notes from its
+one-per-booking rule.
+
+### The bug, and why the fix moved rather than got a condition
+
+The first version marked the original `cancelled` when the credit note was
+**written**. Then a test refused one, and:
+
+- the sale looked cancelled in the operator's books while the tax register still
+  held it live; and
+- the original became **uncreditable**, because a cancelled invoice is not a
+  creditable one — so the refund the operator still owed had no route to a
+  document at all.
+
+The second consequence is the worse one and was not obvious from the first.
+
+The close moved into `SubmitInvoiceToMyData`, where the MARK arrives. The status
+now says what the register says, which is the only thing it can usefully mean —
+and a refused credit note leaves the sale standing and creditable, which is what
+an operator needs it to do.
+
+### VAT at the original's rate, and the over-credit refusal
+
+€60 of a €100 sale at 13% is €53.10 and €6.90, derived from **the invoice's**
+snapshotted `vat_rate_bp`. Reading `vat_rates` at credit time would apply a rate
+that may have changed since, and a credit note that does not mirror its original
+is one an accountant reconciles by hand. Taken as `total − net`, so MYD-7's
+invariant holds without being enforced twice.
+
+Two partials totalling more than the sale are refused: the register would
+otherwise show a negative amount of trade. A **refused** credit note does not
+count against what remains — it took nothing off the sale, and counting it would
+stop the operator re-issuing the refund they still owe.
+
+### Two listeners, in a provider of their own
+
+`NotificationServiceProvider`'s docblock has carried BKG-13's nine side effects
+as a table since #88, with *"myDATA invoice — M6"* against step 4. That file is
+about **messages** — its own docblock explains at length why the email and the
+SMS are one listener — and putting a tax authority into it would make it about
+two unrelated things.
+
+**`IssueInvoiceOnConfirmation`** is queued and delays the *submission* by
+`invoice_auto_issue_delay_minutes`, fifteen by default (ADR-0003). The window is
+the point: issue instantly and every guest who asks for a company invoice on the
+confirmation page costs a credit note plus a re-issue. The row is written at
+once, so an operator sees a pending document rather than nothing.
+
+**`IssueCreditNoteOnRefund`** is deliberately **not** queued. `BookingRefunded`
+carries the `Booking` model and ADR-0025 §2 keeps it inside the dispatching
+process; a `ShouldQueue` listener would serialise the model with the event. It
+writes two rows and dispatches the submission, so it returns long before anything
+reaches AADE — and it catches everything, because an exception in a synchronous
+listener would propagate into the refund path and could unwind money that has
+already moved.
+
+Both refuse quietly rather than restating conditions that live elsewhere. Two
+copies of "may this be invoiced" is one too many, and the copy that goes stale is
+always the one in the listener.
+
+### A fixture that had to take the real path
+
+`registeredInvoice()` originally wrote `number = 1` by hand. That leaves the
+counter at zero, the next document allocates 1 again, and the unique index
+refuses it — the index doing exactly its job, and a good argument for a fixture
+that goes through `AllocateInvoiceNumber` like production does.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Compliance/    90 passed
+vendor/bin/pest --parallel --processes=12    2679 passed
+vendor/bin/pint --test                       passed
+vendor/bin/phpstan analyse                   [OK] No errors
+```
+
+---
+
 ## The ναυλοσύμφωνο, built around a legal answer nobody has yet
 
 > **CMP-6**, **CMP-7**, **CMP-8**, **CMP-9**.

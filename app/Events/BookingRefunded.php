@@ -50,6 +50,31 @@ final class BookingRefunded implements Auditable
         private readonly ?string $reason = null,
     ) {}
 
+    /**
+     * The scalars a second listener needs, without handing it the model.
+     *
+     * ADR-0025 §2 keeps the booking inside the dispatching process — the audit
+     * listener is synchronous and builds its entry there. M6's credit-note
+     * listener needs three numbers and no model, and reading them through these
+     * is what lets it stay out of the queue's way without widening the event's
+     * exposure to a `Booking`.
+     */
+    public function bookingId(): int
+    {
+        return (int) $this->booking->getKey();
+    }
+
+    public function tenantId(): int
+    {
+        return (int) $this->booking->tenant_id;
+    }
+
+    /** How much actually went back — a partial refund is the common case. */
+    public function amountCents(): int
+    {
+        return $this->amountCents;
+    }
+
     public function auditEntry(): AuditEntryData
     {
         return AuditEntryData::forModel(

@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Contracts\MyDataGateway;
 use App\Domain\Compliance\Actions\AllocateInvoiceNumber;
+use App\Domain\Compliance\Actions\IssueCreditNote;
 use App\Domain\Compliance\Data\MyDataResult;
 use App\Domain\Compliance\Support\AadeErrors;
 use App\Enums\InvoiceStatus;
@@ -127,6 +128,35 @@ class SubmitInvoiceToMyData implements ShouldQueue
             'last_error_message_el' => null,
             'response_payload' => $result->rawResponse,
         ])->save();
+
+        $this->closeOriginalIfCredited($invoice);
+    }
+
+    /**
+     * A registered credit note closes the sale it answers (MYD-13).
+     *
+     * Here rather than where the credit note is written, because a credit note
+     * AADE has not accepted has undone nothing. Marking the original
+     * `cancelled` at write time left a refused credit note showing a sale as
+     * cancelled in the operator's books while the register still held it live —
+     * and, worse, made the original uncreditable, so the refund still owed had
+     * no route to a document.
+     */
+    private function closeOriginalIfCredited(Invoice $invoice): void
+    {
+        if (! $invoice->type->isCredit()) {
+            return;
+        }
+
+        $original = $invoice->cancels;
+
+        if (! $original instanceof Invoice || $original->status === InvoiceStatus::Cancelled) {
+            return;
+        }
+
+        if (IssueCreditNote::isFullyCredited($original)) {
+            $original->forceFill(['status' => InvoiceStatus::Cancelled])->save();
+        }
     }
 
     private function recordFailure(Invoice $invoice, MyDataResult $result, int $number): void
