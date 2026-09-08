@@ -12,6 +12,7 @@ use App\Jobs\ExpireVouchersJob;
 use App\Jobs\GenerateDeparturesNightly;
 use App\Jobs\PollIcalSourcesJob;
 use App\Jobs\PurgeExpiredExportsJob;
+use App\Jobs\PurgeGuestDocumentsJob;
 use App\Jobs\Reminders\SendDueRemindersJob;
 use App\Jobs\SendVoucherRemindersJob;
 use App\Jobs\SweepWebhookRetriesJob;
@@ -393,3 +394,35 @@ Schedule::job(new SendVoucherRemindersJob)
     ->withoutOverlapping()
     ->onOneServer()
     ->name('vouchers:expiry-reminders');
+
+/*
+|--------------------------------------------------------------------------
+| GDR-2, GDR-3, GDR-4 — passport numbers stop existing on time
+|--------------------------------------------------------------------------
+|
+| The one scheduled job in this product whose success is that data is gone. An
+| identity document number is kept for `guest_document_retention_days` after the
+| departure — 30 to 365, default 90 — and then destroyed, which is what the
+| privacy notice promises the guest and what the DPA promises the operator.
+|
+| A promise nothing enforces is a promise being broken without anybody knowing,
+| and unlike most broken promises this one accumulates quietly and is discovered
+| by a regulator.
+|
+| **05:05, and away from everything else.** 03:15, 04:10, 04:20 and 09:30 are
+| taken; two long jobs on one box contending for the same connection pool is
+| avoidable by choosing a different minute. The exact minute does not matter to
+| correctness — the job is idempotent and the window is measured in days — so it
+| is chosen entirely to stay out of the way.
+|
+| Daily rather than hourly for the same reason: a retention window counted in
+| days does not get better for being enforced at 05:05 instead of 06:05, and an
+| hourly sweep would read every operator's guest table twenty-four times to find
+| nothing.
+*/
+Schedule::job(new PurgeGuestDocumentsJob)
+    ->dailyAt('05:05')
+    ->timezone((string) config('kaiki.defaults.timezone', 'Europe/Athens'))
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('guests:purge-documents');

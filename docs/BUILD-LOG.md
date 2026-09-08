@@ -45,6 +45,132 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## GDPR: the job whose success is that data is gone, and the two requests with a deadline
+
+> **GDR-2**, **GDR-3**, **GDR-4**, **GDR-5**, **GDR-6**, **GDR-10**, **GDR-11**,
+> **ADR-0012**.
+
+### Passport numbers now stop existing on time
+
+`PurgeGuestDocumentsJob`, daily at 05:05, per tenant. GDR-2 is a promise made to
+guests in the privacy notice and to operators in the DPA: an identity document
+number is kept for a stated number of days after the departure and then
+destroyed. **A promise nothing enforces is one the operator is breaking without
+knowing**, and unlike most broken promises this one accumulates silently and is
+discovered by a regulator.
+
+GDR-3.3 draws the line precisely and half the tests are about the half that does
+*not* get deleted: **`document_number` and `document_type`, and nothing else.**
+The name, the date of birth and the nationality stay, because a manifest a
+coastguard asked for last August has to remain explicable and a chargeback six
+months later is argued with a passenger list. Purging a name in service of a
+promise nobody made would leave an operator unable to answer either.
+
+`document_purged_at` is why this is not "set it to null". A null number means
+*purged* or *never given*, which are opposite answers to "did this guest provide
+a document" — and the second one gets the guest chased for missing details months
+after the trip.
+
+Chunked rather than a mass `update`, because `document_number` is an `encrypted`
+cast: a bulk update writes the literal string past the cast and the row reads
+back as a decryption failure rather than as empty.
+
+The clock runs from the **departure**, not the booking — a trip booked in January
+for August is retained from August — and the window is clamped to GDR-3.2's 30
+and 365. Clamped rather than trusted: the column is validated at save, so a value
+outside the bounds arrived by a seeder, an import or a hand-edited row, and the
+floor is what stops an operator promising thirty days and keeping the number for
+one.
+
+The audit line carries a tenant and a count. Putting a name in the record of
+having deleted a name is the joke that writes itself, and this is where it would
+have been written.
+
+### And a bug that would have made erasure a lie
+
+`EraseGuestData` first erased the booking and then looked passengers up through
+`bookings.guest_email` — **which the first step had just overwritten.** The
+passenger query matched nothing, and every passenger name and passport number
+would have survived an erasure the operator had been told succeeded.
+
+Nothing in the code would have shown it. The action returned counts, the
+transaction committed, the booking's own name was gone, and the operator's
+confirmation said the request was honoured.
+
+The fix is not to reorder the two calls. The booking ids are resolved **once,
+first**, and both steps work from them — so the ordering dependency is gone
+rather than correct and fragile behind a comment saying which line has to come
+second.
+
+### Erasure is anonymisation, and that is not a shortcut
+
+GDR-10 says a deletion *"purges or anonymises … retaining only what accounting
+and tax law require (invoices, payment records)"*. A booking that is truly
+deleted takes its invoice's foreign key with it, and an invoice is a document in
+a state tax register the operator must keep for years. Article 17(3)(b) does not
+ask them to break tax law.
+
+So the **person** goes and the **transaction** stays: a pseudonym, an amount, a
+date, and no route back to a human being. Fields are overwritten rather than
+nulled, because a null column reads as *never collected* and this has to read as
+*erased on request* — the difference between an operator answering an audit and
+shrugging at one. The pseudonym carries the date for the same reason.
+
+The email becomes `erased-{id}@erased.invalid`. RFC 2606 reserves `.invalid`
+precisely so nothing sent there can reach a person by accident, and null would
+break every screen that renders a booking.
+
+The docblock says outright that this is **not a cryptographic guarantee** — an
+amount, a date and a trip are still a row, and somebody holding an external
+record could match them. Claiming otherwise is the kind of sentence that ends up
+quoted in a DPA.
+
+### The export answers "what do you hold" without printing a passport number
+
+GDR-6 keeps document numbers out of every export, and this file is emailed to
+whoever asked. So it reports one of three states — never given, held, or
+**destroyed on this date** — which is the honest answer, and the third is what
+turns a privacy notice from a promise into evidence.
+
+Asserted the way `ExportRows` asserts it: a real number in the database, the
+finished document, and the number nowhere in its bytes. Checking the array's
+shape would pass a version that added the field back under a different key.
+
+Two things worth recording about the data model:
+
+**`booking_guests` holds no contact details at all** — no email, no telephone. A
+passenger's address is simply never collected, which is a better privacy answer
+than anything this code could do, and it means the party is reached through the
+booking. An export returning only the lead's own row would be an incomplete
+answer to a request that covers everyone who sailed.
+
+**The notification log's column is `to`, not `recipient`.** Quoted in the raw
+comparison, because it is a reserved word in more than one dialect and an
+unquoted one is a syntax error on the day this runs against MySQL rather than
+SQLite.
+
+The log row itself survives an erasure with its address replaced: it is an
+operational record — a reminder went out at this hour and was delivered — and
+deleting it would lose the operator's answer to "did you tell them".
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Compliance/    69 passed
+vendor/bin/pest --parallel --processes=12    2658 passed
+vendor/bin/pint --test                       passed
+vendor/bin/phpstan analyse                   [OK] No errors
+```
+
+### Not built here
+
+No screen yet. Both actions are callable and tested; putting them behind a panel
+button is a separate piece of work, and it needs a confirmation flow worth
+designing carefully — an erasure is the one action in this product that cannot
+be undone by anybody.
+
+---
+
 ## The AADE client, built around not having one
 
 > **MYD-5**, **MYD-9**, **MYD-10**, **MYD-14**, **MYD-15**, **MYD-4.4**.
