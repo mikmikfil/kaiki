@@ -106,10 +106,26 @@ class AppPanelProvider extends PanelProvider
                 Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/App/Widgets'), for: 'App\\Filament\\App\\Widgets')
+            /*
+             * Three groups, and the third opens closed.
+             *
+             * What an operator does every morning is at the top: boarding, the
+             * calendar, bookings, quotes, enquiries, vouchers. Underneath is the
+             * catalogue they touch once a season.
+             *
+             * Everything in Settings is something you go looking for — the
+             * notification log, the exports your accountant asked for, what went
+             * wrong, the calendar sync, the keys and the domain. Collapsed by
+             * default because a menu of eleven items you rarely need buries the
+             * six you always do, and the number of clicks to reach a rare screen
+             * matters far less than the time spent scanning past it every day.
+             */
             ->navigationGroups([
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.operations')),
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.catalogue')),
-                NavigationGroup::make()->label(fn (): string => __('panel.groups.settings')),
+                NavigationGroup::make()
+                    ->label(fn (): string => __('panel.groups.settings'))
+                    ->collapsed(),
             ])
             /*
              * The export download (OPS-18).

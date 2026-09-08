@@ -57,7 +57,7 @@ class CalendarSync extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-path-rounded-square';
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 66;
 
     protected static string $view = 'filament.app.pages.calendar-sync';
 
@@ -66,7 +66,7 @@ class CalendarSync extends Page implements HasForms
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.operations');
+        return __('panel.groups.settings');
     }
 
     public static function getNavigationLabel(): string

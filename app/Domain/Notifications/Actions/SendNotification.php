@@ -91,12 +91,39 @@ final class SendNotification
      * NTF-5 requires the operator to be **warned about segment count**, and the
      * only place that warning can survive the send is the log row.
      */
+    /**
+     * Is the product sending text messages at all?
+     *
+     * False for the first phase. SMS costs the operator money per message and
+     * needs a gateway account per operator; email covers every one of BKG-16's
+     * reminders and none of them is worse for arriving by email alone.
+     */
+    public static function smsEnabled(): bool
+    {
+        return (bool) config('kaiki.notifications.sms_enabled', false);
+    }
+
     public function sms(
         Booking $booking,
         NotificationTemplate $template,
         string $body,
         bool $once = true,
     ): ?NotificationLog {
+        if (! self::smsEnabled()) {
+            // Not in the first phase (product owner, 2026-09-08). Nothing is
+            // logged and nothing is attempted, for the same reason a missing
+            // telephone number is not logged below: a row per booking saying we
+            // did not send a text nobody was expecting would fill the failure
+            // feed with a decision rather than a fault.
+            //
+            // The guard is here rather than at the three call sites so that a
+            // fourth cannot be written without it. Everything else — the
+            // templates, the segment counting, the gateway resolver, NTF-5's
+            // warning — stays built and stays tested, so switching this on is a
+            // configuration change rather than a rebuild.
+            return null;
+        }
+
         if ($once && NotificationLog::alreadySent($booking->getKey(), $template, NotificationChannel::Sms)) {
             return null;
         }

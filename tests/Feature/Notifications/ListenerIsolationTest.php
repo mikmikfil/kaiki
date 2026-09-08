@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Domain\Notifications\Actions\SendNotification;
 use App\Enums\BookingStatus;
+use App\Enums\NotificationChannel;
 use App\Enums\NotificationStatus;
+use App\Enums\NotificationTemplate;
 use App\Events\BookingConfirmed;
 use App\Listeners\Booking\SendBookingConfirmation;
 use App\Models\NotificationLog;
@@ -173,6 +175,12 @@ it('retries three times before giving up', function (): void {
 it('composes the message even for a tenant with no SMS account', function (): void {
     Mail::fake();
 
+    // SMS is off for the first phase (`kaiki.notifications.sms_enabled`).
+    // The machinery underneath is deliberately kept built and tested, so
+    // this test turns it on rather than being deleted — switching it back
+    // on must not be a rebuild.
+    config(['kaiki.notifications.sms_enabled' => true]);
+
     [$tenant, $booking] = GuestPageScenario::booking();
 
     Tenancy::forTenant($tenant, function () use ($booking): void {
@@ -230,3 +238,32 @@ it('resolves the locale chain when the booking has none', function (): void {
     // rather than on the platform's last resort.
     expect(SendNotification::localeFor($booking->refresh()))->toBe('el');
 })->group('fast');
+
+it('sends no text message at all in the first phase', function (): void {
+    Mail::fake();
+
+    [$tenant, $booking] = GuestPageScenario::booking();
+
+    Tenancy::forTenant($tenant, function () use ($booking): void {
+        $booking->forceFill(['guest_phone' => '+306912345678'])->save();
+    });
+
+    // No `config()` override: this is the shipped default. The product owner
+    // decided on 2026-09-08 that there is no SMS in the first phase — every
+    // reminder goes by email as well, and SMS costs the operator money per
+    // message and wants a gateway account per operator.
+    Tenancy::forTenant($tenant, function () use ($booking): void {
+        expect(app(SendNotification::class)->sms(
+            $booking,
+            NotificationTemplate::PreDeparture24h,
+            'Το ταξίδι σας είναι αύριο.',
+        ))->toBeNull();
+    });
+
+    // Nothing attempted, so nothing logged. A row per booking saying we did not
+    // send a text nobody was expecting would fill OPS-21's feed with a decision
+    // rather than a fault.
+    Tenancy::forTenant($tenant, function (): void {
+        expect(NotificationLog::query()->where('channel', NotificationChannel::Sms)->count())->toBe(0);
+    });
+});

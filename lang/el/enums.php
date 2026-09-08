@@ -621,4 +621,13 @@ return [
         'abandoned' => ['label' => 'Εγκαταλείφθηκε'],
     ],
 
+    'failure_source' => [
+        'notification' => ['label' => 'Μήνυμα'],
+        'payment' => ['label' => 'Πληρωμή'],
+        'gateway_webhook' => ['label' => 'Τράπεζα'],
+        'ical_sync' => ['label' => 'Ημερολόγιο'],
+        'export' => ['label' => 'Εξαγωγή'],
+        'outbound_webhook' => ['label' => 'Webhook'],
+    ],
+
 ];

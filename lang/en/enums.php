@@ -636,4 +636,13 @@ return [
         'abandoned' => ['label' => 'Abandoned'],
     ],
 
+    'failure_source' => [
+        'notification' => ['label' => 'Message'],
+        'payment' => ['label' => 'Payment'],
+        'gateway_webhook' => ['label' => 'Bank'],
+        'ical_sync' => ['label' => 'Calendar'],
+        'export' => ['label' => 'Export'],
+        'outbound_webhook' => ['label' => 'Webhook'],
+    ],
+
 ];

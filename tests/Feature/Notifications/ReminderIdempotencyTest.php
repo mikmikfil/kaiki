@@ -65,6 +65,12 @@ it('sends once when the sweeper runs twice', function (): void {
 })->group('fast');
 
 it('dedupes per channel, so the email does not swallow the text', function (): void {
+    // SMS is off for the first phase (`kaiki.notifications.sms_enabled`).
+    // The machinery underneath is deliberately kept built and tested, so
+    // this test turns it on rather than being deleted — switching it back
+    // on must not be a rebuild.
+    config(['kaiki.notifications.sms_enabled' => true]);
+
     [$tenant, $booking] = GuestPageScenario::booking();
 
     Tenancy::forTenant($tenant, function () use ($booking): void {

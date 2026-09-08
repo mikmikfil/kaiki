@@ -812,6 +812,22 @@ return [
          * and `SmsComposer` trims the operator's own preamble rather than the
          * things NTF-5 fixes as mandatory.
          */
+        /*
+         | Text messages, off for the first phase (product owner, 2026-09-08).
+         |
+         | Every reminder in BKG-16's table goes by email as well, and none of
+         | them is materially worse for arriving by email alone. SMS costs the
+         | operator money per message and wants a gateway account per operator,
+         | which is onboarding nobody has asked for yet.
+         |
+         | Everything underneath stays built and tested — the templates, the
+         | segment counting, the gateway resolver, NTF-5's warning — so turning
+         | this on is one environment variable rather than a rebuild. The guard
+         | is in `SendNotification::sms()`, which is the one door every sender
+         | goes through.
+         */
+        'sms_enabled' => (bool) env('KAIKI_SMS_ENABLED', false),
+
         'sms_max_segments' => 2,
 
     ],

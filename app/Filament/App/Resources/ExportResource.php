@@ -51,11 +51,11 @@ class ExportResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-down-tray';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 62;
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.operations');
+        return __('panel.groups.settings');
     }
 
     public static function getNavigationLabel(): string

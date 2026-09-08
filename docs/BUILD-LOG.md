@@ -12,16 +12,16 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M5 — Operations: #118 … #126, #130 and #131 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
+| Milestone | **M5 — Operations: #118 … #127, #130 and #131 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
 | M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
 | M4 | **#112 … #116 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, the same four through Gutenberg and Elementor, and the SEO trip pages. **#116 had to build `GET /api/v1/sync/products` on the platform first**: specified in `docs/api.md` since M0 and never implemented, so the feature it exists for had nothing to read. It is the only endpoint in the API a publishable key cannot reach. **#117 the release remains; it needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117). |
-| M5 | **#118 … #126, #130 and #131 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. **#130 added the fleet strip and «Χρειάζονται προσοχή» to the dashboard; #131 added «Καιρός» (ADR-0027), which reports the days over each boat's own wind limit and what is booked on them, and cancels nothing.** Six smaller commits sit between them — the Stripe removal, the demo fleet, two panel fixes, the embedded map — written up together above. **#125 built the outbound webhooks (OPS-19, OPS-20)** — four events, HMAC-signed, eight attempts over a day, a delivery history with a resend button, and an SSRF guard that checks addresses rather than hostnames. **#126 put the vouchers on screen** — the engine had worked since M2 and nobody could see it; the expiry sweeper and the two reminders were the missing clock, and the sweep runs against each tenant's own day rather than UTC's. Remaining in M5: the consolidated error feed (OPS-21), offline check-in (OPS-12, and ADR-worthy — the Filament page cannot do it), and the 390x844 Playwright run (OPS-22). |
+| M5 | **#118 … #127, #130 and #131 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. **#130 added the fleet strip and «Χρειάζονται προσοχή» to the dashboard; #131 added «Καιρός» (ADR-0027), which reports the days over each boat's own wind limit and what is booked on them, and cancels nothing.** Six smaller commits sit between them — the Stripe removal, the demo fleet, two panel fixes, the embedded map — written up together above. **#125 built the outbound webhooks (OPS-19, OPS-20)** — four events, HMAC-signed, eight attempts over a day, a delivery history with a resend button, and an SSRF guard that checks addresses rather than hostnames. **#126 put the vouchers on screen** — the engine had worked since M2 and nobody could see it; the expiry sweeper and the two reminders were the missing clock, and the sweep runs against each tenant's own day rather than UTC's. **#127 built the consolidated failure feed** — a view over six tables rather than a seventh, with a retry only where one would do something. It also moved four plumbing screens into a collapsed Ρυθμίσεις group and **switched SMS off for the first phase** (product owner). Remaining in M5: offline check-in (OPS-12, and ADR-worthy — the Filament page cannot do it) and the 390x844 Playwright run (OPS-22). |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2523, one failing: the schema snapshot CI cannot regenerate — and #131's migration has now moved its hash) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2535, one failing: the schema snapshot CI cannot regenerate — and #131's migration has now moved its hash) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -40,6 +40,159 @@ Each entry records the **verification actually run** and its **real output** —
 | ~~**A billing provider for M7**, after Cashier came out with Stripe~~ | ~~product owner~~ | ~~M7~~ — **Decided 2026-09-08: Viva Wallet, the same gateway operators use for guests (ADR-0028 as amended).** |
 | **Whether the full hosted site is a paid tier**, and what each plan gets | product owner | before `Plan`'s three predicates get their first caller — ADR-0029 settles the *shape* of the switch, not the price |
 | **Open-Meteo's commercial subscription**, or another provider — the free endpoint is non-commercial only (ADR-0027) | product owner | before a paying operator sees «Καιρός» |
+
+---
+
+## #127 — One feed for every failure, and a navigation that stopped burying the work
+
+OPS-21: *"Every operator-visible failure (payment, myDATA, SMS, iCal, webhook,
+PDF) appears in one consolidated error feed with a plain-Greek explanation, the
+affected booking, and a retry action."* NFR-8 says the same thing from the other
+end: every external call is *"retried, and failures are visible in the operator
+panel with human-readable Greek messages."*
+
+This is the issue the milestone plan said could only be built last, because it
+consolidates failures the earlier issues create — and #125's webhook deliveries
+are one of the six sources.
+
+### It is a view over six tables, and deliberately not a seventh
+
+The tempting build is an `operator_failures` table that everything writes into.
+One query, one model, a normal Filament Resource. It was rejected.
+
+Each source already records its own failure, with its own retry semantics and
+its own idea of what "resolved" means. A copy in a seventh table drifts the
+first time one of them is updated and the other is not — and then an operator
+has **two records of the same event disagreeing about whether it is still a
+problem**, which is worse than not having the feed.
+
+So `FailureFeed` merges: notification logs, failed payments, unprocessable
+gateway webhooks, broken iCal sources, failed exports, and undelivered outbound
+webhooks. Six queries and a sort in PHP, bounded at fifty rows per source over
+thirty days.
+
+**The cap is per source rather than overall**, which matters more than it looks:
+a hundred failed webhooks must not push the one refused payment off the screen.
+
+### Three of the six have a retry, and each absence is a decision
+
+`FailureSource::isRetryable()` is where this lives, and the three that cannot be
+retried are the interesting half:
+
+- a **payment** was refused by a bank, and the retry belongs to the guest and
+  their own card — a button here would promise the operator something they
+  cannot do on somebody else's behalf, and they would believe the guest had been
+  charged again;
+- a **gateway webhook** we could not process needs a person to read it. PAY-7
+  deliberately keeps an orphan visible rather than retried, because somebody has
+  been charged and the money cannot be matched;
+- an **iCal source** is already retried every fifteen minutes by the poller, so
+  a button would promise what the schedule is doing anyway.
+
+A single generic "retry" would also have got the webhook one wrong in the way
+that costs money: a resend **reuses the same `event_id`**, so a receiver that
+already had the event ignores the repeat. A fresh id would defeat the consumer's
+own deduplication, which is the mechanism `docs/api.md` §8.4 tells them to rely
+on.
+
+### The boundary with «Χρειάζονται προσοχή», settled
+
+`AttentionItems` has said since #130 that it is a **decision** list and that
+OPS-21's feed is for *"things the system tried and could not do"*. The overlap
+the plan flagged was iCal failures, which appeared in both.
+
+Resolved by **keeping both, deliberately**. The dashboard row says a boat may
+look free while somebody else has sold it — the most expensive silence in the
+product, and a decision. The feed row says *why*, with the provider's own error
+and the failure count. Two different reactions to the same fact, one click
+apart.
+
+### Small things that are the whole difference between a feed and a wall
+
+- **A broken calendar has no date filter**, unlike the other five. It is a
+  *state*, not an event — it has been failing every quarter of an hour since it
+  broke — and one dead for six weeks is more urgent than one that broke this
+  morning, not less. A thirty-day cut would hide exactly the worst case.
+- **Recipients are shortened.** `maria.papadopoulou@example.gr` becomes
+  `mar…@example.gr`; a telephone number becomes its last four. Enough to
+  recognise which guest, and not a screen somebody can photograph to collect
+  addresses. The whole value stays on the notification log, behind its own
+  permission.
+- **The explanation is never the code.** The provider's own string sits
+  underneath in monospace for whoever is about to paste it into a support
+  ticket; the sentence beside it says what it means. Asserted for a code nobody
+  has written a sentence for yet, because that is the case a fallback exists for.
+- **The navigation badge is cached for a minute.** A badge runs on *every* page
+  of the panel, and uncached this would have put six queries behind every click
+  an operator makes — against NFR-5's 1.5 seconds for the dashboard. The page
+  itself is never cached; it polls, and it is the authority.
+
+### Two absences, named rather than left as a gap
+
+OPS-21 lists six kinds and four exist. **myDATA is M6** and has no model yet.
+**PDF** failures — a Browsershot timeout generating an e-ticket — land in
+`failed_jobs` with no operator-facing row, and giving them one is a change to
+`GenerateETicket` rather than to this feed. Both are in `FailureSource`'s
+docblock so the thin-looking list is explained where somebody will find it.
+
+---
+
+## Two changes the product owner asked for while this was being built
+
+### No SMS in the first phase
+
+*"δεν θα εχουμε sms σε πρωτη φαση".*
+
+The guard is in `SendNotification::sms()` — the one door all three senders go
+through — rather than at the three call sites, so a fourth cannot be written
+without it. Nothing is logged when it declines, for the same reason a missing
+telephone number is not logged: a row per booking saying we did not send a text
+nobody was expecting would fill OPS-21's brand-new feed with a decision rather
+than a fault.
+
+**Everything underneath stays built and stays tested** — the templates, the
+segment counting, NTF-5's warning, the gateway resolver, the per-tenant account.
+The two tests that exercise the SMS path now switch it on explicitly rather than
+being deleted, and a new test asserts the shipped default sends nothing. Turning
+it on is `KAIKI_SMS_ENABLED=true`, not a rebuild.
+
+### The navigation stopped putting plumbing first
+
+*"ολα αυτα τα μηνηματα, εξαγωγες κλπ δεν θελω να φαινονται πρωτα… και το
+dropdown των ρυθμισεων να ειναι by default κλειστό".*
+
+Four screens moved from Λειτουργία to Ρυθμίσεις: the notification log, the
+exports, this new failure feed, and the calendar sync. All four are things you
+go *looking for* when something has happened or an accountant has asked.
+
+Λειτουργία is now the six an operator opens every morning — boarding, the
+calendar, bookings, quotes, vouchers, enquiries — and Ρυθμίσεις is collapsed by
+default. Eleven items you rarely need were burying six you always do, and the
+clicks to reach a rare screen cost far less than scanning past it daily.
+
+**One thing worth recording about the collapse:** Filament keeps group state in
+the browser's `localStorage`, so `->collapsed()` is the default for somebody who
+has never opened the panel and is overridden for everybody who has. Verified by
+clearing the key and reloading; a fresh operator gets it closed.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Operations/FailureFeedTest.php   11 passed
+vendor/bin/pest tests/Feature/Notifications/                   58 passed
+vendor/bin/pest                          2535 passed, 4 skipped, 1 failed
+vendor/bin/pint --test                   passed
+vendor/bin/phpstan analyse                [OK] No errors
+```
+
+The one failure is the known MySQL schema snapshot.
+
+And in the browser, against real broken things — a hard-bounced email, an SMS
+with an untranslated provider code, an iCal source on seven consecutive
+failures, an export that hit a disk error, and #125's own failed delivery: five
+rows, each with its badge, its Greek explanation and the provider's words
+underneath; the retry offered on three of them and absent from the calendar; and
+pressing one produced «Μπήκε στην ουρά» and took the count from five to four.
 
 ---
 

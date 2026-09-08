@@ -109,6 +109,7 @@ return [
         'webhooks.nav' => 'Technical term with no Greek equivalent in use.',
         'webhooks.singular' => 'Technical term with no Greek equivalent in use.',
         'webhooks.plural' => 'Technical term with no Greek equivalent in use.',
+        'enums.failure_source.outbound_webhook.label' => 'Technical term with no Greek equivalent in use.',
     ],
 
     'literals' => [

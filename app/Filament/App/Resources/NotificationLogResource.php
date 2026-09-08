@@ -57,11 +57,11 @@ class NotificationLogResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-envelope';
 
-    protected static ?int $navigationSort = 26;
+    protected static ?int $navigationSort = 60;
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.operations');
+        return __('panel.groups.settings');
     }
 
     public static function getNavigationLabel(): string

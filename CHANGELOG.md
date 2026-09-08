@@ -14,6 +14,26 @@ Until today they could not. The booking form on your own trip pages was never lo
 
 If somebody has JavaScript blocked, or the connection drops before the form loads, they still get your email address and telephone number exactly as before. That was the only thing working on these pages, and it stays.
 
+### #127 - «Τι πήγε στραβά», and a menu that stopped burying the work
+
+When something in Kaiki does not work — an email bounces, a calendar stops syncing, an export dies, a webhook never arrives — it used to be recorded in five different places, and four of them had no screen at all. **Now there is one list.**
+
+Every row says what failed, what it means in plain Greek, which booking it was about, and the provider's own words underneath for whoever is going to forward them to somebody. Where trying again would help, there is a button.
+
+**Where it would not help, there is no button — on purpose.** A refused card is not something you can retry on the guest's behalf; they have to pay again from their own link. A payment the bank told us about that matches no booking needs a person, not a retry. And a broken calendar is already being retried every quarter of an hour by itself. A button on any of those would look like it did something.
+
+**Two details worth knowing.** A calendar that has been broken for six weeks stays at the top of the list rather than ageing off it — it is the most expensive kind of silence, because the boat looks free while somebody else has already sold it. And guests' email addresses are shortened to `mar…@example.gr` rather than printed in full: enough to know which booking, not a screen anybody can photograph.
+
+### The menu
+
+**Λειτουργία is now the six things you open every morning** — επιβίβαση, ημερολόγιο, κρατήσεις, προσφορές, κουπόνια, ερωτήματα.
+
+Μηνύματα, εξαγωγές, «τι πήγε στραβά» and ο συγχρονισμός ημερολογίου have moved into **Ρυθμίσεις**, which now starts closed. They are all things you go looking for when something has happened or your accountant has asked — and eleven items you rarely need were burying the six you always do.
+
+### No SMS for now
+
+Text messages are switched off. Every reminder Kaiki sends goes by email as well, so nothing stops working — and SMS costs you money per message and needs an account with a provider that nobody has asked for yet. Everything for it is built and tested; switching it on later is one setting.
+
 ### #126 - Κουπόνια you can actually see
 
 Kaiki has been issuing vouchers since the spring — every weather cancellation produces one, the widget accepts the code at checkout, and the guest has a page showing what is left on theirs. What you have never had is a way to **look**: no list, no search by code, and no way to write one out yourself.
