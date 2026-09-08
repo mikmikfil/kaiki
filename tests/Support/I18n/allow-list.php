@@ -103,6 +103,12 @@ return [
         // developer and every Greek integration guide says webhook, and a
         // translation would be a word this audience has to translate back.
         'enums.notification_channel.webhook.label' => 'Technical term with no Greek equivalent in use.',
+
+        // #125's screen, on the same reasoning. The operator does not name
+        // these — their developer does, and asks for "το webhook".
+        'webhooks.nav' => 'Technical term with no Greek equivalent in use.',
+        'webhooks.singular' => 'Technical term with no Greek equivalent in use.',
+        'webhooks.plural' => 'Technical term with no Greek equivalent in use.',
     ],
 
     'literals' => [

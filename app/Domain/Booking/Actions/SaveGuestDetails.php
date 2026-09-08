@@ -6,6 +6,7 @@ namespace App\Domain\Booking\Actions;
 
 use App\Enums\GuestDetailsStatus;
 use App\Enums\GuestDocumentType;
+use App\Events\GuestDetailsCompleted;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Models\Product;
@@ -123,7 +124,21 @@ final class SaveGuestDetails
 
         $status = $incomplete ? GuestDetailsStatus::Pending : GuestDetailsStatus::Complete;
 
+        $was = $booking->guest_details_status;
+
         $booking->forceFill(['guest_details_status' => $status])->save();
+
+        // OPS-19's fourth event, and it fires on the **transition**. This
+        // method runs on every save of the guest form, so a party of six filled
+        // in over three sittings would otherwise announce a finished manifest
+        // three times — once for each save after the last name went in.
+        if ($status === GuestDetailsStatus::Complete && $was !== GuestDetailsStatus::Complete) {
+            GuestDetailsCompleted::dispatch(
+                $booking->getKey(),
+                $booking->tenant_id,
+                BookingGuest::query()->where('booking_id', $booking->getKey())->count(),
+            );
+        }
 
         return $status;
     }

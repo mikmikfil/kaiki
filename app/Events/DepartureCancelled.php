@@ -28,6 +28,19 @@ final class DepartureCancelled implements Auditable
         private readonly ?string $reason = null,
     ) {}
 
+    /**
+     * The departure this is about.
+     *
+     * Public because OPS-19 publishes `departure.cancelled` and the webhook
+     * listener needs the row. Unlike its neighbours this event carries a model
+     * rather than ids — which is why nothing that reads it may be queued; see
+     * `App\Listeners\Webhooks\PublishDomainEvent`.
+     */
+    public function departure(): Departure
+    {
+        return $this->departure;
+    }
+
     public function auditEntry(): AuditEntryData
     {
         return AuditEntryData::forModel(

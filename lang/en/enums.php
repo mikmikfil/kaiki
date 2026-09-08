@@ -622,4 +622,18 @@ return [
         'quote_sent' => ['label' => 'Quote sent'],
     ],
 
+    'webhook_event' => [
+        'booking.confirmed' => ['label' => 'Booking confirmed'],
+        'booking.cancelled' => ['label' => 'Booking cancelled'],
+        'departure.cancelled' => ['label' => 'Departure cancelled'],
+        'guest_details.completed' => ['label' => 'Passenger details completed'],
+    ],
+
+    'delivery_status' => [
+        'pending' => ['label' => 'Pending'],
+        'delivered' => ['label' => 'Delivered'],
+        'failed' => ['label' => 'Failed'],
+        'abandoned' => ['label' => 'Abandoned'],
+    ],
+
 ];

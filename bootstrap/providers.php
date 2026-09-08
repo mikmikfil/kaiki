@@ -10,6 +10,7 @@ use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\Filament\AppPanelProvider;
 use App\Providers\IntegrationServiceProvider;
 use App\Providers\NotificationServiceProvider;
+use App\Providers\WebhookServiceProvider;
 
 return [
     ApiRateLimitServiceProvider::class,
@@ -18,6 +19,7 @@ return [
     BookingServiceProvider::class,
     IntegrationServiceProvider::class,
     NotificationServiceProvider::class,
+    WebhookServiceProvider::class,
     AdminPanelProvider::class,
     AppPanelProvider::class,
 ];

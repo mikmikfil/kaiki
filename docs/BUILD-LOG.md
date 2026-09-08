@@ -12,16 +12,16 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M5 — Operations: #118 … #124, #130 and #131 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
+| Milestone | **M5 — Operations: #118 … #125, #130 and #131 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
 | M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
 | M4 | **#112 … #116 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, the same four through Gutenberg and Elementor, and the SEO trip pages. **#116 had to build `GET /api/v1/sync/products` on the platform first**: specified in `docs/api.md` since M0 and never implemented, so the feature it exists for had nothing to read. It is the only endpoint in the API a publishable key cannot reach. **#117 the release remains; it needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117). |
-| M5 | **#118 … #124, #130 and #131 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. **#130 added the fleet strip and «Χρειάζονται προσοχή» to the dashboard; #131 added «Καιρός» (ADR-0027), which reports the days over each boat's own wind limit and what is booked on them, and cancels nothing.** Six smaller commits sit between them — the Stripe removal, the demo fleet, two panel fixes, the embedded map — written up together above. Remaining in M5: outbound webhooks (OPS-19, OPS-20), vouchers in the panel (OPS-16), the consolidated error feed (OPS-21), offline check-in (OPS-12), and the 390x844 Playwright run (OPS-22). |
+| M5 | **#118 … #125, #130 and #131 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. **#130 added the fleet strip and «Χρειάζονται προσοχή» to the dashboard; #131 added «Καιρός» (ADR-0027), which reports the days over each boat's own wind limit and what is booked on them, and cancels nothing.** Six smaller commits sit between them — the Stripe removal, the demo fleet, two panel fixes, the embedded map — written up together above. **#125 built the outbound webhooks (OPS-19, OPS-20)** — four events, HMAC-signed, eight attempts over a day, a delivery history with a resend button, and an SSRF guard that checks addresses rather than hostnames. Remaining in M5: vouchers in the panel (OPS-16), the consolidated error feed (OPS-21), offline check-in (OPS-12, and ADR-worthy — the Filament page cannot do it), and the 390x844 Playwright run (OPS-22). |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2445, one failing: the schema snapshot CI cannot regenerate — and #131's migration has now moved its hash) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2508, one failing: the schema snapshot CI cannot regenerate — and #131's migration has now moved its hash) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -40,6 +40,174 @@ Each entry records the **verification actually run** and its **real output** —
 | ~~**A billing provider for M7**, after Cashier came out with Stripe~~ | ~~product owner~~ | ~~M7~~ — **Decided 2026-09-08: Viva Wallet, the same gateway operators use for guests (ADR-0028 as amended).** |
 | **Whether the full hosted site is a paid tier**, and what each plan gets | product owner | before `Plan`'s three predicates get their first caller — ADR-0029 settles the *shape* of the switch, not the price |
 | **Open-Meteo's commercial subscription**, or another provider — the free endpoint is non-commercial only (ADR-0027) | product owner | before a paying operator sees «Καιρός» |
+
+---
+
+## #125 — Outbound webhooks, signed, retried, and visible
+
+OPS-19 names four events. OPS-20 is the hard half: HMAC signatures, a timestamp
+and an event id, exponential backoff for twenty-four hours, a delivery history
+in the panel, and no guest document number ever.
+
+**Nothing existed.** No `app/Domain/Webhooks/`, no models, no migrations, no
+panel screen — the inbound Viva receiver was the only webhook machinery in the
+product, and it solves the opposite problem. What *did* exist was a complete
+specification: `docs/data-model.md` §3.13 gives both tables column by column as
+items 41 and 42, and `docs/api.md` §8 gives the envelope, the signature scheme
+and the retry schedule. So this was build-to-spec rather than design, and the
+interesting decisions are the ones the spec left to the implementation.
+
+### The unique index is the delivery guarantee, not an optimisation
+
+`(webhook_endpoint_id, event_id)`. A queued job that runs twice — which happens
+whenever a worker dies between the HTTP call and the ack — must not fire a
+second POST at somebody's accounting system. The database refuses the row, the
+duplicate job finds the delivery already recorded, and stops.
+
+That is the same construction the booking API's idempotency key uses, for the
+same reason: at-least-once is what a queue offers, and exactly-once is something
+you build on top of it.
+
+### The payload is written once and never rebuilt
+
+A retry six hours later re-sends the stored bytes. Rebuilding would let a
+booking cancelled in the meantime turn a `booking.confirmed` into a POST
+describing a cancelled booking — the retries would disagree with each other and
+with the event they claim to be. An event says what was true when it happened;
+the next event says the rest.
+
+### Three rules that are each a real leak, and none of them is obvious
+
+**BKG-34 — an imported booking fires nothing.** Importing four seasons of
+WooCommerce history must not post four seasons of `booking.confirmed` at
+somebody's accounting system.
+
+**SAA-12 — a test booking *is* sent, flagged.** This is the one place a test
+booking is allowed out, and the asymmetry is deliberate: SAA-12 keeps them out
+of every figure and every export, but an operator wiring up their integration
+needs the event to arrive. `is_test` rides along and §8.2 tells consumers to
+branch on it.
+
+**No document numbers, ever.** `guest_details.completed` reports *that* the
+manifest is complete and how many rows. The payload has no case for a document
+number, so there is no mechanism that could include one — and it is asserted
+from outside, the way `ExportRows` is: a real number in the database and a
+search of the finished JSON bytes for it.
+
+The other two removals are `manage_token` and `links`. Both are the **guest's**
+— the URLs that let whoever holds them cancel the booking — and neither is the
+integrator's to hold.
+
+### The retry schedule is ours, not the queue's
+
+Laravel's `$tries` and `backoff()` would work and are wrong here twice over. The
+schedule is **published** — an integrator reads §8.4's eight intervals and sizes
+their own retention against them — so it has to live somewhere a person can
+read, which is `WebhookDelivery::BACKOFF_SECONDS`. And the panel has to *show*
+where a delivery has got to: which attempt, what the receiver said, when the
+next one is due. A queue's internal retry state answers none of that.
+
+So the job records the attempt, computes `next_attempt_at`, and re-dispatches
+itself with a delay. The cost is that a pending attempt then lives in two places
+— the row and a delayed job — and only one of those survives a flushed queue or
+a deploy in the middle of the twelve-hour gap. **`SweepWebhookRetriesJob` is
+what makes the row the source of truth**, every minute, and a duplicate job it
+causes is harmless because `DeliverWebhook` returns immediately for a delivery
+that is no longer pending.
+
+### `failed` and `abandoned` are different states
+
+`failed` is *the attempts ran out* — re-sendable by hand, and OPS-21's feed will
+want it. `abandoned` is *the endpoint was switched off or deleted while this was
+queued* — nothing failed, there is nowhere to send it, and a retry button on it
+would be a button that cannot work. Collapsing them would put an outage in the
+failure feed every time an operator turned an integration off.
+
+### The SSRF guard, and why it runs twice
+
+An operator types a URL and the platform fetches it, from inside its own
+network. `https://169.254.169.254/` is the cloud metadata service and returns
+the instance's credentials; `127.0.0.1` and `10.0.0.0/8` are everything else. A
+webhook feature is the friendliest possible way to hand somebody a server-side
+request forgery, because the product asks for a URL and promises to call it.
+
+Addresses are checked, not strings — `localtest.me` is a public DNS name that
+resolves to `127.0.0.1`, so a guard that read the hostname would refuse the
+honest spelling and admit the dishonest one. The form check skips DNS because a
+form must answer while somebody is typing; **the check that matters runs inside
+the delivery job, immediately before the socket**, where a hostname repointed
+since save time is caught.
+
+### Three bugs found while building it, two of them by the same mistake
+
+**The payload was built outside tenancy.** `BookingResource` reads tenant-owned
+relations — the voucher ledger among them — so building the payload before
+entering the tenant threw `TenantContextMissingException` from a listener. That
+is TEN-4 working exactly as designed and this code getting it wrong. Fixed in
+`DispatchWebhookEvent::forBooking()`, and then **found again** in the listener's
+`guest_details` branch, which does not go through that method because its
+payload carries a count the booking does not know.
+
+**An IPv6 literal kept its brackets.** `parse_url` returns the host of
+`https://[::1]/x` as `[::1]`, which `filter_var` does not recognise as an
+address — so loopback fell through to the hostname branch and was treated as a
+name that merely failed to resolve. Caught by the test, not by review.
+
+**The panel rendered raw lang keys**, and only the browser showed it. Every
+event name contains a dot, and Laravel reads a dot in a translation key as a
+path separator: `__('webhooks.events.booking.confirmed')` searches for
+`webhooks → events → booking → confirmed`, finds nothing, and returns the key.
+The form showed `webhooks.events.booking.confirmed` under each checkbox.
+`HasTranslatedLabel::line()` carries a note about this exact trap because it
+shipped once before in #6 — **this is the second time it has been walked into**,
+and the fix is the same: fetch the block and index it.
+
+### Deviations and deliberate omissions
+
+- **`PublishDomainEvent` is not queued**, and it is the only listener in the
+  application that is not. Its whole job is local — resolve, build, write a row,
+  dispatch a job — and the HTTP call is already somebody else's job. Queueing it
+  would buy nothing and cost correctness: `DepartureCancelled` carries a
+  **model** rather than ids, unlike every other event in that directory, and a
+  queued listener is constructed on a worker where a serialised model is
+  re-fetched under whatever tenant the previous job left behind.
+- **One listener, not four.** These four do the same thing four times; four
+  classes would put the rule about which events are published in four places.
+- **`guest_details.completed` fires on the transition, not the state.**
+  `SaveGuestDetails::syncStatus()` runs on every save of the guest form, so a
+  party of six filled in over three sittings would otherwise announce a finished
+  manifest three times.
+- **Plan gating is not wired**, per the product owner's decision today.
+  SAA-3 gives webhooks to `Pro` and `Plan::allowsWebhooks()` already exists with
+  no callers; the note naming it as the place is in the code.
+- **Secret rotation publishes one signature, not two.** §8.3's comma-separated
+  `v1=<new>,v1=<old>` for twenty-four hours is implemented in
+  `WebhookSignature::header()` and `verify()`, and the panel's rotate action
+  replaces the secret outright rather than keeping the old one alive. The
+  machinery is there; the twenty-four-hour overlap needs a second column and is
+  not built. **Recorded rather than silently skipped.**
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Webhooks/   35 passed (77 assertions)
+vendor/bin/pest                           2508 passed, 4 skipped, 1 failed
+vendor/bin/pint --test                    passed
+vendor/bin/phpstan analyse                [OK] No errors
+php artisan migrate                       both tables DONE
+```
+
+The one failure is `CiGatesTest > it keeps the committed schema snapshot in step
+with the migrations`, and **this issue moved its hash again** — two new
+migrations. It has been failing since 2026-09-06 for the reason in the Status
+table: CI is the only place with a MySQL 8 connection, and CI is blocked on
+GitHub billing. Not a new break.
+
+And in the browser, because a green suite did not catch the lang-key bug: the
+endpoint list under Ρυθμίσεις → Webhooks with its four event badges, the edit
+screen with «Αλλαγή μυστικού κλειδιού», and «Ιστορικό αποστολών» showing a
+delivered row (1/8, 200, no button) beside a failed one (8/8, 500, «Νέα
+αποστολή») — the resend offered on exactly the row that can use it.
 
 ---
 

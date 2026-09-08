@@ -607,4 +607,18 @@ return [
         'quote_sent' => ['label' => 'Αποστολή προσφοράς'],
     ],
 
+    'webhook_event' => [
+        'booking.confirmed' => ['label' => 'Επιβεβαίωση κράτησης'],
+        'booking.cancelled' => ['label' => 'Ακύρωση κράτησης'],
+        'departure.cancelled' => ['label' => 'Ακύρωση αναχώρησης'],
+        'guest_details.completed' => ['label' => 'Ολοκλήρωση στοιχείων επιβατών'],
+    ],
+
+    'delivery_status' => [
+        'pending' => ['label' => 'Σε αναμονή'],
+        'delivered' => ['label' => 'Παραδόθηκε'],
+        'failed' => ['label' => 'Απέτυχε'],
+        'abandoned' => ['label' => 'Εγκαταλείφθηκε'],
+    ],
+
 ];

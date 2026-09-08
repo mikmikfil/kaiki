@@ -14,6 +14,20 @@ Until today they could not. The booking form on your own trip pages was never lo
 
 If somebody has JavaScript blocked, or the connection drops before the form loads, they still get your email address and telephone number exactly as before. That was the only thing working on these pages, and it stays.
 
+### #125 - Your own systems, told automatically
+
+Under **Ρυθμίσεις → Webhooks** you can now give Kaiki an address and have it tell your accountant's software, your spreadsheet or your Zapier account when something happens. Four things: a booking is paid for, a booking is cancelled, a departure is cancelled, and every passenger on a booking has filled in their details.
+
+**You tick what you want to hear about.** Nothing else is sent, and each one is described in a sentence rather than named in jargon.
+
+**It keeps trying, and it tells you when it stopped.** If your receiver is down, Kaiki tries again eight times over about a day — quickly at first, then further apart. After that the delivery sits in the history with what the other end actually said, and a button to send it again once you have fixed the cause. Sending it again is safe: it is the same message with the same identifier, so a receiver that already had it will ignore the repeat rather than double-count it.
+
+**After twenty failures in a row we switch the address off and tell you.** Nobody's queue should spend a week on a URL whose owner has moved on. Switching it back on is one button and starts the count from zero.
+
+**The signing secret is shown once.** It is what lets your receiver prove a message really came from Kaiki and not from somebody who guessed the address. If you lose it, you make a new one — and the screen warns you that your receiver has to be told, because otherwise it will start rejecting perfectly good messages.
+
+Three rules worth knowing, because they are about your guests rather than your plumbing. **Passport and ID numbers are never sent** — the passenger event says the manifest is ready and how many people are on it, and the manifest itself stays an export you take deliberately from the panel. **Imported bookings send nothing**, so bringing four seasons of history in from WooCommerce does not post four seasons of confirmations at your accountant. And **test bookings are sent but flagged**, so you can check your integration works without it looking like real money.
+
 ### The "about us" on your home page, and the setting on it that was doing nothing
 
 A block with your heading and a paragraph or two on one side and a photograph on the other — who you are, the family, the boat. Add it from the home page editor, write it in both languages, upload the picture, choose which side it sits on.

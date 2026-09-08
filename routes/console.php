@@ -12,7 +12,9 @@ use App\Jobs\GenerateDeparturesNightly;
 use App\Jobs\PollIcalSourcesJob;
 use App\Jobs\PurgeExpiredExportsJob;
 use App\Jobs\Reminders\SendDueRemindersJob;
+use App\Jobs\SweepWebhookRetriesJob;
 use App\Models\NotificationLog;
+use App\Models\WebhookDelivery;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -310,3 +312,49 @@ Schedule::job(new PollIcalSourcesJob)
     ->withoutOverlapping()
     ->onOneServer()
     ->name('ical:poll-sources');
+
+/*
+|--------------------------------------------------------------------------
+| Webhook retries the queue may have lost (OPS-20, #125)
+|--------------------------------------------------------------------------
+|
+| `DeliverWebhook` schedules its own next attempt by re-dispatching itself with
+| a delay, which is what lets the panel say which attempt a delivery is on and
+| when the next one is due. The cost is that a pending attempt then exists in
+| two places — the row and a delayed job — and only one of them survives a
+| flushed queue, a lost Redis instance or a deploy in the middle of §8.4's
+| twelve-hour gap.
+|
+| The row is the source of truth, and this is what enforces it. A duplicate job
+| is harmless: `DeliverWebhook` returns immediately for a delivery that is no
+| longer pending.
+|
+| Every minute, because the first published interval is ten seconds and an hourly
+| sweep would turn "retry in ten seconds" into "retry within the hour" whenever a
+| job went missing.
+*/
+Schedule::job(new SweepWebhookRetriesJob)
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('webhooks:sweep-retries');
+
+/*
+|--------------------------------------------------------------------------
+| Webhook deliveries, pruned (data-model.md §3.13)
+|--------------------------------------------------------------------------
+|
+| Ninety days. A delivery log is a copy of booking data — a guest's name and
+| email in a second table — kept so an operator can answer "what did we send
+| that morning" while somebody still cares. Kept for ever it would be personal
+| data retained for no stated purpose, growing at the rate of the business.
+|
+| Beside the notification-log prune, at the same quiet hour, because they are
+| the same kind of thing and a reader who finds one should find the other.
+*/
+Schedule::command('model:prune', ['--model' => [WebhookDelivery::class]])
+    ->dailyAt((string) config('kaiki.audit.purge_at', '04:10'))
+    ->timezone((string) config('kaiki.defaults.timezone', 'Europe/Athens'))
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('webhooks:prune-deliveries');
