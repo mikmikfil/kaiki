@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Filament\Avatars\InitialsAvatarProvider;
 use App\Http\Controllers\App\BoardingController;
 use App\Http\Controllers\App\BoardingServiceWorkerController;
 use App\Http\Controllers\ExportDownloadController;
@@ -96,6 +97,16 @@ class AppPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('app')
+            /*
+             * Initials drawn locally, rather than Filament's default.
+             *
+             * The default is `UiAvatarsProvider`, which puts the signed-in
+             * person's name in a `https://ui-avatars.com/api/?name=…` URL — so
+             * every page of this panel was sending a staff member's name to a
+             * third party nobody had chosen, on every load. See
+             * {@see InitialsAvatarProvider}.
+             */
+            ->defaultAvatarProvider(InitialsAvatarProvider::class)
             ->path('app')
             ->login()
             ->colors([

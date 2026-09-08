@@ -40,7 +40,129 @@ Each entry records the **verification actually run** and its **real output** —
 | ~~**A billing provider for M7**, after Cashier came out with Stripe~~ | ~~product owner~~ | ~~M7~~ — **Decided 2026-09-08: Viva Wallet, the same gateway operators use for guests (ADR-0028 as amended).** |
 | **Whether the full hosted site is a paid tier**, and what each plan gets | product owner | before `Plan`'s three predicates get their first caller — ADR-0029 settles the *shape* of the switch, not the price |
 | **Open-Meteo's commercial subscription**, or another provider — the free endpoint is non-commercial only (ADR-0027) | product owner | before a paying operator sees «Καιρός» |
+| **No screen for adding staff.** `ManageStaff`, `UserPolicy`, `RoleAssignmentPolicy` and the Greek strings all exist; the screen was never written, so an owner cannot hand a skipper a login through the product | product owner | before the first operator hires anybody — raised 2026-09-08 |
 | **A date filter on the departures list.** #129 found it has none; the default ascending sort happens to put today first with the current seed, so an operator tapping the "sailing today and tomorrow" figure lands on the whole table | product owner | a screen change, not a bug — decide whether the figure should filter or the list should default to today |
+
+---
+
+## TEN-8, on every screen rather than one — and a name leaving the building
+
+> **TEN-8** *"`crew` — read-only access to **departures within a configurable
+> window** (default today and tomorrow), the pax list, check-in actions and
+> manifest view; **no pricing, no financials**, no guest documents beyond what
+> the manifest shows."*
+
+### The manual is what found all four
+
+The operator manual needed a chapter called «Ποιος βλέπει τι» with a table: one
+row per screen, one column per role, one answer per cell. Writing that table
+against the code rather than against TEN-8 is what surfaced these, because the
+table could not be filled in — three screens gave two different answers to the
+same question, and a fourth answered one nobody had asked.
+
+That is worth recording on its own. A requirement written once and implemented
+per-screen has no single place to be wrong, so nothing is ever *found* wrong; it
+takes an artefact that has to state the rule in one place to expose that the code
+never did.
+
+### 1. The dashboard showed a skipper the operator's takings
+
+`OperationsOverview::canView()` gated on a resolved tenant and on
+`FirstSteps::applies()` — **no capability check of any kind**. Two of its six
+figures are money: outstanding balances and the week's revenue. The dashboard is
+the panel's landing page and crew reach it, so a crew member signing in to see
+today's sailings was shown the operator's finances first, every time.
+
+The four operational figures stay — departures, at risk, pending guest details,
+unanswered quotes. None is pricing and all four are things the person on the boat
+has reason to know. The two money figures are **appended** after a
+`ViewFinancials` check rather than filtered out of a list of six, so a figure that
+needs financial access cannot be added later without landing behind the gate.
+
+### 2. The bookings list was the whole history
+
+`DepartureResource::getEloquentQuery()` applied the window correctly. Nothing
+else did. `BookingResource::getEloquentQuery()` was
+`parent::getEloquentQuery()->with(['product'])`, and `BookingPolicy` opens the
+screen on `ViewPaxList`, which crew hold — so one click from a correctly-narrowed
+departures list sat **every booking the tenant had ever taken**, each with a
+name, an email address and a telephone number. Money columns were correctly
+absent, which is exactly what makes this the kind of hole nobody notices: the
+screen looks restricted.
+
+### 3. The calendar paged back a season
+
+`Calendar::canAccess()` requires `ViewDepartures` and nothing gated the dates.
+`shiftDays()` moved freely, and each day carries a pax action. Clamped rather
+than refused — an arrow that does nothing at the edge is how every date control
+behaves, and an error would suggest the crew member had done something wrong.
+
+### The fix is one class, and that is the actual repair
+
+`app/Support/Authorization/CrewWindow.php` holds the dates, the config key, the
+tenant-timezone "today" and the two query scopes. `DepartureResource` now calls
+it rather than owning it.
+
+The bug was never the missing `whereDate` on two screens. It was that a
+cross-cutting rule lived inside whichever screen was written first, so each
+later screen had to remember it — and remembering is not a mechanism.
+
+`scopeBookings` uses `whereHas` rather than a join, because a booking whose
+departure has been deleted must not pass the filter by having no date to test,
+and a `leftJoin` would let precisely that through.
+
+### 4. Every panel page sent a staff member's name to ui-avatars.com
+
+Found while collecting the manual's screenshots: a broken image in the top-right
+corner of all thirty-eight of them. Filament's default avatar provider is
+`UiAvatarsProvider`, which builds `https://ui-avatars.com/api/?name=…`, and no
+panel had replaced it. So both panels were sending the signed-in person's name to
+a third party on every page load, with a `Referer`, under no agreement.
+
+The request is already refused here, which is why it rendered broken — and that
+was the tell. It is not refused everywhere.
+
+`InitialsAvatarProvider` draws two letters on a hull-teal disc as an inline SVG
+`data:` URI. No route, no storage, no `storage:link`, no network. The initials
+are decomposed and stripped of combining marks, because «Άννα» upper-cases to «Ά»
+and a standing Greek initial drops its tone mark — the same pass gives «É» as
+«E», which is what a set of initials wants for a Latin name too.
+
+### One test had to be corrected rather than kept
+
+`RecordPaymentActionTest > it gives crew no way to record money` began failing
+with a 404: its booking sat on a departure outside the window, so a crew member
+could no longer resolve the record at all. The test would have passed while
+proving nothing about the button. Its booking now sits on **today's** departure —
+one a crew member can open, with a balance owing, and no way to settle it. The
+row filter and the action gate are two guarantees and that file owns the second.
+
+### Still open, and named rather than quietly fixed
+
+- **`ManageStaff` has no surface.** `UserPolicy`, `RoleAssignmentPolicy` and the
+  Greek strings (`Ομάδα`, `Ανάθεση ρόλου`, `Αφαίρεση ρόλου`) all exist; there is
+  no screen and no command. **An owner cannot give their skipper a login through
+  the product.** Raised with the product owner rather than built inside a
+  security fix.
+- **Webhook endpoints sit behind `ManageApiKeys`**, so a manager cannot reach
+  them. TEN-8 withholds billing, API keys and gateway credentials from a manager;
+  a webhook endpoint is none of those three. Defensible by association, narrower
+  than the requirement. Left as it is and recorded.
+- **Guest email and telephone are visible to crew** on a booking they can open.
+  Inside TEN-8's wording, and now inside the window as well, but worth an
+  operator knowing — so it is in the manual rather than only here.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Panel/CrewWindowTest.php        8 passed
+vendor/bin/pest tests/Feature/Panel/InitialsAvatarTest.php    6 passed
+vendor/bin/pest --parallel --processes=12                     2565+ passed
+vendor/bin/pint --test                                        passed
+vendor/bin/phpstan analyse                                    [OK] No errors
+```
+
+The one failure is the known MySQL schema snapshot.
 
 ---
 

@@ -9,10 +9,12 @@ use App\Domain\Operations\Support\FirstSteps;
 use App\Filament\App\Resources\BookingResource;
 use App\Filament\App\Resources\DepartureResource;
 use App\Filament\App\Resources\QuoteResource;
+use App\Support\Authorization\Capability;
 use App\Support\Format\MoneyFormatter;
 use App\Support\Tenancy;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * The operator's first screen (spec OPS-1, OPS-2).
@@ -73,10 +75,8 @@ class OperationsOverview extends StatsOverviewWidget
         $figures = DashboardFigures::forCurrentTenant();
 
         $sailing = $figures->todayAndTomorrow();
-        $owed = $figures->unpaidBalances();
-        $week = $figures->week();
 
-        return [
+        $stats = [
             Stat::make(
                 __('dashboard.sailing.label'),
                 (string) $sailing['departures'],
@@ -108,22 +108,51 @@ class OperationsOverview extends StatsOverviewWidget
                 ->description(__('dashboard.quotes.definition'))
                 ->descriptionIcon('heroicon-m-envelope')
                 ->url(QuoteResource::getUrl('index')),
-
-            Stat::make(
-                __('dashboard.balances.label'),
-                MoneyFormatter::format($owed['cents'], app()->getLocale(), MoneyFormatter::currency()),
-            )
-                ->description(__('dashboard.balances.definition', ['count' => $owed['bookings']]))
-                ->descriptionIcon('heroicon-m-banknotes')
-                ->url(BookingResource::getUrl('index')),
-
-            Stat::make(
-                __('dashboard.revenue.label'),
-                MoneyFormatter::format($figures->revenueThisWeek(), app()->getLocale(), MoneyFormatter::currency()),
-            )
-                ->description(__('dashboard.revenue.definition', ['from' => $week->startLocalDate]))
-                ->descriptionIcon('heroicon-m-chart-bar'),
         ];
+
+        /*
+         * The two money figures, and only for somebody allowed to see money.
+         *
+         * TEN-8 gives crew departures, the pax list, check-in and the manifest,
+         * and says **no pricing, no financials**. This widget had no capability
+         * check at all, and the dashboard is the panel's landing page — so a
+         * skipper signing in to look at today's sailings was shown the
+         * operator's outstanding balances and the week's takings, on the first
+         * screen, every time. Found while writing the manual's chapter on which
+         * role sees what, which is the chapter that had to state it in a table
+         * and could not.
+         *
+         * The other four figures stay: how many departures, how many at risk,
+         * how many bookings still owe passenger details, how many quotes are
+         * unanswered. None of those is pricing, and all of them are things the
+         * person on the boat has a reason to know.
+         *
+         * Appended rather than filtered out of a list of six, so a figure that
+         * needs financial access cannot be added later without being put here.
+         */
+        if (Auth::user()?->hasCapability(Capability::ViewFinancials) !== true) {
+            return $stats;
+        }
+
+        $owed = $figures->unpaidBalances();
+        $week = $figures->week();
+
+        $stats[] = Stat::make(
+            __('dashboard.balances.label'),
+            MoneyFormatter::format($owed['cents'], app()->getLocale(), MoneyFormatter::currency()),
+        )
+            ->description(__('dashboard.balances.definition', ['count' => $owed['bookings']]))
+            ->descriptionIcon('heroicon-m-banknotes')
+            ->url(BookingResource::getUrl('index'));
+
+        $stats[] = Stat::make(
+            __('dashboard.revenue.label'),
+            MoneyFormatter::format($figures->revenueThisWeek(), app()->getLocale(), MoneyFormatter::currency()),
+        )
+            ->description(__('dashboard.revenue.definition', ['from' => $week->startLocalDate]))
+            ->descriptionIcon('heroicon-m-chart-bar');
+
+        return $stats;
     }
 
     /**

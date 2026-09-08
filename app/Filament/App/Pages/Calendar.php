@@ -17,7 +17,9 @@ use App\Models\Departure;
 use App\Models\User;
 use App\Models\Vessel;
 use App\Support\Authorization\Capability;
+use App\Support\Authorization\CrewWindow;
 use App\Support\Tenancy;
+use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -99,9 +101,25 @@ class Calendar extends Page
         $this->date = Carbon::now($this->timezone())->toDateString();
     }
 
+    /**
+     * Move a day, and stop at the edge of the crew window.
+     *
+     * `canAccess` gates the screen and nothing gated the *dates*, so a crew
+     * member could page this calendar back through the whole season — each day
+     * carrying a pax list — while the departures list beside it correctly showed
+     * them today and tomorrow. Clamped rather than refused: an arrow that does
+     * nothing at the edge is how every date control behaves, and an error
+     * message would suggest they had done something wrong.
+     */
     public function shiftDays(int $days): void
     {
-        $this->date = Carbon::parse($this->date, $this->timezone())->addDays($days)->toDateString();
+        $moved = CarbonImmutable::parse($this->date, $this->timezone())->addDays($days);
+
+        if (CrewWindow::applies() && ! CrewWindow::covers($moved)) {
+            return;
+        }
+
+        $this->date = $moved->toDateString();
     }
 
     public function getDay(): CalendarDay

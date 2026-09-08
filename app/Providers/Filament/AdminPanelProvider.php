@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Filament\Avatars\InitialsAvatarProvider;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\SetLocale;
 use Filament\Http\Middleware\Authenticate;
@@ -39,6 +40,16 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->id('admin')
+            /*
+             * Initials drawn locally, rather than Filament's default.
+             *
+             * The default is `UiAvatarsProvider`, which puts the signed-in
+             * person's name in a `https://ui-avatars.com/api/?name=…` URL — so
+             * every page of this panel was sending a staff member's name to a
+             * third party nobody had chosen, on every load. See
+             * {@see InitialsAvatarProvider}.
+             */
+            ->defaultAvatarProvider(InitialsAvatarProvider::class)
             ->path('admin')
             ->login()
             ->colors([

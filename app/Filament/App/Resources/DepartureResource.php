@@ -6,7 +6,6 @@ namespace App\Filament\App\Resources;
 
 use App\Domain\Availability\Actions\CreateManualDeparture;
 use App\Domain\Availability\Actions\UpdateDeparture;
-use App\Domain\Availability\LocalDateTimeResolver;
 use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\CancelDeparture;
 use App\Domain\Operations\Support\WeatherCancellationPreview;
@@ -20,6 +19,7 @@ use App\Models\Departure;
 use App\Models\Product;
 use App\Models\Tenant;
 use App\Support\Authorization\Capability;
+use App\Support\Authorization\CrewWindow;
 use App\Support\Tenancy;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DatePicker;
@@ -334,22 +334,10 @@ class DepartureResource extends Resource
      */
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery();
-
-        if (Auth::user()?->hasCapability(Capability::ManageCatalogue) === true) {
-            return $query;
-        }
-
-        // "Today" in the tenant's timezone, not the server's: at 23:30 in
-        // Athens the server's today is already tomorrow, and the crew member
-        // checking the evening before a 07:00 sailing is exactly who finds out.
-        $today = Carbon::now(LocalDateTimeResolver::timezone())->startOfDay();
-        $days = max(0, (int) config('kaiki.panel.crew_departure_window_days', 1));
-
-        $query->whereDate('local_date', '>=', $today->toDateString())
-            ->whereDate('local_date', '<=', $today->copy()->addDays($days)->toDateString());
-
-        return $query;
+        // The dates themselves moved to {@see CrewWindow}, because this screen
+        // was the only one applying them: the bookings list and the calendar
+        // both let a crew member straight past the window this enforced.
+        return CrewWindow::scopeDepartures(parent::getEloquentQuery());
     }
 
     /** @return array<int, string> */

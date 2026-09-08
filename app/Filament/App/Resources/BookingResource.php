@@ -15,6 +15,7 @@ use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Product;
 use App\Support\Authorization\Capability;
+use App\Support\Authorization\CrewWindow;
 use App\Support\Format\MoneyFormatter;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -391,9 +392,20 @@ class BookingResource extends Resource
     }
 
     /** @return Builder<Booking> */
+    /**
+     * The row set, narrowed to the crew window for crew (TEN-8).
+     *
+     * `ViewPaxList` is what opens this screen, and crew hold it — so before
+     * {@see CrewWindow} a skipper could read every booking the operator had
+     * ever taken: each one's name, email address and telephone number. TEN-8
+     * gives them "departures within a configurable window... the pax list", and
+     * the pax list of a departure they cannot see is not one of the two.
+     *
+     * @return Builder<Booking>
+     */
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with(['product']);
+        return CrewWindow::scopeBookings(parent::getEloquentQuery()->with(['product']));
     }
 
     /** @return array<string, PageRegistration> */

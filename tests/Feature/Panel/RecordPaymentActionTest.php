@@ -7,6 +7,7 @@ use App\Enums\PaymentGatewayName;
 use App\Enums\Role;
 use App\Filament\App\Resources\BookingResource\Pages\ViewBooking;
 use App\Models\Booking;
+use App\Models\Departure;
 use App\Models\Payment;
 use App\Models\User;
 use App\Support\Tenancy;
@@ -108,12 +109,28 @@ it('gives crew no way to record money', function (): void {
     // entries in the operator's books.
     $crew = OperatorUser::withRole(Role::Crew);
 
-    $booking = Tenancy::forTenant($crew->tenant, fn (): Booking => Booking::factory()->create([
-        'status' => BookingStatus::Confirmed,
-        'total_cents' => 12000,
-        'paid_cents' => 0,
-        'balance_cents' => 12000,
-    ]));
+    /*
+     * Deliberately a booking on **today's** departure.
+     *
+     * `CrewWindow` now narrows the bookings list to today and tomorrow, so a
+     * booking on any other date gives a crew member a 404 before the action is
+     * ever reached — and this test would pass while proving nothing about the
+     * button. The row filter and the action gate are two separate guarantees
+     * and this file owns the second: a booking a crew member *can* open, with a
+     * balance owing, and no way to settle it.
+     */
+    $booking = Tenancy::forTenant($crew->tenant, function (): Booking {
+        $departure = Departure::factory()
+            ->at(Carbon::now('Europe/Athens')->toDateString(), '09:00')
+            ->create();
+
+        return Booking::factory()->for($departure)->create([
+            'status' => BookingStatus::Confirmed,
+            'total_cents' => 12000,
+            'paid_cents' => 0,
+            'balance_cents' => 12000,
+        ]);
+    });
 
     bookingPageAs($crew, $booking)->assertActionHidden('record_payment');
 });
