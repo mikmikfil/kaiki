@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Contracts\WeatherProvider;
 use App\Domain\Integrations\Support\CredentialRepository;
 use App\Domain\Integrations\Support\VerifierRegistry;
+use App\Domain\Operations\Weather\OpenMeteoProvider;
 use App\Domain\Payments\Gateways\FakeGateway;
 use App\Domain\Payments\Gateways\VivaSmartCheckoutGateway;
 use App\Domain\Payments\Support\GatewayResolver;
@@ -59,5 +61,17 @@ class IntegrationServiceProvider extends ServiceProvider
         $this->app->singleton(FakeGateway::class);
         $this->app->singleton(VivaSmartCheckoutGateway::class);
         $this->app->singleton(GatewayResolver::class);
+
+        // The wind forecast (ADR-0027).
+        //
+        // Bound to the **interface**, which is the whole point: ADR-0027 says
+        // outright that Open-Meteo's free tier is non-commercial and will have
+        // to be swapped for their paid endpoint or another provider before this
+        // reaches a paying operator. That swap is this one line.
+        //
+        // A singleton because the provider caches per place for hours, and a
+        // second instance would be a second cache lookup for a dashboard that
+        // asks once per vessel.
+        $this->app->singleton(WeatherProvider::class, OpenMeteoProvider::class);
     }
 }

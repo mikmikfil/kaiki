@@ -410,6 +410,42 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Weather (ADR-0027)
+    |--------------------------------------------------------------------------
+    |
+    | Open-Meteo needs no key on its free endpoint, and **that endpoint is
+    | non-commercial**. The base URI is config precisely so that moving to their
+    | paid API — or to another provider entirely — is an `.env` change rather
+    | than a deploy. See ADR-0027: the subscription has to exist before this is
+    | in front of a paying operator, and that is a purchase, not a commit.
+    */
+
+    'weather' => [
+
+        'base_uri' => env('KAIKI_WEATHER_BASE_URI', 'https://api.open-meteo.com'),
+
+        /*
+         * Short. This is fetched behind a dashboard render, and a forecast slow
+         * to arrive should be absent rather than something an operator waits on
+         * — the panel is advice, and the figures above it are not.
+         */
+        'timeout_seconds' => (int) env('KAIKI_WEATHER_TIMEOUT', 8),
+
+        /*
+         * How long a daily maximum is worth keeping.
+         *
+         * Three hours. A *daily* maximum does not move minute to minute, and
+         * the dashboard renders on every page load — without this, every
+         * operator looking at their screen is an outbound call, which is both a
+         * bill and a rate limit. Cached per **port**, because a fleet in one
+         * marina shares a sky.
+         */
+        'cache_minutes' => (int) env('KAIKI_WEATHER_CACHE_MINUTES', 180),
+
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Pricing
     |--------------------------------------------------------------------------
     */

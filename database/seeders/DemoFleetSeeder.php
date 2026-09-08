@@ -71,19 +71,19 @@ class DemoFleetSeeder extends Seeder
      * a twelve-seat RIB and a forty-eight-seat day boat behave differently in
      * every capacity calculation on the platform.
      *
-     * @var list<array{name: string, type: VesselType, capacity: int, crew: int, buffer: int}>
+     * @var list<array{name: string, type: VesselType, capacity: int, crew: int, buffer: int, wind: int}>
      */
     private const VESSELS = [
-        ['name' => 'Ποσειδώνας', 'type' => VesselType::TraditionalKaiki, 'capacity' => 42, 'crew' => 3, 'buffer' => 60],
-        ['name' => 'Γαλήνη', 'type' => VesselType::Motor, 'capacity' => 28, 'crew' => 2, 'buffer' => 45],
-        ['name' => 'Αμφιτρίτη', 'type' => VesselType::Catamaran, 'capacity' => 18, 'crew' => 2, 'buffer' => 90],
-        ['name' => 'Θαλασσινός', 'type' => VesselType::Rib, 'capacity' => 12, 'crew' => 1, 'buffer' => 30],
-        ['name' => 'Ναυσικά', 'type' => VesselType::SailingYacht, 'capacity' => 10, 'crew' => 2, 'buffer' => 120],
-        ['name' => 'Αίολος', 'type' => VesselType::Motor, 'capacity' => 34, 'crew' => 3, 'buffer' => 45],
-        ['name' => 'Μελτέμι', 'type' => VesselType::Catamaran, 'capacity' => 24, 'crew' => 2, 'buffer' => 90],
-        ['name' => 'Κυματοθραύστης', 'type' => VesselType::Rib, 'capacity' => 8, 'crew' => 1, 'buffer' => 30],
-        ['name' => 'Αργώ', 'type' => VesselType::TraditionalKaiki, 'capacity' => 48, 'crew' => 4, 'buffer' => 60],
-        ['name' => 'Ζέφυρος', 'type' => VesselType::SailingYacht, 'capacity' => 12, 'crew' => 2, 'buffer' => 120],
+        ['name' => 'Ποσειδώνας', 'type' => VesselType::TraditionalKaiki, 'capacity' => 42, 'crew' => 3, 'buffer' => 60, 'wind' => 7],
+        ['name' => 'Γαλήνη', 'type' => VesselType::Motor, 'capacity' => 28, 'crew' => 2, 'buffer' => 45, 'wind' => 6],
+        ['name' => 'Αμφιτρίτη', 'type' => VesselType::Catamaran, 'capacity' => 18, 'crew' => 2, 'buffer' => 90, 'wind' => 6],
+        ['name' => 'Θαλασσινός', 'type' => VesselType::Rib, 'capacity' => 12, 'crew' => 1, 'buffer' => 30, 'wind' => 5],
+        ['name' => 'Ναυσικά', 'type' => VesselType::SailingYacht, 'capacity' => 10, 'crew' => 2, 'buffer' => 120, 'wind' => 6],
+        ['name' => 'Αίολος', 'type' => VesselType::Motor, 'capacity' => 34, 'crew' => 3, 'buffer' => 45, 'wind' => 7],
+        ['name' => 'Μελτέμι', 'type' => VesselType::Catamaran, 'capacity' => 24, 'crew' => 2, 'buffer' => 90, 'wind' => 6],
+        ['name' => 'Κυματοθραύστης', 'type' => VesselType::Rib, 'capacity' => 8, 'crew' => 1, 'buffer' => 30, 'wind' => 4],
+        ['name' => 'Αργώ', 'type' => VesselType::TraditionalKaiki, 'capacity' => 48, 'crew' => 4, 'buffer' => 60, 'wind' => 7],
+        ['name' => 'Ζέφυρος', 'type' => VesselType::SailingYacht, 'capacity' => 12, 'crew' => 2, 'buffer' => 120, 'wind' => 6],
     ];
 
     /**
@@ -196,6 +196,10 @@ class DemoFleetSeeder extends Seeder
                     // turnaround is 60 minutes draws ten identical margins and
                     // teaches nobody what the setting does.
                     'turnaround_buffer_minutes' => $spec['buffer'],
+                    // ADR-0027. Varied, and lower for the small boats: a RIB
+                    // stops sailing well before a 48-seat kaiki does, and a
+                    // fleet on one number demonstrates nothing.
+                    'max_wind_bft' => $spec['wind'],
                     'home_port_id' => $port?->getKey(),
                     'registration_number' => 'NAY-' . str_pad((string) (1000 + $index), 4, '0', STR_PAD_LEFT),
                     'captain_name' => null,

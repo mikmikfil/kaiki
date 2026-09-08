@@ -38,7 +38,10 @@ class NeedsAttention extends Widget
 {
     protected static string $view = 'filament.app.widgets.needs-attention';
 
-    protected static ?int $sort = 3;
+    // Last of the three: the strip says what is happening, «Καιρός» says what
+    // is coming, and this says what to do about it. Read top to bottom, that is
+    // the morning.
+    protected static ?int $sort = 4;
 
     protected int|string|array $columnSpan = 'full';
 

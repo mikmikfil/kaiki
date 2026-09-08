@@ -41,6 +41,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $captain_name
  * @property int|null $home_port_id
  * @property int|null $turnaround_buffer_minutes
+ * @property int|null $max_wind_bft the Beaufort force this boat stops sailing in (ADR-0027); null = not set
  * @property string|null $description
  * @property array<string, mixed> $specs
  * @property array<int, array<string, mixed>> $images

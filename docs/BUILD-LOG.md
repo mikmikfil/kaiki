@@ -12,16 +12,16 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M5 — Operations: #118 … #124 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
+| Milestone | **M5 — Operations: #118 … #124, #130 and #131 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
 | M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
 | M4 | **#112 … #116 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, the same four through Gutenberg and Elementor, and the SEO trip pages. **#116 had to build `GET /api/v1/sync/products` on the platform first**: specified in `docs/api.md` since M0 and never implemented, so the feature it exists for had nothing to read. It is the only endpoint in the API a publishable key cannot reach. **#117 the release remains; it needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117). |
-| M5 | **#118 … #124 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. Remaining in M5: outbound webhooks (OPS-19, OPS-20), vouchers in the panel (OPS-16), the consolidated error feed (OPS-21), offline check-in (OPS-12), and the 390x844 Playwright run (OPS-22). |
+| M5 | **#118 … #124, #130 and #131 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. **#130 added the fleet strip and «Χρειάζονται προσοχή» to the dashboard; #131 added «Καιρός» (ADR-0027), which reports the days over each boat's own wind limit and what is booked on them, and cancels nothing.** Six smaller commits sit between them — the Stripe removal, the demo fleet, two panel fixes, the embedded map — written up together above. Remaining in M5: outbound webhooks (OPS-19, OPS-20), vouchers in the panel (OPS-16), the consolidated error feed (OPS-21), offline check-in (OPS-12), and the 390x844 Playwright run (OPS-22). |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2387, one failing: the schema snapshot CI cannot regenerate) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2445, one failing: the schema snapshot CI cannot regenerate — and #131's migration has now moved its hash) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -37,6 +37,203 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+| **A billing provider for M7**, after Cashier came out with Stripe (ADR-0026) | product owner | M7, which is blocked without it |
+| **Open-Meteo's commercial subscription**, or another provider — the free endpoint is non-commercial only (ADR-0027) | product owner | before a paying operator sees «Καιρός» |
+
+---
+
+## #131 — The weather, joined to the sailings it threatens
+
+OPS-6 asks for a wind forecast on the dashboard. Taken literally that is a
+widget nobody needs: every operator on this coast already has three weather apps
+and trusts the one their father used. The forecast is a commodity and Kaiki will
+never be the best source of it.
+
+What they do **not** have is the sentence *"Thursday and Friday are over
+Νεφέλη's limit — three departures, twenty-seven passengers"*, and a link to the
+screen that shows what each of those guests is owed. That join is the whole
+feature. The numbers are the cheap half.
+
+### It never cancels anything, and that is a decision, not an omission
+
+ADR-0027. A product that cancelled a charter because an API said 7 Bft would
+eventually cancel one on a day that turned out fine, and the operator would lose
+the money *and* the customer *and* their trust in the panel. Worse, the failure
+would be invisible: nobody files a complaint about the trip that did not happen.
+
+So this produces a list and a button to #121's weather-cancellation preview,
+where a person decides. The panel's own text says so in Greek —
+«Τίποτε δεν ακυρώνεται αυτόματα» — because an operator seeing a red row on a
+booking system has every reason to assume software already acted.
+
+### Two silences, both deliberate
+
+**A vessel with no `max_wind_bft` is absent entirely.** The column is nullable
+with no default, and null means *do not tell me*. A default of 6 would have been
+one line and would put a warning on somebody's dashboard about a boat they have
+skippered for thirty years. `WindForecast::exceeds(null)` is false, always, so
+the silence is enforced at the bottom rather than remembered at each call site.
+
+**A vessel whose next four days are inside its limit is absent too.** "The
+weather is fine" is not news, and a panel permanently on screen is one people
+stop reading before the week it matters. On a calm week the widget does not
+render at all.
+
+### Not knowing is a different answer from calm
+
+The one thing this feature must never do is report 0 Bft because a request timed
+out, on the screen an operator uses to decide whether to sail. So a provider
+failure returns `null` and the vessel is skipped — not a row of zeros, not a
+"—", not a stale cache. `WeatherOutlookTest` asserts it directly: with the
+provider returning null the outlook is `[]`.
+
+For the same reason **a failure is not cached**. Caching it would let one bad
+minute suppress Thursday's warning for three hours. The cost is a retry on the
+next render, which is exactly what should happen.
+
+### Units are pinned in the URL, not assumed in the parser
+
+`wind_speed_unit=ms` is in the query string. Open-Meteo's default is km/h, and a
+parser assuming m/s against that default reads 25 km/h as 25 m/s — force 4
+reported as force 10, which cancels a season. The conversion is the WMO table of
+upper bounds in `Beaufort`, tested at every boundary in both units.
+
+Force is the **max of mean and gust**, not the mean. Gusts are what capsize a
+tender and what a harbourmaster closes a port for; `drivenByGust()` exists so
+the panel can say which of the two decided, because "5 gusting 8" and "8 all
+day" are different days.
+
+### Cached per port, never per vessel
+
+A fleet in one marina shares a sky. The key is the port's coordinates rounded to
+three decimals — about a hundred metres — so ten boats in Zea are one request,
+and a coordinate edited by a metre does not orphan the cache. The dashboard
+renders on every page load; this is the difference between one call every three
+hours and one per widget per operator per minute.
+
+### Deviations from the issue as written
+
+- **Four days, not ten.** A meltemi is forecast reliably about that far out, and
+  the decision — cancel now and give people notice, or wait — is made inside
+  that window. Ten rows nobody trusts is worse than four they do.
+- **`seats_sold`, not a guest-row count.** This is a headline figure. OPS-9's
+  manifest head count, which counts infants, is the number that matters on a
+  quay; the two disagreeing by one on a dashboard would be noise.
+- **Cancelled departures are excluded** from the counts. They are already
+  cancelled; counting them inflates the number an operator reads before
+  deciding and keeps showing work that is done.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Operations/WeatherForecastTest.php   8 passed
+vendor/bin/pest tests/Feature/Operations/WeatherOutlookTest.php    7 passed
+vendor/bin/pest        2445 passed, 4 skipped, 1 failed (23 assertions in the two files above)
+vendor/bin/pint --test {"tool":"pint","result":"passed"}
+vendor/bin/phpstan analyse   [OK] No errors
+```
+
+And in the browser, against the **live Open-Meteo API** rather than a fake —
+the «Καιρός» panel on `/app` rendering Οδυσσέας, «Σταματά στα 4 μποφόρ»,
+`Τρι 5 · Τετ 4 · Πεμ 5 · Παρ 5` with three days flagged, and
+«5 αναχωρήσεις · 0 επιβάτες κλεισμένοι».
+
+**The one failing test is `CiGatesTest > it keeps the committed schema snapshot
+in step with the migrations`, and this issue is why it moved.** It was already
+failing before this work for the reason in the Status table — CI is the only
+place with a MySQL 8 connection and CI has been blocked on billing since
+2026-09-06 — but the *hash* it reports is now different, because
+`add_max_wind_bft_to_vessels` changes the migrations fingerprint. Expected
+`8651a0be…`, actual `b419ba16…`. It cannot be regenerated locally. Recorded here
+so that whoever unblocks CI knows the snapshot is legitimately stale rather than
+the migration being wrong.
+
+### Left open
+
+`config('kaiki.weather.base_uri')` points at Open-Meteo's free endpoint, which
+is **licensed for non-commercial use only**. That is correct for a dev database
+and wrong the day a paying operator sees this panel. ADR-0027 records it;
+somebody has to buy the commercial subscription or swap the provider before
+launch, and the `WeatherProvider` contract is one method precisely so that swap
+is a binding change.
+
+---
+
+## The six commits between #124 and #131
+
+Written the same day they were made, not reconstructed. Each is smaller than an
+issue and none of them is one, so they share an entry rather than inventing
+issue numbers that do not exist.
+
+### `1fa6807` — Stripe removed, as a gateway and as the platform's billing
+
+Asked for directly by the product owner; the scope question *"the operator's
+gateway, the platform's own billing, or both"* was answered **both**. 51 files.
+
+Two separate removals that happened to share a vendor. The **gateway** was one
+of the payment methods an operator could offer a guest, and Viva Wallet is what
+Greek operators actually use — `PaymentGatewayName` is now `Viva`, `Cash`,
+`BankTransfer`. The **billing** was Laravel Cashier, which was how Kaiki would
+have charged operators for Kaiki; its columns came out of the users migration
+with a comment saying why.
+
+`ADR-0026` records the consequence honestly: **M7 is now blocked.** There is no
+billing provider, and choosing one is a business decision. Removing Cashier did
+not remove the requirement to take money from operators; it removed the only
+implementation of it that existed.
+
+`WebhookScenario` was rewritten rather than deleted — Viva's shape, with the
+`X-Viva-Verification` header and `EventTypeId` 1796/1798, so the webhook tests
+still assert replay protection and signature failure against a real provider's
+semantics instead of a removed one's.
+
+### `c3c2fe5` — Ten boats and ten trips per operator, and the empty dashboard they exposed
+
+Demo data, asked for directly. `DemoFleetSeeder` tops up to ten of each with
+Greek names, varied categories, times and prices.
+
+It exposed a real bug rather than needing one. With all four first steps done
+and no bookings yet, `FirstSteps::applies()` was true, so the checklist rendered
+**empty** *and* suppressed the figures behind it — a dashboard showing nothing
+at all. `applies()` now also requires an outstanding step. The seeder is how it
+was found; the fix is not demo-only.
+
+### `65163f8` and `92f1f00` — A navigation predicate must answer without a tenant, not throw
+
+`GET /app/login` returned **500**, reported by the product owner with the
+exception: `TenantContextMissingException` on `Enquiry`.
+
+Filament builds navigation badges while rendering the login page, and
+`BelongsToTenant` throws rather than scoping to nobody (TEN-4, and it is the
+right design — silently returning every tenant's rows is the failure that design
+prevents). So a badge query on a page with no tenant is a 500.
+
+Two things worth recording. My original sweep drove 39 authenticated routes and
+**missed this**, because authenticated routes redirect away from `/app/login`;
+the test added is `get('/app/login')->assertOk()`, which is the assertion that
+would have caught it. And guarding `FirstSteps::applies()` alone **inverted**
+`canView()` — `! false` shows the widget — so each predicate carries its own
+`Tenancy::check()` rather than relying on one upstream. My own new test caught
+that second mistake before it was committed.
+
+### `c0cda7a` — The meeting point, drawn
+
+Asked for directly: embedded Google Maps wherever the single product page has a
+map link. `Port::mapsEmbedUrl()` builds the embed from **lat/lng or address**,
+never from the stored `maps_url` — a `goo.gl` short link cannot be framed, and
+an operator who pasted one would get a blank box with no error. `frame-src` was
+opened to exactly `https://www.google.com` in `HostedPageCsp` and nothing else.
+
+### `1315ef1` — Today's fleet, and the decisions waiting on a person
+
+The two dashboard panels the product owner picked out of the mockup: the
+per-boat strip and «Χρειάζονται προσοχή».
+
+`AttentionItems` is ordered by **deadline, not severity** — `PHP_INT_MAX` for
+items with no deadline, so they sink. A list sorted by how bad each thing is
+puts a serious problem with a week left above a small one that expires in an
+hour, which is the wrong instruction to give somebody at 07:00. Later moved
+above the calendar and given the now-marker, both on request.
 
 ---
 

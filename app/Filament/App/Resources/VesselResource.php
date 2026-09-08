@@ -237,6 +237,20 @@ class VesselResource extends Resource
                         ->placeholder((string) static::tenantBuffer())
                         ->suffix('min'),
 
+                    TextInput::make('max_wind_bft')
+                        ->label(__('catalog.vessel.form.max_wind_bft.label'))
+                        ->helperText(__('catalog.vessel.form.max_wind_bft.help'))
+                        ->integer()
+                        ->minValue(0)
+                        ->maxValue(12)
+                        // **Not** defaulted, for a sharper reason than the
+                        // buffer above: an operator who has not set a limit has
+                        // not asked for a weather warning, and inventing a 6 for
+                        // them would put an alert on their dashboard about a
+                        // boat they know better than we do. Null is silence
+                        // (ADR-0027).
+                        ->suffix('Bft'),
+
                     TextInput::make('sort_order')
                         ->label(__('catalog.shared.sort_order.label'))
                         ->helperText(__('catalog.shared.sort_order.help'))

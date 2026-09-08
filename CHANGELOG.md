@@ -4,6 +4,32 @@
 
 > Entries for #118 … #122 — the dashboard, the vessel calendar, recorded cash, the weather-cancellation workflow and the manifests — are not written here. They are on `main` with their reasoning in each commit message; inventing changelog prose for them after the fact would be reconstruction rather than a record, which is the same rule this project applies in `docs/BUILD-LOG.md`.
 
+### #131 - Καιρός: the days over each boat's limit, and what is booked on them
+
+You already have a weather app, and it is better than anything Kaiki would build. What you do not have is *"Thursday and Friday are over Νεφέλη's limit — three departures, twenty-seven passengers"*, and a button that takes you to the screen where you decide what to do about it. That sentence is the feature.
+
+**Nothing is ever cancelled automatically, and the panel says so on it.** A system that called off a charter because an API said 7 Bft would eventually call off one on a day that turned out perfectly fine, and you would lose the money, the customer, and any reason to trust the panel again. So this produces a list and a link to the weather-cancellation preview, where a person chooses — and it says «Τίποτε δεν ακυρώνεται αυτόματα» in plain sight, because anyone seeing a red row on a booking system has every reason to assume the software already acted.
+
+**Each boat has its own limit, and a boat without one is left alone.** A twelve-seat RIB and a forty-eight-seat kaiki do not stop sailing at the same number. There is no platform-wide default and deliberately no sensible guess: if you have not told Kaiki when a boat stops, Kaiki says nothing about that boat, because you have skippered it for thirty years and it has not. Set the limit on the vessel and the panel starts watching it.
+
+**It stays quiet on a good week.** Four days ahead, and only the days over the limit — no row saying the weather is fine, and on a calm week no panel at all. Something permanently on screen is something you stop reading before the week it matters.
+
+**"We could not reach the forecast" and "it is calm" are never confused.** If the weather service is down the boat is simply absent — not a row of zeros, not a dash, not yesterday's numbers. A dashboard reporting 0 Bft on Thursday because a request timed out, on the screen you use to decide whether to sail, is the one thing this feature must never do.
+
+Two smaller things, both of which are somebody's bad day if got wrong. The force shown is the **worst of the average and the gusts**, because gusts are what turn a tender over, and the panel says which of the two decided. And the units are pinned in the request rather than assumed when reading the reply — the same forecast in the wrong unit reads force 4 as force 10, which cancels a season.
+
+### #130 and the six commits after it - The dashboard you actually open in the morning
+
+**Today's fleet, boat by boat.** A strip across the top of the dashboard showing each boat's day: what is sailing, when, and how full. Above it the vessel calendar, with a discreet line marking the time it is now, so a glance tells you what has already left.
+
+**«Χρειάζονται προσοχή» — the things waiting on a person.** Not an activity feed and not a list of everything wrong: a list of decisions, ordered by **when each one runs out**, not by how serious it looks. A serious problem with a week left does not belong above a small one that expires in an hour — at 07:00 the useful question is what has to be dealt with first, not what is worst.
+
+**The meeting point is drawn, not linked.** Where a trip has a departure point with coordinates or an address, the trip page now shows the map itself instead of a link a guest has to open in another tab.
+
+**Stripe is gone, in both of the places it was.** As a way for guests to pay, replaced by Viva Wallet, which is what Greek operators actually use. And as the way Kaiki would have billed operators for Kaiki, which was never switched on and now has to be chosen properly rather than inherited from a library.
+
+**Ten boats and ten trips per operator in the demo data** — which promptly exposed a real bug: a brand-new operator who had finished the four setup steps but taken no bookings yet saw a completely empty dashboard. Fixed. Two panel bugs went with it, including one that made the sign-in page itself fail with a 500.
+
 ### #124 - iCal out and iCal in, and two bugs that had been waiting since M1
 
 Each boat now publishes a calendar anybody can subscribe to, and Kaiki pulls in the calendars of whatever else sells that boat — Airbnb, another agency, a spreadsheet somebody exports. The boat stops being double-booked across systems, which is the failure this feature exists to remove.
