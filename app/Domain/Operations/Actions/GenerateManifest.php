@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Operations\Actions;
 
+use App\Domain\Operations\Support\CsvWriter;
 use App\Domain\Operations\Support\Manifest;
 use App\Enums\ManifestColumn;
 use App\Events\ManifestGenerated;
@@ -64,26 +65,27 @@ final class GenerateManifest
     /**
      * The file itself.
      *
-     * A BOM first: without it Excel on a Greek Windows machine reads UTF-8 as
-     * Windows-1253 and every name becomes mojibake — which looks like our bug
-     * and is unfixable from the operator's side.
+     * The byte-order mark, the CRLF endings and the configurable separator all
+     * live in {@see CsvWriter} — a manifest and an accounting export are opened
+     * on the same Greek Windows machine, and two implementations of "what Excel
+     * needs" is two chances to fix only one of them.
+     *
+     * In memory rather than streamed, unlike the OPS-17 exports: a manifest is
+     * one sailing, which is at most a few dozen rows, and it is produced inside
+     * a request that has to answer with a file.
      */
     public function csv(Manifest $manifest): string
     {
-        $separator = (string) config('kaiki.exports.csv_separator', ',');
-
-        $out = "\u{FEFF}";
-
-        $out .= $this->csvLine(
-            array_map(static fn (ManifestColumn $column): string => $column->label(), $manifest->columns),
-            $separator,
-        );
+        $rows = [array_map(
+            static fn (ManifestColumn $column): string => $column->label(),
+            $manifest->columns,
+        )];
 
         foreach ($manifest->rows as $row) {
-            $out .= $this->csvLine(array_values($row), $separator);
+            $rows[] = array_values($row);
         }
 
-        return $out;
+        return CsvWriter::toString($rows);
     }
 
     /**
@@ -114,35 +116,5 @@ final class GenerateManifest
         }
 
         return $manifest;
-    }
-
-    /**
-     * One CSV line, quoted the way a spreadsheet expects.
-     *
-     * `fputcsv` to a memory stream rather than `implode`, because a Greek name
-     * with a comma in it — or a separator that *is* a semicolon — is exactly
-     * the case a hand-rolled join gets wrong.
-     *
-     * @param  list<string>  $values
-     */
-    private function csvLine(array $values, string $separator): string
-    {
-        $handle = fopen('php://memory', 'r+');
-
-        if ($handle === false) {
-            return implode($separator, $values) . "\r\n";
-        }
-
-        fputcsv($handle, $values, $separator, '"', '\\');
-
-        rewind($handle);
-
-        $line = (string) stream_get_contents($handle);
-
-        fclose($handle);
-
-        // CRLF, because that is what Excel expects and what a Windows printer
-        // driver handles without turning the file into one long line.
-        return rtrim($line, "\r\n") . "\r\n";
     }
 }

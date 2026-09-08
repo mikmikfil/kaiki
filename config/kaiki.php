@@ -375,6 +375,37 @@ return [
          * support conversation rather than a broken file.
          */
         'csv_separator' => env('KAIKI_CSV_SEPARATOR', ','),
+
+        /*
+         * Where a finished export is written (OPS-18).
+         *
+         * `local` is the private disk — `storage/app/private` — and never
+         * `public`. A bookings CSV carries every guest's name, email and phone
+         * number, and the public disk is served by the web server at a
+         * guessable path with no session in front of it.
+         */
+        'disk' => env('KAIKI_EXPORT_DISK', 'local'),
+
+        /*
+         * How long a finished export stays downloadable (OPS-18: 24 hours).
+         *
+         * Two things read this and both matter: the link stops working, and
+         * `PurgeExpiredExportsJob` deletes the file. A link that expires over a
+         * file that lives for ever is the disclosure GDR-2 exists to prevent,
+         * and no screen in the product would ever mention it.
+         */
+        'link_ttl_hours' => (int) env('KAIKI_EXPORT_TTL_HOURS', 24),
+
+        /*
+         * How large the in-flight file grows before PHP spills it to disk.
+         *
+         * `php://temp` holds the export in memory up to this, then transparently
+         * moves to a temporary file. Eight megabytes is tens of thousands of
+         * rows — so an ordinary season never touches the disk, and a four-season
+         * export does not touch the memory limit either.
+         */
+        'memory_spill_mb' => (int) env('KAIKI_EXPORT_SPILL_MB', 8),
+
     ],
 
     /*

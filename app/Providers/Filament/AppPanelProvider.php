@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Http\Controllers\ExportDownloadController;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureTenantIsWritable;
 use App\Http\Middleware\ResolveTenant;
@@ -27,6 +28,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 /**
@@ -109,6 +111,22 @@ class AppPanelProvider extends PanelProvider
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.catalogue')),
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.settings')),
             ])
+            /*
+             * The export download (OPS-18).
+             *
+             * `authenticatedRoutes` rather than `routes` or an entry in
+             * `routes/web.php`, so the link inherits this panel's whole stack —
+             * the session guard, `ResolveTenant`, and therefore the tenant
+             * scope that makes another operator's uuid resolve to nothing.
+             *
+             * A signed temporary URL was the alternative and is a bearer
+             * credential over a spreadsheet of guest names, emails and phone
+             * numbers; see {@see ExportDownloadController}.
+             */
+            ->authenticatedRoutes(fn (): mixed => Route::get(
+                'exports/{uuid}/download',
+                ExportDownloadController::class,
+            )->name('exports.download'))
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

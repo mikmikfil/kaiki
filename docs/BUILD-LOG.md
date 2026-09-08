@@ -12,15 +12,16 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M4 — WordPress plugin: #112 … #116 built.** M3 complete (#101 … #111), M2 complete, M1 complete. |
+| Milestone | **M5 — Operations: #118 … #123 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
 | M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
 | M4 | **#112 … #116 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, the same four through Gutenberg and Elementor, and the SEO trip pages. **#116 had to build `GET /api/v1/sync/products` on the platform first**: specified in `docs/api.md` since M0 and never implemented, so the feature it exists for had nothing to read. It is the only endpoint in the API a publishable key cannot reach. **#117 the release remains; it needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117). |
+| M5 | **#118 … #123 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, and the bookings and guests CSV exports. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. Remaining in M5: iCal export and import (OPS-13 … OPS-15), outbound webhooks (OPS-19, OPS-20), the consolidated error feed (OPS-21), offline check-in (OPS-12), and the 390x844 Playwright run (OPS-22). |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2271, one failing: the schema snapshot CI cannot regenerate) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2387, one failing: the schema snapshot CI cannot regenerate) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -39,6 +40,113 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## #123 — The bookings and guests CSVs, and the two halves of an expiring link
+
+OPS-17 asks for two files and stops there. OPS-18 adds the four properties that
+make them usable — queued, streamed, a link that expires after twenty-four
+hours, logged — and OPS-10's second half is one sentence about what must not be
+in them.
+
+### The table the data model did not have
+
+`docs/data-model.md` §6 listed `import_jobs` and `manifest_exports` and no
+counterpart for the ordinary exports. Three of OPS-18's four properties need a
+row: a queued job needs somewhere to report to, an expiring link needs a
+recorded expiry, and *logged* **is** the table. `export_jobs` is documented in
+§2.6 and lettered `43a` in §6 rather than renumbering M6 onward.
+
+### Four decisions, each with an obvious wrong version
+
+**The date basis is a field, not an assumption.** A booking made in June for a
+trip in August and paid in July belongs to three different months. Choosing one
+silently is OPS-2's failure applied to a file rather than a dashboard: the
+accountant reconciles once, disagrees with the bank, concludes the product is
+wrong about money, and does not tell anybody. So it is on the form above the
+dates, stored on the row, and in the filename — a CSV cannot carry a comment
+line without breaking its parsers, and the filename is the only part that
+survives being forwarded as an attachment.
+
+**Document numbers are absent rather than removed.** The tempting shape is a
+filter that strips the column; a filter has to be remembered by every future
+caller, and forgetting it produces a spreadsheet of passport numbers that looks
+correct. `ExportType::columns()` is an allow-list with no case for one. The test
+asserts the property from outside — a real number in the database, and its
+absence from the finished file's bytes.
+
+**The link is authenticated, not signed.** `URL::temporarySignedRoute` was the
+obvious build. It is a bearer credential over every guest's name, email and
+phone number: it survives a group chat, a shared office browser, and the person
+who generated it leaving the operator's staff. The route lives in the panel's
+`authenticatedRoutes`, so it inherits the session guard and `ResolveTenant` —
+which is what makes another operator's uuid resolve to nothing and answer 404
+rather than 403.
+
+**Expiry has two halves and only one of them is visible.** A check on the way in
+satisfies the requirement and leaves the file on disk for ever (GDR-2).
+`ExportJob::isDownloadable()` closes the link on time with the scheduler
+stopped — the same asymmetry `holdsSeats()` has — and an hourly sweep deletes
+the bytes while keeping the row, so *"it expired on Tuesday"* is an answer the
+screen can give.
+
+### Smaller things that would have been wrong
+
+- **`expires_at` is stamped on completion**, not on request: an export waiting
+  behind a catalogue import would otherwise silently get twenty-one hours.
+- **`EXISTS` over `payments`, never a join.** A booking with a deposit and a
+  balance has two succeeded payments, and a join bills the boat trip twice.
+- **The window's inclusive end is `< to + 1 day`.** On a timestamp column,
+  `<= '2026-09-30'` means midnight and drops the last day of every window. It
+  does not look like a bug; it looks like a quiet Tuesday.
+- **The panel's global `DatePicker` timezone had to be overridden.** It converts
+  a picked date to UTC, which is right for a departure time and wrong for a
+  calendar window: "1 June" arrived as `2026-05-31 21:00` and the export covered
+  a different month than the form said. Found by a test, not by reading. The
+  timezone is applied once, in the query, where the tenant is known.
+- **Money is a plain dot decimal with its own currency column.** Reusing
+  `MoneyFormatter` looks obviously right and produces `1.234,50 €`, which every
+  spreadsheet reads as text. The trade-off is taken knowingly: Greek Excel wants
+  a comma, so a dot decimal may need the import dialog — machine-readable
+  everywhere beats human-readable in one tool and text everywhere else.
+- **`CsvWriter` is now the one CSV implementation.** `GenerateManifest` had its
+  own; a manifest and an accounting export are opened on the same Greek Windows
+  machine, and two implementations of "what Excel needs" is two chances to fix
+  only one of them.
+
+### Verification
+
+| What | Result |
+|---|---|
+| `tests/Feature/Operations/ExportTest.php` | 13 passed — including the document-number absence, the last-day boundary, the two-payments count, and expiry with the sweeper stopped |
+| `tests/Feature/Panel/ExportDownloadTest.php` | 10 passed — owner, manager, crew refused, signed out, another tenant's uuid, three 410 cases |
+| `tests/Feature/Panel/ExportResourceTest.php` | 6 passed |
+| `vendor/bin/pint` | clean |
+| `vendor/bin/phpstan` (level 6) | **No errors** — the six `nullsafe.neverNull` findings were fixed at the source, no baseline, no ignore |
+| `vendor/bin/pest` (full) | **2387 passed, 4 skipped, 1 failed** |
+
+The one failure is `CiGatesTest > keeps the committed schema snapshot in step
+with the migrations`. It was **already failing on clean `main` before this
+work** — verified by stashing the branch and re-running it — because the MySQL 8
+snapshot can only be regenerated in CI (ENV-10) and CI has been blocked since
+2026-09-06. A new migration changes the fingerprint, so it stays red until a CI
+run refreshes the snapshot. No new failure was introduced.
+
+### Open, and not mine to close
+
+**Should read-only mode (TEN-9, SAA-7) refuse a data export?** It does today,
+because TEN-9 says *"blocks all writes in `/app`"* and creating an export is a
+write. That is the spec as written and it is worth flagging rather than
+burying: an operator whose subscription has lapsed has the strongest claim of
+anyone to a copy of their own books, and a product that holds them shut is one
+they leave angry. Downloading an export that already exists is unaffected — it
+is a read. **This is a product decision, not one to take inside a policy class.**
+
+### Not in this issue
+
+OPS-21's consolidated error feed. A failed export writes a translated sentence
+onto its own row and the panel shows it there (NFR-8); folding it in with
+payment, myDATA, SMS, iCal and webhook failures is the feed's own issue.
+
+---
 ## #115 — Gutenberg blocks and Elementor widgets, both rendering through the shortcode
 
 The same four embeds, chosen with a mouse. WPP-5 fixes them as **server-rendered

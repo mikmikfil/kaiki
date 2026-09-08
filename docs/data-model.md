@@ -45,7 +45,7 @@ Applied to **every** table unless that table's section says otherwise.
 
 - `id` — `bigIncrements` (bigint unsigned auto-increment). Internal only; never in a URL, an API payload or the widget.
 - `uuid` — `char(36)`, `unique`, assigned on `creating`. Present on **every tenant-owned entity exposed through the API or a shareable link**: `tenants`, `vessels`, `ports`, `products`, `age_bands`, `extras`, `departures`, `bookings`, `booking_guests`, `quotes`, `enquiries`, `vouchers`, `payments`, `invoices`, `charter_agreements`, `webhook_endpoints`, `import_jobs`.
-- Tables **without** `uuid` (internal joins, never addressed directly): `role_assignments`, `api_keys`, `brand_profiles`, `season_date_ranges`, `rate_plan_prices`, `product_extra`, `cancellation_policy_tiers`, `schedule_rules`, `vessel_blocks`, `booking_extras`, `quote_line_items`, `voucher_redemptions`, `notification_logs`, `ical_feeds`, `ical_sources`, `webhook_deliveries`, `manifest_exports`, `import_job_rows`, `gateway_webhook_events`, `integration_credentials`, `gdpr_requests`.
+- Tables **without** `uuid` (internal joins, never addressed directly): `role_assignments`, `api_keys`, `brand_profiles`, `season_date_ranges`, `rate_plan_prices`, `product_extra`, `cancellation_policy_tiers`, `schedule_rules`, `vessel_blocks`, `booking_extras`, `quote_line_items`, `voucher_redemptions`, `notification_logs`, `ical_feeds`, `ical_sources`, `webhook_deliveries`, `manifest_exports`, `import_job_rows`, `gateway_webhook_events`, `integration_credentials`, `gdpr_requests`. (`export_jobs` **does** carry one — its download link addresses the row.)
   - `seasons`, `rate_plans`, `cancellation_policies`, `vessel_blocks` and `schedule_rules` are operator-only objects edited inside a tenant-scoped Filament resource, so an integer id is safe there. They gain a `uuid` the day they appear in the public API — a cheap additive change on both engines.
 - Canonical hyphenated UUID v4. 36 ASCII chars = 144 bytes as `utf8mb4`, comfortably inside the index limit.
 
@@ -1437,6 +1437,43 @@ Indexes: `manifest_exp_tenant_dep_idx` (`tenant_id`, `departure_id`); `manifest_
 
 ---
 
+#### `export_jobs`
+
+**Added in #123, and not in the original model.** OPS-18 asks for four properties — exports *"run as queued jobs, are streamed to avoid memory pressure, are delivered as a download link that expires after 24 hours, and are logged"* — and three of them need a row: a queued job needs somewhere to report to, a link that expires needs a recorded expiry, and *logged* is this table. The alternative (a signed URL over a file on disk with nothing in the database) can neither answer *"what happened to the export I asked for"* nor find the file again in order to delete it.
+
+Named to mirror `import_jobs`: the same shape of thing — a long-running file operation an operator starts and comes back to.
+
+| column | type | null | default | notes |
+|---|---|---|---|---|
+| `id` | bigint unsigned AI | no | — | |
+| `uuid` | char(36) | no | — | unique; the download link addresses it |
+| `tenant_id` | bigint unsigned | no | — | FK cascade |
+| `user_id` | bigint unsigned | yes | null | FK `nullOnDelete` — the row outlives the person |
+| `type` | varchar(16) | no | — | `bookings` \| `guests` — PHP enum `ExportType` |
+| `date_basis` | varchar(16) | no | — | `booked` \| `departure` \| `paid` — PHP enum `ExportDateBasis` |
+| `from_date` | date | yes | null | inclusive |
+| `to_date` | date | yes | null | inclusive; applied as `< to_date + 1 day` on timestamp columns |
+| `filters` | json | no | `[]` | statuses, product and vessel uuids — so a run can be reproduced |
+| `status` | varchar(16) | no | `queued` | `queued` \| `processing` \| `ready` \| `failed` \| `expired` — PHP enum `ExportStatus` |
+| `disk` | varchar(32) | yes | null | nulled when the file is swept |
+| `path` | varchar(255) | yes | null | nulled when the file is swept |
+| `filename` | varchar(160) | yes | null | what the browser saves it as |
+| `row_count` | int unsigned | no | `0` | data rows, excluding the header |
+| `byte_size` | bigint unsigned | no | `0` | |
+| `error` | text | yes | null | **already translated** when written (NFR-8) |
+| `started_at` | timestamp | yes | null | |
+| `completed_at` | timestamp | yes | null | |
+| `expires_at` | timestamp | yes | null | stamped on **completion**, not on request |
+| `downloaded_at` | timestamp | yes | null | |
+| `download_count` | int unsigned | no | `0` | |
+| timestamps | | | | |
+
+Indexes: `export_jobs_uuid_unique`; `export_jobs_tenant_created_idx` (`tenant_id`, `created_at`) — the panel's list; `export_jobs_purge_idx` (`status`, `expires_at`) — **cross-tenant** purge sweeper, the same shape as `wh_deliveries_retry_idx`.
+
+**Notes.** `expires_at` is set when the job finishes, because twenty-four hours measured from the request would become twenty-one for an export that waited behind a catalogue import. Expiry is answered by the row (`ExportJob::isDownloadable()`), so the link closes on time with the scheduler stopped — the sweeper only deletes the bytes, and an `expired` row keeps its counts and its window so the panel can say *"it expired on Tuesday"* rather than showing nothing. **Neither export carries `booking_guests.document_number`** (OPS-10): the rows are built from an allow-list of columns that has no case for one.
+
+---
+
 ### 2.7 Ops & integrations
 
 #### `notification_logs`
@@ -2537,6 +2574,7 @@ No new tables. The plugin is a pure API client.
 41. `webhook_endpoints` (FK → `tenants`)
 42. `webhook_deliveries` (FK → `tenants`, `webhook_endpoints`)
 43. `manifest_exports` (FK → `tenants`, `departures`, `bookings`, `users`)
+43a. `export_jobs` (FK → `tenants`, `users`) — added in #123, which is why it is lettered rather than renumbering M6 onward. See §2.6.
    *(`ical_feeds`, `ical_sources`, `vessel_blocks` already exist from M1.)*
 
 ### M6 — Greek compliance

@@ -96,6 +96,7 @@ return [
         'hosted.blocks.contact.email' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
         'bookings.view.email' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
         'bookings.form.guest.email' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
+        'exports.columns.bookings.guest_email' => 'The word Greek operators use; a CSV header a Greek accountant reads as Email.',
 
         // «Webhook» has no Greek word an operator would recognise. Every Greek
         // developer and every Greek integration guide says webhook, and a

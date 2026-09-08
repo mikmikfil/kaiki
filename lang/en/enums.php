@@ -577,6 +577,34 @@ return [
     | the identity: the 48-hour and 24-hour reminders are two different messages
     | with two different dedupe keys.
     */
+    /*
+    |--------------------------------------------------------------------------
+    | Exports (OPS-17, OPS-18)
+    |--------------------------------------------------------------------------
+    |
+    | The date basis labels are the consequential ones. Each names the question
+    | the file answers, because an operator choosing between them is choosing
+    | which rows are in it.
+    */
+    'export_type' => [
+        'bookings' => ['label' => 'Bookings, for accounting'],
+        'guests' => ['label' => 'Passengers'],
+    ],
+
+    'export_date_basis' => [
+        'booked' => ['label' => 'the date the booking was made'],
+        'departure' => ['label' => 'the date of the trip'],
+        'paid' => ['label' => 'the date the money arrived'],
+    ],
+
+    'export_status' => [
+        'queued' => ['label' => 'Waiting'],
+        'processing' => ['label' => 'Preparing'],
+        'ready' => ['label' => 'Ready'],
+        'failed' => ['label' => 'Failed'],
+        'expired' => ['label' => 'Expired'],
+    ],
+
     'notification_template' => [
         'booking_confirmed' => ['label' => 'Booking confirmed'],
         'booking_cancelled' => ['label' => 'Booking cancelled'],

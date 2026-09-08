@@ -1,5 +1,23 @@
 # Changelog
 
+## M5 — Operations
+
+> Entries for #118 … #122 — the dashboard, the vessel calendar, recorded cash, the weather-cancellation workflow and the manifests — are not written here. They are on `main` with their reasoning in each commit message; inventing changelog prose for them after the fact would be reconstruction rather than a record, which is the same rule this project applies in `docs/BUILD-LOG.md`.
+
+### #123 - The bookings and guests CSVs, and a link that takes its expiry seriously
+
+Two exports an operator asks for by name: the bookings CSV their accountant wants, and the passenger list they use to count heads. Both are prepared in the background and appear on a screen that says where they have got to, because an export that runs inside the request is an export that times out on the operator with four seasons of trading — the only one who really needs it.
+
+**The consequential question is one nobody asks out loud: which date.** A booking made in June for a trip in August and paid in July belongs to three different months, and all three answers are right to somebody. Choosing one silently is how a file gets reconciled against a bank statement once, disagrees, and is never trusted again — so the basis is a field on the form, above the dates rather than below them, recorded on the row, and written into the filename, which is the only part of a CSV that survives being forwarded as an attachment.
+
+**Passport and ID numbers are absent rather than filtered.** The rows are built from a fixed list of columns that has no case for a document number, so there is no mechanism here that could include one — and the test asserts it from outside, by putting a real number in the database and looking for it in the finished file's bytes. The manifest remains the one export that may carry them, and it is a logged action for exactly that reason.
+
+**The link is a panel URL behind a session, not a signed one.** A signed temporary URL was the obvious build and is a bearer credential over a spreadsheet of every guest's name, email and phone number: it survives a group chat, a shared browser, and the person who generated it leaving the company. So every download asserts three things — signed in, permitted, same operator — and the twenty-four hours live on the row, where the screen can say the link expired instead of showing an invalid-signature page.
+
+**Expiry deletes the file, not just the link.** Meeting the requirement with a check on the way in would leave a season of guest contact details sitting on a disk a year later, retained for no stated purpose, with nothing anywhere in the product mentioning it. An hourly sweep removes the bytes and keeps the row: an operator asking where their export went is told it expired on Tuesday, and can run it again in one click.
+
+Smaller decisions with obvious wrong versions: the expiry is stamped when the job **finishes**, so an export that waited three hours behind a catalogue import still gets its full day. An inverted date range is treated as the typo it is rather than producing a legitimate-looking empty file. Test bookings and unpaid holds are excluded, exactly as they are on the dashboard, because an export that disagreed with the dashboard would discredit both. And a booking with a deposit *and* a balance appears once — the `EXISTS` over payments rather than a join is the difference between that and an accountant billing a boat trip twice.
+
 ## M4 — WordPress plugin
 
 ### #116 - The SEO trip pages, and the only secret key the plugin may hold

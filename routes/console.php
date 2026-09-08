@@ -9,6 +9,7 @@ use App\Jobs\ExpireAbandonedCheckoutsJob;
 use App\Jobs\ExpireQuotesJob;
 use App\Jobs\ExpireStaleHoldsJob;
 use App\Jobs\GenerateDeparturesNightly;
+use App\Jobs\PurgeExpiredExportsJob;
 use App\Jobs\Reminders\SendDueRemindersJob;
 use App\Models\NotificationLog;
 use Illuminate\Foundation\Inspiring;
@@ -259,3 +260,25 @@ Schedule::job(new CompleteDeparturesJob)
     ->withoutOverlapping()
     ->onOneServer()
     ->name('bookings:complete');
+
+/*
+|--------------------------------------------------------------------------
+| Expired exports — the half of "a link that expires" nobody can see
+|--------------------------------------------------------------------------
+|
+| OPS-18. The link itself closes on the row's own `expires_at`, with or without
+| this sweep — `ExportJob::isDownloadable()` is the authority, exactly as
+| `holdsSeats()` is for a hold. What this removes is the **file**, and that is
+| the half that has no screen: a bookings CSV carrying every guest's name, email
+| and phone number, sitting in a bucket a year after the link stopped working,
+| retained for no stated purpose (GDR-2).
+|
+| At :40, away from the hour and away from the four sweeps that already run on
+| it. The job takes a bounded batch, so a backlog drains over several hours
+| rather than holding one connection for an unbounded delete.
+*/
+Schedule::job(new PurgeExpiredExportsJob)
+    ->cron('40 * * * *')
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('exports:purge-expired');
