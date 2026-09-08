@@ -14,7 +14,7 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M5 — Operations: #118 … #128, #130 and #131 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
+| M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. **Two additions after it closed, both on 2026-09-08:** the guest-page design pass, and **#132** — a picture on every trip card, drawn rather than downloaded, together with the three home-page photographs whose seeder had promised committed files that were not committed. |
 | M4 | **#112 … #116 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, the same four through Gutenberg and Elementor, and the SEO trip pages. **#116 had to build `GET /api/v1/sync/products` on the platform first**: specified in `docs/api.md` since M0 and never implemented, so the feature it exists for had nothing to read. It is the only endpoint in the API a publishable key cannot reach. **#117 the release remains; it needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117). |
 | M5 | **#118 … #128, #130 and #131 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. **#130 added the fleet strip and «Χρειάζονται προσοχή» to the dashboard; #131 added «Καιρός» (ADR-0027), which reports the days over each boat's own wind limit and what is booked on them, and cancels nothing.** Six smaller commits sit between them — the Stripe removal, the demo fleet, two panel fixes, the embedded map — written up together above. **#125 built the outbound webhooks (OPS-19, OPS-20)** — four events, HMAC-signed, eight attempts over a day, a delivery history with a resend button, and an SSRF guard that checks addresses rather than hostnames. **#126 put the vouchers on screen** — the engine had worked since M2 and nobody could see it; the expiry sweeper and the two reminders were the missing clock, and the sweep runs against each tenant's own day rather than UTC's. **#127 built the consolidated failure feed** — a view over six tables rather than a seventh, with a retry only where one would do something. It also moved four plumbing screens into a collapsed Ρυθμίσεις group and **switched SMS off for the first phase** (product owner). **#128 built the offline boarding page** — a second surface, because the Filament one is Livewire and does nothing without a signal. Remaining in M5: the 390x844 Playwright run (OPS-22). |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
@@ -42,6 +42,116 @@ Each entry records the **verification actually run** and its **real output** —
 | **Open-Meteo's commercial subscription**, or another provider — the free endpoint is non-commercial only (ADR-0027) | product owner | before a paying operator sees «Καιρός» |
 | ~~**No screen for adding staff.**~~ | ~~product owner~~ | ~~before the first operator hires anybody~~ — **built 2026-09-08**, along with the password reset both panels also lacked. |
 | **A date filter on the departures list.** #129 found it has none; the default ascending sort happens to put today first with the current seed, so an operator tapping the "sailing today and tomorrow" figure lands on the whole table | product owner | a screen change, not a bug — decide whether the figure should filter or the list should default to today |
+
+---
+
+## #132 — A picture on every trip, drawn rather than downloaded
+
+> Unplanned, like #130 and #131. Asked for directly: «βάλε σε όλες τις εκδρομές
+> εικόνα ή χρώμα. προτιμώ εικόνα».
+
+### What was actually on the page
+
+Twenty-one demo trips, `products.images` empty on all twenty-one, so every card
+on the hosted home page rendered `.trip-image.is-empty` — the tinted panel in
+the operator's own colour. That state is correct and deliberate for a real
+operator who has not uploaded anything yet, and it is the wrong thing for a demo
+to be made of.
+
+Two files did exist — `demo-trip-1.jpg` and `demo-trip-2.jpg` — on one
+development machine and in no repository. Opened, they are flat teal gradients:
+images in name only. The same gap explains why `DemoHomePageSeeder` shipped a
+docblock saying "the demo images are committed for tenant 1" when `git
+ls-files` listed no such file. A `migrate:fresh --seed` on a clean checkout got
+a home page with no photographs and a catalogue of tinted panels.
+
+### Why they are generated
+
+The obvious way to get sixteen pictures is to download sixteen photographs of
+somebody else's boat. That is the one option not open to seed data: it ships in
+the repository and gets deployed to a demo people are shown, and a stock
+photograph with no licence attached is a liability sitting in `database/`.
+
+So `database/seeders/assets/generate.mjs` draws them — five times of day, five
+boat silhouettes, islands, chop, sun-glitter, an arch for the cave trip — and
+Chromium prints each to an 1800×1000 JPEG. They read as illustration rather than
+as photography, which is the honest thing for demo data to look like. A real
+operator replaces them on their first afternoon.
+
+**JPEG rather than the SVG source**, because the panel accepts `image/jpeg`,
+`image/png` and `image/webp` and deliberately not SVG — an uploaded SVG is a
+script. Seeding a format no operator could upload would put demo data outside
+the rules the product enforces.
+
+**Deterministic**, so editing one scene does not rewrite the other fifteen:
+every random-looking number comes from an FNV-1a hash of the scene's own name.
+
+### Three things the drawing got wrong, found by looking at the output
+
+1. **Seven full-width sine curves rendered as scan lines.** At 1800 pixels wide,
+   an amplitude of a few pixels over a wavelength of three hundred is a straight
+   line; the sea looked like a gradient somebody had ruled. Replaced with broken
+   dashes, which carry the same information about distance and never form a line
+   across the frame.
+2. **Every headland was a sheer vertical slab.** The shape ran down to the
+   bottom of the picture, and its outer boundary was a straight line from its
+   foot to the frame edge — a wall rising out of the sea, not a coast. Land that
+   meets the water where the water starts needs no such edge.
+3. **The arch arrived on the home page as a black blob.** The cards crop 3:2
+   from the middle of a 9:5 picture, and the hole was in the first 150 pixels.
+
+### Matching a picture to a trip
+
+By slug, so the scene drawn for the sunset trip lands on the sunset trip. A
+product with no picture of its own — `DemoFleetSeeder` tops each catalogue up
+with `trip-<random>` slugs — draws from the same pool by hashing its slug, so
+re-seeding does not reshuffle the demo. `DemoImageSeeder` will not overwrite
+anything a person chose: it writes `images` only when the column is empty or
+still holds one of the two gradient placeholders it replaces.
+
+### Verification
+
+```
+$ php artisan db:seed --class=DemoImageSeeder
+INFO  Seeding database.
+
+$ php artisan tinker --execute="… Product::withoutGlobalScopes() …"
+1 | iliovasilema-aigina     | "products/1/iliovasilema-aigina.jpg"
+… twenty-one rows, every one with a path …
+files: 27
+
+$ curl -s -o /dev/null -w '%{http_code} %{size_download}' \
+    http://127.0.0.1:8001/storage/products/1/iliovasilema-aigina.jpg
+200 58399
+```
+
+In the browser at 1280, on `/aegean-blue`:
+
+| | |
+|---|---|
+| `.trip-image` elements carrying an `<img>` | 10 of 10 |
+| `is-empty` occurrences in the document | 1 — the stylesheet rule |
+| distinct `.trip-foot` tops among the ten cards | three — 1230 (six cards), 1843 (three), 2373 (one) |
+
+```
+$ vendor/bin/pint --test        # passed
+$ vendor/bin/phpstan analyse    # [OK] No errors
+$ vendor/bin/pest --parallel --processes=12
+Tests: 1 failed, 4 skipped, 2703 passed (7780 assertions)  213.25s
+```
+
+The one failure is `CiGatesTest > it keeps the committed schema snapshot in step
+with the migrations`, unchanged and not caused here: M6's migrations moved the
+fingerprint this morning and CI is the only place with a MySQL 8 connection to
+regenerate it. Blocked on GitHub billing since 2026-09-06.
+
+### Two tests, because the mechanism is one lookup
+
+`TripCardImageTest` asserts both card states. The whole thing is
+`$product->images[0]['path']` in a partial, over a JSON column whose shape
+nothing enforces — a rename of that key takes every photograph off every card
+and leaves a page that still returns 200 and still passes every other test in
+that directory.
 
 ---
 

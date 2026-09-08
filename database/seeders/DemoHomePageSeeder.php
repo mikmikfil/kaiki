@@ -119,9 +119,16 @@ class DemoHomePageSeeder extends Seeder
     /**
      * A missing photograph is a block without one, not a broken image.
      *
-     * The demo images are committed for tenant 1 only. Every block type that
-     * takes an image renders fine without it — the story block drops to a
-     * single column — so a second demo operator gets the same page in prose.
+     * The files are put on the disk by {@see DemoImageSeeder}, which runs
+     * before this one, and for the first operator only. Until #132 that seeder
+     * did not exist and this docblock claimed the images were committed when
+     * `git ls-files` listed none of them: they lived on one development machine
+     * and a fresh `migrate:fresh --seed` produced a page with no photographs.
+     *
+     * Every block type that takes an image renders fine without one — the story
+     * block drops to a single column — so the second demo operator keeps the
+     * same page in prose, deliberately, because that is the path nothing else
+     * exercises.
      */
     private function imageOrNull(Tenant $tenant, ?string $file): ?string
     {

@@ -47,6 +47,12 @@ class DatabaseSeeder extends Seeder
         // figures read as arithmetic on two rows and as a business on twenty.
         $this->call(DemoFleetSeeder::class);
 
+        // After the catalogue and before the home page, because it serves both:
+        // a picture for every trip, and the three home-page photographs whose
+        // seeder looks for them on disk by name and quietly renders the block
+        // without one when they are missing.
+        $this->call(DemoImageSeeder::class);
+
         // After the products, because one of its entries belongs to a trip: the
         // FAQ of #103, which is invisible until somebody writes one — the block
         // renders nothing when there is nothing published, so an unseeded demo
