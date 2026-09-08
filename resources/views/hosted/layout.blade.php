@@ -535,13 +535,20 @@
             .button { transition: none; }
         }
 
-        .story { display: grid; gap: 1.5rem; align-items: start; }
+        /* Centred rather than top-aligned: the photograph is smaller than the
+           column of prose beside it, and hanging it from the top leaves a
+           wedge of empty space under it that reads as a layout mistake. */
+        .story { display: grid; gap: 2rem; align-items: center; }
         .story-image { width: 100%; height: auto; border-radius: 14px; object-fit: cover; aspect-ratio: 4 / 3; }
         .prose p { margin: 0 0 .8rem; }
         .prose p:last-child { margin-bottom: 0; }
 
         @media (min-width: 46rem) {
-            .story.has-image { grid-template-columns: 1fr 1fr; }
+            /* Not an even split. The block is prose with a photograph beside
+               it, not a photograph with a caption — half the row for the image
+               makes the picture the subject and squeezes the paragraphs into a
+               narrow column that is harder to read. */
+            .story.has-image { grid-template-columns: 3fr 2fr; }
             /* A class rather than an inline style: HOS-8's policy has no
                `unsafe-inline`, so a `style` attribute would be dropped and
                the operator's choice would silently do nothing.
