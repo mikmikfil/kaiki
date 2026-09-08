@@ -42,6 +42,105 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## Sixty bookings, so the panel has something to be about
+
+Asked for directly: *"βαλε μου μεσα και δοκιμαστικες κρατησεις να δω τι παιζει.
+βαλε μπολικες"*.
+
+Every operations screen built in M5 reads **bookings**, not products — the
+dashboard figures, the fleet strip, «Χρειάζονται προσοχή», the manifests, the
+exports, the reconciliation, and «Καιρός»'s "5 αναχωρήσεις · 0 επιβάτες". With
+an empty table all of them render their empty state, which is the one state
+nobody needs to look at, and the arithmetic on two rows reads as arithmetic
+while sixty rows read as a business.
+
+### Through the real Action, never a factory
+
+`CreateManualBooking`, which means `CreateBookingDraft`, which means
+`ComputePrice` and `HoldSeats`. Every row has a real reference, a real VAT
+split, a frozen cancellation policy and a `seats_sold` on its departure that
+adds up. A factory would have been three lines and would have produced bookings
+whose totals disagree with their own line items — worse than no demo data,
+because the first thing anybody does with a figure on a dashboard is check it
+against the row underneath.
+
+The engine refusing a booking is not an error and is swallowed: a party that
+does not fit what is left on the boat is the availability engine working, and a
+full boat should be one fewer booking rather than a broken `db:seed`.
+
+### Four payment states, because each one is a different screen
+
+| State | What it makes visible |
+|---|---|
+| cash, settled | the takings figure |
+| bank transfer, settled | the same figure through the other tender |
+| deposit only | «Οφείλονται σε εσάς» and the balance-due reminders |
+| nothing | an unpaid hold, which is what the expiring-holds row is about |
+
+The deposit case needed one thing the engine deliberately does not do: **a part
+payment does not confirm a booking**, and should not — `RecordManualPayment`
+leaves that decision to whoever took the money. An operator with a deposit in
+hand confirms the seat, so the seeder does the same. Without it these sat as
+drafts and «Οφείλονται σε εσάς» stayed at zero however many deposits were on
+the table, which is exactly what the first run of this seeder produced.
+
+Roughly one in nine is cancelled, and not for realism: the refund figures, the
+cancellation reasons on the reconciliation screen, and the "excluded from the
+count" rules in the exports and in the weather panel are all invisible without
+them.
+
+### Deterministic, and spread across the season
+
+No faker and no `rand()` — fifteen named guests in the mix a Greek day-boat
+operator actually sees, and eight party shapes cycled, so the same run produces
+the same numbers and a screenshot means something a week later. Names matter
+more than they look: a manifest, an e-ticket and a passenger CSV all render
+them, and a screen of "Test User 1" proves nothing about how the real thing
+reads.
+
+A fortnight back and a fortnight forward. The past half is what the
+reconciliation screen and the completed-trip figures read; the future half is
+what the calendar, the manifests and «Καιρός» read. Booking only future trips
+would have left half the product looking broken.
+
+### What it produced, and one thing it did not
+
+**60 bookings for Aegean Blue: 37 confirmed, 16 unpaid holds, 7 cancelled, 42
+payments, and 11 confirmed bookings carrying a balance of 1.866,90 €.** Ionian
+Sunset stays empty on purpose — a trial account with nothing configured is a
+real state the panel has to render, and if both demo operators were complete
+nobody would ever see it.
+
+**No `booking_guests` rows**, and that is correct rather than missing. Only one
+demo product sets `guest_details_required`, and nothing in the ordinary booking
+flow creates passenger rows for a product that does not ask for them — a day
+trip takes a lead name and sails. This was checked rather than assumed, because
+"the manifest is empty" would be a serious bug: `Manifest` emits **placeholder
+rows, one per head**, and counts them as missing, which is what a quayside list
+for an unfilled booking should look like.
+
+Departures beyond about 2026-09-20 are skipped with *"there is no rate plan for
+that date"*, which is the pricing engine correctly refusing to invent a price
+outside the seeded season rather than a fault in this seeder.
+
+### Verified
+
+```
+php artisan db:seed --class=DemoBookingSeeder
+  aegean-blue: 60 bookings (7 of them cancelled).
+  ionian-sunset: 0 bookings (0 of them cancelled).
+
+vendor/bin/pest        2457 passed, 4 skipped, 1 failed (the schema snapshot)
+vendor/bin/pint --test passed
+vendor/bin/phpstan     [OK] No errors
+```
+
+And on `/app`: **18 αναχωρήσεις σήμερα και αύριο, 28 επιβάτες κλεισμένοι, 16 σε
+κίνδυνο, 7.292,10 € εισπράξεις αυτής της εβδομάδας**, with the fleet strip
+showing real load per boat (6/40, 5/12, 4/10) instead of a row of zeros.
+
+---
+
 ## The widget on the hosted pages, which had never been loaded
 
 Not an issue from the roadmap. Found by opening a hosted product page and

@@ -62,5 +62,12 @@ class DatabaseSeeder extends Seeder
         // template, an `image_side` control and a panel form since #102 and was
         // on nobody's screen.
         $this->call(DemoHomePageSeeder::class);
+
+        // Last of all, because it books the departures every seeder above it
+        // created. Without bookings every operations screen built in M5 renders
+        // its empty state — the dashboard figures, the fleet strip, «Χρειάζονται
+        // προσοχή», the manifests, the exports and the reconciliation — which is
+        // the one state nobody needs to look at.
+        $this->call(DemoBookingSeeder::class);
     }
 }
