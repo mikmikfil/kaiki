@@ -8,10 +8,12 @@ use App\Jobs\CompleteDeparturesJob;
 use App\Jobs\ExpireAbandonedCheckoutsJob;
 use App\Jobs\ExpireQuotesJob;
 use App\Jobs\ExpireStaleHoldsJob;
+use App\Jobs\ExpireVouchersJob;
 use App\Jobs\GenerateDeparturesNightly;
 use App\Jobs\PollIcalSourcesJob;
 use App\Jobs\PurgeExpiredExportsJob;
 use App\Jobs\Reminders\SendDueRemindersJob;
+use App\Jobs\SendVoucherRemindersJob;
 use App\Jobs\SweepWebhookRetriesJob;
 use App\Models\NotificationLog;
 use App\Models\WebhookDelivery;
@@ -358,3 +360,36 @@ Schedule::command('model:prune', ['--model' => [WebhookDelivery::class]])
     ->withoutOverlapping()
     ->onOneServer()
     ->name('webhooks:prune-deliveries');
+
+/*
+|--------------------------------------------------------------------------
+| Vouchers: the expiry, and the warning before it (OPS-16, PRC-21, #126)
+|--------------------------------------------------------------------------
+|
+| Two jobs and the order matters. The sweep marks yesterday's expiries so the
+| panel stops calling them active; the reminders then run against what is left,
+| and cannot warn somebody about a voucher that expired an hour earlier.
+|
+| The sweep runs at `expiry_sweep_at` — after the latest tenant's day has ended,
+| because PRC-21 evaluates expiry at end of day in the **tenant's** timezone and
+| a voucher must not stop working at midnight UTC for an operator whose day ends
+| three hours later.
+|
+| The reminders are daily rather than quarter-hourly, unlike `SendDueReminders`.
+| A balance-due message is counted in hours against a departure; a voucher
+| expiry is counted in days against a date, and it does not get better for being
+| sent at 09:15 instead of 09:00.
+*/
+Schedule::job(new ExpireVouchersJob)
+    ->dailyAt((string) config('kaiki.vouchers.expiry_sweep_at', '04:20'))
+    ->timezone((string) config('kaiki.defaults.timezone', 'Europe/Athens'))
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('vouchers:expire');
+
+Schedule::job(new SendVoucherRemindersJob)
+    ->dailyAt('09:30')
+    ->timezone((string) config('kaiki.defaults.timezone', 'Europe/Athens'))
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('vouchers:expiry-reminders');

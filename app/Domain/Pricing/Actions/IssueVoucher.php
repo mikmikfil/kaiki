@@ -9,6 +9,7 @@ use App\Enums\VoucherReason;
 use App\Enums\VoucherStatus;
 use App\Models\Booking;
 use App\Models\Voucher;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 /**
@@ -75,6 +76,71 @@ final class IssueVoucher
         ]);
 
         return $voucher;
+    }
+
+    /**
+     * A voucher an operator issued out of goodwill, against no booking (OPS-16).
+     *
+     * ## Why this is not the method above with a nullable argument
+     *
+     * The expiry rule is the difference, and it is the whole reason the two are
+     * separate. {@see self::__invoke()} reads the validity from the **booking's
+     * frozen policy snapshot** — the terms the guest accepted when they paid,
+     * which is the only defensible source for a credit issued because that
+     * booking was cancelled.
+     *
+     * A goodwill voucher has no such booking and therefore no such promise. Its
+     * validity comes from configuration, and pretending otherwise — by passing
+     * a nullable booking into a method whose docblock is about honouring a
+     * snapshot — would make the one important sentence in that method untrue
+     * half the time.
+     *
+     * ## `expires_at` may be null, and that is a real choice
+     *
+     * An operator apologising for a bad afternoon often means "whenever you
+     * like". PRC-21 evaluates expiry at end of day in the tenant timezone and
+     * {@see Voucher::hasExpired()} is false for a null, so a voucher with no
+     * expiry simply never ages out. The form offers a default and lets it be
+     * cleared.
+     */
+    public function goodwill(
+        int $cents,
+        VoucherReason $reason = VoucherReason::Goodwill,
+        ?string $note = null,
+        ?Carbon $expiresAt = null,
+        ?int $issuedByUserId = null,
+        string $currency = 'EUR',
+    ): ?Voucher {
+        if ($cents < 1) {
+            return null;
+        }
+
+        /** @var Voucher $voucher */
+        $voucher = Voucher::query()->create([
+            'uuid' => (string) Str::uuid(),
+            'code' => self::mintCode(),
+            'amount_cents' => $cents,
+            'remaining_cents' => $cents,
+            'currency' => $currency,
+            'status' => VoucherStatus::Active,
+            'issued_at' => now(),
+            'expires_at' => $expiresAt,
+            // No booking. The column is nullable precisely for this.
+            'issued_for_booking_id' => null,
+            'reason' => $reason,
+            'notes' => $note,
+            'issued_by_user_id' => $issuedByUserId,
+        ]);
+
+        return $voucher;
+    }
+
+    /** The default life of a goodwill voucher, in months. */
+    public static function goodwillMonths(): int
+    {
+        $months = config('kaiki.vouchers.goodwill_months', 12);
+
+        return is_int($months) && $months > 0 ? $months : 12;
     }
 
     /**

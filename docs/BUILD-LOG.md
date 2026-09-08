@@ -12,16 +12,16 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M5 — Operations: #118 … #125, #130 and #131 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
+| Milestone | **M5 — Operations: #118 … #126, #130 and #131 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
 | M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
 | M4 | **#112 … #116 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, the same four through Gutenberg and Elementor, and the SEO trip pages. **#116 had to build `GET /api/v1/sync/products` on the platform first**: specified in `docs/api.md` since M0 and never implemented, so the feature it exists for had nothing to read. It is the only endpoint in the API a publishable key cannot reach. **#117 the release remains; it needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117). |
-| M5 | **#118 … #125, #130 and #131 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. **#130 added the fleet strip and «Χρειάζονται προσοχή» to the dashboard; #131 added «Καιρός» (ADR-0027), which reports the days over each boat's own wind limit and what is booked on them, and cancels nothing.** Six smaller commits sit between them — the Stripe removal, the demo fleet, two panel fixes, the embedded map — written up together above. **#125 built the outbound webhooks (OPS-19, OPS-20)** — four events, HMAC-signed, eight attempts over a day, a delivery history with a resend button, and an SSRF guard that checks addresses rather than hostnames. Remaining in M5: vouchers in the panel (OPS-16), the consolidated error feed (OPS-21), offline check-in (OPS-12, and ADR-worthy — the Filament page cannot do it), and the 390x844 Playwright run (OPS-22). |
+| M5 | **#118 … #126, #130 and #131 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. **#130 added the fleet strip and «Χρειάζονται προσοχή» to the dashboard; #131 added «Καιρός» (ADR-0027), which reports the days over each boat's own wind limit and what is booked on them, and cancels nothing.** Six smaller commits sit between them — the Stripe removal, the demo fleet, two panel fixes, the embedded map — written up together above. **#125 built the outbound webhooks (OPS-19, OPS-20)** — four events, HMAC-signed, eight attempts over a day, a delivery history with a resend button, and an SSRF guard that checks addresses rather than hostnames. **#126 put the vouchers on screen** — the engine had worked since M2 and nobody could see it; the expiry sweeper and the two reminders were the missing clock, and the sweep runs against each tenant's own day rather than UTC's. Remaining in M5: the consolidated error feed (OPS-21), offline check-in (OPS-12, and ADR-worthy — the Filament page cannot do it), and the 390x844 Playwright run (OPS-22). |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2508, one failing: the schema snapshot CI cannot regenerate — and #131's migration has now moved its hash) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2523, one failing: the schema snapshot CI cannot regenerate — and #131's migration has now moved its hash) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -40,6 +40,147 @@ Each entry records the **verification actually run** and its **real output** —
 | ~~**A billing provider for M7**, after Cashier came out with Stripe~~ | ~~product owner~~ | ~~M7~~ — **Decided 2026-09-08: Viva Wallet, the same gateway operators use for guests (ADR-0028 as amended).** |
 | **Whether the full hosted site is a paid tier**, and what each plan gets | product owner | before `Plan`'s three predicates get their first caller — ADR-0029 settles the *shape* of the switch, not the price |
 | **Open-Meteo's commercial subscription**, or another provider — the free endpoint is non-commercial only (ADR-0027) | product owner | before a paying operator sees «Καιρός» |
+
+---
+
+## #126 — Vouchers in the panel, and the clock nobody had wound
+
+OPS-16: *"Vouchers: issue, list, redeem (the widget accepts codes), expiry
+reminders."* Three of those four already worked.
+
+**What existed since M2:** the `vouchers` and `voucher_redemptions` tables,
+`IssueVoucher`, `ApplyVoucher` and `RestoreVoucher` with PRC-18…22's arithmetic,
+the pro-rata restoration, the guest page at `/v/{code}`, and the widget
+accepting a code at checkout. A weather cancellation has been producing
+vouchers, correctly, for two milestones.
+
+**What did not exist was any way to look at one.** No list, no search by code,
+no way to write one out by hand. `VoucherReason::Goodwill` and `::Manual` have
+been in the enum since M2 **with no caller at all** — an operator who wanted to
+apologise for a bad afternoon had no way to do it.
+
+And nothing was time-aware. A voucher stayed `active` in the database for ever
+after it expired, and the two reminder templates had Greek copy, an English
+copy, a `expiry_reminder_sent_at` column, and no code.
+
+### Neither gap could sell a boat trip wrongly, and that is the interesting part
+
+`Voucher::isSpendable()` has always checked all three conditions, so an expired
+voucher could never be redeemed. The cost of the missing sweeper is not a bad
+booking — it is an operator reading `active` off a screen and telling somebody
+on the telephone that their credit is still good, when the checkout will refuse
+it. **The status column has to agree with the answer the guest gets**, and it
+did not.
+
+### The timezone is the whole of the sweeper
+
+PRC-21: *"Voucher expiry is evaluated at end of day in the tenant timezone."*
+
+One cross-tenant `where('expires_at', '<', now())` would have been a line, and
+would expire an Aegean operator's vouchers **three hours before their own day
+ended** — a guest told their credit expired on a date their calendar says has
+not arrived. That is the kind of thing that reaches a consumer protection body
+rather than a support inbox.
+
+So the sweep is per tenant, and the boundary is the start of *that tenant's*
+today. A voucher expiring today survives all of today, wherever the server is.
+The test that proves it puts one tenant in Athens and one in London, sets the
+clock to 22:30 UTC — already tomorrow in Greece, still today in England — and
+asserts that only the Greek one expires.
+
+It touches `active` rows only. `redeemed` is spent and `cancelled` was
+withdrawn; writing `expired` over either would erase what actually happened.
+
+### One column, two reminders
+
+`expiry_reminder_sent_at` is a single timestamp, and it is enough. The seven-day
+reminder is due when the last one was sent **before the seven-day window
+opened** — so a voucher issued ten days before it expires gets the seven-day
+message and never the thirty-day one, which is right: a warning about a month
+that has already passed is noise.
+
+**A voucher with no booking cannot be reminded**, and that is a silence with a
+reason rather than a gap. A voucher has no email column; the address comes from
+the booking it was issued against. A goodwill voucher handed over the counter
+has no booking, so there is nowhere to send anything — and inventing a contact
+field so the platform could email a stranger would be collecting personal data
+for a message nobody asked for. The operator who handed it over is the one who
+knows how to reach them.
+
+Two more silences: nothing is sent about a voucher with a zero balance (it makes
+somebody check, find nothing, and trust the next message less), and nothing
+about a test booking's voucher (SAA-12).
+
+One thing that had to be got right and is easy to miss: the send uses
+`once: false`. `NotificationLog::alreadySent()` dedupes per **booking**, and a
+guest whose trip was cancelled twice has two vouchers — the second would never
+be mentioned. The dedupe that matters here is per voucher, and it is the column.
+
+### `goodwill()` is a separate method, not a nullable argument
+
+`IssueVoucher::__invoke()` reads a voucher's validity from the **booking's
+frozen policy snapshot** — the terms the guest accepted when they paid, which is
+the only defensible source for a credit issued because that booking was
+cancelled. Its docblock says so, and CXL-8 is why.
+
+A goodwill voucher has no such booking and therefore no such promise. Passing a
+nullable booking into that method would have made its one important sentence
+untrue half the time. So `goodwill()` sits beside it, takes its default from
+configuration, and **allows a null expiry** — "whenever you like" is a real
+answer an operator gives, and `hasExpired()` is false for a null.
+
+### The screen is read-mostly, deliberately
+
+There is no edit form. A voucher's amount, code and expiry are terms somebody
+was given, often in writing, in an email they still have; a screen that let an
+operator quietly change the number would make every one of those emails a
+liability. Two things can be done: read it, and cancel it — which is a status
+rather than a deletion, because the record of a promise has to outlive the
+operator changing their mind.
+
+The remaining balance is not editable either. It is `Σ(amount − reversed)` over
+the ledger, and the ledger is shown directly beneath it so an operator asked
+*"why does it say forty euros when I gave them a hundred"* can read the answer
+rather than be told it.
+
+The filter that earns its place is «Μπορεί να χρησιμοποιηθεί τώρα» — three
+conditions the status alone does not answer, and the exact question somebody on
+the telephone is asking.
+
+### Deviations
+
+- **Only two reasons are offered on the form.** The other three are written by
+  the cancellation machinery and mean something specific about how a booking
+  ended; offering them here would let a goodwill credit claim to be a weather
+  cancellation in every report that groups by reason.
+- **Euros in, cents stored, and rounded rather than cast.** `(int) (12.10 * 100)`
+  is 1209 on a binary float, and a voucher one cent short of what the operator
+  typed is a discrepancy nobody can explain.
+- **The chosen expiry date is stored as end of day.** Midnight would expire the
+  voucher a day before the date printed on the guest's email.
+- **The view page is titled with the code**, not Filament's
+  «Προεπισκόπηση Κουπόνι» — awkward Greek, and the code is what the operator is
+  about to read down a telephone.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Vouchers/   15 passed (32 assertions)
+vendor/bin/pest                           2523 passed, 4 skipped, 1 failed
+vendor/bin/pint --test                    passed
+vendor/bin/phpstan analyse                [OK] No errors
+```
+
+All fifteen passed on the first run, which is worth recording because it is
+unusual in this log — the arithmetic they sit on was already right and already
+tested.
+
+The one failure is the known MySQL schema snapshot.
+
+And in the browser: «Κουπόνια» under Λειτουργία with three seeded vouchers —
+a goodwill one with «Δεν λήγει», a manual one, and a weather cancellation
+showing «Για την κράτηση KAI-TSXXB» through the foreign-key-less lookup — and
+the ledger panel below reading «Δεν έχει χρησιμοποιηθεί ακόμη».
 
 ---
 

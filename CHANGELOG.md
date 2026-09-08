@@ -14,6 +14,24 @@ Until today they could not. The booking form on your own trip pages was never lo
 
 If somebody has JavaScript blocked, or the connection drops before the form loads, they still get your email address and telephone number exactly as before. That was the only thing working on these pages, and it stays.
 
+### #126 - Κουπόνια you can actually see
+
+Kaiki has been issuing vouchers since the spring — every weather cancellation produces one, the widget accepts the code at checkout, and the guest has a page showing what is left on theirs. What you have never had is a way to **look**: no list, no search by code, and no way to write one out yourself.
+
+**Now there is a screen.** Every voucher you have issued, what is left on it, when it expires, and where it was spent. The code is one click to copy, because you are usually reading it to somebody on the telephone.
+
+**And you can give one out.** An amount, a reason, an expiry date you can leave empty for "whenever you like", and a note the guest never sees. Useful for the afternoon the boat left an hour late and you want to say sorry properly.
+
+**Two things you cannot do, on purpose.** You cannot edit a voucher after issuing it — the amount and the code are terms somebody was given, often in an email they still have, and a screen that quietly changed the number would make every one of those emails a problem. And you cannot type over the remaining balance: it is added up from where the voucher was actually spent, and that list is shown right underneath it. If a guest asks why their hundred euros is now forty, the answer is on the same page.
+
+You can cancel one. It keeps its code and its history and stops working.
+
+**Two things that were quietly not happening now happen.** An expired voucher used to sit in the database saying "active" for ever — the checkout always refused it correctly, but the screen would have told you the credit was still good. It now expires properly, **at the end of your day rather than somebody else's**: a voucher dated today works all of today, in your timezone, not until midnight in London.
+
+And the two reminders finally send. A guest with credit gets an email a month before it expires and again a week before — unless it is already spent, in which case saying so would only make them go and check.
+
+One thing worth knowing: a voucher you hand somebody over the counter has no email address attached to it, so nobody can be reminded about it. The expiry date is on the screen; the reminder is for the vouchers that arrived by email in the first place.
+
 ### #125 - Your own systems, told automatically
 
 Under **Ρυθμίσεις → Webhooks** you can now give Kaiki an address and have it tell your accountant's software, your spreadsheet or your Zapier account when something happens. Four things: a booking is paid for, a booking is cancelled, a departure is cancelled, and every passenger on a booking has filled in their details.

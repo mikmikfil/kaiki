@@ -11,6 +11,7 @@ use Database\Factories\VoucherFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Carbon;
@@ -106,6 +107,20 @@ class Voucher extends Model
         return Booking::query()
             ->withoutGlobalScope(SoftDeletingScope::class)
             ->find($this->issued_for_booking_id);
+    }
+
+    /**
+     * The ledger this voucher's balance is rebuilt from (PRC-18).
+     *
+     * A real relation, unlike {@see self::issuedForBooking()} — `voucher_id` is
+     * an ordinary foreign key, and only the *other* side of the cycle with
+     * `bookings` had to go without one.
+     *
+     * @return HasMany<VoucherRedemption, $this>
+     */
+    public function redemptions(): HasMany
+    {
+        return $this->hasMany(VoucherRedemption::class);
     }
 
     /** Has this voucher passed its expiry, whatever the sweeper has done? */

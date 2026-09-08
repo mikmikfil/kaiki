@@ -420,6 +420,39 @@ return [
     | in front of a paying operator, and that is a purchase, not a commit.
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Vouchers (OPS-16, PRC-21, CXL-8)
+    |--------------------------------------------------------------------------
+    |
+    | A voucher issued *against a cancelled booking* takes its life from that
+    | booking's frozen policy snapshot — the terms the guest accepted — and
+    | nothing here touches that. `IssueVoucher::validityMonthsFor()` is the one
+    | place that reads it.
+    |
+    | This is only for the other kind: the goodwill credit an operator writes
+    | out because somebody had a bad afternoon. There is no snapshot to honour,
+    | so the default comes from here and the form lets it be cleared entirely —
+    | «όποτε θέλετε» is a real answer, and a null expiry never ages out.
+    */
+
+    'vouchers' => [
+
+        'goodwill_months' => (int) env('KAIKI_VOUCHER_GOODWILL_MONTHS', 12),
+
+        /*
+         | When the sweeper marks the day's expiries.
+         |
+         | PRC-21 evaluates expiry at **end of day in the tenant's timezone**, so
+         | this runs after the latest of them has ended. A voucher must not stop
+         | working at midnight UTC for an operator whose day ends at 03:00 UTC —
+         | that is three hours of a guest being told their credit expired when
+         | their own calendar says it has not.
+         */
+        'expiry_sweep_at' => env('KAIKI_VOUCHER_EXPIRY_SWEEP_AT', '04:20'),
+
+    ],
+
     'weather' => [
 
         'base_uri' => env('KAIKI_WEATHER_BASE_URI', 'https://api.open-meteo.com'),
