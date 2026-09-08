@@ -40,6 +40,125 @@ Each entry records the **verification actually run** and its **real output** —
 | ~~**A billing provider for M7**, after Cashier came out with Stripe~~ | ~~product owner~~ | ~~M7~~ — **Decided 2026-09-08: Viva Wallet, the same gateway operators use for guests (ADR-0028 as amended).** |
 | **Whether the full hosted site is a paid tier**, and what each plan gets | product owner | before `Plan`'s three predicates get their first caller — ADR-0029 settles the *shape* of the switch, not the price |
 | **Open-Meteo's commercial subscription**, or another provider — the free endpoint is non-commercial only (ADR-0027) | product owner | before a paying operator sees «Καιρός» |
+| **A date filter on the departures list.** #129 found it has none; the default ascending sort happens to put today first with the current seed, so an operator tapping the "sailing today and tomorrow" figure lands on the whole table | product owner | a screen change, not a bug — decide whether the figure should filter or the list should default to today |
+
+---
+
+## #129 — The back office on a phone, proven rather than asserted
+
+> **OPS-22** *"The operator panel is usable on a phone: the dashboard, today's
+> departures, check-in and manual booking all work at a phone viewport."*
+
+### Nothing had ever loaded the panel in a browser
+
+`playwright.config.ts` had two projects, `smoke` and `full`, both `Desktop
+Chrome`, no viewport override anywhere, and **not one spec authenticated**. Every
+existing spec drives the widget on a fixture host. So OPS-22 was an assertion in
+a document, and the four surfaces it names had been looked at on a phone by
+nobody.
+
+A third project `mobile` at 390×844 with `isMobile`, `hasTouch` and
+`deviceScaleFactor: 3`, selecting `backoffice.*.spec.ts`. The viewport is spelled
+out on top of `Desktop Chrome` rather than taken from `devices['iPhone 12']`,
+which pins WebKit — `npm run e2e:install` installs chromium only, so that
+descriptor would fail on a missing browser instead of on a layout bug. `full`
+gained the same pattern in `testIgnore`, or every one of these runs a second time
+at desktop width where the assertions are trivially true.
+
+Credentials come from `E2eSeedCommand`, which now writes a `panel` block into
+`.state.json` looked up **by role** rather than by email. `User` deliberately has
+no `BelongsToTenant` (a person can hold roles in two tenants), so the lookup
+filters `tenant_id` explicitly — without it, `forTenant` alone would happily
+return Ionian Sunset's owner.
+
+### The suite went from thirteen minutes to twenty seconds, by not signing in thirteen times
+
+Filament rate-limits the login form to five attempts a minute, correctly, and
+fourteen specs each filling the form trip it on the sixth. The failure reads as
+*"the panel would not let me in"* — alarming and untrue. Nobody signs in fourteen
+times before breakfast; the repetition is an artefact of test isolation, so that
+is what was removed rather than the protection. `signIn` mints one session per
+role and lends the cookie to each fresh context. Every test still gets its own
+storage and its own viewport.
+
+### Two real defects, both invisible from a desktop
+
+**The drawer opened over the page on a phone's first visit.** Filament seeds its
+sidebar store `$persist(!0)` and never consults the viewport — verifiable in
+`vendor/filament/filament/dist/index.js`. Above `lg` that is right: the sidebar
+*is* the left column. Below it, the same `true` means 320px of drawer and a dark
+backdrop over a 390px screen, with nothing tappable underneath. It then persists
+`false` and never appears again, which is exactly why a developer's second look
+never sees it and why a first-visit spec is what found it.
+
+Fixed in `resources/views/filament/sidebar-first-visit.blade.php` on `HEAD_END`,
+before `@filamentScripts`, seeding the same key `false` when the screen is narrow
+**and nothing has been stored yet**. Only the first visit — an operator who
+opened the drawer keeps it open. Safe at desktop width because Filament's closed
+state still carries `lg:translate-x-0`.
+
+**Row actions measured 20px.** «Κατάσταση επιβατών» and «Επεξεργασία» are links,
+so their height is their line box. WCAG 2.5.8 (AA) asks 24×24; Apple asks 44pt
+and Android 48dp, and those are the numbers written by people watching somebody
+use a phone one-handed on a moving deck. 44px, below `lg` only —
+`resources/views/filament/touch-targets.blade.php`. The same rule at desktop
+width would push thirty departure rows apart for nobody's benefit.
+
+Injected through render hooks rather than a compiled Filament theme: a theme is a
+second Vite entry point and its own build step for the panel, which is a lot of
+pipeline to carry seven declarations. If the panel ever grows one, both move into
+it unchanged.
+
+### And a third, of the same shape, found while checking the first in a browser
+
+**«Ρυθμίσεις» was configured collapsed and was open.** `AppPanelProvider` has
+carried `->collapsed()` on the settings group since the navigation was
+reorganised; `components/sidebar/index.blade.php` writes the panel's collapsed
+groups into `localStorage` **only when the key is null**. Every browser that had
+opened the panel before that line existed already held `[]`, so the setting was
+read once, found to be a decision already made, and the group stayed open for
+ever — including in the product owner's own browser, where it was asked for.
+
+Cleared **once**, against a `kaiki:nav-groups` marker, on the same load that
+Filament reseeds from the panel config. Clearing on every load would be worse
+than the bug: it would throw away an operator's own collapse each time they
+opened a page. A later change to which groups start collapsed takes a new marker.
+
+Three defects, one shape: a navigation preference persisted to `localStorage` and
+thereafter trusted over the server's own default. Worth knowing before the next
+one is added.
+
+### The assertion states the standard, not what currently passes
+
+`expectTappable` was briefly written to assert only *a box*, with the 20px
+recorded in a comment, on the reasoning that a failing suite should not litigate
+a design decision. That is the wrong trade when the fix is seven lines of CSS: a
+floor lowered to fit looks like a checked guarantee and is none. It asserts
+24×24, and the CSS clears it.
+
+### What passes cleanly, and one thing worth knowing
+
+The dashboard, the departures list and the manual booking form **all** pass the
+horizontal-scroll assertion at 390px. The fleet strip (429px of content in a
+310px box) and the departures table (1478px in 358px) both correctly hand
+overflow to their own scrollers rather than to the document — which is the
+failure that makes a back office unusable rather than merely tight.
+
+Not a defect but not obvious: the departures list has **no date filter**. Its
+default `starts_at_utc` ascending sort happens to put today first with the
+current seed, so an operator arriving from the "sailing today and tomorrow"
+figure gets the whole table, not today's. Recorded in the BUILD-LOG's open table
+rather than fixed here — it is a change to a screen, not to this issue.
+
+### Verified
+
+```
+npx playwright test --project=mobile     14 passed (20.7s)
+vendor/bin/pint --test                   passed
+vendor/bin/phpstan analyse               [OK] No errors
+```
+
+The 14th is the first-visit spec, which is red without the fix.
 
 ---
 

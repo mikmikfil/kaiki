@@ -85,16 +85,36 @@ test('a figure is a link a thumb can follow', async ({ page }) => {
   await page.waitForURL(/\/app\/departures/);
 });
 
+test('a phone’s first visit arrives with the page in front, not the menu', async ({ page }) => {
+  /*
+   * This run is what found the defect, and this is the guard on the fix.
+   *
+   * Filament seeds its sidebar store `$persist(true)` without consulting the
+   * viewport, so before `filament/sidebar-first-visit.blade.php` an operator's
+   * *first* panel page on a phone opened behind a 320px drawer and a dark
+   * backdrop — nothing tappable, and their first act in the back office a
+   * dismissal of a menu they never opened. It then persisted `false` and never
+   * appeared again, which is why a developer's second look never sees it.
+   *
+   * `isOpen` is the key Filament persists under; clearing it is what makes this
+   * a first visit again.
+   */
+  await page.evaluate(() => localStorage.removeItem('isOpen'));
+  await page.reload();
+
+  await expect(page.locator('.fi-sidebar-close-overlay')).toBeHidden();
+  await expectTappable(page, '.fi-wi-stats-overview-stat', 'the first stat, on a first visit');
+});
+
 test('the navigation drawer can be tapped away', async ({ page }) => {
   /*
-   * The panel opens the drawer over the page on a phone's first visit — see
-   * `dismissNavigation` for why. The operator's only way out is the backdrop,
-   * so that gesture is asserted here rather than only relied on: if it ever
-   * stops working, a phone reaches the back office and can do nothing with it.
+   * An operator who *has* opened the drawer needs it to close again, and the
+   * only way out is a tap in the strip beside it — see `dismissNavigation`
+   * for why that strip is where the tap has to land. Asserted rather than
+   * merely relied on: if it ever closes up, a phone reaches the back office and
+   * can do nothing at all with it.
    */
-  // Put it back the way a phone's first visit finds it. `isOpen` is the key
-  // Filament persists the drawer state under, and `signIn` has already closed
-  // it once for the specs that follow.
+  // Opened deliberately, the way an operator reaching for the menu opens it.
   await page.evaluate(() => localStorage.setItem('isOpen', 'true'));
   await page.reload();
 

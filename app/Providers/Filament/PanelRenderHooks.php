@@ -43,6 +43,20 @@ final class PanelRenderHooks
             static fn (): View => self::viewFrontend(),
         );
 
+        // The navigation drawer, on a phone's first visit. Global rather than
+        // scoped for the same reason as the link above, and harmless at `/admin`
+        // — a super-admin on a phone wants the page too.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View => view('filament.sidebar-first-visit'),
+        );
+
+        // Row actions a thumb can hit, below the desktop breakpoint.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View => view('filament.touch-targets'),
+        );
+
         // Login and password reset render a "simple page" with no topbar. This
         // is the one place the switcher matters most: an operator who cannot
         // read the sign-in form has no other way to change the language, and no

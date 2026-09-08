@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Cookie, type Page } from '@playwright/test';
 
 import { world, type PanelWorld } from './world';
 
@@ -9,7 +9,7 @@ import { world, type PanelWorld } from './world';
  * somebody's website, talking to the API. The back office is neither — it is a
  * session on the application's own origin behind `/app/login` — and OPS-22's
  * question, *does this work on a phone*, cannot be asked until somebody is
- * signed in. So this file exists rather than a fourth copy of a login walk.
+ * signed in. So this file exists rather than three copies of a login walk.
  *
  * ## The credentials come from the seed, not from here
  *
@@ -34,6 +34,23 @@ function credentials(): PanelWorld {
 }
 
 /**
+ * One session per role, minted once and lent to every context that asks.
+ *
+ * **Filament rate-limits the login form to five attempts a minute, and it is
+ * right to.** Thirteen specs each filling the form in turn trips that on the
+ * sixth — and the failure reads as "the panel would not let me in", which is
+ * both alarming and untrue. Nobody signs in thirteen times before breakfast:
+ * the repetition is an artefact of how tests are isolated, so it is the thing
+ * that gets removed rather than the protection.
+ *
+ * Each test still gets its own browser context, its own storage and its own
+ * viewport — only the cookie is shared, which is the part of a session an
+ * operator would have kept anyway. `workers: 1` (see `playwright.config.ts`)
+ * makes one cache per role enough.
+ */
+const sessions = new Map<PanelRole, Cookie[]>();
+
+/**
  * Sign in and land on the panel, with the navigation out of the way.
  *
  * Fields are addressed by `id` rather than by label. The seeded operator's
@@ -47,15 +64,28 @@ function credentials(): PanelWorld {
  * than about a login page that happens to fit.
  */
 export async function signIn(page: Page, role: PanelRole = 'owner'): Promise<void> {
-  const panel = credentials();
+  const cached = sessions.get(role);
 
-  await page.goto('/app/login');
+  if (cached === undefined) {
+    const panel = credentials();
 
-  await page.locator('#data\\.email').fill(panel[role]);
-  await page.locator('#data\\.password').fill(panel.password);
-  await page.locator('#form button[type="submit"]').click();
+    await page.goto('/app/login');
 
-  await page.waitForURL((url) => !url.pathname.endsWith('/login'), { timeout: 30_000 });
+    await page.locator('#data\\.email').fill(panel[role]);
+    await page.locator('#data\\.password').fill(panel.password);
+    await page.locator('#form button[type="submit"]').click();
+
+    await page.waitForURL((url) => !url.pathname.endsWith('/login'), { timeout: 30_000 });
+
+    sessions.set(role, await page.context().cookies());
+  } else {
+    await page.context().addCookies(cached);
+    await page.goto('/app');
+
+    // A restored cookie that no longer authenticates lands back on the login
+    // form, and every assertion after it would be about that form.
+    await expect(page).not.toHaveURL(/\/app\/login/);
+  }
 
   await dismissNavigation(page);
 }
@@ -63,25 +93,46 @@ export async function signIn(page: Page, role: PanelRole = 'owner'): Promise<voi
 /**
  * Close the navigation drawer, the way an operator has to.
  *
- * **This is a workaround for a real defect, and it is deliberately visible.**
- * Filament persists `$store.sidebar.isOpen` to `localStorage` and seeds it
- * `true` regardless of viewport, so the *first* panel page an operator opens on
- * a phone arrives with the full-height drawer over it behind a dark backdrop —
- * every control underneath is unclickable until they tap the backdrop away.
- * After that the persisted `false` sticks, which is why it never shows up on a
- * developer's second look.
+ * ## Which is now usually nothing, and that is the point
  *
- * Fixing it belongs upstream in the panel, not in a test helper, so the specs
- * step past it here and `backoffice.dashboard.spec.ts` asserts the tap that
- * dismisses it actually works — which is the part an operator depends on.
+ * This run found the panel opening the drawer over the page on a phone's *first*
+ * visit: Filament persists `$store.sidebar.isOpen` and seeds it `true` whatever
+ * the viewport, so an operator's first arrival in the back office had a 320px
+ * drawer and a dark backdrop over it and nothing tappable underneath. It then
+ * persisted `false` and never came back, which is why nobody had seen it.
+ * Fixed in the panel — `filament/sidebar-first-visit.blade.php` — rather than
+ * here, and guarded by the first-visit spec.
+ *
+ * This stays because an operator can still *open* the drawer, and a spec that
+ * has navigated through the menu needs a way back to the page.
+ *
+ * ## The tap has to land beside the drawer, not on the backdrop's centre
+ *
+ * The drawer is 320px of a 390px screen, and it shares `z-30` with the backdrop
+ * while coming later in the DOM — so it sits on top of it, correctly: a tap on
+ * a menu is not a dismissal. The backdrop's *reachable* part is the ~70px strip
+ * beside it, and Playwright taps element centres, which would land on the
+ * drawer. Hence the explicit point past its right edge.
  */
 export async function dismissNavigation(page: Page): Promise<void> {
   const backdrop = page.locator('.fi-sidebar-close-overlay');
 
-  if (await backdrop.isVisible()) {
-    await backdrop.tap();
-    await expect(backdrop).toBeHidden();
+  if (!(await backdrop.isVisible())) {
+    return;
   }
+
+  const drawer = await page.locator('aside.fi-sidebar').boundingBox();
+  const width = page.viewportSize()?.width ?? 0;
+
+  expect(drawer, 'the drawer is over the page but has no box to measure').not.toBeNull();
+  expect(
+    drawer!.x + drawer!.width,
+    `the drawer covers the whole ${width}px screen — there is nowhere left to tap it away`,
+  ).toBeLessThan(width);
+
+  await backdrop.tap({ position: { x: (drawer!.x + drawer!.width + width) / 2, y: 80 } });
+
+  await expect(backdrop).toBeHidden();
 }
 
 /**
@@ -98,15 +149,15 @@ export async function dismissNavigation(page: Page): Promise<void> {
  * defect in any design.
  */
 export async function expectNoHorizontalScroll(page: Page): Promise<void> {
-  const page_ = await page.evaluate(() => ({
+  const measured = await page.evaluate(() => ({
     scrollWidth: document.documentElement.scrollWidth,
     innerWidth: window.innerWidth,
   }));
 
   expect(
-    page_.scrollWidth,
-    `the page scrolls sideways at ${page_.innerWidth}px: the document is ${page_.scrollWidth}px wide`,
-  ).toBeLessThanOrEqual(page_.innerWidth + 1);
+    measured.scrollWidth,
+    `the page scrolls sideways at ${measured.innerWidth}px: the document is ${measured.scrollWidth}px wide`,
+  ).toBeLessThanOrEqual(measured.innerWidth + 1);
 }
 
 /**
@@ -158,7 +209,15 @@ export async function expectTappable(page: Page, selector: string, name: string)
   expect(box, `${name} has no box`).not.toBeNull();
   expect(box!.x, `${name} starts off the left edge`).toBeGreaterThanOrEqual(-1);
   expect(box!.x + box!.width, `${name} runs past the right edge of a ${width}px screen`).toBeLessThanOrEqual(width + 1);
-  // Filament's control height is 36px. A floor well under it catches a field
-  // that has collapsed to nothing without asserting a design decision.
-  expect(box!.height, `${name} is too short to tap`).toBeGreaterThanOrEqual(24);
+
+  /*
+   * WCAG 2.5.8 (AA): 24×24 CSS pixels.
+   *
+   * The standard's own number, not whatever the panel currently manages — a
+   * floor lowered to fit looks like a checked guarantee and is none. This run
+   * found the departures row actions at 20px, and they were fixed
+   * (`filament/touch-targets.blade.php`) rather than measured around.
+   */
+  expect(box!.height, `${name} is ${Math.round(box!.height)}px tall — under the 24px a thumb needs`).toBeGreaterThanOrEqual(24);
+  expect(box!.width, `${name} is ${Math.round(box!.width)}px wide — under the 24px a thumb needs`).toBeGreaterThanOrEqual(24);
 }
