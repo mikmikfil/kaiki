@@ -9,6 +9,7 @@ use App\Jobs\ExpireAbandonedCheckoutsJob;
 use App\Jobs\ExpireQuotesJob;
 use App\Jobs\ExpireStaleHoldsJob;
 use App\Jobs\GenerateDeparturesNightly;
+use App\Jobs\PollIcalSourcesJob;
 use App\Jobs\PurgeExpiredExportsJob;
 use App\Jobs\Reminders\SendDueRemindersJob;
 use App\Models\NotificationLog;
@@ -282,3 +283,30 @@ Schedule::job(new PurgeExpiredExportsJob)
     ->withoutOverlapping()
     ->onOneServer()
     ->name('exports:purge-expired');
+
+/*
+|--------------------------------------------------------------------------
+| External calendars, pulled in every fifteen minutes (OPS-13)
+|--------------------------------------------------------------------------
+|
+| The interval is the spec's, word for word, and `IcalSource::dueForSync()`
+| applies the same fifteen minutes to each row — so a sweep that runs late
+| catches up rather than skipping a source, and one that runs twice dispatches
+| nothing the second time.
+|
+| The sweep only **dispatches**; one job per source does the fetching. A loop
+| would stop at the first fifteen-second timeout and quietly deliver every
+| operator behind it a calendar that is minutes stale, every quarter of an hour,
+| for ever.
+|
+| At :07 past each quarter, away from the four sweeps already on the hour. The
+| retry story deliberately lives on the source row rather than in the queue:
+| a failure is recorded, the next scheduled poll is the retry, and fifteen
+| minutes is a gentler backoff than any `$tries` setting — one that cannot turn
+| a single outage into three strikes against OPS-15's threshold.
+*/
+Schedule::job(new PollIcalSourcesJob)
+    ->cron('7,22,37,52 * * * *')
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('ical:poll-sources');

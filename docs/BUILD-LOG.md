@@ -12,11 +12,11 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M5 — Operations: #118 … #123 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
+| Milestone | **M5 — Operations: #118 … #124 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
 | M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
 | M4 | **#112 … #116 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, the same four through Gutenberg and Elementor, and the SEO trip pages. **#116 had to build `GET /api/v1/sync/products` on the platform first**: specified in `docs/api.md` since M0 and never implemented, so the feature it exists for had nothing to read. It is the only endpoint in the API a publishable key cannot reach. **#117 the release remains; it needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117). |
-| M5 | **#118 … #123 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, and the bookings and guests CSV exports. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. Remaining in M5: iCal export and import (OPS-13 … OPS-15), outbound webhooks (OPS-19, OPS-20), the consolidated error feed (OPS-21), offline check-in (OPS-12), and the 390x844 Playwright run (OPS-22). |
+| M5 | **#118 … #124 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. Remaining in M5: outbound webhooks (OPS-19, OPS-20), vouchers in the panel (OPS-16), the consolidated error feed (OPS-21), offline check-in (OPS-12), and the 390x844 Playwright run (OPS-22). |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
@@ -37,6 +37,142 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
+
+---
+
+## #124 — iCal out and iCal in, and two bugs that had been waiting since M1
+
+OPS-13 asks for a feed per vessel and a poll every fifteen minutes. OPS-14 is
+about what the feed must **not** say. OPS-15 is about what happens when
+somebody else's server is having a bad week.
+
+### The export is a subtraction
+
+The URL is unauthenticated by necessity — Google Calendar will not send a
+header, hold a session or complete an OAuth flow — so the token in the path is
+the entire authentication, and in practice everything in the file is public to
+anybody who ever sees the link. Links get pasted into third-party services and
+forwarded between colleagues.
+
+So the feed publishes busy periods and nothing else: no guest name, no
+reference, no email, no party size, no price, and **no `ATTENDEE` property**,
+which is the one an implementer adds without thinking because that is what an
+attendee field is for. The trip's own title is out too — a product name is not
+personal data, but «Ηλιοβασίλεμα, 4 άτομα» sitting in a competitor's calendar is
+an operator's whole schedule and load factor.
+
+`seats_sold`, never `seats_sold + seats_held`: publishing a hold makes the boat
+busy for a quarter of an hour and then not, which is the flapping that teaches a
+subscriber to ignore the feed. Cancelled sailings are excluded, because a
+cancelled trip is not an occupation.
+
+### `ical_feeds.include_guest_names` is deliberately not read
+
+§2.7 gave the table that column, defaulting to false, on the reasoning that an
+operator could opt in. **OPS-14 offers no such choice** — *"expose no guest
+personal data"* has no exception clause — and `CLAUDE.md` makes the spec the
+contract. So nothing consults the flag. **Open for the product owner:** either
+the column goes, or OPS-14 gains an exception. It is not a decision to take
+inside a rendering class.
+
+### The import resolves every ambiguity toward keeping the boat blocked
+
+The two failure modes are not symmetrical. A boat left blocked for a cancelled
+charter is annoying and fixed in ten seconds. A boat freed while it is actually
+out is a double booking discovered on a quay.
+
+- **A feed that will not parse changes nothing.** An empty calendar and a broken
+  one are the same bytes to a naive reader; treating a fetch failure as "no
+  events" would delete every block the source ever created.
+- **An empty feed deletes nothing**, for the same reason — a legitimately empty
+  Airbnb calendar and a subtly broken publisher are indistinguishable from here.
+- **A block converted into a booking is never removed** (OPS-15, word for word).
+- **A 304 is a success that touches nothing.**
+
+`DTEND` on an all-day event is **exclusive**: Airbnb's `20260704`–`20260706` is
+two nights, not three days, and reading it as inclusive blocks a boat on a day
+it is free. That is the single most common iCal bug in the accommodation trade
+and it has its own test.
+
+**The deletion guard is one-sided, and the first version was not.** Bounding
+deletions by the latest live event as well as the earliest looks symmetrical and
+is wrong — the window shrinks as events vanish, so anything disappearing from
+the *end* of a feed falls outside its own range and survives for ever. A
+cancelled charter would have stayed blocking the boat. A test caught it; no
+operator would have. The future needs no guard, because time only moves events
+closer to a horizon and never back out of one.
+
+### Two pre-existing bugs, both found by being the first consumer
+
+**`ical_sources.url` was stored in plaintext.** The model had `'url' =>
+'encrypted'` in `casts()` **and** a custom `Attribute` mutator maintaining
+`url_hash`. A custom mutator replaces the cast's setter, so the row was written
+in the clear; the cast's *getter* survived, so reading it back tried to decrypt
+plaintext and threw `DecryptException`. Both halves were invisible for two
+milestones because **nothing had ever read the column** — the table was pulled
+forward into M1 with `vessel_blocks`, and the sync that fetches the URL is M5.
+An operator's private Airbnb feed URL is a credential that exposes their whole
+calendar, and §1.7 names this column as encrypted.
+
+Fixed by doing both directions explicitly in the accessor and removing the cast,
+so there is one place that decides how the value is stored and no second
+mechanism that can quietly disagree with it. `IcalSourceUrlTest` asserts against
+the **raw row** rather than through the model — reading through the model is
+what hid the problem, because the round trip works whether or not anything was
+encrypted. No data migration: no seeder creates these rows and there is no
+production, so none exist anywhere.
+
+**The VAT lint was matching `vat` inside the word `private`.** `private const
+FUTURE_DAYS = 400;` was reported as a Greek reduced rate, and any `private`
+declaration whose value is 24, 13, 9, 6, 17, 400, 600, 900, 1300, 1700 or 2400
+would have been. Fixed in the scanner by stripping PHP modifier keywords before
+the word test — rather than by requiring a word boundary, which would also stop
+`vatrate` matching and weaken the gate this project relies on. The scanner's own
+self-tests, which assert it still detects every shape it claims to, pass
+unchanged.
+
+### Smaller decisions
+
+- **`sabre/vobject` only**, though ADR-0019 approves `spatie/icalendar-generator`
+  as well. One dependency covers both directions; the generator cannot parse,
+  and the hard part here is surviving other people's feeds.
+- **The schedule is the retry.** `SyncIcalSourceJob` has one attempt. A queue
+  retry three minutes later against a server that is down is three failures
+  against one outage, which would trip OPS-15's threshold on a blip; the next
+  fifteen-minute poll is a longer and gentler backoff.
+- **Three and ten are separate numbers.** Three is when the operator is told
+  (OPS-15); ten is when the platform stops asking. Warning on the first failure
+  trains somebody to ignore the warning.
+- **The poll dispatches rather than loops.** A loop stops at the first
+  fifteen-second timeout and delivers every operator behind it a stale calendar,
+  every quarter of an hour, invisibly.
+- **A PHPStan stub for `sabre/vobject`**, which implements `IteratorAggregate`
+  without declaring what it iterates. A stub answers the finding; a baseline
+  entry would hide it. It omits `Sabre\Xml\XmlSerializable` deliberately — a
+  stub replaces the class it describes, and naming an interface resolved from
+  another package makes the stub itself the error.
+
+### Verification
+
+| What | Result |
+|---|---|
+| `tests/Feature/Availability/IcalExportTest.php` | 8 passed — the guest's name, email, phone and `ATTENDEE` all absent from a real booking's feed |
+| `tests/Feature/Availability/IcalImportTest.php` | 13 passed — exclusive `DTEND`, idempotency, the booked block that survives, unparseable and empty feeds, 304, and the three/ten thresholds |
+| `tests/Feature/Availability/IcalSourceUrlTest.php` | 4 passed — asserted against the raw database row |
+| `vendor/bin/pint` | clean |
+| `vendor/bin/phpstan` (level 6) | **No errors** — no baseline, no ignore |
+| `vendor/bin/pest` (full) | green but for the pre-existing schema snapshot; see the CI row |
+
+### Found on the way, and not fixed here
+
+**The hosted pages never load the widget.** `hosted/product.blade.php` renders
+the mount point, and `hosted/layout.blade.php` still says *"the widget arrives
+in M3's later issues"* — it never did. There is no `<script src>` for the bundle
+anywhere in the hosted views, so a guest on `book.kaiki.app/{operator}/{trip}`
+gets the no-JavaScript fallback and **cannot book**. #111's end-to-end run
+drives the widget on a *fixture* host page, which is exactly why this was not
+caught — the same shape as the CORS defect that run did find. It needs its own
+issue rather than being smuggled into this one.
 
 ---
 

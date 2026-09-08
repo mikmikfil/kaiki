@@ -57,6 +57,25 @@ final class VatRateScanner
     private const VAT_WORDS = ['vat', 'φπα', 'rate_bp', 'vatcategory', 'vat_category', 'mydata'];
 
     /**
+     * PHP keywords stripped before the word test, because one of them lies.
+     *
+     * **`private` contains `vat`.** The check is a substring match on purpose —
+     * it has to catch `$vatRate`, `vatBp` and `VAT_RATE` without maintaining a
+     * list of every spelling — and the cost of that is a language keyword that
+     * happens to hide the word inside it. `private const FUTURE_DAYS = 400;`
+     * was reported as a Greek reduced VAT rate, and any `private` declaration
+     * whose value is 24, 13, 9, 6, 17, 400, 600, 900, 1300, 1700 or 2400 would
+     * be reported the same way.
+     *
+     * Stripping keywords rather than requiring a word boundary keeps the gate
+     * as strict as it was: a boundary would also stop `vatrate` matching, which
+     * is exactly the spelling this is here to find.
+     *
+     * @var list<string>
+     */
+    private const KEYWORDS = ['private', 'protected', 'public', 'static', 'readonly', 'abstract', 'final'];
+
+    /**
      * @param  list<string>  $paths  relative to the project root
      * @return list<array{file: string, line: int, snippet: string, why: string}>
      */
@@ -138,6 +157,10 @@ final class VatRateScanner
 
     private static function mentionsVat(string $lowerLine): bool
     {
+        // See {@see self::KEYWORDS}: `private` contains `vat`, and a modifier
+        // keyword can never be the word that makes a number a tax rate.
+        $lowerLine = str_replace(self::KEYWORDS, ' ', $lowerLine);
+
         foreach (self::VAT_WORDS as $word) {
             if (str_contains($lowerLine, $word)) {
                 return true;

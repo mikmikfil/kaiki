@@ -9,10 +9,11 @@ use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
-use Tests\Support\OperatorUser;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
+
+use Tests\Support\OperatorUser;
 
 /*
 |--------------------------------------------------------------------------

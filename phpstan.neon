@@ -20,6 +20,12 @@ parameters:
     excludePaths:
         - packages/wordpress-plugin/*
 
+    # Type information for `sabre/vobject`, which implements IteratorAggregate
+    # without declaring what it iterates. A stub answers the finding; a
+    # baseline entry would only hide it. See the file for the reasoning.
+    stubFiles:
+        - phpstan/sabre-vobject.stub
+
     # No baseline. A baseline hides debt that this project has not accrued yet;
     # if one is ever added it needs its own decision, not a quiet commit.
     treatPhpDocTypesAsCertain: false

@@ -55,6 +55,7 @@ final class ApiRateLimitServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerWebhookLimiter();
+        $this->registerIcalLimiter();
 
         foreach (self::CLASSES as $name => [$perKey, $perIp]) {
             RateLimiter::for($name, function (Request $request) use ($perKey, $perIp): array {
@@ -111,6 +112,26 @@ final class ApiRateLimitServiceProvider extends ServiceProvider
      * refusing to hear that somebody paid. The cap is there to bound a forged
      * stream, not to police a real one.
      */
+    /**
+     * The vessel calendar feed (OPS-14: *"rate-limited"*).
+     *
+     * **Per IP only, and that is forced rather than chosen.** There is no API
+     * key on this route and no session — the subscriber is Google's fetcher or
+     * a marina's desktop client — so the address is the only thing to count
+     * against.
+     *
+     * Sixty a minute is deliberately generous for the legitimate case, which
+     * polls hourly. The limit is not there to police subscribers; it is there
+     * so that walking the 40-hex-character token space costs an attacker real
+     * time, and so one misconfigured client in a retry loop cannot generate
+     * calendar renders for the whole platform.
+     */
+    private function registerIcalLimiter(): void
+    {
+        RateLimiter::for('ical', static fn (Request $request): Limit => Limit::perMinute(60)
+            ->by((string) $request->ip()));
+    }
+
     private function registerWebhookLimiter(): void
     {
         RateLimiter::for('webhooks', static fn (Request $request): Limit => Limit::perMinute(120)

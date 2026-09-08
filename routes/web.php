@@ -11,6 +11,7 @@ use App\Http\Controllers\Hosted\HostedPageController;
 use App\Http\Controllers\Hosted\ProductPageController;
 use App\Http\Controllers\Hosted\RootController;
 use App\Http\Controllers\Hosted\SearchPageController;
+use App\Http\Controllers\IcalFeedController;
 use App\Http\Controllers\SandboxCheckoutController;
 use App\Http\Controllers\TlsAskController;
 use App\Http\Controllers\Webhooks\GatewayWebhookController;
@@ -201,6 +202,35 @@ Route::get('/widget/{version}/kaiki-widget.js', [WidgetBundleController::class, 
 Route::get('/tls/ask', TlsAskController::class)
     ->middleware('throttle:webhooks')
     ->name('tls.ask');
+
+/*
+|--------------------------------------------------------------------------
+| The vessel calendar feed (spec OPS-13, OPS-14)
+|--------------------------------------------------------------------------
+|
+| Fetched by Google Calendar, Airbnb and whatever a marina office runs. None of
+| them will send a header, hold a session or complete an OAuth flow, so **the
+| token in the path is the entire authentication** — 40 hex characters from a
+| CSPRNG, globally unique, revocable and rotatable in place.
+|
+| Outside every group above, for the same reason `/tls/ask` is: there is no host
+| to resolve a tenant from and no key to authenticate with. The controller
+| crosses tenants explicitly and re-enters the one the row names.
+|
+| `throttle:ical` rather than the global limiter — OPS-14 requires these feeds to
+| be rate-limited, and the bucket is per IP because there is no key to count
+| against. It is generous: a legitimate subscriber polls hourly, and the limit
+| exists to make walking the token space expensive rather than to police normal
+| use.
+|
+| The `.ics` suffix is part of the path rather than a query parameter, because
+| several desktop clients decide how to treat a subscription URL by looking at
+| its extension before they ever see a `Content-Type`.
+*/
+Route::get('/ical/{token}.ics', IcalFeedController::class)
+    ->where('token', '[0-9a-f]{40}')
+    ->middleware('throttle:ical')
+    ->name('ical.feed');
 
 // The host **name**, never the authority: `Route::domain()` matches against
 // `$request->getHost()`, which does not include a port, so a constraint carrying

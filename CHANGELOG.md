@@ -4,6 +4,18 @@
 
 > Entries for #118 … #122 — the dashboard, the vessel calendar, recorded cash, the weather-cancellation workflow and the manifests — are not written here. They are on `main` with their reasoning in each commit message; inventing changelog prose for them after the fact would be reconstruction rather than a record, which is the same rule this project applies in `docs/BUILD-LOG.md`.
 
+### #124 - iCal out and iCal in, and two bugs that had been waiting since M1
+
+Each boat now publishes a calendar anybody can subscribe to, and Kaiki pulls in the calendars of whatever else sells that boat — Airbnb, another agency, a spreadsheet somebody exports. The boat stops being double-booked across systems, which is the failure this feature exists to remove.
+
+**What the published calendar says is deliberately almost nothing.** Google Calendar will not send a password, so the address itself is the whole key — and an address like that ends up pasted into other services, forwarded between colleagues, and sitting in logs nobody here controls. So the feed says the boat is busy between these hours and stops: no guest name, no email, no party size, no price, and not even the name of the trip. A competitor reading a leaked link learns nothing beyond which days you sail, and you lose nothing, because you read your own calendar in the panel. The address can be replaced in one click, which breaks every subscriber immediately — so the button says that rather than asking whether you are sure.
+
+**Reading other people's calendars is where the care went, because the two ways of being wrong are not equally bad.** A boat left blocked for a charter that was cancelled is a nuisance you fix in ten seconds. A boat freed while it is actually out is two sets of guests on one quay. So every ambiguous case keeps the boat blocked: a calendar that will not parse changes nothing, an empty one deletes nothing, and a block that has become a real booking is never removed no matter what the other system says. There is also one detail the whole accommodation trade gets wrong — the last day of an all-day booking is not included in it — and getting that backwards blocks a boat on a day it is free.
+
+**When somebody else's service breaks, you are told on the third failure and not the first.** A property-management system has a bad afternoon roughly once a month, and a warning that cries wolf is a warning nobody reads. After ten failures Kaiki stops asking and says so, with the likeliest cause named: the other service probably changed the address.
+
+Two things were found by being the first code ever to read these tables. **The address of an imported calendar was being stored unencrypted** — it is a credential that exposes an operator's whole calendar, the database column had said "encrypted" since M1, and two mechanisms had silently cancelled each other out. Nothing had noticed because nothing had ever read the column. And the check that stops a VAT rate being written into the code was matching the letters "vat" inside the word "private", which would have flagged any private setting whose value happened to be 24, 13, 9 or 6. Both fixed at the source.
+
 ### #123 - The bookings and guests CSVs, and a link that takes its expiry seriously
 
 Two exports an operator asks for by name: the bookings CSV their accountant wants, and the passenger list they use to count heads. Both are prepared in the background and appear on a screen that says where they have got to, because an export that runs inside the request is an export that times out on the operator with four seasons of trading — the only one who really needs it.

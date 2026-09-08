@@ -1,0 +1,30 @@
+<?php
+
+namespace Sabre\VObject;
+
+/**
+ * Type information for a library that ships none.
+ *
+ * `Sabre\VObject\Node` implements `IteratorAggregate` and `ArrayAccess` without
+ * declaring what they hold, so every parameter typed as a `VEvent` — or any
+ * other component — trips PHPStan's `missingType.iterableValue`. There is
+ * nothing wrong with the calling code; the analyser simply has no way to know
+ * that iterating a node yields child nodes, or that `$event['SUMMARY']` is
+ * addressed by string.
+ *
+ * A stub rather than a baseline entry or an `@phpstan-ignore`: those hide the
+ * finding, this answers it.
+ *
+ * `Sabre\Xml\XmlSerializable` is deliberately **not** repeated here. A stub
+ * replaces the class it describes, and naming an interface PHPStan resolves
+ * from a different package makes the stub itself the error. Nothing in this
+ * application serialises a node to XML, so the omission costs nothing — and if
+ * something ever does, it will be a missing-method error rather than a silent
+ * wrong answer.
+ *
+ * @implements \IteratorAggregate<int, Node>
+ * @implements \ArrayAccess<string, Node|null>
+ */
+abstract class Node implements \IteratorAggregate, \ArrayAccess, \Countable, \JsonSerializable
+{
+}
