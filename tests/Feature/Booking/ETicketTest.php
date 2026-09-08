@@ -127,14 +127,24 @@ it('renders the QR as an inline svg with no xml declaration', function (): void 
     });
 })->group('fast');
 
-it('points the QR at the check-in page rather than at a bare code', function (): void {
+it('points the QR at the boarding page rather than at a bare code', function (): void {
     [$tenant, $booking] = CheckInScenario::sailing(Carbon::parse('2026-07-03 09:00:00'));
 
     Tenancy::forTenant($tenant, function () use ($booking): void {
         // The thing scanning this is an ordinary phone camera: pointing it at a
-        // ticket should open the check-in page with the guest resolved, not
-        // show a string somebody has to type in.
-        expect(TicketQr::payloadFor($booking->guests()->first()))->toContain('/app/check-in');
+        // ticket should open a page with the guest resolved, not show a string
+        // somebody has to type in.
+        //
+        // **The target moved in #128**, from `/app/check-in` to `/app/boarding`.
+        // The old page is Livewire and does nothing at all without a signal,
+        // which is the state of a pier. The new one carries the day's manifest
+        // in its own bytes and queues a scan when the network is gone.
+        //
+        // Every ticket already printed keeps working — the old page still
+        // accepts `?ticket=` and still checks people in — and
+        // `OfflineBoardingTest` asserts that, because a QR on a sheet of paper
+        // in somebody's bag cannot be reissued.
+        expect(TicketQr::payloadFor($booking->guests()->first()))->toContain('/app/boarding');
     });
 })->group('fast');
 

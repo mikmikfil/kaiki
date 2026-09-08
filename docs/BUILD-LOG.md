@@ -12,16 +12,16 @@ Each entry records the **verification actually run** and its **real output** —
 
 | | |
 |---|---|
-| Milestone | **M5 — Operations: #118 … #127, #130 and #131 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
+| Milestone | **M5 — Operations: #118 … #128, #130 and #131 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
 | M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. |
 | M4 | **#112 … #116 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, the same four through Gutenberg and Elementor, and the SEO trip pages. **#116 had to build `GET /api/v1/sync/products` on the platform first**: specified in `docs/api.md` since M0 and never implemented, so the feature it exists for had nothing to read. It is the only endpoint in the API a publishable key cannot reach. **#117 the release remains; it needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117). |
-| M5 | **#118 … #127, #130 and #131 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. **#130 added the fleet strip and «Χρειάζονται προσοχή» to the dashboard; #131 added «Καιρός» (ADR-0027), which reports the days over each boat's own wind limit and what is booked on them, and cancels nothing.** Six smaller commits sit between them — the Stripe removal, the demo fleet, two panel fixes, the embedded map — written up together above. **#125 built the outbound webhooks (OPS-19, OPS-20)** — four events, HMAC-signed, eight attempts over a day, a delivery history with a resend button, and an SSRF guard that checks addresses rather than hostnames. **#126 put the vouchers on screen** — the engine had worked since M2 and nobody could see it; the expiry sweeper and the two reminders were the missing clock, and the sweep runs against each tenant's own day rather than UTC's. **#127 built the consolidated failure feed** — a view over six tables rather than a seventh, with a retry only where one would do something. It also moved four plumbing screens into a collapsed Ρυθμίσεις group and **switched SMS off for the first phase** (product owner). Remaining in M5: offline check-in (OPS-12, and ADR-worthy — the Filament page cannot do it) and the 390x844 Playwright run (OPS-22). |
+| M5 | **#118 … #128, #130 and #131 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. **#130 added the fleet strip and «Χρειάζονται προσοχή» to the dashboard; #131 added «Καιρός» (ADR-0027), which reports the days over each boat's own wind limit and what is booked on them, and cancels nothing.** Six smaller commits sit between them — the Stripe removal, the demo fleet, two panel fixes, the embedded map — written up together above. **#125 built the outbound webhooks (OPS-19, OPS-20)** — four events, HMAC-signed, eight attempts over a day, a delivery history with a resend button, and an SSRF guard that checks addresses rather than hostnames. **#126 put the vouchers on screen** — the engine had worked since M2 and nobody could see it; the expiry sweeper and the two reminders were the missing clock, and the sweep runs against each tenant's own day rather than UTC's. **#127 built the consolidated failure feed** — a view over six tables rather than a seventh, with a retry only where one would do something. It also moved four plumbing screens into a collapsed Ρυθμίσεις group and **switched SMS off for the first phase** (product owner). **#128 built the offline boarding page** — a second surface, because the Filament one is Livewire and does nothing without a signal. Remaining in M5: the 390x844 Playwright run (OPS-22). |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
 | M1 | **Closed by #53.** #15, #16, #17, #47, #23, #18, #19, #20, #22, #21, #24, #33, #34, #25, #26, #27, #28, #29, #30, #31, #32, #35, #36, #37, #53 |
 | Pulled forward | #44, a read-only slice of M7's `/admin` |
 | Local stack | Laravel 12.68 · PHP 8.4.25 · SQLite · database/file drivers |
-| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2535, one failing: the schema snapshot CI cannot regenerate — and #131's migration has now moved its hash) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
+| Quality gate | Pint · PHPStan level 6 + Larastan · Pest (2546, one failing: the schema snapshot CI cannot regenerate — and #131's migration has now moved its hash) · **Vitest (76), the widget's four build gates and the 17-spec Playwright run**  · **the `chromium` PDF group, which until #88 no CI job ran** · **AVL-44 overselling gate, live at last** · **cross-tenant isolation gate** · **ENV-8 JSON-path gate** · **phpcs over the WordPress plugin, at PHP 8.1** · EL/EN parity · OpenAPI drift · coverage of `app/Domain` · dependency audits · schema drift — **green locally; see the CI row below** |
 | Deployment | Deliberately last (#13, #14 moved to `M8 — Launch & deployment`) |
 | **CI** | **Blocked since 2026-09-06.** GitHub Actions refuses to start any job: *"The job was not started because recent account payments have failed or your spending limit needs to be increased."* Every job on run 34028822331 failed in two seconds with no steps and no log. Nothing to fix in this repository — it needs a change in the account's Billing & plans. Until it clears, **#83 through #89 — seven finished issues, the whole back half of M2 — cannot be merged** (the required `CI passed` check cannot run) and the ENV-10 MySQL schema snapshot cannot be regenerated, because CI is the only place with a MySQL 8 connection. |
 
@@ -40,6 +40,117 @@ Each entry records the **verification actually run** and its **real output** —
 | ~~**A billing provider for M7**, after Cashier came out with Stripe~~ | ~~product owner~~ | ~~M7~~ — **Decided 2026-09-08: Viva Wallet, the same gateway operators use for guests (ADR-0028 as amended).** |
 | **Whether the full hosted site is a paid tier**, and what each plan gets | product owner | before `Plan`'s three predicates get their first caller — ADR-0029 settles the *shape* of the switch, not the price |
 | **Open-Meteo's commercial subscription**, or another provider — the free endpoint is non-commercial only (ADR-0027) | product owner | before a paying operator sees «Καιρός» |
+
+---
+
+## #128 — Boarding on a quay with no signal
+
+> **OPS-12** *"The check-in page tolerates an intermittent connection: scans
+> queue locally and sync when connectivity returns, and scanning an
+> already-checked-in ticket reports that clearly instead of failing."*
+
+### Half of it was already true, and finding that out was most of the work
+
+`CheckInGuest` is **already idempotent**: both writes are conditional updates
+(`whereNull('checked_in_at')`, `where('status', confirmed)`) and it returns
+`false` when another scan won. It was written that way in #88 for two crew on
+two phones, and a sync-on-reconnect queue needs exactly the same property — a
+scan that reaches the server twice must be safe.
+
+So OPS-12's second clause was already satisfied, and the server side needed **no
+new domain logic at all**. What was missing was entirely client-side, and one
+endpoint to talk to.
+
+### The Filament page cannot do this, and that is not a defect in it
+
+`CheckIn` is Livewire. Its scan box is `wire:model.live.debounce.300ms` and
+every action is a round trip, so with no signal it does not even echo the code
+somebody just scanned. Livewire is a server-rendered model; this is the one
+requirement in the product where the server may be unreachable.
+
+OOS-6 forbids a native app, so "works without a signal" has to mean **a web page
+that has already been loaded**. Hence a second surface: plain Blade, its own
+JavaScript, a service worker scoped to its own path, an IndexedDB queue. The
+Filament page stays for everything else — the searchable list, the BKG-22
+override with a reason, the no-show marking — and both write through the same
+Action.
+
+### Four decisions that are the whole design
+
+**The manifest is embedded, not fetched.** Everything needed to recognise a
+ticket and show a name is in the bytes that loaded the page. A page that fetched
+its manifest on load would be a page that works only when it does not need to.
+
+**The server decides, not the phone.** A queued scan is a *claim*. The phone
+shows an optimistic tick from its cached manifest; the server's answer replaces
+it when the batch syncs. Two crew on two phones is the case that matters, and
+only one of them boarded anybody.
+
+**The service worker is served from `/app/boarding/sw.js`**, because a worker's
+scope is the directory it comes from. There it can only ever control
+`/app/boarding/…`. At the origin root it would cache authenticated panel HTML,
+and a phone handed on after somebody signed out would still render the last
+operator's screens. It is network-first, not cache-first: the page carries the
+day's manifest, so a cached copy from yesterday is a boarding list for
+yesterday's boat.
+
+**Scans sync as a batch, and the batch never fails as a unit.** A phone that
+regains signal after twenty minutes has a queue; twenty racing requests would be
+twenty chances to hit a rate limit at the moment the crew most need it. Each
+scan is answered on its own — one unknown ticket among nineteen good ones must
+not lose the nineteen.
+
+### The QR moved, and every printed ticket still works
+
+`TicketQr` now points at `/app/boarding`. The old `/app/check-in?ticket=…` is
+untouched and still checks people in, because **a QR on a sheet of paper in
+somebody's bag cannot be reissued**. `ETicketTest`'s assertion was updated
+rather than deleted, and `OfflineBoardingTest` asserts the old URL still answers.
+
+### The manifest carries a name and a seat and nothing else
+
+TEN-8 gives crew `ViewPaxList` and `CheckInGuests` and explicitly not pricing,
+financials or documents — and this payload sits in a phone's cache on a boat,
+which is the worst place in the product for a passport number to be. There is no
+case for one in the payload, so there is no mechanism that could include one,
+and the test asserts it against the response bytes the way `ExportRows` does.
+
+### Five things the browser found that the suite could not
+
+1. **`refused: this trip has already finished`** — the fixture moved
+   `starts_at_utc` and not `ends_at_utc`. The check-in window closes on the
+   latter, so a booking starting in fifteen minutes and finishing in July is
+   correctly refused. A test bug, and the window working.
+2. **The manifest escaped Greek to `Μα…`** — `@json()` does by
+   default, which doubled the size of the one payload downloaded on one bar of
+   signal. `JSON_UNESCAPED_UNICODE`.
+3. **Every operator role has `CheckInGuests`** — a manager boards people too. The
+   negative case had to become somebody with no role in the tenant at all.
+4. **The queue counter kept a stale number** behind `display: none`. Emptied now
+   rather than merely hidden: a count behind a hidden element is a lie waiting
+   for the next CSS change.
+5. **«1 σαρώσεις»** — no singular form. Two strings now, chosen in the page.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Operations/OfflineBoardingTest.php   10 passed
+vendor/bin/pest --parallel --processes=12    2546 passed, 4 skipped, 1 failed
+vendor/bin/pint --test                       passed
+vendor/bin/phpstan analyse                   [OK] No errors
+```
+
+The one failure is the known MySQL schema snapshot.
+
+And in the browser, end to end: the page listing three passengers with their
+trip, time and reference; a scan showing «Επιβιβάστηκε · Ελένη Νικολάου» and
+flipping her row; the queue reaching one and clearing; and **the database
+confirming she was checked in server-side**, through the same Action the panel
+uses.
+
+The client half — the service worker, the offline queue surviving a lost
+connection — is #129's Playwright run to prove, because a PHP test cannot turn
+the network off.
 
 ---
 

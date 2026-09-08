@@ -20,7 +20,7 @@ return [
     'heading' => 'Weather ahead',
     'subheading' => 'Days over a boat’s own limit, and what is booked on them. Nothing is cancelled automatically.',
 
-    'limit' => 'Stops at :bft Bft',
+    'limit' => 'Wind limit: :bft Bft',
 
     'wind_short' => 'wind',
     'gust_short' => 'gust',

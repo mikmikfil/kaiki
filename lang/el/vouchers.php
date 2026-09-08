@@ -52,7 +52,7 @@ return [
     ],
 
     'filters' => [
-        'spendable' => 'Μπορεί να χρησιμοποιηθεί τώρα',
+        'spendable' => 'Ισχύει τώρα',
     ],
 
     'empty' => [

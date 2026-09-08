@@ -370,10 +370,10 @@ return [
 
     'voucher_reason' => [
         'weather_cancellation' => ['label' => 'Ακύρωση λόγω καιρού'],
-        'operator_cancellation' => ['label' => 'Ακυρώσατε την εκδρομή'],
+        'operator_cancellation' => ['label' => 'Ακύρωση από τον διοργανωτή'],
         'force_majeure' => ['label' => 'Ανωτέρα βία'],
-        'goodwill' => ['label' => 'Καλή θέληση'],
-        'manual' => ['label' => 'Εκδόθηκε χειροκίνητα'],
+        'goodwill' => ['label' => 'Εξυπηρέτηση πελάτη'],
+        'manual' => ['label' => 'Χειροκίνητη έκδοση'],
     ],
 
     /*

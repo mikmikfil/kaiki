@@ -20,6 +20,10 @@ declare(strict_types=1);
  */
 
 return [
+    'capacity' => [
+        'exceeded' => 'There are not that many seats left on this departure. :seats remain.',
+    ],
+
     'hold' => [
         'contended' => 'Someone else is booking the same trip right now. Please try again in a moment — the seats are most likely still available.',
         'expired' => 'Your seats were held for a while and that time has run out. We could not get them back, so please pick another time.',

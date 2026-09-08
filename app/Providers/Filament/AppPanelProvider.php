@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Http\Controllers\App\BoardingController;
+use App\Http\Controllers\App\BoardingServiceWorkerController;
 use App\Http\Controllers\ExportDownloadController;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureTenantIsWritable;
@@ -139,10 +141,35 @@ class AppPanelProvider extends PanelProvider
              * credential over a spreadsheet of guest names, emails and phone
              * numbers; see {@see ExportDownloadController}.
              */
-            ->authenticatedRoutes(fn (): mixed => Route::get(
-                'exports/{uuid}/download',
-                ExportDownloadController::class,
-            )->name('exports.download'))
+            ->authenticatedRoutes(function (): void {
+                Route::get('exports/{uuid}/download', ExportDownloadController::class)
+                    ->name('exports.download');
+
+                /*
+                 * The offline boarding page (OPS-12).
+                 *
+                 * Inside `authenticatedRoutes` for the same reason the export
+                 * download is: it inherits the panel's session guard and
+                 * `ResolveTenant`, so a crew member's phone is scoped to their
+                 * own operator without this controller having to arrange it.
+                 *
+                 * The service worker is served from **inside** the boarding
+                 * path, because a worker's scope is the directory it comes
+                 * from. At `/app/boarding/sw.js` it can only ever control
+                 * `/app/boarding/…`; served from the root it would cache
+                 * authenticated panel HTML, and a phone handed on after
+                 * somebody signed out would still render the last operator's
+                 * screens.
+                 */
+                Route::get('boarding', [BoardingController::class, 'show'])
+                    ->name('boarding');
+
+                Route::get('boarding/sw.js', BoardingServiceWorkerController::class)
+                    ->name('boarding.sw');
+
+                Route::post('boarding/scan', [BoardingController::class, 'scan'])
+                    ->name('boarding.scan');
+            })
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

@@ -68,6 +68,11 @@ return [
                 'help' => 'Where the boat is based. Deleting a port never deletes the boat.',
                 'none' => 'No home port',
             ],
+            'max_wind_bft' => [
+                'label' => 'Maximum wind (Beaufort)',
+                'help' => 'The wind this boat does not sail above. Leave it empty for no weather warnings about it — nothing is ever cancelled automatically.',
+            ],
+
             'turnaround_buffer_minutes' => [
                 'label' => 'Turnaround time',
                 'help' => 'Minutes needed between two trips on this boat. Leave empty to use your account setting (:default minutes).',

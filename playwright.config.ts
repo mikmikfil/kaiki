@@ -51,6 +51,17 @@ export const FIXTURE_ORIGIN = `http://127.0.0.1:${FIXTURE_PORT}`;
 const DATABASE = resolve('database/e2e.sqlite');
 
 /**
+ * The back-office specs, which run at a phone viewport and **only** there
+ * (OPS-22).
+ *
+ * Named once because two projects need it: `mobile` selects on it, and `full`
+ * has to ignore it or every one of these specs runs a second time at desktop
+ * width — where the assertions are trivially true and a green result would say
+ * nothing about a phone.
+ */
+const BACKOFFICE = /backoffice\..*\.spec\.ts/;
+
+/**
  * A fresh database file before anything reads it.
  *
  * `migrate:fresh` needs the file to exist for SQLite, and `touch` is not a
@@ -139,8 +150,34 @@ export default defineConfig({
       // Everything else — the full booking, the keyboard run, the accessibility
       // scan, the hold expiry. Nightly, and on demand.
       name: 'full',
-      testIgnore: /smoke\.spec\.ts/,
+      testIgnore: [/smoke\.spec\.ts/, BACKOFFICE],
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      /*
+       * The operator's phone (OPS-22, OOS-6).
+       *
+       * A skipper reads the panel on the pontoon, one-handed, in sunlight. The
+       * only way to know the back office survives that is to load it at a phone
+       * viewport and assert the page does not scroll sideways — which is the
+       * failure mode that makes a dashboard unusable rather than merely tight.
+       *
+       * The viewport is spelled out on top of Desktop Chrome rather than taken
+       * from `devices['iPhone 12']`, because that descriptor pins WebKit and
+       * `e2e:install` installs chromium only: the run would fail on a missing
+       * browser instead of on a layout bug. What OPS-22 is about is the width,
+       * the touch target and the device pixel ratio, and all three are stated
+       * here.
+       */
+      name: 'mobile',
+      testMatch: BACKOFFICE,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+        deviceScaleFactor: 3,
+      },
     },
   ],
 

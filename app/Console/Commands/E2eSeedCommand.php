@@ -8,10 +8,13 @@ use App\Domain\Tenancy\Actions\GenerateApiKey;
 use App\Enums\ApiKeyEnvironment;
 use App\Enums\ApiKeyType;
 use App\Enums\ApiScope;
+use App\Enums\Role;
 use App\Models\Product;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Support\Tenancy;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\File;
 
 /**
@@ -42,6 +45,18 @@ use Illuminate\Support\Facades\File;
  * host, so naming that host exercises SEC-7's CORS path for real instead of
  * skipping past it — a suite whose key allowed everything would pass with the
  * origin check broken.
+ *
+ * ## The panel logins are published here for the same reason the key is
+ *
+ * OPS-22's specs sign in to `/app`. The three seeded operator users are
+ * `DemoTenantSeeder`'s to define — one per role — and a spec that hardcoded
+ * `maria@aegean-blue.example` would be a second copy of that decision, going
+ * stale silently the day the seeder renames somebody. Publishing them through
+ * the state file keeps one source and turns a rename into a failed seed rather
+ * than a login page the run cannot get past.
+ *
+ * The password is the seeder's literal `password`, and it is not a secret: this
+ * world exists for the length of one run, against a throwaway SQLite file.
  */
 class E2eSeedCommand extends Command
 {
@@ -90,6 +105,15 @@ class E2eSeedCommand extends Command
                 'product_uuid' => $product->uuid,
                 'product_slug' => $product->slug,
                 'origins' => $origins,
+                'panel' => [
+                    // Looked up by role rather than by address, so the run
+                    // breaks here — loudly, before a browser starts — if the
+                    // seeder ever stops producing one of the three.
+                    'owner' => $this->emailForRole($tenant, Role::Owner),
+                    'manager' => $this->emailForRole($tenant, Role::Manager),
+                    'crew' => $this->emailForRole($tenant, Role::Crew),
+                    'password' => 'password',
+                ],
             ];
         });
 
@@ -101,5 +125,27 @@ class E2eSeedCommand extends Command
         $this->info("Seeded {$state['tenant_slug']}, key written to {$path}.");
 
         return self::SUCCESS;
+    }
+
+    /**
+     * The seeded operator staff member holding one role.
+     *
+     * `tenant_id` is stated rather than inherited: `User` deliberately does not
+     * use `BelongsToTenant` (a global scope there would hide super-admins from
+     * their own panel), so nothing about being inside `forTenant` keeps this
+     * off the other demo operator's owner.
+     *
+     * `firstOrFail` on purpose: an OPS-22 spec that cannot sign in should fail
+     * here as a missing fixture, before a browser starts, rather than as a
+     * timeout on a login form nobody can read.
+     */
+    private function emailForRole(Tenant $tenant, Role $role): string
+    {
+        return (string) User::query()
+            ->where('tenant_id', $tenant->getKey())
+            ->whereHas('roleAssignments', fn (Builder $query) => $query->where('role', $role))
+            ->orderBy('id')
+            ->firstOrFail()
+            ->email;
     }
 }

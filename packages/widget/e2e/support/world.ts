@@ -13,12 +13,26 @@ import type { Locator, Page } from '@playwright/test';
  * allow-list is exercised instead of stepped around.
  */
 
+/**
+ * The seeded operators who can sign in to `/app`, by role (OPS-22).
+ *
+ * Published by the seed command rather than written down in a spec, so a
+ * rename in `DemoTenantSeeder` fails during seeding instead of at a login form.
+ */
+export interface PanelWorld {
+  readonly owner: string;
+  readonly manager: string;
+  readonly crew: string;
+  readonly password: string;
+}
+
 export interface World {
   readonly key: string;
   readonly tenant_slug: string;
   readonly product_uuid: string;
   readonly product_slug: string;
   readonly origins: readonly string[];
+  readonly panel?: PanelWorld;
 }
 
 export const FIXTURE_ORIGIN = `http://127.0.0.1:${process.env.KAIKI_E2E_FIXTURE_PORT ?? 8124}`;

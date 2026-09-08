@@ -32,7 +32,7 @@ return [
             'refused' => 'Only https:// addresses on a public server. Local and internal addresses are not allowed.',
         ],
         'events' => [
-            'label' => 'What you want to hear about',
+            'label' => 'Events',
             'help' => 'We will send only what you tick here.',
         ],
         'is_active' => [

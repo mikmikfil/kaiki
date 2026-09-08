@@ -380,10 +380,10 @@ return [
 
     'voucher_reason' => [
         'weather_cancellation' => ['label' => 'Weather cancellation'],
-        'operator_cancellation' => ['label' => 'You cancelled the trip'],
+        'operator_cancellation' => ['label' => 'Cancelled by the operator'],
         'force_majeure' => ['label' => 'Force majeure'],
-        'goodwill' => ['label' => 'Goodwill'],
-        'manual' => ['label' => 'Issued by hand'],
+        'goodwill' => ['label' => 'Customer service'],
+        'manual' => ['label' => 'Issued manually'],
     ],
 
     /*

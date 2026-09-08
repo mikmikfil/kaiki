@@ -51,7 +51,7 @@ return [
     ],
 
     'filters' => [
-        'spendable' => 'Can be used right now',
+        'spendable' => 'Valid now',
     ],
 
     'empty' => [

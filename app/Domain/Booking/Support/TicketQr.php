@@ -58,13 +58,25 @@ final class TicketQr
      * The scan URL for one guest.
      *
      * A URL rather than a bare code, because the thing scanning it is an
-     * ordinary phone camera: pointing it at a ticket should open the check-in
+     * ordinary phone camera: pointing it at a ticket should open the boarding
      * page with the guest already resolved, not show a string to be typed in.
      * The page accepts a pasted code too, for the ticket that will not scan.
+     *
+     * ## It points at the offline page now, and the old URL still works
+     *
+     * Until #128 this was `filament.app.pages.check-in`, the Livewire page —
+     * which does nothing at all without a signal, and a pier is where signals
+     * go to die. New tickets carry `/app/boarding`, which has today's manifest
+     * in its own bytes and queues a scan when the network is gone.
+     *
+     * **Every ticket already printed keeps working.** The Filament page still
+     * accepts `?ticket=…` and still checks people in; nothing was removed from
+     * it. That matters more than tidiness here, because a QR on a sheet of
+     * paper in somebody's bag cannot be reissued.
      */
     public static function payloadFor(BookingGuest $guest): string
     {
-        return route('filament.app.pages.check-in', ['ticket' => $guest->ticket_code]);
+        return route('filament.app.boarding', ['ticket' => $guest->ticket_code]);
     }
 
     /** The QR as an inline `<svg>` element. */
