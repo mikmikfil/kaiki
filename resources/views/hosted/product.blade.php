@@ -176,6 +176,37 @@
                     <p class="muted">{{ $port->instructions }}</p>
                 @endif
                 <p class="muted">{{ __('hosted.product.check_in', ['minutes' => $product->check_in_offset_minutes]) }}</p>
+
+                {{--
+                    The map itself, when the port has a location to draw.
+
+                    **The link above stays.** On a phone the useful action is not
+                    looking at a map — it is handing the address to the app that
+                    does turn-by-turn, and an embedded frame cannot do that. The
+                    two are different jobs and the section does both.
+
+                    `loading="lazy"` because this sits below the fold on a page
+                    whose whole design brief was that it renders without
+                    JavaScript and loads fast; a third-party frame fetched
+                    eagerly would be the heaviest thing on it.
+
+                    `referrerpolicy="no-referrer"` so Google is not told which
+                    operator's page a visitor was reading. It does not make the
+                    frame private — a guest who scrolls this far is seen by
+                    Google either way, which is a consent question for the
+                    operator rather than something this template can fix.
+                --}}
+                @if ($port->mapsEmbedUrl())
+                    <div class="map-embed">
+                        <iframe
+                            src="{{ $port->mapsEmbedUrl() }}"
+                            title="{{ __('hosted.product.map_title', ['place' => $port->name]) }}"
+                            loading="lazy"
+                            referrerpolicy="no-referrer"
+                            allowfullscreen
+                        ></iframe>
+                    </div>
+                @endif
             </section>
         @endif
 

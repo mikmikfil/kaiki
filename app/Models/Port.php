@@ -123,4 +123,37 @@ class Port extends Model implements TranslatableSearchable
 
         return null;
     }
+
+    /**
+     * The same place, as an embeddable map (HOS-2).
+     *
+     * ## Built from coordinates or an address, and never from `maps_url`
+     *
+     * `maps_url` is whatever the operator pasted — very often a `goo.gl` or
+     * `maps.app.goo.gl` short link, which Google will not render inside a
+     * frame. Embedding one produces a grey box with a refusal in it, on the
+     * page that tells a guest where to stand at nine in the morning. So a
+     * custom URL keeps the link and gets no embed, and the two are different
+     * questions rather than one value used twice.
+     *
+     * ## No API key, deliberately
+     *
+     * The `output=embed` form needs none. The keyed Embed API would put a
+     * platform credential in the markup of every operator's page and give the
+     * platform a per-render bill for a static map of a marina.
+     */
+    public function mapsEmbedUrl(): ?string
+    {
+        $query = match (true) {
+            $this->lat !== null && $this->lng !== null => "{$this->lat},{$this->lng}",
+            $this->address !== null && $this->address !== '' => $this->address,
+            default => null,
+        };
+
+        if ($query === null) {
+            return null;
+        }
+
+        return 'https://www.google.com/maps?q=' . rawurlencode($query) . '&output=embed';
+    }
 }

@@ -65,6 +65,7 @@ return [
         'what_to_bring' => 'Τι να φέρετε',
         'itinerary' => 'Η διαδρομή',
         'departures' => 'Επόμενες αναχωρήσεις',
+        'map_title' => 'Χάρτης: :place',
         'sold_out' => 'Εξαντλήθηκε',
         'meeting_point' => 'Πού συναντιόμαστε',
         'check_in' => 'Παρακαλούμε να είστε εκεί :minutes λεπτά πριν την αναχώρηση.',

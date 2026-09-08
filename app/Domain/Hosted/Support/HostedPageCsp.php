@@ -44,6 +44,16 @@ use App\Models\BrandProfile;
 final class HostedPageCsp
 {
     /**
+     * Where an embedded meeting-point map is served from.
+     *
+     * One constant, read by the policy and by the test that asserts the policy —
+     * so a change of provider cannot leave the header and the markup pointing
+     * at different hosts, which fails as a blank grey box on somebody else's
+     * page rather than as an error here.
+     */
+    public const MAPS_ORIGIN = 'https://www.google.com';
+
+    /**
      * @param  list<string>  $gatewayOrigins  the redirect hosts of the gateways this operator has connected
      * @param  string  $nonce  the per-response nonce for the brand `<style>` block
      */
@@ -98,9 +108,22 @@ final class HostedPageCsp
             // on this page can reach.
             'form-action' => array_values(array_unique(array_merge([$self], self::originsOf($gatewayOrigins)))),
 
-            // A hosted page is never framed, and never frames anything.
+            // A hosted page is never framed. It frames exactly one thing.
             'frame-ancestors' => ["'none'"],
-            'frame-src' => ["'none'"],
+
+            // The meeting-point map, and nothing else.
+            //
+            // This is the one origin in the policy that is **not** conditional
+            // on the operator's configuration, and the reason is that it is not
+            // configuration: every product page shows where to meet, and a map
+            // is what that section is for. The fonts and gateway clauses vary
+            // because an operator chooses those; nobody chooses whether their
+            // meeting point has a location.
+            //
+            // Narrow on purpose. `https://www.google.com` and not
+            // `*.google.com`: the wildcard would admit every Google property,
+            // including ones that host user content.
+            'frame-src' => [self::MAPS_ORIGIN],
             'object-src' => ["'none'"],
             'base-uri' => [$self],
         ];

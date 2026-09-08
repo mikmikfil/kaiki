@@ -713,6 +713,22 @@
         .section .prose { max-width: 44rem; }
         .muted { color: var(--ink-faint); font-size: .9rem; }
 
+        /* The meeting-point map. A fixed aspect ratio rather than a fixed
+           height, so it is the same shape on a phone as on a laptop and
+           never a letterbox on either. The border matches the cards so a
+           third-party frame does not read as a hole in the page. */
+        .map-embed {
+            margin-top: 1.25rem;
+            border: 1px solid var(--rule);
+            border-radius: var(--radius-card, 14px);
+            overflow: hidden;
+            aspect-ratio: 16 / 9;
+            max-width: 44rem;
+            background: var(--surface-sunk, #eef1ef);
+        }
+        .map-embed iframe { width: 100%; height: 100%; border: 0; display: block; }
+        @media (max-width: 40rem) { .map-embed { aspect-ratio: 4 / 3; } }
+
         .lists { display: grid; gap: 1.75rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); align-items: start; }
         ul.ticks { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; font-size: .95rem; }
         ul.ticks li { padding-left: 1.35rem; position: relative; }

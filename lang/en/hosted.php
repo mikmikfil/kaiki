@@ -67,6 +67,7 @@ return [
         'what_to_bring' => 'What to bring',
         'itinerary' => 'The route',
         'departures' => 'Upcoming departures',
+        'map_title' => 'Map of :place',
         'sold_out' => 'Sold out',
         'meeting_point' => 'Where we meet',
         'check_in' => 'Please be there :minutes minutes before departure.',
