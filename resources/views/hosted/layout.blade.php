@@ -544,7 +544,12 @@
             .story.has-image { grid-template-columns: 1fr 1fr; }
             /* A class rather than an inline style: HOS-8's policy has no
                `unsafe-inline`, so a `style` attribute would be dropped and
-               the operator's choice would silently do nothing. */
+               the operator's choice would silently do nothing.
+
+               The copy is first in the DOM, so image-right is the default and
+               this is the rule that moves it. With the image first — as it was
+               until this was noticed — `order: -1` put it where it already was
+               and `image_side` did nothing at all. */
             .story.side-left.has-image .story-image { order: -1; }
         }
 

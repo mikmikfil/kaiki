@@ -42,6 +42,83 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## The "about us" block, which was built and invisible, and the control on it that did nothing
+
+Asked for directly: *"on frontend, i need an about us section. title and text
+left, image to the right. all these should be editable from inside dashboard"*.
+
+It already existed. `HomeBlockType::Story` is documented in its own enum as
+*"Heading and prose, with an optional image beside it. The 'about us'"*, and has
+had a template, a CSS grid, an `image_side` control and a panel form with an
+image upload since #102. Nothing needed building.
+
+Two things were wrong with it, and both are the same kind of wrong: the feature
+worked and nobody could see it.
+
+### The demo home page had never been seeded
+
+`grep` for `HomePageBlock` across `database/seeders/` returned nothing. Tenant
+1's four blocks — hero, trips, faq, contact — were arranged by hand during #102
+and existed **only in one development database**. A fresh `migrate:fresh --seed`
+served `defaultLayout()` instead, and no story block appeared on any screen
+anybody looked at, which is why the block read as unbuilt.
+
+`DemoHomePageSeeder` now writes the demo page, story block included, and is
+registered last in `DatabaseSeeder` because it references the products and FAQ
+entries above it. It skips a tenant that already has blocks — overwriting a page
+somebody arranged by hand is not a seeder's job — so the existing development
+database was left alone and the block added to it separately.
+
+`HomeBlockType::defaultLayout()` deliberately still does **not** include the
+story. The default is what an operator gets before they have written anything,
+and an empty "about us" heading on an untouched page is worse than no block.
+
+### `image_side` had no effect, and shipped that way
+
+The screenshot is what caught it: the request was image on the right, the
+setting said `right`, and the image rendered on the **left**.
+
+The `<img>` was first in the DOM. So the default put it on the left, and
+`side-left`'s `order: -1` moved it to where it already was — both settings
+rendered the identical page. A form field, a lang key in two locales, a stored
+setting and a normaliser, all wired to nothing.
+
+It survived two milestones because every other assertion about the block passes
+either way: heading present, prose present, image present, class on the section.
+Nobody had asserted the one thing the setting exists to change.
+
+The fix puts the copy first in the DOM, which is also the better order — the
+`<h2>` reaches a screen reader and a crawler before its own illustration, and a
+narrow screen reads heading, prose, photograph. Image-right is then the default
+and `side-left` is the rule that moves something.
+
+`StoryBlockSideTest` asserts **order rather than presence**, against the markup
+rather than the CSS, because DOM order is the thing a template can get wrong.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Hosted/    108 passed
+vendor/bin/pest                          2448 passed, 4 skipped, 1 failed (the schema snapshot)
+vendor/bin/pint --test                   passed
+vendor/bin/phpstan analyse               [OK] No errors
+```
+
+And in the browser at `/aegean-blue?lang=el`: «Ποιοι είμαστε» with its two
+paragraphs on the left and the photograph on the right, above «Οι εκδρομές μας».
+
+### Still open, and larger than this issue
+
+The product owner has twice said the hosted **website** should be optional per
+operator — some will want only the product page and the search, as WebHotelier
+does — and that it likely belongs to a more expensive plan. Neither exists.
+`hosted_page_enabled` (TEN-1, HOS-6) is all or nothing: there is no state where
+the product pages are on and the marketing home page is off, and nothing
+anywhere gates the hosted site by plan. Both need writing down before they are
+built.
+
+---
+
 ## #131 — The weather, joined to the sailings it threatens
 
 OPS-6 asks for a wind forecast on the dashboard. Taken literally that is a

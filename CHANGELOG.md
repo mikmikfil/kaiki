@@ -4,6 +4,16 @@
 
 > Entries for #118 … #122 — the dashboard, the vessel calendar, recorded cash, the weather-cancellation workflow and the manifests — are not written here. They are on `main` with their reasoning in each commit message; inventing changelog prose for them after the fact would be reconstruction rather than a record, which is the same rule this project applies in `docs/BUILD-LOG.md`.
 
+### The "about us" on your home page, and the setting on it that was doing nothing
+
+A block with your heading and a paragraph or two on one side and a photograph on the other — who you are, the family, the boat. Add it from the home page editor, write it in both languages, upload the picture, choose which side it sits on.
+
+**It already existed and you could not see it.** The demo home page had never been written into the seed data — it had been arranged by hand once and lived in a single development database — so anyone starting fresh got the default page and this block appeared nowhere. That is fixed: the demo operator now has a proper page, "about us" included.
+
+**And the control that chooses the side was not connected to anything.** Set it to right, set it to left, the picture stayed on the left either way. It had a form field, a label in both languages and a saved value, and no effect on the page — which is why nobody noticed for two milestones: everything about the block was correct except the one thing that setting exists to change. Now the default is the photograph on the right, with the heading and prose beside it on the left, and choosing the other side actually moves it.
+
+One useful side effect of the fix: the heading now comes before the photograph in the page itself, not just visually. A screen reader and a search engine both reach the words before the picture, and on a phone the block reads heading, text, photograph instead of leading with an image.
+
 ### #131 - Καιρός: the days over each boat's limit, and what is booked on them
 
 You already have a weather app, and it is better than anything Kaiki would build. What you do not have is *"Thursday and Friday are over Νεφέλη's limit — three departures, twenty-seven passengers"*, and a button that takes you to the screen where you decide what to do about it. That sentence is the feature.

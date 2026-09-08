@@ -52,5 +52,15 @@ class DatabaseSeeder extends Seeder
         // renders nothing when there is nothing published, so an unseeded demo
         // shows the feature as an absence.
         $this->call(DemoFaqSeeder::class);
+
+        // Last, because it references the products and the FAQ entries above.
+        //
+        // The demo home page had never been seeded: it was arranged by hand
+        // during #102 and existed only in one development database, so a fresh
+        // `migrate:fresh --seed` served the default fallback instead. That is
+        // how the "about us" block came to look unbuilt — it has had a
+        // template, an `image_side` control and a panel form since #102 and was
+        // on nobody's screen.
+        $this->call(DemoHomePageSeeder::class);
     }
 }
