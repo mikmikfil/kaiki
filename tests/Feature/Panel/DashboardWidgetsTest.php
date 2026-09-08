@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Domain\Operations\Support\FirstSteps;
 use App\Enums\BookingStatus;
 use App\Enums\DepartureStatus;
 use App\Enums\Role;
 use App\Filament\App\Widgets\NeedsAttention;
+use App\Filament\App\Widgets\OperationsOverview;
 use App\Filament\App\Widgets\TodayAtSea;
 use App\Models\Booking;
 use App\Models\Departure;
@@ -126,4 +128,27 @@ it('draws no other operator\'s boats', function (): void {
         ->assertDontSee('Θάλασσα');
 
     expect($theirs->exists)->toBeTrue();
+});
+
+it('shows the figures once setup is finished, even before the first booking', function (): void {
+    // The state the demo database landed in: a boat, a published trip and a
+    // generated calendar, and no bookings yet.
+    //
+    // "Never had a booking" alone kept `FirstSteps` applying, so the checklist
+    // rendered with **every step already done** — an empty card — while still
+    // suppressing the figures behind it. Two blank boxes, on the afternoon
+    // somebody has just finished setting up.
+    $owner = tradingOperator();
+
+    Tenancy::forTenant($owner->tenant, function (): void {
+        Booking::query()->delete();
+    });
+
+    tenancy()->initialize($owner->tenant);
+
+    expect(FirstSteps::next())->toBeNull()
+        ->and(FirstSteps::applies())->toBeFalse()
+        // Six zeros are the honest screen here: they are waiting for a first
+        // booking rather than missing a step.
+        ->and(OperationsOverview::canView())->toBeTrue();
 });

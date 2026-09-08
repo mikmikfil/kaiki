@@ -38,6 +38,15 @@ class DatabaseSeeder extends Seeder
         // least useful in.
         $this->call(DemoBookableSeeder::class);
 
+        // Then the fleet: ten boats and ten trips per operator, topped up around
+        // whatever the seeders above already made.
+        //
+        // The screens this exists for only become themselves at scale. A vessel
+        // calendar with one boat is a line rather than a fleet; a catalogue
+        // search over two trips cannot demonstrate a filter; and the dashboard
+        // figures read as arithmetic on two rows and as a business on twenty.
+        $this->call(DemoFleetSeeder::class);
+
         // After the products, because one of its entries belongs to a trip: the
         // FAQ of #103, which is invisible until somebody writes one — the block
         // renders nothing when there is nothing published, so an unseeded demo

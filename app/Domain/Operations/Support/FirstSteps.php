@@ -69,7 +69,24 @@ final class FirstSteps
             return false;
         }
 
-        return ! Booking::query()->exists();
+        if (Booking::query()->exists()) {
+            return false;
+        }
+
+        // ## And there has to be a step left to take
+        //
+        // "Never had a booking" alone is not enough, and the gap between the two
+        // conditions is a screen with nothing on it. An operator who has added a
+        // boat, built a trip, published it and generated a calendar has finished
+        // every step — so the checklist renders an empty card, *and* it is still
+        // suppressing the figures behind it. The dashboard becomes two blank
+        // boxes on the afternoon somebody has just finished setting up, which is
+        // the worst possible moment for the product to look broken.
+        //
+        // Once the setup is done, six zeros are the honest screen: the operator
+        // is now waiting for a first booking rather than missing a step, and the
+        // figures are what will fill in when it arrives.
+        return self::next() !== null;
     }
 
     /**
