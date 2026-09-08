@@ -446,8 +446,14 @@
                871px, and `38rem` on the standfirst, which is 608px — so the
                text block was 263px narrower than the line above it and the
                shape read as an accident rather than as a decision. One property,
-               used by both, cannot drift apart. */
-            --hero-measure: min(54rem, 100%);
+               used by both, cannot drift apart.
+
+               **Two thirds of what it was**, asked for on 8 September. 54rem
+               ran the heading to 864px and gave the standfirst a 70-character
+               line; 36rem holds it to about 45, which is the measure a
+               paragraph is comfortable at and leaves the hero's photograph
+               visible beside the words rather than behind them. */
+            --hero-measure: min(36rem, 100%);
             width: 100%;
             max-width: 86rem;
             margin: 0 auto;
