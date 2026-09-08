@@ -426,18 +426,31 @@
            to be bigger than the space inside them or the hierarchy inverts. */
         main .wrap { display: flex; flex-direction: column; gap: clamp(3.5rem, 7vw, 6rem); }
 
-        /* …and that rhythm is for **sections**. The search page's children are
-           not sections: a heading, a form, a count and a grid of results are one
-           thing, and giving each pair a section-sized gap spread them 114, 129
-           and 105 pixels apart — three different large voids inside what a
-           visitor reads as a single block, on the page where they are waiting
-           for an answer.
+        /* …and that rhythm is for **sections** — the blocks an operator
+           composed. The other three pages this layout serves are not made of
+           sections: the search page is a heading, a form and its results; the
+           trip page is a breadcrumb and an article; the legal page is prose
+           with its own paragraph spacing. Ninety pixels between each of those
+           is a void inside what a visitor reads as one thing — and on the legal
+           page it was ninety pixels between every paragraph.
 
-           Keyed on the absence of `.block` children rather than on a class the
-           search page would have to remember to carry. The form's own bottom
+           Keyed on the absence of `.block` children rather than on a class each
+           page would have to remember to carry. The search form's own bottom
            margin goes with it: it was there to separate the form from what
-           follows, and the gap does that now. */
-        main .wrap:not(:has(> .block)) { gap: 1.75rem; }
+           follows, and the gap does that now.
+
+           **Nothing else may hard-code this gap.** The breadcrumb did, and see
+           the note on `.crumbs` for what that cost. */
+        main .wrap:not(:has(> .block)) {
+            gap: 1.75rem;
+
+            /* `main` has no top padding, so that the home page's full-bleed
+               hero can sit flush under the header — which it should. Every
+               other page's first element is a breadcrumb, a heading or a
+               paragraph, and those were touching the header rule. */
+            padding-block-start: 2rem;
+        }
+
         main .wrap:not(:has(> .block)) > .search-form { margin-bottom: 0; }
 
         .block { margin: 0; }
@@ -716,13 +729,24 @@
         }
 
         /* The crumbs sit directly above the page and are part of it, not
-           another block. Without this they inherit the home page's
-           block rhythm — six rems of nothing between a breadcrumb and the
-           photograph it belongs to. */
+           another block: a breadcrumb six rems above the photograph it belongs
+           to reads as a separate thing.
+
+           This used to say `margin-bottom: calc(clamp(3.5rem, 7vw, 6rem) * -1 +
+           1.25rem)` — cancel the container's gap, then add back the 20px it
+           actually wants. That worked for exactly as long as the container had
+           one gap. The moment the rule below gave app-drawn pages a tighter
+           one, the compensator was still subtracting the old ninety and the
+           whole trip page — breadcrumb, photograph and all — was dragged
+           twenty pixels **above the bottom of the site header** and printed
+           over it.
+
+           The gap belongs to the container. A child that hard-codes it is a
+           second copy of a number, and this is what happens when the two stop
+           agreeing. */
         .crumbs {
             font-size: .85rem; color: var(--ink-faint);
             display: flex; gap: .45rem; align-items: baseline;
-            margin-bottom: calc(clamp(3.5rem, 7vw, 6rem) * -1 + 1.25rem);
         }
         .crumbs a { color: var(--ink-soft); text-decoration: none; }
         .crumbs a:hover { color: var(--kaiki-primary); }
