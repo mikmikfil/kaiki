@@ -9,6 +9,8 @@ use App\Filament\App\Widgets\NeedsAttention;
 use App\Filament\App\Widgets\OperationsOverview;
 use App\Filament\App\Widgets\TodayAtSea;
 
+use function Pest\Laravel\get;
+
 /*
 |--------------------------------------------------------------------------
 | TEN-4: a predicate with no tenant answers, it does not throw
@@ -30,6 +32,17 @@ use App\Filament\App\Widgets\TodayAtSea;
 | `canView` predicate, which is a thing that reads as harmless every time.
 |
 */
+
+it('serves the login page to somebody who is not signed in', function (): void {
+    // The failure this file exists for, in its plainest form. Filament builds
+    // the navigation — badges and all — while rendering `/app/login`, where by
+    // definition there is no tenant. One unguarded count there answers with a
+    // 500 naming `Enquiry`, on the one page nobody can be signed in to fix.
+    //
+    // A page test rather than a predicate call, because each predicate looked
+    // reasonable in isolation; what was wrong was *where Filament calls them*.
+    get('/app/login')->assertOk();
+});
 
 it('answers navigation and widget predicates with no tenant resolved', function (): void {
     // No `tenancy()->initialize()`, no acting-as. This is the state a request

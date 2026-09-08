@@ -9,6 +9,7 @@ use App\Filament\App\Resources\EnquiryResource\Pages;
 use App\Models\Enquiry;
 use App\Models\User;
 use App\Policies\EnquiryPolicy;
+use App\Support\Tenancy;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Section;
@@ -87,6 +88,16 @@ class EnquiryResource extends Resource
      */
     public static function getNavigationBadge(): ?string
     {
+        // Filament builds the navigation on the **login page** too, where no
+        // tenant is resolved — and `BelongsToTenant` throws rather than scoping
+        // to nobody (TEN-4). Without this, an unauthenticated visitor to
+        // `/app/login` gets a 500 naming a model they have never heard of, and
+        // the panel is unreachable for everyone including the person trying to
+        // sign in and fix it.
+        if (! Tenancy::check()) {
+            return null;
+        }
+
         $open = Enquiry::query()
             ->countable()
             ->whereIn('status', [EnquiryStatus::New->value, EnquiryStatus::InProgress->value])

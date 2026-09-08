@@ -12,6 +12,7 @@ use App\Enums\NotificationStatus;
 use App\Enums\NotificationTemplate;
 use App\Filament\App\Resources\NotificationLogResource\Pages;
 use App\Models\NotificationLog;
+use App\Support\Tenancy;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
@@ -86,6 +87,13 @@ class NotificationLogResource extends Resource
      */
     public static function getNavigationBadge(): ?string
     {
+        // The login page builds navigation too, and has no tenant. Same trap as
+        // {@see EnquiryResource::getNavigationBadge()}, and the same
+        // consequence: a 500 on the one page nobody can be signed in to fix.
+        if (! Tenancy::check()) {
+            return null;
+        }
+
         $count = NotificationLog::query()->needingAttention()->count();
 
         return $count > 0 ? (string) $count : null;
