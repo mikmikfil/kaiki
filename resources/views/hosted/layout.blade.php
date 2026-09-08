@@ -188,7 +188,7 @@
         /* The hero is the one place a bigger step is warranted: it is the only
            h1 on the page and it has a photograph behind it to hold its own
            against. */
-        .hero h1 { font-size: var(--step-5); margin-bottom: 1rem; max-width: 24ch; }
+        .hero h1 { font-size: var(--step-5); margin-bottom: 1rem; max-width: var(--hero-measure); }
 
         /* A card's heading is an h3 in the outline and should not shout like a
            section heading. This is the step that was missing. */
@@ -274,15 +274,26 @@
             margin-top: auto; padding-top: .9rem;
             border-top: 1px solid var(--rule);
             display: flex; flex-direction: column; align-items: stretch; gap: .75rem;
-            /* The rule, not only the button, has to land on one line.
-               `margin-top: auto` pins the foot's *bottom*, so a card with no
-               price — a charter sold by quote — has a foot 43px shorter and its
-               rule 43px lower than its three neighbours. Four cards, three rules
-               level and one adrift, which reads as a rendering fault rather than
-               as a card with less to say. The height of a priced foot is
-               reserved whether or not there is a price in it. */
+            /* The rule **and** the button each have to land on one line, and
+               they are two different problems.
+
+               `margin-top: auto` on the foot pins its bottom, so a card with no
+               price — a charter sold by quote — had a foot 43px shorter and its
+               rule 43px higher up the card than its neighbours'. Reserving the
+               height of a priced foot fixes the rule.
+
+               That alone moves the problem rather than solving it: with the box
+               now tall enough, a foot with nothing in it but a button puts the
+               button at the *top* of the reserved space, 43px above the others.
+               So the button takes the slack instead (below), and the two land
+               on their own lines independently.
+
+               Both were asked for out loud on 8 September: «ιδιο height και το
+               button κατω, στο ιδιο σημειο σε ολα». */
             min-height: 5.75rem;
         }
+
+        .trip-foot .button { margin-top: auto; }
 
         /* The featured rail. A native horizontal scroller: it swipes on a
            phone, scrolls on a trackpad and answers the arrow keys when focused,
@@ -430,6 +441,13 @@
         }
 
         .hero-copy {
+            /* The heading and the paragraph under it share one measure.
+               They had two — `24ch` on the h1, which at a 54px display size is
+               871px, and `38rem` on the standfirst, which is 608px — so the
+               text block was 263px narrower than the line above it and the
+               shape read as an accident rather than as a decision. One property,
+               used by both, cannot drift apart. */
+            --hero-measure: min(54rem, 100%);
             width: 100%;
             max-width: 86rem;
             margin: 0 auto;
@@ -485,7 +503,7 @@
         .hero.has-image .cta .button { background: #fff; border-color: #fff; color: var(--kaiki-primary); }
         .hero.has-image .cta .button:hover { background: rgba(255, 255, 255, .88); }
 
-        .hero-copy .standfirst { color: var(--ink-soft); font-size: clamp(1.1rem, 1.5vw, 1.3rem); line-height: 1.5; max-width: 38rem; }
+        .hero-copy .standfirst { color: var(--ink-soft); font-size: clamp(1.1rem, 1.5vw, 1.3rem); line-height: 1.5; max-width: var(--hero-measure); }
         .hero-copy .standfirst p { margin: 0 0 .7rem; }
         .hero-copy .standfirst p:last-child { margin-bottom: 0; }
 
