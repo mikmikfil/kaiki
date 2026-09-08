@@ -24,6 +24,15 @@
     <div class="contact-inner">
         <div>
             @if ($block->heading)
+                {{-- The operator's name in small letterspaced capitals above
+                the heading. It is a label, not a heading: this block is
+                the one place on the page where a visitor who arrived from
+                a search engine finds out whose boats these are, and the
+                `<h2>` beneath it is about the story rather than the
+                company. Hidden from the accessibility tree because the
+                name is already the first link in the page's header, and
+                hearing it twice teaches nothing. --}}
+                <p class="eyebrow" aria-hidden="true">{{ $tenant->name }}</p>
                 <h2>{{ $block->heading }}</h2>
             @endif
 

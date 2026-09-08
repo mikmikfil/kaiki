@@ -47,13 +47,15 @@
             <p class="summary">{{ $product->summary }}</p>
         @endif
 
+        {{-- Two facts, each behind its own icon rather than a row of values
+             separated by dots. A card is scanned, not read: the clock and the
+             pin let somebody find the duration and the departure point without
+             parsing a sentence, and the two of them together fit on one line
+             where three dot-separated values wrapped. --}}
         <p class="facts">
-            {{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}
-            @if ($product->meetingPoint)
-                · {{ $product->meetingPoint->name }}
-            @endif
-            @if ($product->vessel)
-                · {{ $product->vessel->name }}
+            <span>@include('hosted.partials.icon', ['name' => 'clock']){{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}</span>
+            @if ($product->meetingPoint || $product->vessel)
+                <span>@include('hosted.partials.icon', ['name' => 'pin'])@if ($product->meetingPoint){{ $product->meetingPoint->name }}@endif@if ($product->meetingPoint && $product->vessel) · @endif@if ($product->vessel){{ $product->vessel->name }}@endif</span>
             @endif
         </p>
 
@@ -69,7 +71,7 @@
                 </p>
             @endif
 
-            <a class="button button-small" href="{{ $url }}">{{ __('hosted.index.view') }}</a>
+            <a class="button button-small arrow" href="{{ $url }}">{{ __('hosted.index.view') }}</a>
         </div>
     </div>
 </li>

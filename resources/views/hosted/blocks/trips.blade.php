@@ -30,8 +30,15 @@
         $rest = $products->reject(fn ($product) => in_array($product->id, $featuredIds, true))->values();
     @endphp
 
+    {{-- The heading and the way out of it on one line. A visitor who wants the
+         whole catalogue rather than the six recommendations should not have to
+         find the search page in the navigation; and a rail that scrolls
+         sideways needs to say, somewhere, that there is more than what fits. --}}
     @if ($block->heading)
-        <h2>{{ $block->heading }}</h2>
+        <div class="block-head">
+            <h2>{{ $block->heading }}</h2>
+            <a class="see-all" href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.index.see_all') }}</a>
+        </div>
     @endif
 
     @if ($products->isEmpty())

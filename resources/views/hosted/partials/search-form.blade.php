@@ -17,6 +17,11 @@
     `SearchFilters`. Hiding it here and honouring it there is the version that
     passes a screenshot review.
 
+    **The icon beside each label is decorative** (`hosted.partials.icon` marks
+    every one `aria-hidden`). It is there so the eye can find the field it wants
+    without reading six labels — on the home page this form is four controls
+    wide and a visitor is scanning it, not reading it.
+
     @param string $action  Where it submits. The search page submits to itself.
     @param array  $applied What the visitor already chose, on the search page.
     @param string $idPrefix Unique per instance, because two forms on one page
@@ -35,18 +40,18 @@
 
 <form class="search-form" method="get" @if ($action) action="{{ $action }}" @endif>
     <div class="field">
-        <label for="{{ $prefix }}-date">{{ __('hosted.search.fields.date') }}</label>
+        <label for="{{ $prefix }}-date">@include('hosted.partials.icon', ['name' => 'date']){{ __('hosted.search.fields.date') }}</label>
         <input type="date" id="{{ $prefix }}-date" name="date" value="{{ $dateValue }}">
     </div>
 
     <div class="field">
-        <label for="{{ $prefix }}-pax">{{ __('hosted.search.fields.pax') }}</label>
+        <label for="{{ $prefix }}-pax">@include('hosted.partials.icon', ['name' => 'users']){{ __('hosted.search.fields.pax') }}</label>
         <input type="number" id="{{ $prefix }}-pax" name="pax" min="1" max="500" value="{{ $paxValue }}">
     </div>
 
     @if ($filters[SearchFilters::PORT] && $ports->isNotEmpty())
         <div class="field">
-            <label for="{{ $prefix }}-port">{{ __('hosted.search.fields.port') }}</label>
+            <label for="{{ $prefix }}-port">@include('hosted.partials.icon', ['name' => 'pin']){{ __('hosted.search.fields.port') }}</label>
             <select id="{{ $prefix }}-port" name="port">
                 <option value="">{{ __('hosted.search.any') }}</option>
                 @foreach ($ports as $port)
@@ -58,7 +63,7 @@
 
     @if ($filters[SearchFilters::TYPE])
         <div class="field">
-            <label for="{{ $prefix }}-type">{{ __('hosted.search.fields.type') }}</label>
+            <label for="{{ $prefix }}-type">@include('hosted.partials.icon', ['name' => 'type']){{ __('hosted.search.fields.type') }}</label>
             <select id="{{ $prefix }}-type" name="type">
                 <option value="">{{ __('hosted.search.any') }}</option>
                 @foreach ($categories as $value => $label)
@@ -70,7 +75,7 @@
 
     @if ($filters[SearchFilters::DURATION])
         <div class="field">
-            <label for="{{ $prefix }}-duration">{{ __('hosted.search.fields.duration_max') }}</label>
+            <label for="{{ $prefix }}-duration">@include('hosted.partials.icon', ['name' => 'clock']){{ __('hosted.search.fields.duration_max') }}</label>
             <input type="number" id="{{ $prefix }}-duration" name="duration_max" min="30" step="30"
                    value="{{ $applied['duration_max'] ?? '' }}">
         </div>
@@ -89,7 +94,7 @@
 
     @if ($filters[SearchFilters::VESSEL] && $vessels->isNotEmpty())
         <div class="field">
-            <label for="{{ $prefix }}-vessel">{{ __('hosted.search.fields.vessel') }}</label>
+            <label for="{{ $prefix }}-vessel">@include('hosted.partials.icon', ['name' => 'boat']){{ __('hosted.search.fields.vessel') }}</label>
             <select id="{{ $prefix }}-vessel" name="vessel">
                 <option value="">{{ __('hosted.search.any') }}</option>
                 @foreach ($vessels as $vessel)
@@ -104,6 +109,6 @@
     <input type="hidden" name="lang" value="{{ $locale }}">
 
     <div class="field submit">
-        <button type="submit" class="button">{{ __('hosted.search.submit') }}</button>
+        <button type="submit" class="button">@include('hosted.partials.icon', ['name' => 'search']){{ __('hosted.search.submit') }}</button>
     </div>
 </form>
