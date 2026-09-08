@@ -143,7 +143,7 @@ multi-tenant user membership (one user belongs to exactly one operator — ADR-0
 | Formatting | **Pint** | `declare_strict_types`, `strict_comparison`, sorted imports |
 | Widget | **Preact + TypeScript + Vite** | ADR-0011 |
 | PDF | **Chromium via Puppeteer** | e-ticket, invoice, ναυλοσύμφωνο |
-| Payments | **Viva Smart Checkout** | one `PaymentGateway` contract; a second gateway is a class (ADR-0004, ADR-0026) |
+| Payments | **Viva Smart Checkout** | one `PaymentGateway` contract; a second gateway is a class (ADR-0004, ADR-0028) |
 | Email | **Postmark** | |
 | API docs | **Scramble** + a hand-written OpenAPI 3.1 in `docs/api.md` | ADR-0026 |
 
@@ -1076,7 +1076,7 @@ any reduced island regime. `NoHardcodedVatRateTest` enforces this.
 
 ## 23. The SaaS layer
 
-- Subscriptions, plans, trial, dunning — **blocked: no billing provider (ADR-0026)**.
+- Subscriptions, plans, trial, dunning — **blocked: no billing provider (ADR-0028)**.
 - **Read-only mode** on lapse (§5).
 - **Super-admin panel** at `/admin`: tenants, plans, impersonation (audited),
   feature flags via **Pennant**, the platform `vat_rates` table, and the

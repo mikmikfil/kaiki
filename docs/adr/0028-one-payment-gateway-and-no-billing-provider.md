@@ -1,10 +1,27 @@
-# ADR-0026 — Viva is the only payment gateway, and the platform has no billing provider
+# ADR-0028 — Viva is the only payment gateway, and the platform has no billing provider
 
 - **Status:** Accepted
 - **Date:** 2026-09-08
 - **Decided by:** the product owner
 - **Supersedes in part:** [ADR-0004](0004-payment-credentials-and-deposit-model.md)
 - **Affects:** PAY-1, PAY-2, VIS-4, SCP-5, ARC-13, ARC-14, ARC-20, EXT-4, MIL-3, MIL-8
+
+> **Amended 2026-09-08, later the same day — the open question is answered.**
+> This ADR was accepted with the platform's own billing left undecided, which
+> blocked M7. The product owner has since chosen **Viva Wallet for the operator
+> subscriptions too**, so Kaiki charges its operators through the same gateway
+> its operators charge their guests through.
+>
+> That is one integration rather than two, one set of credentials to hold, and
+> one webhook shape already built and tested (`WebhookScenario`). The cost is
+> that Viva's recurring-payment support is narrower than a subscription
+> platform's — dunning, proration and plan changes are ours to write rather than
+> a provider's to supply — and M7 should expect that, not discover it.
+>
+> **M7 is no longer blocked on a decision.** It is blocked only on being built.
+> The body below is left as it was written: an accepted ADR records what was
+> decided at the time, and editing the "no provider" reasoning out of it would
+> hide that the platform spent a day without one.
 
 ## Context
 

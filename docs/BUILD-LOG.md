@@ -37,7 +37,8 @@ Each entry records the **verification actually run** and its **real output** —
 | **ADR-0024** — two-factor authentication, the mechanism and its timing | product owner | SEC-15 (see #9) |
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
-| **A billing provider for M7**, after Cashier came out with Stripe (ADR-0026) | product owner | M7, which is blocked without it |
+| ~~**A billing provider for M7**, after Cashier came out with Stripe~~ | ~~product owner~~ | ~~M7~~ — **Decided 2026-09-08: Viva Wallet, the same gateway operators use for guests (ADR-0028 as amended).** |
+| **Whether the full hosted site is a paid tier**, and what each plan gets | product owner | before `Plan`'s three predicates get their first caller — ADR-0029 settles the *shape* of the switch, not the price |
 | **Open-Meteo's commercial subscription**, or another provider — the free endpoint is non-commercial only (ADR-0027) | product owner | before a paying operator sees «Καιρός» |
 
 ---
@@ -470,7 +471,7 @@ Greek operators actually use — `PaymentGatewayName` is now `Viva`, `Cash`,
 have charged operators for Kaiki; its columns came out of the users migration
 with a comment saying why.
 
-`ADR-0026` records the consequence honestly: **M7 is now blocked.** There is no
+`ADR-0028` records the consequence honestly: **M7 is now blocked.** There is no
 billing provider, and choosing one is a business decision. Removing Cashier did
 not remove the requirement to take money from operators; it removed the only
 implementation of it that existed.

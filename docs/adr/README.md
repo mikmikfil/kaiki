@@ -40,7 +40,11 @@ Every decision marked **DECIDE** in `docs/BRIEF.md`, plus every genuinely open q
 | [0022](0022-invoice-numbering-scope.md) | Invoice numbering scope and gap policy | **Accepted (A + C (per-tenant external mode))** | **A** default (per tenant/series/year, allocated at send, gaps logged) **plus** C as a per-tenant `external` mode. **Needs an accountant.** | M1 (schema), M6 |
 | [0023](0023-unified-bookable-windows.md) | One `bookable_windows` table vs departures + per-vessel windows | **Accepted (C)** | **C** — keep the brief's two shapes, hide the union behind one `VesselCalendar` port, pull the NFR-1 benchmark forward to the M2 close | Locks in at M2 |
 | [0024](0024-two-factor-authentication.md) | Two-factor authentication for panel accounts | **Proposed** | **A** — `laravel/fortify` as the mechanism, implemented in M7 beside impersonation | SEC-15 criterion of #9 |
+| [0025](0025-operator-audit-log.md) | Whether operator actions are recorded, and in what shape | **Accepted (A)** | **A** — one `audit_logs` table written by listeners, not a package | M1, built by #53 |
 | [0026](0026-openapi-contract-tooling.md) | How the `docs/api.md` contract is validated and diffed, with no YAML parser approved | **Proposed** | **A** — `symfony/yaml` in `require-dev`, so §10.2 and the rest of §10.4 can be Pest tests | Before M1's first real endpoint lands (#35) |
+| [0027](0027-weather-forecast-provider.md) | Where the wind forecast comes from, and what the product may do with it | **Accepted** | Open-Meteo behind a one-method `WeatherProvider`; the panel reports and never cancels | M5 (#131) |
+| [0028](0028-one-payment-gateway-and-no-billing-provider.md) | Viva is the only gateway, and the platform has no billing provider | **Accepted** | Stripe removed as gateway *and* as Cashier; **Viva will also take the subscriptions** | **M7, which it blocked until the provider was chosen** |
+| [0029](0029-hosted-site-granularity.md) | Is the hosted site a switch, or does an operator get the bookable half without the marketing half? | **Accepted (B)** | **B** — three states: off / bookings only / full site. Amends TEN-1 (FIXED) and HOS-6 | Before the hosted site is sold as a tier |
 
 ## Future ADRs expected (not yet written)
 | Topic | Why deferred | Needed before |
