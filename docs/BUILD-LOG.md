@@ -45,6 +45,80 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## The ναυλοσύμφωνο, built around a legal answer nobody has yet
+
+> **CMP-6**, **CMP-7**, **CMP-8**, **CMP-9**.
+
+### The mechanism is buildable; the text is not
+
+The wording is prescribed by ΚΥΑ Α.Π. 3133.1/47821 and **nobody here has read
+it**. `CharterAgreement` has said since #88 that M6 is blocked on a legal
+question rather than on code, and that remains true of the *wording*.
+
+It is not true of anything else. A versioned template, a snapshot frozen at
+generation, a hash, a stored file, evidence that cannot be overwritten — all
+ours. So the machinery is built and the template announces itself as provisional
+in its own first paragraph, in Greek, on the page.
+
+Two worse options were available. Building nothing leaves the whole of CMP-6
+waiting on an answer that may take weeks. Inventing plausible ΚΥΑ wording
+produces a document an operator might hand to a harbour master, which is far
+worse than an obviously unfinished one.
+
+### `provisional-` in the version is load-bearing
+
+CMP-8 keys immutability to the template version. When a lawyer's text arrives it
+becomes `v1`, and every agreement produced under `provisional-2026-09` stays
+permanently distinguishable from a real one — in the row, in the snapshot and in
+the filename. A version called `v1` today would make that impossible to tell
+apart later, which is the sort of thing discovered during an inspection.
+
+### The snapshot, stated as the thing an operator actually does
+
+CMP-7 asks that a regenerated PDF be byte-comparable in content to the one the
+guest accepted. A template reading `$booking->vessel->name` renders today's name
+every time it runs.
+
+So the test is not "the snapshot has keys". It is: generate an agreement, rename
+the boat in March, and assert February's document still says «Αμφιτρίτη».
+
+### Regeneration, and the row that must not move
+
+In place while nothing has been accepted — an operator correcting a passenger
+count before sending should get one agreement, not two. A **new row** once
+something has, because the evidence a guest's acceptance created (the timestamp,
+the IP, the hash of what they saw) has to survive somebody pressing
+"regenerate". `CharterAgreement::openVersionFor()` was written for exactly this
+and existed before the action did.
+
+The version is in the filename for the same reason: a regeneration under a new
+template must not overwrite the bytes an accepted row's hash points at.
+
+### It gates nothing
+
+CMP-9 requires acceptance for a per-vessel charter and says it **must not block
+the booking**. A guest who cannot pay because a document is unsigned is a guest
+who books elsewhere. Outstanding agreements are chased by reminders and shown in
+the dashboard — a nudge rather than a wall.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Compliance/CharterAgreementTest.php   8 passed
+vendor/bin/pest --parallel --processes=12                          2666 passed
+vendor/bin/pint --test                                             passed
+vendor/bin/phpstan analyse                                         [OK] No errors
+```
+
+The eight do render real PDFs through Browsershot rather than mocking it.
+
+### Still owed by a person
+
+The ΚΥΑ text itself, from a lawyer or a shipping accountant. Everything else in
+CMP-6 is done and waiting for it.
+
+---
+
 ## GDPR: the job whose success is that data is gone, and the two requests with a deadline
 
 > **GDR-2**, **GDR-3**, **GDR-4**, **GDR-5**, **GDR-6**, **GDR-10**, **GDR-11**,
