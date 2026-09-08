@@ -1,0 +1,373 @@
+/*
+ * The manual, set for A4 and for a screen.
+ *
+ * Built on the brand decided on 2026-09-04: hull teal, Inter everywhere, IBM
+ * Plex Mono for anything that is a number a person reads off a screen — a time,
+ * a seat count, a booking reference. No serif; that was decided and rejected
+ * explicitly.
+ *
+ * Print first. This document exists to be a PDF that somebody prints once and
+ * keeps by the till, so page breaks, figure placement and the size of body text
+ * at 100% are the constraints, and how it looks in a browser tab follows from
+ * them rather than the other way round.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+:root {
+    --hull: #0b4f4a;
+    --hull-deep: #063733;
+    --rust: #b5511f;
+    --ink: #16211f;
+    --muted: #5c6a67;
+    --rule: #d9e2e0;
+    --wash: #f4f7f6;
+    --paper: #ffffff;
+
+    --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', monospace;
+}
+
+@page {
+    size: A4;
+    margin: 18mm 16mm 20mm;
+}
+
+/* The cover carries its own colour to the paper edge. */
+@page :first {
+    margin: 0;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 10.5pt;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* ---------------------------------------------------------------- cover -- */
+
+.cover {
+    background: var(--hull-deep);
+    color: #eef5f3;
+    min-height: 297mm;
+    padding: 40mm 24mm 24mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    break-after: page;
+}
+
+.cover .mark {
+    font-size: 30pt;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin: 0;
+}
+
+.cover h1 {
+    font-size: 40pt;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    margin: 0 0 6mm;
+    max-width: 22ch;
+}
+
+.cover .standfirst {
+    font-size: 12.5pt;
+    line-height: 1.55;
+    color: #b9d2cd;
+    max-width: 52ch;
+    margin: 0;
+}
+
+.cover .colophon {
+    font-family: var(--mono);
+    font-size: 8.5pt;
+    color: #7fa8a1;
+    letter-spacing: 0.01em;
+}
+
+.cover .colophon strong { color: #d7e7e4; font-weight: 600; }
+
+/* ------------------------------------------------------------- headings -- */
+
+h2, h3, h4 { font-weight: 800; letter-spacing: -0.018em; color: var(--hull-deep); }
+
+h2 {
+    font-size: 21pt;
+    line-height: 1.15;
+    margin: 0 0 3mm;
+    padding-top: 2mm;
+    break-before: page;
+    break-after: avoid;
+}
+
+/* The first heading of a part already starts a page via its part opener. */
+h2.continues { break-before: auto; }
+
+h3 {
+    font-size: 13pt;
+    line-height: 1.25;
+    margin: 9mm 0 2mm;
+    break-after: avoid;
+}
+
+h4 {
+    font-size: 10.5pt;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 6mm 0 1.5mm;
+    break-after: avoid;
+}
+
+p { margin: 0 0 3mm; orphans: 2; widows: 2; }
+
+a { color: var(--hull); }
+
+strong { font-weight: 600; }
+
+code, .ref {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--wash);
+    padding: 0.5mm 1.2mm;
+    border-radius: 2px;
+}
+
+ul, ol { margin: 0 0 3mm; padding-inline-start: 5.5mm; }
+li { margin-bottom: 1.2mm; }
+
+/* --------------------------------------------------------------- lede ---- */
+
+.lede {
+    font-size: 11.5pt;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 62ch;
+    margin: 0 0 6mm;
+}
+
+/* ------------------------------------------------------------- figures --- */
+
+figure {
+    margin: 5mm 0 6mm;
+    break-inside: avoid;
+}
+
+figure img {
+    display: block;
+    width: 100%;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+}
+
+/* A phone screenshot at full column width is a picture of a phone taken from
+   too far away. Held to the width it was captured at, so the text in it is the
+   size the text in it actually is. */
+figure.phone img { width: 62mm; margin-inline: auto; }
+
+figcaption {
+    font-size: 8.5pt;
+    line-height: 1.45;
+    color: var(--muted);
+    margin-top: 1.8mm;
+}
+
+figcaption b { color: var(--ink); font-weight: 600; }
+
+/* --------------------------------------------------------------- steps --- */
+
+/*
+ * A numbered walk-through. The number is set in the margin rather than inline,
+ * so a step whose text wraps to three lines still reads as one step — which is
+ * the whole reason somebody follows a numbered list instead of a paragraph.
+ */
+ol.steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    margin: 4mm 0 5mm;
+}
+
+ol.steps > li {
+    counter-increment: step;
+    position: relative;
+    padding-inline-start: 9mm;
+    margin-bottom: 3mm;
+    break-inside: avoid;
+}
+
+ol.steps > li::before {
+    content: counter(step);
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0.2mm;
+    width: 5.6mm;
+    height: 5.6mm;
+    border-radius: 50%;
+    background: var(--hull);
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 8pt;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --------------------------------------------------------------- notes --- */
+
+.note, .warn {
+    border-inline-start: 2.5pt solid var(--hull);
+    background: var(--wash);
+    padding: 3mm 4mm;
+    margin: 4mm 0 5mm;
+    break-inside: avoid;
+    font-size: 9.8pt;
+}
+
+.warn { border-inline-start-color: var(--rust); background: #fdf4ef; }
+
+.note p:last-child, .warn p:last-child { margin-bottom: 0; }
+
+.note .label, .warn .label {
+    display: block;
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--hull);
+    margin-bottom: 1mm;
+}
+
+.warn .label { color: var(--rust); }
+
+/* -------------------------------------------------------------- tables --- */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.3pt;
+    margin: 4mm 0 5mm;
+    /* Breakable, with whole rows kept together. A thirty-row access table that
+       may not break simply falls off the end of the page it cannot fit on. */
+    break-inside: auto;
+}
+
+tr { break-inside: avoid; }
+
+th {
+    text-align: start;
+    font-weight: 600;
+    font-size: 8.4pt;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1pt solid var(--hull);
+    padding: 0 2.5mm 1.5mm 0;
+    vertical-align: bottom;
+}
+
+tbody td {
+    padding: 1.8mm 2.5mm 1.8mm 0;
+    border-bottom: 0.5pt solid var(--rule);
+    vertical-align: top;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+
+/* -------------------------------------------------------- part openers --- */
+
+.part {
+    break-before: page;
+    padding-top: 55mm;
+    break-after: page;
+}
+
+.part .num {
+    font-family: var(--mono);
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--rust);
+    display: block;
+    margin-bottom: 3mm;
+}
+
+.part h2 {
+    break-before: auto;
+    font-size: 30pt;
+    line-height: 1.08;
+    margin: 0 0 5mm;
+    max-width: 20ch;
+}
+
+.part p {
+    font-size: 11.5pt;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 58ch;
+}
+
+/* ---------------------------------------------------------------- toc ---- */
+
+.toc { break-after: page; }
+.toc h2 { break-before: auto; }
+
+.toc ol { list-style: none; padding: 0; margin: 6mm 0 0; }
+
+.toc > ol > li {
+    margin-bottom: 4mm;
+    padding-bottom: 2mm;
+    border-bottom: 0.5pt solid var(--rule);
+}
+
+.toc .part-line {
+    display: flex;
+    gap: 3mm;
+    align-items: baseline;
+    font-weight: 600;
+    font-size: 11pt;
+    color: var(--hull-deep);
+}
+
+.toc .part-line .n {
+    font-family: var(--mono);
+    font-size: 8.5pt;
+    color: var(--rust);
+    min-width: 8mm;
+}
+
+.toc ul {
+    list-style: none;
+    padding: 0 0 0 11mm;
+    margin: 1.5mm 0 0;
+    font-size: 9.5pt;
+    color: var(--muted);
+}
+
+.toc ul li { margin-bottom: 0.6mm; }
+
+/* -------------------------------------------------------------- screen --- */
+
+@media screen {
+    body {
+        max-width: 190mm;
+        margin: 0 auto;
+        padding: 0 10mm 30mm;
+        font-size: 11pt;
+    }
+
+    .cover { margin: 0 -10mm 12mm; min-height: auto; padding: 30mm 20mm; }
+    .part { padding-top: 18mm; }
+    h2 { margin-top: 14mm; }
+}

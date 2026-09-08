@@ -57,3 +57,10 @@ Thumbs.db
 # a production vendor/ built by the workflow, not this one. The lock file **is**
 # committed, so the linter everybody runs is the same linter.
 /packages/wordpress-plugin/kaiki-booking/vendor
+
+# The manual's two build products. The chapters, the stylesheet, the capture and
+# the screenshots are all committed, so `node docs/manual/build.mjs` reproduces
+# both — and a seven-megabyte PDF re-added on every rebuild is a repository
+# nobody wants to clone.
+/docs/manual/manual.html
+/docs/manual/kaiki-manual.pdf

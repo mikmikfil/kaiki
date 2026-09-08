@@ -1,0 +1,157 @@
+{
+  "takenAt": "2026-09-08T15:48:06.299Z",
+  "shots": [
+    {
+      "name": "dashboard",
+      "url": "/app"
+    },
+    {
+      "name": "departures",
+      "url": "/app/departures"
+    },
+    {
+      "name": "bookings",
+      "url": "/app/bookings"
+    },
+    {
+      "name": "calendar",
+      "url": "/app/calendar"
+    },
+    {
+      "name": "check-in",
+      "url": "/app/check-in"
+    },
+    {
+      "name": "products",
+      "url": "/app/products"
+    },
+    {
+      "name": "vessels",
+      "url": "/app/vessels"
+    },
+    {
+      "name": "ports",
+      "url": "/app/ports"
+    },
+    {
+      "name": "rate-plans",
+      "url": "/app/rate-plans"
+    },
+    {
+      "name": "seasons",
+      "url": "/app/seasons"
+    },
+    {
+      "name": "schedule-rules",
+      "url": "/app/schedule-rules"
+    },
+    {
+      "name": "cancellation-policies",
+      "url": "/app/cancellation-policies"
+    },
+    {
+      "name": "vessel-blocks",
+      "url": "/app/vessel-blocks"
+    },
+    {
+      "name": "vouchers",
+      "url": "/app/vouchers"
+    },
+    {
+      "name": "quotes",
+      "url": "/app/quotes"
+    },
+    {
+      "name": "enquiries",
+      "url": "/app/enquiries"
+    },
+    {
+      "name": "faqs",
+      "url": "/app/faqs"
+    },
+    {
+      "name": "exports",
+      "url": "/app/exports"
+    },
+    {
+      "name": "failures",
+      "url": "/app/failures"
+    },
+    {
+      "name": "notification-logs",
+      "url": "/app/notification-logs"
+    },
+    {
+      "name": "audit-logs",
+      "url": "/app/audit-logs"
+    },
+    {
+      "name": "api-keys",
+      "url": "/app/api-keys"
+    },
+    {
+      "name": "webhook-endpoints",
+      "url": "/app/webhook-endpoints"
+    },
+    {
+      "name": "branding",
+      "url": "/app/branding"
+    },
+    {
+      "name": "home-page",
+      "url": "/app/home-page"
+    },
+    {
+      "name": "search-settings",
+      "url": "/app/search-settings"
+    },
+    {
+      "name": "domains",
+      "url": "/app/domains"
+    },
+    {
+      "name": "integrations",
+      "url": "/app/integrations"
+    },
+    {
+      "name": "calendar-sync",
+      "url": "/app/calendar-sync"
+    },
+    {
+      "name": "departure-reconciliation",
+      "url": "/app/departure-reconciliation"
+    },
+    {
+      "name": "crew-boarding-phone",
+      "url": "/app/boarding"
+    },
+    {
+      "name": "crew-dashboard-phone",
+      "url": "/app"
+    },
+    {
+      "name": "admin-dashboard",
+      "url": "/admin"
+    },
+    {
+      "name": "admin-tenants",
+      "url": "/admin/tenants"
+    },
+    {
+      "name": "admin-vat-rates",
+      "url": "/admin/vat-rates"
+    },
+    {
+      "name": "guest-home",
+      "url": "/aegean-blue"
+    },
+    {
+      "name": "guest-search",
+      "url": "/aegean-blue/search"
+    },
+    {
+      "name": "guest-legal",
+      "url": "/aegean-blue/legal"
+    }
+  ]
+}
