@@ -190,7 +190,13 @@ it('cannot be closed early by an operator who pastes a closing script tag', func
 
     $body = (string) get(TripPage::url($tenant, $product, 'en'))->getContent();
 
-    expect(substr_count($body, '<script'))->toBe(substr_count($body, '<script type="application/ld+json"'));
+    // The operator's `alert(1)` reaches the page as text and never as an
+    // element. Counted rather than searched for, because the failure this
+    // guards against is an *extra* script appearing — the page's own two graphs
+    // and the widget bundle are the complete list of what may be here.
+    expect($body)->not->toContain('<script>alert(1)')
+        ->and(substr_count($body, '<script'))
+        ->toBe(substr_count($body, '<script type="application/ld+json"') + substr_count($body, 'kaiki-widget.js'));
 })->group('fast');
 
 it('carries the nonce the policy requires', function (): void {

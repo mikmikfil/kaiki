@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Hosted;
 
 use App\Domain\Branding\Actions\GetBrandPayload;
+use App\Domain\Hosted\Support\HostedEmbedToken;
 use App\Domain\Hosted\Support\HostedHost;
 use App\Domain\Tenancy\Resolvers\HostedSlugResolver;
 use App\Enums\DomainStatus;
@@ -80,6 +81,12 @@ abstract class HostedController
             // template, so a white-label tier can remove it without a deploy.
             'poweredBy' => (bool) config('kaiki.hosted.powered_by', true),
             'alternates' => $this->alternates($request),
+            // The credential the page hands its own widget, minted per
+            // response and stored nowhere. See HostedEmbedToken: the platform
+            // keeps only a hash of a publishable key, so a hosted page has no
+            // key it could render — which is why these pages carried a mount
+            // point and no script for two milestones.
+            'embedToken' => HostedEmbedToken::issue($tenant),
         ];
 
         return response(view($view, [...$shared, ...$data()])->render());

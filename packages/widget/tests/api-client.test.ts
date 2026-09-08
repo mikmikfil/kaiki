@@ -158,3 +158,37 @@ describe('the availability cache', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('language', () => {
+  /*
+   * The widget knew its own locale and never told the server, so a Greek page
+   * drew Greek chrome around English trip titles and port names. The bundle's
+   * strings are local; everything a guest actually reads about the trip comes
+   * from the API, and the API decides its language from this header.
+   */
+
+  it('asks the API in the locale the widget resolved', async () => {
+    const fetchImpl = always({ data: [] });
+    const api = client(fetchImpl as unknown as typeof fetch);
+
+    api.setLocale('el');
+    await api.get('/products');
+
+    const headers = (fetchImpl.mock.calls[0]?.[1] as RequestInit).headers as Record<string, string>;
+
+    expect(headers['Accept-Language']).toBe('el');
+  });
+
+  it('sends no language header before it knows one', async () => {
+    const fetchImpl = always({ data: [] });
+
+    // Not a guess at "en". An unset header lets the server answer in the
+    // operator's own default, which is a better wrong answer than the
+    // platform's, and is what happened before any of this existed.
+    await client(fetchImpl as unknown as typeof fetch).get('/products');
+
+    const headers = (fetchImpl.mock.calls[0]?.[1] as RequestInit).headers as Record<string, string>;
+
+    expect(headers['Accept-Language']).toBeUndefined();
+  });
+});

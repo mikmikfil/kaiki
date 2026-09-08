@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Tenancy\Resolvers;
 
+use App\Domain\Hosted\Support\HostedEmbedToken;
 use App\Models\ApiKey;
 use App\Models\Tenant;
 use App\Support\Tenancy;
@@ -29,6 +30,15 @@ final class ApiKeyResolver implements TenantResolver
 
         if (! is_string($rawKey) || $rawKey === '') {
             return null;
+        }
+
+        // A hosted page's own token, which is not a stored key. It has to be
+        // understood *here* as well as in `AuthenticateApiKey`: this middleware
+        // runs afterwards and re-derives the tenant from the header itself, so
+        // a credential it cannot read ends an authenticated request with a bare
+        // 404 from the bottom of the resolver chain.
+        if (HostedEmbedToken::looksLikeOne($rawKey)) {
+            return HostedEmbedToken::tenantFor($rawKey);
         }
 
         $parts = explode('_', $rawKey);

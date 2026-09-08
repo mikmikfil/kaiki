@@ -385,6 +385,35 @@
                             <a class="button ghost" href="tel:{{ $tenant->phone }}">{{ $tenant->phone }}</a>
                         @endif
                     </p>
+
+                    {{--
+                        The widget itself.
+
+                        Until this tag existed the mount point above was the
+                        whole booking experience on a hosted page: the markup
+                        described a widget that was never loaded, so every guest
+                        got the "email us" fallback and the pages could not sell
+                        anything. #111's end-to-end run did not catch it because
+                        it drives a fixture host page rather than this one.
+
+                        `data-key` is minted per response and is not a stored
+                        credential — see HostedEmbedToken for why a hosted page
+                        cannot simply carry a publishable key.
+
+                        The tag sits **inside** the mount and last, with no
+                        `data-target`: the widget inserts itself where the
+                        script is, so the host element lands in this container
+                        rather than somewhere a selector happened to point. The
+                        fallback above it is hidden by CSS once the host
+                        appears, which needs no second script and no exception
+                        to HOS-8's policy.
+                    --}}
+                    <script src="{{ \App\Domain\Hosted\Support\HostedWidget::bundleUrl() }}"
+                            data-key="{{ $embedToken }}"
+                            data-mount="{{ $isQuote ? 'enquiry' : 'booking' }}"
+                            data-product="{{ $product->uuid }}"
+                            data-locale="{{ $locale }}"
+                            defer></script>
                 </div>
             @endif
                 </section>

@@ -102,6 +102,11 @@ function mount(config: WidgetConfig, script: HTMLScriptElement, doc: Document): 
           }),
         );
 
+        // Now that WGT-15 has an answer, ask the API in the same language.
+        // Set before the Shell renders, so the first availability call a guest
+        // triggers already carries it.
+        client.setLocale(t.locale);
+
         render(
           <Shell
             mount={config.mount}
@@ -172,7 +177,10 @@ function clientFor(config: WidgetConfig): Api {
     return previewClient();
   }
 
-  const cacheKey = `${config.apiBase}|${config.key}`;
+  // The declared locale is part of the identity: two embeds on one page in
+  // different languages must not share a client and take turns overwriting
+  // each other's `Accept-Language`.
+  const cacheKey = `${config.apiBase}|${config.key}|${config.locale ?? ''}`;
   const existing = clients.get(cacheKey);
 
   if (existing !== undefined) {
@@ -180,6 +188,10 @@ function clientFor(config: WidgetConfig): Api {
   }
 
   const client = new ApiClient(config.apiBase, config.key);
+
+  // WGT-15's first step, so even the branding call is asked for in the language
+  // the embed declared. The resolved locale replaces it a moment later.
+  client.setLocale(config.locale);
 
   clients.set(cacheKey, client);
 

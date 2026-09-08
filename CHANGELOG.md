@@ -4,6 +4,16 @@
 
 > Entries for #118 … #122 — the dashboard, the vessel calendar, recorded cash, the weather-cancellation workflow and the manifests — are not written here. They are on `main` with their reasoning in each commit message; inventing changelog prose for them after the fact would be reconstruction rather than a record, which is the same rule this project applies in `docs/BUILD-LOG.md`.
 
+### Guests can now actually book on your Kaiki page
+
+Until today they could not. The booking form on your own trip pages was never loaded — the page had the space for it and nothing to put there — so every visitor saw "email us or ring us" instead of a way to book. The pages worked, looked right, and could not take a single reservation.
+
+**Now the trip page carries the real booking widget**: pick a date, pick who is coming, pay. The same one that runs on operators' own WordPress sites, on the pages Kaiki serves for you.
+
+**And it speaks the language of the page it is on.** A second thing turned up while fixing the first: the widget's own buttons and labels were translated, but the trip title, the port and the boat name always came back in the operator's default language — so a Greek page showed Greek buttons around English trip names. That was wrong everywhere the widget runs, including on operators' own sites, and it is fixed everywhere.
+
+If somebody has JavaScript blocked, or the connection drops before the form loads, they still get your email address and telephone number exactly as before. That was the only thing working on these pages, and it stays.
+
 ### The "about us" on your home page, and the setting on it that was doing nothing
 
 A block with your heading and a paragraph or two on one side and a photograph on the other — who you are, the family, the boat. Add it from the home page editor, write it in both languages, upload the picture, choose which side it sits on.

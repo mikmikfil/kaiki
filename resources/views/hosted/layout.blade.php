@@ -550,6 +550,18 @@
         /* Centred rather than top-aligned: the photograph is smaller than the
            column of prose beside it, and hanging it from the top leaves a
            wedge of empty space under it that reads as a layout mistake. */
+        /* Once the widget has drawn itself, the no-JavaScript answer above it
+           is noise — but it must stay in the markup until then, for a crawler,
+           a blocked script and a bad connection. `:has()` does that with no
+           second script, which matters because HOS-8's policy has no
+           `unsafe-inline` and the alternative was a nonced inline block whose
+           only job was to hide two paragraphs.
+
+           A browser without `:has()` shows the fallback beneath a working
+           widget: untidy, and still bookable. That is the right way round. */
+        .mount:has(> [data-kaiki-widget]) > .no-js,
+        .mount:has(> [data-kaiki-widget]) > .contact-cta { display: none; }
+
         .story { display: grid; gap: 2rem; align-items: center; }
         .story-image { width: 100%; height: auto; border-radius: 14px; object-fit: cover; aspect-ratio: 4 / 3; }
         /* Breathing room on both sides of the prose, on top of the grid gap.

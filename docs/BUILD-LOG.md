@@ -42,6 +42,123 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## The widget on the hosted pages, which had never been loaded
+
+Not an issue from the roadmap. Found by opening a hosted product page and
+trying to book a trip on it, which is a thing nobody had done.
+
+### What was wrong
+
+`resources/views/hosted/product.blade.php` rendered the widget's mount point,
+its data attributes and the no-JavaScript fallback inside it — and **no script
+tag anywhere on the page**. The bundle was built, published and served; nothing
+ever asked for it. Every guest who has ever reached a hosted product page got
+"email us or ring us", and the hosted pages, which are the platform's own shop
+window, could not sell anything.
+
+`#111` did not catch it, and the reason matters more than the bug: its
+seventeen-spec Playwright run drives a **fixture host page** that the test
+writes itself. It proves the widget works. It proves nothing whatever about the
+pages the platform serves, and that gap is exactly the size of this failure.
+
+### Why it had been left, which was a real reason
+
+The widget will not start without a `data-key` and authenticates every call
+with it. An operator embedding on their own site pastes a publishable key they
+copied once. A hosted page cannot: SEC-5 stores only a key's hash, prefix and
+last four, so there was **nothing to render into the page**. #110's live preview
+sidesteps the same problem with a fake `pk_preview` and a preview transport that
+answers before a request is made, which works for showing somebody a colour and
+cannot sell a boat trip.
+
+Put to the product owner as two options — an ephemeral per-render token, or a
+durable publishable key per operator with its plaintext stored. **The ephemeral
+token was chosen.**
+
+### `HostedEmbedToken`
+
+A signed assertion, minted per response and written nowhere: the tenant's uuid
+and an expiry, HMAC-SHA256 with `APP_KEY`, prefixed `hpk_` so the key parser can
+never confuse it for a stored key and an operator cannot paste it into the
+WordPress plugin and have it work.
+
+It resolves to a **transient `ApiKey`** — a model that was never saved — which
+is what made the integration a few lines rather than a second authentication
+path. Scope checks, the secret-key-in-a-browser guard and the capability
+middleware all go on reading an `ApiKey`. The one thing they must not do is
+write, so the middleware skips `touchLastUsed()` for a key that does not exist.
+
+Two hours. Long enough to leave a trip open in a tab over lunch, short enough
+that a token lifted from a page source is worth almost nothing — and what it is
+worth is precisely what a publishable key is worth, because it carries
+`ApiKeyType::Publishable->allowedScopes()` and nothing else. It also dies the
+moment `hosted_page_enabled` goes false, so switching a site off does not leave
+working keys in every browser that had the page open.
+
+### The bug that made it look broken anyway
+
+Wiring the token into `AuthenticateApiKey` was not enough. **`ResolveTenant`
+runs afterwards and re-derives the tenant from the raw header itself**, with its
+own `pk_`/`sk_` three-part parse — so the request authenticated, then fell
+through every resolver and died on `abort(404)` at the bottom of the chain.
+
+The symptom is worth recording because it is so misleading: the widget loaded,
+the key was accepted, and every call came back *"That endpoint does not exist.
+Check the path and the API version."* — a message that sends you to look at
+routes, which were fine. A credential is not wired in until **every** thing that
+reads credentials knows about it.
+
+### A second bug, found by looking at the result
+
+With the widget finally drawing, it rendered its own Greek chrome around
+**English** trip titles and port names. `ApiClient` never sent `Accept-Language`
+— the bundle knew its locale, resolved it properly through all three of WGT-15's
+steps, and never told the server, so every response came back in the operator's
+default language whatever the page was in.
+
+This is not a hosted-page bug. It has been wrong in every embed since the widget
+existed, including the WordPress plugin, and it is invisible to an operator whose
+default language is the one they are looking at. Fixed in the client, with the
+declared locale now part of the client's cache key so two embeds on one page in
+different languages cannot overwrite each other's header.
+
+### Two tests changed rather than deleted
+
+`ProductPageNoJsTest` and `ProductJsonLdTest` both asserted that *every*
+`<script` on a product page is `application/ld+json`. The first had said in a
+comment since M3 that "the widget's own tag arrives in #106 and mounts into the
+node below rather than replacing this claim" — so this is the anticipated
+update, not a weakened assertion. Both now count ld+json **plus the widget
+bundle**, and both still prove what they were written for: no framework runtime,
+no CSRF token, no hydration, and an operator's pasted `</script><script>` still
+reaching the page as text.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Hosted/HostedWidgetEmbedTest.php   9 passed
+vendor/bin/pest tests/Feature/Hosted/                          108 passed
+vendor/bin/pest                     2457 passed, 4 skipped, 1 failed (the schema snapshot)
+npm -w packages/widget run test      78 passed (76 before)
+vendor/bin/pint --test               passed
+vendor/bin/phpstan analyse           [OK] No errors
+```
+
+And in the browser, which is the only verification that would have caught the
+original bug: `/aegean-blue/olimeri-tria-nisia?lang=el` now renders the booking
+widget — «Διαλέξτε ημερομηνία», a date field and «Συνέχεια» — with the trip
+title, port and vessel in Greek, the no-JavaScript fallback correctly hidden,
+and the meeting-point map beside it.
+
+### Left open
+
+The widget is on the **product** page only. The home page's trips block and the
+search results are still server-rendered links, which is the right default —
+but if a list or availability mount is wanted on either, the token is now there
+for it.
+
+---
+
 ## The "about us" block, which was built and invisible, and the control on it that did nothing
 
 Asked for directly: *"on frontend, i need an about us section. title and text

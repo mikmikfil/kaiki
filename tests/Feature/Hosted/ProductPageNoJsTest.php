@@ -50,11 +50,20 @@ it('carries no script but the structured data, and no Livewire anywhere', functi
 
     $body = (string) get(TripPage::url($tenant, $product, 'en'))->getContent();
 
-    // Every `<script` on the page is `application/ld+json`, which executes
-    // nothing and is the one thing HOS-2 requires. The widget's own tag arrives
-    // in #106 and mounts into the node below rather than replacing this claim.
-    expect(substr_count($body, '<script'))
-        ->toBe(substr_count($body, '<script type="application/ld+json"'))
+    // Every `<script` on the page is either the structured data, which executes
+    // nothing and is the one thing HOS-2 requires, or the widget bundle, which
+    // is the page's whole reason to carry script at all.
+    //
+    // The tag the widget needs was anticipated here from the start — this test
+    // said it "arrives in #106 and mounts into the node below rather than
+    // replacing this claim" — and the claim is unchanged: nothing on this page
+    // is hydrated, and there is no framework runtime, no CSRF token and no
+    // second script of anybody's making.
+    $widgetTags = substr_count($body, 'kaiki-widget.js');
+
+    expect($widgetTags)->toBe(1)
+        ->and(substr_count($body, '<script'))
+        ->toBe(substr_count($body, '<script type="application/ld+json"') + $widgetTags)
         ->and($body)->not->toContain('livewire')
         ->and($body)->not->toContain('csrf-token');
 })->group('fast');

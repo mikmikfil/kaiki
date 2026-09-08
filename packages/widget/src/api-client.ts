@@ -92,6 +92,20 @@ export interface Api {
 export class ApiClient implements Api {
   private readonly cache = new Map<string, CacheEntry>();
 
+  /**
+   * The language to ask the API for (WGT-15).
+   *
+   * Null until the widget has worked out its own locale, which happens after
+   * branding has loaded. Without this the widget drew its Greek chrome around
+   * English trip titles and port names: the bundle knew its locale and never
+   * told the server, so every response came back in the operator's default
+   * language whatever the page was in.
+   *
+   * A field rather than a constructor argument because the resolution genuinely
+   * happens later — `data-locale` is only the first of WGT-15's three steps.
+   */
+  private locale: string | null = null;
+
   constructor(
     private readonly baseUrl: string,
     private readonly publishableKey: string,
@@ -100,6 +114,17 @@ export class ApiClient implements Api {
     private readonly sleep: (ms: number) => Promise<void> = (ms) =>
       new Promise((resolve) => setTimeout(resolve, ms)),
   ) {}
+
+  /**
+   * Ask for a language from here on.
+   *
+   * Cached reads are keyed on the path and its query, not on this, so it is set
+   * before the first request that renders anything a guest reads and not
+   * changed underneath one.
+   */
+  setLocale(locale: string | null): void {
+    this.locale = locale;
+  }
 
   async get<T>(path: string, options: Omit<RequestOptions, 'method' | 'body'> = {}): Promise<T> {
     return this.request<T>(path, { ...options, method: 'GET' });
@@ -181,6 +206,9 @@ export class ApiClient implements Api {
         headers: {
           Authorization: `Bearer ${this.publishableKey}`,
           Accept: 'application/json',
+          // The server decides the language of titles, port names and error
+          // messages from this. Sent only once the widget knows its own.
+          ...(this.locale === null ? {} : { 'Accept-Language': this.locale }),
           ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }),
           ...(options.headers ?? {}),
         },

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Domain\Hosted\Support\HostedEmbedToken;
 use App\Http\Responses\ApiErrorResponse;
 use App\Models\ApiKey;
 use Closure;
@@ -28,26 +29,42 @@ final class AuthenticateApiKey
             return $this->reject('api.errors.missing_key', 'missing_key', 401);
         }
 
-        $prefix = $this->prefixOf($rawKey);
+        // A hosted page's own token, which is not a stored key and has no
+        // prefix to look up. It resolves to an unsaved publishable `ApiKey`, so
+        // every check below this point — and every middleware after it — reads
+        // the same object it always did. See HostedEmbedToken.
+        if (HostedEmbedToken::looksLikeOne($rawKey)) {
+            $apiKey = HostedEmbedToken::resolve($rawKey, $this->requestOrigins($request));
 
-        if ($prefix === null) {
-            return $this->reject('api.errors.malformed_key', 'malformed_key', 401);
-        }
+            if ($apiKey === null) {
+                // One answer for a bad signature, an expired token and a
+                // hosted page since switched off. Telling them apart would
+                // tell an attacker which half they got right.
+                return $this->reject('api.errors.invalid_key', 'invalid_key', 401);
+            }
+        } else {
+            $prefix = $this->prefixOf($rawKey);
 
-        // One indexed lookup by prefix, then a constant-time comparison. Never
-        // a scan, and never a comparison that short-circuits on first mismatch.
-        $apiKey = ApiKey::findByPrefix($prefix);
+            if ($prefix === null) {
+                return $this->reject('api.errors.malformed_key', 'malformed_key', 401);
+            }
 
-        if ($apiKey === null || ! $apiKey->matches($rawKey)) {
-            return $this->reject('api.errors.invalid_key', 'invalid_key', 401);
-        }
+            // One indexed lookup by prefix, then a constant-time comparison.
+            // Never a scan, and never a comparison that short-circuits on first
+            // mismatch.
+            $apiKey = ApiKey::findByPrefix($prefix);
 
-        if ($apiKey->isRevoked()) {
-            return $this->reject('api.errors.revoked_key', 'revoked_key', 401);
-        }
+            if ($apiKey === null || ! $apiKey->matches($rawKey)) {
+                return $this->reject('api.errors.invalid_key', 'invalid_key', 401);
+            }
 
-        if ($apiKey->isExpired()) {
-            return $this->reject('api.errors.expired_key', 'expired_key', 401);
+            if ($apiKey->isRevoked()) {
+                return $this->reject('api.errors.revoked_key', 'revoked_key', 401);
+            }
+
+            if ($apiKey->isExpired()) {
+                return $this->reject('api.errors.expired_key', 'expired_key', 401);
+            }
         }
 
         // SEC-5(3): browsers always send Origin cross-origin, so a secret key
@@ -81,7 +98,11 @@ final class AuthenticateApiKey
 
         $request->attributes->set('api_key', $apiKey);
 
-        $apiKey->touchLastUsed();
+        // Only for a key that is actually a row. A hosted page's token is
+        // minted per response and has nothing to stamp.
+        if ($apiKey->exists) {
+            $apiKey->touchLastUsed();
+        }
 
         return $next($request);
     }
@@ -98,6 +119,26 @@ final class AuthenticateApiKey
         $header = $request->headers->get('X-Kaiki-Key');
 
         return is_string($header) && $header !== '' ? $header : null;
+    }
+
+    /**
+     * The origins a hosted page's token is allowed to be presented from.
+     *
+     * The request's own `Origin`, and nothing else. The page and the API are on
+     * the same platform, so a token minted by a hosted page is used from that
+     * page — a token lifted out of one page's source and replayed from
+     * somewhere else fails the origin check that every publishable key already
+     * runs. A request with no `Origin` at all (curl, a crawler) gets an empty
+     * list, which `allowsOrigin()` reads as unrestricted; that matches how a
+     * publishable key with no allow-list behaves and is the same exposure.
+     *
+     * @return list<string>
+     */
+    private function requestOrigins(Request $request): array
+    {
+        $origin = $request->headers->get('Origin');
+
+        return is_string($origin) && $origin !== '' ? [$origin] : [];
     }
 
     /** `pk_live_a1b2c3xxxx…` becomes `pk_live_a1b2c3`. */
