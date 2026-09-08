@@ -129,4 +129,39 @@ class Tenant extends Model implements TenantContract
     {
         return $this->status->allowsWrites();
     }
+
+    /**
+     * The tax office, written the way it is written on paper.
+     *
+     * ## Why this exists
+     *
+     * The hosted footer printed **«ΔΟΥ: ΔΟΥ Πειραιά»**. Four templates render
+     * `tax_office`: two add a «ΔΟΥ» label of their own, and two — the invoice
+     * and the ναυλοσύμφωνο — print the bare value, which reads correctly only
+     * because the operator happened to type the prefix in.
+     *
+     * Neither convention was safe alone. An operator copying from their
+     * paperwork types «ΔΟΥ Πειραιά»; one filling a form quickly types
+     * «Πειραιά»; both are reasonable. This makes the answer the same either way,
+     * and the two templates that were adding a label of their own stop.
+     *
+     * The prefix stays Greek in an English page, deliberately. A ΔΟΥ is a Greek
+     * institution and «ΔΟΥ Πειραιά» is its name in any language, the way HMRC is
+     * HMRC in Greek.
+     *
+     * ## Contains, not starts-with
+     *
+     * «Α΄ ΔΟΥ Θεσσαλονίκης» is a real office name with the word in the middle,
+     * and a `str_starts_with` check would prefix it a second time.
+     */
+    public function taxOfficeName(): ?string
+    {
+        $value = trim((string) $this->tax_office);
+
+        if ($value === '') {
+            return null;
+        }
+
+        return str_contains(mb_strtoupper($value), 'ΔΟΥ') ? $value : "ΔΟΥ {$value}";
+    }
 }

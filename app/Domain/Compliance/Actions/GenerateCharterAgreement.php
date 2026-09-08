@@ -145,7 +145,9 @@ final class GenerateCharterAgreement
                 // brand while «ΑΙΓΑΙΟ ΝΑΥΤΙΛΙΑΚΗ ΙΚΕ» is a party.
                 'legal_name' => $tenant->legal_name ?: $tenant->name,
                 'vat_number' => $tenant->vat_number,
-                'tax_office' => $tenant->tax_office,
+                // Through the accessor, so «Πειραιά» and «ΔΟΥ Πειραιά» both
+                // land on the document as «ΔΟΥ Πειραιά». See `Tenant`.
+                'tax_office' => $tenant->taxOfficeName(),
                 'gemi_number' => $tenant->gemi_number,
                 'address' => trim(implode(' ', array_filter([
                     $tenant->address_line1,

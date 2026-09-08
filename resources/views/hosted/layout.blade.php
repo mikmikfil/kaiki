@@ -274,6 +274,14 @@
             margin-top: auto; padding-top: .9rem;
             border-top: 1px solid var(--rule);
             display: flex; flex-direction: column; align-items: stretch; gap: .75rem;
+            /* The rule, not only the button, has to land on one line.
+               `margin-top: auto` pins the foot's *bottom*, so a card with no
+               price — a charter sold by quote — has a foot 43px shorter and its
+               rule 43px lower than its three neighbours. Four cards, three rules
+               level and one adrift, which reads as a rendering fault rather than
+               as a card with less to say. The height of a priced foot is
+               reserved whether or not there is a price in it. */
+            min-height: 5.75rem;
         }
 
         /* The featured rail. A native horizontal scroller: it swipes on a
@@ -341,12 +349,20 @@
         }
 
         /* Fields big enough to hit with a thumb. A search bar on a boat
-           operator's home page is used standing on a quay, one-handed. */
+           operator's home page is used standing on a quay, one-handed.
+
+           `height`, not `min-height`. A minimum is a floor the browser is free
+           to exceed, and it does: `input[type=date]` carries a calendar button
+           and `input[type=number]` a pair of spinners, so their intrinsic
+           content is taller than a line of text. The row measured 52, 50, 46
+           and 46 pixels — four heights in one bar, with the labels above them
+           landing on four different baselines because the grid aligns to the
+           bottom. Nothing was wrong in any single rule; the row was wrong. */
         .search-form input, .search-form select {
             font: inherit; font-size: 1rem; color: var(--kaiki-text);
-            padding: .7rem .8rem; border: 1px solid var(--rule);
+            padding: 0 .8rem; border: 1px solid var(--rule);
             border-radius: var(--kaiki-radius); background: #fff; width: 100%;
-            min-height: 2.9rem;
+            height: 2.9rem; box-sizing: border-box;
         }
 
         .search-form input:focus-visible, .search-form select:focus-visible {
@@ -356,7 +372,7 @@
         .search-form .submit { align-self: end; }
         .search-form button {
             border: 0; cursor: pointer; font: inherit; width: 100%;
-            justify-content: center; min-height: 2.9rem;
+            justify-content: center; height: 2.9rem; box-sizing: border-box;
         }
 
         .result-count { color: var(--ink-faint); font-size: .88rem; margin: 0 0 1rem; }
@@ -561,6 +577,26 @@
            widget: untidy, and still bookable. That is the right way round. */
         .mount:has(> [data-kaiki-widget]) > .no-js,
         .mount:has(> [data-kaiki-widget]) > .contact-cta { display: none; }
+
+        /* And the four lines, for the same reason and a longer one.
+           Brand decision 3 (4 September) puts **title, duration, port and
+           vessel above the widget's date picker** — the widget carries them
+           because it also runs on somebody else's website, where there is no
+           surrounding page to say what is being booked.
+
+           This page renders its own copy so that a guest with no JavaScript
+           still learns those four facts. Once the widget draws, both copies are
+           on screen at once, in the same column, about 470px apart: the same
+           four rows twice, which reads as a rendering fault rather than as
+           emphasis. Found by looking at the page — the second copy lives in the
+           widget's shadow root, so nothing that inspects this document can see
+           the duplication. */
+        .booking:has(.mount > [data-kaiki-widget]) > .four-lines { display: none; }
+
+        /* And the rule that divided them from the price goes with them. A
+           hairline is a separator between two things; with the four lines
+           hidden it became the first mark in the card, drawn above nothing. */
+        .booking:has(.mount > [data-kaiki-widget]) > .price { border-top: 0; padding-top: 0; }
 
         .story { display: grid; gap: 2rem; align-items: center; }
         .story-image { width: 100%; height: auto; border-radius: 14px; object-fit: cover; aspect-ratio: 4 / 3; }
@@ -1029,7 +1065,8 @@
                     <p>{{ __('hosted.footer.vat_number') }}: {{ $tenant->vat_number }}</p>
                 @endif
                 @if ($tenant->tax_office)
-                    <p>{{ __('hosted.footer.tax_office') }}: {{ $tenant->tax_office }}</p>
+                    {{-- No label of its own: `taxOfficeName()` already reads «ΔΟΥ Πειραιά», and the footer was printing «ΔΟΥ: ΔΟΥ Πειραιά». --}}
+                    <p>{{ $tenant->taxOfficeName() }}</p>
                 @endif
             </div>
 

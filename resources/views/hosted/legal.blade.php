@@ -25,7 +25,7 @@
         <p>{{ __('hosted.footer.vat_number') }}: {{ $tenant->vat_number }}</p>
     @endif
     @if ($tenant->tax_office)
-        <p>{{ __('hosted.footer.tax_office') }}: {{ $tenant->tax_office }}</p>
+        <p>{{ $tenant->taxOfficeName() }}</p>
     @endif
     @if ($tenant->gemi_number)
         <p>{{ __('hosted.legal.gemi') }}: {{ $tenant->gemi_number }}</p>

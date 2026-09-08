@@ -98,7 +98,7 @@
     <div class="who">
         <strong>{{ $tenant->legal_name ?: $tenant->name }}</strong><br>
         @if ($tenant->vat_number)
-            ΑΦΜ {{ $tenant->vat_number }}@if ($tenant->tax_office) · {{ $tenant->tax_office }} @endif<br>
+            ΑΦΜ {{ $tenant->vat_number }}@if ($tenant->taxOfficeName()) · {{ $tenant->taxOfficeName() }} @endif<br>
         @endif
         @if ($tenant->address_line1)
             {{ trim($tenant->address_line1 . ' ' . ($tenant->postcode ?? '') . ' ' . ($tenant->city ?? '')) }}<br>
