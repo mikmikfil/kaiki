@@ -45,6 +45,82 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## The invoices screen, and a warning that only appears when it is true
+
+> **MYD-5**, **MYD-10**, **MYD-11**, **TEN-8**.
+
+### Read-only, and more strictly than the vouchers screen
+
+`VoucherResource` has no edit form because a voucher's terms were given to
+somebody in writing. An invoice is stronger: a document in a state tax register,
+among the rows §1.4 says nothing removes, with `InvoicePolicy::delete()`
+returning false for **everyone including the owner**. No form, no create page, no
+delete. Two things can be done — read one, and ask a failed one to try again.
+
+### The warning is the reason this screen needed a test
+
+MYD-11: *"…the current endpoint is displayed in the panel so an operator can see
+they are in test mode."* An operator who believes they are filing documents and
+is not finds out from an accountant months later, and the cost of that discovery
+is measured in years of trading.
+
+So the line appears **only when a document on their own account actually went to
+the test endpoint**. A permanent banner is furniture; one that appears is a fact,
+because its presence is itself the information.
+
+It reads the rows rather than the config, deliberately. `config` says what the
+*next* document will do; the rows say what the ones already issued did — and an
+operator whose credentials changed last month needs to know that September's went
+to a sandbox, whatever October's will do.
+
+### `getHeader()` was the obvious place and the wrong one
+
+Filament's page header is the **whole** header — title and actions — so returning
+a banner from it replaced «Παραστατικά» rather than sitting under it. It is a
+table header now, which renders between the page title and the rows.
+
+Caught by looking at the screen. There is no other way that particular mistake is
+found: nothing throws, nothing logs, and the page looks deliberate.
+
+### Three smaller decisions
+
+**A credit note's total renders negative.** A column of unsigned numbers makes a
+series of sales and corrections add up to nonsense at a glance.
+
+**A pending document says «Χωρίς αριθμό ακόμη».** An empty cell in a numbered
+series reads as data loss rather than as a document waiting its turn.
+
+**The failure column shows the stored Greek sentence** rather than re-deriving it
+from the code. The dictionary will grow, and the same document explained two ways
+on two afternoons is exactly what an operator quotes to their accountant and then
+has to un-quote.
+
+### Retry, and what it is careful about
+
+Offered only on a document that gave up — a `pending` one is coming back on its
+own, and a second job for it would take a second number. It sets the row back to
+`pending` before dispatching, because `SubmitInvoiceToMyData` ignores anything
+that is not, which is what stops a registered document being sent twice.
+
+The navigation badge counts what gave up: an invoice AADE refused is money the
+operator's books do not yet reflect, and it is the one thing here that needs
+noticing without opening the screen.
+
+### Verified
+
+```
+vendor/bin/pest tests/Feature/Panel/InvoiceScreenTest.php    9 passed
+vendor/bin/pest --parallel --processes=12                    2688 passed
+vendor/bin/pint --test                                       passed
+vendor/bin/phpstan analyse                                   [OK] No errors
+```
+
+And in the browser: breadcrumbs, the heading, the warning, and four demo
+documents — one registered, one pending with no number, one refused showing the
+Greek explanation of code 243 with «Νέα προσπάθεια» beside it.
+
+---
+
 ## Credit notes, and the two listeners BKG-13 and CXL-11 were waiting for
 
 > **MYD-13**, **CXL-11**, **BKG-13.4**, **ADR-0003**, **ADR-0025**.
