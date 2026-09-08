@@ -188,7 +188,7 @@
         /* The hero is the one place a bigger step is warranted: it is the only
            h1 on the page and it has a photograph behind it to hold its own
            against. */
-        .hero h1 { font-size: var(--step-5); margin-bottom: 1rem; max-width: var(--hero-measure); }
+        .hero h1 { font-size: var(--step-5); margin-bottom: 1rem; max-width: var(--hero-measure); margin-inline: auto; }
 
         /* A card's heading is an h3 in the outline and should not shout like a
            section heading. This is the step that was missing. */
@@ -354,6 +354,12 @@
             box-shadow: 0 1px 2px color-mix(in srgb, var(--kaiki-text) 7%, transparent);
         }
 
+        /* The search card keeps its own alignment. Centring the hero copy above
+           it centred these labels over their fields, which is wrong for a form:
+           a label belongs at the start of the control it names, so the eye can
+           run down one edge. Reset here rather than by not centring the hero,
+           because the card is a different thing from the words above it. */
+        .search-form { text-align: start; }
         .search-form .field { display: grid; gap: .35rem; min-width: 0; }
         .search-form label {
             font-size: .74rem; font-weight: 600; letter-spacing: .07em; color: var(--ink-faint);
@@ -448,20 +454,29 @@
                shape read as an accident rather than as a decision. One property,
                used by both, cannot drift apart.
 
-               **Two thirds of what it was**, asked for on 8 September. 54rem
-               ran the heading to 864px and gave the standfirst a 70-character
-               line; 36rem holds it to about 45, which is the measure a
-               paragraph is comfortable at and leaves the hero's photograph
-               visible beside the words rather than behind them. */
-            --hero-measure: min(36rem, 100%);
+               **48rem, settled on 8 September** after trying it at both ends.
+               54rem was too wide left-aligned; 36rem was right for a block
+               pushed against the left edge but looked pinched once the copy was
+               centred, because a centred block reads narrower than it is. This
+               sits between them: about 60 characters, which is inside the
+               comfortable range for a paragraph, and wide enough that the
+               heading is not forced into a stack of short lines. */
+            --hero-measure: min(48rem, 100%);
             width: 100%;
             max-width: 86rem;
             margin: 0 auto;
             padding: 3.5rem clamp(1.25rem, 3vw, 2.5rem);
             position: relative;
             z-index: 2;
-            /* Explicit, so a theme or a browser default cannot centre it. */
-            text-align: start;
+            /* Centred, asked for on 8 September.
+               The note that stood here said the opposite — that a centred hero
+               over a left-aligned page is two designs on one screen — and that
+               argument still applies to everything **below** the hero, which
+               stays left-aligned. What changed is the measure: at 36rem the
+               heading and its paragraph are a block rather than a band, and a
+               narrow block reads better centred over a photograph than pushed
+               against one edge of it. */
+            text-align: center;
         }
 
         .hero.has-image {
@@ -509,7 +524,7 @@
         .hero.has-image .cta .button { background: #fff; border-color: #fff; color: var(--kaiki-primary); }
         .hero.has-image .cta .button:hover { background: rgba(255, 255, 255, .88); }
 
-        .hero-copy .standfirst { color: var(--ink-soft); font-size: clamp(1.1rem, 1.5vw, 1.3rem); line-height: 1.5; max-width: var(--hero-measure); }
+        .hero-copy .standfirst { color: var(--ink-soft); font-size: clamp(1.1rem, 1.5vw, 1.3rem); line-height: 1.5; max-width: var(--hero-measure); margin-inline: auto; }
         .hero-copy .standfirst p { margin: 0 0 .7rem; }
         .hero-copy .standfirst p:last-child { margin-bottom: 0; }
 
