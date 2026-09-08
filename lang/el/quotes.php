@@ -100,7 +100,7 @@ return [
         'table' => [
             'received' => 'Ελήφθη',
             'name' => 'Από',
-            'email' => 'Ηλ. ταχυδρομείο',
+            'email' => 'Email',
             'phone' => 'Τηλέφωνο',
             'product' => 'Ταξίδι',
             'preferred_date' => 'Επιθυμητή ημερομηνία',

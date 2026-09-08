@@ -426,6 +426,20 @@
            to be bigger than the space inside them or the hierarchy inverts. */
         main .wrap { display: flex; flex-direction: column; gap: clamp(3.5rem, 7vw, 6rem); }
 
+        /* …and that rhythm is for **sections**. The search page's children are
+           not sections: a heading, a form, a count and a grid of results are one
+           thing, and giving each pair a section-sized gap spread them 114, 129
+           and 105 pixels apart — three different large voids inside what a
+           visitor reads as a single block, on the page where they are waiting
+           for an answer.
+
+           Keyed on the absence of `.block` children rather than on a class the
+           search page would have to remember to carry. The form's own bottom
+           margin goes with it: it was there to separate the form from what
+           follows, and the gap does that now. */
+        main .wrap:not(:has(> .block)) { gap: 1.75rem; }
+        main .wrap:not(:has(> .block)) > .search-form { margin-bottom: 0; }
+
         .block { margin: 0; }
         .block > h2:first-child { margin-top: 0; }
 

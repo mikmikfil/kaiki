@@ -82,7 +82,22 @@
         </header>
 
 
-        @if ($product->description)
+        {{-- Not when it repeats the standfirst word for word.
+
+             The two fields are for two different jobs — the summary is the one
+             line that goes on a card, the description is the page — and an
+             operator writing the trip up for the first time very reasonably
+             types the same sentence into both. The demo operator did, and the
+             page printed it twice, 470 pixels apart, under a heading promising
+             more. Compared loosely, because «…μεγάλα.» and «…μεγάλα» are the
+             same sentence to a reader. --}}
+        @php
+            $summarised = $product->summary !== null
+                && preg_replace('/\s+|[.·!?]+$/u', '', mb_strtolower((string) $product->summary))
+                    === preg_replace('/\s+|[.·!?]+$/u', '', mb_strtolower((string) $product->description));
+        @endphp
+
+        @if ($product->description && ! $summarised)
             <section class="section">
                 <h2>{{ __('hosted.product.about') }}</h2>
                 <div class="prose">{{ \App\Domain\Hosted\Support\BlockText::paragraphs($product->description) }}</div>

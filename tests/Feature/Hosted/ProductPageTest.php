@@ -186,3 +186,37 @@ it('keeps the legal page reachable for an operator whose trip is slugged legal',
         ->assertOk()
         ->assertSee(__('hosted.legal.title', [], 'el'), escape: false);
 })->group('fast');
+
+it('does not print the description a second time when it repeats the summary', function (): void {
+    $tenant = OperatorPage::operator('twice-told');
+
+    $product = TripPage::create($tenant, [
+        'summary' => ['el' => 'Με ταχύπλοο εκεί που δεν φτάνουν τα μεγάλα.', 'en' => 'By fast boat where the big ones cannot go.'],
+        // The same sentence, as an operator filling in a form for the first
+        // time types it — down to the trailing full stop being absent from one.
+        'description' => ['el' => 'Με ταχύπλοο εκεί που δεν φτάνουν τα μεγάλα', 'en' => 'By fast boat where the big ones cannot go'],
+    ]);
+
+    $body = (string) get(TripPage::url($tenant, $product, 'en'))->getContent();
+
+    // The heading, not the sentence: the sentence is legitimately in the page
+    // three times already — the standfirst, `<meta name=description>` and the
+    // Open Graph tag all take the summary — and counting it would assert the
+    // head as much as the body.
+    expect($body)->not->toContain(__('hosted.product.about', [], 'en'))
+        ->and($body)->toContain('By fast boat where the big ones cannot go');
+})->group('fast');
+
+it('still prints a description that says more than the summary', function (): void {
+    $tenant = OperatorPage::operator('says-more');
+
+    $product = TripPage::create($tenant, [
+        'summary' => ['el' => 'Σπηλιές και όρμοι.', 'en' => 'Caves and coves.'],
+        'description' => ['el' => 'Σπηλιές και όρμοι, με στάση για μπάνιο.', 'en' => 'Caves and coves, with a stop for a swim.'],
+    ]);
+
+    $body = (string) get(TripPage::url($tenant, $product, 'en'))->getContent();
+
+    expect($body)->toContain(__('hosted.product.about', [], 'en'))
+        ->and($body)->toContain('with a stop for a swim');
+})->group('fast');

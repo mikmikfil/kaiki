@@ -100,6 +100,8 @@ return [
         'exports.columns.bookings.guest_email' => 'The word Greek operators use; a CSV header a Greek accountant reads as Email.',
         'staff.form.email.label' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
         'staff.table.email' => 'The word Greek operators use; the formal Greek phrase appears on no real form.',
+        'guest.booking.contact.email' => 'The word a guest reads on every other form in this product; «Ηλ. ταχυδρομείο» is an abbreviation of a phrase nobody uses.',
+        'quotes.enquiry.table.email' => 'The word a guest reads on every other form in this product.',
 
         // «Webhook» has no Greek word an operator would recognise. Every Greek
         // developer and every Greek integration guide says webhook, and a
