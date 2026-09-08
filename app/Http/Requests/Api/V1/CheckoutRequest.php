@@ -52,7 +52,7 @@ class CheckoutRequest extends FormRequest
     {
         return [
             'kind' => ['required', 'string', 'in:full,deposit,balance'],
-            'gateway' => ['nullable', 'string', 'in:viva,stripe'],
+            'gateway' => ['nullable', 'string', 'in:viva'],
             'return_url' => ['required', 'url', 'max:2000'],
             'cancel_url' => ['nullable', 'url', 'max:2000'],
         ];

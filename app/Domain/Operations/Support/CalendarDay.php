@@ -127,6 +127,35 @@ final class CalendarDay
     }
 
     /**
+     * Where "now" falls across the track, or null when this is not today.
+     *
+     * ## The same divisor as every bar, deliberately
+     *
+     * A marker positioned by `hour / 24` beside bars positioned by the day's
+     * **real** length drifts by up to an hour on the two days a year the clocks
+     * move — and it drifts in the most misleading way available, because the
+     * marker is the thing an operator reads the bars *against*. So it goes
+     * through `LocalDay` like everything else in this class.
+     *
+     * Null off today rather than clamped to an edge: a line pinned to midnight
+     * on a day the operator is looking *ahead* to reads as an occupation, and a
+     * marker that lies about the time is worse than no marker.
+     */
+    public function nowFraction(?Carbon $now = null): ?float
+    {
+        $day = LocalDay::of($this->localDate, $this->timezone);
+        $instant = ($now ?? Carbon::now())->copy()->utc();
+
+        if ($instant->lessThan($day->startUtc) || $instant->greaterThanOrEqualTo($day->endUtcExclusive)) {
+            return null;
+        }
+
+        $length = $day->startUtc->diffInSeconds($day->endUtcExclusive);
+
+        return $length > 0 ? $day->startUtc->diffInSeconds($instant) / $length : null;
+    }
+
+    /**
      * @return array{kind: string, uuid: string, label: string, detail: string|null, start: float, end: float, buffer: float, pax: int|null, capacity: int|null, cancelled: bool, reason: string|null}
      */
     private static function departureBar(Departure $departure, LocalDay $day, int $minutes, int $buffer): array

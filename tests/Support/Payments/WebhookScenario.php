@@ -15,33 +15,48 @@ use App\Support\Tenancy;
 use Illuminate\Support\Facades\Http;
 
 /**
- * A tenant with a booking at the gateway, and a signable payload for it.
+ * A tenant with a booking at the gateway, and a verifiable payload for it.
  *
  * A class rather than Pest helper functions, because four test files need this
  * and a `function` in a Pest file is scoped to that file — the second file to
  * call it fails with "undefined function", which reads as a broken test rather
  * than as a missing import.
  *
- * ## The signature is computed, never stubbed
+ * ## The verification is real, never stubbed
  *
  * Every webhook test's premise is that the endpoint verified something. A faked
  * verifier — a bound double, a config flag — would mean none of them proved it,
- * and the one that matters (an unsigned payload is refused) would pass against
- * an endpoint that verifies nothing at all.
+ * and the one that matters (an unverified payload is refused) would pass
+ * against an endpoint that verifies nothing at all.
  *
- * So {@see self::signedStripeHeaders()} computes a real HMAC over the exact
- * body being sent, with the same secret the credential row holds.
+ * So {@see self::verifiedHeaders()} presents the same key the credential row
+ * holds, and the endpoint compares it in constant time exactly as in
+ * production.
+ *
+ * ## Viva's scheme, which is weaker than an HMAC and is the one that exists
+ *
+ * This harness signed a Stripe-shaped payload until Stripe was removed. Viva
+ * does not sign at all: it presents a **verification key** in a header and the
+ * receiver checks it holds the same one. There is no body signature, so nothing
+ * is tamper-evident and there is no timestamp to bound a replay with — which is
+ * exactly why `gateway_webhook_events` carries a unique event id, and why the
+ * idempotency tests matter more here than they would have against an HMAC.
+ *
+ * The tenant is resolved from `EventData.SourceCode` against
+ * `integration_credentials.external_account_id` — #79's deliberately
+ * not-tenant-first index, and the whole reason a webhook can be authenticated
+ * before tenancy exists.
  */
 final class WebhookScenario
 {
-    /** The signing secret the credential row is created with. */
-    public const SECRET = 'whsec_test_secret';
+    /** The verification key the credential row is created with. */
+    public const SECRET = 'viva_verification_key_test';
 
-    /** The Stripe account id the payload names, matching `external_account_id`. */
-    public const ACCOUNT = 'acct_test';
+    /** The Viva source code the payload names, matching `external_account_id`. */
+    public const ACCOUNT = 'src_test';
 
-    /** The session reference the payment is created with. */
-    public const REFERENCE = 'cs_test_reference';
+    /** The order code the payment is created with. */
+    public const REFERENCE = '1234567890123456';
 
     /**
      * @param  int  $capacity  seats on the departure, for the BKG-12 cases
@@ -52,12 +67,11 @@ final class WebhookScenario
         $tenant = Tenant::factory()->create();
 
         [$booking, $payment] = Tenancy::forTenant($tenant, static function () use ($capacity, $totalCents): array {
-            // The credential the verifier resolves the signing secret from. The
-            // payload carries `account`, which matches `external_account_id` —
-            // #79's deliberately not-tenant-first index, and the whole reason a
-            // webhook can be authenticated before tenancy exists.
+            // The credential the verifier resolves the key from. The payload
+            // carries `EventData.SourceCode`, which matches
+            // `external_account_id`.
             IntegrationCredential::factory()
-                ->forProvider(IntegrationProvider::Stripe)
+                ->forProvider(IntegrationProvider::Viva)
                 ->live()
                 ->verified()
                 ->default()
@@ -88,7 +102,7 @@ final class WebhookScenario
             $payment = Payment::factory()->pending()->create([
                 'booking_id' => $booking->getKey(),
                 'amount_cents' => $totalCents,
-                'gateway' => PaymentGatewayName::Stripe,
+                'gateway' => PaymentGatewayName::Viva,
                 'gateway_ref' => self::REFERENCE,
             ]);
 
@@ -99,7 +113,7 @@ final class WebhookScenario
     }
 
     /**
-     * The recorded responses both gateways give for a checkout session.
+     * The recorded responses the gateway gives for a checkout session.
      *
      * Every test that reaches a real gateway needs these. Kept here rather than
      * copied per file because the one that forgets does not fail loudly — it
@@ -119,56 +133,86 @@ final class WebhookScenario
             '*accounts*/connect/token' => Http::response(['access_token' => 'tok_test', 'expires_in' => 3600]),
             '*/checkout/v2/orders' => Http::response(['orderCode' => 1234567890123456]),
             '*/api/transactions/*' => Http::response(['TransactionId' => 'viva_re_test']),
-
-            // Stripe: a session id and a hosted URL.
-            '*/v1/checkout/sessions' => Http::response([
-                'id' => 'cs_test_a1b2c3',
-                'url' => 'https://checkout.stripe.test/pay/cs_test_a1b2c3',
-                'payment_intent' => 'pi_test_a1b2c3',
-            ]),
-            '*/v1/refunds' => Http::response(['id' => 're_test_a1b2c3']),
         ]);
     }
 
     /**
-     * A Stripe success payload for the scenario's payment.
+     * A Viva success payload for the scenario's payment.
+     *
+     * `EventTypeId` 1796 is a successful transaction and 1798 a failed one —
+     * numbers rather than words, which is the difference the error dictionary
+     * and the outcome `match` both accommodate.
      *
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
      */
-    public static function stripeSuccess(string $eventId = 'evt_test_1', array $overrides = []): array
+    public static function gatewaySuccess(string $eventId = 'evt_test_1', array $overrides = []): array
     {
         return array_replace_recursive([
-            'id' => $eventId,
-            'type' => 'checkout.session.completed',
-            // Resolves the credential, and therefore the signing secret, with
-            // no tenant in context.
-            'account' => self::ACCOUNT,
-            'data' => ['object' => ['id' => self::REFERENCE]],
+            'EventTypeId' => 1796,
+            'EventData' => [
+                // Viva sends no event id of its own — the controller derives
+                // one from the order code and the event type. A test that wants
+                // two *different* events overrides the order code rather than
+                // an id, which is the real shape of the idempotency question.
+                'OrderCode' => self::REFERENCE,
+                // Resolves the credential, and therefore the verification key,
+                // with no tenant in context.
+                'SourceCode' => self::ACCOUNT,
+                'TransactionId' => $eventId,
+            ],
         ], $overrides);
     }
 
     /**
-     * A genuine signature over the exact body being sent.
+     * A failed-transaction payload.
      *
-     * `{timestamp}.{payload}` HMAC-SHA256, which is Stripe's scheme. The
-     * timestamp is *now* by default; a test that wants to prove the replay
-     * window passes an old one.
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    public static function gatewayFailure(string $eventId = 'evt_failed', array $overrides = []): array
+    {
+        return self::gatewaySuccess($eventId, array_replace_recursive([
+            'EventTypeId' => 1798,
+        ], $overrides));
+    }
+
+    /**
+     * The `event_id` the controller will derive from this payload.
+     *
+     * Viva sends no event id, so `GatewayWebhookController::eventIdFor()` builds
+     * one from the order code and the event type. A test that wants to find its
+     * own row has to ask the same question the controller asked — looking up a
+     * label the payload merely *carried* finds nothing, which fails as
+     * `ModelNotFoundException` and reads as a broken endpoint rather than as a
+     * test looking in the wrong place.
+     *
+     * Duplicated from the controller on purpose: a test that imported the
+     * production helper would pass even if that helper started returning a
+     * constant.
      *
      * @param  array<string, mixed>  $payload
+     */
+    public static function derivedEventId(array $payload): string
+    {
+        return implode(':', array_filter([
+            (string) data_get($payload, 'EventData.OrderCode', ''),
+            (string) ($payload['EventTypeId'] ?? ''),
+        ]));
+    }
+
+    /**
+     * The header a genuine Viva callback carries.
+     *
+     * There is no body signature to compute: Viva presents the verification key
+     * the receiver already holds, and the check is a constant-time comparison.
+     * A test that wants a refusal passes a different secret.
+     *
+     * @param  array<string, mixed>  $payload  unused; kept so call sites read as they did
      * @return array<string, string>
      */
-    public static function signedStripeHeaders(
-        array $payload,
-        string $secret = self::SECRET,
-        ?int $timestamp = null,
-    ): array {
-        $timestamp ??= time();
-        $body = (string) json_encode($payload);
-
-        return [
-            'Stripe-Signature' => 't=' . $timestamp
-                . ',v1=' . hash_hmac('sha256', $timestamp . '.' . $body, $secret),
-        ];
+    public static function verifiedHeaders(array $payload = [], string $secret = self::SECRET): array
+    {
+        return ['X-Viva-Verification' => $secret];
     }
 }

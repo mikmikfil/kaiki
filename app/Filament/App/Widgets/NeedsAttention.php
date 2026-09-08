@@ -38,7 +38,7 @@ class NeedsAttention extends Widget
 {
     protected static string $view = 'filament.app.widgets.needs-attention';
 
-    protected static ?int $sort = 2;
+    protected static ?int $sort = 3;
 
     protected int|string|array $columnSpan = 'full';
 

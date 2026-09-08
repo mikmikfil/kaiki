@@ -26,7 +26,9 @@ use App\Support\Locale\LocaleResolver;
 /** @return list<PaymentGatewayName> */
 function dictionaryGateways(): array
 {
-    return [PaymentGatewayName::Stripe, PaymentGatewayName::Viva];
+    // One external gateway. Still a list, because the dictionaries are per
+    // gateway and the next one is an entry rather than a rewrite.
+    return [PaymentGatewayName::Viva];
 }
 
 it('has both languages and both audiences for every code it knows', function (): void {
@@ -93,21 +95,21 @@ it('gives an operator something different from what it gives a guest', function 
     expect($identical)->toBe([], "one sentence serving both audiences:\n" . implode("\n", $identical));
 })->group('fast');
 
-it('names the gateway in the operator line, because an operator may run both', function (): void {
-    // An operator with Viva and Stripe configured reads a failure feed
-    // containing both. "The card was declined" without a gateway is a message
-    // they cannot trace back to a dashboard.
+it('names the gateway in the operator line, so a failure can be traced back', function (): void {
+    // "The card was declined" without a gateway named is a message an operator
+    // cannot trace back to a dashboard — and it stays true with one gateway,
+    // because the feed also carries myDATA and SMS failures beside it.
     foreach (dictionaryGateways() as $gateway) {
         foreach (GatewayErrorDictionary::codesFor($gateway) as $code) {
             $message = GatewayErrorDictionary::describe($gateway, $code);
 
-            expect($message->operatorEn)->toContain($gateway === PaymentGatewayName::Stripe ? 'Stripe' : 'Viva');
+            expect($message->operatorEn)->toContain('Viva');
         }
     }
 })->group('fast');
 
 it('degrades an unmapped code in both directions at once', function (): void {
-    $message = GatewayErrorDictionary::describe(PaymentGatewayName::Stripe, 'brand_new_code_2027');
+    $message = GatewayErrorDictionary::describe(PaymentGatewayName::Viva, 'brand_new_code_2027');
 
     expect($message->isUnmapped)->toBeTrue()
         // Never nothing, and never the code.

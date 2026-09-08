@@ -43,19 +43,6 @@ return [
         'unmapped' => 'The payment provider returned an error code we do not recognise (:code). The guest was shown a general message. Please send us this code if it keeps happening.',
         'unreachable' => 'We could not reach :gateway at all. This is usually temporary; if it continues, check their status page before changing anything.',
 
-        'stripe' => [
-            'card_declined' => 'Stripe: the bank declined the card. Nothing to fix on your side — the guest needs to use another card.',
-            'insufficient_funds' => 'Stripe: the card had insufficient funds. The guest needs to use another card.',
-            'expired_card' => 'Stripe: the card has expired.',
-            'incorrect_cvc' => 'Stripe: the security code did not match.',
-            'processing_error' => 'Stripe: the payment could not be processed. Usually temporary.',
-            'authentication_required' => 'Stripe: the bank asked for 3-D Secure and the guest did not complete it.',
-            'session_expired' => 'Stripe: the checkout session expired before the guest paid.',
-            'api_key_expired' => 'Stripe: your secret key was rejected. Check the Integrations page — the key may have been rotated or revoked in your Stripe dashboard.',
-            'amount_too_small' => 'Stripe: the amount is below the minimum Stripe accepts for this currency.',
-            'charge_already_refunded' => 'Stripe: this charge has already been refunded in full.',
-        ],
-
         'viva' => [
             'success_with_error' => 'Viva: the order completed but reported an error. Check the transaction in your Viva dashboard before treating it as paid.',
             'declined' => 'Viva: the bank declined the card. The guest needs to use another card.',

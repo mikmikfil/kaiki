@@ -278,7 +278,6 @@ return [
     */
     'integration_provider' => [
         'viva' => ['label' => 'Viva Wallet'],
-        'stripe' => ['label' => 'Stripe'],
         'mydata' => ['label' => 'myDATA (ΑΑΔΕ)'],
         'apifon' => ['label' => 'Apifon'],
         'yuboto' => ['label' => 'Yuboto'],
@@ -412,7 +411,6 @@ return [
     */
     'payment_gateway_name' => [
         'viva' => ['label' => 'Viva Wallet'],
-        'stripe' => ['label' => 'Stripe'],
         'cash' => ['label' => 'Μετρητά'],
         'bank_transfer' => ['label' => 'Τραπεζικό έμβασμα'],
     ],

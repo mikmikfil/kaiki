@@ -49,9 +49,12 @@ it('gives every provider the fields it actually needs', function (): void {
     }
 })->group('fast');
 
-it('only treats the two gateways as competing for a default', function (): void {
+it('only treats a payment gateway as competing for a default', function (): void {
     expect(IntegrationProvider::paymentGateways())
-        ->toBe([IntegrationProvider::Viva, IntegrationProvider::Stripe]);
+        // One payment gateway. The list shape is what matters — a provider
+        // that is not a gateway must never appear, or "default" would be a flag
+        // an email provider could claim.
+        ->toBe([IntegrationProvider::Viva]);
 })->group('fast');
 
 it('records which providers can be verified, so the gap stays visible', function (): void {
@@ -65,7 +68,7 @@ it('records which providers can be verified, so the gap stays visible', function
 })->group('fast');
 
 it('names an external account field only where the provider puts one in a webhook', function (): void {
-    expect(IntegrationProvider::Stripe->externalAccountField())->toBe('account_id')
+    expect(IntegrationProvider::Viva->externalAccountField())->toBe('source_code')
         ->and(IntegrationProvider::Viva->externalAccountField())->toBe('source_code')
         // The SMS vendors and AADE do not call back at all, so there is nothing
         // to resolve and a column value would be noise.

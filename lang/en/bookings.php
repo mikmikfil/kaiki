@@ -103,7 +103,7 @@ return [
             'method' => 'Paid by',
             // BKG-33, and the second half is what an operator wants to know:
             // this money never appears in a gateway statement.
-            'help' => 'Cash and bank transfer are recorded here and never go through a card provider, so they will not appear in your Viva or Stripe statement.',
+            'help' => 'Cash and bank transfer are recorded here and never go through a card provider, so they will not appear in your Viva statement.',
             'override_capacity' => 'Allow more people than this departure has room for',
             'override_capacity_help' => 'Only for a departure you are deliberately overselling. Your reason is recorded in the activity log. The vessel’s licensed limit still applies and cannot be exceeded.',
             'capacity_reason' => 'Why',

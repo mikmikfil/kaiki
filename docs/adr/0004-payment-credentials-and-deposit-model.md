@@ -5,6 +5,7 @@
 - Date: 2026-08-28
 - Deciders: product owner
 - Related: §2, §3 (Payments), §4 (Payment), §6 of `docs/BRIEF.md`; requirements PAY-1 … PAY-22, TOK-6
+- **Superseded in part by [ADR-0026](0026-one-payment-gateway-and-no-billing-provider.md) (2026-09-08):** the product owner removed Stripe, so `StripeCheckoutGateway` is gone and Viva is the only gateway. **Everything this ADR decided still holds** — the narrow four-method contract, per-operator encrypted credentials, and the deposit/balance model. What changed is the count of implementations, which is precisely the thing this ADR was written to make cheap to change. Not edited below: an accepted ADR is a record of what was decided, and rewriting it would hide that the second gateway ever existed.
 
 ## Context
 Guests pay the operator, never the platform (§1, FIXED). Each tenant therefore holds their own Viva Smart Checkout or Stripe Checkout credentials, which Kaiki must store, use server-side, and never expose to the widget or the WordPress plugin. Separately, a booking may be paid in full or by deposit with a balance link (§2, §6), which means one booking can produce two guest-facing payment sessions at different times, potentially months apart and possibly for a changed amount. Both decisions shape the `Payment` table, the webhook handlers and the `/b/{manage_token}` page. Blocks **M2**.

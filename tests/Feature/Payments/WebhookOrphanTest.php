@@ -54,14 +54,14 @@ beforeEach(function (): void {
 it('stores a verified webhook for an unknown payment and surfaces it', function (): void {
     WebhookScenario::make();
 
-    $payload = WebhookScenario::stripeSuccess('evt_orphan', [
-        'data' => ['object' => ['id' => 'cs_a_session_we_never_created']],
+    $payload = WebhookScenario::gatewaySuccess('evt_orphan', [
+        'EventData' => ['OrderCode' => '9999999999999999'],
     ]);
 
     // 2xx, because the gateway did nothing wrong and retrying would not help.
-    postJson('/webhooks/stripe', $payload, WebhookScenario::signedStripeHeaders($payload))->assertOk();
+    postJson('/webhooks/viva', $payload, WebhookScenario::verifiedHeaders($payload))->assertOk();
 
-    $event = GatewayWebhookEvent::query()->where('event_id', 'evt_orphan')->firstOrFail();
+    $event = GatewayWebhookEvent::query()->where('event_id', WebhookScenario::derivedEventId($payload))->firstOrFail();
 
     // `orphaned`, not `failed` and not `ignored`. `failed` would say something
     // went wrong when nothing did; `ignored` would say we looked and decided it
@@ -81,9 +81,9 @@ it('stores a verified webhook for an unknown payment and surfaces it', function 
 it('does not put an ignored event type in the feed', function (): void {
     WebhookScenario::make();
 
-    $payload = WebhookScenario::stripeSuccess('evt_noise', ['type' => 'invoice.paid']);
+    $payload = WebhookScenario::gatewaySuccess('evt_noise', ['EventTypeId' => 1799]);
 
-    postJson('/webhooks/stripe', $payload, WebhookScenario::signedStripeHeaders($payload))->assertOk();
+    postJson('/webhooks/viva', $payload, WebhookScenario::verifiedHeaders($payload))->assertOk();
 
     // The distinction the fifth status exists for: an event we do not act on
     // must not compete for attention with a payment nobody can match.
@@ -93,11 +93,11 @@ it('does not put an ignored event type in the feed', function (): void {
 it('backfills the tenant onto the event once the payment is matched', function (): void {
     [$tenant] = WebhookScenario::make();
 
-    $payload = WebhookScenario::stripeSuccess('evt_matched');
+    $payload = WebhookScenario::gatewaySuccess('evt_matched');
 
-    postJson('/webhooks/stripe', $payload, WebhookScenario::signedStripeHeaders($payload))->assertOk();
+    postJson('/webhooks/viva', $payload, WebhookScenario::verifiedHeaders($payload))->assertOk();
 
-    $event = GatewayWebhookEvent::query()->where('event_id', 'evt_matched')->firstOrFail();
+    $event = GatewayWebhookEvent::query()->where('event_id', WebhookScenario::derivedEventId($payload))->firstOrFail();
 
     // §2.7: *"backfilled once the payment is matched"*. The whole reason
     // `tenant_id` is nullable, and the reason this model is on the
@@ -112,11 +112,11 @@ it('backfills the tenant onto the event once the payment is matched', function (
 it('gives the seats back and re-holds them when a payment fails', function (): void {
     [$tenant, $booking] = WebhookScenario::make(capacity: 10);
 
-    $payload = WebhookScenario::stripeSuccess('evt_failed', [
-        'type' => 'payment_intent.payment_failed',
+    $payload = WebhookScenario::gatewaySuccess('evt_failed', [
+        'EventTypeId' => 1798,
     ]);
 
-    postJson('/webhooks/stripe', $payload, WebhookScenario::signedStripeHeaders($payload))->assertOk();
+    postJson('/webhooks/viva', $payload, WebhookScenario::verifiedHeaders($payload))->assertOk();
 
     Tenancy::forTenant($tenant, function () use ($booking): void {
         $booking->refresh();
@@ -157,11 +157,11 @@ it('expires the booking when the boat filled while the guest was failing to pay'
         Departure::query()->whereKey($booking->departure_id)->update(['seats_held' => 2]);
     });
 
-    $payload = WebhookScenario::stripeSuccess('evt_failed_full', [
-        'type' => 'payment_intent.payment_failed',
+    $payload = WebhookScenario::gatewaySuccess('evt_failed_full', [
+        'EventTypeId' => 1798,
     ]);
 
-    postJson('/webhooks/stripe', $payload, WebhookScenario::signedStripeHeaders($payload))->assertOk();
+    postJson('/webhooks/viva', $payload, WebhookScenario::verifiedHeaders($payload))->assertOk();
 
     Tenancy::forTenant($tenant, function () use ($booking): void {
         $booking->refresh();
@@ -177,15 +177,15 @@ it('expires the booking when the boat filled while the guest was failing to pay'
 it('does not undo a confirmation with a late failure webhook', function (): void {
     [$tenant, $booking] = WebhookScenario::make();
 
-    $success = WebhookScenario::stripeSuccess('evt_ok');
-    postJson('/webhooks/stripe', $success, WebhookScenario::signedStripeHeaders($success))->assertOk();
+    $success = WebhookScenario::gatewaySuccess('evt_ok');
+    postJson('/webhooks/viva', $success, WebhookScenario::verifiedHeaders($success))->assertOk();
 
     // A failure event arriving after the success — out of order delivery, which
     // both gateways can do.
-    $failure = WebhookScenario::stripeSuccess('evt_late_failure', [
-        'type' => 'payment_intent.payment_failed',
+    $failure = WebhookScenario::gatewaySuccess('evt_late_failure', [
+        'EventTypeId' => 1798,
     ]);
-    postJson('/webhooks/stripe', $failure, WebhookScenario::signedStripeHeaders($failure))->assertOk();
+    postJson('/webhooks/viva', $failure, WebhookScenario::verifiedHeaders($failure))->assertOk();
 
     Tenancy::forTenant($tenant, function () use ($booking): void {
         // Still confirmed. The guard is the booking's status, not the order the

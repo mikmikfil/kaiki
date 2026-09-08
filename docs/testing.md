@@ -145,7 +145,7 @@ migrations against the committed `mysql-schema.snapshot.sql`, and only CI has a
 MySQL 8 connection to regenerate it with. While CI is blocked it fails locally
 and there is nothing to fix in the code — see the CI row in `docs/BUILD-LOG.md`.
 
-**A real gateway.** Viva and Stripe are driven against recorded fixtures, and no
+**A real gateway.** Viva and Viva are driven against recorded fixtures, and no
 test in this repository makes a network call. Confirming that a real sandbox
 still behaves as the fixtures say is a manual verification on the roadmap, not a
 CI job: a suite that depends on a third party's sandbox being up is a suite that

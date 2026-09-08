@@ -7,7 +7,6 @@ namespace App\Domain\Payments\Support;
 use App\Contracts\PaymentGateway;
 use App\Domain\Integrations\Support\CredentialRepository;
 use App\Domain\Payments\Gateways\FakeGateway;
-use App\Domain\Payments\Gateways\StripeCheckoutGateway;
 use App\Domain\Payments\Gateways\VivaSmartCheckoutGateway;
 use App\Enums\CredentialEnvironment;
 use App\Enums\PaymentGatewayName;
@@ -18,7 +17,7 @@ use App\Models\Booking;
  *
  * ## The default is data, not configuration
  *
- * An operator with both Viva and Stripe picks one with `is_default` (#79), and
+ * An operator with more than one gateway picks with `is_default` (#79), and
  * an operator with exactly one was never asked — {@see CredentialRepository::defaultPaymentGateway()}
  * handles both, and refusing to take a sale over a flag nobody was shown would
  * be absurd.
@@ -45,7 +44,6 @@ final class GatewayResolver
         private readonly CredentialRepository $credentials,
         private readonly FakeGateway $fake,
         private readonly VivaSmartCheckoutGateway $viva,
-        private readonly StripeCheckoutGateway $stripe,
     ) {}
 
     /**
@@ -66,8 +64,10 @@ final class GatewayResolver
             return $environment->isTest() ? $this->fake : null;
         }
 
+        // One external gateway today. The match stays a match rather than a
+        // constant so that adding a second is a case, which is the property
+        // ADR-0004 bought with the interface.
         return $this->named(match ($credential->provider->value) {
-            'stripe' => PaymentGatewayName::Stripe,
             default => PaymentGatewayName::Viva,
         });
     }
@@ -76,7 +76,6 @@ final class GatewayResolver
     public function named(PaymentGatewayName $gateway): PaymentGateway
     {
         return match ($gateway) {
-            PaymentGatewayName::Stripe => $this->stripe,
             PaymentGatewayName::Viva => $this->viva,
             // Cash and bank transfer never call anything (BKG-33). They reach
             // here only through a programming error, and the fake is the

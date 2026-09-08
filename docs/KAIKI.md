@@ -106,7 +106,7 @@ Three product commitments follow from that and shape everything below:
 - Availability engine with buffers, DST, lead times, midnight-spanning trips
 - Pricing engine with seasons, age bands, extras, vouchers, VAT snapshots
 - Booking lifecycle: draft → hold → confirmed → completed / cancelled / expired
-- Payments: Viva Smart Checkout and Stripe, deposit + balance, refunds, webhooks
+- Payments: Viva Smart Checkout, deposit + balance, refunds, webhooks
 - Quotes and enquiries (the charter sales path)
 - Four tokenised guest pages; e-ticket PDF; check-in
 - Notifications: email (Postmark), SMS, reminders, quiet hours
@@ -143,7 +143,7 @@ multi-tenant user membership (one user belongs to exactly one operator — ADR-0
 | Formatting | **Pint** | `declare_strict_types`, `strict_comparison`, sorted imports |
 | Widget | **Preact + TypeScript + Vite** | ADR-0011 |
 | PDF | **Chromium via Puppeteer** | e-ticket, invoice, ναυλοσύμφωνο |
-| Payments | **Viva Smart Checkout**, **Stripe** | one `PaymentGateway` contract |
+| Payments | **Viva Smart Checkout** | one `PaymentGateway` contract; a second gateway is a class (ADR-0004, ADR-0026) |
 | Email | **Postmark** | |
 | API docs | **Scramble** + a hand-written OpenAPI 3.1 in `docs/api.md` | ADR-0026 |
 
@@ -329,7 +329,7 @@ gemi_number, address_line1, address_line2, city, postcode, country, phone, email
 timezone, default_locale, supported_locales, currency, plan, status, trial_ends_at,
 custom_domain, custom_domain_verified_at, hosted_page_enabled, is_sandbox,
 turnaround_buffer_minutes, guest_document_retention_days, auto_issue_invoice,
-settings, stripe_id, pm_type, pm_last_four, balance_due_days_before_departure,
+settings, balance_due_days_before_departure,
 weather_choice_default, timestamps, deleted_at`
 
 **`tenant_domains`** — `hostname, status, verification_token, verified_at,
@@ -718,7 +718,7 @@ on per tenant once real behaviour is observed.
 ### The contract
 
 One `PaymentGateway` interface, two implementations: **Viva Smart Checkout** and
-**Stripe**. Credentials live per operator in `integration_credentials`, encrypted,
+Credentials live per operator in `integration_credentials`, encrypted,
 per `environment` (`live` | `test`). There is no external secret store in MVP
 (ADR-0004, Option A); the residual risk is handled by encrypting backups with a key
 separate from `APP_KEY`, keeping `APP_KEY` out of the backup set, and never logging
@@ -907,7 +907,7 @@ Built per response, and the useful assertions about it are about **absence**:
   policy that always allowed `fonts.gstatic.com` would make that requirement
   decorative and would be wrong for the majority who never pick one;
 - **only the gateway the operator has connected** is named in `form-action`. An
-  operator on Viva has no reason for a policy that admits Stripe.
+  operator on Viva has no reason for a policy that admits anything else.
 
 Plus `X-Content-Type-Options: nosniff`, a `Referrer-Policy`, `frame-ancestors 'none'`,
 `object-src 'none'` — and **no `X-Robots-Tag`**, because unlike the token pages a
@@ -1076,7 +1076,7 @@ any reduced island regime. `NoHardcodedVatRateTest` enforces this.
 
 ## 23. The SaaS layer
 
-- **Cashier** subscriptions, plans, trial, dunning.
+- Subscriptions, plans, trial, dunning — **blocked: no billing provider (ADR-0026)**.
 - **Read-only mode** on lapse (§5).
 - **Super-admin panel** at `/admin`: tenants, plans, impersonation (audited),
   feature flags via **Pennant**, the platform `vat_rates` table, and the
@@ -1124,7 +1124,7 @@ incomplete.
 | 3 | **First vessel** | `vessels`: name, type, registration number, `capacity_max`, home port, `turnaround_buffer_minutes` (+ a `ports` row if none exists) | required before a product |
 | 4 | **First product** | `products`: mode (per-seat / per-vessel), title, duration, meeting point, min/max pax, cancellation policy, **`vat_rate_id`** | VAT rate required before myDATA can activate (MYD-16) |
 | 5 | **Pricing** | a `season` (or the default all-year one), a `rate_plan`, `age_bands`, `rate_plan_prices`, the deposit rule | required before the product can be sold |
-| 6 | **Payment gateway** | `integration_credentials` for Viva or Stripe, `environment = test` first; a "verify" button that makes a real test call and sets `verified_at` | required before checkout |
+| 6 | **Payment gateway** | `integration_credentials` for Viva, `environment = test` first; a "verify" button that makes a real test call and sets `verified_at` | required before checkout |
 | 7 | **Branding** | `brand_profiles`: logo, colours, font, button radius; live contrast warnings | skippable — the platform defaults are usable |
 | 8 | **Embed & test booking** | shows the widget snippet, the hosted-page URL and the WordPress plugin download; then **walks the operator through one real booking in sandbox mode** end-to-end, flagged `is_test` | the completion event |
 
@@ -1441,12 +1441,12 @@ it to a host and constrain the parameter.
 | --- | --- | --- |
 | **M0** Foundation | tenancy, resolution, CI, Filament panels, roles, API keys, OpenAPI skeleton | ✅ complete |
 | **M1** Catalogue & availability | vessels, ports, products, age bands, seasons, rate plans, extras, policies, schedule rules, departures, blocks, the availability service, the public read API | ✅ complete |
-| **M2** Booking & payments | booking aggregate, holds, pricing snapshot, vouchers, gateway contract, Viva, Stripe, webhooks, deposit/balance, quotes, enquiries, the four token pages, notifications, e-ticket, check-in | ✅ complete (11 issues, #79–#89) |
+| **M2** Booking & payments | booking aggregate, holds, pricing snapshot, vouchers, gateway contract, Viva, webhooks, deposit/balance, quotes, enquiries, the four token pages, notifications, e-ticket, check-in | ✅ complete (11 issues, #79–#89) |
 | **M3** Widget & hosted pages | hosted pages first, then the widget | 🔵 in progress |
 | **M4** WordPress plugin | | ⬜ |
 | **M5** Operations | dashboard, calendar, manual bookings, weather workflow, manifests, iCal, webhooks, exports | ⬜ |
 | **M6** Greek compliance | ναυλοσύμφωνο, myDATA, invoices, GDPR tooling | ⬜ |
-| **M7** SaaS | Cashier, super-admin, **the onboarding wizard**, sandbox, importer, docs site | ⬜ |
+| **M7** SaaS | billing (**provider not chosen**), super-admin, **the onboarding wizard**, sandbox, importer, docs site | ⬜ |
 | **M8** Launch hardening | load test, security review, Sentry + Pulse, backups and a restore drill, status page, legal pages | ⬜ |
 
 **Nothing closes** until: acceptance criteria pass, `security-reviewer` has run,

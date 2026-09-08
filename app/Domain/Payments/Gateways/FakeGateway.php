@@ -33,7 +33,7 @@ use Illuminate\Support\Str;
  * Which is the point. A fake that drifts from the real gateways is a fake that
  * passes while production does not — and since this one carries the concurrency
  * work, that drift would make AVL-44 a test of nothing. Running one shared
- * contract test against Viva, Stripe and this is what keeps it honest.
+ * contract test runs against Viva and this, which is what keeps it honest.
  *
  * ## It fails on demand, because the failure paths need exercising too
  *
@@ -88,7 +88,7 @@ final class FakeGateway implements PaymentGateway
             $code = $this->nextFailureCode;
             $this->nextFailureCode = null;
 
-            throw GatewayCallFailed::forCode(PaymentGatewayName::Stripe, $code);
+            throw GatewayCallFailed::forCode(PaymentGatewayName::Viva, $code);
         }
 
         $reference = 'fake_' . Str::lower(Str::random(24));
@@ -133,13 +133,13 @@ final class FakeGateway implements PaymentGateway
     }
 
     /**
-     * Borrows Stripe's dictionary rather than inventing one.
+     * Borrows the real gateway's dictionary rather than inventing one.
      *
-     * A third vocabulary would be a third thing to keep in step, and the codes
-     * a fake produces are only ever the ones a test asked for.
+     * A second vocabulary would be a second thing to keep in step, and the
+     * codes a fake produces are only ever the ones a test asked for.
      */
     public function describeError(string $code): TranslatableMessage
     {
-        return GatewayErrorDictionary::describe(PaymentGatewayName::Stripe, $code);
+        return GatewayErrorDictionary::describe(PaymentGatewayName::Viva, $code);
     }
 }

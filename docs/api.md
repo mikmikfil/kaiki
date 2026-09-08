@@ -1247,7 +1247,7 @@ paths:
       summary: Start checkout and get a gateway redirect URL
       description: |
         Creates a `payments` row and a gateway session with the **operator's own**
-        credentials — Viva Smart Checkout or Stripe Checkout — and returns the URL to
+        credentials — Viva Smart Checkout — and returns the URL to
         redirect the guest to. Kaiki never handles card data and never touches guest money.
 
         `kind` selects what is being paid:
@@ -1262,7 +1262,7 @@ paths:
         redirect can legitimately take minutes.
 
         Confirmation happens **only** through the verified gateway webhook
-        (`POST /webhooks/viva`, `POST /webhooks/stripe`, §7). No public endpoint can
+        (`POST /webhooks/viva`, §7). No public endpoint can
         confirm a booking.
       tags: [Bookings]
       security:
@@ -3442,7 +3442,7 @@ components:
           description: '`balance` requires a `manage_token` and a `confirmed` booking.'
         gateway:
           type: [string, "null"]
-          enum: [viva, stripe, null]
+          enum: [viva, null]
           description: Which of the operator's configured gateways to use. Null picks the operator's default.
         return_url:
           type: string
@@ -3465,7 +3465,7 @@ components:
       properties:
         payment_uuid: { type: string, format: uuid }
         booking_uuid: { type: string, format: uuid }
-        gateway: { type: string, enum: [viva, stripe] }
+        gateway: { type: string, enum: [viva] }
         kind: { type: string, enum: [full, deposit, balance] }
         amount_cents: { type: integer, example: 4275 }
         amount_formatted: { type: string, example: 42,75 € }
@@ -3665,7 +3665,7 @@ components:
       properties:
         return_url: { type: [string, "null"], format: uri, description: Overrides the hosted-page default the operator's quote email points at. }
         cancel_url: { type: [string, "null"], format: uri }
-        gateway: { type: [string, "null"], enum: [viva, stripe, null] }
+        gateway: { type: [string, "null"], enum: [viva, null] }
         kind: { type: string, enum: [full, deposit], default: deposit, description: Whether the guest pays the deposit or the whole amount now. }
         terms_accepted: { type: boolean }
       additionalProperties: false
@@ -4664,7 +4664,7 @@ components:
       summary: Accept and pay the deposit
       value:
         kind: deposit
-        gateway: stripe
+        gateway: viva
         return_url: 'https://book.kaiki.app/q/4c8a1f9e2b7d0356ea41c9f8b2d5e70a3c6b1d94/thank-you'
         terms_accepted: true
 
@@ -4702,12 +4702,12 @@ components:
           checkout:
             payment_uuid: 7b8c9d0e-1f2a-4b3c-8d4e-5f6a7b8c9d0e
             booking_uuid: 0a1b2c3d-4e5f-4061-8273-849506172839
-            gateway: stripe
+            gateway: viva
             kind: deposit
             amount_cents: 33000
             amount_formatted: 330,00 €
             currency: EUR
-            redirect_url: 'https://checkout.stripe.com/c/pay/cs_test_a1b2c3'
+            redirect_url: 'https://www.vivapayments.com/web/checkout?ref=1234567890123456'
             expires_at: "2026-07-10T08:11:03Z"
             hold_expires_at: "2026-07-10T07:56:03Z"
             is_test: false
@@ -5336,13 +5336,11 @@ Origin: https://aegeancruises.gr
 | Endpoint | Caller | Purpose |
 |---|---|---|
 | `POST /webhooks/viva` | Viva Wallet | Payment created / refunded / failed |
-| `POST /webhooks/stripe` | Stripe | `checkout.session.completed`, `charge.refunded`, `payment_intent.payment_failed` |
 
 ### 7.1 Signature verification
 
 Both endpoints reject anything they cannot cryptographically attribute to the gateway, **before** parsing the body:
 
-- **Stripe** — verify the `Stripe-Signature` header with the operator's own endpoint signing secret using `Stripe\Webhook::constructEvent`. Enforce a **5-minute** timestamp tolerance. Reject on failure with `400` and an empty body.
 - **Viva** — Viva Smart Checkout webhooks are verified by matching the delivered payload against a fresh, authenticated lookup of the order/transaction using the operator's own Viva credentials, plus the `Authorization` verification-key handshake Viva requires at endpoint registration. **OPEN — the exact Viva verification mechanism.** This is a factual question about a third party, not an architecture fork, so it gets no ADR: ADR-0004 (Option A + D) settles credential storage and the two-session deposit model, and PAY-5 fixes that webhooks are verified and idempotent, but neither states *how* Viva's handshake works. Viva's scheme has changed across API generations and MUST be confirmed against current official documentation before implementation — the `payments-integrations` agent is required to `WebFetch` the live docs rather than rely on memory. Provisional default, in force: verification-key handshake **plus** a mandatory server-side re-fetch of the transaction under the operator's own credentials, treating the webhook purely as a "something changed" signal and never as the source of the amount. The re-fetch requirement stands regardless of what the handshake turns out to be.
 - **Never** trust an amount, a currency, a booking reference or a status from the webhook body alone. Every one of them is re-read from the gateway, or from our own `payments` row, before any money logic runs.
 - Credentials live in `integration_credentials.credentials` (`encrypted:array`) per tenant, per gateway, per environment. Test-mode events verify against test credentials only.

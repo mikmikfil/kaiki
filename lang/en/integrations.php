@@ -47,7 +47,7 @@ return [
         ],
         'is_default' => [
             'label' => 'Use this one at checkout',
-            'help' => 'Only matters if you have set up both Viva and Stripe. Guests will pay through the one you choose here.',
+            'help' => 'Only matters if you have set up more than one payment provider. Guests will pay through the one you choose here.',
         ],
         'is_active' => [
             'label' => 'Switched on',

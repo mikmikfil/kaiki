@@ -72,7 +72,7 @@ Every requirement has a stable ID of the form `PREFIX-N`. IDs are permanent: the
 - **VIS-1 (FIXED)** Kaiki is a hosted booking engine plus operator back-office for boat operators running shared cruises, day trips and private charters, sold as a multi-tenant SaaS. Positioning: a booking engine for boats in the same shape as WebHotelier for hotels.
 - **VIS-2 (FIXED)** Tenants are boat operators, Greece first, then the EU. Typical tenant: 1–10 vessels.
 - **VIS-3 (FIXED)** End users are guests booking from the operator website, a hosted Kaiki page, or later from resellers and OTAs. Guests never create accounts.
-- **VIS-4 (FIXED)** Business model: monthly subscription per operator through Stripe with Laravel Cashier, 14-day trial, plans differentiated by number of vessels and features.
+- **VIS-4 (FIXED, provider withdrawn)** Business model: monthly subscription per operator, 14-day trial, plans differentiated by number of vessels and features. ~~through Stripe with Laravel Cashier~~ — **the provider was removed by ADR-0026 and none has been chosen.** The model is unchanged; the mechanism is an open decision blocking M7.
 - **VIS-5 (FIXED)** **Kaiki never touches guest money.** Guests pay the operator directly through the operator own gateway credentials. This is an absolute constraint that shapes §PAY entirely.
 - **VIS-6** The differentiators the product must actually deliver, in priority order: (a) per-seat and per-vessel booking sharing one vessel calendar; (b) post-booking passenger manifest feeding the Λιμεναρχείο export; (c) built-in Greek compliance (manifest, ναυλοσύμφωνο, myDATA); (d) one-click weather-cancellation workflow; (e) migration from WooCommerce + YITH Booking; (f) white-label widget that looks native on the operator site.
 - **VIS-7** Every operator-facing and guest-facing surface is bilingual Greek and English from the first commit. Greek is the primary operator language; guest locale is per booking.
@@ -87,7 +87,7 @@ Every requirement has a stable ID of the form `PREFIX-N`. IDs are permanent: the
 - **SCP-2 (FIXED)** Catalogue: vessels, products (shared / private / quote), seasons and pricing, extras, age bands, cancellation policies.
 - **SCP-3 (FIXED)** Availability engine with vessel-level conflict resolution (§5).
 - **SCP-4 (FIXED)** Guest booking flow through an embeddable JS widget and a hosted booking page: instant book, request-a-quote, ask-a-question.
-- **SCP-5 (FIXED)** Payments through the operator own Viva Wallet (Smart Checkout) or Stripe (Checkout). Full payment or deposit, with balance links.
+- **SCP-5 (FIXED)** Payments through the operator own Viva Wallet (Smart Checkout). Full payment or deposit, with balance links. ~~or Stripe (Checkout)~~ — ADR-0026.
 - **SCP-6 (FIXED)** Post-booking guest-details link, manifest export (CSV and PDF), QR e-tickets, check-in.
 - **SCP-7 (FIXED)** Notifications: email in EL/EN, SMS through a pluggable provider (Apifon or Yuboto for Greece, Twilio fallback), reminders.
 - **SCP-8 (FIXED)** Weather and operator cancellations with refund, voucher or rebook. Vouchers have an expiry.
@@ -105,7 +105,7 @@ Design so they can be added later; do not build. Any pull request that implement
 - **OOS-2 (FIXED)** OTA channel manager (Viator, GetYourGuide, Bókun).
 - **OOS-3 (FIXED)** Bareboat rental, multi-day charters, damage deposits.
 - **OOS-4 (FIXED)** Marketplace or aggregator site.
-- **OOS-5 (FIXED)** Platform-collected payments (Stripe Connect).
+- **OOS-5 (FIXED)** Platform-collected payments of any kind. The platform never holds guest money.
 - **OOS-6 (FIXED)** Mobile applications. The back-office MUST instead be fully usable on a phone browser.
 - **OOS-7 (FIXED)** Reviews, waivers and e-signature, guest-purchased gift cards.
 - **OOS-8 (FIXED)** Multi-currency. EUR only, everywhere, including the importer.
@@ -118,7 +118,7 @@ These are the named extension points. MVP code MUST leave them clean; MVP code M
 - **EXT-1 (FIXED)** `App\Contracts\Channel` — an abstract channel interface with exactly one implementation, `IcalChannel`. Adding Viator/GetYourGuide/Bókun later must not require changing the availability or booking domains. The interface covers: push availability, pull bookings, map external product ids, acknowledge cancellations.
 - **EXT-2 (FIXED)** `laravel-pennant` feature flags for everything marked "later". MVP flags, all default off unless stated: `charter_agreement_custom_template`, `auto_cancel_overdue_balances`, `channel_manager`, `reseller_portal`, `reviews`, `hosted_page_custom_css` (on for Pro), `custom_domain` (on for Pro), `outbound_webhooks` (on for Pro).
 - **EXT-3** `App\Contracts\SmsGateway` — MVP implementations `ApifonGateway`, `TwilioGateway`, `NullGateway`. Adding Yuboto later is a new class and a config entry only.
-- **EXT-4** `App\Contracts\PaymentGateway` — MVP implementations `VivaSmartCheckoutGateway`, `StripeCheckoutGateway`. The contract is deliberately narrow (ADR-0004) so a third gateway is additive.
+- **EXT-4** `App\Contracts\PaymentGateway` — implementation `VivaSmartCheckoutGateway`. The contract is deliberately narrow (ADR-0004) so a second gateway is additive; ADR-0026 removed Stripe and deliberately left every plural shape in place.
 - **EXT-5** `App\Contracts\ImportSource` — MVP implementation `WooCommerceYithSource`. A future Bokun or CSV importer reuses the dry-run and mapping-review machinery.
 - **EXT-6** Multi-currency: all money columns are integer cents and every monetary value is handled through `brick/money` with an explicit currency, so introducing a second currency is a data and UI change, never an arithmetic change. No code may assume EUR beyond formatting defaults.
 - **EXT-7** Locales beyond EL and EN: no string may be hardcoded in any user-facing surface; adding `it` or `de` must be a lang-file plus widget-bundle addition only (§I18N).
@@ -143,8 +143,8 @@ These are the named extension points. MVP code MUST leave them clean; MVP code M
 | PDFs | `spatie/browsershot` (Chromium) with Blade templates. dompdf is forbidden. | **ARC-10 (FIXED)** |
 | Email | Postmark through Laravel Mail, per-operator from-name and reply-to, Blade plus MJML-compiled HTML, EL/EN | **ARC-11 (FIXED)** |
 | SMS | `App\Contracts\SmsGateway` with `ApifonGateway`, `TwilioGateway`, `NullGateway` | **ARC-12 (FIXED)** |
-| Payments | `App\Contracts\PaymentGateway` with `VivaSmartCheckoutGateway`, `StripeCheckoutGateway`; operator credentials encrypted at rest; webhooks verified and idempotent | **ARC-13 (FIXED)** |
-| SaaS billing | Laravel Cashier (Stripe) on the tenant model, platform Stripe account only | **ARC-14 (FIXED)** |
+| Payments | `App\Contracts\PaymentGateway` with `VivaSmartCheckoutGateway`; operator credentials encrypted at rest; webhooks verified and idempotent | **ARC-13 (FIXED)** |
+| SaaS billing | **No provider chosen** — ADR-0026 removed Cashier and its columns. Blocks M7. | **ARC-14 (superseded)** |
 | Infra | Hetzner VPS, Docker Compose (app, horizon, scheduler, mysql, redis, chromium), Caddy for TLS including on-demand certificates, Cloudflare in front | **ARC-15 (FIXED for production only** — see §13 and [ADR-0015](adr/0015-local-development-stack.md); Compose is **not** the local development environment) |
 | Testing | Pest, Playwright, PHPStan level 6 with Larastan, Pint | **ARC-16 (FIXED)** |
 | Monitoring | Sentry, Horizon dashboard, Laravel Pulse | **ARC-17 (FIXED)** |
@@ -153,7 +153,7 @@ These are the named extension points. MVP code MUST leave them clean; MVP code M
 - **ARC-19** No package outside the table above and the approved list in §3.2 may be added without an accepted ADR. This applies to `composer require` and to runtime `npm` dependencies; build-time-only dev dependencies (Vite plugins, MJML, Playwright, ESLint) are exempt.
 
 ### 3.2 Approved package list
-- **ARC-20** The packages implied by §3.1: `laravel/framework`, `stancl/tenancy`, `filament/filament`, `laravel/sanctum`, `laravel/horizon`, `laravel/pulse`, `laravel/cashier`, `laravel/pennant`, `dedoc/scramble`, `spatie/laravel-data`, `spatie/laravel-translatable`, `spatie/browsershot`, `brick/money`, `sentry/sentry-laravel`, `stripe/stripe-php`.
+- **ARC-20** The packages implied by §3.1: `laravel/framework`, `stancl/tenancy`, `filament/filament`, `laravel/sanctum`, `laravel/horizon`, `laravel/pulse`, `laravel/pennant`, `dedoc/scramble`, `spatie/laravel-data`, `spatie/laravel-translatable`, `spatie/browsershot`, `brick/money`, `sentry/sentry-laravel`. (`laravel/cashier` and `stripe/stripe-php` removed by ADR-0026.)
 - **ARC-21** The following packages are **approved as an amendment to the §3 stack table** and may be installed without a further ADR. Each is installed only at the moment it is first used, and the pull request that adds it MUST cite the requirement it serves. (per [ADR-0019](adr/0019-packages-beyond-section-3.md), Option A)
 
 | Package | Capability | Justified by |
@@ -550,8 +550,8 @@ The canonical state machine (allowed transitions, guards, columns) lives in `doc
 
 ### 6.7 Payments
 
-- **PAY-1 (FIXED)** Guests pay the operator through the operator own Viva Wallet Smart Checkout or Stripe Checkout credentials. The platform never holds guest money and never touches Stripe Connect.
-- **PAY-2 (FIXED)** Gateway integrations sit behind `App\Contracts\PaymentGateway` with implementations `VivaSmartCheckoutGateway` and `StripeCheckoutGateway`.
+- **PAY-1 (FIXED)** Guests pay the operator through the operator own Viva Wallet Smart Checkout credentials. The platform never holds guest money and never collects on an operator behalf.
+- **PAY-2 (FIXED)** Gateway integrations sit behind `App\Contracts\PaymentGateway` with implementation `VivaSmartCheckoutGateway`. A second is a class, not a refactor (ADR-0004, ADR-0026).
 - **PAY-3 (FIXED)** Operator credentials are encrypted at rest with the `encrypted` cast.
 - **PAY-4** Credential storage shape and the deposit/balance model (per [ADR-0004](adr/0004-payment-credentials-and-deposit-model.md), Options A and D):
   1. **Credential storage** — an `integration_credentials` table, one row per (`tenant_id`, `provider`, `environment`) where `environment` is `live` | `test`, holding an `encrypted`-cast credential JSON blob plus `public_config`, `is_default`, `is_active`, `verified_at`, `last_error` and an `encrypted` `webhook_secret`. This is the §3 mandate (PAY-3) with no new infrastructure; there is no external secret store and no per-tenant key separation in MVP. Residual risk is handled by encrypting backups with a key separate from `APP_KEY`, keeping `APP_KEY` out of the backup set, and never logging credentials (MYD-15, SEC-9). **Reconciled with `docs/data-model.md` §2.7 by #79** — ADR-0004 Option A illustrated the table as `payment_gateway_accounts` with a `gateway` discriminator and a `mode` of `live` | `sandbox`; the data-model table is a strict superset that also holds the myDATA, SMS and Postmark credentials, whose alternative is three more tables or a column group on `tenants` (a rebuild on SQLite, `docs/data-model.md` §0). The ADR's *decision* is unchanged. `sandbox` became `test` because `api_keys.environment` was already `live` | `test` and two vocabularies for one concept is how a query eventually asks the wrong one; PAY-11 and SAA-9 keep saying "sandbox mode" in prose, which is a mode and not a column value. The reason is recorded in `CHANGELOG.md` per `docs/api.md` §10 item 5.
@@ -777,7 +777,7 @@ The canonical state machine (allowed transitions, guards, columns) lives in `doc
 
 - **SAA-1 (FIXED)** Super-admin panel at `/admin`: tenants, plans, impersonation, feature flags, platform health, failed jobs, myDATA and gateway error feed, announcement banner.
 - **SAA-2** Impersonation is time-limited (default 60 minutes), audited (who, which tenant, when, why), and shows a persistent banner in the operator panel (TEN-7).
-- **SAA-3 (FIXED)** Subscriptions through Cashier. Plans: `Solo` (1 vessel), `Fleet` (up to 5 vessels), `Pro` (unlimited vessels plus custom domain plus webhooks).
+- **SAA-3 (FIXED, mechanism withdrawn)** Subscriptions. Plans: `Solo` (1 vessel), `Fleet` (up to 5 vessels), `Pro` (unlimited vessels plus custom domain plus webhooks). ~~through Cashier~~ — ADR-0026 removed the provider; the plans are unchanged, and **what an operator gets is unrelated to how they are charged for it**.
 - **SAA-4 (FIXED)** 14-day trial, card required at the end of the trial.
 - **SAA-5 (FIXED)** Dunning emails on failed payment.
 - **SAA-6 (FIXED)** Read-only mode when a subscription lapses: the widget keeps showing a contact-the-operator message.
@@ -1001,12 +1001,12 @@ Milestone content is fixed by §14 of the brief. The amendments below are forced
 - **MIL-1 (FIXED)** **M0 Foundation** — tenancy mode and `BelongsToTenant`, tenant resolution, CI, Filament panels and roles, ApiKeys resource, OpenAPI skeleton with Scramble.
   **Amendments:** M0.1 also scaffolds Laravel 12 from scratch (ARC-18); M0.2 becomes "production Docker Compose and Caddyfile, `.env.example` for the local SQLite stack, Composer and npm scripts instead of a Makefile" (ENV-3, ENV-4). Blocked by ADR-0001, ADR-0013, ADR-0014, ADR-0015; ADR-0010 is needed for the resolution middleware.
 - **MIL-2 (FIXED)** **M1 Catalogue and availability engine** — vessels, ports, brand profile; products with modes, age bands, translations; seasons, rate plans, extras, cancellation policies; schedule rules and departure generation; vessel blocks and the availability service with §5.1–5.3 including buffers, DST and midnight edge cases; public read API. Blocked by ADR-0002 (schema only), ADR-0008, ADR-0009, ADR-0016.
-- **MIL-3 (FIXED)** **M2 Booking and payments** — booking aggregate with draft, hold and expiry plus the concurrency test; pricing snapshot and vouchers; payment gateway contract, Viva, Stripe, webhooks, deposit and balance; quote and enquiry; the four token pages; notifications; e-ticket PDF and check-in. Blocked by ADR-0003 (form fields), ADR-0004, ADR-0005, ADR-0006, ADR-0007, ADR-0012 (schema), ADR-0017, ADR-0018, ADR-0019.
+- **MIL-3 (FIXED)** **M2 Booking and payments** — booking aggregate with draft, hold and expiry plus the concurrency test; pricing snapshot and vouchers; payment gateway contract, Viva, webhooks, deposit and balance; quote and enquiry; the four token pages; notifications; e-ticket PDF and check-in. Blocked by ADR-0003 (form fields), ADR-0004, ADR-0005, ADR-0006, ADR-0007, ADR-0012 (schema), ADR-0017, ADR-0018, ADR-0019.
 - **MIL-4 (FIXED)** **M3 Widget and hosted pages** — widget shell and mounts, hosted pages, custom domains and TLS, branding admin, Playwright end-to-end booking. Blocked by ADR-0010, ADR-0011.
 - **MIL-5 (FIXED)** **M4 WordPress plugin** — skeleton, settings, API client, shortcodes, blocks, Elementor widgets, SEO CPT sync, tests and release. **Amendment:** tests run against a WordPress URL from `.env`, not `wp-env` (WPP-15).
 - **MIL-6 (FIXED)** **M5 Operations** — dashboard and vessel calendar, manual bookings, weather cancellation workflow, manifest exports, iCal, outbound webhooks and CSV exports.
 - **MIL-7 (FIXED)** **M6 Greek compliance** — ναυλοσύμφωνο, myDATA client with ΑΛΠ/ΤΠΥ issuance, retries, cancellation invoices, the Greek error dictionary, invoice PDF with QR, and GDPR purge and data-subject tooling. Blocked by ADR-0002, ADR-0003, ADR-0012.
-- **MIL-8 (FIXED)** **M7 SaaS** — Cashier plans, trial, dunning, read-only mode; super-admin panel with impersonation and flags; onboarding wizard and sandbox mode; WooCommerce/YITH importer; docs site. Docs-site tooling needs its own ADR first.
+- **MIL-8 (FIXED)** **M7 SaaS** — subscription plans, trial, dunning, read-only mode (**blocked: no billing provider, ADR-0026**); super-admin panel with impersonation and flags; onboarding wizard and sandbox mode; WooCommerce/YITH importer; docs site. Docs-site tooling needs its own ADR first.
 - **MIL-9 (FIXED)** **M8 Launch hardening** — load test, security review, Sentry and Pulse, backups and a restore drill, status page, and legal pages (ToS, DPA, privacy) in EL and EN.
 - **MIL-10** No milestone closes until: all its acceptance criteria pass, `security-reviewer` has run, coverage on `app/Domain` is at or above 80%, `docs/spec.md`, `docs/data-model.md` and `docs/api.md` reflect any contract change, and `CHANGELOG.md` has an entry.
 

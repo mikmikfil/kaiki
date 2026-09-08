@@ -818,12 +818,15 @@ return [
          *
          * Only the ones an operator has actually connected reach the policy —
          * an operator on Viva alone has no reason for a `form-action` that
-         * admits Stripe, and the narrower it is the less a stored-content bug
-         * could do with it.
+         * admits anything else, and the narrower it is the less a
+         * stored-content bug could do with it.
+         *
+         * Keyed rather than a single value so that a second gateway is an entry
+         * here, which is what `HostedPageHeaders::gatewayOrigins()` already
+         * expects to iterate.
          */
         'gateway_origins' => [
             'viva' => env('KAIKI_HOSTED_VIVA_ORIGIN', 'https://www.vivapayments.com'),
-            'stripe' => env('KAIKI_HOSTED_STRIPE_ORIGIN', 'https://checkout.stripe.com'),
         ],
 
     ],
@@ -879,7 +882,7 @@ return [
          *
          * Short, and deliberately so: this runs while a guest waits on a
          * checkout button, and AVL-46 forbids holding a row lock across it. Ten
-         * seconds is longer than either gateway's own p99 and short enough that
+         * seconds is longer than the gateway's own p99 and short enough that
          * a hung gateway is a message rather than a timed-out request.
          */
         'timeout_seconds' => (int) env('KAIKI_GATEWAY_TIMEOUT', 10),
@@ -888,20 +891,11 @@ return [
          * How far out of date a signed webhook may be, in seconds (PAY-6).
          *
          * A valid signature over an old payload is a **replay**, and a verifier
-         * that only checks the HMAC accepts one forever. Five minutes is
-         * Stripe's own recommendation and is generous enough for clock skew
-         * between their servers and a Hetzner box.
+         * that only checks the HMAC accepts one forever. Five minutes is the
+         * industry-standard tolerance and is generous enough for clock skew
+         * between a gateway's servers and a Hetzner box.
          */
         'webhook_tolerance_seconds' => (int) env('KAIKI_WEBHOOK_TOLERANCE', 300),
-
-        'stripe' => [
-            /*
-             * One host for both environments — Stripe distinguishes live from
-             * test by the **key**, which is why a sandbox mix-up there is a
-             * rejected credential rather than a wrong server.
-             */
-            'base_uri' => env('KAIKI_STRIPE_BASE_URI', 'https://api.stripe.com'),
-        ],
 
         'viva' => [
             /*

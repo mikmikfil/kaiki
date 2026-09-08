@@ -12,7 +12,7 @@ use App\Enums\IntegrationProvider;
  *
  * ## Why a registry and not a `match` in the Action
  *
- * Because the seven providers arrive across four milestones. Viva and Stripe
+ * Because the providers arrive across four milestones. Viva
  * come with the gateway contract, Postmark and the SMS vendors with the
  * notification issue, myDATA in M6 — and a `match` in the Action would be a
  * file three separate issues have to remember to edit. A registry is a line in

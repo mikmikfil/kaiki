@@ -56,14 +56,14 @@ it('confirms once when the same event is delivered twice', function (): void {
 
     [$tenant, $booking] = WebhookScenario::make();
 
-    $payload = WebhookScenario::stripeSuccess();
-    $headers = WebhookScenario::signedStripeHeaders($payload);
+    $payload = WebhookScenario::gatewaySuccess();
+    $headers = WebhookScenario::verifiedHeaders($payload);
 
-    postJson('/webhooks/stripe', $payload, $headers)->assertOk()->assertJson(['received' => true]);
+    postJson('/webhooks/viva', $payload, $headers)->assertOk()->assertJson(['received' => true]);
 
     // The retry. Same event id, and the unique index is what settles it —
     // §2.7: respond 200, do nothing.
-    postJson('/webhooks/stripe', $payload, $headers)
+    postJson('/webhooks/viva', $payload, $headers)
         ->assertOk()
         ->assertJson(['received' => true, 'duplicate' => true]);
 
@@ -81,14 +81,14 @@ it('confirms once when the same event is delivered twice', function (): void {
 it('is a no-op when a webhook is replayed after confirmation', function (): void {
     [$tenant, $booking] = WebhookScenario::make();
 
-    postJson('/webhooks/stripe', $p = WebhookScenario::stripeSuccess('evt_first'), WebhookScenario::signedStripeHeaders($p))->assertOk();
+    postJson('/webhooks/viva', $p = WebhookScenario::gatewaySuccess('evt_first'), WebhookScenario::verifiedHeaders($p))->assertOk();
 
     $confirmedAt = Tenancy::forTenant($tenant, fn () => $booking->refresh()->confirmed_at);
 
     // A *different* event id for the same session — which is what a gateway
     // sends when it re-fires an old event from a dashboard. It gets past the
     // unique index, so the second guard is the booking's own status (AVL-47).
-    postJson('/webhooks/stripe', $p = WebhookScenario::stripeSuccess('evt_second'), WebhookScenario::signedStripeHeaders($p))->assertOk();
+    postJson('/webhooks/viva', $p = WebhookScenario::gatewaySuccess('evt_second'), WebhookScenario::verifiedHeaders($p))->assertOk();
 
     Tenancy::forTenant($tenant, function () use ($booking, $confirmedAt): void {
         $booking->refresh();
@@ -103,7 +103,7 @@ it('is a no-op when a webhook is replayed after confirmation', function (): void
 it('confirms the booking and settles the money, per BKG-11', function (): void {
     [$tenant, $booking, $payment] = WebhookScenario::make();
 
-    postJson('/webhooks/stripe', $p = WebhookScenario::stripeSuccess(), WebhookScenario::signedStripeHeaders($p))->assertOk();
+    postJson('/webhooks/viva', $p = WebhookScenario::gatewaySuccess(), WebhookScenario::verifiedHeaders($p))->assertOk();
 
     Tenancy::forTenant($tenant, function () use ($booking, $payment): void {
         $booking->refresh();
@@ -125,9 +125,9 @@ it('writes the event row before the money logic, so a failure is replayable', fu
 
     // The payment is deleted after the row is written but before the job runs,
     // so the job cannot match it. The event must still exist.
-    postJson('/webhooks/stripe', $p = WebhookScenario::stripeSuccess('evt_orphan_after_write'), WebhookScenario::signedStripeHeaders($p))->assertOk();
+    postJson('/webhooks/viva', $p = WebhookScenario::gatewaySuccess('evt_orphan_after_write'), WebhookScenario::verifiedHeaders($p))->assertOk();
 
-    $event = GatewayWebhookEvent::query()->where('event_id', 'evt_orphan_after_write')->firstOrFail();
+    $event = GatewayWebhookEvent::query()->where('event_id', WebhookScenario::derivedEventId($p))->firstOrFail();
 
     // §2.7's reason for the table existing at all: written first, in its own
     // transaction, so a payload that later turns out to be unprocessable is
@@ -140,11 +140,11 @@ it('writes the event row before the money logic, so a failure is replayable', fu
 it('ignores an event type it does not act on, without putting it in the feed', function (): void {
     [$tenant, $booking] = WebhookScenario::make();
 
-    postJson('/webhooks/stripe', $p = WebhookScenario::stripeSuccess('evt_unrelated', [
-        'type' => 'customer.subscription.updated',
-    ]), WebhookScenario::signedStripeHeaders($p))->assertOk();
+    postJson('/webhooks/viva', $p = WebhookScenario::gatewaySuccess('evt_unrelated', [
+        'EventTypeId' => 1799,
+    ]), WebhookScenario::verifiedHeaders($p))->assertOk();
 
-    $event = GatewayWebhookEvent::query()->where('event_id', 'evt_unrelated')->firstOrFail();
+    $event = GatewayWebhookEvent::query()->where('event_id', WebhookScenario::derivedEventId($p))->firstOrFail();
 
     // `ignored`, not `failed`. Nothing went wrong, and an event we do not act
     // on must not compete for attention with a payment nobody can match.

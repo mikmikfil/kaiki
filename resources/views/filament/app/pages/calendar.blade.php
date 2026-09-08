@@ -13,6 +13,7 @@
 --}}
 <x-filament-panels::page>
     @php($day = $this->getDay())
+    @php($now = $day->nowFraction())
 
     <div class="kaiki-calendar">
         <div class="cal-toolbar">
@@ -65,6 +66,13 @@
                             @foreach ($day->hours() as $mark)
                                 <span class="grid-line" style="left: {{ $mark['at'] * 100 }}%"></span>
                             @endforeach
+
+                            {{-- Where we are in the day. Absent on any day but
+                                 today, because a line pinned to an edge reads as
+                                 an occupation rather than as a clock. --}}
+                            @if ($now !== null)
+                                <span class="now-line" style="left: {{ $now * 100 }}%"></span>
+                            @endif
 
                             @foreach ($row['bars'] as $bar)
                                 @php($left = $bar['start'] * 100)
@@ -234,6 +242,15 @@
                 rgb(var(--warning-300)), rgb(var(--warning-300)) 3px,
                 transparent 3px, transparent 6px);
             border-radius: 0 6px 6px 0;
+        }
+
+        /* Now. One pixel and a small cap, in the warning hue: findable at a
+           glance, and never competing with the bars it is read against. */
+        .now-line { position: absolute; top: -.2rem; bottom: -.2rem; width: 1px; background: rgb(var(--warning-500)); opacity: .85; z-index: 2; pointer-events: none; }
+        .now-line::before {
+            content: ''; position: absolute; top: -.15rem; left: 50%;
+            width: .35rem; height: .35rem; margin-left: -.175rem;
+            border-radius: 50%; background: rgb(var(--warning-500));
         }
 
         .drag { position: absolute; top: .3rem; bottom: .3rem; background: rgb(var(--primary-400)); opacity: .45; border-radius: 6px; pointer-events: none; }

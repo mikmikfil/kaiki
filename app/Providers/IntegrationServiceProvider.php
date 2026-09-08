@@ -7,7 +7,6 @@ namespace App\Providers;
 use App\Domain\Integrations\Support\CredentialRepository;
 use App\Domain\Integrations\Support\VerifierRegistry;
 use App\Domain\Payments\Gateways\FakeGateway;
-use App\Domain\Payments\Gateways\StripeCheckoutGateway;
 use App\Domain\Payments\Gateways\VivaSmartCheckoutGateway;
 use App\Domain\Payments\Support\GatewayResolver;
 use Illuminate\Support\ServiceProvider;
@@ -32,7 +31,7 @@ use Illuminate\Support\ServiceProvider;
  * The same shape as `GuardVesselCapacity::TAG` and `SaveProduct::TAG` in
  * {@see AppServiceProvider}, and for the same reason: #79 stores credentials,
  * and the clients that can *check* them arrive with the issues that introduce
- * them — Viva and Stripe with the `PaymentGateway` contract, Postmark and the
+ * them — Viva with the `PaymentGateway` contract, Postmark and the
  * SMS vendors with the notification issue, myDATA in M6. Each of those adds one
  * `register()` line here.
  *
@@ -59,7 +58,6 @@ class IntegrationServiceProvider extends ServiceProvider
         // instance the code under test will resolve.
         $this->app->singleton(FakeGateway::class);
         $this->app->singleton(VivaSmartCheckoutGateway::class);
-        $this->app->singleton(StripeCheckoutGateway::class);
         $this->app->singleton(GatewayResolver::class);
     }
 }

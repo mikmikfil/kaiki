@@ -65,7 +65,7 @@ it('stores credentials as ciphertext, not as readable JSON', function (): void {
 })->group('fast');
 
 it('stores the webhook secret as ciphertext too', function (): void {
-    $credential = credentialFor(IntegrationProvider::Stripe);
+    $credential = credentialFor(IntegrationProvider::Viva);
     $plaintext = $credential->webhook_secret;
 
     expect($plaintext)->not->toBeNull();
@@ -76,7 +76,7 @@ it('stores the webhook secret as ciphertext too', function (): void {
 })->group('fast');
 
 it('round-trips through the model unchanged', function (): void {
-    $credential = credentialFor(IntegrationProvider::Stripe);
+    $credential = credentialFor(IntegrationProvider::Viva);
 
     $reloaded = Tenancy::forTenant(
         Tenant::query()->findOrFail($credential->tenant_id),
@@ -121,7 +121,7 @@ it('fails loudly when APP_KEY has rotated, rather than returning garbage', funct
 })->group('fast');
 
 it('keeps both secrets out of toArray, which is what a log context is built from', function (): void {
-    $credential = credentialFor(IntegrationProvider::Stripe);
+    $credential = credentialFor(IntegrationProvider::Viva);
 
     $array = $credential->toArray();
 
@@ -133,7 +133,7 @@ it('keeps both secrets out of toArray, which is what a log context is built from
 })->group('fast');
 
 it('redacts secrets for dd and var_dump, which ignore $hidden entirely', function (): void {
-    $credential = credentialFor(IntegrationProvider::Stripe);
+    $credential = credentialFor(IntegrationProvider::Viva);
 
     $debug = $credential->__debugInfo();
 

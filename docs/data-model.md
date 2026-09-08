@@ -54,7 +54,7 @@ Applied to **every** table unless that table's section says otherwise.
 - Every tenant-owned table carries `tenant_id` — `unsignedBigInteger`, FK → `tenants.id`, **`cascadeOnDelete`**.
   - Why cascade: `stancl/tenancy` single-database mode plus a hard "delete tenant" action in super-admin must leave zero orphans, and GDPR erasure of an operator must be one statement. Artefacts that must outlive the tenant (invoices for platform accounting) are exported before deletion, not retained in-DB.
 - `tenant_id` is indexed on every tenant-owned table and is **always the first column of every composite index** on that table. This is load-bearing, not cosmetic: the `BelongsToTenant` global scope appends `where tenant_id = ?` to every query, so an index that does not lead with `tenant_id` will not be used.
-- Tables that are **not** tenant-owned: `tenants`; `users` (nullable `tenant_id`, `null` = platform super-admin); `gateway_webhook_events` (arrives before tenancy is resolved — `tenant_id` nullable, backfilled once matched); framework/package tables (`jobs`, `job_batches`, `failed_jobs`, `cache`, `sessions`, `personal_access_tokens`, Cashier `subscriptions`/`subscription_items`, Pennant `features`, Pulse tables).
+- Tables that are **not** tenant-owned: `tenants`; `users` (nullable `tenant_id`, `null` = platform super-admin); `gateway_webhook_events` (arrives before tenancy is resolved — `tenant_id` nullable, backfilled once matched); framework/package tables (`jobs`, `job_batches`, `failed_jobs`, `cache`, `sessions`, `personal_access_tokens`, Pennant `features`, Pulse tables). *(Cashier's `subscriptions`/`subscription_items` were listed here; ADR-0026 removed the provider.)*
 
 ### 1.3 Timestamps and soft deletes
 
@@ -150,7 +150,7 @@ Laravel `encrypted` / `encrypted:array` cast, stored as **`text`** (the cipherte
 | Table | Column | Cast | Why |
 |---|---|---|---|
 | `booking_guests` | `document_number` | `encrypted` | Passport / ID number — brief §10. |
-| `integration_credentials` | `credentials` | `encrypted:array` | Viva, Stripe, myDATA (AADE user id + subscription key), Apifon, Twilio, Postmark secrets. |
+| `integration_credentials` | `credentials` | `encrypted:array` | Viva, myDATA (AADE user id + subscription key), Apifon, Twilio, Postmark secrets. |
 | `ical_sources` | `url` | `encrypted` | External calendar URLs are unguessable-URL bearer secrets (Airbnb/Google). |
 | `payments` | `raw_payload` | `encrypted:array` | Gateway payloads carry cardholder name, email, sometimes address. |
 | `gateway_webhook_events` | `payload` | `encrypted:array` | Same. |
@@ -207,7 +207,7 @@ Legend: **[LOCK]** = a code path depends on `SELECT … FOR UPDATE`, MySQL-only.
 
 #### `tenants`
 
-The operator. Not tenant-owned (it *is* the tenant). Also the Cashier billable model.
+The operator. Not tenant-owned (it *is* the tenant). It was also the Cashier billable model until ADR-0026 removed the billing provider; whatever replaces it will be billable here.
 
 | column | type | null | default | notes |
 |---|---|---|---|---|
@@ -242,7 +242,7 @@ The operator. Not tenant-owned (it *is* the tenant). Also the Cashier billable m
 | `auto_issue_invoice` | boolean | no | `false` | issue myDATA doc on confirmation |
 | `weather_choice_default` | varchar(16) | yes | `refund` | **added by #84** — CXL-7's operator default, applied when a guest never answers the weather-choice email. `refund` is the platform fallback because it is the only one of the three that cannot leave a guest holding credit they never asked for |
 | `settings` | json | no | `{}` | see §3.11 — low-traffic, never-queried operator preferences only |
-| `stripe_id`, `pm_type`, `pm_last_four`, `trial_ends_at` | Cashier columns | yes | null | added by Cashier's own migration; platform billing only, unrelated to guest payments |
+| `trial_ends_at` | timestamp | yes | null | when the trial ends. The Cashier columns beside it — `stripe_id`, `pm_type`, `pm_last_four` — were **removed by ADR-0026** along with the provider. Whichever provider replaces it, its columns are an edit to the M0 migration and a `migrate:fresh`, never an `ALTER` (§0). |
 | timestamps, `deleted_at` | | | | soft deletes |
 
 **Indexes**
@@ -360,7 +360,7 @@ The §4 "Role assignment" entity. A user may hold more than one role in a tenant
 
 #### Framework & package tables (created by their own migrations, listed for completeness)
 
-`personal_access_tokens` (Sanctum — used for panel sessions and future first-party clients), `jobs`, `job_batches`, `failed_jobs`, `cache`, `cache_locks`, `sessions`, `password_reset_tokens`, `subscriptions` + `subscription_items` (Cashier, keyed to `tenants`), `features` (Pennant, scoped to tenant), Pulse tables. None of these are tenant-scoped by our global scope; Pennant's scope column carries the tenant reference.
+`personal_access_tokens` (Sanctum — used for panel sessions and future first-party clients), `jobs`, `job_batches`, `failed_jobs`, `cache`, `cache_locks`, `sessions`, `password_reset_tokens`, `features` (Pennant, scoped to tenant), Pulse tables. *(Cashier's subscription tables were listed here; ADR-0026.)* None of these are tenant-scoped by our global scope; Pennant's scope column carries the tenant reference.
 
 ---
 
@@ -1280,7 +1280,7 @@ Never deleted, never mutated except `status` and the derived columns.
 | `uuid` | char(36) | no | — | unique |
 | `tenant_id` | bigint unsigned | no | — | FK cascade |
 | `booking_id` | bigint unsigned | no | — | FK `restrictOnDelete` |
-| `gateway` | varchar(24) | no | — | `viva` \| `stripe` \| `cash` \| `bank_transfer` — PHP enum `PaymentGateway` (cash/bank for manual bookings) |
+| `gateway` | varchar(24) | no | — | `viva` \| `cash` \| `bank_transfer` — PHP enum `PaymentGatewayName` (cash/bank for manual bookings). `stripe` removed by ADR-0026; nothing had ever written it, so no data migration was needed. |
 | `kind` | varchar(16) | no | — | `full` \| `deposit` \| `balance` \| `refund` — PHP enum `PaymentKind` |
 | `amount_cents` | int unsigned | no | — | always positive; `kind = refund` carries the sign meaning (§1.4) |
 | `currency` | char(3) | no | `EUR` | |
@@ -1312,7 +1312,7 @@ Never deleted, never mutated except `status` and the derived columns.
 
 **FKs** — `tenant_id` cascade; `booking_id` `restrictOnDelete`; `refunds_payment_id` self-FK `nullOnDelete`; `recorded_by_user_id` `nullOnDelete`.
 
-**Notes.** Kaiki never touches guest money (brief §1) — these rows mirror the operator's own gateway. `idempotency_key` is minted by us and passed to the gateway where supported (Stripe) and used as our own dedupe key where not. Webhook processing looks up by `(gateway, gateway_ref)` **and** records the raw event in `gateway_webhook_events` first, so a duplicate delivery is a no-op before any money logic runs.
+**Notes.** Kaiki never touches guest money (brief §1) — these rows mirror the operator's own gateway. `idempotency_key` is minted by us and passed to the gateway where supported, and used as our own dedupe key where not — Viva is the latter. Webhook processing looks up by `(gateway, gateway_ref)` **and** records the raw event in `gateway_webhook_events` first, so a duplicate delivery is a no-op before any money logic runs.
 ---
 
 ### 2.6 Compliance
@@ -1650,16 +1650,16 @@ The brief scatters operator credentials across §3 (payment gateways), §10 (myD
 |---|---|---|---|---|
 | `id` | bigint unsigned AI | no | — | |
 | `tenant_id` | bigint unsigned | no | — | FK cascade |
-| `provider` | varchar(24) | no | — | `viva` \| `stripe` \| `mydata` \| `apifon` \| `yuboto` \| `twilio` \| `postmark` — PHP enum `IntegrationProvider` |
+| `provider` | varchar(24) | no | — | `viva` \| `mydata` \| `apifon` \| `yuboto` \| `twilio` \| `postmark` — PHP enum `IntegrationProvider` |
 | `environment` | varchar(8) | no | `live` | `live` \| `test` |
 | `credentials` | text | no | — | **encrypted:array** — provider-specific keys, shape documented per provider in `docs/api.md` |
 | `public_config` | json | no | `{}` | non-secret settings (Viva source code, sender name, from-address) — queryable, not encrypted |
-| `is_default` | boolean | no | `false` | the gateway the checkout uses when a tenant has both Viva and Stripe |
+| `is_default` | boolean | no | `false` | the gateway the checkout uses when a tenant has more than one. With a single gateway (ADR-0026) nothing competes for it, and the column is kept as the seam a second gateway plugs into. |
 | `is_active` | boolean | no | `true` | |
 | `verified_at` | timestamp | yes | null | last successful test call |
 | `last_error` | varchar(500) | yes | null | |
 | `webhook_secret` | text | yes | null | **encrypted** — inbound signature secret where the provider issues one |
-| `external_account_id` | varchar(190) | yes | null | the provider's own account identifier (Stripe `acct_…`, Viva source code) — **not a secret**; added by #79 |
+| `external_account_id` | varchar(190) | yes | null | the provider's own account identifier (Viva source code) — **not a secret**; added by #79 |
 | timestamps | | | | |
 
 Indexes / uniques: `integr_creds_tenant_prov_env_uq` (`tenant_id`, `provider`, `environment`) **unique** — one credential set per provider per environment; `integr_creds_tenant_active_idx` (`tenant_id`, `is_active`, `is_default`); `integr_creds_provider_account_idx` (`provider`, `external_account_id`) — **not tenant-first**, the webhook resolver has no tenant yet.
@@ -1680,7 +1680,7 @@ Inbound webhook idempotency. A `payments` row is **not** enough: a webhook can a
 |---|---|---|---|---|
 | `id` | bigint unsigned AI | no | — | |
 | `tenant_id` | bigint unsigned | **yes** | null | backfilled once the payment is matched — **not tenant-owned at write time** |
-| `provider` | varchar(24) | no | — | `viva` \| `stripe` \| `postmark` \| `apifon` \| `twilio` |
+| `provider` | varchar(24) | no | — | `viva` \| `postmark` \| `apifon` \| `twilio` |
 | `event_id` | varchar(190) | no | — | the provider's event id |
 | `event_type` | varchar(64) | yes | null | |
 | `signature_valid` | boolean | no | `false` | recorded even when false, for abuse investigation |
@@ -1737,7 +1737,7 @@ Indexes: `gdpr_req_tenant_email_idx` (`tenant_id`, `subject_email`); `gdpr_req_t
 | `voucher_redemptions` | Partial redemption across bookings requires a ledger; a `voucher_id` column cannot express it. |
 | `quote_line_items` | §4's "line items". |
 | `import_job_rows` | Per-row state for the dry-run mapping review and resumable imports. |
-| `integration_credentials` | One encrypted home for Viva/Stripe/myDATA/SMS/Postmark secrets instead of four column groups on `tenants`. |
+| `integration_credentials` | One encrypted home for Viva/myDATA/SMS/Postmark secrets instead of four column groups on `tenants`. |
 | `gateway_webhook_events` | Inbound webhook idempotency before any money logic runs. |
 | `gdpr_requests` | Auditable, time-boxed subject access and erasure workflows (§10). |
 ---
@@ -2498,11 +2498,11 @@ Rules that produce this order:
 - A table is created **after** every table it has a foreign key to.
 - **No migration ever adds a foreign key to an existing table.** SQLite cannot do it (§0), and Laravel 12 has no `ALTER TABLE … ADD CONSTRAINT` for SQLite. Circular references are resolved by dropping the DB-level FK on the weaker side, permanently.
 - Adding a **nullable column with no FK and a constant default** to an existing table *is* portable and is allowed later. Adding a `NOT NULL` column, a unique column, a foreign key, or changing/dropping/renaming any column is **not** — those are table rebuilds on SQLite and locking `ALTER`s on MySQL. Design accordingly.
-- Package migrations (Cashier, Sanctum, Pennant, Pulse, Horizon) are published and pinned, not hand-written.
+- Package migrations (Sanctum, Pennant, Pulse, Horizon) are published and pinned, not hand-written.
 
 ### M0 — Foundation
 
-1. `tenants` — **including the Cashier columns** (`stripe_id`, `pm_type`, `pm_last_four`, `trial_ends_at`). Cashier's own migration would `ALTER` this table later; adding them up front avoids a rebuild. Billing code arrives in M7; the columns arrive now.
+1. `tenants` — including `trial_ends_at`. The Cashier columns that used to sit beside it were **removed by ADR-0026** with the provider. The reasoning that put them here is unchanged and still applies to whatever replaces them: a billing provider's columns cannot be `ALTER`ed onto SQLite later, so they are an edit to this migration and a `migrate:fresh`.
 2. `users` (FK → `tenants`)
 3. `password_reset_tokens`, `sessions`, `cache`, `cache_locks`, `jobs`, `job_batches`, `failed_jobs` *(framework)*
 4. `personal_access_tokens` *(Sanctum)*
@@ -2585,7 +2585,7 @@ No new tables. The plugin is a pure API client.
 
 ### M7 — SaaS
 
-47. `subscriptions`, `subscription_items` *(Cashier — tables only; the `tenants` columns landed in M0)*
+47. *(the subscription tables were Cashier's; ADR-0026 removed the provider and M7 is blocked until one is chosen)*
 48. `import_jobs` (FK → `tenants`, `users`)
 49. `import_job_rows` (FK → `tenants`, `import_jobs`)
 
@@ -2603,7 +2603,7 @@ No new tables. Only index additions, which are portable (`CREATE INDEX` works ev
 | Widening `bookings.reference` beyond 16 chars | Column change = rebuild; references are printed on tickets. |
 | Adding a foreign key to `vessel_blocks.booking_id` or `vouchers.issued_for_booking_id` | Impossible on SQLite without a rebuild. Accept them as application-enforced, permanently. |
 | Changing money columns to `bigint` | Only if a tenant sells a €21 M charter. It will not happen; do not pre-optimise. |
-| Adding a column to `tenants` | Allowed **only** if nullable with a constant default (Cashier's columns are the reason M0 includes them). |
+| Adding a column to `tenants` | Allowed **only** if nullable with a constant default. A billing provider's columns are the canonical case, and are why M0 owns this table outright (ADR-0026). |
 
 ---
 

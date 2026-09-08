@@ -55,11 +55,6 @@ class IntegrationCredentialFactory extends Factory
         ]);
     }
 
-    public function stripe(): self
-    {
-        return $this->forProvider(IntegrationProvider::Stripe);
-    }
-
     public function live(): self
     {
         return $this->state(fn (): array => ['environment' => CredentialEnvironment::Live]);

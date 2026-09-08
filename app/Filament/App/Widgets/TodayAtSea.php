@@ -41,7 +41,9 @@ class TodayAtSea extends Widget
 {
     protected static string $view = 'filament.app.widgets.today-at-sea';
 
-    protected static ?int $sort = 3;
+    // Above «Χρειάζονται προσοχή»: the fleet is the thing an operator looks at
+    // first, and the decisions below it are mostly *about* what is on it.
+    protected static ?int $sort = 2;
 
     protected int|string|array $columnSpan = 'full';
 

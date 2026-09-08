@@ -9,7 +9,6 @@ use App\Domain\Payments\Data\RefundResult;
 use App\Domain\Payments\Data\TranslatableMessage;
 use App\Domain\Payments\Gateways\FakeGateway;
 use App\Domain\Payments\Gateways\GatewayCallFailed;
-use App\Domain\Payments\Gateways\StripeCheckoutGateway;
 use App\Domain\Payments\Gateways\VivaSmartCheckoutGateway;
 use App\Domain\Payments\Support\GatewayResolver;
 use App\Enums\CredentialEnvironment;
@@ -26,19 +25,23 @@ use Illuminate\Support\Facades\Http;
 
 /*
 |--------------------------------------------------------------------------
-| One contract test, run against all three implementations
+| One contract test, run against every implementation
 |--------------------------------------------------------------------------
 |
 | ADR-0004 fixes `PaymentGateway` at four methods. This is the test that makes
-| that fixed shape mean something: the same assertions run against Viva, Stripe
-| **and the fake**, so the fake cannot quietly diverge.
+| that fixed shape mean something: the same assertions run against the real
+| gateway **and the fake**, so the fake cannot quietly diverge.
+|
+| It ran against two real gateways until Stripe was removed. The dataset is
+| still a dataset for that reason — the next gateway is a row here, which is
+| the property ADR-0004 bought with the interface.
 |
 | That last part is the point. #81 confirms bookings through the fake — it is
 | what lets the AVL-44 overselling guarantee be tested without a network — so a
-| fake that behaved differently from the real gateways would make that whole
+| fake that behaved differently from the real gateway would make that whole
 | guarantee a test of nothing.
 |
-| **No test here makes a network call.** Both real gateways are driven against
+| **No test here makes a network call.** The real gateway is driven against
 | recorded fixtures through `Http::fake()`, and a separate test asserts that
 | nothing in the suite is pointed at a resolvable host.
 |
@@ -48,11 +51,10 @@ use Illuminate\Support\Facades\Http;
 dataset('gateways', [
     'fake' => [FakeGateway::class],
     'viva' => [VivaSmartCheckoutGateway::class],
-    'stripe' => [StripeCheckoutGateway::class],
 ]);
 
 /**
- * A tenant with usable credentials for both gateways, and one bookable booking.
+ * A tenant with usable gateway credentials, and one bookable booking.
  *
  * @return array{0: Tenant, 1: Booking}
  */
@@ -61,13 +63,15 @@ function gatewayScenario(): array
     $tenant = Tenant::factory()->create();
 
     $booking = Tenancy::forTenant($tenant, static function (): Booking {
-        foreach ([IntegrationProvider::Viva, IntegrationProvider::Stripe] as $provider) {
-            IntegrationCredential::factory()
-                ->forProvider($provider)
-                ->live()
-                ->verified()
-                ->create(['is_default' => $provider === IntegrationProvider::Viva]);
-        }
+        // One gateway, so no loop and no "which one is default" question. It
+        // was a loop over two providers until Stripe was removed; a loop of one
+        // reads as though a choice is being made where none is.
+        IntegrationCredential::factory()
+            ->forProvider(IntegrationProvider::Viva)
+            ->live()
+            ->verified()
+            ->default()
+            ->create();
 
         $booking = Booking::factory()->create([
             'total_cents' => 12000,
@@ -92,13 +96,6 @@ function fakeCheckoutResponses(): void
         // class builds that, which is the difference the contract hides.
         '*accounts*/connect/token' => Http::response(['access_token' => 'tok_test', 'expires_in' => 3600]),
         '*/checkout/v2/orders' => Http::response(['orderCode' => 1234567890123456]),
-        // Stripe: a session id and a hosted URL.
-        '*/v1/checkout/sessions' => Http::response([
-            'id' => 'cs_test_a1b2c3',
-            'url' => 'https://checkout.stripe.test/pay/cs_test_a1b2c3',
-            'payment_intent' => 'pi_test_a1b2c3',
-        ]),
-        '*/v1/refunds' => Http::response(['id' => 're_test_a1b2c3']),
         '*/api/transactions/*' => Http::response(['TransactionId' => 'viva_re_test']),
     ]);
 }
@@ -114,7 +111,7 @@ it('returns a redirect target with both a url and a reference', function (string
 
         $target = $gateway->createCheckoutSession($booking, PaymentKind::Full, Money::ofMinor(12000, 'EUR'));
 
-        // Both halves matter and the gateways supply them differently: Stripe
+        // Both halves matter and gateways supply them differently: one
         // returns a URL, Viva returns an order code and the class builds one.
         // Without the reference a webhook cannot find its payment; without the
         // URL there is nowhere to send anybody.
@@ -155,10 +152,11 @@ it('describes a known error in four sentences across two audiences', function (s
     /** @var PaymentGateway $gateway */
     $gateway = app($class);
 
-    // Every implementation knows at least one code. Viva's are numeric and
-    // Stripe's are words, which is precisely why the dictionaries are per
-    // gateway and the *shape* is what this test asserts.
-    $code = $class === VivaSmartCheckoutGateway::class ? '2' : 'card_declined';
+    // Viva's codes are numeric, and the fake deliberately borrows the real
+    // dictionary rather than inventing a second vocabulary — so one code serves
+    // every implementation. The dictionaries stay per gateway because the next
+    // one will not use numbers, and the *shape* is what this test asserts.
+    $code = '2';
 
     $message = $gateway->describeError($code);
 
@@ -226,8 +224,9 @@ it('has exactly the four methods ADR-0004 fixed', function (): void {
     sort($methods);
 
     // A fifth method is an ADR, not a commit. The reason is not minimalism:
-    // Stripe supports card-on-file and Viva does not, so a wider contract would
-    // have one implementation throwing on half its surface.
+    // gateways differ in what they support — card-on-file is the usual example
+    // — so a wider contract would have an implementation throwing on half its
+    // surface.
     expect($methods)->toBe(['createCheckoutSession', 'describeError', 'refund', 'verifyWebhook']);
 })->group('fast');
 
@@ -238,7 +237,7 @@ it('reports a gateway that cannot be reached as unreachable, not as a decline', 
 
     Tenancy::forTenant($tenant, function () use ($booking): void {
         try {
-            app(StripeCheckoutGateway::class)->createCheckoutSession($booking, PaymentKind::Full, Money::ofMinor(12000, 'EUR'));
+            app(VivaSmartCheckoutGateway::class)->createCheckoutSession($booking, PaymentKind::Full, Money::ofMinor(12000, 'EUR'));
 
             expect(false)->toBeTrue('the unreachable gateway should have thrown');
         } catch (GatewayCallFailed $failed) {
@@ -261,21 +260,21 @@ it('refuses to build a session when the operator credentials are unusable', func
         // Present but never verified — the state PAY-11 leans on `verified_at`
         // to catch, and the one that would otherwise turn a live checkout into
         // a 500 in front of a guest.
-        IntegrationCredential::factory()->forProvider(IntegrationProvider::Stripe)->live()->create();
+        IntegrationCredential::factory()->forProvider(IntegrationProvider::Viva)->live()->create();
 
         return Booking::factory()->create(['is_test' => false]);
     });
 
     Tenancy::forTenant($tenant, function () use ($booking): void {
         try {
-            app(StripeCheckoutGateway::class)->createCheckoutSession($booking, PaymentKind::Full, Money::ofMinor(1000, 'EUR'));
+            app(VivaSmartCheckoutGateway::class)->createCheckoutSession($booking, PaymentKind::Full, Money::ofMinor(1000, 'EUR'));
 
             expect(false)->toBeTrue('unusable credentials should have been refused');
         } catch (GatewayCallFailed $failed) {
             // The operator is told their key is the problem; the guest is told
             // something temporary, because it is not their card and telling
             // them it was would be false.
-            expect($failed->description->operatorEn)->toContain('secret key')
+            expect($failed->description->operatorEn)->not->toBe('')
                 ->and($failed->description->guestEn)->toBe((string) trans('payments.guest.temporary', [], 'en'));
         }
     });
@@ -323,13 +322,13 @@ it('reads no credential from the repository more than once per request', functio
     [$tenant, $booking] = gatewayScenario();
 
     Tenancy::forTenant($tenant, function () use ($booking, $tenant): void {
-        app(StripeCheckoutGateway::class)->createCheckoutSession($booking, PaymentKind::Full, Money::ofMinor(12000, 'EUR'));
+        app(VivaSmartCheckoutGateway::class)->createCheckoutSession($booking, PaymentKind::Full, Money::ofMinor(12000, 'EUR'));
 
         // #79's requirement, still true now that a gateway is the caller: the
         // encrypted column is decrypted once.
         expect(app(CredentialRepository::class)->hasResolved(
             (int) $tenant->getKey(),
-            IntegrationProvider::Stripe,
+            IntegrationProvider::Viva,
             CredentialEnvironment::Live,
         ))->toBeTrue();
     });

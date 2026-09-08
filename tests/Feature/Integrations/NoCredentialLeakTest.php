@@ -118,7 +118,7 @@ it('points at directories that exist, so it cannot pass by scanning nothing', fu
 
 it('throws a refusal that names the fields and never their values', function (): void {
     $exception = IntegrationCredentialIncomplete::missing(
-        IntegrationProvider::Stripe,
+        IntegrationProvider::Viva,
         ['secret_key', 'publishable_key'],
     );
 
@@ -139,7 +139,7 @@ it('keeps a credential out of a real exception raised by the save path', functio
         try {
             app(SaveIntegrationCredential::class)(
                 new IntegrationCredentialData(
-                    provider: IntegrationProvider::Stripe,
+                    provider: IntegrationProvider::Viva,
                     environment: CredentialEnvironment::Test,
                     // One field present, one missing — so a naive message that
                     // echoed the submitted array would carry a real value.
@@ -165,10 +165,10 @@ it('keeps secrets out of the model json a queue payload or Sentry event would ca
 
     $credential = Tenancy::forTenant(
         $tenant,
-        fn (): IntegrationCredential => IntegrationCredential::factory()->stripe()->create(),
+        fn (): IntegrationCredential => IntegrationCredential::factory()->forProvider(IntegrationProvider::Viva)->create(),
     );
 
-    $secret = $credential->credentials['secret_key'];
+    $secret = $credential->credentials['client_secret'];
     $json = (string) json_encode($credential);
 
     expect($json)->not->toContain($secret)
@@ -181,11 +181,11 @@ it('shows an operator four characters and no more', function (): void {
 
     $credential = Tenancy::forTenant(
         $tenant,
-        fn (): IntegrationCredential => IntegrationCredential::factory()->stripe()->create(),
+        fn (): IntegrationCredential => IntegrationCredential::factory()->forProvider(IntegrationProvider::Viva)->create(),
     );
 
-    $secret = $credential->credentials['secret_key'];
-    $hint = $credential->hint('secret_key');
+    $secret = $credential->credentials['client_secret'];
+    $hint = $credential->hint('client_secret');
 
     expect($hint)->toEndWith(substr($secret, -4))
         // The concession is four characters. A hint that grew to eight would

@@ -27,6 +27,7 @@
         </x-slot>
 
         @php($day = $this->getDay())
+        @php($now = $day->nowFraction())
 
         @if ($day->rows === [])
             <p class="kt-empty">{{ __('attention.today.no_vessels') }}</p>
@@ -55,6 +56,14 @@
                             @foreach ($day->hours() as $mark)
                                 <span class="kt-line" style="left: {{ $mark['at'] * 100 }}%"></span>
                             @endforeach
+
+                            {{-- Where we are in the day. Positioned by the same
+                                 divisor as every bar, so it cannot drift from
+                                 them when the clocks move. Null off today, and
+                                 then it is simply absent. --}}
+                            @if ($now !== null)
+                                <span class="kt-now" style="left: {{ $now * 100 }}%"></span>
+                            @endif
 
                             @foreach ($row['bars'] as $bar)
                                 <div
@@ -131,6 +140,16 @@
         }
 
         .kt-bar.is-cancelled { background: rgb(var(--gray-300)); color: rgb(var(--gray-600)); text-decoration: line-through; }
+
+        /* Now. A one-pixel line and a small cap, in the warning hue rather
+           than a saturated red: it has to be findable at a glance and must not
+           compete with the bars it exists to be read against. 'Διακριτικά'. */
+        .kt-now { position: absolute; top: -.15rem; bottom: -.15rem; width: 1px; background: rgb(var(--warning-500)); opacity: .85; z-index: 2; }
+        .kt-now::before {
+            content: ''; position: absolute; top: -.1rem; left: 50%;
+            width: .3rem; height: .3rem; margin-left: -.15rem;
+            border-radius: 50%; background: rgb(var(--warning-500));
+        }
 
         .kt-buffer {
             position: absolute; top: .22rem; bottom: .22rem;

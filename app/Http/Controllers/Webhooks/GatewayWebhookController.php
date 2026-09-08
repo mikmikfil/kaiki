@@ -144,10 +144,10 @@ final class GatewayWebhookController
     /**
      * The gateway's own event id, which is our idempotency key.
      *
-     * Stripe puts one in `id`; Viva does not send an event id at all, so its
-     * order code plus event type stands in — the same order code cannot produce
-     * two identical events, and two different events on one order are two rows,
-     * which is correct.
+     * Viva does not send an event id at all, so its order code plus event type
+     * stands in — the same order code cannot produce two identical events, and
+     * two different events on one order are two rows, which is correct. A
+     * gateway that does send one gets an arm of its own here.
      *
      * A request with neither gets a synthetic id, so an unverified probe is
      * still recorded rather than colliding with every other one.
@@ -157,7 +157,6 @@ final class GatewayWebhookController
     private function eventIdFor(PaymentGatewayName $gateway, array $payload, Request $request): string
     {
         $id = match ($gateway) {
-            PaymentGatewayName::Stripe => $payload['id'] ?? null,
             PaymentGatewayName::Viva => implode(':', array_filter([
                 (string) data_get($payload, 'EventData.OrderCode', ''),
                 (string) ($payload['EventTypeId'] ?? ''),

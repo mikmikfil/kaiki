@@ -59,28 +59,34 @@ function saveCredential(
     ));
 }
 
-it('clears the previous default when a second gateway claims it', function (): void {
-    $tenant = tenantWithOwner();
-
-    Tenancy::forTenant($tenant, function (): void {
-        $viva = saveCredential(IntegrationProvider::Viva, isDefault: true);
-        $stripe = saveCredential(IntegrationProvider::Stripe, isDefault: true);
-
-        expect($viva->refresh()->is_default)->toBeFalse()
-            ->and($stripe->refresh()->is_default)->toBeTrue();
-    });
-})->group('fast');
+/*
+ * The test that was here — "clears the previous default when a second gateway
+ * claims it" — needed two payment gateways, and there is one.
+ *
+ * `SaveIntegrationCredential` still clears the other defaults, and that code is
+ * deliberately kept: it is the seam ADR-0004 bought with the `PaymentGateway`
+ * interface, and the next gateway should be a class rather than a redesign. But
+ * the branch is **currently unreachable** — one payment provider, unique per
+ * (tenant, provider, environment), means nothing can compete for the flag — and
+ * a test that faked the race with a provider that is not a gateway would assert
+ * something the product does not do.
+ *
+ * Recorded in `docs/BUILD-LOG.md` so the next gateway brings its test back with
+ * it rather than inheriting silent coverage.
+ */
 
 it('keeps defaults separate per environment', function (): void {
     $tenant = tenantWithOwner();
 
     Tenancy::forTenant($tenant, function (): void {
         $test = saveCredential(IntegrationProvider::Viva, isDefault: true);
-        $live = saveCredential(IntegrationProvider::Stripe, isDefault: true, environment: CredentialEnvironment::Live);
+        $live = saveCredential(IntegrationProvider::Viva, isDefault: true, environment: CredentialEnvironment::Live);
 
-        // An operator setting up their live Stripe account must not silently
-        // change which gateway their sandbox uses — PAY-11 asks for the two to
-        // be independent, and this is the shape of that independence.
+        // An operator setting up their live account must not silently change
+        // which credentials their sandbox uses — PAY-11 asks for the two to be
+        // independent, and this is the shape of that independence. One provider
+        // in two environments is two rows, which is what makes this still
+        // testable with a single gateway.
         expect($test->refresh()->is_default)->toBeTrue()
             ->and($live->refresh()->is_default)->toBeTrue();
     });
@@ -103,10 +109,14 @@ it('never leaves two defaults in one environment, however many saves run', funct
     $tenant = tenantWithOwner();
 
     Tenancy::forTenant($tenant, function (): void {
+        // Four saves of the one gateway. With a second provider these would be
+        // four rows racing for the flag; with one they are the same row saved
+        // repeatedly, which is the case an operator actually produces by
+        // pressing save after every field they correct.
         saveCredential(IntegrationProvider::Viva, isDefault: true);
-        saveCredential(IntegrationProvider::Stripe, isDefault: true);
         saveCredential(IntegrationProvider::Viva, isDefault: true);
-        saveCredential(IntegrationProvider::Stripe, isDefault: true);
+        saveCredential(IntegrationProvider::Viva, isDefault: true);
+        saveCredential(IntegrationProvider::Viva, isDefault: true);
 
         $defaults = IntegrationCredential::query()
             ->where('environment', CredentialEnvironment::Test->value)
@@ -180,23 +190,22 @@ it('will not hand a checkout an unverified gateway', function (): void {
     });
 })->group('fast');
 
-it('hands the default to the surviving gateway when one is switched off', function (): void {
+it('leaves no default behind when the only gateway is switched off', function (): void {
     $tenant = tenantWithOwner();
 
     Tenancy::forTenant($tenant, function (): void {
         $viva = saveCredential(IntegrationProvider::Viva, isDefault: true);
         $viva->forceFill(['verified_at' => now()])->save();
 
-        $stripe = saveCredential(IntegrationProvider::Stripe);
-        $stripe->forceFill(['verified_at' => now()])->save();
-
         app(DeactivateIntegrationCredential::class)($viva->refresh());
 
-        // Otherwise the operator is left with a working Stripe row and a
-        // default flag on a disabled Viva one, and every checkout fails
-        // because of a checkbox.
-        expect($stripe->refresh()->is_default)->toBeTrue()
-            ->and($viva->refresh()->is_active)->toBeFalse();
+        // With a second gateway this asserted that the default moved to the
+        // survivor. With one there is no survivor, and the property that
+        // matters is the other half of the same rule: a disabled row must not
+        // keep the flag, or every checkout fails because of a checkbox on a
+        // gateway the operator has turned off.
+        expect($viva->refresh()->is_active)->toBeFalse()
+            ->and($viva->refresh()->is_default)->toBeFalse();
     });
 })->group('fast');
 
@@ -219,7 +228,7 @@ it('does not oversell the default flag under two simultaneous saves', function (
 
     Tenancy::forTenant($tenant, function (): void {
         saveCredential(IntegrationProvider::Viva, isDefault: true);
-        saveCredential(IntegrationProvider::Stripe, isDefault: true);
+        saveCredential(IntegrationProvider::Viva, isDefault: true);
 
         expect(IntegrationCredential::query()->where('is_default', true)->count())->toBe(1);
     });
@@ -232,15 +241,15 @@ it('resolves a tenant from a webhook with no tenant in context', function (): vo
     $tenant = tenantWithOwner();
 
     $credential = Tenancy::forTenant($tenant, function (): IntegrationCredential {
-        $stripe = saveCredential(IntegrationProvider::Stripe);
-        $stripe->forceFill(['external_account_id' => 'acct_test_123'])->save();
+        $viva = saveCredential(IntegrationProvider::Viva);
+        $viva->forceFill(['external_account_id' => 'src_test_123'])->save();
 
-        return $stripe;
+        return $viva;
     });
 
     // The `gateway_webhook_events` case: no tenant yet, and the lookup is what
     // supplies one. It must work entirely outside the tenant scope.
-    $found = IntegrationCredential::findByExternalAccount(IntegrationProvider::Stripe, 'acct_test_123');
+    $found = IntegrationCredential::findByExternalAccount(IntegrationProvider::Viva, 'src_test_123');
 
     expect($found?->getKey())->toBe($credential->getKey())
         ->and($found?->tenant_id)->toBe($tenant->getKey());
@@ -254,7 +263,9 @@ it('does not resolve a webhook to the wrong provider', function (): void {
         $viva->forceFill(['external_account_id' => 'shared-id'])->save();
     });
 
-    expect(IntegrationCredential::findByExternalAccount(IntegrationProvider::Stripe, 'shared-id'))->toBeNull()
+    // Postmark rather than a second gateway: the filter under test is on
+    // `provider`, and any other provider proves it.
+    expect(IntegrationCredential::findByExternalAccount(IntegrationProvider::Postmark, 'shared-id'))->toBeNull()
         // And an empty identifier must never match the first row with a null
         // column, which is how a webhook gets filed against a stranger.
         ->and(IntegrationCredential::findByExternalAccount(IntegrationProvider::Viva, ''))->toBeNull();

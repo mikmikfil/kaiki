@@ -8,7 +8,12 @@ Read `docs/spec.md` before any task; it is the contract. `docs/BRIEF.md` is the 
 All 23 ADRs in `docs/adr/` were **accepted on 2026-08-28**. Implement against the accepted option. A new **DECIDE** goes to `docs/adr/` as a numbered ADR and **stops for a human** — never decide it yourself.
 
 ## Stack
-Laravel 12 / **PHP 8.4** / MySQL 8 / Redis / Horizon / Filament v3 / `stancl/tenancy` single-DB / Preact + TS widget (Shadow DOM) / WP plugin in `packages/wordpress-plugin` / Browsershot PDFs / Postmark / Viva + Stripe (operator-owned) / Cashier (platform billing).
+Laravel 12 / **PHP 8.4** / MySQL 8 / Redis / Horizon / Filament v3 / `stancl/tenancy` single-DB / Preact + TS widget (Shadow DOM) / WP plugin in `packages/wordpress-plugin` / Browsershot PDFs / Postmark / Viva Wallet (operator-owned).
+
+> Viva is the **only** payment gateway and there is **no platform billing
+> provider** — both removed by the product owner, ADR-0026. Brief §11's
+> "Stripe via Laravel Cashier" is superseded. M7 subscriptions are blocked
+> until a provider is chosen.
 
 > PHP 8.4, not the 8.3 in brief §3 — amended by ADR-0014.
 

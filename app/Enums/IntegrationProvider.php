@@ -18,7 +18,7 @@ use App\Enums\Concerns\HasTranslatedLabel;
  *
  * ## `spec.md` PAY-4's `gateway` is this column, widened
  *
- * ADR-0004 needed to name Viva and Stripe. The other five would otherwise be
+ * ADR-0004 needed to name the gateways. The other five would otherwise be
  * three more tables or a column group on `tenants` — a rebuild on SQLite (§0) —
  * so the discriminator is `provider`, and payment is one of the things a
  * provider can be rather than the only thing.
@@ -30,7 +30,6 @@ enum IntegrationProvider: string
     // Payments (PAY-1): the operator's own account, always. The platform never
     // holds guest money.
     case Viva = 'viva';
-    case Stripe = 'stripe';
 
     // Greek e-invoicing (§10).
     case Mydata = 'mydata';
@@ -47,15 +46,15 @@ enum IntegrationProvider: string
     /**
      * Does `is_default` mean anything for this provider?
      *
-     * Only for the two that can both be configured at once and only one of
-     * which can take a given checkout. A tenant with myDATA *and* Postmark has
+     * Only for the providers that can both be configured at once and only
+     * one of which can take a given checkout. A tenant with myDATA *and* Postmark has
      * no choice to make — they are used for different things — so marking one
      * "default" would be a flag with no reader.
      */
     public function isPaymentGateway(): bool
     {
         return match ($this) {
-            self::Viva, self::Stripe => true,
+            self::Viva => true,
             default => false,
         };
     }
@@ -88,7 +87,6 @@ enum IntegrationProvider: string
             // Smart Checkout is OAuth2 client credentials plus the source code
             // that identifies which of the merchant's payment sources to use.
             self::Viva => ['client_id', 'client_secret'],
-            self::Stripe => ['secret_key', 'publishable_key'],
             // AADE issues a user id and a subscription key, not a password.
             self::Mydata => ['user_id', 'subscription_key'],
             self::Apifon => ['token', 'secret_key'],
@@ -112,12 +110,6 @@ enum IntegrationProvider: string
     {
         return match ($this) {
             self::Viva => ['source_code'],
-            // `account_id` is not a setting an operator chooses — it is the
-            // `acct_…` their Stripe dashboard shows, and it is here rather than
-            // in `credentialFields()` because it is not a secret and because
-            // `externalAccountId()` reads the external account field out of the
-            // public half. It is what resolves a tenant for a Stripe webhook.
-            self::Stripe => ['account_id'],
             self::Mydata => ['branch'],
             self::Apifon, self::Yuboto, self::Twilio => ['sender_name'],
             self::Postmark => ['from_address', 'from_name'],
@@ -134,9 +126,17 @@ enum IntegrationProvider: string
     public function issuesWebhookSecret(): bool
     {
         return match ($this) {
-            self::Stripe, self::Postmark => true,
-            // Viva signs with the same OAuth credentials; the SMS vendors and
-            // AADE do not call back at all.
+            // Viva calls it a "webhook verification key": a shared secret the
+            // receiver proves it holds, presented in `X-Viva-Verification`.
+            //
+            // This said `false` until the Stripe removal, and it was wrong the
+            // whole time — `VivaSmartCheckoutGateway::verifyWebhook()` has always
+            // read `webhook_secret` and refused when it is missing, so an
+            // operator whose form never asked for the key had every Viva webhook
+            // silently rejected. It mattered less while a second gateway existed;
+            // it is now the only way money gets confirmed.
+            self::Viva, self::Postmark => true,
+            // The SMS vendors and AADE do not call back at all.
             default => false,
         };
     }
@@ -152,7 +152,6 @@ enum IntegrationProvider: string
     public function externalAccountField(): ?string
     {
         return match ($this) {
-            self::Stripe => 'account_id',
             self::Viva => 'source_code',
             default => null,
         };

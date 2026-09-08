@@ -37,13 +37,13 @@ it('queues the processing rather than doing it in the request', function (): voi
 
     WebhookScenario::make();
 
-    $payload = WebhookScenario::stripeSuccess('evt_queued');
+    $payload = WebhookScenario::gatewaySuccess('evt_queued');
 
-    postJson('/webhooks/stripe', $payload, WebhookScenario::signedStripeHeaders($payload))
+    postJson('/webhooks/viva', $payload, WebhookScenario::verifiedHeaders($payload))
         ->assertOk()
         ->assertJson(['received' => true]);
 
-    $event = GatewayWebhookEvent::query()->where('event_id', 'evt_queued')->firstOrFail();
+    $event = GatewayWebhookEvent::query()->where('event_id', WebhookScenario::derivedEventId($payload))->firstOrFail();
 
     // The row exists and the answer is already sent — before any money logic
     // has run. That ordering is what keeps the response inside PAY-6's budget.
@@ -61,11 +61,11 @@ it('queues nothing for a duplicate delivery', function (): void {
 
     WebhookScenario::make();
 
-    $payload = WebhookScenario::stripeSuccess('evt_dup');
-    $headers = WebhookScenario::signedStripeHeaders($payload);
+    $payload = WebhookScenario::gatewaySuccess('evt_dup');
+    $headers = WebhookScenario::verifiedHeaders($payload);
 
-    postJson('/webhooks/stripe', $payload, $headers)->assertOk();
-    postJson('/webhooks/stripe', $payload, $headers)->assertOk()->assertJson(['duplicate' => true]);
+    postJson('/webhooks/viva', $payload, $headers)->assertOk();
+    postJson('/webhooks/viva', $payload, $headers)->assertOk()->assertJson(['duplicate' => true]);
 
     // One job, not two. The unique index refuses the second row, and no row
     // means nothing to dispatch — the deduplication happens before the queue
@@ -78,7 +78,7 @@ it('queues nothing for an unverified request', function (): void {
 
     WebhookScenario::make();
 
-    postJson('/webhooks/stripe', WebhookScenario::stripeSuccess('evt_forged'))->assertStatus(400);
+    postJson('/webhooks/viva', WebhookScenario::gatewaySuccess('evt_forged'))->assertStatus(400);
 
     // Recorded for PAY-7's audit, and nothing more. A forged payload must not
     // be able to make the platform do work, which is half of what a rate limit

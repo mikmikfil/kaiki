@@ -62,10 +62,18 @@ return new class extends Migration
 
             $table->json('settings');
 
-            // Cashier (M7). Present now because SQLite cannot add them later.
-            $table->string('stripe_id')->nullable()->index();
-            $table->string('pm_type')->nullable();
-            $table->char('pm_last_four', 4)->nullable();
+            // No billing columns.
+            //
+            // Cashier's `stripe_id`, `pm_type` and `pm_last_four` were here from
+            // M0, on the reasoning that SQLite cannot add them later. The product
+            // owner has since removed Stripe as the platform's own billing
+            // provider as well as an operator gateway, so they are scaffolding
+            // for a decision that has been withdrawn — and columns named after a
+            // provider are how M7 quietly builds on one nobody chose.
+            //
+            // The SQLite constraint is real and unchanged: whichever provider is
+            // picked, its columns are an **edit to this migration** and a
+            // `migrate:fresh`, not an `ALTER`. See `docs/BUILD-LOG.md`.
 
             $table->timestamps();
             $table->softDeletes();

@@ -56,6 +56,7 @@ function saveThroughPanel(User $owner, array $data = []): Testable
         'provider' => IntegrationProvider::Viva->value,
         'environment' => CredentialEnvironment::Test->value,
         'credentials' => ['client_id' => 'panel-id', 'client_secret' => 'panel-secret'],
+        'webhook_secret' => 'panel-verification-key',
         'public_config' => ['source_code' => '4321'],
         'is_default' => true,
         'is_active' => true,
@@ -129,6 +130,7 @@ it('treats an empty secret field as leave it alone, not as clear it', function (
     // would wipe their gateway key for fixing a typo.
     saveThroughPanel($owner, [
         'credentials' => ['client_id' => '', 'client_secret' => ''],
+        'webhook_secret' => '',
         'public_config' => ['source_code' => '9999'],
     ])->assertHasNoActionErrors();
 
@@ -146,8 +148,8 @@ it('refuses an incomplete credential set with the fields named, in Greek', funct
     app()->setLocale('el');
 
     saveThroughPanel($owner, [
-        'provider' => IntegrationProvider::Stripe->value,
-        'credentials' => ['secret_key' => 'only-one-of-three'],
+        'provider' => IntegrationProvider::Viva->value,
+        'credentials' => ['client_id' => 'only-one-of-two'],
         'public_config' => [],
     ]);
 
@@ -159,11 +161,11 @@ it('refuses an incomplete credential set with the fields named, in Greek', funct
 
     // The sentence is the Greek one, and it names the missing fields.
     $message = (string) __('integrations.refused.incomplete', [
-        'provider' => IntegrationProvider::Stripe->label(),
-        'fields' => __('integrations.fields.publishable_key'),
+        'provider' => IntegrationProvider::Viva->label(),
+        'fields' => __('integrations.fields.client_secret'),
     ]);
 
-    expect($message)->toContain('Stripe')
+    expect($message)->toContain('Viva')
         ->and($message)->not->toBe('integrations.refused.incomplete');
 })->group('fast');
 

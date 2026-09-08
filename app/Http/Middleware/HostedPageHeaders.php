@@ -105,7 +105,7 @@ class HostedPageHeaders
      * The redirect hosts of the gateways this operator has actually connected.
      *
      * Not every gateway the platform supports. An operator on Viva alone has no
-     * reason for a policy that admits Stripe, and the narrower the `form-action`
+     * reason for a policy that admits a gateway, and the narrower the `form-action`
      * the less a stored-content bug could do with it.
      *
      * @return list<string>

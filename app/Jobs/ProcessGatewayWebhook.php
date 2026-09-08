@@ -147,17 +147,16 @@ class ProcessGatewayWebhook implements ShouldBeUnique, ShouldQueue
     /**
      * The gateway's reference for the payment this event concerns.
      *
-     * Stripe nests it; Viva puts an order code at the top of `EventData`. The
-     * two shapes are the reason this is a `match` rather than one path — and
-     * the reason it lives here rather than in the contract (ADR-0004 fixes that
-     * at four methods).
+     * Viva puts an order code at the top of `EventData`; another gateway will
+     * nest it somewhere else entirely. That difference is the reason this is a
+     * `match` with one arm rather than one path — and the reason it lives here
+     * rather than in the contract (ADR-0004 fixes that at four methods).
      */
     private function referenceFrom(GatewayWebhookEvent $event): ?string
     {
         $payload = $event->payload;
 
         $reference = match ($event->provider) {
-            PaymentGatewayName::Stripe => data_get($payload, 'data.object.id'),
             PaymentGatewayName::Viva => data_get($payload, 'EventData.OrderCode'),
             default => null,
         };
@@ -169,19 +168,13 @@ class ProcessGatewayWebhook implements ShouldBeUnique, ShouldQueue
      * Did this event say the money arrived, or that it did not?
      *
      * Null means neither — an event type we do not act on, which is most of
-     * what both gateways send.
+     * what a gateway sends.
      */
     private function outcomeFrom(GatewayWebhookEvent $event): ?bool
     {
         $type = (string) $event->event_type;
 
         return match ($event->provider) {
-            PaymentGatewayName::Stripe => match (true) {
-                $type === 'checkout.session.completed' => true,
-                Str::startsWith($type, 'checkout.session.expired') => false,
-                Str::startsWith($type, 'payment_intent.payment_failed') => false,
-                default => null,
-            },
             // Viva sends numeric event type ids: 1796 is a successful
             // transaction, 1798 a failed one. Numbers rather than words, which
             // is the same difference the error dictionary accommodates.
