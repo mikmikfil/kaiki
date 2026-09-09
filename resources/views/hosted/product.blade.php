@@ -246,15 +246,30 @@
 
                     @isset($tabs['meeting'])
                         <section class="tabpanel tabpanel-meeting" aria-label="{{ __('hosted.product.tabs.meeting') }}">
+                {{-- The address and the way to it on one row.
+
+                     A button rather than a third line of the address, because
+                     it is the one thing on this tab somebody actually does —
+                     they are standing somewhere trying to reach a quay — and a
+                     link wrapped under a postcode is not where a thumb goes.
+                     Beside the address rather than under it, so the row is one
+                     answer to one question instead of a stack. --}}
                 <p>
                     <strong>{{ $port->name }}</strong>
                     @if ($port->address)
                         <br>{{ $port->address }}
                     @endif
-                    @if ($port->mapsUrl())
-                        <br><a href="{{ $port->mapsUrl() }}" rel="noopener noreferrer">{{ __('hosted.blocks.contact.open_in_maps') }}</a>
-                    @endif
                 </p>
+
+                @if ($port->mapsUrl())
+                    <p class="map-open">
+                        <a class="button ghost small" href="{{ $port->mapsUrl() }}" rel="noopener noreferrer" target="_blank">
+                            @include('hosted.partials.icon', ['name' => 'pin-solid'])
+                            {{ __('hosted.blocks.contact.open_in_maps') }}
+                        </a>
+                    </p>
+                @endif
+
                 @if ($port->instructions)
                     <p class="muted">{{ $port->instructions }}</p>
                 @endif
@@ -612,6 +627,36 @@
 
             </div>
                 </section>
+
+                {{-- A second card under the booking one, for the visitor who is
+                     nearly ready and has a question first.
+
+                     It is separate rather than folded into the booking card on
+                     purpose: everything in that card is part of choosing a date
+                     and paying, and a «ring us» line inside it is an exit in the
+                     middle of a checkout. Underneath, it catches the person who
+                     was about to close the tab instead.
+
+                     Only drawn when there is something to reach the operator
+                     with — an operator with no phone and no email gets no card
+                     rather than a heading over nothing. --}}
+                @if ($tenant->email || $tenant->phone)
+                    <section class="ask">
+                        @include('hosted.partials.icon', ['name' => 'support'])
+                        <h2>{{ __('hosted.product.ask.heading') }}</h2>
+                        <p>{{ __('hosted.product.ask.body') }}</p>
+
+                        <p class="ask-actions">
+                            @if ($tenant->phone)
+                                <a class="button" href="tel:{{ $tenant->phone }}">{{ __('hosted.product.ask.call') }}</a>
+                            @endif
+
+                            @if ($tenant->email)
+                                <a class="button ghost" href="mailto:{{ $tenant->email }}?subject={{ rawurlencode($product->title) }}">{{ __('hosted.product.ask.write') }}</a>
+                            @endif
+                        </p>
+                    </section>
+                @endif
             </aside>
         </div>
 

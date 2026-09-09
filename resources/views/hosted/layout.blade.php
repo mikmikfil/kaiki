@@ -426,6 +426,60 @@
             }
         }
 
+        /* The «any questions» card, under the booking one. Quieter than the
+           card above it — tinted rather than white, and no shadow — because it
+           is the second thing on that column and a second white card of the
+           same weight competes with the one asking for the sale. */
+        .ask {
+            margin-block-start: 1.25rem;
+            /* Its own box rather than `.card`, which does not exist in this
+               stylesheet — the booking card above it is `.booking`. The same
+               white, radius, padding and shadow as that one, so the column
+               reads as two cards of one family rather than a card and a panel.
+
+               The first attempt tinted it, on the reasoning that a second card
+               of equal weight would compete with the one asking for the sale.
+               It just looked like a different component. Weight is not what
+               separates them — position is, and the heading on this one is a
+               step smaller. */
+            background: var(--surface);
+            border-radius: 14px;
+            /* Smaller than the booking card in every dimension — padding, type,
+               icon and buttons. It is the fallback for somebody who did not
+               book, and at the same scale it competed with the thing that
+               matters on this column. */
+            padding: clamp(1.15rem, 1.6vw, 1.5rem);
+            box-shadow: 0 1px 2px color-mix(in srgb, var(--kaiki-text) 5%, transparent),
+                        0 18px 44px -34px color-mix(in srgb, var(--kaiki-text) 30%, transparent);
+        }
+
+        /* Under the address on its own line, and small. It was briefly beside
+           it — the row read tidily and put the one action on this tab up
+           against the right edge of a column whose every other line starts on
+           the left, so it came back down. The size stayed. */
+        .map-open { margin-block-start: .9rem; }
+
+        .button.small {
+            padding-block: .4rem; padding-inline: .75rem;
+            font-size: .8rem; gap: .4rem;
+        }
+
+        .button.small .icon { inline-size: .9rem; block-size: .9rem; }
+
+        .ask > .icon {
+            inline-size: 1.35rem; block-size: 1.35rem;
+            color: var(--kaiki-primary); display: block; margin-block-end: .6rem;
+        }
+
+        .ask h2 { font-size: 1rem; margin-block-end: .35rem; }
+        .ask p { margin: 0; color: var(--ink-soft); font-size: .86rem; line-height: 1.45; }
+        .ask-actions { margin-block-start: .9rem !important; display: flex; flex-wrap: wrap; gap: .5rem; }
+
+        .ask-actions .button {
+            flex: 1 1 auto; justify-content: center;
+            padding-block: .5rem; padding-inline: .8rem; font-size: .84rem;
+        }
+
         .trips-rail-frame { position: relative; padding-block-end: 3.5rem; }
 
         /* The pager under «Όλες οι εκδρομές». Plain links, so it needs no more
@@ -533,6 +587,11 @@
         .block > h2::after,
         .block-head h2::after,
         .story-copy > h2::after,
+        /* The trip page's own sections get the same mark. «Για την εκδρομή»,
+           «Φωτογραφίες» and the rest were the only headings on the site without
+           one, so the FAQ block sitting among them looked like a different
+           kind of section rather than one more of the same. */
+        .product-main .section > h2::after,
         .trips-more::after {
             content: '';
             display: block;
@@ -1321,6 +1380,16 @@
 
         .tab-label:hover { color: var(--kaiki-text); }
 
+        /* The first tab sits flush with the column.
+
+           The row was already `justify-content: flex-start`, so the tabs were
+           left-aligned as a group — but every label carries 1.1rem of inner
+           padding, which pushed the first tab's *text* eighteen pixels right of
+           where the heading, the prose and the cards below it all begin. That
+           is the misalignment the eye actually sees. The padding stays on the
+           others, because it is what gives each tab a hit area. */
+        .tab-label:first-of-type { padding-inline-start: 0; }
+
         .tabpanel { display: none; }
 
         /* One pair per tab. There are three, so writing them out is shorter and
@@ -1370,8 +1439,8 @@
             background: var(--surface);
             border-radius: 18px;
             padding: clamp(1.75rem, 2.2vw, 2.35rem);
-            box-shadow: 0 1px 2px color-mix(in srgb, var(--kaiki-text) 8%, transparent),
-                        0 14px 40px -28px color-mix(in srgb, var(--kaiki-text) 60%, transparent);
+            box-shadow: 0 1px 2px color-mix(in srgb, var(--kaiki-text) 5%, transparent),
+                        0 18px 44px -34px color-mix(in srgb, var(--kaiki-text) 30%, transparent);
         }
 
         .four-lines { display: grid; gap: .55rem; margin: 0 0 1.1rem; }
@@ -1574,7 +1643,9 @@
         /* The whole question is the control, so the tap target is the width of
            the card rather than the width of the words. */
         .faq-item summary {
-            cursor: pointer; font-weight: 600; letter-spacing: -.005em;
+            /* 500, not 600. A column of questions all set in semibold reads as
+               a list of headings rather than as things somebody asked. */
+            cursor: pointer; font-weight: 500; letter-spacing: -.005em;
             list-style: none; display: flex; gap: .8rem; align-items: baseline;
             justify-content: space-between;
         }
@@ -1813,8 +1884,47 @@
             font-size: .88rem; color: var(--ink-soft);
         }
 
-        footer.site .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1.5rem; }
-        footer.site h3 { font-size: .74rem; font-weight: 600; letter-spacing: .09em; color: var(--ink-faint); margin: 0 0 .5rem; }
+        /* Three columns of detail and the brand on the end. `auto-fit` with a
+           15rem floor put four equal columns on a laptop and left the mark
+           looking like a fourth list; an explicit last column that takes what
+           it needs keeps it a sign-off. */
+        footer.site .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 2.5rem 2rem; }
+
+        @media (min-width: 62rem) {
+            footer.site .cols { grid-template-columns: 1.2fr 1fr 1fr auto; }
+        }
+
+        /* A step up. At .74rem these were smaller than the text beneath them and
+           read as captions rather than as the headings of three columns. */
+        footer.site h3 { font-size: .82rem; font-weight: 600; letter-spacing: .06em; color: var(--kaiki-text); margin: 0 0 .7rem; }
+
+        .foot-brand {
+            display: flex; flex-direction: column; gap: 1.1rem;
+            align-items: flex-start;
+        }
+
+        @media (min-width: 62rem) {
+            /* Right-aligned against the edge of the page, which is the only
+               position that reads as a sign-off rather than as one more column
+               of links. */
+            .foot-brand { align-items: flex-end; text-align: right; }
+        }
+
+        .foot-logo { max-block-size: 2.75rem; inline-size: auto; }
+
+        .foot-wordmark {
+            margin: 0;
+            font-family: var(--kaiki-font, inherit);
+            font-size: var(--step-1); font-weight: 800; letter-spacing: -.02em;
+            color: var(--kaiki-text);
+        }
+
+        /* The same round buttons as the contact panel, a size down: this is a
+           footer and the panel above it is where somebody is actually deciding
+           to get in touch. */
+        .foot-brand .social { margin: 0; }
+        .foot-brand .social a { inline-size: 2.4rem; block-size: 2.4rem; }
+        .foot-brand .social .icon { inline-size: 1.15rem; block-size: 1.15rem; }
         footer.site p { margin: 0 0 .3rem; }
         footer.site ul { margin: 0; padding: 0; list-style: none; }
         footer.site li { margin-bottom: .3rem; }
@@ -1897,6 +2007,42 @@
                     <li><a href="{{ route('hosted.legal', ['operator' => $tenant->slug, 'lang' => $locale]) }}#privacy">{{ __('hosted.footer.privacy') }}</a></li>
                     <li><a href="{{ route('hosted.legal', ['operator' => $tenant->slug, 'lang' => $locale]) }}#cancellation">{{ __('hosted.footer.cancellation') }}</a></li>
                 </ul>
+            </div>
+
+            {{-- The operator's mark on its own, with the way to follow them
+                 underneath it. It is the last column rather than the first
+                 because the header already opens the page with the same name:
+                 down here it is a sign-off, not an introduction — and an
+                 operator with no logo uploaded gets their name set in the
+                 heading face instead of a gap. --}}
+            <div class="foot-brand">
+                @if ($logo)
+                    <img class="foot-logo" src="{{ $logo }}" alt="{{ $tenant->name }}">
+                @else
+                    <p class="foot-wordmark">{{ $tenant->name }}</p>
+                @endif
+
+                @php
+                    $footSocial = collect((array) data_get($tenant->settings, 'social', []))
+                        ->filter(static fn (mixed $url, mixed $key): bool => is_string($key) && is_string($url) && str_starts_with($url, 'https://'))
+                        ->all();
+                @endphp
+
+                @if ($footSocial !== [])
+                    <ul class="social">
+                        @foreach ($footSocial as $network => $url)
+                            <li>
+                                <a href="{{ $url }}"
+                                   rel="noopener noreferrer me"
+                                   target="_blank"
+                                   aria-label="{{ __('hosted.blocks.contact.social.' . $network) }}"
+                                   title="{{ __('hosted.blocks.contact.social.' . $network) }}">
+                                    @include('hosted.partials.icon', ['name' => 'social-' . $network . '-solid'])
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
             </div>
         </div>
 

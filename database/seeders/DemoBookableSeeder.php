@@ -153,8 +153,20 @@ class DemoBookableSeeder extends Seeder
                     'en' => 'A three-hour cruise on a traditional kaiki.',
                 ],
                 'description' => [
-                    'el' => 'Αναχώρηση με το ηλιοβασίλεμα, στάση για μπάνιο και επιστροφή με φως πόλης.',
-                    'en' => 'Leave at sunset, stop for a swim, return under the city lights.',
+                    'el' => <<<'EL'
+                        Φεύγουμε από τη Μαρίνα Ζέας δύο ώρες πριν τη δύση, με το παραδοσιακό καΐκι μας του 1978. Η διαδρομή περνά έξω από τον Φλοίσβο και ανοίγει προς τον Σαρωνικό, εκεί που το φως αρχίζει να χαμηλώνει.
+
+                        Αγκυροβολούμε σε ήσυχο όρμο της Αίγινας για μπάνιο. Το νερό εκείνη την ώρα είναι ζεστό από όλη μέρα και δεν έχει σχεδόν κανέναν άλλο· δίνουμε πετσέτες και σωσίβια, και όποιος δεν θέλει να μπει μένει στο κατάστρωμα με ένα ποτήρι κρασί.
+
+                        Ο γυρισμός γίνεται με αναμμένα τα φώτα του Πειραιά απέναντι. Τρεις ώρες συνολικά, μέχρι είκοσι άτομα, και ο καπετάνιος κάνει τη διαδρομή τριάντα χρόνια.
+                        EL,
+                    'en' => <<<'EN'
+                        We leave Zea Marina two hours before sunset on our 1978 kaiki. The route runs out past Flisvos and opens into the Saronic, where the light starts to drop.
+
+                        We anchor in a quiet cove off Aegina to swim. The water is warm from the whole day by then and there is almost nobody else there; towels and life jackets are on board, and anyone who would rather not swim stays on deck with a glass of wine.
+
+                        We come back with the lights of Piraeus on across the water. Three hours in all, up to twenty people, and the skipper has been making this run for thirty years.
+                        EN,
                 ],
                 'duration_minutes' => 180,
                 'default_start_time' => '18:30',
@@ -191,8 +203,20 @@ class DemoBookableSeeder extends Seeder
                     'en' => 'The whole boat, yours for the day.',
                 ],
                 'description' => [
-                    'el' => 'Οκτάωρη ναύλωση με πλήρωμα, διαδρομή που ορίζετε εσείς.',
-                    'en' => 'An eight-hour crewed charter on a route you choose.',
+                    'el' => <<<'EL'
+                        Οκτώ ώρες με το σκάφος και το πλήρωμα στη διάθεσή σας, από τις εννιά το πρωί. Η διαδρομή είναι δική σας απόφαση: τη συζητάτε με τον καπετάνιο το πρωί της αναχώρησης, με βάση τον καιρό της ημέρας και το τι σας ενδιαφέρει.
+
+                        Οι συνηθισμένες επιλογές είναι η Αίγινα για φαγητό στο λιμάνι, το Αγκίστρι για τα νερά του, ή δύο-τρεις όρμοι χωρίς πρόσβαση από στεριά αν θέλετε κυρίως μπάνιο. Μπορείτε επίσης να μην πάτε πουθενά συγκεκριμένα και να μείνετε αγκυροβολημένοι όλη μέρα — γίνεται συχνότερα από όσο νομίζετε.
+
+                        Στο σκάφος υπάρχει σκιά σε όλο το κατάστρωμα, ψυγείο, ντους στην πρύμνη, μάσκες και πετσέτες. Φαγητό φέρνετε δικό σας ή το αναλαμβάνουμε εμείς αν μας το πείτε όταν κλείνετε. Η τιμή είναι για ολόκληρο το σκάφος, οπότε δεν αλλάζει με τον αριθμό των ατόμων.
+                        EL,
+                    'en' => <<<'EN'
+                        Eight hours with the boat and her crew to yourselves, from nine in the morning. The route is your decision: you settle it with the skipper on the morning you sail, around that day's weather and whatever interests you.
+
+                        The usual choices are Aegina for lunch in the harbour, Agistri for the water, or two or three coves with no road to them if you mostly want to swim. You can also go nowhere in particular and stay at anchor all day — it happens more often than you would think.
+
+                        There is shade across the whole deck, a fridge, a shower at the stern, masks and towels. Bring your own food or let us arrange it when you book. The price is for the whole boat, so it does not change with the number of people.
+                        EN,
                 ],
                 'duration_minutes' => 480,
                 'default_start_time' => '09:00',

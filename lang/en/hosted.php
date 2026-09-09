@@ -72,6 +72,12 @@ return [
         'max_pax' => 'Up to :count people',
         'about' => 'About this trip',
         'gallery' => 'Photographs',
+        'ask' => [
+            'heading' => 'Any questions?',
+            'body' => 'Tell us what you would like to know about this trip.',
+            'call' => 'Call us',
+            'write' => 'Send an email',
+        ],
         'tabs' => [
             'departures' => 'Next departures',
             'meeting' => 'Where we meet',

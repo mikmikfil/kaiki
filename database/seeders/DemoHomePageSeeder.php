@@ -114,7 +114,7 @@ class DemoHomePageSeeder extends Seeder
             ],
             [
                 'type' => HomeBlockType::Contact,
-                'heading' => ['el' => 'Πού θα μας βρείτε', 'en' => 'Where to find us'],
+                'heading' => ['el' => 'Επικοινωνήστε μαζί μας', 'en' => 'Get in touch'],
                 'image' => 'demo-contact.jpg',
             ],
         ];

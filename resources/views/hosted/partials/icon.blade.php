@@ -68,6 +68,15 @@
         'type' => '<path d="M11.4 3.6H19a1.4 1.4 0 0 1 1.4 1.4v7.6a1.4 1.4 0 0 1-.4 1l-7.4 7.4a1.4 1.4 0 0 1-2 0l-7.6-7.6a1.4 1.4 0 0 1 0-2l7.4-7.4a1.4 1.4 0 0 1 1-.4Z"/>'
             .'<circle cx="16" cy="8" r="1.5"/>',
 
+        // A headset with its boom, for "ask us". A handset would have done,
+        // but the phone icon is already on this site meaning "the phone number
+        // is here" — the same mark twice for two different offers is how a
+        // visitor learns to stop reading icons.
+        'support' => '<path d="M4.4 14.6v-2.8a7.6 7.6 0 0 1 15.2 0v2.8"/>'
+            .'<rect x="2.4" y="13.4" width="3.6" height="5.8" rx="1.8"/>'
+            .'<rect x="18" y="13.4" width="3.6" height="5.8" rx="1.8"/>'
+            .'<path d="M19.8 19.2a3.2 3.2 0 0 1-3.2 2.6h-2.2"/>',
+
         // A handset, and an envelope. Both sit beside a value that already
         // says what it is, so neither has to be decoded — they exist to let the
         // eye find the phone number without reading the email address first.
