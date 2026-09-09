@@ -1166,13 +1166,20 @@
 
            Three columns down to two and then one, so a phone gets one column of
            full-width photographs rather than three thumbnails. */
-        .shots-masonry {
+/* `ul.` again, and for the same reason the image rule needs it: `.shots`
+           sets `display: grid`, it sits later in this stylesheet, and it has
+           exactly the same specificity — so it won on order, `columns` was
+           ignored on a grid container, and the "masonry" was a plain
+           three-column grid with the photographs letterboxed into it. Two rules
+           in this file have now been caught by the same tie; if a third appears,
+           the `.shots` block should move below these instead. */
+        ul.shots-masonry {
             display: block;
             columns: 3;
             column-gap: 1rem;
         }
 
-        .shots-masonry li { break-inside: avoid; margin: 0 0 1rem; }
+        ul.shots-masonry li { break-inside: avoid; margin: 0 0 1rem; }
 
         /* `ul.` on purpose. `.shots img` sets a 3/2 ratio and `height: 100%`,
            it sits later in this stylesheet, and it has exactly the same
@@ -1183,8 +1190,8 @@
         .shots-masonry .shot-open { display: block; border-radius: 14px; overflow: hidden; }
         .shots-masonry .shot-open:focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 3px; }
 
-        @media (max-width: 60rem) { .shots-masonry { columns: 2; } }
-        @media (max-width: 34rem) { .shots-masonry { columns: 1; } }
+        @media (max-width: 60rem) { ul.shots-masonry { columns: 2; } }
+        @media (max-width: 34rem) { ul.shots-masonry { columns: 1; } }
 
         /* The lightbox. Open when the URL names it, and nothing else.
            `display` rather than opacity, so a closed panel is out of the
