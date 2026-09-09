@@ -183,7 +183,26 @@
         /* The pay button sits in the summary column and submits the form in the
            other one, so it needs its own top margin rather than the form's. */
         .btn.pay { margin-top: 1.1rem; }
-        .secure { margin-top: .6rem; font-size: .82rem; }
+
+        /* Padlock, mark, sentence. Boxed and set apart from the price above it,
+           because the job of this block is to look like the part of the page
+           that handles money. */
+        .pay-secure {
+            display: flex; align-items: flex-start; gap: .7rem;
+            margin-top: .9rem; padding: .75rem .85rem;
+            border: 1px solid rgba(0, 0, 0, .12);
+            border-radius: var(--kaiki-radius, 8px);
+            background: rgba(0, 0, 0, .02);
+        }
+
+        .pay-secure > svg {
+            inline-size: 1.35rem; block-size: 1.35rem; flex: none;
+            margin-block-start: .1rem; color: var(--kaiki-primary, #123a5e);
+        }
+
+        .pay-brand { margin: 0; font-weight: 700; font-size: .95rem; letter-spacing: -.01em; }
+        .pay-logo { display: block; height: 18px; width: auto; }
+        .secure { margin-top: .25rem; font-size: .8rem; line-height: 1.4; }
 
         .notice-error { border-color: #a8321f; }
 

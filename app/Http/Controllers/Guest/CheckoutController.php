@@ -146,7 +146,13 @@ final class CheckoutController extends GuestPageController
             }
 
             try {
-                $result = ($this->mintSession)($booking, PaymentKind::Full);
+                // Whatever the page said it would charge. A deposit product
+                // shows «πληρώνετε X τώρα και Y πριν την αναχώρηση» beside the
+                // button, and charging the full total after that is the page
+                // lying about money — which is the one thing a checkout may
+                // never do. `MintCheckoutSession` refuses a deposit that does
+                // not exist, so the fallback is the total.
+                $result = ($this->mintSession)($booking, self::kindFor($booking));
             } catch (CheckoutRefused|IllegalStateTransition) {
                 return redirect()
                     ->route('guest.checkout', ['token' => $token])
@@ -164,6 +170,21 @@ final class CheckoutController extends GuestPageController
 
             return redirect()->away($target->url);
         });
+    }
+
+    /**
+     * Deposit if the booking has one, otherwise the whole thing.
+     *
+     * Read from the same snapshot the page renders its «you pay X now» line
+     * from, so the sentence and the charge cannot disagree.
+     */
+    private static function kindFor(Booking $booking): PaymentKind
+    {
+        $deposit = (int) ($booking->price_snapshot['deposit']['amount_cents'] ?? 0);
+
+        return $deposit > 0 && $deposit < $booking->total_cents
+            ? PaymentKind::Deposit
+            : PaymentKind::Full;
     }
 
     /**

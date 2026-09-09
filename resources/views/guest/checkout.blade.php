@@ -34,6 +34,13 @@
     $lines = is_array($snapshot['lines'] ?? null) ? $snapshot['lines'] : [];
     $deposit = is_array($snapshot['deposit'] ?? null) ? $snapshot['deposit'] : null;
 
+    // What the button is about to charge — the deposit when there is one, the
+    // whole total otherwise. The same test the controller makes, so the label
+    // and the charge are one decision rather than two that can drift.
+    $depositCents = (int) ($deposit['amount_cents'] ?? 0);
+    $takesDeposit = $depositCents > 0 && $depositCents < $booking->total_cents;
+    $dueNow = $takesDeposit ? $depositCents : $booking->total_cents;
+
     // The label in each line is stored per locale, exactly as the catalogue
     // stores every other translatable string.
     $labelOf = static function (array $line) use ($locale): string {
@@ -103,10 +110,10 @@
 
         <p class="muted">{{ __('guest.checkout.vat_included') }}</p>
 
-        @if ($deposit !== null && (int) ($deposit['amount_cents'] ?? 0) > 0 && (int) $deposit['amount_cents'] < $booking->total_cents)
+        @if ($takesDeposit)
             <p class="muted">{{ __('guest.checkout.deposit_note', [
-                'deposit' => $money((int) $deposit['amount_cents']),
-                'balance' => $money($booking->total_cents - (int) $deposit['amount_cents']),
+                'deposit' => $money($depositCents),
+                'balance' => $money($booking->total_cents - $depositCents),
             ]) }}</p>
         @endif
 
@@ -120,9 +127,35 @@
              number should know whose page they are about to land on. ADR-0004 —
              the card is entered on Viva's own checkout and neither Kaiki nor the
              operator ever sees it. --}}
-        <button type="submit" form="checkout-form" class="btn pay">{{ __('guest.checkout.pay', ['amount' => $money($booking->total_cents)]) }}</button>
+        <button type="submit" form="checkout-form" class="btn pay">{{ __('guest.checkout.pay', ['amount' => $money($dueNow)]) }}</button>
 
-        <p class="muted secure">{{ __('guest.checkout.secure') }}</p>
+        {{-- The trust block. A page that asks for money and says nothing about
+             where it goes reads as a scam, which is what this is here to fix.
+
+             The mark is the operator's real one when it exists: drop Viva's
+             official SVG at `public/hosted/viva.svg` and it is used instead of
+             the wordmark below, with no further change. It is deliberately not
+             drawn by hand — approximating another company's logo is worse than
+             printing their name in this page's own type, and Viva's brand kit
+             is where the file has to come from. --}}
+        <div class="pay-secure">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+                <rect x="4" y="10.4" width="16" height="10.2" rx="2.4"/>
+                <path d="M7.8 10.4V7.6a4.2 4.2 0 0 1 8.4 0v2.8"/>
+                <path d="M12 14.6v2"/>
+            </svg>
+
+            <div>
+                @if (file_exists(public_path('hosted/viva.svg')))
+                    <img class="pay-logo" src="{{ url('/hosted/viva.svg') }}" alt="Viva Wallet" height="18">
+                @else
+                    <p class="pay-brand">Viva Wallet</p>
+                @endif
+
+                <p class="muted secure">{{ __('guest.checkout.secure') }}</p>
+            </div>
+        </div>
     </div>
 
     </aside>

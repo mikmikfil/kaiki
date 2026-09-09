@@ -6,6 +6,7 @@ namespace App\Http\Resources\Api\V1;
 
 use App\Domain\Booking\Support\CheckInWindow;
 use App\Domain\Booking\Support\RefundEntitlement;
+use App\Domain\Hosted\Support\HostedUrl;
 use App\Enums\BookingStatus;
 use App\Models\Booking;
 use App\Models\BookingGuest;
@@ -87,6 +88,12 @@ class BookingResource extends JsonResource
             'locale' => $booking->locale,
             'is_test' => $booking->is_test,
             'manage_token' => $this->withManageToken ? $booking->manage_token : null,
+            // Where the widget sends the guest next. Emitted with the token and
+            // under the same condition, because it *is* the token: a caller that
+            // may not see one has no checkout link to be given either.
+            'checkout_url' => $this->withManageToken
+                ? HostedUrl::checkout($booking->manage_token)
+                : null,
             'product' => $this->product($booking),
             'vessel' => $booking->vessel === null ? null : [
                 'uuid' => $booking->vessel->uuid,

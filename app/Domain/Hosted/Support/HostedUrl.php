@@ -50,6 +50,24 @@ final class HostedUrl
     }
 
     /**
+     * Where a guest finishes a booking (`/c/{manage_token}`).
+     *
+     * On the hosted origin rather than on whatever host built the draft, and
+     * that is the whole reason it lives here: the widget runs on an operator's
+     * own WordPress site, and a checkout link built from the current request
+     * would point at their domain, where nothing serves it. Under #109's custom
+     * domains this follows the operator's own, which is what makes the handoff
+     * invisible to a guest.
+     *
+     * No locale suffix. The page reads the booking's own `locale` (TOK-5) and
+     * accepts `?lang=` on top, exactly as the other token pages do.
+     */
+    public static function checkout(string $manageToken): string
+    {
+        return sprintf('%s/c/%s', self::origin(), $manageToken);
+    }
+
+    /**
      * Does this operator serve hosted pages at all?
      *
      * HOS-6 makes the page a 404 when the switch is off, so a payload that
