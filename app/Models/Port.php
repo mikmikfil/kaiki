@@ -127,33 +127,71 @@ class Port extends Model implements TranslatableSearchable
     /**
      * The same place, as an embeddable map (HOS-2).
      *
-     * ## Built from coordinates or an address, and never from `maps_url`
+     * ## OpenStreetMap, because Google's keyless embed stopped existing
+     *
+     * This used to be `https://www.google.com/maps?q=…&output=embed`, which
+     * needed no API key and worked for years. It does not work now:
+     * that URL 301s to `/maps/embed?origin=mfe&pb=…`, which answers **404**
+     * and sends `X-Frame-Options: SAMEORIGIN` with it. So every trip page with
+     * a meeting point had a full-width grey void in the middle of it — no
+     * console error, no failing test, nothing to see from in here. It was
+     * found by looking at the page.
+     *
+     * Google's supported replacement is the Embed API, which is keyed. That
+     * would put a platform credential in the markup of every operator's page
+     * and hand the platform a per-render bill for a static picture of a
+     * marina. OSM's `export/embed.html` is keyless, framed by design, and
+     * costs nothing; the attribution it requires is rendered under the frame.
+     *
+     * ## Coordinates only
+     *
+     * The embed takes a bounding box, not a search term, so an address with no
+     * coordinates can no longer be drawn — it keeps {@see mapsUrl()} and gets
+     * no frame. That is the same subtraction this method already made for a
+     * pasted short link, and for the same reason: on the section that tells a
+     * guest where to stand at nine in the morning, nothing is better than a
+     * broken box.
+     *
+     * ## Built from coordinates, and never from `maps_url`
      *
      * `maps_url` is whatever the operator pasted — very often a `goo.gl` or
-     * `maps.app.goo.gl` short link, which Google will not render inside a
-     * frame. Embedding one produces a grey box with a refusal in it, on the
-     * page that tells a guest where to stand at nine in the morning. So a
-     * custom URL keeps the link and gets no embed, and the two are different
-     * questions rather than one value used twice.
-     *
-     * ## No API key, deliberately
-     *
-     * The `output=embed` form needs none. The keyed Embed API would put a
-     * platform credential in the markup of every operator's page and give the
-     * platform a per-render bill for a static map of a marina.
+     * `maps.app.goo.gl` short link, which no provider will render inside a
+     * frame. A custom URL keeps the link and gets no embed, so the two are
+     * different questions rather than one value used twice.
      */
     public function mapsEmbedUrl(): ?string
     {
-        $query = match (true) {
-            $this->lat !== null && $this->lng !== null => "{$this->lat},{$this->lng}",
-            $this->address !== null && $this->address !== '' => $this->address,
-            default => null,
-        };
-
-        if ($query === null) {
+        if ($this->lat === null || $this->lng === null) {
             return null;
         }
 
-        return 'https://www.google.com/maps?q=' . rawurlencode($query) . '&output=embed';
+        $lat = (float) $this->lat;
+        $lng = (float) $this->lng;
+
+        // About 350m across and 220m down at Aegean latitudes: a marina and
+        // the streets that reach it, which is the question this map answers.
+        // Wider and the pin is a dot in a city; tighter and there is no
+        // landmark next to it to recognise.
+        $box = implode(',', [
+            $this->coordinate($lng - 0.004),
+            $this->coordinate($lat - 0.002),
+            $this->coordinate($lng + 0.004),
+            $this->coordinate($lat + 0.002),
+        ]);
+
+        return 'https://www.openstreetmap.org/export/embed.html?bbox=' . rawurlencode($box)
+            . '&layer=mapnik&marker=' . rawurlencode($this->coordinate($lat) . ',' . $this->coordinate($lng));
+    }
+
+    /**
+     * Six decimals — about 10cm — and never exponential notation.
+     *
+     * `(string) 1.0E-5` is `1.0E-5`, which a bounding box parser reads as zero
+     * or as nothing. No meeting point is at that longitude, but the null island
+     * case is exactly the one nobody tests.
+     */
+    private function coordinate(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 6, '.', ''), '0'), '.');
     }
 }

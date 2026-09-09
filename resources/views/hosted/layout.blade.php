@@ -335,11 +335,79 @@
            on a desktop is a rail nobody knows scrolls. */
         .trips-rail { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--kaiki-primary) 40%, transparent) transparent; }
 
+        /* --- the rail's arrows, and not one line of JavaScript ---------
+           `::scroll-button()` is the browser's own: it scrolls the container it
+           is generated on, disables itself at each end, and is a real button to
+           a screen reader. Where it is not implemented no arrow is drawn and the
+           rail behaves exactly as it did before — it already swipes on a phone,
+           scrolls on a trackpad and answers the arrow keys once focused.
+
+           This is why it is that pseudo-element and not two buttons and a
+           listener: HOS-4 promises these pages carry no JavaScript at all, and
+           `HostedPageLocaleTest` asserts it by looking for the opening tag.
+           That guarantee is worth more than a pair of arrows.
+
+           (Writing the tag's name in this comment is how that test failed the
+           first draft of it: this stylesheet is inlined into the page, so a
+           comment quoting the forbidden string *is* the forbidden string. The
+           note on `.eyebrow` did the same thing an hour earlier with the
+           property that recases text. Comments here are page content.)
+
+           They are positioned against the block rather than the rail, so they
+           sit on the heading's line the way the design has them. The rail is
+           deliberately left unpositioned: an absolutely positioned child of a
+           scroll container scrolls away with the content. */
+        .trips-block { position: relative; }
+
+        .trips-rail::scroll-button(left),
+        .trips-rail::scroll-button(right) {
+            position: absolute;
+            inset-block-start: .1rem;
+            inline-size: 2.25rem; block-size: 2.25rem;
+            display: grid; place-content: center;
+            border: 1px solid var(--rule);
+            border-radius: 50%;
+            background: var(--surface);
+            color: var(--kaiki-primary);
+            font-size: 1.1rem; line-height: 1;
+            cursor: pointer;
+            transition: border-color .15s ease;
+        }
+
+        .trips-rail::scroll-button(left) { inset-inline-end: 3rem; content: '\2039'; }
+        .trips-rail::scroll-button(right) { inset-inline-end: 0; content: '\203A'; }
+
+        .trips-rail::scroll-button(*):hover { border-color: var(--kaiki-primary); }
+        .trips-rail::scroll-button(*):focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 2px; }
+
+        /* Both ends of a rail that does not scroll, and the left one at the
+           start: dimmed rather than gone, so the pair does not jump about. */
+        .trips-rail::scroll-button(*):disabled { color: var(--ink-faint); opacity: .45; cursor: default; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .trips-rail::scroll-button(left),
+            .trips-rail::scroll-button(right) { transition: none; }
+        }
+
+        /* The link and the arrows share the row, so the link steps aside. */
+        @supports selector(::scroll-button(right)) {
+            .trips-block .block-head .see-all { margin-inline-end: 5.25rem; }
+        }
+
+        /* The second heading in the block, and it is a heading — not a caption.
+
+           It was `--step-2` in `--ink-soft`: a size below the `<h2>` above it
+           and a grey lighter than the body text under it, so the one word that
+           divides the recommendations from the whole catalogue read as the
+           smallest thing on the page. Same size, same colour and same weight as
+           the section heading it sits under; the `<h3>` is what carries the
+           hierarchy, which is where hierarchy belongs. */
         .trips-more {
-            margin: 3.5rem 0 1.6rem;
+            margin: 3.5rem 0 0;
             font-size: var(--step-2);
-            color: var(--ink-soft);
-            font-weight: 600;
+            letter-spacing: -.015em;
+            color: var(--kaiki-text);
+            font-weight: 700;
         }
 
         /* --- section headings, from the design of 8 September ---------
@@ -358,17 +426,24 @@
             display: block;
             inline-size: 2.6rem;
             block-size: 3px;
-            margin-block-start: .7rem;
+            /* Air on **both** sides. The first version set only the space above
+               the rule, so it took the heading's own bottom margin as its
+               breathing room and the cards ended up hard against it — the rule
+               read as an underline on the row below rather than as a mark under
+               the heading. */
+            margin-block: .7rem 1.6rem;
             border-radius: 2px;
             background: var(--kaiki-primary);
         }
+
+        /* …and the heading itself no longer needs one, or the two add up. */
+        .block > h2:has(+ *)::after { margin-block-end: 1.6rem; }
+        .block-head h2 { margin-block-end: 0; }
 
         .block-head {
             display: flex; flex-wrap: wrap; align-items: baseline;
             justify-content: space-between; gap: .6rem 1.5rem;
         }
-
-        .block-head h2 { margin-block-end: 0; }
 
         .see-all {
             color: var(--kaiki-primary); text-decoration: none;
@@ -911,13 +986,34 @@
         /* Normal case with letter-spacing doing the emphasis. I18N-2 forbids
            the CSS property that would change it — Greek capitals drop their
            accents — and two tests assert this stylesheet never names it. */
+        /* The five facts under the title, each under its own icon.
+
+           They were one row of values with dots between them — a sentence a
+           visitor has to read through to find the one thing they came for. The
+           dots are gone with the run-on line; what separates the facts now is
+           the space between them. */
+        /* The row sits **above** the title, and the title is still the first
+           thing in the markup.
+
+           `order` rather than moving the `<ul>` in the template: a page whose
+           source begins "480 minutes, day charter, Zea Marina" announces four
+           details to a screen reader and to a crawler before it says what the
+           trip is called. Nothing in the row is focusable, so the usual reason
+           to refuse a visual reorder — a tab sequence that jumps about — does
+           not apply here. */
+        .product-head { display: flex; flex-direction: column; }
+        .product-head h1 { order: 2; }
+        .product-head .standfirst { order: 3; }
+        ul.facts { order: 1; }
+
         ul.facts {
-            list-style: none; margin: 0; padding: 0;
-            display: flex; flex-wrap: wrap; gap: .4rem .9rem;
-            font-size: .86rem; color: var(--ink-faint); letter-spacing: .01em;
+            list-style: none; margin: 0 0 1.5rem; padding: 0;
+            display: flex; flex-wrap: wrap; gap: 1.1rem 2.2rem;
+            font-size: .92rem; color: var(--ink-soft); letter-spacing: .01em;
         }
-        ul.facts li + li::before { content: '·'; margin-right: .9rem; color: var(--rule); }
-        ul.facts { font-size: .92rem; }
+
+        ul.facts li { display: grid; gap: .4rem; justify-items: start; }
+        ul.facts .icon { inline-size: 1.15rem; block-size: 1.15rem; color: var(--kaiki-primary); }
 
         .shots { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem;
                  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
@@ -1058,6 +1154,7 @@
         }
         .map-embed iframe { width: 100%; height: 100%; border: 0; display: block; }
         @media (max-width: 40rem) { .map-embed { aspect-ratio: 4 / 3; } }
+
 
         .lists { display: grid; gap: 1.75rem; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); align-items: start; }
         ul.ticks { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; font-size: .95rem; }

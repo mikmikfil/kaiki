@@ -20,15 +20,27 @@
     markup whether they are open or shut, which is what the crawler reading the
     `FAQPage` block below needs.
 
+    ## The cancellation policy is one more question, and it is not in the schema
+
+    The trip page passes `$policy`, and it renders as a final disclosure after
+    the operator's own. It is deliberately **absent from the `FAQPage` block**
+    below: that markup is a claim to a search engine about questions this
+    operator answered, and the cancellation answer is generated from a policy
+    row. A rich result quoting a sentence nobody wrote is the kind of thing that
+    is right until the policy changes and Google is still showing last season's.
+
     Expects: $entries (Collection<Faq>), $heading (?string), $anchor (?string),
-    and $nonce from the layout.
+    $policy (?CancellationPolicy), and $nonce from the layout.
 --}}
 @php
     /** @var \Illuminate\Support\Collection<int, \App\Models\Faq> $entries */
     $schema = \App\Domain\Hosted\Support\FaqSchema::json($entries);
+
+    // The home page's FAQ block has no product and therefore no policy.
+    $policy = $policy ?? null;
 @endphp
 
-@if ($entries->isNotEmpty())
+@if ($entries->isNotEmpty() || $policy)
     <section class="block faq" @if ($anchor ?? null) id="{{ $anchor }}" @endif>
         @if ($heading ?? null)
             <h2>{{ $heading }}</h2>
@@ -43,6 +55,29 @@
                     <div class="prose">{{ $entry->prose() }}</div>
                 </details>
             @endforeach
+
+            @if ($policy)
+                <details class="faq-item">
+                    <summary>{{ __('hosted.product.cancellation_question') }}</summary>
+                    <div class="prose">
+                        <p><strong>{{ $policy->name }}</strong></p>
+                        @if ($policy->summary)
+                            <p>{{ $policy->summary }}</p>
+                        @endif
+                        @if ($policy->free_cancellation_hours)
+                            <p>{{ __('hosted.product.free_cancellation', ['hours' => $policy->free_cancellation_hours]) }}</p>
+                        @endif
+                        @if ($policy->tiers->isNotEmpty())
+                            <ul class="tiers">
+                                @foreach ($policy->tiers as $tier)
+                                    <li>{{ __('hosted.product.tier', ['days' => $tier->days_before, 'percent' => $tier->refund_percent]) }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                        <p class="muted">{{ __('hosted.product.weather_refund', ['percent' => $policy->weather_refund_percent]) }}</p>
+                    </div>
+                </details>
+            @endif
         </div>
 
         @if ($schema)

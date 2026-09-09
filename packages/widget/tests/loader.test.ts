@@ -109,6 +109,16 @@ describe('the rest of the attributes', () => {
     expect(readConfig(embed({ 'data-key': 'pk_3' }))?.analytics).toBe(true);
   });
 
+  it('keeps the credit line on unless the host page explicitly says otherwise', () => {
+    // The «powered by Kaiki» line is on by default everywhere, custom domains
+    // included, and the only thing that removes it is the literal `false` —
+    // which Kaiki's own hosted pages pass, because their footer already says it.
+    expect(readConfig(embed({ 'data-key': 'pk_1' }))?.credit).toBe(true);
+    expect(readConfig(embed({ 'data-key': 'pk_2', 'data-credit': 'false' }))?.credit).toBe(false);
+    expect(readConfig(embed({ 'data-key': 'pk_3', 'data-credit': 'no' }))?.credit).toBe(false);
+    expect(readConfig(embed({ 'data-key': 'pk_4', 'data-credit': 'true' }))?.credit).toBe(true);
+  });
+
   it('takes the API origin from the script it was served by, never from an attribute', () => {
     const config = readConfig(
       embed({ 'data-key': 'pk_test_1', 'data-api': 'https://evil.example' }, 'https://api.kaiki.app/widget/v1/kaiki-widget.js'),

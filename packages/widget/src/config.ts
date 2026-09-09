@@ -32,6 +32,14 @@ export interface WidgetConfig {
   readonly theme: string | null;
   /** WGT-11: on by default, and an operator may turn the events off. */
   readonly analytics: boolean;
+  /**
+   * The «Powered by Kaiki» line, on by default.
+   *
+   * Off on Kaiki's own hosted pages, where the same sentence is already in the
+   * footer — the credit exists to say whose booking form this is on somebody
+   * else's website, and on our own page it says it twice.
+   */
+  readonly credit: boolean;
   /** A CSS selector for the node to mount into; null means "where the script tag is". */
   readonly target: string | null;
   /** Where the API lives, derived from the script's own `src`. */
@@ -74,6 +82,8 @@ export function readConfig(script: HTMLScriptElement): WidgetConfig | null {
     // typed `data-analytics="no"` meant to switch them off, and a value that
     // silently meant "on" would be worse than either reading.
     analytics: (script.dataset.analytics ?? 'true').toLowerCase() === 'true',
+    // Same reading as `analytics` above, for the same reason.
+    credit: (script.dataset.credit ?? 'true').toLowerCase() === 'true',
     target: value(script.dataset.target),
     apiBase: apiBaseFrom(script.src),
   };

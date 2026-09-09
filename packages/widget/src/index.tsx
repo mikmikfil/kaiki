@@ -113,7 +113,7 @@ function mount(config: WidgetConfig, script: HTMLScriptElement, doc: Document): 
             productUuid={config.productUuid}
             category={config.category}
             t={t}
-            poweredBy={true}
+            poweredBy={config.credit}
             client={client}
             analytics={events}
             locale={t.locale}

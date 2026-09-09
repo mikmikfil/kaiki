@@ -78,6 +78,7 @@ return [
         'age_range' => 'ages :from to :to',
         'age_from' => 'ages :from and over',
         'no_seat' => 'does not take a seat',
+        'cancellation_question' => 'Can I cancel?',
         'cancellation' => 'Cancellation',
         'free_cancellation' => 'Free cancellation up to :hours hours before departure.',
         'tier' => ':days days before departure: :percent% refunded',

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Hosted\Support;
 
 use App\Models\BrandProfile;
+use App\Models\Port;
 
 /**
  * The Content-Security-Policy a hosted page is served with (HOS-8, SEC-10).
@@ -49,9 +50,11 @@ final class HostedPageCsp
      * One constant, read by the policy and by the test that asserts the policy —
      * so a change of provider cannot leave the header and the markup pointing
      * at different hosts, which fails as a blank grey box on somebody else's
-     * page rather than as an error here.
+     * page rather than as an error here. That is not a hypothetical: the
+     * provider did change, and {@see Port::mapsEmbedUrl()} records
+     * why.
      */
-    public const MAPS_ORIGIN = 'https://www.google.com';
+    public const MAPS_ORIGIN = 'https://www.openstreetmap.org';
 
     /**
      * @param  list<string>  $gatewayOrigins  the redirect hosts of the gateways this operator has connected
@@ -120,9 +123,9 @@ final class HostedPageCsp
             // because an operator chooses those; nobody chooses whether their
             // meeting point has a location.
             //
-            // Narrow on purpose. `https://www.google.com` and not
-            // `*.google.com`: the wildcard would admit every Google property,
-            // including ones that host user content.
+            // Narrow on purpose. The exact origin and not a wildcard: a
+            // wildcard over a provider's domain admits every property it
+            // serves there, including the ones that host user uploads.
             'frame-src' => [self::MAPS_ORIGIN],
             'object-src' => ["'none'"],
             'base-uri' => [$self],

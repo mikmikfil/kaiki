@@ -76,6 +76,7 @@ return [
         'age_range' => 'ηλικίες :from έως :to',
         'age_from' => 'ηλικίες :from και άνω',
         'no_seat' => 'δεν πιάνει θέση',
+        'cancellation_question' => 'Μπορώ να ακυρώσω;',
         'cancellation' => 'Ακύρωση',
         'free_cancellation' => 'Δωρεάν ακύρωση έως :hours ώρες πριν την αναχώρηση.',
         'tier' => ':days ημέρες πριν την αναχώρηση: επιστροφή :percent%',

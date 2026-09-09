@@ -66,17 +66,39 @@
                 <p class="standfirst">{{ $product->summary }}</p>
             @endif
 
+            {{-- Five facts, each under its own icon. They used to be one line of
+                 values with dots between them, which is a sentence a visitor has
+                 to read in order to find the one thing they came for. Stacked,
+                 the eye lands on the clock or the pin without reading anything.
+
+                 Every icon is `aria-hidden` and sits above a value that already
+                 says what it is, so nothing here is announced twice. --}}
             <ul class="facts">
-                <li>{{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}</li>
-                <li>{{ $product->category->label() }}</li>
+                <li>
+                    @include('hosted.partials.icon', ['name' => 'clock'])
+                    <span>{{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}</span>
+                </li>
+                <li>
+                    @include('hosted.partials.icon', ['name' => 'type'])
+                    <span>{{ $product->category->label() }}</span>
+                </li>
                 @if ($port)
-                    <li>{{ $port->name }}</li>
+                    <li>
+                        @include('hosted.partials.icon', ['name' => 'pin'])
+                        <span>{{ $port->name }}</span>
+                    </li>
                 @endif
                 @if ($product->vessel)
-                    <li>{{ $product->vessel->name }}</li>
+                    <li>
+                        @include('hosted.partials.icon', ['name' => 'boat'])
+                        <span>{{ $product->vessel->name }}</span>
+                    </li>
                 @endif
                 @if (! $isQuote)
-                    <li>{{ __('hosted.product.max_pax', ['count' => $product->max_pax]) }}</li>
+                    <li>
+                        @include('hosted.partials.icon', ['name' => 'users'])
+                        <span>{{ __('hosted.product.max_pax', ['count' => $product->max_pax]) }}</span>
+                    </li>
                 @endif
             </ul>
         </header>
@@ -205,11 +227,18 @@
                     JavaScript and loads fast; a third-party frame fetched
                     eagerly would be the heaviest thing on it.
 
-                    `referrerpolicy="no-referrer"` so Google is not told which
-                    operator's page a visitor was reading. It does not make the
-                    frame private — a guest who scrolls this far is seen by
-                    Google either way, which is a consent question for the
+                    `referrerpolicy="no-referrer"` so the map provider is not
+                    told which operator's page a visitor was reading. It does
+                    not make the frame private — a guest who scrolls this far is
+                    seen by them either way, which is a consent question for the
                     operator rather than something this template can fix.
+
+                    No attribution line of our own under it. The ODbL does
+                    require credit, and the embed already carries it inside the
+                    frame — "© OpenStreetMap contributors", with the licence
+                    behind it, in every tile set they serve. A second copy
+                    directly below is the same sentence twice, forty pixels
+                    apart, which is the note the widget's credit already has.
                 --}}
                 @if ($port->mapsEmbedUrl())
                     <div class="map-embed">
@@ -235,32 +264,20 @@
             </section>
         @endif
 
-        @if ($policy)
-            <section class="section">
-                <h2>{{ __('hosted.product.cancellation') }}</h2>
-                <p><strong>{{ $policy->name }}</strong></p>
-                @if ($policy->summary)
-                    <p>{{ $policy->summary }}</p>
-                @endif
-                @if ($policy->free_cancellation_hours)
-                    <p>{{ __('hosted.product.free_cancellation', ['hours' => $policy->free_cancellation_hours]) }}</p>
-                @endif
-                @if ($policy->tiers->isNotEmpty())
-                    <ul class="tiers">
-                        @foreach ($policy->tiers as $tier)
-                            <li>{{ __('hosted.product.tier', ['days' => $tier->days_before, 'percent' => $tier->refund_percent]) }}</li>
-                        @endforeach
-                    </ul>
-                @endif
-                <p class="muted">{{ __('hosted.product.weather_refund', ['percent' => $policy->weather_refund_percent]) }}</p>
-            </section>
-        @endif
+        {{-- This trip's questions plus the operator's, its own first (#103) —
+             and the cancellation policy as one more of them.
 
-        {{-- This trip's questions plus the operator's, its own first (#103). --}}
+             It used to be a section of its own, open, between the boat and the
+             questions: a heading, a policy name, a sentence, a list of refund
+             tiers and a line about the weather, all of it printed at a visitor
+             who has not asked. "Can I cancel?" is a question, it was sitting
+             directly above the place where questions are answered, and it is
+             the only one of them the operator did not write. --}}
             @include('hosted.partials.faq', [
                 'entries' => $faqs,
                 'heading' => __('hosted.blocks.faq.heading'),
                 'anchor' => 'faq',
+                'policy' => $policy,
             ])
             </div>
 
@@ -344,6 +361,12 @@
                             data-mount="{{ $isQuote ? 'enquiry' : 'booking' }}"
                             data-product="{{ $product->uuid }}"
                             data-locale="{{ $locale }}"
+                            {{-- «Με την τεχνολογία του Kaiki» is already in this
+                                 page's footer. The line inside the widget is
+                                 there to say whose booking form this is on
+                                 somebody else's website; on ours it is the same
+                                 sentence twice, forty pixels apart. --}}
+                            data-credit="false"
                             defer></script>
                 </div>
             @endif
@@ -450,19 +473,6 @@
                     </details>
                 @endif
 
-                @if ($policy && $policy->free_cancellation_hours)
-                    <details class="fold">
-                        <summary>{{ __('hosted.product.cancellation') }}</summary>
-                        <div class="fold-body">
-                            <div class="extra">
-                                @include('hosted.partials.icon', ['name' => 'calendar'])
-                                <div>
-                                    <span>{{ __('hosted.product.free_cancellation', ['hours' => $policy->free_cancellation_hours]) }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </details>
-                @endif
             </div>
                 </section>
             </aside>
