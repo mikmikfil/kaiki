@@ -12,6 +12,13 @@
     the query string is already gone by the time this template runs, dropped by
     `SearchPageController` through `SearchFilters`. Hiding it here and honouring
     it there is the version that passes a screenshot review.
+
+    **The results are the same card as everywhere else.** This page used to draw
+    its own, sharing the class name and none of the structure — no padding, no
+    photograph, no button — so a guest who searched landed on a plainer, worse
+    version of the catalogue they had just left. `hosted.partials.trip-card`
+    takes the `$result` and answers with this party's price instead of a
+    from-price.
 --}}
 @extends('hosted.layout')
 
@@ -20,13 +27,7 @@
 
 @section('content')
     @php
-        use App\Domain\Catalog\Support\SearchFilters;
-        use App\Support\Format\MoneyFormatter;
-
         $applied = $criteria->applied;
-        $money = static fn (?int $cents): ?string => $cents === null
-            ? null
-            : MoneyFormatter::format($cents, app()->getLocale(), MoneyFormatter::currency());
     @endphp
 
     <header class="search-head">
@@ -52,42 +53,13 @@
     @else
         <p class="result-count">{{ trans_choice('hosted.search.count', count($results), ['count' => count($results)]) }}</p>
 
-        <ul class="trips">
+        <ul class="trips results">
             @foreach ($results as $result)
-                @php $product = $result->product; @endphp
-                <li class="trip">
-                    <h3>
-                        <a href="{{ route('hosted.product', ['operator' => $tenant->slug, 'product' => $product->slug, 'lang' => $locale]) }}">{{ $product->title }}</a>
-                    </h3>
-
-                    @if ($product->summary)
-                        <p class="summary">{{ $product->summary }}</p>
-                    @endif
-
-                    <p class="facts">
-                        {{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}
-                        @if ($product->meetingPoint)
-                            · {{ $product->meetingPoint->name }}
-                        @endif
-                        @if ($result->nextDeparture)
-                            · {{ substr((string) $result->nextDeparture->local_time, 0, 5) }}
-                        @endif
-                    </p>
-
-                    {{-- Pinned to the bottom of the card by `margin-top: auto`,
-                         so a row of cards has its prices on one line — settled
-                         on 4 September, and the reason is that prices at
-                         different heights read as a mistake. --}}
-                    <p class="party-price">
-                        @if ($result->isOnRequest())
-                            <span class="on-request">{{ __('hosted.search.on_request') }}</span>
-                        @else
-                            <strong>{{ $money($result->partyPriceCents) }}</strong>
-                            <span class="for-party">{{ trans_choice('hosted.search.for_party', $criteria->pax, ['count' => $criteria->pax]) }}</span>
-                            <span class="vat">{{ __('hosted.product.price.vat_included') }}</span>
-                        @endif
-                    </p>
-                </li>
+                @include('hosted.partials.trip-card', [
+                    'product' => $result->product,
+                    'result' => $result,
+                    'pax' => $criteria->pax,
+                ])
             @endforeach
         </ul>
     @endif

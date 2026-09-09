@@ -531,16 +531,41 @@
             justify-content: center; height: 2.9rem; box-sizing: border-box;
         }
 
-        .result-count { color: var(--ink-faint); font-size: .88rem; margin: 0 0 1rem; }
+        .result-count { color: var(--ink-faint); font-size: .88rem; margin: 0 0 1.25rem; }
 
         /* The price row is pinned to the bottom of the card, so a row of cards
            has its prices on one line — settled on 4 September, because prices at
            different heights read as a mistake. */
-        .party-price { margin: auto 0 0; padding-top: .7rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem; }
-        .party-price strong { font-size: 1.25rem; letter-spacing: -.02em; }
-        .party-price .for-party { font-size: .85rem; color: var(--ink-soft); }
-        .party-price .vat { flex-basis: 100%; font-size: .78rem; color: var(--ink-faint); }
-        .party-price .on-request { font-weight: 600; color: var(--kaiki-primary); }
+        /* A search result's price, in the same foot as a catalogue card's.
+           It says what this party pays rather than what one seat starts at, so
+           it carries two more pieces: who the figure is for, and that the VAT
+           is already in it. The VAT line takes a row of its own — at a card
+           width of 19rem it is the third thing on a line that already holds a
+           price and a party size. */
+        .trip-price { flex-wrap: wrap; }
+        .trip-price .for-party { font-size: .85rem; color: var(--ink-soft); }
+        .trip-price .vat { flex-basis: 100%; font-size: .78rem; color: var(--ink-faint); }
+        .trip-price .on-request { font-weight: 600; color: var(--kaiki-primary); }
+
+        /* Two lines of price instead of one, so the reserved foot is a line
+           taller — and every card in the grid reserves it, including the
+           on-request card whose price is one word. Same mechanism as the base
+           `min-height` above, and the same reason: a row of cards whose buttons
+           sit at different heights reads as a mistake. */
+        .trip-foot.is-party-price { min-height: 7.1rem; }
+
+        /* Results are capped rather than stretched.
+           `ul.trips` uses `auto-fit` with a `1fr` maximum, which is right on
+           the home page — a last row of two never leaves a half-width card next
+           to a hole. A search answers two trips *often*, and two cards sharing
+           a 66rem row are 33rem each: an image the size of a hero, on a page
+           whose whole job is comparing one against the other. A ceiling on the
+           track and the row packed from the left keeps a result the size of a
+           result, and three still fit across a laptop. */
+        .trips.results {
+            grid-template-columns: repeat(auto-fit, minmax(19rem, 23rem));
+            justify-content: start;
+        }
 
         .empty {
             background: var(--surface); border: 1px solid var(--rule);

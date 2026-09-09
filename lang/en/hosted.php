@@ -113,6 +113,7 @@ return [
         'any' => 'Any',
         'submit' => 'Search',
         'on_request' => 'Price on request',
+        'departs_at' => 'departs :time',
         'count' => '{1} One trip found|[2,*] :count trips found',
         'for_party' => '{1} for one person|[2,*] for :count people',
         'fields' => [

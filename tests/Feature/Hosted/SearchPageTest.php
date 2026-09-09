@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Catalog\Support\SearchFilters;
+use App\Enums\BookingMode;
 use App\Models\AgeBand;
 use App\Models\Departure;
 use App\Models\Port;
@@ -100,6 +101,49 @@ it('renders results from a plain GET, with no script on the page', function (): 
     // This page has no structured data either, so it has no script at all.
     expect($body)->toContain('<form class="search-form" method="get"')
         ->and($body)->not->toContain('<script');
+})->group('fast');
+
+it('draws a result as the same card the rest of the site uses', function (): void {
+    $tenant = OperatorPage::operator('search-card');
+    searchPageTrip($tenant, 'sunset', 4500, searchPageDate());
+
+    $body = (string) get(HostedRequest::url(
+        '/search-card/search?lang=en&date=' . searchPageDate() . '&pax=4',
+    ))->getContent();
+
+    // This page drew its own `<li class="trip">` once — the same class name and
+    // none of the structure, so the text began at the card's edge and the
+    // photograph every other trip card leads with was simply missing. The
+    // structure is asserted rather than the appearance, because the appearance
+    // is what nobody noticed.
+    expect($body)->toContain('class="trip-image')
+        ->and($body)->toContain('class="trip-body"')
+        ->and($body)->toContain('class="trip-foot is-party-price"')
+        ->and($body)->toContain(__('hosted.index.view', [], 'en'))
+        // …and the two things a catalogue card cannot say: what this party
+        // pays, and when the boat leaves on the day they asked about.
+        ->and($body)->toContain(trans_choice('hosted.search.for_party', 4, ['count' => 4], 'en'))
+        ->and($body)->toContain(__('hosted.search.departs_at', ['time' => '10:00'], 'en'));
+})->group('fast');
+
+it('shows a quote trip as on-request, with no price and the same foot', function (): void {
+    $tenant = OperatorPage::operator('search-quote');
+    $product = searchPageTrip($tenant, 'charter', 4500, searchPageDate());
+
+    Tenancy::forTenant($tenant, static function () use ($product): void {
+        $product->forceFill(['mode' => BookingMode::Quote])->save();
+    });
+
+    $body = (string) get(HostedRequest::url(
+        '/search-quote/search?lang=en&date=' . searchPageDate() . '&pax=4',
+    ))->getContent();
+
+    // BKG-24: a quote trip shows no price at all — not a hidden one, not a
+    // dash. Its foot still reserves the height of a priced one, so its button
+    // lands on the same line as its neighbours' (settled 4 September).
+    expect($body)->toContain(__('hosted.search.on_request', [], 'en'))
+        ->and($body)->toContain('class="trip-foot is-party-price"')
+        ->and($body)->not->toContain(trans_choice('hosted.search.for_party', 4, ['count' => 4], 'en'));
 })->group('fast');
 
 it('says what to change when nothing matches', function (): void {
