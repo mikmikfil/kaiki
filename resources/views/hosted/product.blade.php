@@ -398,6 +398,22 @@
                             </nav>
                         </div>
                     @endforeach
+
+                    {{-- Arrow keys and Escape, once a photograph is open.
+
+                         A file rather than an inline script, and not for
+                         tidiness: these pages send `script-src 'self'` with no
+                         nonce and no `'unsafe-inline'`. The `$nonce` this
+                         template already carries belongs to `style-src`, so an
+                         inline script signed with it is dropped silently —
+                         which is what happened to the first version of this.
+                         From the app's own origin it needs no CSP change, and a
+                         gallery does not justify widening a policy.
+
+                         Everything still works without it: opening, closing and
+                         stepping are links and `:target`, so HOS-4's promise
+                         survives the file being blocked or never requested. --}}
+                    <script src="{{ url('/hosted/gallery.js') }}" defer></script>
                 </section>
             @endif
             </div>
