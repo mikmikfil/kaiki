@@ -52,7 +52,7 @@ final class InitialsAvatarProvider implements AvatarProvider
      * the panel is Kaiki's, and an operator who has set their brand to a pale
      * yellow would get white initials on it.
      */
-    private const BACKGROUND = '#0B4F4A';
+    private const BACKGROUND = '#123A5E';
 
     public function get(Model|Authenticatable $record): string
     {

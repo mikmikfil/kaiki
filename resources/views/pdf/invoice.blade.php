@@ -41,7 +41,7 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            border-bottom: 2.5pt solid {{ $brand['colors']['primary'] ?? '#0B4F4A' }};
+            border-bottom: 2.5pt solid {{ $brand['colors']['primary'] ?? '#123A5E' }};
             padding-bottom: 10pt;
             margin-bottom: 16pt;
         }
@@ -54,7 +54,7 @@
         h2 {
             font-size: 10.5pt;
             margin: 16pt 0 4pt;
-            color: {{ $brand['colors']['primary'] ?? '#0B4F4A' }};
+            color: {{ $brand['colors']['primary'] ?? '#123A5E' }};
         }
 
         table { width: 100%; border-collapse: collapse; }

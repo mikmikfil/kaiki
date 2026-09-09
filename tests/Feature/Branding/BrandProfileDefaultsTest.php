@@ -50,11 +50,11 @@ it('creates a profile with the platform defaults when a tenant is created by fac
 
     $profile = brandOf($tenant);
 
-    expect($profile->color_primary)->toBe('#0B4F4A')
-        ->and($profile->color_secondary)->toBe('#063733')
+    expect($profile->color_primary)->toBe('#123A5E')
+        ->and($profile->color_secondary)->toBe('#0B2740')
         ->and($profile->color_accent)->toBe('#B5511F')
         ->and($profile->color_background)->toBe('#FFFFFF')
-        ->and($profile->color_text)->toBe('#16211F')
+        ->and($profile->color_text)->toBe('#131A22')
         ->and($profile->font_family)->toBe('Inter')
         ->and($profile->font_source)->toBe(FontSource::System)
         ->and($profile->button_radius_px)->toBe(8)

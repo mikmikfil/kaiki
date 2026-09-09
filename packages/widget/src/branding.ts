@@ -10,7 +10,7 @@ import type { Api } from './api-client';
  * bundle** for hex colours and fails on one, because a behavioural test cannot
  * tell a colour that came from the API from one that happened to match.
  *
- * That rules out fallbacks too — `var(--kaiki-primary, #0B4F4A)` is a hardcoded
+ * That rules out fallbacks too — `var(--kaiki-primary, #123A5E)` is a hardcoded
  * brand colour with extra steps. Every neutral the widget needs is derived from
  * the operator's own palette with `color-mix()`: a rule is their text colour at
  * twelve per cent, a hover is their primary mixed toward their background. An

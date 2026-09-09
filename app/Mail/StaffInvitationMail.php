@@ -81,7 +81,7 @@ class StaffInvitationMail extends Mailable
             'invitedBy' => $this->invitedBy,
             'resetUrl' => $this->resetUrl,
             'operator' => $this->operatorName(),
-            'accent' => $brand['colors']['primary'] ?? '#0B4F4A',
+            'accent' => $brand['colors']['primary'] ?? '#123A5E',
         ];
 
         // Both bodies, always — NTF-6. Set here rather than left to a template

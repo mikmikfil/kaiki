@@ -64,11 +64,11 @@ return new class extends Migration
             // code path created it. The column default is not redundant: it is
             // what protects a row written around the observer by an import or a
             // raw insert from rendering as an empty string in someone's CSS.
-            $table->char('color_primary', 7)->default('#0B4F4A');
-            $table->char('color_secondary', 7)->default('#063733');
+            $table->char('color_primary', 7)->default('#123A5E');
+            $table->char('color_secondary', 7)->default('#0B2740');
             $table->char('color_accent', 7)->default('#B5511F');
             $table->char('color_background', 7)->default('#FFFFFF');
-            $table->char('color_text', 7)->default('#16211F');
+            $table->char('color_text', 7)->default('#131A22');
 
             // A curated list *or* a Google Fonts family name, so this is a free
             // string rather than an enum — the curated list is a form concern

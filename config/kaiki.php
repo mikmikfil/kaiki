@@ -184,11 +184,11 @@ return [
              * these five lines. `BrandProfileDefaultsTest` reads both.
              */
             'colors' => [
-                'primary' => '#0B4F4A',
-                'secondary' => '#063733',
+                'primary' => '#123A5E',
+                'secondary' => '#0B2740',
                 'accent' => '#B5511F',
                 'background' => '#FFFFFF',
-                'text' => '#16211F',
+                'text' => '#131A22',
             ],
             'font_family' => 'Inter',
             'font_source' => 'system',

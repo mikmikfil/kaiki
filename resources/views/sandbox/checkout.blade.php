@@ -33,7 +33,7 @@
         body {
             margin: 0;
             background: #f2f5f7;
-            color: #16211F;
+            color: #131A22;
             font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
         }
         .wrap { max-width: 34rem; margin: 0 auto; padding: 2.5rem 1rem; }
@@ -64,8 +64,8 @@
             border: 1px solid transparent;
             cursor: pointer;
         }
-        .pay { background: #0B4F4A; color: #fff; }
-        .decline { background: #fff; color: #16211F; border-color: #dbe3e9; }
+        .pay { background: #123A5E; color: #fff; }
+        .decline { background: #fff; color: #131A22; border-color: #dbe3e9; }
         .note { color: #5b6b78; font-size: 0.875rem; margin-top: 1.25rem; }
     </style>
 </head>

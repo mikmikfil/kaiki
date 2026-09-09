@@ -29,9 +29,9 @@
     /** @var \App\Models\Tenant $tenant */
     /** @var array<string, mixed> $brand */
     $colors = $brand['colors'] ?? [];
-    $primary = $colors['primary'] ?? '#0B4F4A';
+    $primary = $colors['primary'] ?? '#123A5E';
     $accent = $colors['accent'] ?? '#B5511F';
-    $text = $colors['text'] ?? '#16211F';
+    $text = $colors['text'] ?? '#131A22';
     $radius = $brand['button_radius_px'] ?? 10;
     $fontCss = $brand['font']['css_url'] ?? null;
     $fontFamily = $brand['font']['family'] ?? 'Inter';

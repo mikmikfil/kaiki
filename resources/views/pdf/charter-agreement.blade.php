@@ -69,12 +69,12 @@
 
         .sub { color: #5a6b7a; font-size: 9.5pt; margin: 0 0 14pt; }
 
-        .rule { border-bottom: 2pt solid {{ $brand['colors']['primary'] ?? '#0B4F4A' }}; margin: 0 0 14pt; }
+        .rule { border-bottom: 2pt solid {{ $brand['colors']['primary'] ?? '#123A5E' }}; margin: 0 0 14pt; }
 
         h2 {
             font-size: 11pt;
             margin: 14pt 0 4pt;
-            color: {{ $brand['colors']['primary'] ?? '#0B4F4A' }};
+            color: {{ $brand['colors']['primary'] ?? '#123A5E' }};
         }
 
         table { width: 100%; border-collapse: collapse; }
