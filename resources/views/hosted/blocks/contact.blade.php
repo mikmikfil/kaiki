@@ -52,6 +52,78 @@
                  The trip page keeps its own call-to-action, where there is a
                  booking to be asked about and the operator's details are not
                  already on screen. --}}
+        </div>
+
+        {{-- An icon on each row rather than a letterspaced label above it.
+
+             Four rows of «ΤΗΛΈΦΩΝΟ», «EMAIL», «ΔΙΕΎΘΥΝΣΗ», «ΣΗΜΕΊΟ ΣΥΝΆΝΤΗΣΗΣ»
+             is eight lines to say four things, and the labels were the smallest
+             and palest text in the panel while being the least useful part of
+             it — nobody needs telling that a phone number is a phone number.
+             The icon carries the same meaning in a fifth of the space, and the
+             label survives for screen readers, which is where it was doing real
+             work. The trip cards already read this way. --}}
+        <ul class="contact-list">
+            @if ($block->setting('show_phone') && $tenant->phone)
+                <li>
+                @include('hosted.partials.icon', ['name' => 'phone-solid'])
+                <span class="sr-only">{{ __('hosted.blocks.contact.phone') }}</span>
+                <a href="tel:{{ $tenant->phone }}">{{ $tenant->phone }}</a>
+                </li>
+            @endif
+
+            @if ($block->setting('show_email') && $tenant->email)
+                <li>
+                @include('hosted.partials.icon', ['name' => 'mail-solid'])
+                <span class="sr-only">{{ __('hosted.blocks.contact.email') }}</span>
+                <a href="mailto:{{ $tenant->email }}">{{ $tenant->email }}</a>
+                </li>
+            @endif
+
+            @if ($block->setting('show_address') && $tenant->address_line1)
+                <li>
+                @include('hosted.partials.icon', ['name' => 'pin-solid'])
+                <span class="sr-only">{{ __('hosted.blocks.contact.address') }}</span>
+                {{-- Street, then a comma, then postcode and town. Joined with
+                     spaces it read «Ακτή Θεμιστοκλέους 42 18538 Πειραιάς» —
+                     two numbers with nothing between them, which is where a
+                     reader stops. Each part is optional, so the comma only
+                     appears when there is something on both sides of it.
+
+                     And it is a link, like the phone number and the email
+                     beside it: an address a visitor has to select and copy is
+                     the one row in this panel that does not act. It opens a map
+                     search rather than a pinned coordinate, because a postal
+                     address is what the operator typed and geocoding it here
+                     would be guessing at a pin. --}}
+                @php
+                    $postal = collect([$tenant->address_line1, trim($tenant->postcode . ' ' . $tenant->city)])
+                        ->filter(static fn (?string $part): bool => $part !== null && trim($part) !== '')
+                        ->implode(', ');
+                @endphp
+                <a href="https://www.google.com/maps/search/?api=1&query={{ rawurlencode($postal) }}"
+                   rel="noopener noreferrer"
+                   target="_blank">{{ $postal }}</a>
+                </li>
+            @endif
+
+            @if ($meetingPoint)
+                <li>
+                @include('hosted.partials.icon', ['name' => 'boat-solid'])
+                <span class="sr-only">{{ __('hosted.blocks.contact.meeting_point') }}</span>
+                <span>
+                    {{ $meetingPoint->name }}
+                    @if ($meetingPoint->mapsUrl())
+                        — <a href="{{ $meetingPoint->mapsUrl() }}" rel="noopener noreferrer">{{ __('hosted.blocks.contact.open_in_maps') }}</a>
+                    @endif
+                </span>
+                @if ($meetingPoint->instructions)
+                    <span class="instructions">{{ $meetingPoint->instructions }}</span>
+                @endif
+                </li>
+            @endif
+        </ul>
+
             @php
                 /** @var array<string, string> $social */
                 $social = collect((array) data_get($tenant->settings, 'social', []))
@@ -83,82 +155,11 @@
                                target="_blank"
                                aria-label="{{ __('hosted.blocks.contact.social.' . $network) }}"
                                title="{{ __('hosted.blocks.contact.social.' . $network) }}">
-                                @include('hosted.partials.icon', ['name' => 'social-' . $network])
+                                @include('hosted.partials.icon', ['name' => 'social-' . $network . '-solid'])
                             </a>
                         </li>
                     @endforeach
                 </ul>
             @endif
-        </div>
-
-        {{-- An icon on each row rather than a letterspaced label above it.
-
-             Four rows of «ΤΗΛΈΦΩΝΟ», «EMAIL», «ΔΙΕΎΘΥΝΣΗ», «ΣΗΜΕΊΟ ΣΥΝΆΝΤΗΣΗΣ»
-             is eight lines to say four things, and the labels were the smallest
-             and palest text in the panel while being the least useful part of
-             it — nobody needs telling that a phone number is a phone number.
-             The icon carries the same meaning in a fifth of the space, and the
-             label survives for screen readers, which is where it was doing real
-             work. The trip cards already read this way. --}}
-        <ul class="contact-list">
-            @if ($block->setting('show_phone') && $tenant->phone)
-                <li>
-                @include('hosted.partials.icon', ['name' => 'phone'])
-                <span class="sr-only">{{ __('hosted.blocks.contact.phone') }}</span>
-                <a href="tel:{{ $tenant->phone }}">{{ $tenant->phone }}</a>
-                </li>
-            @endif
-
-            @if ($block->setting('show_email') && $tenant->email)
-                <li>
-                @include('hosted.partials.icon', ['name' => 'mail'])
-                <span class="sr-only">{{ __('hosted.blocks.contact.email') }}</span>
-                <a href="mailto:{{ $tenant->email }}">{{ $tenant->email }}</a>
-                </li>
-            @endif
-
-            @if ($block->setting('show_address') && $tenant->address_line1)
-                <li>
-                @include('hosted.partials.icon', ['name' => 'pin'])
-                <span class="sr-only">{{ __('hosted.blocks.contact.address') }}</span>
-                {{-- Street, then a comma, then postcode and town. Joined with
-                     spaces it read «Ακτή Θεμιστοκλέους 42 18538 Πειραιάς» —
-                     two numbers with nothing between them, which is where a
-                     reader stops. Each part is optional, so the comma only
-                     appears when there is something on both sides of it.
-
-                     And it is a link, like the phone number and the email
-                     beside it: an address a visitor has to select and copy is
-                     the one row in this panel that does not act. It opens a map
-                     search rather than a pinned coordinate, because a postal
-                     address is what the operator typed and geocoding it here
-                     would be guessing at a pin. --}}
-                @php
-                    $postal = collect([$tenant->address_line1, trim($tenant->postcode . ' ' . $tenant->city)])
-                        ->filter(static fn (?string $part): bool => $part !== null && trim($part) !== '')
-                        ->implode(', ');
-                @endphp
-                <a href="https://www.google.com/maps/search/?api=1&query={{ rawurlencode($postal) }}"
-                   rel="noopener noreferrer"
-                   target="_blank">{{ $postal }}</a>
-                </li>
-            @endif
-
-            @if ($meetingPoint)
-                <li>
-                @include('hosted.partials.icon', ['name' => 'boat'])
-                <span class="sr-only">{{ __('hosted.blocks.contact.meeting_point') }}</span>
-                <span>
-                    {{ $meetingPoint->name }}
-                    @if ($meetingPoint->mapsUrl())
-                        — <a href="{{ $meetingPoint->mapsUrl() }}" rel="noopener noreferrer">{{ __('hosted.blocks.contact.open_in_maps') }}</a>
-                    @endif
-                </span>
-                @if ($meetingPoint->instructions)
-                    <span class="instructions">{{ $meetingPoint->instructions }}</span>
-                @endif
-                </li>
-            @endif
-        </ul>
     </div>
 </section>

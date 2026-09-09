@@ -76,6 +76,47 @@
         'mail' => '<rect x="2.8" y="5.2" width="18.4" height="13.6" rx="2.6"/>'
             .'<path d="m3.6 7 7.5 5.3a1.6 1.6 0 0 0 1.8 0L20.4 7"/>',
 
+        // --- solid variants, for the contact panel ----------------------
+        //
+        // Filled rather than the stroked versions above, and drawn separately
+        // rather than switched with `fill: currentColor`: filling an outline
+        // does not make a solid icon, it makes a blob — the envelope's flap is
+        // an open line and would vanish into the block behind it, and the pin's
+        // inner circle would fill in and stop being a hole.
+        //
+        // Each is one closed silhouette. The pin keeps its hole through
+        // `fill-rule: evenodd` on the two subpaths, which is why it is a single
+        // `path` rather than a path and a circle.
+        'phone-solid' => '<path d="M8.4 4.2 10 7.4a1.4 1.4 0 0 1-.3 1.6l-1.1 1a12.6 12.6 0 0 0 4.4 4.4l1-1.1a1.4 1.4 0 0 1 1.6-.3l3.2 1.6a1.4 1.4 0 0 1 .7 1.6 3.9 3.9 0 0 1-4.2 2.9A14.6 14.6 0 0 1 4.1 6.4 3.9 3.9 0 0 1 7 2.2a1.4 1.4 0 0 1 1.4.7Z"/>',
+
+        'mail-solid' => '<path d="M2.8 8.3v8.5a2.4 2.4 0 0 0 2.4 2.4h13.6a2.4 2.4 0 0 0 2.4-2.4V8.3l-8.4 5.3a1.6 1.6 0 0 1-1.6 0L2.8 8.3Z"/>'
+            .'<path d="M21 6.2a2.4 2.4 0 0 0-2.2-1.4H5.2A2.4 2.4 0 0 0 3 6.2l9 5.7 9-5.7Z"/>',
+
+        'pin-solid' => '<path fill-rule="evenodd" d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Zm0-8.3a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"/>',
+
+        'boat-solid' => '<path d="M3.6 15.4h16.8l-2 3.7a2 2 0 0 1-1.7 1H7.3a2 2 0 0 1-1.8-1l-1.9-3.7Z"/>'
+            .'<path d="M11.2 3.3h1.6v10.6h-1.6z"/>'
+            .'<path d="M13.3 5.1 18.4 13.9h-5.1V5.1Z"/>',
+
+        // --- the social marks, solid ------------------------------------
+        //
+        // Each is one path whose holes come from `fill-rule: evenodd` on nested
+        // subpaths — the lens of the camera, the handset in the bubble, the play
+        // triangle. That is why they are single `path` entries with circles
+        // written as arcs rather than a `circle` element beside a `rect`: a hole
+        // has to be part of the same path as the shape it is a hole in.
+        'social-instagram-solid' => '<path fill-rule="evenodd" d="M8.2 3.4h7.6a4.8 4.8 0 0 1 4.8 4.8v7.6a4.8 4.8 0 0 1-4.8 4.8H8.2a4.8 4.8 0 0 1-4.8-4.8V8.2a4.8 4.8 0 0 1 4.8-4.8Zm3.8 4.5a4.1 4.1 0 1 0 0 8.2 4.1 4.1 0 0 0 0-8.2Zm0 2a2.1 2.1 0 1 1 0 4.2 2.1 2.1 0 0 1 0-4.2Zm5.1-4.1a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2Z"/>',
+
+        'social-facebook-solid' => '<path d="M14.6 21.4v-8.3h2.8l.5-3.3h-3.3V7.7c0-.9.3-1.6 1.7-1.6h1.7V3.2A22 22 0 0 0 15.4 3c-2.6 0-4.3 1.5-4.3 4.3v2.5H8.2v3.3h2.9v8.3h3.5Z"/>',
+
+        'social-whatsapp-solid' => '<path fill-rule="evenodd" d="M12 3a9 9 0 0 0-7.7 13.7l-1.1 3.9 4-1.2A9 9 0 1 0 12 3Zm-2.9 5.3c.2-.5.4-.5.6-.5h.5c.2 0 .4 0 .6.5l.7 1.7c.1.2.1.4 0 .6l-.4.5c-.1.2-.3.3-.1.6a6 6 0 0 0 2.8 2.4c.3.1.5.1.6-.1l.5-.6c.2-.2.3-.2.6-.1l1.6.8c.3.1.4.3.4.5a1.9 1.9 0 0 1-1.3 1.6c-.5.2-1.2.3-3.5-.8a8.4 8.4 0 0 1-3.5-3.6c-.6-1.2-.5-2.1-.4-2.6a2 2 0 0 1 .3-.9Z"/>',
+
+        'social-tiktok-solid' => '<path d="M15.2 3.2c.4 2.3 1.8 3.7 4 3.9v2.6a6.6 6.6 0 0 1-3.9-1.2v5.6a5.6 5.6 0 1 1-4.8-5.5v2.7a2.9 2.9 0 1 0 2.1 2.8V3.2h2.6Z"/>',
+
+        'social-youtube-solid' => '<path fill-rule="evenodd" d="M6.2 5.6h11.6a3.6 3.6 0 0 1 3.6 3.6v5.6a3.6 3.6 0 0 1-3.6 3.6H6.2a3.6 3.6 0 0 1-3.6-3.6V9.2a3.6 3.6 0 0 1 3.6-3.6Zm4.2 3.8v5.2l5-2.6-5-2.6Z"/>',
+
+        'social-x-solid' => '<path d="M3.6 3.6h4.3l5 6.6 5.4-6.6h2.1l-6.5 7.9 7.5 9.5h-4.3l-5.3-7-5.7 7H3.9l6.9-8.4L3.6 3.6Z"/>',
+
         // The social marks. Drawn on the same 24 grid and the same stroke as
         // everything else here, rather than pasted from each network's brand
         // kit: a row of official logos in their own colours is five brands
@@ -101,7 +142,19 @@
     ];
     $path = $paths[$name] ?? null;
 @endphp
+@php
+    // A `-solid` name is a silhouette: it paints with `fill` and has no stroke,
+    // and the two cannot be mixed on one sprite because a stroked path drawn
+    // with a fill closes itself.
+    $solid = str_ends_with($name, '-solid');
+@endphp
+
 @if ($path)
-    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
-         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{!! $path !!}</svg>
+    @if ($solid)
+        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+             aria-hidden="true" focusable="false">{!! $path !!}</svg>
+    @else
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">{!! $path !!}</svg>
+    @endif
 @endif

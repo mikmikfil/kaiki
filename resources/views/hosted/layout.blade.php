@@ -382,6 +382,50 @@
            τις εκδρομές» for the same corner. */
         .trips-block { position: relative; }
 
+        /* --- a light fade as things arrive ------------------------------
+
+           Scroll-driven CSS, not a script: `animation-timeline: view()` ties
+           the animation to the element's own position in the viewport, so the
+           browser runs it off the main thread and these pages keep their
+           no-JavaScript guarantee (HOS-4).
+
+           Three guards, and each one matters:
+
+           - `@supports` — where the timeline is not implemented no rule is
+             applied at all, so the content is simply *there*. It must never be
+             possible for an unsupported browser to be left holding
+             `opacity: 0`, which is how this effect usually breaks.
+           - `prefers-reduced-motion` — movement on scroll is a vestibular
+             trigger, and the operating system already knows the answer.
+           - `animation-range: entry` — an element already on screen at load
+             starts at the end of its own animation rather than fading in after
+             the page has settled, so the hero and the first cards do not
+             flicker.
+
+           It is deliberately small: 10px and a fade. A page of boat trips
+           should feel calm, and anything larger reads as a template. */
+        @keyframes kaiki-rise {
+            from { opacity: 0; translate: 0 10px; }
+            to { opacity: 1; translate: 0 0; }
+        }
+
+        @supports (animation-timeline: view()) {
+            @media (prefers-reduced-motion: no-preference) {
+                .block > h2,
+                .block > .block-head,
+                li.trip,
+                .shots-masonry li,
+                .story-image,
+                .story-copy,
+                .faq-item,
+                .contact-inner > * {
+                    animation: kaiki-rise linear both;
+                    animation-timeline: view();
+                    animation-range: entry 0% entry 32%;
+                }
+            }
+        }
+
         .trips-rail-frame { position: relative; padding-block-end: 3.5rem; }
 
         /* The pager under «Όλες οι εκδρομές». Plain links, so it needs no more
@@ -755,7 +799,7 @@
                card, so what a visitor most wants to see below it is the trips.
                Tall enough for the photograph to be a photograph, short enough
                that the first card is already showing on a laptop. */
-            min-height: min(66vh, 38rem);
+            min-height: min(74vh, 43rem);
         }
 
         .hero.has-image .hero-image,
@@ -830,7 +874,7 @@
         .hero.has-image h1,
         .hero.has-image .standfirst { text-shadow: 0 1px 24px rgba(6, 16, 20, .45); }
 
-        .hero.has-image .hero-copy { padding-block: 5rem 3.25rem; }
+        .hero.has-image .hero-copy { padding-block: 6rem 3.5rem; }
         .hero.has-image h1 { color: #fff; }
         .hero.has-image .eyebrow { color: rgba(255, 255, 255, .78); }
         .hero.has-image .standfirst { color: rgba(255, 255, 255, .92); }
@@ -1596,8 +1640,8 @@
            alone: an unlabelled glyph is a guess, and these sit at the bottom of
            a page where somebody is deciding whether to trust an operator. */
         .social {
-            list-style: none; margin: 1.75rem 0 0; padding: 0;
-            display: flex; flex-wrap: wrap; gap: .6rem;
+            list-style: none; margin: 1.5rem 0 0; padding: 0;
+            display: flex; flex-wrap: wrap; gap: .5rem;
         }
 
         /* Icon only. Three labelled pills were wider than the heading above
@@ -1605,7 +1649,7 @@
            recognises, and the name survives as the link's accessible name. */
         .social a {
             display: grid; place-content: center;
-            inline-size: 2.5rem; block-size: 2.5rem;
+            inline-size: 3rem; block-size: 3rem;
             border: 1px solid var(--rule); border-radius: 50%;
             color: var(--kaiki-text); text-decoration: none;
             transition: border-color .15s ease, color .15s ease;
@@ -1613,7 +1657,9 @@
 
         .social a:hover { border-color: var(--kaiki-primary); color: var(--kaiki-primary); }
         .social a:focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 2px; }
-        .social .icon { inline-size: 1.15rem; block-size: 1.15rem; }
+        /* Solid, in the operator's own colour — the same treatment the
+           contact rows above them get. */
+        .social .icon { inline-size: 1.45rem; block-size: 1.45rem; color: var(--kaiki-primary); }
 
         @media (prefers-reduced-motion: reduce) { .social a { transition: none; } }
         /* No white-on-photograph overrides any more — the words sit on the
@@ -1687,8 +1733,10 @@
            point of splitting it. */
 
         .contact-list {
-            list-style: none; margin: 2rem 0 0; padding: 0;
-            display: grid; gap: 1.5rem;
+            list-style: none; margin: 1.75rem 0 0; padding: 0;
+            /* Tighter. At 1.5rem the four rows read as four separate things;
+               they are one address card. */
+            display: grid; gap: .7rem;
         }
 
         /* No rules between the rows. Four labelled facts with air around them
@@ -1705,8 +1753,23 @@
 
         .contact-list .icon { inline-size: 1.15rem; block-size: 1.15rem; color: var(--kaiki-primary); margin-block-start: .15rem; }
 
+        /* Black, not the brand colour. Three teal links stacked read as
+           navigation; these are facts that happen to be tappable, and the icon
+           beside each one is already carrying the colour. */
+        /* Regular weight and the body's own ink. At 600 in full black three
+           stacked rows read as three headings; they are facts. The icon beside
+           each one carries the colour, so the text does not have to.
+
+           No underline on hover either — a row that grows a rule under it as
+           the cursor passes is the panel flinching. The colour shift is enough
+           to say it is tappable. */
         .contact-list li > span:not(.sr-only),
-        .contact-list li > a { grid-column: 2; font-size: 1.02rem; font-weight: 600; line-height: 1.35; }
+        .contact-list li > a {
+            grid-column: 2; font-size: .98rem; font-weight: 400; line-height: 1.4;
+            color: var(--ink-soft); text-decoration: none;
+        }
+
+        .contact-list li > a:hover { color: var(--kaiki-primary); text-decoration: none; }
 
         .contact-list .instructions { grid-column: 2; font-size: .88rem; font-weight: 400; color: var(--ink-faint); }
 
