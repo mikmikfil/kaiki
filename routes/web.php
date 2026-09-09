@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Hosted\Support\HostedHost;
+use App\Http\Controllers\Guest\CheckoutController;
 use App\Http\Controllers\Guest\GuestDetailsController;
 use App\Http\Controllers\Guest\ManageBookingController;
 use App\Http\Controllers\Guest\QuoteController;
@@ -94,6 +95,13 @@ Route::middleware(['guest.token', 'guest.throttle'])->group(function (): void {
     Route::post('/b/{token}/pay-balance', [ManageBookingController::class, 'payBalance'])->name('guest.booking.pay-balance');
     Route::post('/b/{token}/weather-choice', [ManageBookingController::class, 'weatherChoice'])->name('guest.booking.weather-choice');
     Route::post('/b/{token}/contact', [ManageBookingController::class, 'updateContact'])->name('guest.booking.contact');
+
+    // `/c/{manage_token}` — pay for a draft. The same token as `/b/`, because a
+    // draft is a booking and the person holding the link is the one who made it;
+    // a separate path because paying for a draft and managing a confirmed
+    // booking are different jobs, exactly as `/g/` and `/q/` are.
+    Route::get('/c/{token}', [CheckoutController::class, 'show'])->name('guest.checkout');
+    Route::post('/c/{token}', [CheckoutController::class, 'pay'])->name('guest.checkout.pay');
 
     Route::get('/g/{token}', [GuestDetailsController::class, 'show'])->name('guest.details');
     Route::post('/g/{token}', [GuestDetailsController::class, 'save'])->name('guest.details.save');

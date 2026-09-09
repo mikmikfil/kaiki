@@ -64,6 +64,27 @@
 
         .wrap { max-width: 40rem; margin: 0 auto; padding: 1.25rem 1rem 4rem; }
 
+        /* Checkout is the one guest page with two things to show at once — what
+           you are paying for, and the form that pays for it — so it gets a
+           wider measure than the pages that are a single column of facts. */
+        .wrap.wide { max-width: 62rem; }
+
+        .checkout-grid { display: grid; gap: 1.25rem; }
+
+        @media (min-width: 56rem) {
+            .checkout-grid {
+                grid-template-columns: minmax(0, 1fr) 23rem;
+                gap: 1.5rem;
+                align-items: start;
+            }
+
+            /* The summary is first in the markup so a phone shows what is being
+               paid for before the fields, and `order` puts it on the right on a
+               wide screen without a second copy of the markup. */
+            .checkout-main { order: 1; }
+            .checkout-side { order: 2; position: sticky; top: 1rem; }
+        }
+
         header.brand { display: flex; align-items: center; gap: .75rem; padding: .5rem 0 1.25rem; }
         header.brand img { max-height: 44px; width: auto; }
         header.brand .name { font-weight: 700; font-size: 1.05rem; }
@@ -108,6 +129,64 @@
             background: #fff; color: inherit;
         }
 
+        /* The consent row. `input { width: 100% }` above is right for text
+           fields and wrong for a checkbox, which was stretching to the width of
+           the card with its label orphaned underneath. */
+        .consent { margin: 1rem 0 1.25rem; }
+
+        .consent label {
+            display: flex; align-items: flex-start; gap: .6rem;
+            margin: 0; font-weight: 400; font-size: .92rem; line-height: 1.4;
+        }
+
+        .consent input[type="checkbox"] {
+            width: auto; flex: none; margin-block-start: .15rem;
+        }
+
+        .field-error { margin: .3rem 0 0; font-size: .85rem; color: #a8321f; }
+
+        /* One folded panel per passenger, so a manifest of eight is a list the
+           length of the party rather than twenty-four fields in a column. */
+        details.passenger {
+            margin: .5rem 0 0;
+            border: 1px solid rgba(0, 0, 0, .15);
+            border-radius: var(--kaiki-radius, 8px);
+            background: #fff;
+        }
+
+        details.passenger > summary {
+            cursor: pointer; list-style: none;
+            padding: .7rem .9rem;
+            font-size: .9rem; font-weight: 600;
+            display: flex; align-items: baseline; gap: .5rem;
+        }
+
+        details.passenger > summary::-webkit-details-marker { display: none; }
+
+        /* The chevron, and the only thing saying these open. */
+        details.passenger > summary::after {
+            content: '';
+            inline-size: .45rem; block-size: .45rem; margin-inline-start: auto;
+            border-right: 2px solid rgba(0, 0, 0, .45);
+            border-bottom: 2px solid rgba(0, 0, 0, .45);
+            rotate: 45deg; translate: 0 -2px;
+        }
+
+        details.passenger[open] > summary::after { rotate: 225deg; translate: 0 2px; }
+
+        /* The name once it is typed, so a folded row still says who is in it. */
+        details.passenger .passenger-name { font-weight: 400; color: rgba(0, 0, 0, .55); }
+
+        .passenger-body { padding: 0 .9rem 1rem; }
+        .passenger-body label:first-child { margin-top: 0; }
+
+        /* The pay button sits in the summary column and submits the form in the
+           other one, so it needs its own top margin rather than the form's. */
+        .btn.pay { margin-top: 1.1rem; }
+        .secure { margin-top: .6rem; font-size: .82rem; }
+
+        .notice-error { border-color: #a8321f; }
+
         .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 .75rem; }
         @media (max-width: 30rem) { .field-pair { grid-template-columns: 1fr; } }
 
@@ -125,7 +204,7 @@
     </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap @if ($wide ?? false) wide @endif">
     <header class="brand">
         @if (! empty($brand['logo']['light_url']))
             <img src="{{ $brand['logo']['light_url'] }}" alt="{{ $tenantName }}">

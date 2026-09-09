@@ -174,7 +174,7 @@ class DemoBookableSeeder extends Seeder
                 'min_pax' => 4,
                 'max_pax' => min(20, $vessel->capacity_max),
                 'status' => ProductStatus::Active,
-                'guest_details_required' => false,
+                'guest_details_required' => true,
             ],
         );
 

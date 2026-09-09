@@ -217,7 +217,12 @@ It takes twelve comfortably. There is shade across the whole deck, a fridge, a s
 
 Bring your own food or let us arrange it — tell us when you book. The price is for the whole boat rather than per person, so it does not change whether there are four of you or twelve.
 EN,
-            'category' => ProductCategory::PrivateFullDay, 'mode' => BookingMode::PerVessel,
+            // On request, not bookable. A whole day on a private boat is priced
+            // on where you want to go and how many of you there are, and every
+            // operator in this trade answers it with a phone call — so the demo
+            // has to show that path too, or it looks like a catalogue where
+            // everything has a fixed price and a Pay button (BKG-24).
+            'category' => ProductCategory::PrivateFullDay, 'mode' => BookingMode::Quote,
             'minutes' => 480, 'start' => '10:00', 'min' => 1, 'max' => 12, 'cents' => 62000,
         ],
         [
@@ -277,7 +282,9 @@ The crossing is about an hour and a half depending on the sea. There is room for
 
 Useful if you have an appointment, a ferry or a flight to make, and for families with small children who will not survive the queue. Ask us about coming back the same day — it is usually possible.
 EN,
-            'category' => ProductCategory::Custom, 'mode' => BookingMode::PerSeat,
+            // Also on request: a transfer is priced on the crossing and on the
+            // hour somebody needs to be standing on the other side.
+            'category' => ProductCategory::Custom, 'mode' => BookingMode::Quote,
             'minutes' => 90, 'start' => '07:30', 'min' => 6, 'max' => 34, 'cents' => 3200,
         ],
         [
@@ -412,7 +419,12 @@ EN,
                     'max_pax' => min($trip['max'], $vessel->capacity_max),
                     'status' => ProductStatus::Active,
                     'is_featured' => in_array($trip['slug'], self::FEATURED, true),
-                    'guest_details_required' => false,
+                    // Every demo trip asks for a passenger list. Asked for
+                    // directly, and it is the truthful default for this trade:
+                    // a boat leaving a Greek harbour files a manifest with the
+                    // λιμεναρχείο, so the flag being off on nine of ten trips
+                    // made the demo look like the manifest was the exception.
+                    'guest_details_required' => true,
                 ],
             );
 
