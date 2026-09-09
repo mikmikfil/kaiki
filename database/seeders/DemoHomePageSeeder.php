@@ -87,8 +87,12 @@ class DemoHomePageSeeder extends Seeder
             ],
             [
                 'type' => HomeBlockType::Trips,
-                'heading' => ['el' => 'Οι εκδρομές μας', 'en' => 'Our trips'],
-                'settings' => ['source' => BlockSettings::SOURCE_ALL, 'limit' => 6],
+                'heading' => ['el' => 'Οι πιο δημοφιλείς εκδρομές', 'en' => 'Our best sellers'],
+                // No limit. A limit of six capped the whole block, so all six
+                // went into the featured rail and the "all trips" grid beneath
+                // it had nothing left to show — the operator's own catalogue
+                // was invisible on their own front page.
+                'settings' => ['source' => BlockSettings::SOURCE_ALL, 'limit' => 0],
             ],
             [
                 // The "about us". Title and prose on the left, photograph on the

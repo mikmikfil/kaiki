@@ -241,7 +241,12 @@
             overflow: hidden;
         }
 
-        .trip-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        /* `center center` is `object-fit`'s default and is written out here
+           anyway, on every photograph the pages place: it is the one property
+           that decides which part of an operator's picture survives the crop,
+           and leaving it implicit is how one of these quietly ends up anchored
+           somewhere else. Asked for directly. */
+        .trip-image img { width: 100%; height: 100%; object-fit: cover; object-position: center center; display: block; }
 
         /* A trip with no photograph. A tinted panel in the operator's own colour
            rather than a broken box or a stock photograph of somebody else's
@@ -333,7 +338,20 @@
 
         /* A scrollbar an operator's visitor can see, because an invisible one
            on a desktop is a rail nobody knows scrolls. */
-        .trips-rail { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--kaiki-primary) 40%, transparent) transparent; }
+/* No scrollbar under the rail.
+
+           It was `scrollbar-width: thin` in the operator's own colour, on the
+           reasoning that a rail nobody knows scrolls is a rail nobody scrolls.
+           In practice it drew a grey trough the width of the section directly
+           under the cards — furniture, on a page whose whole job is to look
+           like a shop. The arrows above say the rail moves, and the cards are
+           deliberately cut off at the right edge, which says it louder.
+
+           Scrolling itself is untouched: it still swipes, still answers a
+           trackpad, and `tabindex="0"` still makes it keyboard-scrollable. This
+           hides the indicator, not the behaviour. */
+        .trips-rail { scrollbar-width: none; }
+        .trips-rail::-webkit-scrollbar { display: none; }
 
         /* --- the rail's arrows, and not one line of JavaScript ---------
            `::scroll-button()` is the browser's own: it scrolls the container it
@@ -353,16 +371,67 @@
            note on `.eyebrow` did the same thing an hour earlier with the
            property that recases text. Comments here are page content.)
 
-           They are positioned against the block rather than the rail, so they
-           sit on the heading's line the way the design has them. The rail is
-           deliberately left unpositioned: an absolutely positioned child of a
-           scroll container scrolls away with the content. */
+           They hang off `.trips-rail-frame`, a wrapper that exists only to be
+           a positioned ancestor that does not scroll — the rail itself cannot
+           be one, because an absolutely positioned child of a scroll container
+           scrolls away with the content.
+
+           Bottom right of the rail rather than up on the heading's line, asked
+           for directly. It is also the better place: the arrows now sit at the
+           end of the thing they scroll instead of competing with «Δείτε όλες
+           τις εκδρομές» for the same corner. */
         .trips-block { position: relative; }
+
+        .trips-rail-frame { position: relative; padding-block-end: 3.5rem; }
+
+        /* The pager under «Όλες οι εκδρομές». Plain links, so it needs no more
+           than to look deliberate: the current page is filled, the rest are
+           quiet, and the two ends grey out rather than disappearing so the row
+           does not change width as somebody walks through it. */
+        .pager {
+            margin: 2.25rem 0 0;
+            display: flex; flex-wrap: wrap; align-items: center;
+            justify-content: center; gap: .5rem 1rem;
+            font-size: .9rem;
+        }
+
+        .pager-step { color: var(--kaiki-primary); text-decoration: none; font-weight: 600; }
+        .pager-step:hover { text-decoration: underline; }
+        .pager-step.is-off { color: var(--ink-faint); font-weight: 400; }
+
+        .pager-pages { list-style: none; margin: 0; padding: 0; display: flex; gap: .3rem; }
+
+        .pager-pages a,
+        .pager-pages .is-current {
+            display: grid; place-content: center;
+            min-inline-size: 2.1rem; block-size: 2.1rem; padding-inline: .5rem;
+            border-radius: 8px; text-decoration: none;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .pager-pages a { color: var(--kaiki-text); }
+        .pager-pages a:hover { background: color-mix(in srgb, var(--kaiki-primary) 10%, transparent); }
+        .pager-pages .is-current { background: var(--kaiki-primary); color: #fff; font-weight: 600; }
+
+        /* The block's two headings are peers — «Οι πιο δημοφιλείς εκδρομές» and
+           «Όλες οι εκδρομές» are two shelves of the same shop, not a section and
+           a subsection — so they are the same size. Scoped to this block rather
+           than changed on `h2`, which every other section's heading uses. */
+        .trips-block .block-head h2 { font-size: var(--step-2); letter-spacing: -.015em; }
+
+        /* The trip page's section headings — «Για την εκδρομή», «Επόμενες
+           αναχωρήσεις», «Πού συναντιόμαστε» — a step down. They are signposts
+           between short sections on a page whose `<h1>` is the trip's name; at
+           the same size as a home-page section heading they competed with it,
+           and there are six of them. */
+        .product-main .section > h2,
+        .product-main .block > h2,
+        .product-main .lists h2 { font-size: var(--step-1); letter-spacing: -.012em; margin-block-end: 1rem; }
 
         .trips-rail::scroll-button(left),
         .trips-rail::scroll-button(right) {
             position: absolute;
-            inset-block-start: .1rem;
+            inset-block-end: 0;
             inline-size: 2.25rem; block-size: 2.25rem;
             display: grid; place-content: center;
             border: 1px solid var(--rule);
@@ -389,10 +458,9 @@
             .trips-rail::scroll-button(right) { transition: none; }
         }
 
-        /* The link and the arrows share the row, so the link steps aside. */
-        @supports selector(::scroll-button(right)) {
-            .trips-block .block-head .see-all { margin-inline-end: 5.25rem; }
-        }
+/* The link keeps the whole row now. It used to reserve space for the
+           arrows and still collide with them; they have moved to the foot of
+           the rail, so there is nothing to step aside for. */
 
         /* The second heading in the block, and it is a heading — not a caption.
 
@@ -692,6 +760,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
+            object-position: center center;
             border-radius: 0;
             /* Above the section's own background colour, which is the fallback
                while the photograph loads, and below the scrim. */
@@ -926,7 +995,7 @@
         /* Squarer and larger. At 4/3 in the narrow column this was a
            postcard beside four paragraphs — the one photograph on the page of
            the people whose boat it is, printed smaller than a trip card. */
-        .story-image { width: 100%; height: auto; border-radius: 16px; object-fit: cover; aspect-ratio: 1 / 1; }
+        .story-image { width: 100%; height: auto; border-radius: 16px; object-fit: cover; object-position: center center; aspect-ratio: 1 / 1; }
         /* Breathing room on both sides of the prose, on top of the grid gap.
            A paragraph that runs to the very edge of its column reads as though
            it has been cropped rather than laid out, and the block is the one
@@ -968,7 +1037,7 @@
         }
         .gallery.cols-2 .shots { grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); }
         .gallery.cols-4 .shots { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
-        .gallery .shots img { width: 100%; height: 100%; border-radius: 10px; object-fit: cover; aspect-ratio: 3 / 2; }
+        .gallery .shots img { width: 100%; height: 100%; border-radius: 10px; object-fit: cover; object-position: center center; aspect-ratio: 3 / 2; }
 
         /* --- product page (#104) ------------------------------------ */
 
@@ -1087,9 +1156,87 @@
         ul.facts li { display: grid; gap: .4rem; justify-items: start; }
         ul.facts .icon { inline-size: 1.15rem; block-size: 1.15rem; color: var(--kaiki-primary); }
 
+        /* --- the trip page's gallery: masonry, and a lightbox ----------
+
+           `columns` rather than a grid, because masonry is the point: each
+           photograph keeps its own proportions and the columns fill unevenly,
+           which is what makes a wall of pictures read as a wall of pictures
+           rather than as a contact sheet of identical crops. The seeder stores
+           these at their natural size for exactly this reason.
+
+           Three columns down to two and then one, so a phone gets one column of
+           full-width photographs rather than three thumbnails. */
+        .shots-masonry {
+            display: block;
+            columns: 3;
+            column-gap: 1rem;
+        }
+
+        .shots-masonry li { break-inside: avoid; margin: 0 0 1rem; }
+
+        /* `ul.` on purpose. `.shots img` sets a 3/2 ratio and `height: 100%`,
+           it sits later in this stylesheet, and it has exactly the same
+           specificity — so it won on order and the masonry was a grid of
+           identical crops with the photographs squashed inside it. The type
+           selector breaks the tie without moving either rule. */
+        ul.shots-masonry img { aspect-ratio: auto; height: auto; }
+        .shots-masonry .shot-open { display: block; border-radius: 14px; overflow: hidden; }
+        .shots-masonry .shot-open:focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 3px; }
+
+        @media (max-width: 60rem) { .shots-masonry { columns: 2; } }
+        @media (max-width: 34rem) { .shots-masonry { columns: 1; } }
+
+        /* The lightbox. Open when the URL names it, and nothing else.
+           `display` rather than opacity, so a closed panel is out of the
+           accessibility tree instead of merely invisible. */
+        .lightbox { display: none; }
+
+        .lightbox:target {
+            position: fixed; inset: 0; z-index: 60;
+            display: grid; place-items: center;
+            padding: clamp(1rem, 4vw, 3rem);
+        }
+
+        .lightbox-scrim { position: absolute; inset: 0; background: rgba(6, 16, 20, .88); }
+
+        /* The figure is the grid item being centred, so it must not stretch:
+           `place-items: center` on the panel sizes it to its content, and the
+           image inside is then centred both ways against the viewport. */
+        .lightbox figure {
+            position: relative; z-index: 1; margin: 0;
+            max-inline-size: min(94vw, 68rem);
+            max-block-size: 88vh;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .lightbox figure img {
+            max-inline-size: 100%; max-block-size: 88vh;
+            inline-size: auto; block-size: auto;
+            object-fit: contain; border-radius: 10px; display: block;
+        }
+
+        .lightbox-close {
+            position: absolute; z-index: 2;
+            inset-block-start: clamp(.75rem, 3vw, 1.5rem); inset-inline-end: clamp(.75rem, 3vw, 1.5rem);
+            color: #fff; text-decoration: none; font-weight: 600; font-size: .9rem;
+            padding: .45rem .8rem; border: 1px solid rgba(255, 255, 255, .5); border-radius: 999px;
+        }
+
+        .lightbox-close:hover { background: rgba(255, 255, 255, .14); }
+
+        .lightbox-step a {
+            position: absolute; z-index: 2; inset-block-start: 50%; translate: 0 -50%;
+            color: #fff; text-decoration: none; font-size: 2rem; line-height: 1;
+            padding: .6rem .9rem; border-radius: 999px;
+        }
+
+        .lightbox-step a:hover { background: rgba(255, 255, 255, .14); }
+        .lightbox-step .prev { inset-inline-start: clamp(.25rem, 2vw, 1.5rem); }
+        .lightbox-step .next { inset-inline-end: clamp(.25rem, 2vw, 1.5rem); }
+
         .shots { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem;
                  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
-        .shots img { width: 100%; height: 100%; border-radius: 14px; object-fit: cover; aspect-ratio: 3 / 2; display: block; }
+        .shots img { width: 100%; height: 100%; border-radius: 14px; object-fit: cover; object-position: center center; aspect-ratio: 3 / 2; display: block; }
 
         /* The booking area. Four lines above the mount, and nothing else —
            brand decision 3 of 2026-09-04. */
@@ -1251,6 +1398,33 @@
             font-size: .9rem;
         }
 
+        /* The availability dot, the convention every booking site uses.
+
+           `currentColor` on a per-state colour, so the dot and the words beside
+           it cannot drift apart — and the states are set on the `<li>` rather
+           than the dot, so a chip can be styled as a whole later without
+           re-deciding what colour it is. */
+        ul.departures .dot {
+            inline-size: .6rem; block-size: .6rem; border-radius: 50%;
+            background: currentColor; flex: none; align-self: center;
+            /* A soft halo in the same colour. At 8px on white the dot was
+               technically present and practically invisible; the ring gives it
+               the weight of the thing it is standing for without making the
+               chip look like a status badge. */
+            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
+        }
+
+        ul.departures li.is-open { color: #12A06E; }
+        ul.departures li.is-few { color: #C4820A; }
+        ul.departures li.is-out { color: #C0392B; }
+
+        /* Only the dot and the state label take the state colour. The date
+           itself stays the page's ordinary ink, or a full row of chips becomes
+           a row of coloured text. */
+        ul.departures .when { color: var(--kaiki-text); }
+        ul.departures li.is-out .when { color: var(--ink-faint); text-decoration: line-through; text-decoration-thickness: 1px; }
+        ul.departures .few-left { font-size: .8rem; font-weight: 600; }
+
         ul.departures li {
             display: flex; gap: .5rem; align-items: baseline;
             background: var(--surface);
@@ -1376,6 +1550,7 @@
             height: 100%;
             min-height: 14rem;
             object-fit: cover;
+            object-position: center center;
             display: block;
         }
 

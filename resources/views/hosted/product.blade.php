@@ -185,11 +185,30 @@
                 <h2>{{ __('hosted.product.departures') }}</h2>
                 <ul class="departures">
                     @foreach ($departures as $departure)
-                        @php $local = $departure->starts_at_utc->copy()->setTimezone($timezone); @endphp
-                        <li>
+                        @php
+                            $local = $departure->starts_at_utc->copy()->setTimezone($timezone);
+
+                            // Three states rather than two. Green and red are
+                            // what a booking site usually shows; the amber in
+                            // between is the one that changes a decision, and
+                            // leaving it out means a date with two seats looks
+                            // exactly like a date with forty.
+                            $left = $departure->seatsAvailable();
+                            $state = $left <= 0 ? 'out' : ($left <= 3 ? 'few' : 'open');
+                        @endphp
+                        <li class="is-{{ $state }}">
+                            {{-- The dot is `aria-hidden` and every state carries
+                                 words as well, because colour alone is not a
+                                 label — and red-green is the one pair a
+                                 colour-blind visitor is most likely to miss. --}}
+                            <span class="dot" aria-hidden="true"></span>
                             <span class="when">{{ $local->format('d/m/Y') }} · {{ $local->format('H:i') }}</span>
-                            @if ($departure->seatsAvailable() <= 0)
+                            @if ($state === 'out')
                                 <span class="sold-out">{{ __('hosted.product.sold_out') }}</span>
+                            @elseif ($state === 'few')
+                                <span class="few-left">{{ trans_choice('hosted.product.seats_left', $left, ['count' => $left]) }}</span>
+                            @else
+                                <span class="sr-only">{{ __('hosted.product.available') }}</span>
                             @endif
                         </li>
                     @endforeach
@@ -279,6 +298,81 @@
                 'anchor' => 'faq',
                 'policy' => $policy,
             ])
+
+            {{-- The rest of the operator's photographs, last on the page.
+
+                 This page has promised them in a comment since #104 and never
+                 rendered any: only `$images[0]` was ever used, as the lead at
+                 the top. Everything after it belongs here, at the bottom —
+                 somebody still reading at this point has already decided the
+                 trip interests them, and photographs are what they linger on
+                 rather than what they need in order to choose.
+
+                 **Masonry, in CSS columns.** No JavaScript (HOS-4) and no fixed
+                 ratio: each photograph keeps its own proportions, which is the
+                 whole reason to lay them out this way rather than in a grid of
+                 identical crops — a wall of 3:2 boxes is a contact sheet. The
+                 seeder stores these at their natural size for the same reason;
+                 the card and the lead crop them with `object-fit` where they
+                 need a fixed box. --}}
+            @if (count($images) > 1)
+                @php $shots = array_values(array_slice($images, 1)); @endphp
+
+                <section class="section" id="gallery">
+                    <h2>{{ __('hosted.product.gallery') }}</h2>
+
+                    <ul class="shots shots-masonry">
+                        @foreach ($shots as $i => $shot)
+                            <li>
+                                <a class="shot-open" href="#shot-{{ $i }}" aria-label="{{ $shot['alt'] ?: __('hosted.product.gallery') }}">
+                                    <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($shot['url']) }}"
+                                         alt="{{ $shot['alt'] ?? '' }}"
+                                         loading="lazy">
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                    {{-- The lightbox, in CSS alone.
+
+                         `:target` is what opens it: each photograph links to the
+                         id of its own full-size panel, and the panel is hidden
+                         until the URL names it. No script, which is not a
+                         preference here — HOS-4 promises these pages carry none
+                         and `HostedPageLocaleTest` fails the build if one
+                         appears.
+
+                         What that costs, stated rather than hidden: this is not
+                         a real modal. Focus is not trapped inside it and Escape
+                         does not close it, because both need a script. Back
+                         does close it, the close link is the first thing in the
+                         panel, and every photograph is still reachable and
+                         readable with the lightbox never opened at all. --}}
+                    @foreach ($shots as $i => $shot)
+                        <div class="lightbox" id="shot-{{ $i }}" role="dialog" aria-modal="true"
+                             aria-label="{{ $shot['alt'] ?: __('hosted.product.gallery') }}">
+                            <a class="lightbox-scrim" href="#gallery" aria-label="{{ __('hosted.product.close') }}"></a>
+
+                            <figure>
+                                <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($shot['url']) }}"
+                                     alt="{{ $shot['alt'] ?? '' }}"
+                                     loading="lazy">
+                            </figure>
+
+                            <a class="lightbox-close" href="#gallery">{{ __('hosted.product.close') }}</a>
+
+                            <nav class="lightbox-step" aria-label="{{ __('hosted.product.gallery') }}">
+                                @if ($i > 0)
+                                    <a class="prev" href="#shot-{{ $i - 1 }}" rel="prev">&#8249;</a>
+                                @endif
+                                @if ($i < count($shots) - 1)
+                                    <a class="next" href="#shot-{{ $i + 1 }}" rel="next">&#8250;</a>
+                                @endif
+                            </nav>
+                        </div>
+                    @endforeach
+                </section>
+            @endif
             </div>
 
             {{-- The booking card is **sticky**, so it is still on screen when a

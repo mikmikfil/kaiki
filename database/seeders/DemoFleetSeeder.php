@@ -100,6 +100,24 @@ class DemoFleetSeeder extends Seeder
      *     min: int, max: int, cents: int
      * }>
      */
+    /**
+     * The four the rail recommends.
+     *
+     * Something has to be, or `is_featured` is a column nothing on the demo
+     * exercises and the "featured" rail is silently just the first six in sort
+     * order — which is what it was until now. These four are the ones with the
+     * best photographs and the widest spread of category: a shared morning, a
+     * full day, a sunset for two, and a private charter.
+     *
+     * @var list<string>
+     */
+    private const FEATURED = [
+        'proino-kolymvitiko',
+        'olimeri-tria-nisia',
+        'romantiko-dilino',
+        'idiotiki-imera-skafos',
+    ];
+
     private const TRIPS = [
         [
             'slug' => 'proino-kolymvitiko', 'el' => 'Πρωινό κολυμβητικό', 'en' => 'Morning swim cruise',
@@ -252,6 +270,7 @@ class DemoFleetSeeder extends Seeder
                     'min_pax' => $trip['min'],
                     'max_pax' => min($trip['max'], $vessel->capacity_max),
                     'status' => ProductStatus::Active,
+                    'is_featured' => in_array($trip['slug'], self::FEATURED, true),
                     'guest_details_required' => false,
                 ],
             );

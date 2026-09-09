@@ -96,6 +96,15 @@ class DemoImageSeeder extends Seeder
      */
     private const HOME_TARGETS = ['demo-hero.jpg', 'demo-story.jpg', 'demo-contact.jpg'];
 
+    /**
+     * Photographs per trip: one lead and nine for the gallery.
+     *
+     * Asked for directly — «βάλε 10 ανά εκδρομή», repeats welcome. A real
+     * operator uploads what they have; a demo has to look like somebody who
+     * already did.
+     */
+    private const GALLERY = 10;
+
     /** The placeholders this seeder is allowed to replace. */
     private const PLACEHOLDERS = ['demo-trip-1.jpg', 'demo-trip-2.jpg'];
 
@@ -126,6 +135,7 @@ class DemoImageSeeder extends Seeder
         'pool-deck-boarding' => ['el' => 'Επιβάτισσα περπατά στο πλάι του καταστρώματος, μέσα στη μαρίνα', 'en' => 'A passenger walking along the side deck in a marina'],
         'pool-marina-yachts' => ['el' => 'Μεγάλα σκάφη δεμένα στη μαρίνα', 'en' => 'Large yachts moored in a marina'],
         'pool-harbour-sailboat' => ['el' => 'Ιστιοφόρο δεμένο στο λιμάνι', 'en' => 'A sailing boat moored in the harbour'],
+        'pool-open-sea' => ['el' => 'Ανοιχτή θάλασσα με μια χαμηλή νησίδα στον ορίζοντα', 'en' => 'Open water with a low island on the horizon'],
     ];
 
     public function run(): void
@@ -164,17 +174,46 @@ class DemoImageSeeder extends Seeder
                         continue;
                     }
 
-                    $file = in_array($product->slug . '.jpg', $pool, true)
+                    // The lead: the scene drawn for this trip if one exists,
+                    // otherwise one from the pool chosen by hashing the slug —
+                    // deterministic, so re-running the seeder does not reshuffle
+                    // the demo.
+                    $lead = in_array($product->slug . '.jpg', $pool, true)
                         ? $product->slug . '.jpg'
                         : $pool[$this->pick($product->slug . '@' . $tenant->slug, count($pool))];
 
-                    $path = "products/{$id}/{$product->slug}.jpg";
-                    $this->copy($disk, $source . '/' . $file, $path);
+                    // Then nine more for the gallery, walking the pool from the
+                    // lead's position so two trips do not get the same nine in
+                    // the same order. There are fewer than ten distinct
+                    // photographs for some tenants and pictures repeat between
+                    // trips; that is fine for a demo and was asked for.
+                    $files = [$lead];
+                    $start = (int) array_search($lead, $pool, true);
 
-                    $product->images = [[
-                        'path' => $path,
-                        'alt' => self::ALT[basename($file, '.jpg')] ?? ['el' => '', 'en' => ''],
-                    ]];
+                    for ($i = 1; $i < self::GALLERY; $i++) {
+                        $files[] = $pool[($start + $i) % count($pool)];
+                    }
+
+                    $images = [];
+
+                    foreach ($files as $i => $file) {
+                        // Each keeps its own copy under the tenant's directory,
+                        // because an operator deleting a file must not blank a
+                        // stranger's catalogue. The lead keeps the bare slug so
+                        // anything already pointing at it still resolves.
+                        $path = $i === 0
+                            ? "products/{$id}/{$product->slug}.jpg"
+                            : "products/{$id}/{$product->slug}-{$i}.jpg";
+
+                        $this->copy($disk, $source . '/' . $file, $path);
+
+                        $images[] = [
+                            'path' => $path,
+                            'alt' => self::ALT[basename($file, '.jpg')] ?? ['el' => '', 'en' => ''],
+                        ];
+                    }
+
+                    $product->images = $images;
                     $product->save();
                 }
             });
