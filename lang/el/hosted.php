@@ -54,6 +54,14 @@ return [
             'address' => 'Διεύθυνση',
             'meeting_point' => 'Σημείο συνάντησης',
             'open_in_maps' => 'Άνοιγμα στον χάρτη',
+            'social' => [
+                'instagram' => 'Instagram',
+                'facebook' => 'Facebook',
+                'whatsapp' => 'WhatsApp',
+                'tiktok' => 'TikTok',
+                'youtube' => 'YouTube',
+                'x' => 'X',
+            ],
         ],
     ],
 

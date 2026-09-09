@@ -750,7 +750,12 @@
             color: #fff;
             background: var(--kaiki-primary);
             isolation: isolate;
-            min-height: min(86vh, 48rem);
+            /* Down from 86vh. A hero that fills the screen is a page whose
+               first scroll reveals nothing new — and this one carries a search
+               card, so what a visitor most wants to see below it is the trips.
+               Tall enough for the photograph to be a photograph, short enough
+               that the first card is already showing on a laptop. */
+            min-height: min(66vh, 38rem);
         }
 
         .hero.has-image .hero-image,
@@ -825,7 +830,7 @@
         .hero.has-image h1,
         .hero.has-image .standfirst { text-shadow: 0 1px 24px rgba(6, 16, 20, .45); }
 
-        .hero.has-image .hero-copy { padding-block: 7rem 4rem; }
+        .hero.has-image .hero-copy { padding-block: 5rem 3.25rem; }
         .hero.has-image h1 { color: #fff; }
         .hero.has-image .eyebrow { color: rgba(255, 255, 255, .78); }
         .hero.has-image .standfirst { color: rgba(255, 255, 255, .92); }
@@ -1586,6 +1591,31 @@
         /* A way to act, not only an address. The panel is the last thing on the
            page and a visitor who has read this far wants to press something. */
         .contact-actions { margin: 1.75rem 0 0; display: flex; flex-wrap: wrap; gap: .75rem; }
+
+        /* The social row. Marks with their names beside them rather than icons
+           alone: an unlabelled glyph is a guess, and these sit at the bottom of
+           a page where somebody is deciding whether to trust an operator. */
+        .social {
+            list-style: none; margin: 1.75rem 0 0; padding: 0;
+            display: flex; flex-wrap: wrap; gap: .6rem;
+        }
+
+        /* Icon only. Three labelled pills were wider than the heading above
+           them and read as navigation; the mark alone is what everybody already
+           recognises, and the name survives as the link's accessible name. */
+        .social a {
+            display: grid; place-content: center;
+            inline-size: 2.5rem; block-size: 2.5rem;
+            border: 1px solid var(--rule); border-radius: 50%;
+            color: var(--kaiki-text); text-decoration: none;
+            transition: border-color .15s ease, color .15s ease;
+        }
+
+        .social a:hover { border-color: var(--kaiki-primary); color: var(--kaiki-primary); }
+        .social a:focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 2px; }
+        .social .icon { inline-size: 1.15rem; block-size: 1.15rem; }
+
+        @media (prefers-reduced-motion: reduce) { .social a { transition: none; } }
         /* No white-on-photograph overrides any more — the words sit on the
            light half of the panel and inherit the page's ordinary colours. */
 
@@ -1664,17 +1694,21 @@
         /* No rules between the rows. Four labelled facts with air around them
            read as an address card; the same four in a ruled table read as a
            settings screen. */
-        .contact-list li { display: grid; gap: .2rem; }
-
-        .contact-list .label {
-            font-size: .72rem; font-weight: 600; letter-spacing: .1em;
-            color: var(--ink-faint);
+        /* Icon, then value, on one line — the labels moved into `.sr-only`.
+           `align-items: start` rather than centre, because the meeting-point row
+           runs to two lines and a centred icon beside a two-line value floats
+           in the middle of nothing. */
+        .contact-list li {
+            display: grid; grid-template-columns: 1.15rem 1fr; gap: .1rem .7rem;
+            align-items: start;
         }
 
-        .contact-list li > span:not(.label),
-        .contact-list a { font-size: var(--step-1); font-weight: 600; line-height: 1.3; }
+        .contact-list .icon { inline-size: 1.15rem; block-size: 1.15rem; color: var(--kaiki-primary); margin-block-start: .15rem; }
 
-        .contact-list .instructions { font-size: .88rem; font-weight: 400; color: var(--ink-faint); }
+        .contact-list li > span:not(.sr-only),
+        .contact-list li > a { grid-column: 2; font-size: 1.02rem; font-weight: 600; line-height: 1.35; }
+
+        .contact-list .instructions { grid-column: 2; font-size: .88rem; font-weight: 400; color: var(--ink-faint); }
 
         /* The two columns. Below this width they stack, and the list keeps its
            rules — a phone reads a list of labelled rows perfectly well. */
@@ -1707,7 +1741,13 @@
 
         footer.site {
             background: var(--surface); border-top: 1px solid var(--rule);
-            padding-block: 2rem 2.5rem; font-size: .88rem; color: var(--ink-soft);
+            /* Room above and below. At 2rem the footer sat straight under the
+               contact panel like one more row of it, and the whole page ended
+               abruptly on a legal link. This is the end of the page: it can
+               afford the air, and the separation is what tells a reader the
+               content is over. */
+            padding-block: clamp(3rem, 6vw, 4.5rem) clamp(3rem, 6vw, 4.5rem);
+            font-size: .88rem; color: var(--ink-soft);
         }
 
         footer.site .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: 1.5rem; }

@@ -38,7 +38,21 @@ class DemoTenantSeeder extends Seeder
             'city' => 'Πειραιάς',
             'postcode' => '18538',
             'email' => 'info@aegean-blue.example',
+            'phone' => '+30 210 4123456',
+            'address_line1' => 'Ακτή Θεμιστοκλέους 42',
             'default_locale' => 'el',
+            // Social links live in `settings` rather than in columns of their
+            // own: they are operator configuration, the list is open-ended, and
+            // `tenants.settings` is a JSON column that already exists — a
+            // column per network would be a migration every time somebody
+            // starts using a new one.
+            'settings' => [
+                'social' => [
+                    'instagram' => 'https://instagram.com/aegeanbluecruises',
+                    'facebook' => 'https://facebook.com/aegeanbluecruises',
+                    'whatsapp' => 'https://wa.me/302104123456',
+                ],
+            ],
             'plan' => Plan::Fleet,
             'status' => TenantStatus::Active,
             'trial_ends_at' => null,
@@ -62,7 +76,14 @@ class DemoTenantSeeder extends Seeder
             'city' => 'Κέρκυρα',
             'postcode' => '49100',
             'email' => 'hello@ionian-sunset.example',
+            'phone' => '+30 26610 55321',
+            'address_line1' => 'Eleftheriou Venizelou 8',
             'default_locale' => 'en',
+            'settings' => [
+                'social' => [
+                    'instagram' => 'https://instagram.com/ionionsunsetsailing',
+                ],
+            ],
             'plan' => Plan::Solo,
             'status' => TenantStatus::Trialing,
             'trial_ends_at' => now()->addDays(14),

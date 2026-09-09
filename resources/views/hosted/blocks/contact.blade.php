@@ -40,47 +40,114 @@
                 <div class="prose">{{ $block->prose() }}</div>
             @endif
 
-            {{-- Something to press. An address panel with no action in it asks a
-                 visitor to copy an email address by hand, on a phone, which is
-                 the point at which they give up. --}}
-            @if ($tenant->email || $tenant->phone)
-                <p class="contact-actions">
-                    @if ($tenant->email)
-                        <a class="button" href="mailto:{{ $tenant->email }}">{{ __('hosted.blocks.contact.write') }}</a>
-                    @endif
+            {{-- No button here any more.
 
-                    @if ($tenant->phone)
-                        <a class="button ghost" href="tel:{{ $tenant->phone }}">{{ __('hosted.blocks.contact.call') }}</a>
-                    @endif
-                </p>
+                 There was a «Γράψτε μας» and a «Πάρτε τηλέφωνο» at the top of
+                 this panel, duplicating the email address and the phone number
+                 printed a few centimetres to the right of them as real,
+                 tappable links. On a phone both went to the same place; the
+                 buttons only made the panel look like a form. The details are
+                 the action.
+
+                 The trip page keeps its own call-to-action, where there is a
+                 booking to be asked about and the operator's details are not
+                 already on screen. --}}
+            @php
+                /** @var array<string, string> $social */
+                $social = collect((array) data_get($tenant->settings, 'social', []))
+                    ->filter(static fn (mixed $url, mixed $key): bool => is_string($key) && is_string($url) && str_starts_with($url, 'https://'))
+                    ->all();
+            @endphp
+
+            @if ($social !== [])
+                {{-- Operator configuration out of `tenants.settings`, not
+                     columns: the list of networks is open-ended and a column per
+                     network is a migration every time somebody joins a new one.
+
+                     `https://` only, checked here rather than trusted: this is
+                     a value an operator types, it becomes a link on their public
+                     page, and `javascript:` in an `href` is the oldest trick
+                     there is. --}}
+                <ul class="social">
+                    @foreach ($social as $network => $url)
+                        <li>
+                            {{-- The mark alone, with the network's name as the
+                                 accessible name rather than as visible text: a
+                                 row of three labelled pills was wider than the
+                                 heading above it and read as navigation. The
+                                 `aria-label` is not optional decoration — an
+                                 icon-only link with no accessible name is a
+                                 link announced as its own URL. --}}
+                            <a href="{{ $url }}"
+                               rel="noopener noreferrer me"
+                               target="_blank"
+                               aria-label="{{ __('hosted.blocks.contact.social.' . $network) }}"
+                               title="{{ __('hosted.blocks.contact.social.' . $network) }}">
+                                @include('hosted.partials.icon', ['name' => 'social-' . $network])
+                            </a>
+                        </li>
+                    @endforeach
+                </ul>
             @endif
         </div>
 
+        {{-- An icon on each row rather than a letterspaced label above it.
+
+             Four rows of «ΤΗΛΈΦΩΝΟ», «EMAIL», «ΔΙΕΎΘΥΝΣΗ», «ΣΗΜΕΊΟ ΣΥΝΆΝΤΗΣΗΣ»
+             is eight lines to say four things, and the labels were the smallest
+             and palest text in the panel while being the least useful part of
+             it — nobody needs telling that a phone number is a phone number.
+             The icon carries the same meaning in a fifth of the space, and the
+             label survives for screen readers, which is where it was doing real
+             work. The trip cards already read this way. --}}
         <ul class="contact-list">
             @if ($block->setting('show_phone') && $tenant->phone)
                 <li>
-                <span class="label">{{ __('hosted.blocks.contact.phone') }}</span>
+                @include('hosted.partials.icon', ['name' => 'phone'])
+                <span class="sr-only">{{ __('hosted.blocks.contact.phone') }}</span>
                 <a href="tel:{{ $tenant->phone }}">{{ $tenant->phone }}</a>
                 </li>
             @endif
 
             @if ($block->setting('show_email') && $tenant->email)
                 <li>
-                <span class="label">{{ __('hosted.blocks.contact.email') }}</span>
+                @include('hosted.partials.icon', ['name' => 'mail'])
+                <span class="sr-only">{{ __('hosted.blocks.contact.email') }}</span>
                 <a href="mailto:{{ $tenant->email }}">{{ $tenant->email }}</a>
                 </li>
             @endif
 
             @if ($block->setting('show_address') && $tenant->address_line1)
                 <li>
-                <span class="label">{{ __('hosted.blocks.contact.address') }}</span>
-                <span>{{ trim($tenant->address_line1 . ' ' . $tenant->postcode . ' ' . $tenant->city) }}</span>
+                @include('hosted.partials.icon', ['name' => 'pin'])
+                <span class="sr-only">{{ __('hosted.blocks.contact.address') }}</span>
+                {{-- Street, then a comma, then postcode and town. Joined with
+                     spaces it read «Ακτή Θεμιστοκλέους 42 18538 Πειραιάς» —
+                     two numbers with nothing between them, which is where a
+                     reader stops. Each part is optional, so the comma only
+                     appears when there is something on both sides of it.
+
+                     And it is a link, like the phone number and the email
+                     beside it: an address a visitor has to select and copy is
+                     the one row in this panel that does not act. It opens a map
+                     search rather than a pinned coordinate, because a postal
+                     address is what the operator typed and geocoding it here
+                     would be guessing at a pin. --}}
+                @php
+                    $postal = collect([$tenant->address_line1, trim($tenant->postcode . ' ' . $tenant->city)])
+                        ->filter(static fn (?string $part): bool => $part !== null && trim($part) !== '')
+                        ->implode(', ');
+                @endphp
+                <a href="https://www.google.com/maps/search/?api=1&query={{ rawurlencode($postal) }}"
+                   rel="noopener noreferrer"
+                   target="_blank">{{ $postal }}</a>
                 </li>
             @endif
 
             @if ($meetingPoint)
                 <li>
-                <span class="label">{{ __('hosted.blocks.contact.meeting_point') }}</span>
+                @include('hosted.partials.icon', ['name' => 'boat'])
+                <span class="sr-only">{{ __('hosted.blocks.contact.meeting_point') }}</span>
                 <span>
                     {{ $meetingPoint->name }}
                     @if ($meetingPoint->mapsUrl())

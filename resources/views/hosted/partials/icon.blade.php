@@ -68,6 +68,35 @@
         'type' => '<path d="M11.4 3.6H19a1.4 1.4 0 0 1 1.4 1.4v7.6a1.4 1.4 0 0 1-.4 1l-7.4 7.4a1.4 1.4 0 0 1-2 0l-7.6-7.6a1.4 1.4 0 0 1 0-2l7.4-7.4a1.4 1.4 0 0 1 1-.4Z"/>'
             .'<circle cx="16" cy="8" r="1.5"/>',
 
+        // A handset, and an envelope. Both sit beside a value that already
+        // says what it is, so neither has to be decoded — they exist to let the
+        // eye find the phone number without reading the email address first.
+        'phone' => '<path d="M8.4 4.2 10 7.4a1.4 1.4 0 0 1-.3 1.6l-1.1 1a12.6 12.6 0 0 0 4.4 4.4l1-1.1a1.4 1.4 0 0 1 1.6-.3l3.2 1.6a1.4 1.4 0 0 1 .7 1.6 3.9 3.9 0 0 1-4.2 2.9A14.6 14.6 0 0 1 4.1 6.4 3.9 3.9 0 0 1 7 2.2a1.4 1.4 0 0 1 1.4.7Z"/>',
+
+        'mail' => '<rect x="2.8" y="5.2" width="18.4" height="13.6" rx="2.6"/>'
+            .'<path d="m3.6 7 7.5 5.3a1.6 1.6 0 0 0 1.8 0L20.4 7"/>',
+
+        // The social marks. Drawn on the same 24 grid and the same stroke as
+        // everything else here, rather than pasted from each network's brand
+        // kit: a row of official logos in their own colours is five brands
+        // shouting on somebody else's page, and most of those kits forbid
+        // recolouring anyway.
+        'social-instagram' => '<rect x="3.4" y="3.4" width="17.2" height="17.2" rx="4.8"/>'
+            .'<circle cx="12" cy="12" r="4.1"/>'
+            .'<circle cx="17.1" cy="6.9" r="1.1" fill="currentColor" stroke="none"/>',
+
+        'social-facebook' => '<path d="M14.6 21.4v-8.3h2.8l.5-3.3h-3.3V7.7c0-.9.3-1.6 1.7-1.6h1.7V3.2A22 22 0 0 0 15.4 3c-2.6 0-4.3 1.5-4.3 4.3v2.5H8.2v3.3h2.9v8.3"/>',
+
+        'social-whatsapp' => '<path d="M3.6 20.4l1.2-4.2a7.9 7.9 0 1 1 3 2.9l-4.2 1.3Z"/>'
+            .'<path d="M9.1 8.3c.2-.5.4-.5.6-.5h.5c.2 0 .4 0 .6.5l.7 1.7c.1.2.1.4 0 .6l-.4.5c-.1.2-.3.3-.1.6a6 6 0 0 0 2.8 2.4c.3.1.5.1.6-.1l.5-.6c.2-.2.3-.2.6-.1l1.6.8c.3.1.4.3.4.5a1.9 1.9 0 0 1-1.3 1.6c-.5.2-1.2.3-3.5-.8a8.4 8.4 0 0 1-3.5-3.6c-.6-1.2-.5-2.1-.4-2.6a2 2 0 0 1 .3-.9Z"/>',
+
+        'social-tiktok' => '<path d="M15.2 3.2c.4 2.3 1.8 3.7 4 3.9v2.6a6.6 6.6 0 0 1-3.9-1.2v5.6a5.6 5.6 0 1 1-4.8-5.5v2.7a2.9 2.9 0 1 0 2.1 2.8V3.2h2.6Z"/>',
+
+        'social-youtube' => '<rect x="2.6" y="5.6" width="18.8" height="12.8" rx="3.6"/>'
+            .'<path d="M10.4 9.4 15.4 12l-5 2.6V9.4Z"/>',
+
+        'social-x' => '<path d="M4 4l7.2 9.3L4.4 20"/><path d="M20 20l-7.2-9.3L19.6 4"/>',
+
         'search' => '<circle cx="10.8" cy="10.8" r="7"/><path d="m20.2 20.2-4.4-4.4"/>',
     ];
     $path = $paths[$name] ?? null;

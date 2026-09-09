@@ -56,6 +56,14 @@ return [
             'address' => 'Address',
             'meeting_point' => 'Meeting point',
             'open_in_maps' => 'Open in maps',
+            'social' => [
+                'instagram' => 'Instagram',
+                'facebook' => 'Facebook',
+                'whatsapp' => 'WhatsApp',
+                'tiktok' => 'TikTok',
+                'youtube' => 'YouTube',
+                'x' => 'X',
+            ],
         ],
     ],
 
