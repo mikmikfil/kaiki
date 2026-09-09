@@ -14,7 +14,7 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M5 — Operations: #118 … #128, #130 and #131 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. **Two additions after it closed, both on 2026-09-08:** the guest-page design pass, and **#132** — a picture on every trip card, drawn rather than downloaded, together with the three home-page photographs whose seeder had promised committed files that were not committed. |
+| M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. **Three additions after it closed:** the guest-page design pass and **#132** on 2026-09-08, and on 2026-09-09 the trip header, the search results, and the meeting-point map — which had been serving a grey void since Google withdrew its keyless embed. #132 is — a picture on every trip card, drawn rather than downloaded, together with the three home-page photographs whose seeder had promised committed files that were not committed. |
 | M4 | **#112 … #116 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, the same four through Gutenberg and Elementor, and the SEO trip pages. **#116 had to build `GET /api/v1/sync/products` on the platform first**: specified in `docs/api.md` since M0 and never implemented, so the feature it exists for had nothing to read. It is the only endpoint in the API a publishable key cannot reach. **#117 the release remains; it needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117). |
 | M5 | **#118 … #128, #130 and #131 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. **#130 added the fleet strip and «Χρειάζονται προσοχή» to the dashboard; #131 added «Καιρός» (ADR-0027), which reports the days over each boat's own wind limit and what is booked on them, and cancels nothing.** Six smaller commits sit between them — the Stripe removal, the demo fleet, two panel fixes, the embedded map — written up together above. **#125 built the outbound webhooks (OPS-19, OPS-20)** — four events, HMAC-signed, eight attempts over a day, a delivery history with a resend button, and an SSRF guard that checks addresses rather than hostnames. **#126 put the vouchers on screen** — the engine had worked since M2 and nobody could see it; the expiry sweeper and the two reminders were the missing clock, and the sweep runs against each tenant's own day rather than UTC's. **#127 built the consolidated failure feed** — a view over six tables rather than a seventh, with a retry only where one would do something. It also moved four plumbing screens into a collapsed Ρυθμίσεις group and **switched SMS off for the first phase** (product owner). **#128 built the offline boarding page** — a second surface, because the Filament one is Livewire and does nothing without a signal. Remaining in M5: the 390x844 Playwright run (OPS-22). |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
@@ -40,8 +40,126 @@ Each entry records the **verification actually run** and its **real output** —
 | ~~**A billing provider for M7**, after Cashier came out with Stripe~~ | ~~product owner~~ | ~~M7~~ — **Decided 2026-09-08: Viva Wallet, the same gateway operators use for guests (ADR-0028 as amended).** |
 | **Whether the full hosted site is a paid tier**, and what each plan gets | product owner | before `Plan`'s three predicates get their first caller — ADR-0029 settles the *shape* of the switch, not the price |
 | **Open-Meteo's commercial subscription**, or another provider — the free endpoint is non-commercial only (ADR-0027) | product owner | before a paying operator sees «Καιρός» |
+| **OpenStreetMap's tile usage policy**, or a paid tile provider — the Foundation's tiles are a best-effort free service and the policy asks heavy users to go elsewhere. The meeting-point map moved onto them because Google's keyless embed stopped working (see below) | product owner | before the hosted pages carry real traffic |
 | ~~**No screen for adding staff.**~~ | ~~product owner~~ | ~~before the first operator hires anybody~~ — **built 2026-09-08**, along with the password reset both panels also lacked. |
 | **A date filter on the departures list.** #129 found it has none; the default ascending sort happens to put today first with the current seed, so an operator tapping the "sailing today and tomorrow" figure lands on the whole table | product owner | a screen change, not a bug — decide whether the figure should filter or the list should default to today |
+
+---
+
+## The guest pages, after looking at them — the map, the trip header, the search results
+
+> Unplanned, like #130, #131 and #132. Two of the three were asked for out loud;
+> the first was found by scrolling a page nobody had scrolled in a while.
+
+### The meeting-point map had been a grey void
+
+`https://www.google.com/maps?q=…&output=embed` — keyless, and what HOS-2 has
+used since M3 — now `301`s to `/maps/embed?origin=mfe&pb=…`, which answers
+**404** and sends `X-Frame-Options: SAMEORIGIN` with it. Every trip page with a
+meeting point had a full-width grey slab in the middle of it.
+
+Nothing here failed. `MeetingPointMapTest`'s six assertions were green the whole
+time, the CSP permitted the origin it framed, and the browser logged nothing: a
+frame that 404s is silent. **No test suite notices a third party changing its
+mind**, and that is now written at the top of that file rather than learned
+twice.
+
+| Candidate | Result |
+|---|---|
+| `www.google.com/maps?q=…&output=embed` | 404, `X-Frame-Options: SAMEORIGIN` |
+| `maps.google.com/maps?q=…&output=embed` | 404, same |
+| `www.google.com/maps/embed/v1/place?q=…` | 404 — the keyed Embed API, and the key is the point |
+| `openstreetmap.org/export/embed.html?bbox=…` | **200**, framed by design |
+
+Google's supported replacement is the keyed Embed API. That would put a platform
+credential in the markup of every operator's page and hand the platform a
+per-render bill for a static picture of a marina. So the map is OpenStreetMap's
+embed, with `HostedPageCsp::MAPS_ORIGIN` moved to match — one constant, so the
+header and the markup cannot drift apart.
+
+Two consequences, both deliberate:
+
+- **An address with no coordinates gets no map.** The embed takes a bounding box
+  rather than a search term, so there is nothing to geocode with. It keeps its
+  link. Same subtraction the method already made for a pasted `goo.gl`, same
+  reason: nothing beats a broken box on the section that tells a guest where to
+  stand at nine in the morning.
+- **No attribution line of ours.** The ODbL does require credit and the embed
+  already carries it inside the frame. A first draft added a second one below
+  and it was removed on sight — the same sentence twice, forty pixels apart.
+
+The bounding box is ±0.004° of longitude and ±0.002° of latitude: about 350m by
+220m, a marina and the streets that reach it. Coordinates are formatted to six
+decimals in plain notation, because `(string) 1.0E-5` is a corner a bbox parser
+reads as zero.
+
+**Open, and not mine to close:** the OSM Foundation's tiles are a free
+best-effort service whose usage policy asks heavy users to move to a provider
+that sells them. That is fine for a demo and a question before real traffic, so
+it is in the table above next to Open-Meteo's.
+
+### The trip page's header, from the mockup
+
+The five facts under the title were one run-on line with dots between them — a
+sentence to read through to find the one thing you came for. Each sits under its
+own icon now, and the row moved **above** the title by `order` rather than by
+moving the `<ul>`: a page whose source begins "480 minutes, day charter, Zea
+Marina" announces four details to a crawler before it says what the trip is
+called. Nothing in the row is focusable, so the usual objection to a visual
+reorder does not apply.
+
+The icons were redrawn on a 24 grid. The old "people" mark was one figure with a
+plus beside it — which everywhere else on the internet means *add a user*,
+sitting next to the words "up to twelve people" — and the old "kind of trip" was
+a wireframe cube, which is a package, a database or a 3-D model depending on
+where you last saw one.
+
+The cancellation policy stopped being a section of its own, open, printed at a
+visitor who had not asked, and became the last FAQ entry. It is deliberately
+**outside** the `FAQPage` schema: that markup claims questions this operator
+answered, and this answer is generated from a policy row. A rich result quoting a
+sentence nobody wrote is right until the policy changes and Google is still
+showing last season's.
+
+And the widget's «powered by Kaiki» is a flag now — `data-credit`, on by default
+everywhere including custom domains, off only on Kaiki's own hosted pages whose
+footer already says it.
+
+### The search results were a card only in the stylesheet's opinion
+
+Asked for directly: «εδω μεσα φτιαξε το πως φαινονται οι εκδρομες».
+
+`search.blade.php` drew its own `<li class="trip">` — the same class name as
+every other trip card and none of the structure. No `.trip-body`, so no padding
+and the text began flush against the card's edge; no photograph, on a site whose
+every other trip card leads with one; no button. A guest who searched landed on a
+plainer version of the catalogue they had just left.
+
+It is `hosted.partials.trip-card` now, extended with the two things a search
+result knows and a listing does not: **the price for this party** rather than a
+from-price, and the hour the boat leaves on the day they asked about. A quote
+trip still shows no price (BKG-24) and its foot reserves the same height, so its
+button lands on its neighbours' line.
+
+The grid is capped rather than stretched — `ul.trips` maxes its tracks at `1fr`,
+which is right where a last row of two would otherwise leave a hole, and wrong
+where two results become 33rem cards with hero-sized images on a page meant for
+comparing them. `.results` puts a ceiling on the track and packs from the left.
+
+### Verification
+
+| | |
+|---|---|
+| `vendor/bin/pest` | 2706 passed, 1 failed — the ENV-10 schema fingerprint only CI can regenerate, unchanged by this work |
+| `tests/Feature/Hosted` | 130 passed, including three new ones |
+| `vendor/bin/phpstan` | no errors, level 6 |
+| Vitest | 79 passed, including the `data-credit` default |
+| Looked at | the trip page, the map, and the search results at 1440px, EL and EN |
+
+The three new tests assert **structure**, not appearance: `.trip-image`,
+`.trip-body`, `.trip-foot is-party-price`, the bounding box's exact corners and
+that no coordinate is printed in exponential notation. Appearance is what nobody
+noticed for two milestones.
 
 ---
 
