@@ -126,9 +126,11 @@ class DemoHomePageSeeder extends Seeder
      * and a fresh `migrate:fresh --seed` produced a page with no photographs.
      *
      * Every block type that takes an image renders fine without one — the story
-     * block drops to a single column — so the second demo operator keeps the
-     * same page in prose, deliberately, because that is the path nothing else
-     * exercises.
+     * block drops to a single column. The second demo operator used to keep its
+     * page in prose on the stated grounds that nothing else exercised that
+     * path; `StoryBlockSideTest`'s `story-plain` case always did, so it has
+     * photographs of its own now. A tenant with no pictures still renders, and
+     * this method is what makes that true.
      */
     private function imageOrNull(Tenant $tenant, ?string $file): ?string
     {

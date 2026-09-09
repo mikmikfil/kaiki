@@ -10,6 +10,7 @@ use App\Domain\Availability\LocalDateTimeResolver;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Catalog\Support\SearchFilters;
 use App\Domain\Catalog\Support\SearchFormOptions;
+use App\Domain\Hosted\Actions\BuildHomePage;
 use App\Enums\ProductCategory;
 use App\Http\Requests\Api\V1\SearchRequest;
 use App\Models\Port;
@@ -35,6 +36,21 @@ use Symfony\Component\HttpFoundation\Response;
  * send "Saturday, four of us, from Piraeus" to the person they are travelling
  * with, and an operator can put that link in an email.
  *
+ * ## Arriving with no question is not the same as asking an empty one
+ *
+ * «Δείτε όλες τις εκδρομές» links here with no query string, and until now this
+ * page answered it with *today, for two people* — the form's defaults, applied
+ * as though a visitor had typed them. On the demo that turned a catalogue of
+ * twenty trips into two, which reads as a broken page rather than as a search:
+ * nobody asked about today, and nobody said there were two of them.
+ *
+ * So the page has two modes. **Browse** — no search parameter present — lists
+ * the whole active catalogue, priced "from", exactly as the home page lists it.
+ * **Search** — any one of them present — runs {@see SearchCatalogue} and prices
+ * the party. The form carries today and two either way, because they are
+ * sensible things to find in the fields; what changed is that filling a field
+ * in is no longer the same as submitting it.
+ *
  * ## The same Action the API calls, with the same filter enforcement
  *
  * {@see SearchCatalogue} answers both surfaces, and the operator's disabled
@@ -45,9 +61,21 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class SearchPageController extends HostedController
 {
+    /**
+     * The query keys that mean a visitor asked something.
+     *
+     * `lang` is deliberately absent: switching language is not a search, and a
+     * Greek reader following «Δείτε όλες τις εκδρομές» must not be handed a
+     * different set of trips from an English one.
+     *
+     * @var list<string>
+     */
+    private const SEARCH_KEYS = ['date', 'pax', 'port', 'type', 'duration_max', 'price_max', 'vessel'];
+
     public function __construct(
         GetBrandPayload $brand,
         private readonly SearchCatalogue $search,
+        private readonly BuildHomePage $home,
     ) {
         parent::__construct($brand);
     }
@@ -59,10 +87,13 @@ class SearchPageController extends HostedController
 
         $filters = SearchFilters::for($tenant);
         $criteria = $this->criteria($request, $tenant, $filters);
+        $browsing = ! $request->hasAny(self::SEARCH_KEYS);
 
         return $this->render($request, $tenant, 'hosted.search', fn (): array => [
             'criteria' => $criteria,
-            'results' => ($this->search)($criteria),
+            'browsing' => $browsing,
+            'catalogue' => $browsing ? $this->home->catalogue() : collect(),
+            'results' => $browsing ? [] : ($this->search)($criteria),
             // The form's own options, resolved once and shared with the home
             // page's copy of the same form (`SearchFormOptions`).
             ...SearchFormOptions::for($tenant),

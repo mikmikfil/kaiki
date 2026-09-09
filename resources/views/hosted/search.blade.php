@@ -41,7 +41,20 @@
         'paxValue' => $criteria->pax,
     ])
 
-    @if ($results === [])
+    @if ($browsing)
+        {{-- Nobody asked a question, so this is the catalogue rather than an
+             answer: every active trip, priced «από», exactly as the home page
+             lists them. The form above still shows today and two people, which
+             are sensible things to find in the fields — they are just no longer
+             applied on a visitor's behalf. --}}
+        <p class="result-count">{{ trans_choice('hosted.search.all_count', $catalogue->count(), ['count' => $catalogue->count()]) }}</p>
+
+        <ul class="trips results">
+            @foreach ($catalogue as $product)
+                @include('hosted.partials.trip-card', ['product' => $product])
+            @endforeach
+        </ul>
+    @elseif ($results === [])
         {{-- Not an empty grid. The one thing a guest needs here is what to
              change, and the two things that actually change an answer are the
              date and the party size. --}}

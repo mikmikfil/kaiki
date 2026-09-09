@@ -146,6 +146,48 @@ it('shows a quote trip as on-request, with no price and the same foot', function
         ->and($body)->not->toContain(trans_choice('hosted.search.for_party', 4, ['count' => 4], 'en'));
 })->group('fast');
 
+it('shows the whole catalogue to somebody who asked nothing', function (): void {
+    $tenant = OperatorPage::operator('search-browse');
+
+    // Two trips, and only one of them sails on the date the form defaults to.
+    searchPageTrip($tenant, 'sails-today', 4500, searchPageDate());
+    searchPageTrip($tenant, 'sails-later', 5500, Carbon::now()->addDays(60)->toDateString());
+
+    $body = (string) get(HostedRequest::url('/search-browse/search?lang=en'))->getContent();
+
+    // «Δείτε όλες τις εκδρομές» links here with no query string. Answering it
+    // with the form's defaults — today, two people — turned a catalogue of
+    // twenty into two on the demo, which reads as a broken page rather than as
+    // a search. Both trips are listed.
+    expect($body)->toContain('Trip sails-today')
+        ->and($body)->toContain('Trip sails-later')
+        // Priced "from", not for a party nobody described.
+        ->and($body)->toContain(__('hosted.index.from', [], 'en'))
+        // The class name is also in the inlined stylesheet, so match the
+        // attribute rather than the word.
+        ->and($body)->not->toContain('class="trip-foot is-party-price"');
+})->group('fast');
+
+it('filters as soon as one thing is asked, even if it is only the party size', function (): void {
+    $tenant = OperatorPage::operator('search-asked');
+
+    searchPageTrip($tenant, 'sails-today', 4500, searchPageDate());
+    searchPageTrip($tenant, 'sails-later', 5500, Carbon::now()->addDays(60)->toDateString());
+
+    // `pax` alone. The date falls back to today, which is the documented
+    // behaviour — what changed is that falling back is no longer the same as
+    // being asked.
+    $body = (string) get(HostedRequest::url('/search-asked/search?lang=en&pax=2'))->getContent();
+
+    // Neither trip sails today, so the answer is the empty state — and that is
+    // the point. The same URL without `pax` lists both trips; with it, the page
+    // searches today and correctly finds nothing. What this asserts is the
+    // *mode*, not the filtering: which trips survive which date is
+    // `SearchCatalogue`'s business, tested against the Action.
+    expect($body)->toContain(__('hosted.search.empty.heading', [], 'en'))
+        ->and($body)->not->toContain('Trip sails-later');
+})->group('fast');
+
 it('says what to change when nothing matches', function (): void {
     $tenant = OperatorPage::operator('search-empty');
     searchPageTrip($tenant, 'sunset', 4500, searchPageDate());

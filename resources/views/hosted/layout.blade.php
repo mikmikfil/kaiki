@@ -682,7 +682,7 @@
             color: #fff;
             background: var(--kaiki-primary);
             isolation: isolate;
-            min-height: min(72vh, 40rem);
+            min-height: min(86vh, 48rem);
         }
 
         .hero.has-image .hero-image,
@@ -698,24 +698,65 @@
             z-index: 0;
         }
 
-        /* A scrim weighted to the bottom, where the type is: white on a bright
-           noon photograph of a white hull is unreadable otherwise. Built from
-           the operator's own primary rather than from black, so the hero still
-           looks like their brand. */
+/* The scrim, rebuilt — it used to be the reason the hero looked dead.
+
+           It was the operator's primary at 25% → 55% → 88%, top to bottom,
+           which is a teal wash over the whole frame: the sky went teal, the sea
+           went teal, the white hull the photograph is *of* went teal. A
+           photograph you have tinted end to end is not a photograph any more,
+           it is a coloured panel with some shapes in it.
+
+           Two layers instead, and neither touches the top half:
+
+           1. A near-black foot that is fully transparent until 40% and only
+              arrives where the type actually sits. Neutral rather than branded,
+              because a colour cast is what killed the last one — this darkens
+              the picture without recolouring it.
+           2. A thin wash of the operator's primary in the bottom third alone,
+              so the hero still reads as their brand where it meets the page
+              below, and nowhere else.
+
+           The result keeps the sky, the sea and the hull their own colours, and
+           still puts white type on something dark enough to read. */
         .hero.has-image::after {
             content: '';
             position: absolute;
             inset: 0;
             z-index: 1;
-            background: linear-gradient(
-                to bottom,
-                color-mix(in srgb, var(--kaiki-primary) 25%, transparent) 0%,
-                color-mix(in srgb, var(--kaiki-primary) 55%, transparent) 45%,
-                color-mix(in srgb, var(--kaiki-primary) 88%, transparent) 100%
-            );
+            background:
+                /* An even, neutral exposure drop across the whole frame. This
+                   is the layer that makes white type readable, and it is flat
+                   on purpose: lowering the exposure keeps every colour in the
+                   photograph in its right relationship to the others, which a
+                   gradient tint does not. A bright noon shot of a white hull
+                   under a pale sky has nowhere dark for a heading to sit, and
+                   no amount of bottom-weighting fixes type in the middle. */
+                linear-gradient(rgba(6, 16, 20, .34), rgba(6, 16, 20, .34)),
+                /* Then a foot, so the type has more under it than the sky does
+                   and the section has an edge to meet the page on. */
+                linear-gradient(
+                    to bottom,
+                    rgba(6, 16, 20, 0) 30%,
+                    rgba(6, 16, 20, .34) 78%,
+                    rgba(6, 16, 20, .58) 100%
+                ),
+                /* And a whisper of the operator's own colour where it lands on
+                   the page below, so the hero still belongs to their brand
+                   without the brand being painted over the picture. */
+                linear-gradient(
+                    to bottom,
+                    transparent 68%,
+                    color-mix(in srgb, var(--kaiki-primary) 30%, transparent) 100%
+                );
         }
 
-        .hero.has-image .hero-copy { padding-block: 5rem 3.5rem; }
+        /* The type gets its own small shadow rather than a heavier scrim. One
+           more stop of darkening over the whole frame costs the photograph far
+           more than it buys the heading. */
+        .hero.has-image h1,
+        .hero.has-image .standfirst { text-shadow: 0 1px 24px rgba(6, 16, 20, .45); }
+
+        .hero.has-image .hero-copy { padding-block: 7rem 4rem; }
         .hero.has-image h1 { color: #fff; }
         .hero.has-image .eyebrow { color: rgba(255, 255, 255, .78); }
         .hero.has-image .standfirst { color: rgba(255, 255, 255, .92); }
@@ -882,7 +923,10 @@
         }
 
         .story { display: grid; gap: 2rem; align-items: center; }
-        .story-image { width: 100%; height: auto; border-radius: 14px; object-fit: cover; aspect-ratio: 4 / 3; }
+        /* Squarer and larger. At 4/3 in the narrow column this was a
+           postcard beside four paragraphs — the one photograph on the page of
+           the people whose boat it is, printed smaller than a trip card. */
+        .story-image { width: 100%; height: auto; border-radius: 16px; object-fit: cover; aspect-ratio: 1 / 1; }
         /* Breathing room on both sides of the prose, on top of the grid gap.
            A paragraph that runs to the very edge of its column reads as though
            it has been cropped rather than laid out, and the block is the one
@@ -896,13 +940,16 @@
                it, not a photograph with a caption — half the row for the image
                makes the picture the subject and squeezes the paragraphs into a
                narrow column that is harder to read. */
-            .story.has-image { grid-template-columns: 2fr 1fr; }
+            /* Was `2fr 1fr` — the copy took two thirds and the picture got
+               what was left. Even columns: the photograph is half the point of
+               the block. */
+            .story.has-image { grid-template-columns: 1fr 1fr; gap: clamp(2rem, 5vw, 4rem); }
             /* The ratio follows the content, not the position. `order` moves
                the image into the first column, so without this the photograph
                inherits the wide column meant for the prose and the two swap
                sizes as well as sides — the picture becomes the subject and the
                paragraphs are squeezed into a third of the row. */
-            .story.side-left.has-image { grid-template-columns: 1fr 2fr; }
+            .story.side-left.has-image { grid-template-columns: 1fr 1fr; }
             /* A class rather than an inline style: HOS-8's policy has no
                `unsafe-inline`, so a `style` attribute would be dropped and
                the operator's choice would silently do nothing.
@@ -1288,46 +1335,74 @@
         /* A way to act, not only an address. The panel is the last thing on the
            page and a visitor who has read this far wants to press something. */
         .contact-actions { margin: 1.75rem 0 0; display: flex; flex-wrap: wrap; gap: .75rem; }
-        .block.contact.has-image .contact-actions .button { background: #fff; border-color: #fff; color: var(--kaiki-primary); }
-        .block.contact.has-image .contact-actions .button.ghost { background: transparent; border-color: rgba(255, 255, 255, .55); color: #fff; }
+        /* No white-on-photograph overrides any more — the words sit on the
+           light half of the panel and inherit the page's ordinary colours. */
 
-        .block.contact.has-image { color: #fff; background: var(--kaiki-primary); }
+/* --- the contact panel, rebuilt -------------------------------
+           It was words over a photograph behind an 86% wash of the operator's
+           primary — the same mistake as the hero, in a smaller box and worse,
+           because a panel this size has no room for a gradient to recover in.
+           The picture of the quay a guest is being asked to walk to was a teal
+           smear behind an address.
 
-        .block.contact .contact-image {
-            position: absolute;
-            inset: 0;
+           It is a split panel now: the photograph on one side at full strength,
+           the words on the other on a plain tinted surface. Nothing overlaps, so
+           nothing needs a scrim, so the photograph keeps its own colours and the
+           text sits on a background chosen for contrast rather than negotiated
+           against a photograph nobody controls.
+
+           One column below 52rem, picture first — on a phone the panel is the
+           height of the screen either way, and a picture that has been squeezed
+           into a 6rem strip is worth less than the space it costs. */
+        .block.contact.has-image {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: clamp(1.5rem, 4vw, 3rem);
+            padding: 0;
+            background: color-mix(in srgb, var(--kaiki-primary) 7%, var(--surface));
+            color: var(--kaiki-text);
+        }
+
+        .block.contact.has-image > *:not(.contact-image) {
+            padding-inline: clamp(1.4rem, 4vw, 3.5rem);
+        }
+
+        .block.contact.has-image > *:not(.contact-image):first-of-type { padding-block-start: clamp(2rem, 5vw, 3.5rem); }
+        .block.contact.has-image > *:not(.contact-image):last-child { padding-block-end: clamp(2rem, 5vw, 3.5rem); }
+
+        .block.contact.has-image .contact-image {
+            grid-row: 1;
             width: 100%;
             height: 100%;
+            min-height: 14rem;
             object-fit: cover;
-            z-index: 0;
+            display: block;
         }
 
-        /* Weighted to the left, where the words are, and thinning towards the
-           right so the photograph is still visible behind the details. */
-        .block.contact.has-image::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            z-index: 1;
-            background: linear-gradient(
-                100deg,
-                color-mix(in srgb, var(--kaiki-primary) 86%, transparent) 0%,
-                color-mix(in srgb, var(--kaiki-primary) 66%, transparent) 55%,
-                color-mix(in srgb, var(--kaiki-primary) 40%, transparent) 100%
-            );
+        @media (min-width: 52rem) {
+            .block.contact.has-image {
+                grid-template-columns: 1fr 1fr;
+                align-items: center;
+            }
+
+            /* The picture is the full height of the panel on its own side, and
+               the words keep their own padding on theirs. */
+            .block.contact.has-image .contact-image {
+                grid-column: 2;
+                grid-row: 1 / -1;
+                align-self: stretch;
+                min-height: 100%;
+            }
+
+            .block.contact.has-image > *:not(.contact-image) { grid-column: 1; }
+            .block.contact.has-image > *:not(.contact-image):first-of-type { padding-block-start: clamp(2.5rem, 5vw, 4rem); }
+            .block.contact.has-image > *:not(.contact-image):last-child { padding-block-end: clamp(2.5rem, 5vw, 4rem); }
         }
 
-        .block.contact.has-image a,
-        .block.contact.has-image .label,
-        .block.contact.has-image .instructions { color: #fff; }
-
-        /* The eyebrow over a photograph. `--ink-faint` is a grey chosen against
-           an off-white page and it disappears on a dark one. */
-        .block.contact.has-image .eyebrow { color: rgba(255, 255, 255, .72); }
-
-        .block.contact.has-image .prose { color: rgba(255, 255, 255, .9); }
-        .block.contact.has-image .contact-list { border-color: rgba(255, 255, 255, .28); }
-        .block.contact.has-image .contact-list li { border-color: rgba(255, 255, 255, .18); }
+        /* The white-on-photograph overrides that used to live here are gone
+           with the scrim they were written for: the words are on the light half
+           of the panel now and inherit the page's own colours, which is the
+           point of splitting it. */
 
         .contact-list {
             list-style: none; margin: 2rem 0 0; padding: 0;
@@ -1349,9 +1424,6 @@
 
         .contact-list .instructions { font-size: .88rem; font-weight: 400; color: var(--ink-faint); }
 
-        .block.contact.has-image .contact-list .label { color: rgba(255, 255, 255, .72); }
-        .block.contact.has-image .contact-list .instructions { color: rgba(255, 255, 255, .72); }
-
         /* The two columns. Below this width they stack, and the list keeps its
            rules — a phone reads a list of labelled rows perfectly well. */
         @media (min-width: 52rem) {
@@ -1364,6 +1436,18 @@
 
             .block.contact .contact-inner > * { min-width: 0; }
             .contact-list { margin-top: 0; }
+
+            /* …but not when the photograph has already taken half the panel.
+               Two columns inside one half is four columns of prose across a
+               panel, and «Πού θα μας βρείτε» came out two words to a line with
+               an email address wrapped mid-domain beside it. With a picture,
+               the words stack. */
+            .block.contact.has-image .contact-inner {
+                grid-template-columns: 1fr;
+                gap: 1.75rem;
+            }
+
+            .block.contact.has-image h2 { max-width: none; }
         }
 
 
