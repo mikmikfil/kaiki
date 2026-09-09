@@ -174,15 +174,43 @@
             </section>
         @endif
 
-        @if ($departures->isNotEmpty())
-            {{--
-                The real departures, server-rendered. The widget will let a guest
-                pick one; this list is what a visitor with no JavaScript — and the
-                `Event` graph below — see, and the two cannot disagree because
-                they are built from the same collection.
-            --}}
-            <section class="section">
-                <h2>{{ __('hosted.product.departures') }}</h2>
+        {{-- Three sections of the same kind — when it sails, where you meet
+             it, what you sail on — as tabs rather than as three headings a
+             visitor scrolls past. Departures first and open, because it is the
+             one a person came to look at.
+
+             Radio inputs and labels, so this works with no JavaScript like
+             everything else on these pages (HOS-4). What that costs, said
+             plainly: a screen reader announces three radio buttons rather than
+             an ARIA tablist, because a real tablist needs a script to manage
+             focus and `aria-selected`. Arrow keys move between them, every
+             panel is in the document, and a printed page shows the open one.
+
+             A tab whose section has nothing in it is not drawn at all. --}}
+        @php
+            $tabs = array_filter([
+                'departures' => $departures->isNotEmpty(),
+                'meeting' => (bool) $port,
+                'vessel' => (bool) $product->vessel,
+            ]);
+            $first = array_key_first($tabs);
+        @endphp
+
+        @if ($tabs !== [])
+            <div class="tabs">
+                @foreach ($tabs as $key => $on)
+                    <input class="tab-radio" type="radio" name="trip-tabs" id="tab-{{ $key }}" @checked($key === $first)>
+                @endforeach
+
+                <div class="tablist">
+                    @foreach ($tabs as $key => $on)
+                        <label class="tab-label" for="tab-{{ $key }}">{{ __('hosted.product.tabs.' . $key) }}</label>
+                    @endforeach
+                </div>
+
+                <div class="tabpanels">
+                    @isset($tabs['departures'])
+                        <section class="tabpanel tabpanel-departures" aria-label="{{ __('hosted.product.tabs.departures') }}">
                 <ul class="departures">
                     @foreach ($departures as $departure)
                         @php
@@ -213,12 +241,11 @@
                         </li>
                     @endforeach
                 </ul>
-            </section>
-        @endif
+                        </section>
+                    @endisset
 
-        @if ($port)
-            <section class="section">
-                <h2>{{ __('hosted.product.meeting_point') }}</h2>
+                    @isset($tabs['meeting'])
+                        <section class="tabpanel tabpanel-meeting" aria-label="{{ __('hosted.product.tabs.meeting') }}">
                 <p>
                     <strong>{{ $port->name }}</strong>
                     @if ($port->address)
@@ -270,17 +297,17 @@
                         ></iframe>
                     </div>
                 @endif
-            </section>
-        @endif
+                        </section>
+                    @endisset
 
-        {{-- Only the operator's prose about the boat stays here. Its name, type
-             and capacity are in the booking card, where they answer the question
-             a visitor is asking while they choose a date. --}}
-        @if ($product->vessel?->description)
-            <section class="section">
-                <h2>{{ __('hosted.product.vessel') }}</h2>
+                    @isset($tabs['vessel'])
+                        <section class="tabpanel tabpanel-vessel" aria-label="{{ __('hosted.product.tabs.vessel') }}">
+                            @include('hosted.partials.vessel-details', ['vessel' => $product->vessel])
                 <div class="prose">{{ \App\Domain\Hosted\Support\BlockText::paragraphs($product->vessel->description) }}</div>
-            </section>
+                        </section>
+                    @endisset
+                </div>
+            </div>
         @endif
 
         {{-- This trip's questions plus the operator's, its own first (#103) —

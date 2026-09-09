@@ -1234,6 +1234,76 @@
         .lightbox-step .prev { inset-inline-start: clamp(.25rem, 2vw, 1.5rem); }
         .lightbox-step .next { inset-inline-end: clamp(.25rem, 2vw, 1.5rem); }
 
+        /* --- the trip page's tabs, with no script ----------------------
+
+           Radio inputs carry the state: one name, one checked, and the panel
+           whose sibling input is checked is the one displayed. The inputs sit
+           before both the labels and the panels so `~` can reach each of them,
+           and they are off-screen rather than `display: none`, because a hidden
+           input cannot be focused and the tabs would stop answering the
+           keyboard entirely. */
+        .tab-radio {
+            position: absolute; width: 1px; height: 1px;
+            margin: -1px; padding: 0; border: 0;
+            clip-path: inset(50%); overflow: hidden; white-space: nowrap;
+        }
+
+        .tablist {
+            display: flex; flex-wrap: wrap; gap: .3rem;
+            justify-content: flex-start; text-align: left;
+            border-block-end: 1px solid var(--rule);
+            margin-block-end: 1.5rem;
+        }
+
+        .tab-label {
+            padding: .7rem 1.1rem; cursor: pointer;
+            font-size: .95rem; font-weight: 600; color: var(--ink-soft);
+            border-block-end: 2px solid transparent;
+            margin-block-end: -1px;
+            white-space: nowrap;
+        }
+
+        .tab-label:hover { color: var(--kaiki-text); }
+
+        .tabpanel { display: none; }
+
+        /* One pair per tab. There are three, so writing them out is shorter and
+           clearer than anything that would generate them. */
+        #tab-departures:checked ~ .tablist label[for="tab-departures"],
+        #tab-meeting:checked ~ .tablist label[for="tab-meeting"],
+        #tab-vessel:checked ~ .tablist label[for="tab-vessel"] {
+            color: var(--kaiki-primary); border-block-end-color: var(--kaiki-primary);
+        }
+
+        #tab-departures:focus-visible ~ .tablist label[for="tab-departures"],
+        #tab-meeting:focus-visible ~ .tablist label[for="tab-meeting"],
+        #tab-vessel:focus-visible ~ .tablist label[for="tab-vessel"] {
+            outline: 2px solid var(--kaiki-primary); outline-offset: 2px; border-radius: 6px;
+        }
+
+        #tab-departures:checked ~ .tabpanels .tabpanel-departures,
+        #tab-meeting:checked ~ .tabpanels .tabpanel-meeting,
+        #tab-vessel:checked ~ .tabpanels .tabpanel-vessel { display: block; }
+
+        /* Printed, the tabs are meaningless — show every panel. */
+        @media print { .tabpanel { display: block !important; } .tablist { display: none; } }
+
+        /* The boat's facts. A definition list because that is what it is, laid
+           out in columns so six short rows do not become six long ones. */
+        .boat-name { margin: 0 0 1rem; font-size: var(--step-1); }
+
+        .boat-facts {
+            margin: 0 0 1.5rem; padding: 0;
+            display: grid; gap: .9rem 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+        }
+
+        .boat-facts > div { display: grid; gap: .15rem; }
+        .boat-facts dt { font-size: .72rem; font-weight: 600; letter-spacing: .08em; color: var(--ink-faint); }
+        .boat-facts dd { margin: 0; font-size: .98rem; font-weight: 600; }
+
+        .boat-shots { margin-top: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); }
+
         .shots { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem;
                  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }
         .shots img { width: 100%; height: 100%; border-radius: 14px; object-fit: cover; object-position: center center; aspect-ratio: 3 / 2; display: block; }
