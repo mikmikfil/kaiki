@@ -13,6 +13,7 @@ use App\Support\Tenancy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use RuntimeException;
 
@@ -107,12 +108,30 @@ final class InviteStaffMember
      * Split out so re-sending an invitation is the same code path as sending
      * the first one — a colleague who deleted the email, or whose token expired
      * before they got to a computer, is the common case rather than the odd one.
+     *
+     * ## The link has to be **signed**, and it was not
+     *
+     * `filament.app.auth.password-reset.reset` carries Filament's `signed`
+     * middleware. `route()` builds the address without a signature, so every
+     * invitation this Action has sent led to **403 Invalid signature** — which
+     * means no invited colleague could set a password, and the invitation has
+     * never worked outside a test that called the Action and read the model
+     * rather than opening the link.
+     *
+     * Found by walking `docs/testing/` in a browser, which is the only place it
+     * could be found: nothing that asserts on `$user->password` notices that
+     * the URL it never visits would refuse.
+     *
+     * `signedRoute` rather than `temporarySignedRoute`, because the expiry that
+     * matters already exists and belongs to the token —
+     * `config('auth.passwords.users.expire')` — and a second, different clock on
+     * the same link produces one that dies for a reason the page cannot explain.
      */
     public function sendInvitation(User $user, User $invitedBy): void
     {
         $token = Password::broker()->createToken($user);
 
-        $url = route('filament.app.auth.password-reset.reset', [
+        $url = URL::signedRoute('filament.app.auth.password-reset.reset', [
             'token' => $token,
             'email' => $user->email,
         ]);
