@@ -43,6 +43,15 @@ use Illuminate\Support\Carbon;
 final class ComputeBalanceDueAt
 {
     /**
+     * ADR-0018's platform default, when neither the plan nor the operator says.
+     *
+     * A constant rather than a literal because the payment settings screen
+     * shows it as the placeholder on the operator's own field — an empty box
+     * that reads as «14» is the only honest way to render "not set".
+     */
+    public const PLATFORM_DEFAULT_DAYS = 14;
+
+    /**
      * @param  Carbon|null  $confirmedAt  when the booking confirmed; now by default
      * @return Carbon|null null when there is nothing left to pay
      */
@@ -121,7 +130,7 @@ final class ComputeBalanceDueAt
             // ADR-0018's platform default. Reached when a tenant predates the
             // column — the migration defaults it, but a row written around the
             // default is exactly what a fallback is for.
-            return 14;
+            return self::PLATFORM_DEFAULT_DAYS;
         }
 
         return (int) $tenant->balance_due_days_before_departure;

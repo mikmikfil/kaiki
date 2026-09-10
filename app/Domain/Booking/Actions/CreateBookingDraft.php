@@ -114,8 +114,11 @@ final class CreateBookingDraft
                 'starts_at_utc' => $window['starts_at_utc'],
                 'ends_at_utc' => $window['ends_at_utc'],
 
-                'guest_name' => trim($data->guestName),
-                'guest_email' => mb_strtolower(trim($data->guestEmail)),
+                // Null until the checkout page asks (ADR-0030). An empty string
+                // would be worse than null in every place that reads these:
+                // null is a fact, `''` is a name.
+                'guest_name' => self::blankToNull($data->guestName),
+                'guest_email' => self::blankToNull($data->guestEmail === null ? null : mb_strtolower($data->guestEmail)),
                 // BKG-8: null rather than a refusal. A number we cannot read
                 // costs an SMS; refusing costs the booking.
                 'guest_phone' => LeadGuest::normalisePhone($data->guestPhone, $data->guestCountry),
@@ -235,6 +238,20 @@ final class CreateBookingDraft
      * a guest picked off a calendar — they never see a departure id, and CNV-8
      * keeps integer keys out of anything they could send.
      */
+    /**
+     * Trimmed, or null when there was nothing but whitespace.
+     *
+     * A caller that sends `'  '` for a name has sent no name, and storing it
+     * would satisfy {@see StartCheckout}'s guard with a booking whose guest is
+     * two spaces. Written once so the name and the email cannot drift apart.
+     */
+    private static function blankToNull(?string $value): ?string
+    {
+        $trimmed = trim((string) $value);
+
+        return $trimmed === '' ? null : $trimmed;
+    }
+
     private function resolveDeparture(int $productId, BookingDraftData $data): Departure
     {
         $query = Departure::query()

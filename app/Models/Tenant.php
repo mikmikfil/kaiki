@@ -4,14 +4,17 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
 use App\Enums\TenantStatus;
+use App\Enums\TenantVertical;
 use App\Models\Concerns\HasUuid;
 use App\Observers\TenantObserver;
 use Database\Factories\TenantFactory;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -29,7 +32,14 @@ use Stancl\Tenancy\Database\Concerns\TenantRun;
  * on. Implementing the contract directly costs three small methods and keeps
  * the schema honest.
  *
- * Also the Cashier billable model in M7. Its columns land now because SQLite
+ * Also the subscription-bearing model in M7 — but **not** a Cashier billable
+ * one, and its Cashier columns were removed rather than left waiting. ADR-0028
+ * settled on Viva for the operator subscriptions as well as for guests, and
+ * Cashier speaks Stripe and Paddle only: there is no package to be billable
+ * for. The instalment machinery M7 needs — trial expiry, dunning, proration,
+ * plan changes — is ours to write, which the ADR's amendment says outright.
+ *
+ * Whatever columns that turns out to need still have to land in one go: SQLite
  * cannot add them to an existing table without a rebuild (data-model §0).
  *
  * @property int $id
@@ -43,14 +53,17 @@ use Stancl\Tenancy\Database\Concerns\TenantRun;
  * @property string $default_locale
  * @property array<int, string> $supported_locales
  * @property Plan $plan
+ * @property TenantVertical|null $vertical
  * @property TenantStatus $status
  * @property Carbon|null $trial_ends_at
+ * @property Carbon|null $subscription_ends_at
  * @property string|null $custom_domain
- * @property bool $hosted_page_enabled
+ * @property HostedSiteMode $hosted_site_mode
  * @property bool $is_sandbox
  * @property int $turnaround_buffer_minutes
  * @property int $guest_document_retention_days
  * @property bool $auto_issue_invoice
+ * @property bool $deposits_enabled
  * @property array<string, mixed> $settings
  * @property int|null $balance_due_days_before_departure
  * @property string|null $weather_choice_default
@@ -76,15 +89,46 @@ class Tenant extends Model implements TenantContract
             'supported_locales' => 'array',
             'settings' => 'array',
             'plan' => Plan::class,
+            'vertical' => TenantVertical::class,
             'status' => TenantStatus::class,
             'trial_ends_at' => 'datetime',
+            'subscription_ends_at' => 'datetime',
             'custom_domain_verified_at' => 'datetime',
-            'hosted_page_enabled' => 'boolean',
+            'hosted_site_mode' => HostedSiteMode::class,
             'is_sandbox' => 'boolean',
             'turnaround_buffer_minutes' => 'integer',
             'guest_document_retention_days' => 'integer',
             'auto_issue_invoice' => 'boolean',
+            'deposits_enabled' => 'boolean',
+            'onboarding_completed_at' => 'datetime',
+            'onboarding_skipped_steps' => 'array',
         ];
+    }
+
+    /**
+     * Whole days until this operator's access lapses, or null if nothing says.
+     *
+     * The paid date first, then the trial date. An operator who has converted
+     * has both — the trial one is history and answering from it would show a
+     * paying customer as three months expired.
+     *
+     * Negative for a date already past, which is the useful answer: "lapsed
+     * eleven days ago" is what the merchant list needs to show, and clamping it
+     * to zero would make yesterday and last spring look the same.
+     *
+     * `startOfDay` on both sides, because this is a count of days and not of
+     * hours: an operator whose access ends tonight has one day left all day,
+     * rather than one at breakfast and zero after lunch.
+     */
+    public function accessDaysLeft(?Carbon $now = null): ?int
+    {
+        $ends = $this->subscription_ends_at ?? $this->trial_ends_at;
+
+        if (! $ends instanceof Carbon) {
+            return null;
+        }
+
+        return (int) ($now ?? Carbon::now())->startOfDay()->diffInDays($ends->copy()->startOfDay(), false);
     }
 
     public function getTenantKeyName(): string
@@ -122,6 +166,22 @@ class Tenant extends Model implements TenantContract
     public function brandProfile(): HasOne
     {
         return $this->hasOne(BrandProfile::class);
+    }
+
+    /**
+     * The VAT rate this operator sells at unless a product says otherwise (#51, CAT-11).
+     *
+     * A `belongsTo` with no foreign key behind it, deliberately — see
+     * `2026_09_10_000001_add_default_vat_rate_to_tenants`. Platform rate rows are
+     * withdrawn by `is_selectable` rather than deleted (#47), so there is no
+     * cascade for a constraint to enforce: either the id resolves, or the
+     * operator never chose one, and both answer null.
+     *
+     * @return BelongsTo<VatRate, $this>
+     */
+    public function defaultVatRate(): BelongsTo
+    {
+        return $this->belongsTo(VatRate::class, 'default_vat_rate_id');
     }
 
     /** Operators in `read_only` or `suspended` cannot write (see #7). */

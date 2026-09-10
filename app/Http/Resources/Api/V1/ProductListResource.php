@@ -79,7 +79,7 @@ class ProductListResource extends JsonResource
             'is_featured' => $product->is_featured,
             'sort_order' => $product->sort_order,
             // Filled by #104, which built the page it points at. Still null —
-            // never absent — for an operator with `hosted_page_enabled = false`,
+            // never absent — for an operator serving no hosted pages,
             // because HOS-6 makes that page a 404 and a payload advertising a
             // dead link is worse than one admitting there is no page.
             'booking_url' => $this->bookingUrl(),
@@ -113,7 +113,7 @@ class ProductListResource extends JsonResource
     {
         $tenant = Tenancy::current();
 
-        return $tenant !== null && HostedUrl::enabledFor($tenant)
+        return $tenant !== null && HostedUrl::bookingEnabledFor($tenant)
             ? HostedUrl::product($tenant, $this->resource)
             : null;
     }

@@ -46,6 +46,26 @@ return [
         'pro' => ['label' => 'Pro'],
     ],
 
+    'hosted_site_mode' => [
+        'off' => [
+            'label' => 'No pages',
+            'help' => 'We publish no pages for you. You use the booking form on your own website only.',
+        ],
+        'bookings_only' => [
+            'label' => 'Booking pages only',
+            'help' => 'A page per trip, the search page and the legal pages — with no home page. For an operator who already has a website and wants only the part that takes bookings.',
+        ],
+        'full' => [
+            'label' => 'Full website',
+            'help' => 'Everything, including the home page you compose yourself.',
+        ],
+    ],
+
+    'tenant_vertical' => [
+        'boats' => ['label' => 'Boats'],
+        'other' => ['label' => 'Other'],
+    ],
+
     'tenant_status' => [
         'trialing' => ['label' => 'Trial'],
         'active' => ['label' => 'Active'],
@@ -212,6 +232,7 @@ return [
         'booking.refunded' => ['label' => 'Booking refunded'],
         'gdpr.purged' => ['label' => 'Personal data purged'],
         'api_key.revoked' => ['label' => 'API key revoked'],
+        'tenant.updated' => ['label' => 'Operator account changed'],
         'record.deleted' => ['label' => 'Record deleted'],
         'override.applied' => ['label' => 'Override applied'],
         'payment.recorded' => ['label' => 'Payment recorded by hand'],

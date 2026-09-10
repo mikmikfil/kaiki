@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Hosted\Support;
 
+use App\Enums\ApiKeyEnvironment;
 use App\Enums\ApiKeyType;
 use App\Enums\ApiScope;
 use App\Models\ApiKey;
@@ -140,7 +141,11 @@ final class HostedEmbedToken
         // The operator turned their hosted site off between the page being
         // rendered and this request. The page is 404 by now, and the token it
         // minted must not outlive it.
-        if (! $tenant->hosted_page_enabled) {
+        // The coarse question on purpose (ADR-0029): a token minted for a
+        // trip page must stay valid while any page is live, and only die when
+        // the site is switched off entirely. An operator who turns the
+        // marketing home page off has not revoked their own widget.
+        if (! $tenant->hosted_site_mode->servesAnything()) {
             return null;
         }
 
@@ -176,6 +181,19 @@ final class HostedEmbedToken
      * middleware not to record a last-used timestamp against a row that is not
      * there.
      *
+     * ## `environment` is set, and leaving it null was a 500 on every booking
+     *
+     * `BookingCreateRequest::isTestKey()` reads `$key->environment->isTest()`
+     * to decide PAY-11's `is_test` flag. A transient key with no environment
+     * made that a call on null — so **every** booking started from a hosted
+     * trip page died with a 500, and the widget showed «κάτι πήγε στραβά» with
+     * no way to tell what. Nothing caught it: every test of the endpoint
+     * authenticates with a real `ApiKey` row, which has the column.
+     *
+     * The value is the tenant's own sandbox flag, which is the right answer
+     * rather than merely a non-null one: an operator in sandbox is testing, and
+     * §3.9 says bookings made while testing are `is_test` and purged nightly.
+     *
      * @param  list<string>  $origins
      */
     private static function transientKey(Tenant $tenant, array $origins): ApiKey
@@ -186,6 +204,7 @@ final class HostedEmbedToken
             'tenant_id' => $tenant->getKey(),
             'name' => 'hosted-page',
             'type' => ApiKeyType::Publishable,
+            'environment' => $tenant->is_sandbox ? ApiKeyEnvironment::Test : ApiKeyEnvironment::Live,
             'scopes' => array_map(
                 static fn (ApiScope $scope): string => $scope->value,
                 ApiKeyType::Publishable->allowedScopes(),

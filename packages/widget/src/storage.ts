@@ -39,11 +39,25 @@ const KEY = 'kaiki:draft';
 export interface RememberedDraft {
     readonly uuid: string;
     readonly token: string | null;
+    /**
+     * Where this draft was being paid for (ADR-0030).
+     *
+     * Stored so that a guest who wanders back to the operator's page mid-way is
+     * offered the checkout they left rather than an empty form. It is a URL
+     * containing the same token already beside it, so it adds no exposure — and
+     * it dies with the tab, like everything else here.
+     */
+    readonly checkoutUrl: string | null;
 }
 
-export function rememberDraft(uuid: string, token: string | null, storage: Storage | null = safeStorage()): void {
+export function rememberDraft(
+    uuid: string,
+    token: string | null,
+    checkoutUrl: string | null = null,
+    storage: Storage | null = safeStorage(),
+): void {
     try {
-        storage?.setItem(KEY, JSON.stringify({ uuid, token }));
+        storage?.setItem(KEY, JSON.stringify({ uuid, token, checkoutUrl }));
     } catch {
         // Storage refused. The guest can still finish; only the return from the
         // gateway loses its memory, and WGT-20 falls back to the email promise.
@@ -66,9 +80,14 @@ export function recallDraft(storage: Storage | null = safeStorage()): Remembered
 
         const uuid = (parsed as { uuid?: unknown }).uuid;
         const token = (parsed as { token?: unknown }).token;
+        const checkoutUrl = (parsed as { checkoutUrl?: unknown }).checkoutUrl;
 
         return typeof uuid === 'string' && uuid !== ''
-            ? { uuid, token: typeof token === 'string' && token !== '' ? token : null }
+            ? {
+                  uuid,
+                  token: typeof token === 'string' && token !== '' ? token : null,
+                  checkoutUrl: typeof checkoutUrl === 'string' && checkoutUrl !== '' ? checkoutUrl : null,
+              }
             : null;
     } catch {
         // Unreadable, or something else wrote this key. Either way the guest

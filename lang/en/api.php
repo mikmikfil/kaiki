@@ -42,6 +42,7 @@ return [
         'deposit_not_available' => 'This trip does not offer a deposit. Pay the full amount instead.',
         'no_balance_due' => 'There is no balance left to pay on this booking.',
         'no_gateway_configured' => 'The operator has not connected a payment provider yet. Contact them to complete this booking.',
+        'lead_guest_required' => 'Fill in your details first to go on to payment.',
     ],
 
 ];

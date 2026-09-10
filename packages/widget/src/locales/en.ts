@@ -23,8 +23,11 @@ export const en = {
 
   // The booking mount (#107, WGT-18 … WGT-20).
   'booking.next': 'Continue',
+  // The last button in the walk. It says where it goes, because it leaves
+  // this page for the operator's own checkout (ADR-0030).
+  'booking.checkout': 'Continue to checkout',
+  'booking.resume': 'You have a booking waiting to be paid for — finish it',
   'booking.back': 'Back',
-  'booking.pay': 'Pay and confirm',
   'booking.submitting': 'One moment…',
   'booking.lines.trip': 'Trip',
   'booking.lines.duration': 'Duration',
@@ -35,18 +38,13 @@ export const en = {
   'booking.date.label': 'Date',
   'booking.party.heading': 'How many of you?',
   'booking.extras.heading': 'Anything else?',
-  'booking.contact.heading': 'Your details',
+  // The three contact labels the *enquiry* mount uses (BKG-24). The booking
+  // walk stopped asking for these when the checkout page took them over
+  // (ADR-0030); a quote request has no checkout page to hand off to, so it
+  // still asks here.
   'booking.contact.name': 'Full name',
   'booking.contact.email': 'Email',
   'booking.contact.phone': 'Phone',
-  'booking.contact.requests': 'Anything we should know',
-  'booking.contact.terms': 'I have read the cancellation policy and the terms.',
-  'booking.review.heading': 'Check and pay',
-  'booking.review.when': 'When',
-  'booking.review.who': 'Lead guest',
-  'booking.review.pending': 'Working out your price…',
-  'booking.review.vat_included': 'VAT is included in the price',
-  'booking.review.deposit': 'You pay :amount now; the rest before departure.',
   'booking.hold.holding': 'Your seats are held for :time',
   'booking.hold.warning': 'Only :time left to finish',
   'booking.confirmed.heading': 'You are booked',

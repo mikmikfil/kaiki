@@ -3,8 +3,10 @@
 declare(strict_types=1);
 
 use App\Domain\Hosted\Support\HostedEmbedToken;
+use App\Enums\ApiKeyEnvironment;
 use App\Enums\ApiKeyType;
 use App\Enums\ApiScope;
+use App\Enums\HostedSiteMode;
 use App\Models\Tenant;
 use Illuminate\Support\Carbon;
 
@@ -103,7 +105,7 @@ it('will not open a hosted page the operator has switched off', function (): voi
 
     $token = HostedEmbedToken::issue($tenant);
 
-    $tenant->forceFill(['hosted_page_enabled' => false])->save();
+    $tenant->forceFill(['hosted_site_mode' => HostedSiteMode::Off])->save();
 
     // The page is 404 by now (HOS-6). A token it minted a minute earlier must
     // not outlive it, or switching the site off would leave a working key in
@@ -130,6 +132,30 @@ it('cannot do anything a publishable key could not', function (): void {
     // The secret-only ones are refused by the type, which is the ceiling: even
     // a token that somehow carried the scope could not use it.
     expect($key?->can(ApiScope::QuotesWrite))->toBeFalse();
+});
+
+it('carries an environment, because a booking asks it whether this is a test', function (): void {
+    // Every booking started from a hosted trip page answered `500`, because this
+    // was null: `BookingCreateRequest::isTestKey()` reads
+    // `$key->environment->isTest()` to set PAY-11's flag, and a transient key had
+    // no environment to read.
+    //
+    // Nothing caught it. Every test of that endpoint authenticates with a real
+    // `api_keys` row, which has the column — the one credential in the system
+    // that is built in memory was the one nothing exercised end to end.
+    $live = HostedEmbedToken::resolve(HostedEmbedToken::issue(OperatorPage::operator('embed-live')));
+
+    expect($live?->environment)->toBe(ApiKeyEnvironment::Live);
+
+    // And the value is the right one rather than merely non-null: §3.9 says a
+    // booking made while testing is `is_test` and purged nightly, so an operator
+    // still in sandbox must not produce live bookings from their own page.
+    $sandbox = OperatorPage::operator('embed-sandbox');
+
+    $sandbox->forceFill(['is_sandbox' => true])->save();
+
+    expect(HostedEmbedToken::resolve(HostedEmbedToken::issue($sandbox))?->environment)
+        ->toBe(ApiKeyEnvironment::Test);
 });
 
 it('shows one operator nothing of another\'s', function (): void {

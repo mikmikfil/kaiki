@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\HostedSiteMode;
 use App\Enums\TenantStatus;
 use App\Models\Tenant;
 
@@ -33,7 +34,7 @@ use Tests\Support\Hosted\HostedRequest;
 */
 
 it('serves an active operator page', function (): void {
-    $tenant = Tenant::factory()->create(['slug' => 'aegean-blue-test', 'hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['slug' => 'aegean-blue-test', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     get(HostedRequest::url('/aegean-blue-test'))
         ->assertOk()
@@ -41,7 +42,7 @@ it('serves an active operator page', function (): void {
 })->group('fast');
 
 it('404s an operator whose page is switched off', function (): void {
-    Tenant::factory()->create(['slug' => 'switched-off', 'hosted_page_enabled' => false]);
+    Tenant::factory()->create(['slug' => 'switched-off', 'hosted_site_mode' => HostedSiteMode::Off]);
 
     // Not a redirect and not an empty shell. HOS-6, read literally.
     get(HostedRequest::url('/switched-off'))->assertNotFound();
@@ -52,7 +53,7 @@ it('404s a slug that belongs to nobody', function (): void {
 })->group('fast');
 
 it('answers identically for a disabled page and an unknown slug', function (): void {
-    Tenant::factory()->create(['slug' => 'switched-off', 'hosted_page_enabled' => false]);
+    Tenant::factory()->create(['slug' => 'switched-off', 'hosted_site_mode' => HostedSiteMode::Off]);
 
     $disabled = get(HostedRequest::url('/switched-off'));
     $unknown = get(HostedRequest::url('/no-such-operator'));
@@ -66,7 +67,7 @@ it('answers identically for a disabled page and an unknown slug', function (): v
 it('serves a read-only operator in full, with the booking replaced', function (): void {
     $tenant = Tenant::factory()->create([
         'slug' => 'lapsed',
-        'hosted_page_enabled' => true,
+        'hosted_site_mode' => HostedSiteMode::Full,
         'status' => TenantStatus::ReadOnly,
     ]);
 
@@ -81,7 +82,7 @@ it('serves a read-only operator in full, with the booking replaced', function ()
 })->group('fast');
 
 it('does not show the read-only message to an active operator', function (): void {
-    Tenant::factory()->create(['slug' => 'active-one', 'hosted_page_enabled' => true]);
+    Tenant::factory()->create(['slug' => 'active-one', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     get(HostedRequest::url('/active-one'))->assertDontSee(__('hosted.read_only', ['email' => 'x@example.gr']), escape: false);
 })->group('fast');
@@ -89,7 +90,7 @@ it('does not show the read-only message to an active operator', function (): voi
 it('serves the legal page with the operator identity HOS-9 requires', function (): void {
     $tenant = Tenant::factory()->create([
         'slug' => 'legal-one',
-        'hosted_page_enabled' => true,
+        'hosted_site_mode' => HostedSiteMode::Full,
         'legal_name' => 'ΑΙΓΑΙΟ ΚΡΟΥΑΖΙΕΡΕΣ ΙΚΕ',
         'vat_number' => '801234567',
         'tax_office' => 'ΔΟΥ Πειραιά',
@@ -103,7 +104,7 @@ it('serves the legal page with the operator identity HOS-9 requires', function (
 })->group('fast');
 
 it('renders «powered by Kaiki» from the flag', function (): void {
-    Tenant::factory()->create(['slug' => 'powered', 'hosted_page_enabled' => true]);
+    Tenant::factory()->create(['slug' => 'powered', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     // Brand decision 6 of 2026-09-04: always, custom domains included. From a
     // flag rather than the template, so a white-label tier is a config change.
@@ -115,7 +116,7 @@ it('renders «powered by Kaiki» from the flag', function (): void {
 })->group('fast');
 
 it('reads a path segment as an operator slug on the hosted host and nowhere else', function (): void {
-    Tenant::factory()->create(['slug' => 'aegean-blue-test', 'hosted_page_enabled' => true]);
+    Tenant::factory()->create(['slug' => 'aegean-blue-test', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     // `{operator}` is a single path segment. Registered on every host it would
     // swallow `/app`, `/admin` and any probe route a test declares — it did,

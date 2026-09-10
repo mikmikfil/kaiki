@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Tenancy\Actions\CheckDomains;
 use App\Domain\Tenancy\Support\DnsLookup;
 use App\Enums\DomainStatus;
+use App\Enums\HostedSiteMode;
 use App\Jobs\CheckCustomDomains;
 use App\Models\Tenant;
 use App\Models\TenantDomain;
@@ -50,7 +51,7 @@ function sweepDns(): FakeDns
 }
 
 it('finishes the verification an operator started and went to bed on', function (): void {
-    $tenant = Tenant::factory()->create(['hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['hosted_site_mode' => HostedSiteMode::Full]);
 
     $domain = Tenancy::forTenant($tenant, static fn () => TenantDomain::query()->create([
         'hostname' => 'overnight.example.gr',
@@ -70,7 +71,7 @@ it('finishes the verification an operator started and went to bed on', function 
 })->group('fast');
 
 it('records a verified domain that stopped resolving and keeps serving it', function (): void {
-    $tenant = Tenant::factory()->create(['hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['hosted_site_mode' => HostedSiteMode::Full]);
 
     $domain = Tenancy::forTenant($tenant, static fn () => TenantDomain::query()->create([
         'hostname' => 'glitch.example.gr',

@@ -177,6 +177,17 @@
         /* The name once it is typed, so a folded row still says who is in it. */
         details.passenger .passenger-name { font-weight: 400; color: rgba(0, 0, 0, .55); }
 
+        /* Which band this person is — «Ενήλικας», «Παιδί», «Βρέφος». A pill
+           rather than more grey text, because it is the one thing on the row
+           that is not a name, and a parent scanning three folded panels is
+           looking for it. */
+        details.passenger .passenger-band {
+            font-size: .72rem; font-weight: 600; letter-spacing: .02em;
+            padding: .12rem .45rem; border-radius: 999px;
+            color: var(--kaiki-primary, #123A5E);
+            background: color-mix(in srgb, var(--kaiki-primary, #123A5E) 10%, transparent);
+        }
+
         .passenger-body { padding: 0 .9rem 1rem; }
         .passenger-body label:first-child { margin-top: 0; }
 

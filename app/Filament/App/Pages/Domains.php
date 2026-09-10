@@ -7,9 +7,11 @@ namespace App\Filament\App\Pages;
 use App\Domain\Tenancy\Actions\CheckDomains;
 use App\Domain\Tenancy\Actions\VerifyDomain;
 use App\Enums\DomainStatus;
+use App\Enums\HostedSiteMode;
 use App\Models\BrandProfile;
 use App\Models\TenantDomain;
 use App\Support\Tenancy;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -21,7 +23,20 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 /**
- * The operator's own domain (HOS-3, ADR-0010 Option A).
+ * The operator's public site: which pages, and at what address (HOS-3, ADR-0029,
+ * ADR-0010 Option A).
+ *
+ * ## Two settings, and the first decides whether the second matters
+ *
+ * ADR-0029 turned `hosted_page_enabled` into three states, and this is where an
+ * operator picks one — **there was no control at all before, not even for the
+ * boolean**. An operator could not switch their own site on or off through the
+ * product; it was a column somebody set in a seeder.
+ *
+ * It sits above the domain because it is the larger question: there is no point
+ * pointing `book.example.gr` at pages nobody is serving. Both are the same
+ * decision from the operator's side — what the public sees of them — which is
+ * why the screen is «Η ιστοσελίδα σας» rather than «Το domain σας».
  *
  * ## What the screen has to do is mostly explain
  *
@@ -58,6 +73,9 @@ class Domains extends Page implements HasForms
     /** @var array<string, mixed> */
     public array $data = [];
 
+    /** @var array<string, mixed> */
+    public array $modeData = [];
+
     public static function getNavigationGroup(): ?string
     {
         return __('panel.groups.settings');
@@ -88,6 +106,19 @@ class Domains extends Page implements HasForms
         abort_unless(static::canAccess(), 403);
 
         $this->getForm('form')?->fill();
+        $this->getForm('modeForm')?->fill(['hosted_site_mode' => Tenancy::current()?->hosted_site_mode?->value]);
+    }
+
+    /** @return array<string, Form> */
+    protected function getForms(): array
+    {
+        // Two forms rather than one, because they are saved by different
+        // buttons and a shared `statePath` would let adding a domain silently
+        // rewrite the site mode with whatever happened to be on screen.
+        return [
+            'form' => $this->form(Form::make($this)),
+            'modeForm' => $this->modeForm(Form::make($this)),
+        ];
     }
 
     public function form(Form $form): Form
@@ -101,6 +132,52 @@ class Domains extends Page implements HasForms
                     ->maxLength(190),
             ])
             ->statePath('data');
+    }
+
+    public function modeForm(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Radio::make('hosted_site_mode')
+                    ->label(__('domains.mode.label'))
+                    ->options(HostedSiteMode::options())
+                    // The sentence under each choice, from the enum's own lang
+                    // block. Three labels alone — «Καμία», «Μόνο κρατήσεις»,
+                    // «Πλήρης» — do not tell an operator which one they are,
+                    // and this is a decision they make once and live with.
+                    ->descriptions(array_map(
+                        static fn (HostedSiteMode $mode): string => (string) __(
+                            HostedSiteMode::translationNamespace() . '.' . $mode->value . '.help'
+                        ),
+                        array_combine(
+                            array_map(static fn (HostedSiteMode $mode): string => $mode->value, HostedSiteMode::cases()),
+                            HostedSiteMode::cases(),
+                        ),
+                    ))
+                    ->required(),
+            ])
+            ->statePath('modeData');
+    }
+
+    public function saveMode(): void
+    {
+        abort_unless(static::canAccess(), 403);
+
+        // TEN-9 through the same gate the rest of this screen uses: a lapsed
+        // subscription opens the panel and writes nothing.
+        abort_unless(Gate::allows('update', BrandProfile::query()->firstOrFail()), 403);
+
+        $tenant = Tenancy::current();
+
+        abort_unless($tenant !== null, 403);
+
+        $state = (array) $this->getForm('modeForm')?->getState();
+
+        $tenant->forceFill([
+            'hosted_site_mode' => HostedSiteMode::from((string) $state['hosted_site_mode']),
+        ])->save();
+
+        Notification::make()->title(__('domains.mode.saved'))->success()->send();
     }
 
     /**

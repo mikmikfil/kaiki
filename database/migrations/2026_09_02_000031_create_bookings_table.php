@@ -75,8 +75,15 @@ return new class extends Migration
             $table->timestamp('starts_at_utc');
             $table->timestamp('ends_at_utc');
 
-            $table->string('guest_name', 120);
-            $table->string('guest_email', 190);
+            // Nullable, because a draft is a hold on seats before it is a
+            // booking by a person (ADR-0030). The widget asks for a date and a
+            // party and nothing else; the lead guest is typed on the checkout
+            // page, and `StartCheckout` refuses a booking that still has none —
+            // so no booking reaches a gateway, an invoice or a manifest without
+            // one. `NOT NULL` here would only have moved the question earlier,
+            // into a form nobody wanted to fill in before seeing a price.
+            $table->string('guest_name', 120)->nullable();
+            $table->string('guest_email', 190)->nullable();
             // E.164 where we could normalise it. BKG-8: a malformed phone blocks
             // SMS and must never block the booking, so this is nullable.
             $table->string('guest_phone', 32)->nullable();

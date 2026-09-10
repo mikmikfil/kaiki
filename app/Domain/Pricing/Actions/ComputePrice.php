@@ -19,6 +19,7 @@ use App\Models\RatePlan;
 use App\Models\Season;
 use App\Models\VatRate;
 use App\Support\Money\Cents;
+use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
@@ -103,6 +104,12 @@ final class ComputePrice
         $discount = 0;
         $total = max(0, $subtotal + $extras - $discount);
 
+        // Asked once, here, and carried into all three calls below. The
+        // calculator is arithmetic and does not reach for a tenant of its own;
+        // this Action is the only place in the pricing path that knows which
+        // operator the price is being computed for.
+        $deposits = $this->operatorTakesDeposits();
+
         $snapshot = new PriceSnapshotData(
             source: 'rate_plan',
             computedAt: Carbon::now(),
@@ -115,21 +122,42 @@ final class ComputePrice
             discountCents: $discount,
             totalCents: $total,
             vat: $this->vatBlock($product, $total),
-            deposit: DepositCalculator::forPlan($plan, $total),
+            deposit: DepositCalculator::forPlan($plan, $total, $deposits),
             cancellationPolicyId: $product->effectiveCancellationPolicy()?->getKey(),
         );
 
         return new PriceQuoteData(
             snapshot: $snapshot,
             totalCents: $total,
-            depositCents: DepositCalculator::amountCents($plan, $total),
-            balanceCents: DepositCalculator::balanceCents($plan, $total),
+            depositCents: DepositCalculator::amountCents($plan, $total, $deposits),
+            balanceCents: DepositCalculator::balanceCents($plan, $total, $deposits),
             // PRC-15: a quote is a calculation with a shelf life, and the
             // shelf life is the hold TTL — the window a guest has to finish
             // checking out before the seats go back.
             expiresAt: Carbon::now()->addMinutes((int) config('kaiki.pricing.quote_ttl_minutes', 20)),
             hasOnRequestItems: $this->hasOnRequest($extraLines),
         );
+    }
+
+    /**
+     * Does this operator take a deposit and collect the rest later?
+     *
+     * `tenants.deposits_enabled`. A rate plan may ask for 30%; whether the
+     * business works that way at all is not the price list's decision, and an
+     * operator who has not switched instalments on should never have one
+     * computed for them.
+     *
+     * Null counts as off — the column is nullable so it could be added to an
+     * existing table (§6), and a row written before it existed opted into
+     * nothing. No tenant resolved counts as off too: a price computed outside a
+     * tenant context is a bug elsewhere, and "charge the whole thing" is the
+     * safe direction to fail in.
+     */
+    private function operatorTakesDeposits(): bool
+    {
+        $tenant = Tenancy::current();
+
+        return (bool) ($tenant->deposits_enabled ?? false);
     }
 
     /**

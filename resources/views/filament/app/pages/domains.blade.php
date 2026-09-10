@@ -1,14 +1,36 @@
 {{--
-    The custom-domain screen (#109, HOS-3).
+    The operator's public site: which pages, and at what address (#109, HOS-3,
+    ADR-0029).
 
-    Mostly explanation, because the work happens at a registrar we cannot reach:
-    the exact CNAME, where it goes, and the truth about how long it takes.
+    The domain half is mostly explanation, because the work happens at a
+    registrar we cannot reach: the exact CNAME, where it goes, and the truth
+    about how long it takes. The mode half is one question with three answers,
+    and it sits first because it is the larger one — there is no point pointing
+    a domain at pages nobody is serving.
 
     Nothing here is a hardcoded string — `NoHardcodedStringsTest` scans this
     directory (I18N-1).
 --}}
 <x-filament-panels::page>
     <div class="space-y-6">
+        <div class="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+            <h3 class="text-sm font-semibold">{{ __('domains.mode.heading') }}</h3>
+
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ __('domains.mode.help') }}
+            </p>
+
+            <form wire:submit="saveMode" class="mt-4">
+                {{ $this->modeForm }}
+
+                <div class="mt-4 flex justify-end">
+                    <x-filament::button type="submit">
+                        {{ __('domains.mode.save') }}
+                    </x-filament::button>
+                </div>
+            </form>
+        </div>
+
         <div class="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
             <h3 class="text-sm font-semibold">{{ __('domains.cname.heading') }}</h3>
 

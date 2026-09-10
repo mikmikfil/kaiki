@@ -4,28 +4,42 @@ import type { Analytics } from '../../analytics';
 import type { Api } from '../../api-client';
 import { BookingApi, isSoldOut, type DraftResult } from '../../booking/api';
 import { holdState } from '../../booking/countdown';
-import { pollForConfirmation } from '../../booking/confirmation';
-import { back, canAdvance, initialState, next, type BookingState, type MachineOptions, type Step } from '../../booking/machine';
-import { draftFingerprint } from '../../booking/idempotency';
+import { pollForConfirmation, readBookingStatus } from '../../booking/confirmation';
+import {
+  back,
+  canAdvance,
+  initialState,
+  isLastStep,
+  next,
+  type BookingState,
+  type MachineOptions,
+  type Step,
+} from '../../booking/machine';
 import type { Translator } from '../../i18n';
 import { forgetDraft, recallDraft, rememberDraft } from '../../storage';
-import { ContactStep } from './steps/ContactStep';
 import { DateStep } from './steps/DateStep';
 import { ExtrasStep } from './steps/ExtrasStep';
 import { FourLines } from './FourLines';
 import { Hold } from './Hold';
 import { PartyStep } from './steps/PartyStep';
-import { ReviewStep } from './steps/ReviewStep';
 
 /**
- * The booking mount (WGT-18, WGT-19, WGT-20).
+ * The booking mount (WGT-18 as amended by ADR-0030, WGT-19, WGT-20).
  *
- * ## The machine owns the answers; this owns the asking
+ * ## Three questions, then out
  *
- * Every field lives in one state object in `booking/machine.ts`, which is what
- * makes WGT-18's *"back navigation never loses entered data"* a property of the
- * design rather than a thing to remember. This component moves the cursor, calls
- * the API and decides what is on screen.
+ * Date, party, extras — and then the guest leaves for the operator's own
+ * checkout page at `/c/{manage_token}`, where the name, the telephone number,
+ * the passenger manifest and the consent are typed on a full-width page instead
+ * of in a 380-pixel column on somebody else's site. The product owner asked for
+ * exactly this, twice, and the second time in the plainest terms: *"στο single
+ * page απλά να υπάρχει ημερομηνία, μετά άτομα … και μετά πάμε για checkout"*.
+ *
+ * What left with the contact and review steps was also the widget's worst bug:
+ * `ReviewStep` took a `quote` prop that nothing supplied, so it rendered
+ * «Υπολογίζουμε την τιμή σας…» permanently and a guest pressed pay having never
+ * been shown a total. The checkout page renders the price from the frozen
+ * `price_snapshot`, and `CheckoutPageTest` asserts the figure is on the page.
  *
  * ## Four lines above the date picker, and nothing else
  *
@@ -33,12 +47,13 @@ import { ReviewStep } from './steps/ReviewStep';
  * is a photograph, because the space looks empty — it looked empty in the mockup
  * too, and the decision was made against exactly that.
  *
- * ## Three states after "pay", and only one of them is a claim
+ * ## Coming back to this page is not evidence of a payment
  *
- * A gateway redirect, a direct confirmation when a voucher covered the total
- * (BKG-19), and the WGT-20 poll on the way back. The poll says `confirmed` only
- * when the booking says so — never on a timeout, because a redirect is a guest
- * pressing a button and the webhook is the money moving.
+ * The gateway now returns to the hosted checkout, not here. So a guest who
+ * reappears on the embed may have paid, or may simply have pressed Back on the
+ * form. The mount asks the booking once which it was, and only polls (WGT-20)
+ * when a payment is genuinely under way. A still-`draft` booking gets a line
+ * offering the checkout they left, not a spinner and then a promise of an email.
  */
 
 interface BookingMountProps {
@@ -68,6 +83,7 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
   const [state, dispatch] = useReducer(reduce, initialState());
   const [phase, setPhase] = useState<Phase>('walking');
   const [draft, setDraft] = useState<DraftResult | null>(null);
+  const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   const hold = holdState(draft?.holdExpiresAt ?? null);
@@ -86,7 +102,7 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
   }, [draft, phase]);
 
   // WGT-19: on expiry the widget explains and re-fetches, rather than letting
-  // the guest press "pay" and meet a refusal they cannot interpret.
+  // the guest press "continue" and meet a refusal they cannot interpret.
   useEffect(() => {
     if (hold.phase === 'expired' && phase === 'walking') {
       setPhase('expired');
@@ -99,76 +115,18 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
   const retreat = useCallback(() => dispatch({ type: 'back', options }), [options]);
 
   /**
-   * The draft is created on **arrival at the review step**, not on "pay".
+   * The draft is created when the guest leaves for checkout, and not before.
    *
-   * WGT-19 says the countdown is shown *"once a draft exists"*, and until issue
-   * 111 the draft came into existence in the same breath as the redirect — so
-   * the hold lasted no time at all, the countdown was never on screen for a
-   * single frame, and `Hold` and `countdown.ts` were dead code that passed
-   * their own unit tests. The end-to-end run is what made that visible: there
-   * was no moment at which a hold could be watched running out.
+   * It used to be created on arrival at the review step so that WGT-19's
+   * countdown had something to count. There is no review step now, and the
+   * hold's whole purpose is to cover the minutes a guest spends filling in the
+   * checkout form — which begin here. Creating it a step earlier would hold
+   * seats while somebody browses extras and then abandons.
    *
-   * Review is the **earliest** point a draft can exist, because the contract
-   * requires a lead guest and the contact step is where one is entered. It is
-   * also where the guest reads a price and decides, which is exactly the wait a
-   * hold is meant to cover: BKG-9 keeps the seats merely *held* until the
-   * checkout redirect commits them, so nothing is taken from anybody else's
-   * boat before this guest has actually gone to pay.
-   *
-   * The fingerprint guard is what makes going back safe. A guest who returns to
-   * the party step, changes it and comes forward again gets a *new* draft,
-   * because it is a different booking — the old one holds nothing for long and
-   * `ExpireAbandonedCheckouts` clears it.
+   * The idempotency key is bound to the party and the date (see
+   * `IdempotencyKeys`), so a double click, or a guest who goes back, changes
+   * nothing and presses again, does not hold a second set of seats.
    */
-  const fingerprint = draftFingerprint(state);
-
-  useEffect(() => {
-    if (state.step !== 'review' || phase !== 'walking' || draft !== null) {
-      return;
-    }
-
-    let abandoned = false;
-
-    void (async () => {
-      try {
-        const created = await api.createDraft(state, productUuid, locale);
-
-        if (abandoned) {
-          return;
-        }
-
-        if (created.manageToken !== null) {
-          rememberDraft(created.uuid, created.manageToken);
-        }
-
-        setDraft(created);
-        analytics.emit('kaiki:booking-started', { product_uuid: productUuid, pax: countedPax(state) });
-      } catch (error) {
-        if (abandoned) {
-          return;
-        }
-
-        if (isSoldOut(error)) {
-          client.invalidate();
-          setPhase('sold_out');
-          analytics.emit('kaiki:error', { product_uuid: productUuid, error_code: 'insufficient_capacity' });
-
-          return;
-        }
-
-        // Anything else is left for `submit()` to meet and report: a guest who
-        // can still read their review and press pay should be allowed to.
-      }
-    })();
-
-    return () => {
-      abandoned = true;
-    };
-    // `fingerprint` and not `state`: an edit to a field the server does not
-    // deduplicate on must not mint a second draft.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.step, phase, draft, fingerprint, api, productUuid, locale, analytics, client]);
-
   const submit = useCallback(async () => {
     setPhase('submitting');
 
@@ -179,20 +137,19 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
         // §2.1 footnote 1: this is the one moment the token exists. It is
         // stored before anything else can fail, and it is stored **with** the
         // uuid because reading the booking back needs both.
-        rememberDraft(created.uuid, created.manageToken);
+        rememberDraft(created.uuid, created.manageToken, created.checkoutUrl);
       }
 
       setDraft(created);
       analytics.emit('kaiki:booking-started', { product_uuid: productUuid, pax: countedPax(state) });
 
-      const session = await api.checkout(created.uuid, window.location.href);
-
-      if (session.redirectUrl === null) {
-        // BKG-19: a voucher covered the total. Confirmed already, nowhere to
-        // send them.
-        analytics.emit('kaiki:booking-confirmed', { product_uuid: productUuid });
-        forgetDraft();
-        setPhase('confirmed');
+      if (created.checkoutUrl === null) {
+        // The server did not say where to send them. Nothing here can invent
+        // the address — a URL assembled in a browser from a config value is a
+        // guess about somebody else's deployment — so this is reported rather
+        // than papered over with a redirect that 404s.
+        setPhase('failed');
+        analytics.emit('kaiki:error', { product_uuid: productUuid, error_code: 'checkout_failed' });
 
         return;
       }
@@ -203,7 +160,7 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
       });
 
       setPhase('redirecting');
-      window.location.assign(session.redirectUrl);
+      window.location.assign(created.checkoutUrl);
     } catch (error) {
       if (isSoldOut(error)) {
         // AVL-39: the last seats went while this guest was deciding. A
@@ -222,10 +179,10 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
   }, [api, draft, state, productUuid, locale, analytics, client]);
 
   const resume = useCallback(
-    async (bookingUuid: string, token: string) => {
-      const result = await pollForConfirmation(client, bookingUuid, token);
+    async (remembered: { uuid: string; token: string; checkoutUrl: string | null }) => {
+      const status = await readBookingStatus(client, remembered.uuid, remembered.token);
 
-      if (result.outcome === 'confirmed') {
+      if (status === 'confirmed' || status === 'checked_in' || status === 'completed') {
         analytics.emit('kaiki:booking-confirmed', { product_uuid: productUuid });
         forgetDraft();
         setPhase('confirmed');
@@ -233,31 +190,56 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
         return;
       }
 
-      // WGT-20: not a claim. An email will follow when the webhook lands.
-      setPhase(result.outcome === 'cancelled' ? 'failed' : 'pending');
+      if (status === null || status === 'cancelled' || status === 'expired') {
+        // Gone, or unanswerable. Either way there is nothing to resume, and the
+        // guest gets a working form rather than an explanation of a booking
+        // they may not remember making.
+        forgetDraft();
+        setPhase('walking');
+
+        return;
+      }
+
+      if (status === 'pending_payment') {
+        // A payment is genuinely under way: this is the case WGT-20 is about.
+        setPhase('submitting');
+
+        const result = await pollForConfirmation(client, remembered.uuid, remembered.token);
+
+        if (result.outcome === 'confirmed') {
+          analytics.emit('kaiki:booking-confirmed', { product_uuid: productUuid });
+          forgetDraft();
+          setPhase('confirmed');
+
+          return;
+        }
+
+        // WGT-20: not a claim. An email will follow when the webhook lands.
+        setPhase(result.outcome === 'cancelled' ? 'failed' : 'pending');
+
+        return;
+      }
+
+      // Still a draft. They left the checkout page without paying, so the offer
+      // is the page they left — not a spinner, and not a fresh empty form that
+      // pretends the last five minutes did not happen.
+      setResumeUrl(remembered.checkoutUrl);
+      setPhase('walking');
     },
     [client, analytics, productUuid],
   );
 
   useEffect(() => {
-    // Coming back from the gateway is a fresh page load on the same page, in the
-    // same tab. What survives that is `sessionStorage` — **not** the URL.
-    //
-    // This branch used to read `?kaiki_booking=` and `?kaiki_token=` from the
-    // query string, and nothing anywhere ever wrote them: the return URL sent to
-    // checkout is `window.location.href` unchanged. So the resume could not fire
-    // and a guest coming back from a successful payment was shown an empty
-    // booking form. **Issue 111's end-to-end run is what found it**, which is
-    // the case for having written it: every unit test in the suite mocked the
-    // transport, and no mock has a page reload in it.
-    //
-    // Query parameters were also the wrong place on their own terms — see
-    // `storage.ts` on why a manage token does not belong in a URL.
+    // What survives a page load is `sessionStorage` — **not** the URL. This
+    // branch used to read `?kaiki_booking=` and `?kaiki_token=` from the query
+    // string, and nothing anywhere ever wrote them, so it could not fire.
+    // Issue 111's end-to-end run is what found that; query parameters were also
+    // the wrong place on their own terms — see `storage.ts` on why a manage
+    // token does not belong in a URL.
     const remembered = recallDraft();
 
     if (remembered !== null && remembered.token !== null) {
-      setPhase('submitting');
-      void resume(remembered.uuid, remembered.token);
+      void resume({ uuid: remembered.uuid, token: remembered.token, checkoutUrl: remembered.checkoutUrl });
     }
   }, [resume]);
 
@@ -280,16 +262,11 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
         heading="booking.expired.heading"
         body="booking.expired.body"
         onRetry={() => {
-          // **Back to the date, not back to the review.** The seats went back
-          // to the boat, so the date the guest picked may no longer have room —
-          // returning them to a review of a booking that cannot be made is the
-          // one thing worse than the expiry itself. Everything they typed
+          // **Back to the date.** The seats went back to the boat, so the date
+          // the guest picked may no longer have room. Everything they chose
           // survives (WGT-18); only the step moves.
-          //
-          // Resetting the phase alone left them looking at the same expired
-          // screen, because the review step immediately took a fresh draft.
-          // Issue 111's expiry run is what caught it.
           setDraft(null);
+          setResumeUrl(null);
           dispatch({ type: 'patch', patch: { step: 'date', departureUuid: null } });
           setPhase('walking');
           client.invalidate();
@@ -303,16 +280,26 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
     return <Outcome t={t} heading="widget.error.generic" body="widget.error.contact" onRetry={() => setPhase('walking')} retryKey="widget.retry" />;
   }
 
+  const last = isLastStep(state, options);
+
   return (
     <div class="kaiki-booking">
       <FourLines product={product} t={t} />
 
       {draft !== null ? <Hold hold={hold} t={t} /> : null}
 
+      {resumeUrl !== null ? (
+        <p class="kaiki-resume">
+          <a href={resumeUrl}>{t('booking.resume')}</a>
+        </p>
+      ) : null}
+
       <StepView
         step={state.step}
         state={state}
         product={product}
+        client={client}
+        productUuid={productUuid}
         t={t}
         onChange={(patch) => dispatch({ type: 'patch', patch })}
       />
@@ -324,9 +311,14 @@ export function BookingMount({ client, productUuid, product, t, analytics, local
           </button>
         ) : null}
 
-        {state.step === 'review' ? (
-          <button type="button" class="kaiki-button" onClick={() => void submit()} disabled={phase === 'submitting'}>
-            {t(phase === 'submitting' ? 'booking.submitting' : 'booking.pay')}
+        {last ? (
+          <button
+            type="button"
+            class="kaiki-button"
+            onClick={() => void submit()}
+            disabled={phase !== 'walking' || !canAdvance(state, options)}
+          >
+            {t(phase === 'walking' ? 'booking.checkout' : 'booking.submitting')}
           </button>
         ) : (
           <button type="button" class="kaiki-button" onClick={advance} disabled={!canAdvance(state, options)}>
@@ -342,26 +334,29 @@ function StepView({
   step,
   state,
   product,
+  client,
+  productUuid,
   t,
   onChange,
 }: {
   readonly step: Step;
   readonly state: BookingState;
   readonly product: ProductSummary;
+  readonly client: Api;
+  readonly productUuid: string;
   readonly t: Translator;
   readonly onChange: (patch: Partial<BookingState>) => void;
 }) {
   switch (step) {
     case 'date':
-      return <DateStep state={state} t={t} onChange={onChange} />;
+      // The date step reads availability of its own: it draws a month with the
+      // sold-out days marked, which is the whole reason it is no longer a
+      // native date input.
+      return <DateStep state={state} client={client} productUuid={productUuid} t={t} onChange={onChange} />;
     case 'party':
       return <PartyStep state={state} bands={product.age_bands ?? []} t={t} onChange={onChange} />;
     case 'extras':
       return <ExtrasStep state={state} extras={product.extras ?? []} t={t} onChange={onChange} />;
-    case 'contact':
-      return <ContactStep state={state} t={t} onChange={onChange} />;
-    case 'review':
-      return <ReviewStep state={state} product={product} t={t} />;
     default:
       return null;
   }

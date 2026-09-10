@@ -651,9 +651,19 @@
                                 <a class="button" href="tel:{{ $tenant->phone }}">{{ __('hosted.product.ask.call') }}</a>
                             @endif
 
-                            @if ($tenant->email)
-                                <a class="button ghost" href="mailto:{{ $tenant->email }}?subject={{ rawurlencode($product->title) }}">{{ __('hosted.product.ask.write') }}</a>
-                            @endif
+                            {{-- The contact page, carrying this trip's uuid, rather
+                                 than a `mailto:`. Two reasons, and the second is
+                                 the one that matters: a `mailto:` opens whatever
+                                 mail client the visitor's phone thinks it has,
+                                 which on a shared laptop is nothing at all — and
+                                 the answer lands in an inbox instead of in
+                                 `enquiries`, where it has a status and somebody
+                                 whose job it is to close it (BKG-29). The uuid
+                                 attaches the question to the trip it is about, so
+                                 the operator is not reading «is this available?»
+                                 with no idea what «this» is. --}}
+                            <a class="button ghost"
+                               href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale, 'product' => $product->uuid]) }}">{{ __('hosted.product.ask.write') }}</a>
                         </p>
                     </section>
                 @endif

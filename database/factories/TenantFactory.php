@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
 use App\Enums\TenantStatus;
 use App\Models\Tenant;
@@ -35,13 +36,44 @@ class TenantFactory extends Factory
             'plan' => Plan::Trial,
             'status' => TenantStatus::Trialing,
             'trial_ends_at' => now()->addDays(14),
-            'hosted_page_enabled' => true,
+            'hosted_site_mode' => HostedSiteMode::Full,
             'is_sandbox' => false,
             'turnaround_buffer_minutes' => 60,
             'guest_document_retention_days' => 90,
             'auto_issue_invoice' => false,
+            // Off, like the column default and like every real operator until
+            // they say otherwise. A test that wants an instalment says so.
+            'deposits_enabled' => false,
+            // An operator who has been through the setup guide, like the legal
+            // name and the ΑΦΜ two lines above: this factory has always built
+            // somebody already trading, not somebody on their first afternoon.
+            //
+            // It also keeps `OfferSetupOnce` out of the way of every other test
+            // that signs an owner in and asks for the dashboard — that redirect
+            // fires exactly once per account and is the subject of its own
+            // tests. `unconfigured()` is how a test asks for the other state.
+            'onboarding_completed_at' => now(),
+            'onboarding_skipped_steps' => null,
             'settings' => [],
         ];
+    }
+
+    /**
+     * An account as it is the minute it is created (#51).
+     *
+     * Nothing answered, nothing skipped, nothing finished — the state the setup
+     * guide exists for, and the one `OnboardOperator` actually produces.
+     */
+    public function unconfigured(): static
+    {
+        return $this->state(fn (): array => [
+            'legal_name' => null,
+            'vat_number' => null,
+            'tax_office' => null,
+            'default_vat_rate_id' => null,
+            'onboarding_completed_at' => null,
+            'onboarding_skipped_steps' => null,
+        ]);
     }
 
     public function active(): self
@@ -51,6 +83,12 @@ class TenantFactory extends Factory
             'status' => TenantStatus::Active,
             'trial_ends_at' => null,
         ]);
+    }
+
+    /** An operator who takes a deposit now and the balance later (PRC-23). */
+    public function takingDeposits(): self
+    {
+        return $this->state(fn (): array => ['deposits_enabled' => true]);
     }
 
     /** A lapsed subscription: the panel opens, nothing can be written (#7). */

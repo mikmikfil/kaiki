@@ -522,6 +522,7 @@ Every code this API can emit. Messages below are the canonical strings; interpol
 | `gateway_unavailable` | 502 | The payment system is unavailable right now. Please try again shortly. | Το σύστημα πληρωμών δεν είναι διαθέσιμο αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγο. | `gateway` |
 | `payment_already_settled` | 409 | This booking is already paid in full. | Αυτή η κράτηση έχει ήδη εξοφληθεί. | `paid_cents`, `total_cents` |
 | `deposit_not_available` | 422 | A deposit is not available for this booking. | Η προκαταβολή δεν είναι διαθέσιμη για αυτή την κράτηση. | `booking_uuid` |
+| `lead_guest_required` | 422 | Fill in your details first to go on to payment. | Συμπληρώστε πρώτα τα στοιχεία σας για να προχωρήσετε στην πληρωμή. | `booking_uuid` |
 | `balance_not_due` | 409 | There is no outstanding balance on this booking. | Δεν υπάρχει υπόλοιπο προς πληρωμή σε αυτή την κράτηση. | `balance_cents` |
 | `server_error` | 500 | Something went wrong. Please try again. | Παρουσιάστηκε σφάλμα. Δοκιμάστε ξανά. | `request_id` |
 | `service_unavailable` | 503 | The service is temporarily unavailable. | Η υπηρεσία είναι προσωρινά μη διαθέσιμη. | `retry_after_seconds` |
@@ -1253,7 +1254,10 @@ paths:
         `kind` selects what is being paid:
         - `full` — the whole `total_cents`.
         - `deposit` — `deposit_cents` from the price snapshot. Rejected with
-          `422 deposit_not_available` when the rate plan defines no deposit.
+          `422 deposit_not_available` when the rate plan defines no deposit, and
+          `422 lead_guest_required` when the booking still has no lead guest or no recorded
+          consent (ADR-0030) — send the guest to the booking's `checkout_url`, which is the
+          form that asks.
         - `balance` — `balance_cents`. Requires the booking to be `confirmed` and a
           `manage_token`; a publishable key is rejected.
 
@@ -3177,7 +3181,14 @@ components:
         Creates a draft and places a hold. Contains **no prices**: the server recomputes from
         the same inputs it would have used for the price quote. `price_token` is the guest's
         proof of what they were shown.
-      required: [product_uuid, pax, guest]
+
+        `guest` and `terms_accepted` are **optional** since ADR-0030 (2026-09-09). A draft is a
+        hold on seats: the Kaiki widget takes a date and a party and hands the guest to the
+        hosted checkout page, where the lead guest and the consent are entered. Both are still
+        required before money moves — `POST /bookings/{uuid}/checkout` answers
+        `422 lead_guest_required` for a booking that has neither — so an integrator who does not
+        use the hosted checkout must send them here, exactly as before.
+      required: [product_uuid, pax]
       properties:
         product_uuid: { type: string, format: uuid }
         departure_uuid: { type: [string, "null"], format: uuid, description: "Required for `mode: per_seat`." }
@@ -3200,7 +3211,13 @@ components:
           type: array
           items: { $ref: '#/components/schemas/ExtraSelection' }
         voucher_code: { type: [string, "null"], maxLength: 24 }
-        guest: { $ref: '#/components/schemas/LeadGuest' }
+        guest:
+          description: |
+            Optional since ADR-0030. Omitted, the booking is a hold with nobody's name on it and
+            must be completed on the checkout page before it can be paid for.
+          oneOf:
+            - $ref: '#/components/schemas/LeadGuest'
+            - type: "null"
         special_requests: { type: [string, "null"], maxLength: 2000, description: Stored and shown verbatim; never translated. }
         locale:
           type: [string, "null"]
@@ -3210,8 +3227,13 @@ components:
           type: [string, "null"]
           description: From `POST /price-quote`. When supplied, a recomputed total that differs is `409 price_changed`.
         terms_accepted:
-          type: boolean
-          description: Must be true. Records that the guest saw the cancellation policy and terms before paying.
+          type: [boolean, "null"]
+          description: |
+            Must be true **when sent**, and may be omitted (ADR-0030). It records that the guest
+            saw the cancellation policy and terms before paying, so the hosted checkout page
+            records it there, beside the payment it authorises. `false` is refused rather than
+            ignored: a client that sends the field is making a claim about a box, and an unticked
+            box is not consent.
         source:
           type: [string, "null"]
           enum: [widget, hosted, wordpress, null]

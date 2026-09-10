@@ -139,7 +139,10 @@
         .brand img { max-height: 44px; width: auto; }
         .brand .name { font-weight: 800; font-size: 1.15rem; letter-spacing: -.02em; }
 
-        .site-nav { margin-left: auto; margin-right: .35rem; font-size: .9rem; }
+        .site-nav {
+            margin-left: auto; margin-right: .35rem; font-size: .9rem;
+            display: flex; gap: 1.15rem;
+        }
         .site-nav a { text-decoration: none; color: var(--ink-soft); }
         .site-nav a:hover { color: var(--kaiki-primary); }
 
@@ -1027,9 +1030,18 @@
             border: 1px solid var(--kaiki-primary);
             padding: .8rem 1.5rem; border-radius: var(--kaiki-radius);
             font-weight: 600; font-size: .97rem; line-height: 1;
-            transition: background-color .15s ease;
+            transition: background-color .15s ease, border-color .15s ease, color .15s ease;
         }
-        .button:hover { background: color-mix(in srgb, var(--kaiki-primary) 90%, var(--kaiki-text)); border-color: transparent; }
+
+        /* Hover deepens the button rather than recolouring it. The brand navy
+           stays the brand navy: a button that turns a different colour under
+           the pointer reads as a warning on a page where the accent is used for
+           «sold out» and «not included». */
+        .button:hover, .button:focus-visible {
+            background: color-mix(in srgb, var(--kaiki-primary) 88%, var(--kaiki-text));
+            border-color: transparent;
+        }
+
         .button-small { padding: .55rem 1rem; font-size: .9rem; }
 
         /* An arrow on the buttons that go somewhere, and only those. A button
@@ -1548,6 +1560,119 @@
         .contact-cta { margin: 0; display: flex; flex-wrap: wrap; gap: .6rem; }
         .button.ghost { background: transparent; color: var(--kaiki-primary); border: 1px solid var(--kaiki-primary); }
 
+        /* Written after the base rule rather than left to specificity: `.button.ghost`
+           is two classes and would otherwise beat `.button:hover`, so a ghost
+           button would be the only one on the page that did not answer. */
+        .button.ghost:hover, .button.ghost:focus-visible {
+            background: color-mix(in srgb, var(--kaiki-primary) 8%, transparent);
+            border-color: var(--kaiki-primary);
+            color: var(--kaiki-primary);
+        }
+
+        /* The trip page is the exception, and it was asked for: there the
+           buttons empty out and take the accent on hover — transparent inside,
+           accent rule, accent text. It works on that page because the buttons
+           sit inside cards on a plain ground with nothing else competing, and
+           it does not work on the home page's contact banner or the contact
+           form, where a red button reads as a refusal. Scoped rather than
+           global for exactly that reason. */
+        .product .button:hover, .product .button:focus-visible {
+            background: transparent;
+            border-color: var(--kaiki-accent);
+            color: var(--kaiki-accent);
+        }
+
+        /* --- the contact page ---------------------------------------------
+
+           A form on the left, the ways to reach a person on the right. The
+           right column is the narrower of the two because it is four lines of
+           fact; the form is where the work happens. */
+        .page-head { max-width: 44rem; margin-bottom: 2rem; }
+        .page-head h1 { margin-bottom: .5rem; }
+        .page-head .lede { margin: 0; color: var(--ink-soft); font-size: 1.05rem; line-height: 1.6; }
+
+        .contact-page {
+            display: grid; gap: 2rem; align-items: start;
+            margin-bottom: 3rem;
+        }
+
+        @media (min-width: 62rem) {
+            .contact-page { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 3rem; }
+        }
+
+        .contact-form-card {
+            padding: 1.6rem; background: #fff;
+            border: 1px solid var(--rule); border-radius: var(--kaiki-radius);
+        }
+
+        @media (min-width: 48rem) { .contact-form-card { padding: 2rem; } }
+
+        .contact-form-card .field { display: grid; gap: .35rem; margin-bottom: 1rem; min-width: 0; }
+
+        .contact-form-card label {
+            font-size: .74rem; font-weight: 600; letter-spacing: .07em;
+            color: var(--ink-faint);
+        }
+
+        /* Small, unemphatic and beside the label rather than under it: it is a
+           note about the field, not a second label for it. */
+        .contact-form-card .optional { font-weight: 400; letter-spacing: 0; color: var(--ink-faint); }
+
+        .contact-form-card input,
+        .contact-form-card textarea {
+            font: inherit; font-size: 1rem; color: var(--kaiki-text);
+            padding: .7rem .8rem; border: 1px solid var(--rule);
+            border-radius: var(--kaiki-radius); background: #fff;
+            width: 100%; box-sizing: border-box;
+        }
+
+        .contact-form-card input { height: 2.9rem; padding-block: 0; }
+        .contact-form-card textarea { resize: vertical; line-height: 1.55; }
+
+        .contact-form-card input:focus-visible,
+        .contact-form-card textarea:focus-visible {
+            outline: 2px solid var(--kaiki-primary); outline-offset: 1px; border-color: transparent;
+        }
+
+        /* Two on a line where there is room, one under the other on a phone.
+           A name and an email are short enough to share a row and long enough
+           that stacking them wastes a screen. */
+        .field-row { display: grid; gap: 0 1rem; }
+
+        @media (min-width: 40rem) { .field-row { grid-template-columns: 1fr 1fr; } }
+
+        .contact-form-card .field-error { margin: .1rem 0 0; font-size: .85rem; color: var(--kaiki-accent); }
+
+        /* The trip the visitor came from, above the fields it will be sent with. */
+        .about-trip {
+            margin: 0 0 1.1rem; padding: .55rem .75rem;
+            font-size: .9rem; color: var(--ink-soft);
+            background: color-mix(in srgb, var(--kaiki-primary) 6%, transparent);
+            border-radius: var(--kaiki-radius);
+        }
+
+        .contact-form-card .sent {
+            margin: 0 0 1.2rem; padding: .8rem 1rem;
+            font-size: .95rem; line-height: 1.5;
+            border: 1px solid color-mix(in srgb, var(--kaiki-primary) 40%, transparent);
+            background: color-mix(in srgb, var(--kaiki-primary) 8%, transparent);
+            border-radius: var(--kaiki-radius);
+        }
+
+        .contact-form-card .privacy { margin: 1rem 0 0; }
+
+        /* The honeypot (BKG-29). Off-screen rather than `display: none`, which
+           is the first thing a form-filling script skips. `aria-hidden` and
+           `tabindex="-1"` in the markup keep it away from anybody real. */
+        .honey {
+            position: absolute; inline-size: 1px; block-size: 1px;
+            overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+        }
+
+        .contact-details h2 { margin-top: 0; font-size: 1.05rem; }
+        .contact-details .contact-list { margin-bottom: 1.2rem; }
+        .contact-details .reply { margin: 1.2rem 0 0; }
+
         .section > h2:first-child { margin-top: 0; }
         .section { }
         .section .prose { max-width: 44rem; }
@@ -1947,11 +2072,13 @@
             @endif
         </a>
 
-        {{-- The search of #105, reachable from every hosted page. A feature a
-             guest cannot find is a feature the operator paid for and nobody
-             uses. --}}
+        {{-- The search of #105 and the contact page, reachable from every hosted
+             page. A feature a guest cannot find is a feature the operator paid
+             for and nobody uses — and "how do I reach a person" is the question
+             a visitor asks on whichever page they happen to be standing on. --}}
         <nav class="site-nav">
             <a href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.search.nav') }}</a>
+            <a href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.contact.nav') }}</a>
         </nav>
 
         <nav class="langs" aria-label="{{ __('hosted.nav.language') }}">
@@ -1998,6 +2125,11 @@
                 @if ($tenant->phone)
                     <p><a href="tel:{{ $tenant->phone }}">{{ $tenant->phone }}</a></p>
                 @endif
+                {{-- The form, under the two ways to reach a person directly. It
+                     is last because it is the slowest of the three, not because
+                     it matters least: somebody who wants an answer now rings the
+                     number printed above it. --}}
+                <p><a href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.contact.nav') }}</a></p>
             </div>
 
             <div>

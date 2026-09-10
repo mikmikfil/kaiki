@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Hosted\Support\HostedUrl;
+use App\Enums\HostedSiteMode;
 use App\Enums\Role;
 use App\Models\Tenant;
 use App\Support\Tenancy;
@@ -47,7 +48,7 @@ it('says nothing when the operator has switched their page off', function (): vo
 
     Tenancy::withoutTenancy(static fn () => Tenant::query()
         ->whereKey($user->tenant_id)
-        ->update(['hosted_page_enabled' => false]));
+        ->update(['hosted_site_mode' => HostedSiteMode::Off]));
 
     $html = (string) actingAs($user)->get('/app')->assertSuccessful()->getContent();
 

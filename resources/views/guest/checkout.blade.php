@@ -211,12 +211,45 @@
 
                  A row whose fields failed validation is forced open, or the
                  error is announced on a panel nobody can see. --}}
-            @for ($i = 0; $i < $booking->pax_capacity_total; $i++)
+            {{-- One row per **person**, from `pax_breakdown` — which is where the
+                 party is written down, band by band, with the label frozen at
+                 booking (§3.1).
+
+                 Two things fall out of reading it rather than counting seats.
+                 The row says «Επιβάτης 2 · Παιδί», so a parent filling in three
+                 of these knows which child they are on. And the list is as long
+                 as the **party**, not as long as the seats: it iterated
+                 `pax_capacity_total` before, and an infant does not occupy a
+                 seat — so a family of two adults and a baby filed a manifest
+                 with the baby missing from it, which is the one document the
+                 coastguard reads. `pax_total` counts every person, and BKG-A1
+                 says that is what the manifest is for. --}}
+            @php
+                $people = collect((array) $booking->pax_breakdown)
+                    ->flatMap(static fn (array $band): array => array_fill(
+                        0,
+                        max(0, (int) ($band['qty'] ?? 0)),
+                        (string) (data_get($band, 'label.' . app()->getLocale()) ?? data_get($band, 'label.el') ?? ''),
+                    ))
+                    ->values();
+
+                // A booking made before the breakdown existed, or one whose
+                // bands were written oddly: fall back to counting people rather
+                // than rendering no form at all.
+                if ($people->isEmpty()) {
+                    $people = collect(array_fill(0, max(1, (int) $booking->pax_total), ''));
+                }
+            @endphp
+
+            @foreach ($people as $i => $bandLabel)
                 @php $hasError = $errors->has("guests.$i.full_name") || $errors->has("guests.$i.document_number"); @endphp
 
                 <details class="passenger" @if ($i === 0 || $hasError) open @endif>
                     <summary>
                         {{ __('guest.checkout.passenger_n', ['n' => $i + 1]) }}
+                        @if ($bandLabel !== '')
+                            <span class="passenger-band">{{ $bandLabel }}</span>
+                        @endif
                         @if (old("guests.$i.full_name"))
                             <span class="passenger-name">{{ old("guests.$i.full_name") }}</span>
                         @endif
@@ -237,7 +270,7 @@
                                value="{{ old("guests.$i.date_of_birth") }}">
                     </div>
                 </details>
-            @endfor
+            @endforeach
         @endif
 
         <p class="consent">

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Pricing\Support;
 
+use App\Domain\Pricing\Actions\ComputePrice;
 use App\Enums\DepositType;
 use App\Models\RatePlan;
 use App\Support\Money\Cents;
@@ -25,16 +26,33 @@ use App\Support\Money\Cents;
  * PRC-25 fixes that the deposit is computed **after** any voucher, which is why
  * this takes the total rather than the subtotal. Vouchers are M2; the ordering
  * is already correct here so that adding them changes nothing in this file.
+ *
+ * ## `$depositsEnabled` is a parameter, not a lookup
+ *
+ * Whether an operator takes deposits at all is `tenants.deposits_enabled`, and
+ * this class deliberately does not read it. Reaching for `Tenancy::current()`
+ * here would make three lines of arithmetic depend on ambient state, so the
+ * same €150 at 30% would answer 4500 or 15000 depending on what happened to be
+ * resolved — untestable without a database and unreadable at the call site.
+ * {@see ComputePrice} asks the tenant once and
+ * passes the answer down. There is no default: a caller that has not decided
+ * has not decided, and guessing on their behalf is how a business that never
+ * opted into instalments starts issuing them.
+ *
+ * Switched off, the operator's answer is the one `DepositType::None` already
+ * means — **the whole total, now** — rather than a payment of nothing. The rate
+ * plan's own type is ignored, not consulted: a plan may say 30% while the
+ * business does not work that way, and the business wins.
  */
 final class DepositCalculator
 {
     /**
      * @return array{type: string, percent: int|null, amount_cents: int}
      */
-    public static function forPlan(RatePlan $plan, int $totalCents): array
+    public static function forPlan(RatePlan $plan, int $totalCents, bool $depositsEnabled): array
     {
-        $type = $plan->deposit_type;
-        $amount = self::amountCents($plan, $totalCents);
+        $type = self::typeFor($plan, $depositsEnabled);
+        $amount = self::amountCents($plan, $totalCents, $depositsEnabled);
 
         return [
             'type' => $type->value,
@@ -44,7 +62,7 @@ final class DepositCalculator
     }
 
     /** The amount due now, in cents. */
-    public static function amountCents(RatePlan $plan, int $totalCents): int
+    public static function amountCents(RatePlan $plan, int $totalCents, bool $depositsEnabled): int
     {
         $total = max(0, $totalCents);
 
@@ -52,7 +70,7 @@ final class DepositCalculator
             return 0;
         }
 
-        $amount = match ($plan->deposit_type) {
+        $amount = match (self::typeFor($plan, $depositsEnabled)) {
             // "No deposit" means the guest pays everything now, not nothing.
             DepositType::None => $total,
             DepositType::Percent => max(1, Cents::applyPercent($total, $plan->deposit_percent ?? 0)),
@@ -63,8 +81,20 @@ final class DepositCalculator
     }
 
     /** What is left to pay later. Zero when the deposit covered everything. */
-    public static function balanceCents(RatePlan $plan, int $totalCents): int
+    public static function balanceCents(RatePlan $plan, int $totalCents, bool $depositsEnabled): int
     {
-        return max(0, max(0, $totalCents) - self::amountCents($plan, $totalCents));
+        return max(0, max(0, $totalCents) - self::amountCents($plan, $totalCents, $depositsEnabled));
+    }
+
+    /**
+     * The plan's deposit type, unless the operator does not take deposits.
+     *
+     * One place, so `forPlan()` cannot record `percent` in a snapshot while
+     * `amountCents()` charges the whole total — a mismatch a guest would read
+     * as "30% deposit" beside a button offering to take all of it.
+     */
+    private static function typeFor(RatePlan $plan, bool $depositsEnabled): DepositType
+    {
+        return $depositsEnabled ? $plan->deposit_type : DepositType::None;
     }
 }

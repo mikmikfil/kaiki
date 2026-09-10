@@ -72,16 +72,27 @@ class BookingCreateRequest extends FormRequest
 
             'voucher_code' => ['nullable', 'string', 'max:24'],
 
-            'guest' => ['required', 'array'],
-            'guest.name' => ['required', 'string', 'max:120'],
-            'guest.email' => ['required', 'email', 'max:190'],
+            // Optional since ADR-0030 — a draft is a hold on seats, and the
+            // lead guest is typed on the checkout page. Still validated when
+            // sent, because an integrator who supplies a name and an email is
+            // supplying the real ones and a malformed address should be
+            // refused here rather than discovered when the confirmation
+            // bounces.
+            'guest' => ['sometimes', 'nullable', 'array'],
+            'guest.name' => ['nullable', 'string', 'max:120'],
+            'guest.email' => ['nullable', 'email', 'max:190'],
             'guest.phone' => ['nullable', 'string', 'max:32'],
             'guest.country' => ['nullable', 'string', 'size:2'],
 
             'special_requests' => ['nullable', 'string', 'max:2000'],
             'locale' => ['nullable', 'string', 'in:el,en'],
             'price_token' => ['nullable', 'string', 'max:500'],
-            'terms_accepted' => ['required', 'accepted'],
+            // `accepted` when it is sent, and it does not have to be:
+            // ADR-0030 moved the consent to the checkout page, where it is
+            // recorded beside the payment it authorises. A `false` is still
+            // refused rather than ignored — a client that sends the field is
+            // making a claim about a box, and an unticked box is not consent.
+            'terms_accepted' => ['sometimes', 'accepted'],
 
             // See the class docblock: rejected rather than filtered.
             'source' => ['nullable', 'string', 'in:widget,hosted,wordpress'],
@@ -185,7 +196,7 @@ class BookingCreateRequest extends FormRequest
     public function toData(Product $product, ?Departure $departure): BookingDraftData
     {
         /** @var array<string, mixed> $guest */
-        $guest = $this->input('guest', []);
+        $guest = (array) ($this->input('guest') ?? []);
 
         /** @var array<string, mixed> $window */
         $window = $this->input('window', []);
@@ -197,8 +208,8 @@ class BookingCreateRequest extends FormRequest
         return new BookingDraftData(
             product: $product,
             date: $date,
-            guestName: (string) ($guest['name'] ?? ''),
-            guestEmail: (string) ($guest['email'] ?? ''),
+            guestName: self::stringOrNull($guest['name'] ?? null),
+            guestEmail: self::stringOrNull($guest['email'] ?? null),
             guestPhone: isset($guest['phone']) ? (string) $guest['phone'] : null,
             guestCountry: isset($guest['country']) ? (string) $guest['country'] : null,
             locale: (string) ($this->input('locale') ?? app()->getLocale()),
@@ -209,13 +220,25 @@ class BookingCreateRequest extends FormRequest
             extraHours: 0,
             voucherCode: $this->input('voucher_code') === null ? null : (string) $this->input('voucher_code'),
             specialRequests: $this->input('special_requests') === null ? null : (string) $this->input('special_requests'),
-            // GDR-9: the moment, not the tick. See the class docblock.
-            termsAcceptedAt: Carbon::now(),
+            // GDR-9: the moment, not the tick. See the class docblock. Null
+            // when the box was not on this screen at all — the checkout page
+            // records its own timestamp when it is (ADR-0030), and a consent
+            // stamped for a tick nobody made would be the one kind of evidence
+            // worse than none.
+            termsAcceptedAt: $this->boolean('terms_accepted') ? Carbon::now() : null,
             ipAddress: $this->ip(),
             userAgent: substr((string) $this->userAgent(), 0, 500),
             utm: $this->utm(),
             isTest: $this->isTestKey(),
         );
+    }
+
+    /** A present, non-blank string, or null. */
+    private static function stringOrNull(mixed $value): ?string
+    {
+        $string = is_string($value) ? trim($value) : '';
+
+        return $string === '' ? null : $string;
     }
 
     /** @return array<string, string|null> */
@@ -244,6 +267,13 @@ class BookingCreateRequest extends FormRequest
     {
         $apiKey = $this->attributes->get('api_key');
 
-        return $apiKey instanceof ApiKey && $apiKey->environment->isTest();
+        // `?->`, because the key is not always a row. The hosted page
+        // authenticates with a **transient** `ApiKey` that is built in memory
+        // and never saved, and it carried no environment — so this line was a
+        // call on null and every booking started from an operator's own trip
+        // page died with a 500. `HostedEmbedToken` now sets one; this stays
+        // defensive because the next transient credential will be written by
+        // somebody who has not read that file.
+        return $apiKey instanceof ApiKey && ($apiKey->environment?->isTest() ?? false);
     }
 }

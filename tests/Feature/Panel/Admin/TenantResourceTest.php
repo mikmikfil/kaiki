@@ -2,14 +2,26 @@
 
 declare(strict_types=1);
 
+use App\Enums\AuditAction;
 use App\Enums\Plan;
 use App\Enums\Role;
 use App\Enums\TenantStatus;
+use App\Enums\TenantVertical;
 use App\Filament\Admin\Resources\TenantResource;
+use App\Filament\Admin\Resources\TenantResource\Pages\CreateTenant;
+use App\Filament\Admin\Resources\TenantResource\Pages\EditTenant;
 use App\Filament\Admin\Widgets\PlatformOverview;
+use App\Mail\StaffInvitationMail;
+use App\Models\AuditLog;
+use App\Models\BrandProfile;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Tenancy;
 use Filament\Facades\Filament;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Mail;
+use Livewire\Features\SupportTesting\Testable;
+use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
 use function Pest\Laravel\get;
@@ -30,9 +42,13 @@ use Tests\Support\OperatorUser;
  *      returning two tenants' rows is the bug (#8); here it is the feature, and
  *      the test below is what distinguishes the two.
  *
- *   2. **It is read-only, and that is load-bearing.** The moment `/admin` can
- *      change an operator's record, SEC-16 applies and #42's undecided ADR-0025
- *      becomes a blocker. Read-only is what lets this ship before that decision.
+ *   2. **It writes exactly one thing, and only with a reason.** It was
+ *      read-only because SEC-16 needs a platform write to be "confirmed and
+ *      audit-logged with actor, timestamp and reason", and when this shipped
+ *      the audit log was an undecided ADR. ADR-0025 was accepted on 4 September
+ *      and #53 built the trail, so editing an operator's subscription is
+ *      allowed — and the three conditions are asserted below, because a policy
+ *      cannot enforce any of them.
  */
 
 /**
@@ -145,29 +161,99 @@ it('renders the list in Greek when Greek is asked for', function (): void {
         ->assertSee($greek);
 })->group('fast', 'i18n');
 
-it('offers no way to create, edit or delete a merchant', function (): void {
-    // The read-only constraint, asserted rather than trusted to the absence of
-    // a page. Filament allows an action when no policy forbids it, so "we did
-    // not build an edit form" is not the same as "editing is refused" — the
-    // next person to add a page would get one for free.
+it('takes on a new operator, with an owner who sets their own password', function (): void {
+    Mail::fake();
+
+    $admin = superAdmin();
+
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    Livewire::actingAs($admin)
+        ->test(CreateTenant::class)
+        ->fillForm([
+            'name' => 'Kefalonia Sailing',
+            'slug' => 'kefalonia-sailing',
+            'email' => 'accounts@kefalonia-sailing.example',
+            'owner_name' => 'Δημήτρης Λύκος',
+            'owner_email' => 'dimitris@kefalonia-sailing.example',
+            'plan' => Plan::Trial->value,
+            'vertical' => TenantVertical::Boats->value,
+            'default_locale' => 'el',
+            'is_sandbox' => false,
+        ])
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $tenant = Tenant::query()->where('slug', 'kefalonia-sailing')->sole();
+
+    // The trial clock starts, or the merchant list shows «no date» for ever and
+    // "who lapses this week" has nothing to answer from.
+    expect($tenant->status)->toBe(TenantStatus::Trialing)
+        ->and($tenant->trial_ends_at)->not->toBeNull()
+        ->and($tenant->supported_locales)->toBe(['el', 'en']);
+
+    Tenancy::forTenant($tenant, function (): void {
+        $owner = User::query()->where('email', 'dimitris@kefalonia-sailing.example')->sole();
+
+        // BRD-3: the brand profile comes from the observer, so a tenant is
+        // never unbranded whichever of the four paths created it.
+        expect(BrandProfile::query()->count())->toBe(1)
+            ->and($owner->hasRole(Role::Owner))->toBeTrue();
+    });
+
+    // TEN-8a. Nobody typed a password — not the owner, and not the platform.
+    Mail::assertSent(StaffInvitationMail::class);
+})->group('fast');
+
+it('refuses a slug the hosted router would never match', function (): void {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    // `/{operator}` is constrained to `[a-z0-9][a-z0-9-]*`. A slug outside it is
+    // an operator whose pages 404 from the day they are created, and the form is
+    // where that is cheap to catch.
+    Livewire::actingAs(superAdmin())
+        ->test(CreateTenant::class)
+        ->fillForm([
+            'name' => 'Bad Slug',
+            'slug' => 'Bad Slug!',
+            'email' => 'a@example.com',
+            'owner_name' => 'Owner',
+            'owner_email' => 'owner@example.com',
+            'plan' => Plan::Trial->value,
+            'vertical' => TenantVertical::Boats->value,
+            'default_locale' => 'el',
+        ])
+        ->call('create')
+        ->assertHasFormErrors(['slug']);
+})->group('fast');
+
+it('offers no way to delete a merchant', function (): void {
+    // Asserted rather than trusted to the absence of a page. Filament allows an
+    // action when no policy forbids it, so "we did not build a form" is not the
+    // same as "it is refused" — the next person to scaffold a resource would
+    // get one for free.
+    //
+    // `create` and `update` **are** allowed since 2026-09-09 — the audit trail
+    // SEC-16 needs was built by #53, and onboarding had to exist somewhere or
+    // no customer could be taken on at all. Deleting stays refused: it is a
+    // retention decision, not a button (GDR, ADR-0012).
     $tenant = Tenant::factory()->create();
     $admin = superAdmin();
 
-    expect($admin->can('create', Tenant::class))->toBeFalse()
-        ->and($admin->can('update', $tenant))->toBeFalse()
-        ->and($admin->can('delete', $tenant))->toBeFalse()
+    expect($admin->can('delete', $tenant))->toBeFalse()
         ->and($admin->can('forceDelete', $tenant))->toBeFalse()
         ->and($admin->can('restore', $tenant))->toBeFalse();
 
-    expect(array_keys(TenantResource::getPages()))->toBe(['index']);
+    expect(array_keys(TenantResource::getPages()))->toBe(['index', 'create', 'edit']);
 })->group('fast');
 
-it('lets a super-admin view but never write', function (): void {
+it('lets a super-admin view and edit', function (): void {
     $tenant = Tenant::factory()->create();
     $admin = superAdmin();
 
     expect($admin->can('viewAny', Tenant::class))->toBeTrue()
-        ->and($admin->can('view', $tenant))->toBeTrue();
+        ->and($admin->can('view', $tenant))->toBeTrue()
+        ->and($admin->can('update', $tenant))->toBeTrue();
 })->group('fast');
 
 it('refuses an operator at the policy, not only at the panel', function (): void {
@@ -232,4 +318,98 @@ it('reports nothing rather than breaking on an empty platform', function (): voi
     expect(PlatformOverview::countsByStatus())->toBe([]);
 
     actingAs(superAdmin())->get('/admin')->assertSuccessful();
+})->group('fast');
+
+/**
+ * A mounted edit page on the **admin** panel.
+ *
+ * `setCurrentPanel` by hand, because a Livewire component test does not pass
+ * through a panel's middleware — so Filament's current panel stays `app`, and
+ * the page renders links to `filament.app.resources.tenants.*`, which do not
+ * exist. The failure is a `RouteNotFoundException` from inside a Blade view and
+ * says nothing at all about panels.
+ */
+function editTenantPage(User $admin, Tenant $tenant): Testable
+{
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    return Livewire::actingAs($admin)->test(EditTenant::class, ['record' => $tenant->getKey()]);
+}
+
+it('records who changed an operator, when, and why', function (): void {
+    $tenant = Tenant::factory()->create(['plan' => Plan::Solo, 'status' => TenantStatus::Trialing]);
+    $admin = superAdmin();
+
+    editTenantPage($admin, $tenant)
+        ->fillForm([
+            'plan' => Plan::Fleet->value,
+            'status' => TenantStatus::Active->value,
+            'vertical' => TenantVertical::Boats->value,
+            'is_sandbox' => false,
+        ])
+        ->callAction('save', ['auditReason' => 'Upgraded on the telephone, invoice 2026-114.'])
+        ->assertHasNoErrors();
+
+    expect($tenant->refresh()->plan)->toBe(Plan::Fleet)
+        ->and($tenant->status)->toBe(TenantStatus::Active);
+
+    // SEC-16's three parts. The row lands in the **operator's** trail rather
+    // than a platform one, because an operator asking "who put us on
+    // read-only?" is asking about their own account.
+    Tenancy::forTenant($tenant, function () use ($admin): void {
+        $entry = AuditLog::query()->where('action', AuditAction::TenantUpdated->value)->sole();
+
+        expect($entry->user_id)->toBe($admin->id)
+            ->and($entry->reason)->toContain('invoice 2026-114')
+            ->and($entry->created_at)->not->toBeNull()
+            // Only what moved, with both sides of it. A row listing five fields
+            // on an edit that changed two is a row nobody can read in a year.
+            ->and($entry->context)->toBe([
+                'plan_from' => 'solo',
+                'plan_to' => 'fleet',
+                'status_from' => 'trialing',
+                'status_to' => 'active',
+            ]);
+    });
+})->group('fast');
+
+it('refuses to save the change without a reason', function (): void {
+    $tenant = Tenant::factory()->create(['plan' => Plan::Solo]);
+
+    // The reason is required by the confirmation rather than by the form, so it
+    // belongs to the act and cannot be left over from a previous edit. Without
+    // it nothing is written at all — not the tenant, and not the trail.
+    editTenantPage(superAdmin(), $tenant)
+        ->fillForm(['plan' => Plan::Pro->value])
+        ->callAction('save', ['auditReason' => ''])
+        ->assertHasActionErrors(['auditReason' => 'required']);
+
+    expect($tenant->refresh()->plan)->toBe(Plan::Solo);
+})->group('fast');
+
+it('counts the days an operator has left, from whichever date applies', function (): void {
+    Carbon::setTestNow('2026-09-09 11:00:00');
+
+    // The paid date wins over the trial date. An operator who converted has
+    // both, and answering from the trial would show a paying customer as months
+    // expired.
+    $converted = Tenant::factory()->create([
+        'trial_ends_at' => '2026-06-01',
+        'subscription_ends_at' => '2026-09-19',
+    ]);
+
+    expect($converted->accessDaysLeft())->toBe(10);
+
+    // Negative rather than clamped: "lapsed eleven days ago" is what the list
+    // has to show, and zero would make yesterday and last spring look alike.
+    $lapsed = Tenant::factory()->create(['subscription_ends_at' => '2026-08-29', 'trial_ends_at' => null]);
+
+    expect($lapsed->accessDaysLeft())->toBe(-11);
+
+    // Nothing to go on is null, not zero — an operator with no date is not an
+    // operator whose access ends today.
+    expect(Tenant::factory()->create(['trial_ends_at' => null, 'subscription_ends_at' => null])->accessDaysLeft())
+        ->toBeNull();
+
+    Carbon::setTestNow();
 })->group('fast');

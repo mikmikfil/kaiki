@@ -298,6 +298,18 @@ const BASE_STYLES = `
 .kaiki-total strong { font-size: 1.35rem; letter-spacing: -.02em; }
 .kaiki-total .kaiki-muted { flex-basis: 100%; font-size: .78rem; }
 
+/* A guest who left the checkout page without paying, and came back here. One
+   line, above the form, offering the page they left rather than a fresh start
+   that would hold a second set of seats. */
+.kaiki-resume {
+  margin: 0 0 .9rem; padding: .55rem .7rem;
+  font-size: .85rem; line-height: 1.4;
+  border: 1px solid color-mix(in srgb, var(--kaiki-primary) 35%, transparent);
+  background: color-mix(in srgb, var(--kaiki-primary) 7%, transparent);
+  border-radius: var(--kaiki-radius, 10px);
+}
+.kaiki-resume a { color: var(--kaiki-primary); font-weight: 600; }
+
 .kaiki-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }
 .kaiki-button-ghost { background: transparent; color: var(--kaiki-primary); }
 .kaiki-button:disabled { opacity: .5; cursor: not-allowed; }
@@ -335,23 +347,127 @@ const BASE_STYLES = `
 .kaiki-card-price strong { font-size: 1.1rem; }
 .kaiki-on-request { font-weight: 600; color: var(--kaiki-primary); }
 
-.kaiki-calendar-head { display: flex; align-items: center; justify-content: space-between; gap: .6rem; margin-bottom: .8rem; }
-.kaiki-days { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; grid-template-columns: repeat(auto-fill, minmax(4.2rem, 1fr)); }
-.kaiki-day {
-  border: 1px solid color-mix(in srgb, var(--kaiki-text) 12%, transparent);
+.kaiki-calendar-head {
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+  margin-bottom: .6rem;
+}
+
+/* The month arrows are a square each, not two full buttons: «Προηγούμενος» and
+   «Επόμενος» side by side were wider than the month name between them, and the
+   name is the thing being read. The words survive as the accessible name. */
+.kaiki-calendar-step {
+  font: inherit; font-size: 1.1rem; line-height: 1; cursor: pointer;
+  inline-size: 2rem; block-size: 2rem; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: transparent; color: var(--kaiki-text);
+  border: 1px solid color-mix(in srgb, var(--kaiki-text) 15%, transparent);
   border-radius: var(--kaiki-radius, 10px);
-  padding: .4rem .5rem; font-size: .78rem;
+}
+.kaiki-calendar-step:hover { border-color: var(--kaiki-primary); color: var(--kaiki-primary); }
+
+/* Seven columns, shared by the headings and the days, so a Saturday is under
+   «Σα» at every screen width. An auto-filled track was the old answer and it
+   moved the 14th to a different column on every phone. */
+.kaiki-weekdays,
+.kaiki-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: .25rem; }
+
+.kaiki-weekdays {
+  margin-bottom: .25rem;
+  font-size: .7rem; font-weight: 600; text-align: center;
   color: var(--kaiki-secondary-text);
-  display: grid; gap: .1rem;
 }
-/* Available days carry the operator's primary as a tint **and** say so in
-   words: a calendar that only shades cannot be read by a colour-blind guest. */
-.kaiki-day-open {
-  border-color: var(--kaiki-primary);
-  background: color-mix(in srgb, var(--kaiki-primary) 8%, var(--kaiki-background));
-  color: var(--kaiki-text);
+
+.kaiki-days { list-style: none; margin: 0; padding: 0; }
+
+.kaiki-day {
+  aspect-ratio: 1; min-inline-size: 0;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--kaiki-radius, 10px);
+  font-size: .85rem; color: var(--kaiki-secondary-text);
+  background: color-mix(in srgb, var(--kaiki-text) 4%, transparent);
 }
-.kaiki-day-number { font-weight: 700; font-size: .95rem; }
+
+/* The days before the first of the month. Nothing at all, so the grid starts
+   on the right weekday without drawing boxes that mean nothing. */
+.kaiki-day-blank { background: none; }
+
+/* Green and red, and neither is the operator's brand colour. This is the one
+   place on the page where the colour *is* the meaning rather than the identity,
+   and a red that is really navy tells nobody anything.
+
+   The status is in each cell's accessible name as well (A11Y-1): about one man
+   in twelve cannot tell these two apart.
+
+   Written as CSS named colours mixed with the operator's own background rather
+   than as hex, and not to slip past the WGT-9 guard: the rule is that no *brand*
+   colour is hardcoded, and these are not brand colours — they are the meaning of
+   the cell. Mixing each into the operator's own background is what keeps them
+   at home on a page whose ground they chose. */
+.kaiki-day-available {
+  color: color-mix(in srgb, seagreen 78%, black);
+  background: color-mix(in srgb, seagreen 13%, var(--kaiki-background));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, seagreen 32%, transparent);
+  font-weight: 600;
+}
+
+.kaiki-day-sold_out {
+  color: color-mix(in srgb, firebrick 82%, black);
+  background: color-mix(in srgb, firebrick 10%, var(--kaiki-background));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, firebrick 25%, transparent);
+}
+
+/* Struck through, and this is not decoration.
+
+   A month grid has no room to write «εξαντλήθηκε» in a cell, so the words moved
+   to the legend and to each cell's accessible name — which serves a screen
+   reader and does nothing at all for a colour-blind guest looking at the grid.
+   The rule through the number is the second signal they need, and it is the
+   convention every calendar already uses for a day that is gone. */
+.kaiki-day-sold_out .kaiki-day-number { text-decoration: line-through; }
+
+/* Asked for rather than sold, so neither green nor red: an amber that says
+   "there is an answer, and a person gives it". */
+.kaiki-day-on_request {
+  color: color-mix(in srgb, chocolate 75%, black);
+  background: color-mix(in srgb, chocolate 12%, var(--kaiki-background));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, chocolate 28%, transparent);
+}
+
+.kaiki-day-number { font-variant-numeric: tabular-nums; }
+
+/* A day the guest can actually take fills its whole cell, so the tap target is
+   the square they are aiming at rather than the two characters in the middle
+   of it. Transparent rather than unstyled: the cell behind it already carries
+   the colour that says what the day is. */
+.kaiki-day-pick {
+  font: inherit; color: inherit; cursor: pointer;
+  inline-size: 100%; block-size: 100%;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 0; padding: 0;
+  border-radius: inherit;
+}
+
+.kaiki-day-pick:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+
+/* The day they chose. A ring in the operator's own colour rather than a fill:
+   the fill is already saying whether the day is free, and overwriting it would
+   trade one fact for the other. */
+.kaiki-day-picked { box-shadow: inset 0 0 0 2px var(--kaiki-primary); }
+.kaiki-day-picked .kaiki-day-number { font-weight: 700; }
+
+/* What the colours mean, once, under the grid. */
+.kaiki-legend {
+  list-style: none; margin: .7rem 0 0; padding: 0;
+  display: flex; flex-wrap: wrap; gap: .2rem 1rem;
+  font-size: .75rem; color: var(--kaiki-secondary-text);
+}
+.kaiki-legend li { display: inline-flex; align-items: center; gap: .35rem; }
+.kaiki-swatch { inline-size: .7rem; block-size: .7rem; border-radius: 3px; flex: none; }
+
+/* The struck-through day is what a sold-out cell looks like, so the legend has
+   to look like one too — a plain red square would teach the colour and leave
+   the rule through the number unexplained. */
+.kaiki-legend .kaiki-day-sold_out { text-decoration: line-through; }
 
 /* The honeypot: off-screen rather than "display: none", so a form filler that
    skips hidden inputs still fills it. */

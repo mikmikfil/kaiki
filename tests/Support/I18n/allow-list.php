@@ -49,6 +49,25 @@ return [
         'branding.form.social.tripadvisor' => 'Company name, identical in both locales.',
         'branding.form.social.whatsapp' => 'Company name, identical in both locales.',
 
+        // The same wordmarks again, on the guest-facing contact block. They are
+        // the accessible names of the icon buttons, so a screen reader says the
+        // name printed on the app the visitor is about to open.
+        'hosted.blocks.contact.social.instagram' => 'Company name, identical in both locales.',
+        'hosted.blocks.contact.social.facebook' => 'Company name, identical in both locales.',
+        'hosted.blocks.contact.social.whatsapp' => 'Company name, identical in both locales.',
+        'hosted.blocks.contact.social.youtube' => 'Company name, identical in both locales.',
+
+        // «Email» is what a Greek speaker writes on a Greek form. The two
+        // available translations are «ηλεκτρονικό ταχυδρομείο», which nobody
+        // labels a field with, and «ηλ. διεύθυνση», which is ambiguous beside a
+        // postal address on the same page.
+        'guest.checkout.email' => 'Loanword; the Greek form of the word is the English one.',
+        'hosted.contact.email' => 'Loanword; the Greek form of the word is the English one.',
+
+        // A unit symbol with a placeholder around it. «12 m» is «12 m» in every
+        // language that uses the metric system, which is all of them.
+        'hosted.product.boat.metres' => 'SI unit symbol, not prose.',
+
         // The name of Google's service, as it appears in their own Greek
         // interface. Translating it would leave an operator searching for a
         // product that is not called that anywhere they can look it up.

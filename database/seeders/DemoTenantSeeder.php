@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
 use App\Enums\Role;
 use App\Enums\TenantStatus;
@@ -118,7 +119,7 @@ class DemoTenantSeeder extends Seeder
                 'timezone' => 'Europe/Athens',
                 'supported_locales' => ['el', 'en'],
                 'currency' => 'EUR',
-                'hosted_page_enabled' => true,
+                'hosted_site_mode' => HostedSiteMode::Full,
                 'is_sandbox' => false,
                 'turnaround_buffer_minutes' => 60,
                 'guest_document_retention_days' => 90,

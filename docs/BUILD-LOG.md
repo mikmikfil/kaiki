@@ -14,7 +14,7 @@ Each entry records the **verification actually run** and its **real output** —
 |---|---|
 | Milestone | **M5 — Operations: #118 … #128, #130 and #131 built.** M4 #112 … #116 built (#117 needs a real WordPress site), M3 complete (#101 … #111), M2 complete, M1 complete. |
 | M0 | closed by #11 — #1 … #12, with #13 and #14 moved to `M8 — Launch & deployment` |
-| M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. **Three additions after it closed:** the guest-page design pass and **#132** on 2026-09-08, and on 2026-09-09 the trip header, the search results, and the meeting-point map — which had been serving a grey void since Google withdrew its keyless embed. #132 is — a picture on every trip card, drawn rather than downloaded, together with the three home-page photographs whose seeder had promised committed files that were not committed. |
+| M3 | **Closed by #111** — the hosted pages, all four widget mounts, custom domains, the live preview, the widget's release gates, and the end-to-end run that proves a person can buy a trip. **Four additions after it closed:** the guest-page design pass and **#132** on 2026-09-08; on 2026-09-09 the trip header, the search results, and the meeting-point map — which had been serving a grey void since Google withdrew its keyless embed; and later the same day the **booking hand-off (ADR-0030)**, the month calendar, the contact page, the operator's deposit switch — and the fix for the defect all of that uncovered: **no booking could be started from a hosted trip page at all**, because the page's own transient credential carried no environment and the draft endpoint asked it for one. #132 is — a picture on every trip card, drawn rather than downloaded, together with the three home-page photographs whose seeder had promised committed files that were not committed. |
 | M4 | **#112 … #116 built** — the plugin skeleton, its settings screen, the standards gate, the client and cache everything reads through, the four shortcodes that are the plugin's whole promise, the same four through Gutenberg and Elementor, and the SEO trip pages. **#116 had to build `GET /api/v1/sync/products` on the platform first**: specified in `docs/api.md` since M0 and never implemented, so the feature it exists for had nothing to read. It is the only endpoint in the API a publishable key cannot reach. **#117 the release remains; it needs a real WordPress site, which is the product owner's.** Six issues written (#112 … #117). |
 | M5 | **#118 … #128, #130 and #131 built** — the dashboard, the vessel calendar, the cash that arrives after the booking, the weather-cancellation preview, the manifests, the bookings and guests CSV exports, and iCal in both directions. **Entries for #118 … #122 are missing from this file and from `CHANGELOG.md`**, by the same rule as #24 … #32: they are on `main` with their reasoning in each commit message, and writing them up long afterwards would be reconstruction rather than an audit trail. **#130 added the fleet strip and «Χρειάζονται προσοχή» to the dashboard; #131 added «Καιρός» (ADR-0027), which reports the days over each boat's own wind limit and what is booked on them, and cancels nothing.** Six smaller commits sit between them — the Stripe removal, the demo fleet, two panel fixes, the embedded map — written up together above. **#125 built the outbound webhooks (OPS-19, OPS-20)** — four events, HMAC-signed, eight attempts over a day, a delivery history with a resend button, and an SSRF guard that checks addresses rather than hostnames. **#126 put the vouchers on screen** — the engine had worked since M2 and nobody could see it; the expiry sweeper and the two reminders were the missing clock, and the sweep runs against each tenant's own day rather than UTC's. **#127 built the consolidated failure feed** — a view over six tables rather than a seventh, with a retry only where one would do something. It also moved four plumbing screens into a collapsed Ρυθμίσεις group and **switched SMS off for the first phase** (product owner). **#128 built the offline boarding page** — a second surface, because the Filament one is Livewire and does nothing without a signal. Remaining in M5: the 390x844 Playwright run (OPS-22). |
 | M2 | **Complete — #79 … #89**, all eleven, none merged (see the CI row) |
@@ -43,6 +43,289 @@ Each entry records the **verification actually run** and its **real output** —
 | **OpenStreetMap's tile usage policy**, or a paid tile provider — the Foundation's tiles are a best-effort free service and the policy asks heavy users to go elsewhere. The meeting-point map moved onto them because Google's keyless embed stopped working (see below) | product owner | before the hosted pages carry real traffic |
 | ~~**No screen for adding staff.**~~ | ~~product owner~~ | ~~before the first operator hires anybody~~ — **built 2026-09-08**, along with the password reset both panels also lacked. |
 | **A date filter on the departures list.** #129 found it has none; the default ascending sort happens to put today first with the current seed, so an operator tapping the "sailing today and tomorrow" figure lands on the whole table | product owner | a screen change, not a bug — decide whether the figure should filter or the list should default to today |
+
+---
+
+## #51 — the setup guide, and the column it should have had since M1
+
+> 2026-09-10. Asked for out loud — *«πάμε να φτιάξουμε τον οδηγό πρώτης
+> ρύθμισης?»* — and pulled forward out of M7, where the roadmap has it at two
+> hours.
+
+### `tenants.default_vat_rate_id` was never added, and #51 said it had to be
+
+#51 was written on 2026-09-04 with one instruction marked as unable to wait:
+the column *"has to land in M1"*, because §6 forbids a migration that adds a
+**foreign key** to an existing table — SQLite cannot, and local development runs
+on SQLite. It never landed. Nothing failed, because nothing used it; the
+per-product `vat_rate_id` has been nullable since #18 and an operator has simply
+been picking a rate from nothing on every trip they create.
+
+By the letter of that rule the `tenants` table would now need rebuilding. It
+does not, because **the rule is about foreign keys and this is a plain indexed
+column without one**. `VatRate` rows are platform reference data withdrawn by
+`is_selectable` rather than deleted (#47), so there is no cascade for a
+constraint to enforce; the relation resolves in PHP and answers null for an id
+that no longer does — the same answer the column's own null gives. What is given
+up is the database refusing a dangling id, and what is bought is a migration
+that runs on both engines.
+
+### The checklist is derived, and only two things are stored
+
+There is no "current step" column. An operator who adds their first boat from
+the Σκάφη screen without ever opening the guide **has done that step**, and a
+stored pointer would still be telling them to do it. `SetupChecklist` asks each
+of the six SAA-9 steps of the data it is about, which makes SAA-10's
+*"resumable"* free and, more to the point, single-valued: one answer to "is this
+done", the same one whichever screen asks.
+
+Two things genuinely cannot be read back, and are the whole of the migration:
+`onboarding_skipped_steps`, because a skipped step and an untouched step are
+identical in the data and must not be identical on screen; and
+`onboarding_completed_at`, because SAA-9 ends by handing over an embed snippet
+and no row records whether anybody read one.
+
+### Three of the six steps do not have a form, and should not
+
+SAA-9 lists six things and three already have a screen that does the job
+properly — branding has #17's logo processing, sanitisers and contrast check; a
+boat and a trip have their resources, with CAT-5's validation and the publish
+checklist inside them. A wizard step reimplementing any of those is a second,
+worse copy of a form that already exists, and the day one of them gains a field
+is the day the wizard starts writing an incomplete record. So those three
+**send the operator to the screen that owns the job** and tick themselves from
+the data when it comes back. The business details and the VAT default are asked
+inline, because there is nowhere else in the product that asks them at all.
+
+### It is not `FirstSteps`, and merging them would have broken the dashboard
+
+`FirstSteps` (#118, OPS-1) is also a derived checklist on the same dashboard,
+and folding SAA-9's steps into it was the obvious move. It would have been
+wrong: while `FirstSteps::applies()` is true it **suppresses the figures
+widgets**, and its `applies()` is `next() !== null`. Adding the business,
+branding and VAT steps to it would mean an operator with a full season's
+bookings and an unfilled ΑΦΜ has their dashboard replaced by a checklist for
+ever. So `SetupProgress` is an addition and never a replacement, and the two
+lists overlap on the boat and the trip **by delegation** — `FirstSteps::state()`
+owns those two answers and is asked for them.
+
+### The redirect was too broad, and about a hundred tests said so
+
+#51's first criterion is that the wizard *opens* when an owner signs in.
+`OfferSetupOnce` first fired on the first page view of the session, whatever it
+was, guarded by a session key so it could not nag. The suite went from one
+failure to about a hundred: every panel test that signs an owner in and asks for
+a page got a 302.
+
+That was the feature being wrong, not the tests. An operator following a
+bookmark to their bookings, or a link in a notification email, **is not
+arriving** — they are going somewhere, and a setup guide instead loses what they
+came for. Signing in lands on the dashboard, so the panel home is the only path
+it fires on now. Nine failures remained, and six of those were the same
+misjudgement one level down: `TenantFactory` has always built an operator
+already trading — it fills in a legal name and an ΑΦΜ — so it now builds one
+already set up, with `unconfigured()` for the other state.
+
+### Top of the menu, and gone when it is done
+
+Asked for while it was being built, and both halves were wrong first time. It
+had gone into the **collapsed Ρυθμίσεις group** — which is the one place a new
+operator will not look, and that group is closed by default precisely because it
+holds the screens somebody goes *looking* for. This is the one screen that has
+to find them. Ungrouped now, sort `-100`, which puts it above `Dashboard` and
+above all three groups.
+
+And it leaves the navigation entirely once finished, rather than merely dropping
+its badge — a first-run guide in the menu for the rest of an operator's life is
+a permanent reminder of something already done.
+
+**That stranded a setting, and it had to be un-stranded rather than accepted.**
+The VAT default was asked for only inside the guide, so a guide that disappears
+made it unreachable for ever. It has a permanent home on **Ρυθμίσεις →
+Πληρωμές** now, beside the deposit switch — which is where a tax setting
+belonged anyway, on the owner-only screen about what a guest is charged, reading
+the same `ProductResource::vatRateOptions()` and refusing a withdrawn rate the
+same way.
+
+The page's **URL keeps working** after completion, and `canAccess()` deliberately
+does not close: the guide is still the only screen that asks for the legal name
+and the ΑΦΜ. What disappears is the invitation, not the page. **Those business
+details remain without a permanent home of their own** — named here rather than
+left to be discovered.
+
+### Verification
+
+| Gate | Result |
+|---|---|
+| `vendor/bin/pint` | clean |
+| `vendor/bin/phpstan` (level 6) | **No errors** |
+| `vendor/bin/pest` | **2750 passed, 4 skipped, 1 failed** — `CiGatesTest`'s schema fingerprint, the pre-existing one only CI can regenerate, moved again by the two migrations here |
+| `SetupWizardTest` | 18 passed — one per acceptance criterion, plus the derivation and the two gates |
+| EL/EN parity, no-hardcoded-strings | passed |
+| `npm run e2e:mobile` | 14 passed — the back office at 390×844, unchanged by this |
+| Browser | The guide and the dashboard checklist read at 390×844 by screenshot; the demo operator correctly reads 3 of 6, with branding false because it has no logo and platform-default colours |
+
+**Not covered by a test, and said so rather than claimed:** how the wizard looks
+to an operator who skips every step, which is a judgement rather than an
+assertion.
+
+---
+
+## The booking hand-off, the calendar, the contact page and the deposit switch
+
+> 2026-09-09, unplanned like the three entries below it. Asked for out loud, one
+> request at a time — and one of them turned up a defect that had made the whole
+> feature it was about impossible.
+
+### Every booking from a hosted trip page answered `500`
+
+Found while walking the new flow in a browser, which is the only way it could
+have been found. `HostedEmbedToken::transientKey()` builds an `ApiKey` in memory
+for the page's own widget and never saves it — and never set `environment`.
+`BookingCreateRequest::isTestKey()` reads `$key->environment->isTest()` to decide
+PAY-11's `is_test` flag, so that was a method call on null:
+
+```
+Call to a member function isTest() on null
+app/Http/Requests/Api/V1/BookingCreateRequest.php:270
+```
+
+Every attempt to book from `/{operator}/{trip}` — the pages M3 exists to
+produce — died there, and the widget rendered «κάτι πήγε στραβά» with nothing to
+say what. **Nothing caught it.** Every test of that endpoint authenticates with a
+real `api_keys` row, which has the column; the one credential in the system that
+is constructed rather than stored was the one nothing exercised end to end.
+
+Fixed in two places, deliberately. `transientKey()` now sets the environment from
+`tenants.is_sandbox`, which is the *correct* value rather than merely a non-null
+one — an operator still in sandbox must not produce live bookings from their own
+page (§3.9). And `isTestKey()` became `?->`, because the next transient
+credential will be written by somebody who has not read that file.
+`HostedWidgetEmbedTest` asserts both halves.
+
+### ADR-0030 — the lead guest moved to checkout
+
+The product owner described the flow twice, the second time in the plainest
+terms: *"στο single page απλά να υπάρχει ημερομηνία, μετά άτομα … και μετά πάμε
+για checkout. εκεί θα συμπληρώνουν στοιχεία για πρώτη φορά."*
+
+WGT-18 had the widget walking five steps inside a 380-pixel embed, and BKG-7 made
+the lead guest and the consent **required at draft creation** — which is what
+forced a name and an email out of a guest before any price had been shown. The
+review step that was supposed to show the price never did: it took a `quote` prop
+nothing supplied, so it rendered «Υπολογίζουμε την τιμή σας…» permanently.
+
+So `bookings.guest_name` and `guest_email` are nullable, and the invariant moved
+rather than disappearing — from *"no draft without a lead guest"*, which a name
+typed into an abandoned draft satisfied, to **"no payment without a lead guest
+and a recorded consent"**, asserted in `StartCheckout`. That is the one line the
+API and the hosted checkout page both cross, and it answers
+`422 lead_guest_required`.
+
+BKG-5 is FIXED and is unchanged: availability → draft with a hold → checkout →
+gateway → webhook → confirmed. Only the step at which a person types their name
+moved, from before the first arrow to between the second and the third.
+
+| Changed | Why |
+|---|---|
+| `2026_09_02_000031_create_bookings_table.php` | Two columns nullable — a migration edit plus `migrate:fresh`, per data-model §0 |
+| `BookingCreateRequest` | `guest` and `terms_accepted` optional; `accepted` still enforced **when sent**, because an unticked box is not consent |
+| `BookingDraftData`, `CreateBookingDraft` | Nullable, and whitespace normalised to null: `''` is a name, null is a fact |
+| `StartCheckout`, `CheckoutRefused` | The new guard and its refusal |
+| `packages/widget` | `ContactStep` and `ReviewStep` deleted; the walk ends by redirecting to `checkout_url` from the `201` |
+| `docs/spec.md`, `docs/api.md` | BKG-7, WGT-18, WGT-20 amended; the schema's `required` list and the error table |
+
+The widget **never assembles the checkout address**. It reads `checkout_url` off
+the `201`, because a URL built in a browser from a config value is a guess about
+somebody else's deployment, and a custom domain makes it a wrong one.
+
+### The date field became a calendar
+
+`<input type="date">` was chosen for the right reasons — keyboard-operable,
+screen-reader-labelled, free against the 80 KB budget — and had one fatal
+property: **it cannot say which days are sold out**. A guest picked a full
+Saturday and was refused at the next step, on a page that was rendering exactly
+that availability in the calendar mount a few centimetres away. It also read
+«mm/dd/yyyy» on a Greek page, which is what "localised by the device" means when
+the device is set to English.
+
+`MonthGrid.tsx` is now shared by the calendar mount (read-only) and the booking
+walk's date step (the days with room are buttons). Seven columns, Monday first,
+every day of the month drawn — a day the endpoint said nothing about is «not
+sailing» rather than a hole. Green and red, plus a strike-through on sold-out
+days and the status in each cell's accessible name, because roughly one man in
+twelve cannot tell the two hues apart.
+
+The colours are CSS named colours mixed into the operator's own background rather
+than hex — not to slip past WGT-9's guard, which greps the built bundle, but
+because that rule is about *brand* colours and these are the meaning of the cell.
+
+### The contact page
+
+`/{operator}/contact`, `GET` and `POST` on the same path so a browser with
+scripts blocked submits to the page's own address. It writes an **enquiry**
+through `SubmitEnquiry` — the same Action the widget's enquiry mount and the API
+call — rather than sending an email, because `enquiries` already has a status, a
+panel screen and BKG-29's immediate notification, and an inbox has none of those.
+
+It reuses `EnquiryCreateRequest` unchanged, so BKG-29's honeypot and timing check
+are the ones the API already applies, with the same limits. `toData()` gained a
+`$source` parameter: the API cannot tell a widget from a WordPress shortcode and
+guesses nothing, while this page knows it is `hosted`.
+
+Linked from the header, the footer, the home page's contact banner and each trip
+page's «Έχετε απορίες;» card — which passes `?product={uuid}`, so the enquiry
+arrives attached to the trip it is about.
+
+### The deposit is the operator's decision now
+
+`rate_plans.deposit_type` has existed since #21 and there was no way for an
+operator to say "not on my boat" other than setting `none` on every rate plan one
+at a time — a business decision expressed as a chore. `tenants.deposits_enabled`
+(nullable, constant default, no FK — portable under §6) and a **Πληρωμές** screen
+in the panel, owner-gated like the gateway credentials, with the balance-due days
+beside it because that is the other half of the same decision.
+
+**Off for everyone.** The product owner's instruction, and the safer default: a
+deposit is not one setting but a chain — a balance falls due (PRC-27), a reminder
+goes out, a guest comes back, somebody chases whoever does not.
+
+`DepositCalculator` was briefly made to read `Tenancy::current()`, and that was
+wrong: it turned three lines of arithmetic into ambient state, so the same €150
+at 30% answered 4500 or 15000 depending on what happened to be resolved, and
+three tests that had never needed a database started failing. The flag is a
+**required parameter** now — no default, because a caller that has not decided
+has not decided — and `ComputePrice` asks the tenant once and passes it down.
+Switched off, the answer is what `DepositType::None` has always meant: the whole
+total, now.
+
+### Two smaller things, both found by looking
+
+**The passenger form counted seats, not people.** It iterated
+`pax_capacity_total`, and an infant occupies no seat — so a family of two adults
+and a baby filed a manifest with the baby missing from it, which is the one
+document the coastguard reads. It reads `pax_breakdown` now, so the list is as
+long as the party and each row says which band it is: «Επιβάτης 3 · Παιδί».
+
+**`npm run typecheck` was already failing** on `Api` missing `setLocale`, a
+method that exists on the class and is called through the interface. Fixed rather
+than worked around, with the preview client's stub beside it.
+
+### Verification
+
+| Gate | Result |
+|---|---|
+| `vendor/bin/pint` | clean |
+| `vendor/bin/phpstan` (level 6) | **No errors** |
+| `vendor/bin/pest` | **2727 passed, 1 failed** — `CiGatesTest`'s schema fingerprint, the pre-existing one only CI can regenerate |
+| `npm -w packages/widget run typecheck` | clean, for the first time in a while |
+| `npm -w packages/widget run test` | 81 passed |
+| `npm -w packages/widget run guards` | passed — no hex in the bundle, 63 keys in both locales |
+| `npm -w packages/widget run size` | 22.0 KB gzipped, **27.5% of the 80 KB budget** |
+| Browser | The whole path walked by hand on `:8001` — calendar → party → `/c/{token}` with the real price, the manifest and the Viva block |
+
+**Not covered by a test, and said so rather than claimed:** the gateway redirect
+itself, which needs Viva credentials nobody has yet.
 
 ---
 

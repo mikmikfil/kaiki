@@ -40,18 +40,19 @@
                 <div class="prose">{{ $block->prose() }}</div>
             @endif
 
-            {{-- No button here any more.
+            {{-- One button, and it is the only thing here that is not already
+                 printed as a tappable link a few centimetres to the right.
 
-                 There was a «Γράψτε μας» and a «Πάρτε τηλέφωνο» at the top of
-                 this panel, duplicating the email address and the phone number
-                 printed a few centimetres to the right of them as real,
-                 tappable links. On a phone both went to the same place; the
-                 buttons only made the panel look like a form. The details are
-                 the action.
-
-                 The trip page keeps its own call-to-action, where there is a
-                 booking to be asked about and the operator's details are not
-                 already on screen. --}}
+                 There used to be a «Γράψτε μας» and a «Πάρτε τηλέφωνο» here,
+                 duplicating the email address and the phone number in the panel
+                 beside them; on a phone both went to the same place and they
+                 only made the panel look like a form. The contact page is
+                 different — it is somewhere to go, not a second copy of a
+                 number, and it is the answer for a visitor who wants to write
+                 more than a subject line. --}}
+            <p class="contact-cta">
+                <a class="button arrow button-small" href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.contact.cta') }}</a>
+            </p>
         </div>
 
         {{-- An icon on each row rather than a letterspaced label above it.

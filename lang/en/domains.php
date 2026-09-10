@@ -14,9 +14,17 @@ declare(strict_types=1);
 
 return [
 
-    'nav' => 'Your own domain',
-    'title' => 'Your own domain',
-    'subtitle' => 'Serve your booking pages from your own address instead of ours.',
+    'nav' => 'Your website',
+    'title' => 'Your website',
+    'subtitle' => 'Which pages we publish for you, and at what address.',
+
+    'mode' => [
+        'heading' => 'What we publish',
+        'help' => 'Takes effect at once. Bookings already made are never affected — a guest still reaches their own booking page exactly as before.',
+        'label' => 'Pages we publish',
+        'saved' => 'Saved.',
+        'save' => 'Save',
+    ],
 
     'cname' => [
         'heading' => 'What to create at your registrar',

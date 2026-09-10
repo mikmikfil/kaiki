@@ -106,6 +106,22 @@ enum AuditAction: string
     case ManifestGenerated = 'manifest.generated';
 
     /**
+     * The platform owner changed an operator's account (SAA-1, SEC-16).
+     *
+     * The plan, the status, the date access lapses, the sandbox flag, the
+     * trade. One case rather than five, for the reason {@see RecordDeleted}
+     * gives: the interesting fact is that somebody at the platform reached into
+     * an operator's record, and *which field* belongs in `context`.
+     *
+     * **The row is written into the operator's own trail**, not a platform one.
+     * An operator asking "who put us on read-only, and when?" is asking about
+     * their own account, and an answer they cannot see is not an answer.
+     * `RecordAuditEntry` takes the tenant explicitly, which is what makes that
+     * possible from a panel whose user has no tenant of their own.
+     */
+    case TenantUpdated = 'tenant.updated';
+
+    /**
      * The actions whose subjects exist and that are wired today.
      *
      * `booking.refunded` left this list in #84, which is the milestone that

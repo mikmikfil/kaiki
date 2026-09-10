@@ -5,6 +5,7 @@ import {
   canAdvance,
   draftPayload,
   initialState,
+  isLastStep,
   next,
   stepsFor,
   type BookingState,
@@ -34,34 +35,37 @@ function filled(): BookingState {
     pax: { 'adult-uuid': 2, 'child-uuid': 1 },
     extras: { 'extra-uuid': 1 },
     voucherCode: 'SUMMER',
-    guest: {
-      full_name: 'Μαρία Παπαδοπούλου',
-      email: 'maria@example.com',
-      phone: '+306912345678',
-      special_requests: 'Ένα παιδί έχει αλλεργία στα θαλασσινά.',
-      terms_accepted: true,
-    },
   };
 }
 
 describe('the walk', () => {
-  it('is date, party, extras, contact, review', () => {
-    expect(stepsFor(withExtras)).toEqual(['date', 'party', 'extras', 'contact', 'review']);
+  it('is date, party, extras — and nothing that asks who you are', () => {
+    // ADR-0030. The name, the telephone number, the manifest and the consent
+    // are typed on the checkout page, on a full-width screen the guest reaches
+    // after this walk rather than inside a 380-pixel embed.
+    expect(stepsFor(withExtras)).toEqual(['date', 'party', 'extras']);
   });
 
   it('skips extras for a product that has none, in both directions', () => {
-    expect(stepsFor(withoutExtras)).toEqual(['date', 'party', 'contact', 'review']);
+    expect(stepsFor(withoutExtras)).toEqual(['date', 'party']);
 
-    let state: BookingState = { ...filled(), step: 'party' };
+    let state: BookingState = { ...filled(), step: 'date' };
 
     state = next(state, withoutExtras);
-    expect(state.step).toBe('contact');
-
-    // The skip is symmetric: a guest going back from contact lands on party,
-    // which is where they came from. An asymmetric skip is how a guest ends up
-    // on a step they have never seen.
-    state = back(state, withoutExtras);
     expect(state.step).toBe('party');
+
+    // The skip is symmetric: a guest going back lands where they came from. An
+    // asymmetric skip is how a guest ends up on a step they have never seen.
+    state = back(state, withoutExtras);
+    expect(state.step).toBe('date');
+  });
+
+  it('knows where the walk ends, with extras and without', () => {
+    // The button changes from «Συνέχεια» to «Συνέχεια στην κράτηση» here, and a
+    // literal `'extras'` would strand a guest on a product that has none.
+    expect(isLastStep({ ...filled(), step: 'extras' }, withExtras)).toBe(true);
+    expect(isLastStep({ ...filled(), step: 'party' }, withExtras)).toBe(false);
+    expect(isLastStep({ ...filled(), step: 'party' }, withoutExtras)).toBe(true);
   });
 });
 
@@ -75,7 +79,7 @@ describe('back navigation', () => {
       state = next(state, withExtras);
     }
 
-    expect(state.step).toBe('review');
+    expect(state.step).toBe('extras');
 
     // And all the way back.
     for (const _ of stepsFor(withExtras)) {
@@ -91,15 +95,14 @@ describe('back navigation', () => {
     expect(state.pax).toEqual(original.pax);
     expect(state.extras).toEqual(original.extras);
     expect(state.voucherCode).toBe(original.voucherCode);
-    expect(state.guest).toEqual(original.guest);
   });
 
   it('does not go back past the first step or forward past the last', () => {
     const first = { ...filled(), step: 'date' as const };
-    const last = { ...filled(), step: 'review' as const };
+    const last = { ...filled(), step: 'extras' as const };
 
     expect(back(first, withExtras).step).toBe('date');
-    expect(next(last, withExtras).step).toBe('review');
+    expect(next(last, withExtras).step).toBe('extras');
   });
 });
 
@@ -119,15 +122,6 @@ describe('what each step needs before it will advance', () => {
   it('lets a guest past extras without choosing any', () => {
     // The step exists to offer, not to ask.
     expect(canAdvance({ ...filled(), step: 'extras', extras: {} }, withExtras)).toBe(true);
-  });
-
-  it('requires a name, an email and the consent before contact is done', () => {
-    const contact = { ...filled(), step: 'contact' as const };
-
-    expect(canAdvance(contact, withExtras)).toBe(true);
-    expect(canAdvance({ ...contact, guest: { ...contact.guest, terms_accepted: false } }, withExtras)).toBe(false);
-    expect(canAdvance({ ...contact, guest: { ...contact.guest, full_name: '  ' } }, withExtras)).toBe(false);
-    expect(canAdvance({ ...contact, guest: { ...contact.guest, email: 'not-an-email' } }, withExtras)).toBe(false);
   });
 
   it('refuses to advance rather than advancing with a gap', () => {
@@ -162,7 +156,6 @@ describe('the draft payload', () => {
       { age_band_uuid: 'child-uuid', qty: 1 },
     ]);
     expect(payload['extras']).toEqual([{ extra_uuid: 'extra-uuid', qty: 1 }]);
-    expect(payload['terms_accepted']).toBe(true);
     expect(payload['locale']).toBe('el');
   });
 
@@ -172,13 +165,15 @@ describe('the draft payload', () => {
     expect(payload['pax']).toEqual([{ age_band_uuid: 'adult-uuid', qty: 2 }]);
   });
 
-  it('calls the lead guest what the contract calls them', () => {
-    // `LeadGuest.name`. The widget's form field is `full_name`, which is the
-    // clearer label for somebody filling one in; `draftPayload` is the one place
-    // the two vocabularies meet, and it used to send the form's word.
-    const payload = draftPayload(filled(), 'product-uuid', 'en') as { guest: Record<string, unknown> };
+  it('names nobody, and claims no consent', () => {
+    // ADR-0030. Both are collected on the checkout page. Sending
+    // `terms_accepted: true` from here would stamp a consent for a box that was
+    // never on screen — the one kind of evidence worse than none — so the field
+    // is absent rather than false.
+    const payload = draftPayload(filled(), 'product-uuid', 'en');
 
-    expect(Object.keys(payload.guest)).toEqual(['name', 'email', 'phone']);
-    expect(payload.guest['name']).toBe('Μαρία Παπαδοπούλου');
+    expect(payload).not.toHaveProperty('guest');
+    expect(payload).not.toHaveProperty('terms_accepted');
+    expect(payload).not.toHaveProperty('special_requests');
   });
 });

@@ -45,6 +45,7 @@ Every decision marked **DECIDE** in `docs/BRIEF.md`, plus every genuinely open q
 | [0027](0027-weather-forecast-provider.md) | Where the wind forecast comes from, and what the product may do with it | **Accepted** | Open-Meteo behind a one-method `WeatherProvider`; the panel reports and never cancels | M5 (#131) |
 | [0028](0028-one-payment-gateway-and-no-billing-provider.md) | Viva is the only gateway, and the platform has no billing provider | **Accepted** | Stripe removed as gateway *and* as Cashier; **Viva will also take the subscriptions** | **M7, which it blocked until the provider was chosen** |
 | [0029](0029-hosted-site-granularity.md) | Is the hosted site a switch, or does an operator get the bookable half without the marketing half? | **Accepted (B)** | **B** — three states: off / bookings only / full site. Amends TEN-1 (FIXED) and HOS-6 | Before the hosted site is sold as a tier |
+| [0030](0030-lead-guest-at-checkout.md) | Is the lead guest required to take a hold, or to pay? | **Accepted (C)** | **C** — `guest_name`/`guest_email` nullable on a draft; the invariant moves to `StartCheckout`. Amends BKG-7 and WGT-18 | M3 (the widget hand-off to `/c/{manage_token}`) |
 
 ## Future ADRs expected (not yet written)
 | Topic | Why deferred | Needed before |

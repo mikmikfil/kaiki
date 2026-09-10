@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Data;
 
+use App\Domain\Booking\Actions\StartCheckout;
 use App\Domain\Pricing\Actions\ComputePrice;
 use App\Enums\BookingSource;
 use App\Models\Product;
@@ -43,8 +44,17 @@ final class BookingDraftData extends Data
     public function __construct(
         public readonly Product $product,
         public readonly Carbon $date,
-        public readonly string $guestName,
-        public readonly string $guestEmail,
+        /**
+         * Null until the checkout page asks (ADR-0030).
+         *
+         * A draft is a hold on seats, not yet a booking by a person: the widget
+         * takes a date and a party and hands the guest to `/c/{manage_token}`
+         * with the hold already running. {@see StartCheckout} refuses to open a
+         * gateway session while either of these is still null, so the pair is
+         * required before money moves rather than before seats are held.
+         */
+        public readonly ?string $guestName,
+        public readonly ?string $guestEmail,
         public readonly ?string $guestPhone = null,
         public readonly ?string $guestCountry = null,
         public readonly string $locale = 'el',

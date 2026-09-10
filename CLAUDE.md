@@ -5,15 +5,23 @@ Multi-tenant Laravel SaaS (operator back-office + public API) + Preact embeddabl
 
 Read `docs/spec.md` before any task; it is the contract. `docs/BRIEF.md` is the original brief and is **historical** — where the two differ, the spec wins, because the spec incorporates 23 accepted ADRs and the real environment constraints. `docs/data-model.md` is authoritative on schema and column meaning. `docs/api.md` is authoritative on the public API.
 
-All 23 ADRs in `docs/adr/` were **accepted on 2026-08-28**. Implement against the accepted option. A new **DECIDE** goes to `docs/adr/` as a numbered ADR and **stops for a human** — never decide it yourself.
+The first 23 ADRs in `docs/adr/` were **accepted on 2026-08-28**; 0024 to 0030 were raised and decided as the work reached them. Implement against the accepted option, and read `docs/adr/README.md` for the current list — ADR-0024 (2FA) is still **Proposed** and nothing may be built against it. A new **DECIDE** goes to `docs/adr/` as a numbered ADR and **stops for a human** — never decide it yourself.
 
 ## Stack
 Laravel 12 / **PHP 8.4** / MySQL 8 / Redis / Horizon / Filament v3 / `stancl/tenancy` single-DB / Preact + TS widget (Shadow DOM) / WP plugin in `packages/wordpress-plugin` / Browsershot PDFs / Postmark / Viva Wallet (operator-owned).
 
-> Viva is the **only** payment gateway and there is **no platform billing
-> provider** — both removed by the product owner, ADR-0026. Brief §11's
-> "Stripe via Laravel Cashier" is superseded. M7 subscriptions are blocked
-> until a provider is chosen.
+> Viva is the **only** payment gateway — Stripe removed by the product owner,
+> **ADR-0028**. Brief §11's "Stripe via Laravel Cashier" is superseded, and
+> Cashier is not installed: it speaks Stripe and Paddle only.
+>
+> **M7 is no longer blocked.** ADR-0028 was amended on 2026-09-08 — Viva takes
+> the operator subscriptions too, the same gateway operators use for guests. The
+> cost of that choice is named in the amendment: *"dunning, proration and plan
+> changes are ours to write rather than a provider's to supply."*
+>
+> *(This block said "blocked until a provider is chosen" and cited ADR-0026 —
+> which is the OpenAPI tooling decision, not the gateway. Both errors corrected
+> 2026-09-09.)*
 
 > PHP 8.4, not the 8.3 in brief §3 — amended by ADR-0014.
 

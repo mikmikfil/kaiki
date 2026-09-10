@@ -6,12 +6,15 @@ namespace App\Filament\Admin\Resources;
 
 use App\Enums\Plan;
 use App\Enums\TenantStatus;
+use App\Enums\TenantVertical;
 use App\Filament\Admin\Resources\TenantResource\Pages;
 use App\Models\Tenant;
 use App\Policies\TenantPolicy;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
@@ -98,6 +101,30 @@ class TenantResource extends Resource
                     })
                     ->sortable(),
 
+                TextColumn::make('vertical')
+                    ->label(__('tenants.columns.vertical'))
+                    ->formatStateUsing(fn (?TenantVertical $state): string => $state?->label() ?? '—')
+                    ->toggleable(),
+
+                // Days rather than a date, because the question this list is
+                // opened for is "who lapses this week" and a date makes the
+                // reader do the arithmetic on every row.
+                TextColumn::make('access_days_left')
+                    ->label(__('tenants.columns.days_left'))
+                    ->state(fn (Tenant $record): ?int => $record->accessDaysLeft())
+                    ->badge()
+                    ->formatStateUsing(fn (?int $state): string => match (true) {
+                        $state === null => __('tenants.days.none'),
+                        $state < 0 => __('tenants.days.lapsed', ['days' => abs($state)]),
+                        default => __('tenants.days.left', ['days' => $state]),
+                    })
+                    ->color(fn (?int $state): string => match (true) {
+                        $state === null => 'gray',
+                        $state < 0 => 'danger',
+                        $state <= 7 => 'warning',
+                        default => 'success',
+                    }),
+
                 TextColumn::make('default_locale')
                     ->label(__('tenants.columns.locale'))
                     ->formatStateUsing(fn (string $state): string => __("enums.locale.{$state}.short"))
@@ -129,6 +156,25 @@ class TenantResource extends Resource
                     ->label(__('tenants.filters.plan'))
                     ->options(Plan::options()),
 
+                SelectFilter::make('vertical')
+                    ->label(__('tenants.columns.vertical'))
+                    ->options(TenantVertical::options()),
+
+                // The one list the platform owner opens on a Monday. A filter
+                // rather than a sort, because the answer is usually "nobody"
+                // and a sorted table still shows forty rows to say so.
+                Filter::make('lapsing')
+                    ->label(__('tenants.filters.lapsing'))
+                    ->query(fn (Builder $query): Builder => $query->where(
+                        fn (Builder $inner): Builder => $inner
+                            ->whereBetween('subscription_ends_at', [now()->startOfDay(), now()->addDays(7)->endOfDay()])
+                            ->orWhere(
+                                fn (Builder $trial): Builder => $trial
+                                    ->whereNull('subscription_ends_at')
+                                    ->whereBetween('trial_ends_at', [now()->startOfDay(), now()->addDays(7)->endOfDay()]),
+                            ),
+                    )),
+
                 // Defaults to hiding trashed. A deleted operator's data still
                 // exists and the platform owner is the one person who may need
                 // to see it — but not by default, or the list stops meaning
@@ -139,8 +185,11 @@ class TenantResource extends Resource
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading(__('tenants.empty.heading'))
             ->emptyStateDescription(__('tenants.empty.description'))
-            // No row actions and no bulk actions: this screen reads.
-            ->actions([])
+            // One row action and no bulk actions. Editing an operator is a
+            // deliberate act with a reason attached (SEC-16); a bulk version of
+            // that would be one reason covering forty accounts, which is the
+            // same as no reason.
+            ->actions([EditAction::make()])
             ->bulkActions([]);
     }
 
@@ -159,11 +208,13 @@ class TenantResource extends Resource
     }
 
     /**
-     * One page, deliberately.
+     * Three pages: the list, taking on a customer, and the five fields the
+     * platform may change afterwards.
      *
-     * A create or edit page here would be a write, and a write needs the audit
-     * trail ADR-0025 has not decided. `TenantResourceTest` asserts this list
-     * stays at exactly `['index']`.
+     * Creating goes through `OnboardOperator` rather than writing a row —
+     * an operator is a tenant, a brand profile and an invited owner, and a bare
+     * insert makes a business nobody can sign in to. `TenantResourceTest`
+     * asserts the list stays at exactly these three.
      *
      * @return array<string, PageRegistration>
      */
@@ -171,6 +222,8 @@ class TenantResource extends Resource
     {
         return [
             'index' => Pages\ListTenants::route('/'),
+            'create' => Pages\CreateTenant::route('/create'),
+            'edit' => Pages\EditTenant::route('/{record}/edit'),
         ];
     }
 }

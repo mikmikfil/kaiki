@@ -6,6 +6,7 @@ use App\Domain\Tenancy\Actions\CheckDomains;
 use App\Domain\Tenancy\Actions\VerifyDomain;
 use App\Domain\Tenancy\Support\DnsLookup;
 use App\Enums\DomainStatus;
+use App\Enums\HostedSiteMode;
 use App\Models\Tenant;
 use App\Models\TenantDomain;
 use App\Support\Tenancy;
@@ -71,7 +72,7 @@ function domainFor(Tenant $tenant, string $hostname, DomainStatus $status = Doma
 }
 
 it('verifies a hostname whose CNAME points at the platform', function (): void {
-    $tenant = Tenant::factory()->create(['hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['hosted_site_mode' => HostedSiteMode::Full]);
     $domain = domainFor($tenant, 'book.example.gr');
 
     fakeDns()->points('book.example.gr', (string) config('kaiki.tenancy.hosted_host'));
@@ -83,7 +84,7 @@ it('verifies a hostname whose CNAME points at the platform', function (): void {
 })->group('fast');
 
 it('fails a pending hostname that points somewhere else, and says nothing was verified', function (): void {
-    $tenant = Tenant::factory()->create(['hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['hosted_site_mode' => HostedSiteMode::Full]);
     $domain = domainFor($tenant, 'book.example.gr');
 
     // Pointed at a competitor's load balancer, or simply not created yet.
@@ -95,7 +96,7 @@ it('fails a pending hostname that points somewhere else, and says nothing was ve
 })->group('fast');
 
 it('keeps serving a verified domain that stops resolving', function (): void {
-    $tenant = Tenant::factory()->create(['hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['hosted_site_mode' => HostedSiteMode::Full]);
     $domain = domainFor($tenant, 'book.example.gr', DomainStatus::Verified);
 
     // The registrar is having a bad afternoon. Nothing about the operator's
@@ -110,7 +111,7 @@ it('keeps serving a verified domain that stops resolving', function (): void {
 })->group('fast');
 
 it('serves the operator page on a verified hostname and nothing on a pending one', function (): void {
-    $tenant = Tenant::factory()->create(['slug' => 'aegean', 'hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['slug' => 'aegean', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     domainFor($tenant, 'pending.example.gr');
     domainFor($tenant, 'live.example.gr', DomainStatus::Verified);
@@ -125,8 +126,8 @@ it('serves the operator page on a verified hostname and nothing on a pending one
 })->group('fast');
 
 it('refuses a hostname another tenant has already claimed', function (): void {
-    $first = Tenant::factory()->create(['hosted_page_enabled' => true]);
-    $second = Tenant::factory()->create(['hosted_page_enabled' => true]);
+    $first = Tenant::factory()->create(['hosted_site_mode' => HostedSiteMode::Full]);
+    $second = Tenant::factory()->create(['hosted_site_mode' => HostedSiteMode::Full]);
 
     domainFor($first, 'book.example.gr', DomainStatus::Verified);
 
@@ -136,7 +137,7 @@ it('refuses a hostname another tenant has already claimed', function (): void {
 })->group('fast');
 
 it('sweeps every domain that is waiting, and leaves a disabled one alone', function (): void {
-    $tenant = Tenant::factory()->create(['hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['hosted_site_mode' => HostedSiteMode::Full]);
 
     $pending = domainFor($tenant, 'pending.example.gr');
     $failed = domainFor($tenant, 'failed.example.gr', DomainStatus::Failed);
@@ -159,7 +160,7 @@ it('sweeps every domain that is waiting, and leaves a disabled one alone', funct
 })->group('fast');
 
 it('verifies an A record pointed at the platform as well as a CNAME', function (): void {
-    $tenant = Tenant::factory()->create(['hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['hosted_site_mode' => HostedSiteMode::Full]);
     $domain = domainFor($tenant, 'apex.example.gr');
 
     // A registrar that refuses a CNAME on an apex leaves an operator with an A

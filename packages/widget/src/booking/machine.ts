@@ -1,5 +1,21 @@
 /**
- * The booking walk (WGT-18), as a machine rather than a pile of flags.
+ * The booking walk (WGT-18, amended by ADR-0030), as a machine rather than a
+ * pile of flags.
+ *
+ * ## Three steps, and none of them asks who you are
+ *
+ * Date, party, extras. The contact and review steps are gone: the product owner
+ * asked for *"user select dates, selects adults, childs etc. then goes to
+ * checkout where they need to complete all the στοιχεια and then pays"*, and
+ * the embed is a 380-pixel column on somebody else's page — the wrong place to
+ * type a name, an email and a passenger manifest.
+ *
+ * So the mount creates the draft at the end of this walk and sends the guest to
+ * the hosted checkout page with the hold already running. The review step is no
+ * loss: it took a `quote` prop that nothing ever supplied, so it showed
+ * «Υπολογίζουμε την τιμή σας…» for ever and the guest pressed pay having never
+ * been shown a total. The checkout page renders the price out of the frozen
+ * `price_snapshot`, which is the number they will actually be charged.
  *
  * ## Back navigation never loses anything, and that is the whole design
  *
@@ -18,8 +34,8 @@
  *
  * A product with no extras has nothing to ask about, and a step that says "no
  * extras available" is a click a guest pays for with attention. `next()` and
- * `back()` both skip it, so the skip is symmetric — a guest going back from
- * contact lands on party, which is where they came from.
+ * `back()` both skip it, so the skip is symmetric — a guest who goes back from
+ * the end of the walk lands on party, which is where they came from.
  *
  * ## The machine knows nothing about HTTP
  *
@@ -27,7 +43,7 @@
  * every rule here be tested without a server, a browser or a clock.
  */
 
-export const STEPS = ['date', 'party', 'extras', 'contact', 'review'] as const;
+export const STEPS = ['date', 'party', 'extras'] as const;
 
 export type Step = (typeof STEPS)[number];
 
@@ -41,16 +57,6 @@ export interface ExtraSelection {
   readonly qty: number;
 }
 
-export interface GuestDetails {
-  full_name: string;
-  email: string;
-  phone: string;
-  /** Free text the operator reads verbatim; never translated (§3.4). */
-  special_requests: string;
-  /** Recorded as proof the guest saw the policy before paying. */
-  terms_accepted: boolean;
-}
-
 export interface BookingState {
   step: Step;
   departureUuid: string | null;
@@ -59,7 +65,6 @@ export interface BookingState {
   pax: Record<string, number>;
   extras: Record<string, number>;
   voucherCode: string;
-  guest: GuestDetails;
 }
 
 export interface MachineOptions {
@@ -76,7 +81,6 @@ export function initialState(): BookingState {
     pax: {},
     extras: {},
     voucherCode: '',
-    guest: { full_name: '', email: '', phone: '', special_requests: '', terms_accepted: false },
   };
 }
 
@@ -99,17 +103,6 @@ export function canAdvance(state: BookingState, options: MachineOptions): boolea
       return countedPax(state) > 0;
     case 'extras':
       // Extras are optional by definition. The step exists to offer, not to ask.
-      return true;
-    case 'contact':
-      return (
-        state.guest.full_name.trim() !== '' &&
-        // The pattern is deliberately loose: the server validates properly and
-        // a widget that refuses a valid address it does not recognise is worse
-        // than one that lets the server say so.
-        /.+@.+\..+/.test(state.guest.email.trim()) &&
-        state.guest.terms_accepted
-      );
-    case 'review':
       return true;
     default:
       return false;
@@ -134,6 +127,20 @@ export function back(state: BookingState, options: MachineOptions): BookingState
   const index = steps.indexOf(state.step);
 
   return index <= 0 ? state : { ...state, step: steps[index - 1] as Step };
+}
+
+/**
+ * The end of the walk — the next move leaves the widget.
+ *
+ * Derived from `stepsFor`, so a product with no extras ends on party without
+ * anything here having to know that. Comparing against a literal `'extras'`
+ * would be wrong for exactly that product, and wrong in the direction that
+ * strands a guest on a step with no button.
+ */
+export function isLastStep(state: BookingState, options: MachineOptions): boolean {
+  const steps = stepsFor(options);
+
+  return steps.indexOf(state.step) === steps.length - 1;
 }
 
 export function goTo(state: BookingState, step: Step, options: MachineOptions): BookingState {
@@ -174,6 +181,11 @@ export function extraSelections(state: BookingState): ExtraSelection[] {
  * same inputs it would have priced, and PRC-1 says the widget never computes
  * one. Sending a total would be offering the server a number it must then
  * decide whether to trust.
+ *
+ * **No guest, and no consent.** ADR-0030: a draft is a hold on seats, and both
+ * are typed on the checkout page. Sending `terms_accepted: true` from here
+ * would stamp a consent for a box that was never on screen, which is the one
+ * kind of evidence worse than none — so the field is absent rather than false.
  */
 export function draftPayload(state: BookingState, productUuid: string, locale: string): Record<string, unknown> {
   return {
@@ -186,16 +198,6 @@ export function draftPayload(state: BookingState, productUuid: string, locale: s
     pax: paxSelections(state),
     extras: extraSelections(state),
     voucher_code: state.voucherCode.trim() === '' ? null : state.voucherCode.trim(),
-    guest: {
-      // `name`, because that is what `LeadGuest` is called in the contract. The
-      // widget's own form field stays `full_name` — it is a clearer label for a
-      // person filling one in — and this is the one place the two meet.
-      name: state.guest.full_name.trim(),
-      email: state.guest.email.trim(),
-      phone: state.guest.phone.trim() === '' ? null : state.guest.phone.trim(),
-    },
-    special_requests: state.guest.special_requests.trim() === '' ? null : state.guest.special_requests.trim(),
     locale,
-    terms_accepted: state.guest.terms_accepted,
   };
 }

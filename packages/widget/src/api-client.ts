@@ -87,6 +87,15 @@ export interface Api {
   get<T>(path: string, options?: Omit<RequestOptions, 'method' | 'body'>): Promise<T>;
   post<T>(path: string, body: unknown, options?: Omit<RequestOptions, 'method'>): Promise<T>;
   invalidate(): void;
+  /**
+   * WGT-15, and it belongs on the interface rather than only on the class.
+   *
+   * `index.tsx` calls it through an `Api`, so leaving it off made `npm run
+   * typecheck` fail on a method that exists and works. Every caller of the
+   * interface hands the widget's resolved locale to the transport; a fake in a
+   * test that omitted it would be a fake that cannot stand in for the real one.
+   */
+  setLocale(locale: string | null): void;
 }
 
 export class ApiClient implements Api {

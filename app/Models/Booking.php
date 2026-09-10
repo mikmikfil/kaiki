@@ -64,8 +64,8 @@ use Illuminate\Support\Carbon;
  * @property string $local_time
  * @property Carbon $starts_at_utc
  * @property Carbon $ends_at_utc
- * @property string $guest_name
- * @property string $guest_email
+ * @property string|null $guest_name
+ * @property string|null $guest_email
  * @property string|null $guest_phone
  * @property int $pax_total
  * @property int $pax_capacity_total

@@ -50,6 +50,22 @@ class HostedPageController extends HostedController
     public function index(Request $request): Response
     {
         $tenant = $this->tenant();
+
+        // ADR-0029's finer question, and this is the only place that can ask it.
+        // `HostedSlugResolver` runs before routing and knows only the slug, so
+        // it lets a *bookings only* operator through; here there is a route, and
+        // the route is the one page that state does not serve.
+        //
+        // One guard covers two entry points: `RootController` delegates to this
+        // method for a custom domain rather than duplicating the check, which is
+        // how the two stay in step.
+        //
+        // A 404 rather than a redirect to the search page. The operator has said
+        // they do not publish a home page here; sending a visitor somewhere else
+        // would make the address work, and an address that works is an address
+        // that gets linked to and indexed.
+        abort_unless($tenant->hosted_site_mode->servesHomePage(), Response::HTTP_NOT_FOUND);
+
         $locale = $this->resolveLocale($request, $tenant);
 
         return $this->render($request, $tenant, 'hosted.index', fn (): array => [

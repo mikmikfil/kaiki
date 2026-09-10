@@ -6,6 +6,7 @@ namespace Tests\Support\Hosted;
 
 use App\Domain\Hosted\Support\BlockSettings;
 use App\Enums\HomeBlockType;
+use App\Enums\HostedSiteMode;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 
@@ -25,7 +26,7 @@ final class OperatorPage
     /** An operator whose hosted page is switched on. */
     public static function operator(string $slug): Tenant
     {
-        return Tenant::factory()->create(['slug' => $slug, 'hosted_page_enabled' => true]);
+        return Tenant::factory()->create(['slug' => $slug, 'hosted_site_mode' => HostedSiteMode::Full]);
     }
 
     /**

@@ -53,32 +53,39 @@ describe('the idempotency key', () => {
 
     const first = keys.keyFor('draft', draftFingerprint(state()));
 
-    // The telephone number changing is not a different intention, and minting a
-    // new key for it would be the per-request mistake wearing a disguise.
-    const sameIntention = keys.keyFor(
-      'draft',
-      draftFingerprint(state({ guest: { ...initialState().guest, phone: '+306912345678' } })),
-    );
+    // A band nobody booked is not a different intention, and minting a new key
+    // for it would be the per-request mistake wearing a disguise.
+    const sameIntention = keys.keyFor('draft', draftFingerprint(state({ pax: { adult: 2, infant: 0 } })));
 
     expect(sameIntention).toBe(first);
   });
 
-  it('keeps the checkout key while a draft key is renewed', () => {
+  it('keeps one intention while another is renewed', () => {
     const keys = new IdempotencyKeys();
 
-    const checkout = keys.keyFor('checkout', 'booking-uuid');
+    const cancel = keys.keyFor('cancel', 'booking-uuid');
 
     keys.keyFor('draft', draftFingerprint(state()));
     keys.keyFor('draft', draftFingerprint(state({ pax: { adult: 4 } })));
 
-    // A new draft must not invalidate the key of a booking already on its way
-    // to a gateway.
-    expect(keys.keyFor('checkout', 'booking-uuid')).toBe(checkout);
+    // A new draft must not invalidate another intention's key. Only the slots
+    // of the intention whose fingerprint moved are cleared.
+    expect(keys.keyFor('cancel', 'booking-uuid')).toBe(cancel);
   });
 
   it('sends the key as a header on every write', async () => {
     const fetchMock = vi.fn(() =>
-      Promise.resolve(jsonResponse({ data: { uuid: 'b-1', reference: 'KAI-1', manage_token: 'tok', status: 'draft' } })),
+      Promise.resolve(
+        jsonResponse({
+          data: {
+            uuid: 'b-1',
+            reference: 'KAI-1',
+            manage_token: 'tok',
+            checkout_url: 'https://book.kaiki.app/c/tok',
+            status: 'draft',
+          },
+        }),
+      ),
     );
 
     const client = new ApiClient('https://api.kaiki.app/api/v1', 'pk_test', fetchMock as unknown as typeof fetch);
@@ -90,6 +97,31 @@ describe('the idempotency key', () => {
     const headers = init?.headers as Record<string, string>;
 
     expect(headers['Idempotency-Key']).toBeTruthy();
+  });
+
+  it('reads the checkout url out of the 201, where it appears exactly once', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        jsonResponse({
+          data: {
+            uuid: 'b-1',
+            reference: 'KAI-1',
+            manage_token: 'tok',
+            checkout_url: 'https://book.kaiki.app/c/tok',
+            status: 'draft',
+          },
+        }),
+      ),
+    );
+
+    const client = new ApiClient('https://api.kaiki.app/api/v1', 'pk_test', fetchMock as unknown as typeof fetch);
+    const draft = await new BookingApi(client).createDraft(state(), 'product-uuid', 'el');
+
+    // ADR-0030: the walk ends by sending the guest here. The widget never
+    // assembles the address itself — a URL built in a browser out of a config
+    // value is a guess about somebody else's deployment, and a custom domain
+    // makes it a wrong one.
+    expect(draft.checkoutUrl).toBe('https://book.kaiki.app/c/tok');
   });
 });
 

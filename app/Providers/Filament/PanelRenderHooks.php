@@ -73,7 +73,7 @@ final class PanelRenderHooks
      * ## Why it can be absent
      *
      * HOS-6 lets an operator switch their hosted pages off, and the page is then
-     * a 404 — so the link is only rendered when {@see HostedUrl::enabledFor()}
+     * a 404 — so the link is only rendered when {@see HostedUrl::homeEnabledFor()}
      * says there is something at the other end. A button that leads to a "not
      * found" is worse than no button, because the operator concludes the feature
      * is broken rather than switched off.
@@ -87,7 +87,7 @@ final class PanelRenderHooks
         $tenant = Tenancy::current();
 
         return view('filament.view-frontend', [
-            'url' => $tenant instanceof Tenant && HostedUrl::enabledFor($tenant)
+            'url' => $tenant instanceof Tenant && HostedUrl::homeEnabledFor($tenant)
                 ? HostedUrl::operator($tenant)
                 : null,
         ]);

@@ -98,6 +98,7 @@ const PANEL_SHOTS = [
   ['branding', '/app/branding'],
   ['home-page', '/app/home-page'],
   ['search-settings', '/app/search-settings'],
+  ['payment-settings', '/app/payment-settings'],
   ['domains', '/app/domains'],
   ['integrations', '/app/integrations'],
   ['calendar-sync', '/app/calendar-sync'],
@@ -119,6 +120,7 @@ const ADMIN_SHOTS = [
 const GUEST_SHOTS = [
   ['guest-home', '/aegean-blue'],
   ['guest-search', '/aegean-blue/search'],
+  ['guest-contact', '/aegean-blue/contact'],
   ['guest-legal', '/aegean-blue/legal'],
 ];
 

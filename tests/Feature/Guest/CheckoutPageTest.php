@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use App\Enums\BookingStatus;
+use App\Models\Booking;
+use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
 
@@ -47,7 +49,7 @@ afterEach(function (): void {
  * so two helpers with one name is a collision that only shows up when both files
  * run.
  *
- * @return array{0: \App\Models\Tenant, 1: \App\Models\Booking}
+ * @return array{0: Tenant, 1: Booking}
  */
 function checkoutDraft(bool $documentsRequired = false): array
 {

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\HostedSiteMode;
 use App\Models\BrandProfile;
 use App\Models\Tenant;
 use App\Support\Tenancy;
@@ -34,7 +35,7 @@ use Tests\Support\Hosted\HostedRequest;
 it('renders in the operator default locale when nothing is asked for', function (): void {
     Tenant::factory()->create([
         'slug' => 'greek-first',
-        'hosted_page_enabled' => true,
+        'hosted_site_mode' => HostedSiteMode::Full,
         'default_locale' => 'el',
     ]);
 
@@ -47,7 +48,7 @@ it('renders in the operator default locale when nothing is asked for', function 
 it('honours ?lang= over the operator default', function (): void {
     Tenant::factory()->create([
         'slug' => 'greek-first',
-        'hosted_page_enabled' => true,
+        'hosted_site_mode' => HostedSiteMode::Full,
         'default_locale' => 'el',
     ]);
 
@@ -60,7 +61,7 @@ it('honours ?lang= over the operator default', function (): void {
 it('falls back rather than refusing an unknown language', function (): void {
     Tenant::factory()->create([
         'slug' => 'greek-first',
-        'hosted_page_enabled' => true,
+        'hosted_site_mode' => HostedSiteMode::Full,
         'default_locale' => 'el',
     ]);
 
@@ -71,7 +72,7 @@ it('falls back rather than refusing an unknown language', function (): void {
 })->group('fast');
 
 it('declares a canonical per locale, and alternates pointing at each other', function (): void {
-    Tenant::factory()->create(['slug' => 'alts', 'hosted_page_enabled' => true, 'default_locale' => 'el']);
+    Tenant::factory()->create(['slug' => 'alts', 'hosted_site_mode' => HostedSiteMode::Full, 'default_locale' => 'el']);
 
     $greek = get(HostedRequest::url('/alts?lang=el'));
     $english = get(HostedRequest::url('/alts?lang=en'));
@@ -92,7 +93,7 @@ it('declares a canonical per locale, and alternates pointing at each other', fun
 })->group('fast');
 
 it('shows a language switch on every page', function (): void {
-    Tenant::factory()->create(['slug' => 'switcher', 'hosted_page_enabled' => true]);
+    Tenant::factory()->create(['slug' => 'switcher', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     // Brand decision 2 of 2026-09-04: a visible EL/EN switch on every guest
     // surface, and the one currently active marked for a screen reader too.
@@ -106,7 +107,7 @@ it('shows a language switch on every page', function (): void {
 })->group('fast');
 
 it('carries the operator own colours rather than the platform default', function (): void {
-    $tenant = Tenant::factory()->create(['slug' => 'branded', 'hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['slug' => 'branded', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     Tenancy::forTenant($tenant, static function (): void {
         BrandProfile::query()->first()?->forceFill(['color_primary' => '#7A1F3D'])->save();
@@ -117,7 +118,7 @@ it('carries the operator own colours rather than the platform default', function
 
 it('brands two operators differently from the same template', function (): void {
     foreach ([['one', '#123456'], ['two', '#654321']] as [$slug, $colour]) {
-        $tenant = Tenant::factory()->create(['slug' => $slug, 'hosted_page_enabled' => true]);
+        $tenant = Tenant::factory()->create(['slug' => $slug, 'hosted_site_mode' => HostedSiteMode::Full]);
 
         Tenancy::forTenant($tenant, static function () use ($colour): void {
             BrandProfile::query()->first()?->forceFill(['color_primary' => $colour])->save();
@@ -131,7 +132,7 @@ it('brands two operators differently from the same template', function (): void 
 })->group('fast');
 
 it('uppercases nothing, in either locale', function (): void {
-    Tenant::factory()->create(['slug' => 'no-caps', 'hosted_page_enabled' => true]);
+    Tenant::factory()->create(['slug' => 'no-caps', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     // I18N-2. Greek capitals drop their accents and browsers disagree about the
     // final sigma, so the rule is enforced on the guest surfaces rather than
@@ -145,7 +146,7 @@ it('uppercases nothing, in either locale', function (): void {
 })->group('fast');
 
 it('renders every word of content without a single script tag', function (): void {
-    $tenant = Tenant::factory()->create(['slug' => 'no-js', 'hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['slug' => 'no-js', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     $response = get(HostedRequest::url('/no-js'));
 

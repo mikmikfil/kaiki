@@ -8,6 +8,7 @@ use App\Http\Controllers\Guest\GuestDetailsController;
 use App\Http\Controllers\Guest\ManageBookingController;
 use App\Http\Controllers\Guest\QuoteController;
 use App\Http\Controllers\Guest\VoucherController;
+use App\Http\Controllers\Hosted\ContactPageController;
 use App\Http\Controllers\Hosted\HostedPageController;
 use App\Http\Controllers\Hosted\ProductPageController;
 use App\Http\Controllers\Hosted\RootController;
@@ -259,6 +260,24 @@ Route::domain(HostedHost::name())
             ->where('operator', '[a-z0-9][a-z0-9-]*')
             ->name('hosted.legal');
 
+        // The contact page and its form. Registered before the trip route for
+        // the same reason `/legal` and `/search` are, and the `POST` shares the
+        // path so the form's `action` is the page's own address — which is what
+        // a browser with scripts blocked submits to.
+        //
+        // The write is throttled on its own, at the same per-IP rate
+        // `docs/api.md` §3.6 gives the enquiry endpoint (class F, five a
+        // minute): it is the same Action writing the same table, and a form on
+        // a public page is the more exposed of the two doors to it.
+        Route::get('/{operator}/contact', [ContactPageController::class, 'show'])
+            ->where('operator', '[a-z0-9][a-z0-9-]*')
+            ->name('hosted.contact');
+
+        Route::post('/{operator}/contact', [ContactPageController::class, 'send'])
+            ->where('operator', '[a-z0-9][a-z0-9-]*')
+            ->middleware('throttle:6,1')
+            ->name('hosted.contact.send');
+
         // The catalogue search (#105), registered before the trip route for the
         // same reason `/legal` is: two segments, first match wins, and a
         // shadowed search page would be the feature unreachable for everybody
@@ -307,6 +326,11 @@ Route::middleware(['tenant', 'hosted.custom', 'hosted.page', 'locale'])->group(f
     // replace it rather than compete with it. See `RootController`.
     Route::get('/legal', [HostedPageController::class, 'legal'])->name('hosted.custom.legal');
     Route::get('/search', [SearchPageController::class, 'show'])->name('hosted.custom.search');
+    Route::get('/contact', [ContactPageController::class, 'show'])->name('hosted.custom.contact');
+
+    Route::post('/contact', [ContactPageController::class, 'send'])
+        ->middleware('throttle:6,1')
+        ->name('hosted.custom.contact.send');
 
     Route::get('/{product}', [ProductPageController::class, 'show'])
         ->where('product', '[a-z0-9][a-z0-9-]*')

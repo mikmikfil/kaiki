@@ -30,6 +30,33 @@ const POLL_INTERVAL_MS = 3_000;
 
 export type ConfirmationOutcome = 'confirmed' | 'pending' | 'cancelled' | 'unknown';
 
+/**
+ * One read, before deciding whether there is anything to poll for.
+ *
+ * ADR-0030 moved the gateway hand-off to the hosted checkout page, so a guest
+ * who lands back on the embed did not necessarily come from a payment — they may
+ * simply have pressed Back on the page that asks for their name. Polling that
+ * booking for sixty seconds and then promising an email would be a lie told
+ * slowly.
+ *
+ * So the mount asks once what state the booking is actually in, and only polls
+ * when the answer is that a payment is under way. Null means the question could
+ * not be answered — a network failure, a token that no longer opens the booking
+ * — and the caller treats that as "carry on", never as an outcome.
+ */
+export async function readBookingStatus(client: Api, bookingUuid: string, token: string): Promise<string | null> {
+    try {
+        const response = await client.get<BookingStatusPayload>(`/bookings/${bookingUuid}`, {
+            headers: { 'X-Kaiki-Guest-Token': token },
+            cache: false,
+        });
+
+        return response.data?.status ?? null;
+    } catch {
+        return null;
+    }
+}
+
 export interface BookingStatusPayload {
     readonly data?: { readonly status?: string; readonly reference?: string };
 }

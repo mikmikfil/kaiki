@@ -76,7 +76,7 @@ return [
             'heading' => 'Any questions?',
             'body' => 'Tell us what you would like to know about this trip.',
             'call' => 'Call us',
-            'write' => 'Send an email',
+            'write' => 'Send a message',
         ],
         'tabs' => [
             'departures' => 'Next departures',
@@ -195,6 +195,36 @@ return [
         'cancellation' => 'Cancellation policy',
         // Brand decision 6 of 2026-09-04, rendered from a flag.
         'powered_by' => 'Powered by Kaiki',
+    ],
+
+    'contact' => [
+        'nav' => 'Contact',
+        'title' => 'Contact us',
+        'meta' => 'Get in touch with :operator — telephone, email and a message form.',
+        'lede' => 'Ask us anything about a trip, a date or a private charter. We read every message.',
+        'details_heading' => 'Or reach us directly',
+        'about' => 'About: :trip',
+        'name' => 'Your name',
+        'email' => 'Email',
+        'phone' => 'Telephone',
+        'optional' => '(optional)',
+        'message' => 'Your message',
+        'submit' => 'Send message',
+        // The button on the home page's contact banner. Not the page's own
+        // title, which the heading directly above it already says — a button
+        // repeating the heading it sits under reads as a mistake.
+        'cta' => 'Send us a message',
+        'sent' => 'Thank you — your message has arrived and we will answer you by email.',
+        // Deliberately not "you failed our bot check": the only person this ever
+        // refuses wrongly is a human on a fast connection, and they need a way
+        // forward rather than an accusation.
+        'rejected' => 'We could not send that message. Please try again.',
+        'privacy' => 'We use what you write here only to answer you.',
+        'reply_time' => 'We answer within a working day, and usually sooner.',
+        // The honeypot's visible label. Never seen by a person — the field is
+        // hidden from sight and from the accessibility tree — but a label is
+        // what makes it look real to the scripts it is there to catch.
+        'honeypot' => 'Company website',
     ],
 
     'legal' => [

@@ -69,5 +69,10 @@ export function previewClient(): Api {
     invalidate(): void {
       // Nothing is cached, because nothing was fetched.
     },
+
+    setLocale(): void {
+      // The payload is whatever the panel put on the page, already in the
+      // operator's language. There is no request for a locale to travel on.
+    },
   };
 }

@@ -28,12 +28,17 @@ return [
         'vat_number' => 'VAT number',
         'joined' => 'Joined',
         'deleted' => 'Deleted',
+        'vertical' => 'Trade',
+        'days_left' => 'Access',
+        'access_ends' => 'Access ends',
+        'sandbox' => 'Sandbox account',
     ],
 
     'filters' => [
         'status' => 'Status',
         'plan' => 'Plan',
         'trashed' => 'Deleted merchants',
+        'lapsing' => 'Lapsing within 7 days',
     ],
 
     'empty' => [
@@ -50,6 +55,40 @@ return [
         'trialing_description' => 'Yet to convert',
         'past_due' => 'Payment overdue',
         'past_due_description' => 'Still writable, in the dunning window',
+    ],
+
+    'days' => [
+        'none' => 'No date set',
+        'left' => ':days days',
+        'lapsed' => 'Lapsed :days days ago',
+    ],
+
+    'edit' => [
+        'subscription' => 'Subscription',
+        'subscription_help' => 'The plan, the state of the account, and how long they have access.',
+        'access_ends_help' => 'Empty means the trial end date applies, if there is one.',
+        'account' => 'Account',
+        'sandbox_help' => 'Bookings are marked as tests and stay out of every report.',
+        'confirm_heading' => 'Change this operator’s account',
+        'confirm_body' => 'The change is recorded in the operator’s own audit trail, with your name and your reason.',
+        'reason' => 'Reason',
+        'reason_help' => 'Why the change is being made. The operator sees this in their own trail.',
+    ],
+
+    'create' => [
+        'action' => 'New operator',
+        'business' => 'The business',
+        'business_help' => 'The rest — legal name, VAT number, tax office, logo, colours — the operator fills in themselves.',
+        'slug_help' => 'Their public address. Lower case, digits and hyphens. Hard to change later, because it goes into every link.',
+        'billing_email' => 'Business email',
+        'billing_email_help' => 'Where invoices and subscription notices go.',
+        'owner' => 'The owner',
+        'owner_help' => 'The first account. You do not choose a password — we send an invitation and they set their own.',
+        'owner_name' => 'Full name',
+        'owner_email' => 'Sign-in email',
+        'account' => 'Account',
+        'created' => ':name has been created.',
+        'invited' => 'An invitation has been sent to the owner to set their password.',
     ],
 
 ];

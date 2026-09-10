@@ -31,9 +31,17 @@ use Illuminate\Validation\ValidationException;
 |
 */
 
+/**
+ * The operator these snapshots are computed for.
+ *
+ * Taking deposits, because `quotableProduct()` builds a 30% plan and PRC-25's
+ * ordering assertion is only worth making against an operator who actually has
+ * a deposit — switched off, the whole total is due now and «deposit after the
+ * discount» would be true by arithmetic rather than by ordering.
+ */
 function snapshotTenant(callable $callback): mixed
 {
-    return Tenancy::forTenant(Tenant::factory()->create(), $callback);
+    return Tenancy::forTenant(Tenant::factory()->takingDeposits()->create(), $callback);
 }
 
 /** A per-seat trip, one season, adult and child bands, priced. */

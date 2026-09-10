@@ -120,8 +120,16 @@ final class EnquiryCreateRequest extends FormRequest
         return $at->diffInSeconds(now()) < self::MINIMUM_SECONDS;
     }
 
-    /** The enquiry, with everything the request itself knows attached. */
-    public function toData(): EnquiryData
+    /**
+     * The enquiry, with everything the request itself knows attached.
+     *
+     * `$source` is a **parameter** and not a guess. The API cannot tell a widget
+     * mount from a WordPress shortcode from a hosted page, and reading the
+     * referrer would be a guess recorded as a fact — so the public endpoint
+     * passes nothing and gets `widget`, the column's own default, while the
+     * hosted contact page passes `hosted` because it knows.
+     */
+    public function toData(BookingSource $source = BookingSource::Widget): EnquiryData
     {
         /** @var array<string, mixed> $validated */
         $validated = $this->validated();
@@ -138,11 +146,7 @@ final class EnquiryCreateRequest extends FormRequest
             phone: is_string($validated['phone'] ?? null) ? $validated['phone'] : null,
             preferredDate: is_string($validated['preferred_date'] ?? null) ? $validated['preferred_date'] : null,
             pax: isset($validated['pax']) ? (int) $validated['pax'] : null,
-            // `widget`, which is `enquiries.source`'s own column default.
-            // The contract carries no `source` field and the API cannot tell a
-            // widget mount from a WordPress shortcode from a hosted page —
-            // guessing from the referrer would be a guess recorded as a fact.
-            source: BookingSource::Widget,
+            source: $source,
             ipAddress: $this->ip(),
             // Truncated to the column rather than rejected: a long user agent
             // is a browser, not an attack.

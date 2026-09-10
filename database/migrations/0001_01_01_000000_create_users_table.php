@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\HostedSiteMode;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -51,7 +52,17 @@ return new class extends Migration
 
             $table->string('custom_domain', 190)->nullable()->unique();
             $table->timestamp('custom_domain_verified_at')->nullable();
-            $table->boolean('hosted_page_enabled')->default(true);
+            // Three states, not a boolean (ADR-0029, amending TEN-1). The
+            // middle one — trip pages and search without a marketing home page
+            // — is the one an operator asks for by name, and a boolean cannot
+            // express it.
+            //
+            // **Renamed as well as retyped**, on purpose. Leaving the name and
+            // changing the type would leave every `if ($tenant->hosted_page_enabled)`
+            // reading the string 'off' as truthy: a switch that silently stops
+            // working, in the eighteen places that read it. Renaming makes each
+            // one fail to compile until somebody looks at it.
+            $table->string('hosted_site_mode', 16)->default(HostedSiteMode::Full->value);
             $table->boolean('is_sandbox')->default(false);
 
             // Read on every availability conflict check, so it lives here rather

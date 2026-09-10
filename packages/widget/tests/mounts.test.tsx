@@ -166,9 +166,20 @@ describe('the list mount', () => {
 });
 
 describe('the calendar mount', () => {
+  /**
+   * Two days in the **current** month, because that is the month the mount
+   * opens on.
+   *
+   * The fixture used to be two dates in July 2026, which the grid only draws
+   * for anybody running the suite in July 2026 — the assertions passed anyway,
+   * on the words in the legend, which is a test that measures nothing.
+   */
+  const first = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
+  const second = first.replace(/01$/, '02');
+
   const days = [
-    { local_date: '2026-07-01', status: 'available' },
-    { local_date: '2026-07-02', status: 'sold_out' },
+    { local_date: first, status: 'available' },
+    { local_date: second, status: 'sold_out' },
   ];
 
   it('shows availability and never a price', async () => {
@@ -182,18 +193,37 @@ describe('the calendar mount', () => {
     expect(host.innerHTML).not.toContain('€');
   });
 
+  it('draws a month rather than a list of the days that sail', async () => {
+    render(<CalendarMount {...props({ client: client(() => ({ data: days })) })} />, host);
+    await settle();
+
+    await vi.waitFor(() => expect(host.querySelector('.kaiki-day-available')).not.toBeNull());
+
+    // Seven headings, and a cell for every day of the month plus the blanks
+    // that push the first onto its own weekday. The old mount rendered only
+    // the days the endpoint returned, so a month with two sailings was two
+    // boxes in a row and nothing to say which days they were.
+    const length = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+
+    expect(host.querySelectorAll('.kaiki-weekdays span')).toHaveLength(7);
+    expect(host.querySelectorAll('.kaiki-day').length).toBeGreaterThanOrEqual(length);
+    // A day the endpoint said nothing about is «not sailing», not a hole.
+    expect(host.querySelectorAll('.kaiki-day-unavailable').length).toBeGreaterThan(0);
+  });
+
   it('says the status in words as well as in colour', async () => {
     render(<CalendarMount {...props({ client: client(() => ({ data: days })) })} />, host);
     await settle();
 
-    await vi.waitFor(() => expect(host.querySelector('.kaiki-day-open')).not.toBeNull());
-
-    const open = host.querySelector('.kaiki-day-open');
+    await vi.waitFor(() => expect(host.querySelector('.kaiki-day-available')).not.toBeNull());
 
     // A11Y-1: a calendar that only shades cannot be read by a colour-blind
-    // guest, so the label carries the status too.
-    expect(open?.getAttribute('aria-label')).toContain('Available');
-    expect(open?.textContent).toContain('Available');
+    // guest. A grid cell has no room for the word, so the status is in the
+    // accessible name, the legend says what the two colours mean, and a
+    // sold-out day is struck through as well as red.
+    expect(host.querySelector('.kaiki-day-available')?.getAttribute('aria-label')).toContain('Available');
+    expect(host.querySelector('.kaiki-day-sold_out')?.getAttribute('aria-label')).toContain('Sold out');
+    expect(host.querySelector('.kaiki-legend')?.textContent).toContain('Available');
   });
 
   it('serves a month it has already fetched from memory', async () => {
@@ -209,8 +239,8 @@ describe('the calendar mount', () => {
 
     await vi.waitFor(() => expect(seen.length).toBe(1));
 
-    const next = host.querySelectorAll<HTMLButtonElement>('.kaiki-calendar-head button')[1];
-    const previous = host.querySelectorAll<HTMLButtonElement>('.kaiki-calendar-head button')[0];
+    const next = host.querySelectorAll<HTMLButtonElement>('.kaiki-calendar-step')[1];
+    const previous = host.querySelectorAll<HTMLButtonElement>('.kaiki-calendar-step')[0];
 
     next?.click();
     await vi.waitFor(() => expect(seen.length).toBe(2));

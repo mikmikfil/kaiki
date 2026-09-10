@@ -11,6 +11,7 @@ use App\Enums\PaymentGatewayName;
 use App\Enums\PaymentKind;
 use App\Enums\PaymentStatus;
 use App\Exceptions\CapacityExceeded;
+use App\Exceptions\CheckoutRefused;
 use App\Exceptions\IllegalStateTransition;
 use App\Models\Booking;
 use App\Models\Departure;
@@ -68,12 +69,27 @@ final class StartCheckout
      * @return array{booking: Booking, payment: Payment|null}
      *
      * @throws CapacityExceeded when the seats went while the guest was deciding
+     * @throws CheckoutRefused when nobody has said whose booking this is
      * @throws IllegalStateTransition when the booking is not a live draft
      */
     public function __invoke(Booking $booking, PaymentGatewayName $gateway = PaymentGatewayName::Viva): array
     {
         if (! $booking->status->canTransitionTo(BookingStatus::PendingPayment)) {
             throw IllegalStateTransition::forBooking($booking->status, BookingStatus::PendingPayment);
+        }
+
+        // ADR-0030's invariant, and it lives here rather than at draft creation
+        // on purpose. A draft is a hold on seats; this is the line money
+        // crosses, and it is the one line the API and the hosted checkout page
+        // both pass through. Refusing here means a draft can be taken from a
+        // widget that asks only for a date and a party, while nothing can
+        // reach a gateway — or an invoice, or a manifest — anonymous.
+        //
+        // Consent is checked with the identity because they were recorded
+        // together and both are evidence (GDR-9): a payment authorised by
+        // somebody who never saw the terms is the dispute this prevents.
+        if ($booking->guest_name === null || $booking->guest_email === null || $booking->terms_accepted_at === null) {
+            throw CheckoutRefused::leadGuestRequired();
         }
 
         /** @var array{booking: Booking, payment: Payment|null, zeroTotal: bool} $result */

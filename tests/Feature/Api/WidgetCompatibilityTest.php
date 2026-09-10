@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Enums\ApiScope;
 use App\Enums\DepartureStatus;
 use App\Http\Requests\Api\V1\BookingCreateRequest;
-use App\Http\Requests\Api\V1\CheckoutRequest;
 use App\Models\AgeBand;
 use App\Models\Departure;
 use App\Models\Product;
@@ -114,7 +113,10 @@ it('sends every field the list mount declares it reads', function (): void {
 it('sends every field the calendar mount declares it reads', function (): void {
     [$key, $product] = widgetCompatFixture();
 
-    $expected = WidgetExpectations::fields(widgetSource('mounts/calendar/CalendarMount.tsx'), 'AvailabilityDay');
+    // `MonthGrid.tsx`, not `CalendarMount.tsx`: the grid moved there when the
+    // booking walk's date step began drawing the same month, and the interface
+    // that names the fields moved with it.
+    $expected = WidgetExpectations::fields(widgetSource('mounts/calendar/MonthGrid.tsx'), 'AvailabilityDay');
 
     expect($expected)->not->toBeEmpty();
 
@@ -167,10 +169,12 @@ it('sends a booking payload the endpoint actually validates', function (): void 
         expect($rules)->toContain($field);
     }
 
-    // The lead guest, whose field names live one level down.
-    foreach (WidgetExpectations::returnedNestedKeys(widgetSource('booking/machine.ts'), 'draftPayload', 'guest') as $field) {
-        expect($rules)->toContain("guest.{$field}");
-    }
+    // No lead guest, and no consent: ADR-0030 moved both to the checkout page.
+    // Asserted rather than merely not-checked, because a widget that started
+    // sending `terms_accepted` again would be stamping a consent for a box that
+    // was never on screen.
+    expect($sent)->not->toContain('guest')
+        ->and($sent)->not->toContain('terms_accepted');
 
     // And the two collections, whose item shape the contract fixes.
     foreach (WidgetExpectations::fields(widgetSource('booking/machine.ts'), 'PaxSelection') as $field) {
@@ -182,29 +186,24 @@ it('sends a booking payload the endpoint actually validates', function (): void 
     }
 })->group('fast');
 
-it('sends a checkout request the endpoint actually validates', function (): void {
-    // `kind` is required and the widget sent only `return_url`, so every
-    // checkout it started was refused. Read off the source rather than repeated
-    // here, for the same reason as everything else in this file.
+it('reads the checkout address rather than assembling one', function (): void {
+    // The widget used to call `POST /bookings/{uuid}/checkout` itself, and the
+    // request it sent was missing the required `kind` — so every checkout it
+    // started was refused, and no unit test could see it because a mock reads
+    // no field name.
+    //
+    // ADR-0030 removed that call. The walk ends by sending the guest to
+    // `checkout_url` out of the `201`, so this holds the client to the field
+    // name; `BookingEndpointTest` holds the API to sending it.
     $source = (string) file_get_contents(widgetSource('booking/api.ts'));
 
-    // The body of the `client.post` inside `async checkout(`. Deliberately free
-    // of quote characters, which a PHP single-quoted pattern cannot carry.
-    preg_match('/async checkout\(.*?post<.*?>\(\s*[^,]+,\s*\{(?P<body>[^}]*)\}/s', $source, $matches);
-
-    expect($matches)->toHaveKey('body');
-
-    preg_match_all('/(?P<name>[a-z_][a-z0-9_]*)\s*[,:]/i', $matches['body'], $found);
-
-    $rules = array_keys((new CheckoutRequest)->rules());
-
-    foreach (array_unique($found['name']) as $field) {
-        expect($rules)->toContain($field);
-    }
-
-    // Named explicitly, because its absence is what broke: a regex that matched
-    // nothing would otherwise pass this test.
-    expect($matches['body'])->toContain('kind');
+    expect($source)->toContain('checkout_url')
+        // Read, never built. A URL assembled in a browser out of a config value
+        // is a guess about somebody else's deployment, and a custom domain makes
+        // it a wrong one.
+        ->and($source)->not->toContain("'/c/")
+        // And the old call is gone rather than merely unused.
+        ->and($source)->not->toContain('/checkout');
 })->group('fast');
 
 it('answers the paths the widget actually calls, and no others', function (): void {

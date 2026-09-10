@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\FontSource;
+use App\Enums\HostedSiteMode;
 use App\Enums\IntegrationProvider;
 use App\Models\BrandProfile;
 use App\Models\IntegrationCredential;
@@ -35,7 +36,7 @@ use Tests\Support\Hosted\HostedRequest;
 */
 
 it('sends a policy with no inline anything', function (): void {
-    Tenant::factory()->create(['slug' => 'strict', 'hosted_page_enabled' => true]);
+    Tenant::factory()->create(['slug' => 'strict', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     $headers = HostedRequest::headers('strict');
 
@@ -47,7 +48,7 @@ it('sends a policy with no inline anything', function (): void {
 })->group('fast');
 
 it('lets the brand colours through on a nonce rather than by relaxing the policy', function (): void {
-    Tenant::factory()->create(['slug' => 'nonced', 'hosted_page_enabled' => true]);
+    Tenant::factory()->create(['slug' => 'nonced', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     $headers = HostedRequest::headers('nonced');
 
@@ -61,7 +62,7 @@ it('lets the brand colours through on a nonce rather than by relaxing the policy
 })->group('fast');
 
 it('omits Google Fonts entirely for an operator who chose none', function (): void {
-    $tenant = Tenant::factory()->create(['slug' => 'system-font', 'hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['slug' => 'system-font', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     Tenancy::forTenant($tenant, static function (): void {
         BrandProfile::query()->first()?->forceFill(['font_source' => FontSource::System])->save();
@@ -77,7 +78,7 @@ it('omits Google Fonts entirely for an operator who chose none', function (): vo
 })->group('fast');
 
 it('admits Google Fonts only when the operator picked one', function (): void {
-    $tenant = Tenant::factory()->create(['slug' => 'google-font', 'hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['slug' => 'google-font', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     Tenancy::forTenant($tenant, static function (): void {
         BrandProfile::query()->first()?->forceFill([
@@ -93,7 +94,7 @@ it('admits Google Fonts only when the operator picked one', function (): void {
 })->group('fast');
 
 it('names no gateway an operator has not connected', function (): void {
-    Tenant::factory()->create(['slug' => 'no-gateway', 'hosted_page_enabled' => true]);
+    Tenant::factory()->create(['slug' => 'no-gateway', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     $headers = HostedRequest::headers('no-gateway');
 
@@ -102,7 +103,7 @@ it('names no gateway an operator has not connected', function (): void {
 })->group('fast');
 
 it('names the gateway an operator has connected, and only that one', function (): void {
-    $tenant = Tenant::factory()->create(['slug' => 'viva-only', 'hosted_page_enabled' => true]);
+    $tenant = Tenant::factory()->create(['slug' => 'viva-only', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     Tenancy::forTenant($tenant, static function (): void {
         IntegrationCredential::factory()
@@ -120,7 +121,7 @@ it('names the gateway an operator has connected, and only that one', function ()
 })->group('fast');
 
 it('sends the other headers SEC-10 names, and lets crawlers in', function (): void {
-    Tenant::factory()->create(['slug' => 'crawlable', 'hosted_page_enabled' => true]);
+    Tenant::factory()->create(['slug' => 'crawlable', 'hosted_site_mode' => HostedSiteMode::Full]);
 
     $headers = HostedRequest::headers('crawlable');
 

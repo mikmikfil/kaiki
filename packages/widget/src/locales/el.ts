@@ -22,8 +22,11 @@ export const el: Record<MessageKey, string> = {
 
   // Το μπλοκ κράτησης (#107).
   'booking.next': 'Συνέχεια',
+  // Το τελευταίο κουμπί της διαδρομής. Λέει πού πάει, γιατί φεύγει από
+  // αυτήν τη σελίδα για το checkout του διοργανωτή (ADR-0030).
+  'booking.checkout': 'Συνέχεια στην κράτηση',
+  'booking.resume': 'Έχετε μια κράτηση που περιμένει πληρωμή — ολοκληρώστε την',
   'booking.back': 'Πίσω',
-  'booking.pay': 'Πληρωμή και κράτηση',
   'booking.submitting': 'Μια στιγμή…',
   'booking.lines.trip': 'Εκδρομή',
   'booking.lines.duration': 'Διάρκεια',
@@ -34,18 +37,13 @@ export const el: Record<MessageKey, string> = {
   'booking.date.label': 'Ημερομηνία',
   'booking.party.heading': 'Πόσα άτομα είστε;',
   'booking.extras.heading': 'Θέλετε κάτι ακόμη;',
-  'booking.contact.heading': 'Τα στοιχεία σας',
+  // Οι τρεις ετικέτες στοιχείων που χρησιμοποιεί το μπλοκ *αιτήματος*
+  // (BKG-24). Η διαδρομή κράτησης σταμάτησε να τις ζητά όταν τις ανέλαβε η
+  // σελίδα checkout (ADR-0030)· ένα αίτημα προσφοράς δεν έχει checkout να
+  // παραδώσει, οπότε ρωτά εδώ.
   'booking.contact.name': 'Ονοματεπώνυμο',
   'booking.contact.email': 'Email',
   'booking.contact.phone': 'Τηλέφωνο',
-  'booking.contact.requests': 'Κάτι που πρέπει να ξέρουμε',
-  'booking.contact.terms': 'Διάβασα την πολιτική ακύρωσης και τους όρους.',
-  'booking.review.heading': 'Έλεγχος και πληρωμή',
-  'booking.review.when': 'Πότε',
-  'booking.review.who': 'Επικεφαλής κράτησης',
-  'booking.review.pending': 'Υπολογίζουμε την τιμή σας…',
-  'booking.review.vat_included': 'Στην τιμή περιλαμβάνεται ΦΠΑ',
-  'booking.review.deposit': 'Πληρώνετε :amount τώρα και τα υπόλοιπα πριν την αναχώρηση.',
   'booking.hold.holding': 'Οι θέσεις σας κρατούνται για :time',
   'booking.hold.warning': 'Μένουν μόνο :time για να ολοκληρώσετε',
   'booking.confirmed.heading': 'Η κράτηση έγινε',

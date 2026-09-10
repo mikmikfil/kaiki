@@ -68,15 +68,30 @@ final class HostedUrl
     }
 
     /**
-     * Does this operator serve hosted pages at all?
+     * Does this operator serve a page a guest can book a trip from?
      *
-     * HOS-6 makes the page a 404 when the switch is off, so a payload that
-     * carried the URL anyway would be advertising a dead link. The API resources
-     * ask this before emitting `booking_url` and `canonical_url`.
+     * HOS-6 makes a page a 404 when it is not served, so a payload that carried
+     * the URL anyway would be advertising a dead link. The API resources ask
+     * this before emitting `booking_url` and `canonical_url`, both of which
+     * point at a **product** page.
+     *
+     * ## Why this is not the same question as {@see self::homeEnabledFor()}
+     *
+     * It was, until ADR-0029. One `enabledFor()` answered for two callers that
+     * have now diverged: the API points at a trip page, the panel's "view your
+     * page" link points at the home page, and a *bookings only* operator serves
+     * the first and not the second. A single method would have to be wrong for
+     * one of them.
      */
-    public static function enabledFor(Tenant $tenant): bool
+    public static function bookingEnabledFor(Tenant $tenant): bool
     {
-        return (bool) $tenant->hosted_page_enabled;
+        return $tenant->hosted_site_mode->servesBookingPages();
+    }
+
+    /** Does this operator serve the marketing home page they compose from blocks? */
+    public static function homeEnabledFor(Tenant $tenant): bool
+    {
+        return $tenant->hosted_site_mode->servesHomePage();
     }
 
     /**

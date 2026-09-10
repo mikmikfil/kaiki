@@ -174,7 +174,9 @@ describe('language', () => {
     api.setLocale('el');
     await api.get('/products');
 
-    const headers = (fetchImpl.mock.calls[0]?.[1] as RequestInit).headers as Record<string, string>;
+    // Through `unknown`: the mock's calls are typed as an empty tuple, so a
+    // direct cast to `RequestInit` is the one TypeScript refuses.
+    const headers = (fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1].headers as Record<string, string>;
 
     expect(headers['Accept-Language']).toBe('el');
   });
@@ -187,7 +189,9 @@ describe('language', () => {
     // platform's, and is what happened before any of this existed.
     await client(fetchImpl as unknown as typeof fetch).get('/products');
 
-    const headers = (fetchImpl.mock.calls[0]?.[1] as RequestInit).headers as Record<string, string>;
+    // Through `unknown`: the mock's calls are typed as an empty tuple, so a
+    // direct cast to `RequestInit` is the one TypeScript refuses.
+    const headers = (fetchImpl.mock.calls[0] as unknown as [string, RequestInit])[1].headers as Record<string, string>;
 
     expect(headers['Accept-Language']).toBeUndefined();
   });

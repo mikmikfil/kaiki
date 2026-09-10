@@ -1,5 +1,5 @@
 {
-  "takenAt": "2026-09-08T19:54:23.828Z",
+  "takenAt": "2026-09-09T12:15:22.133Z",
   "shots": [
     {
       "name": "dashboard",
@@ -114,6 +114,10 @@
       "url": "/app/search-settings"
     },
     {
+      "name": "payment-settings",
+      "url": "/app/payment-settings"
+    },
+    {
       "name": "domains",
       "url": "/app/domains"
     },
@@ -156,6 +160,10 @@
     {
       "name": "guest-search",
       "url": "/aegean-blue/search"
+    },
+    {
+      "name": "guest-contact",
+      "url": "/aegean-blue/contact"
     },
     {
       "name": "guest-legal",

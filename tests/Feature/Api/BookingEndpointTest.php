@@ -7,6 +7,7 @@ use App\Enums\BookingStatus;
 use App\Enums\TenantStatus;
 use App\Models\Booking;
 use App\Support\Tenancy;
+use Illuminate\Support\Arr;
 
 use function Pest\Laravel\getJson;
 use function Pest\Laravel\postJson;
@@ -342,6 +343,76 @@ it('refuses a back-office source from the public api', function (): void {
     )
         ->assertStatus(422)
         ->assertJsonPath('error.code', 'validation_failed');
+})->group('fast');
+
+it('creates a draft nobody has put their name to yet', function (): void {
+    $fixture = BookingApiScenario::bookable();
+
+    // ADR-0030. A draft is a hold on seats: the widget asks for a date and a
+    // party, and the lead guest is typed on the checkout page the response
+    // points at.
+    $created = postJson(
+        CatalogRequest::url('/bookings'),
+        Arr::except(
+            BookingApiScenario::body($fixture['product'], $fixture['departure'], $fixture['band']),
+            ['guest', 'terms_accepted'],
+        ),
+        ['Authorization' => "Bearer {$fixture['key']}", 'Idempotency-Key' => BookingApiScenario::idempotencyKey()],
+    )->assertCreated();
+
+    // The address the widget sends them to. It contains the manage token, so it
+    // appears in the `201` and nowhere else — like the token itself.
+    expect($created->json('data.checkout_url'))
+        ->toBeString()
+        ->toContain($created->json('data.manage_token'));
+
+    Tenancy::forTenant($fixture['tenant'], function () use ($created): void {
+        $booking = Booking::query()->where('uuid', $created->json('data.uuid'))->sole();
+
+        // Null, not an empty string. `''` is a name; null is a fact.
+        expect($booking->guest_name)->toBeNull()
+            ->and($booking->guest_email)->toBeNull()
+            ->and($booking->terms_accepted_at)->toBeNull()
+            // The seats are held all the same — that is what the draft is for,
+            // and the hold covers the minutes the checkout form takes.
+            ->and($booking->hold_expires_at)->not->toBeNull()
+            ->and($booking->status)->toBe(BookingStatus::Draft);
+    });
+})->group('fast');
+
+it('refuses to start a checkout for a booking nobody has claimed', function (): void {
+    $fixture = BookingApiScenario::bookable();
+
+    $created = postJson(
+        CatalogRequest::url('/bookings'),
+        Arr::except(
+            BookingApiScenario::body($fixture['product'], $fixture['departure'], $fixture['band']),
+            ['guest', 'terms_accepted'],
+        ),
+        ['Authorization' => "Bearer {$fixture['key']}", 'Idempotency-Key' => BookingApiScenario::idempotencyKey()],
+    )->assertCreated();
+
+    // ADR-0030's invariant, and the whole reason a draft may be anonymous: the
+    // rule moved from «no draft without a lead guest» to «no payment without
+    // one». Nothing reaches a gateway, an invoice or a manifest unnamed.
+    postJson(
+        CatalogRequest::url('/bookings/' . $created->json('data.uuid') . '/checkout'),
+        ['kind' => 'full', 'return_url' => 'https://aegeancruises.gr/thanks'],
+        [
+            'Authorization' => "Bearer {$fixture['key']}",
+            'X-Kaiki-Guest-Token' => $created->json('data.manage_token'),
+            'Idempotency-Key' => BookingApiScenario::idempotencyKey(),
+        ],
+    )
+        ->assertStatus(422)
+        ->assertJsonPath('error.code', 'lead_guest_required');
+
+    Tenancy::forTenant($fixture['tenant'], function () use ($created): void {
+        // And the seats stayed held rather than being committed on the way to a
+        // refusal.
+        expect(Booking::query()->where('uuid', $created->json('data.uuid'))->sole()->status)
+            ->toBe(BookingStatus::Draft);
+    });
 })->group('fast');
 
 it('refuses a booking with the terms unaccepted', function (): void {
