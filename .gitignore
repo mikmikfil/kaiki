@@ -68,3 +68,9 @@ Thumbs.db
 # Mailpit, downloaded rather than committed — 28 MB of binary that
 # `docs/testing/` tells you how to fetch (testing only, never production).
 /tools/*.exe
+
+# Any copy of the environment file, however it is named. A backup called
+# `.env.backup-lan` reached a public repository because the ignore rule was
+# the exact name rather than the shape.
+.env.*
+!.env.example
