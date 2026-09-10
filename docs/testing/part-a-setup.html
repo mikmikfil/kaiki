@@ -1,0 +1,176 @@
+<section class="part">
+    <span class="num">Μέρος Α</span>
+    <h2>Το στήσιμο</h2>
+    <p>
+        Ένας άνθρωπος, μία φορά, στο μηχάνημα που θα φιλοξενήσει τις δοκιμές. Οι
+        υπόλοιποι δεν εγκαθιστούν τίποτα.
+    </p>
+</section>
+
+<h2 class="continues">Τι χρειάζεται το μηχάνημα</h2>
+
+<p class="lede">
+    Windows, και τρία εργαλεία. Αν υπάρχουν ήδη, προσπεράστε στο επόμενο.
+</p>
+
+<table>
+    <tr>
+        <th>Τι</th>
+        <th>Έκδοση</th>
+        <th>Πού</th>
+    </tr>
+    <tr>
+        <td>Git</td>
+        <td>οποιαδήποτε</td>
+        <td>git-scm.com</td>
+    </tr>
+    <tr>
+        <td>PHP</td>
+        <td><strong>8.4</strong> ή νεότερη</td>
+        <td>windows.php.net — «Thread Safe», x64</td>
+    </tr>
+    <tr>
+        <td>Node.js</td>
+        <td>20 ή νεότερη</td>
+        <td>nodejs.org</td>
+    </tr>
+</table>
+
+<div class="warn">
+    <span class="label">Η PHP πρέπει να είναι 8.4</span>
+    <p>
+        Με 8.3 δεν ξεκινάει τίποτα: ο έλεγχος εξαρτήσεων σταματάει με μήνυμα για την
+        έκδοση. Αν έχετε ήδη μια παλιότερη PHP στο μηχάνημα, δεν χρειάζεται να τη
+        βγάλετε — αρκεί οι εντολές να δείχνουν στη νέα. Σε αυτό το μηχάνημα η 8.4
+        βρίσκεται στο <code>C:\Users\Mike\php84</code>, και το script εκκίνησης το ξέρει.
+    </p>
+</div>
+
+<h2>Κατεβάζουμε και στήνουμε</h2>
+
+<p>
+    Ανοίξτε ένα <strong>PowerShell</strong> — απλό, όχι διαχειριστή — και δώστε τα
+    παρακάτω με τη σειρά. Η τρίτη εντολή αργεί δύο με τρία λεπτά την πρώτη φορά.
+</p>
+
+<ol class="walk">
+    <li>
+        <strong>Φέρτε τον κώδικα</strong>
+        <pre class="cmd">git clone https://github.com/mikmikfil/kaiki.git
+cd kaiki</pre>
+        <p>
+            Αν τον έχετε ήδη, αρκεί <code>git pull</code> μέσα στον φάκελο.
+        </p>
+    </li>
+
+    <li>
+        <strong>Εγκαταστήστε τις εξαρτήσεις</strong>
+        <pre class="cmd">composer install
+npm install
+npm run build</pre>
+        <p>
+            Το <code>npm run build</code> φτιάχνει τα αρχεία εμφάνισης του πίνακα. Χωρίς
+            αυτό ο πίνακας ανοίγει αλλά δείχνει άστυλος.
+        </p>
+    </li>
+
+    <li>
+        <strong>Φτιάξτε το αρχείο ρυθμίσεων</strong>
+        <pre class="cmd">copy .env.example .env
+php artisan key:generate</pre>
+    </li>
+
+    <li>
+        <strong>Πείτε του τη διεύθυνση του μηχανήματος</strong>
+        <p>
+            Βρείτε την πρώτα:
+        </p>
+        <pre class="cmd">ipconfig | findstr IPv4</pre>
+        <pre class="out">   IPv4 Address. . . . . . . . . . . : 192.168.1.43</pre>
+        <p>
+            Ανοίξτε το αρχείο <code>.env</code> με σημειωματάριο και αλλάξτε
+            <strong>δύο</strong> γραμμές, βάζοντας τη δική σας διεύθυνση:
+        </p>
+        <pre class="cmd">APP_URL=http://192.168.1.43:8000
+KAIKI_HOSTED_HOST=192.168.1.43:8001</pre>
+    </li>
+
+    <li>
+        <strong>Ρυθμίστε τα email</strong>
+        <p>
+            Στο ίδιο αρχείο, τρεις γραμμές ακόμη:
+        </p>
+        <pre class="cmd">MAIL_MAILER=smtp
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025</pre>
+    </li>
+
+    <li>
+        <strong>Φτιάξτε τη βάση με δοκιμαστικά δεδομένα</strong>
+        <pre class="cmd">php artisan migrate:fresh --seed</pre>
+        <p>
+            Φτιάχνει δύο έτοιμους διοργανωτές με σκάφη, εκδρομές και κρατήσεις, ώστε να
+            υπάρχει κάτι να κοιτάξετε από την πρώτη στιγμή. Τον <em>δικό μας</em>
+            διοργανωτή θα τον φτιάξουμε από το μηδέν στο μέρος Γ.
+        </p>
+    </li>
+
+    <li>
+        <strong>Κατεβάστε το εργαλείο email</strong>
+        <p>
+            Από <code>github.com/axllent/mailpit/releases</code>, το αρχείο
+            <code>mailpit-windows-amd64.zip</code>. Βγάλτε το <code>mailpit.exe</code>
+            και βάλτε το στον φάκελο <code>tools\</code> μέσα στο kaiki.
+        </p>
+    </li>
+</ol>
+
+<div class="admin-only">
+    <span class="label">Βήμα 8 — θέλει διαχειριστή</span>
+    <p>
+        Χωρίς αυτό <strong>οι συνάδελφοι δεν θα συνδεθούν</strong>, όσο σωστά κι αν
+        τρέχουν όλα. Τα Windows μπλοκάρουν από προεπιλογή κάθε εισερχόμενη σύνδεση.
+        Δεξί κλικ στο μενού έναρξης, «Terminal (Admin)», και μία φορά:
+    </p>
+    <pre class="cmd">netsh advfirewall firewall add rule name="Kaiki panel 8000" dir=in action=allow protocol=TCP localport=8000 profile=private
+netsh advfirewall firewall add rule name="Kaiki guest 8001" dir=in action=allow protocol=TCP localport=8001 profile=private
+netsh advfirewall firewall add rule name="Kaiki email 8025" dir=in action=allow protocol=TCP localport=8025 profile=private</pre>
+    <p>
+        Το <code>profile=private</code> ανοίγει μόνο στο δίκτυο του γραφείου — όχι σε
+        δημόσιο WiFi.
+    </p>
+</div>
+
+<h2>Ξεκινάμε</h2>
+
+<p class="lede">
+    Μία εντολή, από τον φάκελο kaiki. Ανοίγει <strong>πέντε παράθυρα</strong>.
+</p>
+
+<pre class="cmd">powershell -ExecutionPolicy Bypass -File tools\start-testing.ps1</pre>
+
+<p>
+    Τα πέντε είναι: ο πίνακας, οι σελίδες επισκεπτών, <strong>ο εργάτης ουράς</strong>,
+    ο χρονοπρογραμματιστής, και το εργαλείο email. Το script διαβάζει μόνο του τη
+    διεύθυνση του μηχανήματος και σας τη δείχνει, και προειδοποιεί αν ξεχάσατε το
+    <code>.env</code> ή το τείχος προστασίας.
+</p>
+
+<div class="note">
+    <span class="label">Ο εργάτης ουράς είναι αυτός που ξεχνιέται</span>
+    <p>
+        Οι προσκλήσεις, οι επιβεβαιώσεις κρατήσεων και τα εισιτήρια δεν στέλνονται
+        απευθείας — μπαίνουν σε ουρά. Χωρίς τον εργάτη κάθονται εκεί για πάντα και
+        <strong>δεν εμφανίζεται κανένα μήνυμα σφάλματος πουθενά</strong>· απλώς δεν
+        έρχεται ποτέ τίποτα. Σε αυτό το μηχάνημα είχαν μαζευτεί 175 εργασίες πριν το
+        προσέξει κανείς. Αν κάτι «δεν έφτασε», κοιτάξτε πρώτα ότι αυτό το παράθυρο
+        τρέχει.
+    </p>
+</div>
+
+<h4>Πώς ξέρετε ότι δουλεύει</h4>
+<p>
+    Ανοίξτε στον φυλλομετρητή του ίδιου μηχανήματος τη διεύθυνση που σας έδειξε το
+    script. Αν φορτώνει η σελίδα εισόδου, το μισό είναι έτοιμο· το άλλο μισό είναι να
+    ανοίξει από <em>άλλον</em> υπολογιστή, που είναι το μέρος Β.
+</p>

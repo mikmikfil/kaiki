@@ -1,0 +1,1627 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<title>Kaiki — Οδηγός δοκιμών</title>
+<style>
+/*
+ * The manual, set for A4 and for a screen.
+ *
+ * Built on the brand decided on 2026-09-04: hull teal, Inter everywhere, IBM
+ * Plex Mono for anything that is a number a person reads off a screen — a time,
+ * a seat count, a booking reference. No serif; that was decided and rejected
+ * explicitly.
+ *
+ * Print first. This document exists to be a PDF that somebody prints once and
+ * keeps by the till, so page breaks, figure placement and the size of body text
+ * at 100% are the constraints, and how it looks in a browser tab follows from
+ * them rather than the other way round.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+:root {
+    --hull: #0b4f4a;
+    --hull-deep: #063733;
+    --rust: #b5511f;
+    --ink: #16211f;
+    --muted: #5c6a67;
+    --rule: #d9e2e0;
+    --wash: #f4f7f6;
+    --paper: #ffffff;
+
+    --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', monospace;
+}
+
+@page {
+    size: A4;
+    margin: 18mm 16mm 20mm;
+}
+
+/* The cover carries its own colour to the paper edge. */
+@page :first {
+    margin: 0;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 10.5pt;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* ---------------------------------------------------------------- cover -- */
+
+.cover {
+    background: var(--hull-deep);
+    color: #eef5f3;
+    min-height: 297mm;
+    padding: 40mm 24mm 24mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    break-after: page;
+}
+
+.cover .mark {
+    font-size: 30pt;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin: 0;
+}
+
+.cover h1 {
+    font-size: 40pt;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    margin: 0 0 6mm;
+    max-width: 22ch;
+}
+
+.cover .standfirst {
+    font-size: 12.5pt;
+    line-height: 1.55;
+    color: #b9d2cd;
+    max-width: 52ch;
+    margin: 0;
+}
+
+.cover .colophon {
+    font-family: var(--mono);
+    font-size: 8.5pt;
+    color: #7fa8a1;
+    letter-spacing: 0.01em;
+}
+
+.cover .colophon strong { color: #d7e7e4; font-weight: 600; }
+
+/* ------------------------------------------------------------- headings -- */
+
+h2, h3, h4 { font-weight: 800; letter-spacing: -0.018em; color: var(--hull-deep); }
+
+h2 {
+    font-size: 21pt;
+    line-height: 1.15;
+    margin: 0 0 3mm;
+    padding-top: 2mm;
+    break-before: page;
+    break-after: avoid;
+}
+
+/* The first heading of a part already starts a page via its part opener. */
+h2.continues { break-before: auto; }
+
+h3 {
+    font-size: 13pt;
+    line-height: 1.25;
+    margin: 9mm 0 2mm;
+    break-after: avoid;
+}
+
+h4 {
+    font-size: 10.5pt;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 6mm 0 1.5mm;
+    break-after: avoid;
+}
+
+p { margin: 0 0 3mm; orphans: 2; widows: 2; }
+
+a { color: var(--hull); }
+
+strong { font-weight: 600; }
+
+code, .ref {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--wash);
+    padding: 0.5mm 1.2mm;
+    border-radius: 2px;
+}
+
+ul, ol { margin: 0 0 3mm; padding-inline-start: 5.5mm; }
+li { margin-bottom: 1.2mm; }
+
+/* --------------------------------------------------------------- lede ---- */
+
+.lede {
+    font-size: 11.5pt;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 62ch;
+    margin: 0 0 6mm;
+}
+
+/* ------------------------------------------------------------- figures --- */
+
+figure {
+    margin: 5mm 0 6mm;
+    break-inside: avoid;
+}
+
+figure img {
+    display: block;
+    width: 100%;
+    border: 1px solid var(--rule);
+    border-radius: 3px;
+}
+
+/* A phone screenshot at full column width is a picture of a phone taken from
+   too far away. Held to the width it was captured at, so the text in it is the
+   size the text in it actually is. */
+figure.phone img { width: 62mm; margin-inline: auto; }
+
+figcaption {
+    font-size: 8.5pt;
+    line-height: 1.45;
+    color: var(--muted);
+    margin-top: 1.8mm;
+}
+
+figcaption b { color: var(--ink); font-weight: 600; }
+
+/* --------------------------------------------------------------- steps --- */
+
+/*
+ * A numbered walk-through. The number is set in the margin rather than inline,
+ * so a step whose text wraps to three lines still reads as one step — which is
+ * the whole reason somebody follows a numbered list instead of a paragraph.
+ */
+ol.steps {
+    counter-reset: step;
+    list-style: none;
+    padding: 0;
+    margin: 4mm 0 5mm;
+}
+
+ol.steps > li {
+    counter-increment: step;
+    position: relative;
+    padding-inline-start: 9mm;
+    margin-bottom: 3mm;
+    break-inside: avoid;
+}
+
+ol.steps > li::before {
+    content: counter(step);
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0.2mm;
+    width: 5.6mm;
+    height: 5.6mm;
+    border-radius: 50%;
+    background: var(--hull);
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 8pt;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* --------------------------------------------------------------- notes --- */
+
+.note, .warn {
+    border-inline-start: 2.5pt solid var(--hull);
+    background: var(--wash);
+    padding: 3mm 4mm;
+    margin: 4mm 0 5mm;
+    break-inside: avoid;
+    font-size: 9.8pt;
+}
+
+.warn { border-inline-start-color: var(--rust); background: #fdf4ef; }
+
+.note p:last-child, .warn p:last-child { margin-bottom: 0; }
+
+.note .label, .warn .label {
+    display: block;
+    font-size: 8pt;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--hull);
+    margin-bottom: 1mm;
+}
+
+.warn .label { color: var(--rust); }
+
+/* -------------------------------------------------------------- tables --- */
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.3pt;
+    margin: 4mm 0 5mm;
+    /* Breakable, with whole rows kept together. A thirty-row access table that
+       may not break simply falls off the end of the page it cannot fit on. */
+    break-inside: auto;
+}
+
+tr { break-inside: avoid; }
+
+th {
+    text-align: start;
+    font-weight: 600;
+    font-size: 8.4pt;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1pt solid var(--hull);
+    padding: 0 2.5mm 1.5mm 0;
+    vertical-align: bottom;
+}
+
+tbody td {
+    padding: 1.8mm 2.5mm 1.8mm 0;
+    border-bottom: 0.5pt solid var(--rule);
+    vertical-align: top;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+
+/* -------------------------------------------------------- part openers --- */
+
+.part {
+    break-before: page;
+    padding-top: 55mm;
+    break-after: page;
+}
+
+.part .num {
+    font-family: var(--mono);
+    font-size: 9pt;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--rust);
+    display: block;
+    margin-bottom: 3mm;
+}
+
+.part h2 {
+    break-before: auto;
+    font-size: 30pt;
+    line-height: 1.08;
+    margin: 0 0 5mm;
+    max-width: 20ch;
+}
+
+.part p {
+    font-size: 11.5pt;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 58ch;
+}
+
+/* ---------------------------------------------------------------- toc ---- */
+
+.toc { break-after: page; }
+.toc h2 { break-before: auto; }
+
+.toc ol { list-style: none; padding: 0; margin: 6mm 0 0; }
+
+.toc > ol > li {
+    margin-bottom: 4mm;
+    padding-bottom: 2mm;
+    border-bottom: 0.5pt solid var(--rule);
+}
+
+.toc .part-line {
+    display: flex;
+    gap: 3mm;
+    align-items: baseline;
+    font-weight: 600;
+    font-size: 11pt;
+    color: var(--hull-deep);
+}
+
+.toc .part-line .n {
+    font-family: var(--mono);
+    font-size: 8.5pt;
+    color: var(--rust);
+    min-width: 8mm;
+}
+
+.toc ul {
+    list-style: none;
+    padding: 0 0 0 11mm;
+    margin: 1.5mm 0 0;
+    font-size: 9.5pt;
+    color: var(--muted);
+}
+
+.toc ul li { margin-bottom: 0.6mm; }
+
+/* -------------------------------------------------------------- screen --- */
+
+@media screen {
+    body {
+        max-width: 190mm;
+        margin: 0 auto;
+        padding: 0 10mm 30mm;
+        font-size: 11pt;
+    }
+
+    .cover { margin: 0 -10mm 12mm; min-height: auto; padding: 30mm 20mm; }
+    .part { padding-top: 18mm; }
+    h2 { margin-top: 14mm; }
+}
+
+
+/*
+    What a runbook needs and the manual does not.
+
+    Only three things: a block for commands you type, a step list that a reader
+    can lose their place in and find again, and a way to mark the handful of
+    steps that need an administrator. Everything else — the measure, the
+    figures, the note boxes, the page margins — is `manual.css`, on purpose:
+    two documents that look almost alike are worse than two that look
+    different, because the reader cannot tell which one they are holding.
+*/
+
+/* --- commands you type --------------------------------------------- */
+
+pre.cmd {
+    background: #10161f;
+    color: #e6edf6;
+    border-radius: 5px;
+    padding: 11pt 13pt;
+    margin: 10pt 0 12pt;
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 8.6pt;
+    line-height: 1.62;
+    white-space: pre-wrap;
+    /* A command split across a page break is a command somebody types half of. */
+    page-break-inside: avoid;
+    overflow-wrap: anywhere;
+}
+
+pre.cmd .c {
+    color: #8fa3bd;
+}
+
+/* The output you should see back, so a reader can tell whether it worked
+   without asking. Quieter than the command, because it is not for typing. */
+pre.out {
+    background: #f4f6fa;
+    color: #47526b;
+    border-left: 3px solid #dce3ef;
+    padding: 9pt 12pt;
+    margin: -6pt 0 12pt;
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 8.2pt;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    page-break-inside: avoid;
+}
+
+/* --- numbered steps ------------------------------------------------- */
+
+ol.walk {
+    counter-reset: walk;
+    list-style: none;
+    padding: 0;
+    margin: 12pt 0;
+}
+
+ol.walk > li {
+    counter-increment: walk;
+    position: relative;
+    padding-left: 26pt;
+    margin-bottom: 13pt;
+}
+
+ol.walk > li::before {
+    content: counter(walk);
+    position: absolute;
+    left: 0;
+    top: 0.5pt;
+    width: 17pt;
+    height: 17pt;
+    border-radius: 50%;
+    background: #123a5e;
+    color: #fff;
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 8pt;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+ol.walk > li > strong:first-child {
+    display: block;
+    margin-bottom: 2pt;
+}
+
+/* --- the steps that need an administrator --------------------------- */
+
+.admin-only {
+    border: 1px solid #b5511f;
+    border-left-width: 4px;
+    background: #fdf6f2;
+    padding: 10pt 13pt;
+    margin: 12pt 0;
+    page-break-inside: avoid;
+}
+
+.admin-only .label {
+    display: block;
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 7.4pt;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: #b5511f;
+    margin-bottom: 4pt;
+}
+
+.admin-only p:last-child {
+    margin-bottom: 0;
+}
+
+/* --- the address table on the access page --------------------------- */
+
+table.addresses td:first-child {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+table.addresses code {
+    font-size: 8.4pt;
+}
+
+</style>
+</head>
+<body>
+<section class="cover">
+    <p class="mark">Kaiki</p>
+
+    <div>
+        <h1>Οδηγός δοκιμών</h1>
+        <p class="standfirst">
+            Πώς στήνεται ένα Kaiki που το ανοίγει όλη η ομάδα από το δίκτυο του γραφείου,
+            και πώς φτιάχνουμε έναν καινούργιο διοργανωτή από το μηδέν και τον δουλεύουμε
+            σαν να είμαστε εμείς.
+        </p>
+    </div>
+
+    <p class="colophon">
+        <strong>Σεπτέμβριος 2026</strong><br>
+        Κάθε βήμα εδώ έχει εκτελεστεί. Οι εικόνες τραβήχτηκαν από πρόγραμμα που
+        περπάτησε αυτή ακριβώς τη διαδρομή, με τη σειρά.<br>
+        Αν κάποιο βήμα σπάσει, το έγγραφο δεν χτίζεται.
+    </p>
+</section>
+
+<section class="toc">
+    <h2 class="continues">Τι θα κάνουμε</h2>
+
+    <p class="lede">
+        Το μέρος Α το κάνει <strong>ένας</strong> άνθρωπος, μία φορά, στο μηχάνημα που θα
+        φιλοξενήσει τις δοκιμές. Από το μέρος Β και μετά συμμετέχουν όλοι, ο καθένας από
+        τον δικό του υπολογιστή — δεν χρειάζεται να εγκαταστήσει κανείς τίποτα.
+    </p>
+
+    <ol>
+        <li><span>Α</span> Το στήσιμο, στο μηχάνημα που φιλοξενεί</li>
+        <li><span>Β</span> Πώς μπαίνει η ομάδα</li>
+        <li><span>Γ</span> Φτιάχνουμε καινούργιο διοργανωτή</li>
+        <li><span>Δ</span> Πρώτη είσοδος, και ο οδηγός πρώτης ρύθμισης</li>
+        <li><span>Ε</span> Στήνουμε την επιχείρηση</li>
+        <li><span>ΣΤ</span> Το βλέπουμε σαν επισκέπτες</li>
+        <li><span>Ζ</span> Πίσω στον πίνακα</li>
+        <li><span>Η</span> Τι δοκιμάζουμε, τι όχι, και πώς αναφέρουμε</li>
+    </ol>
+</section>
+
+<h2 class="continues">Τρία πράγματα πριν αρχίσουμε</h2>
+
+<h4>Δεν είναι παραγωγή</h4>
+<p>
+    Τρέχει σε έναν υπολογιστή γραφείου, με βάση δεδομένων SQLite και χωρίς αντίγραφα
+    ασφαλείας. Σκοπός του είναι να βρούμε τι δεν δουλεύει. <strong>Μη βάλετε αληθινά
+    δεδομένα πελατών</strong> — ούτε ονόματα, ούτε τηλέφωνα, ούτε αριθμούς
+    διαβατηρίων.
+</p>
+
+<h4>Κανένα email δεν φεύγει προς τα έξω</h4>
+<p>
+    Όλα τα μηνύματα που στέλνει το Kaiki πιάνονται από ένα εργαλείο στο ίδιο μηχάνημα
+    και τα βλέπετε <strong>όλοι</strong> σε μια σελίδα. Αυτό είναι σκόπιμο: δοκιμάζετε
+    με επινοημένες διευθύνσεις πελατών, και δεν θέλουμε να φύγει «η κράτησή σας
+    επιβεβαιώθηκε» σε άγνωστο άνθρωπο.
+</p>
+
+<h4>Δεν δοκιμάζουμε πληρωμές ούτε WordPress</h4>
+<p>
+    Η κράτηση προχωράει μέχρι το ταμείο και σταματάει εκεί. Δεν χρειάζεται κάρτα και
+    δεν κινείται χρήμα. Το πρόσθετο WordPress επίσης μένει έξω από αυτόν τον γύρο.
+    Ό,τι άλλο υπάρχει, δοκιμάζεται κανονικά.
+</p>
+
+<section class="part">
+    <span class="num">Μέρος Α</span>
+    <h2>Το στήσιμο</h2>
+    <p>
+        Ένας άνθρωπος, μία φορά, στο μηχάνημα που θα φιλοξενήσει τις δοκιμές. Οι
+        υπόλοιποι δεν εγκαθιστούν τίποτα.
+    </p>
+</section>
+
+<h2 class="continues">Τι χρειάζεται το μηχάνημα</h2>
+
+<p class="lede">
+    Windows, και τρία εργαλεία. Αν υπάρχουν ήδη, προσπεράστε στο επόμενο.
+</p>
+
+<table>
+    <tr>
+        <th>Τι</th>
+        <th>Έκδοση</th>
+        <th>Πού</th>
+    </tr>
+    <tr>
+        <td>Git</td>
+        <td>οποιαδήποτε</td>
+        <td>git-scm.com</td>
+    </tr>
+    <tr>
+        <td>PHP</td>
+        <td><strong>8.4</strong> ή νεότερη</td>
+        <td>windows.php.net — «Thread Safe», x64</td>
+    </tr>
+    <tr>
+        <td>Node.js</td>
+        <td>20 ή νεότερη</td>
+        <td>nodejs.org</td>
+    </tr>
+</table>
+
+<div class="warn">
+    <span class="label">Η PHP πρέπει να είναι 8.4</span>
+    <p>
+        Με 8.3 δεν ξεκινάει τίποτα: ο έλεγχος εξαρτήσεων σταματάει με μήνυμα για την
+        έκδοση. Αν έχετε ήδη μια παλιότερη PHP στο μηχάνημα, δεν χρειάζεται να τη
+        βγάλετε — αρκεί οι εντολές να δείχνουν στη νέα. Σε αυτό το μηχάνημα η 8.4
+        βρίσκεται στο <code>C:\Users\Mike\php84</code>, και το script εκκίνησης το ξέρει.
+    </p>
+</div>
+
+<h2>Κατεβάζουμε και στήνουμε</h2>
+
+<p>
+    Ανοίξτε ένα <strong>PowerShell</strong> — απλό, όχι διαχειριστή — και δώστε τα
+    παρακάτω με τη σειρά. Η τρίτη εντολή αργεί δύο με τρία λεπτά την πρώτη φορά.
+</p>
+
+<ol class="walk">
+    <li>
+        <strong>Φέρτε τον κώδικα</strong>
+        <pre class="cmd">git clone https://github.com/mikmikfil/kaiki.git
+cd kaiki</pre>
+        <p>
+            Αν τον έχετε ήδη, αρκεί <code>git pull</code> μέσα στον φάκελο.
+        </p>
+    </li>
+
+    <li>
+        <strong>Εγκαταστήστε τις εξαρτήσεις</strong>
+        <pre class="cmd">composer install
+npm install
+npm run build</pre>
+        <p>
+            Το <code>npm run build</code> φτιάχνει τα αρχεία εμφάνισης του πίνακα. Χωρίς
+            αυτό ο πίνακας ανοίγει αλλά δείχνει άστυλος.
+        </p>
+    </li>
+
+    <li>
+        <strong>Φτιάξτε το αρχείο ρυθμίσεων</strong>
+        <pre class="cmd">copy .env.example .env
+php artisan key:generate</pre>
+    </li>
+
+    <li>
+        <strong>Πείτε του τη διεύθυνση του μηχανήματος</strong>
+        <p>
+            Βρείτε την πρώτα:
+        </p>
+        <pre class="cmd">ipconfig | findstr IPv4</pre>
+        <pre class="out">   IPv4 Address. . . . . . . . . . . : 192.168.1.43</pre>
+        <p>
+            Ανοίξτε το αρχείο <code>.env</code> με σημειωματάριο και αλλάξτε
+            <strong>δύο</strong> γραμμές, βάζοντας τη δική σας διεύθυνση:
+        </p>
+        <pre class="cmd">APP_URL=http://192.168.1.43:8000
+KAIKI_HOSTED_HOST=192.168.1.43:8001</pre>
+    </li>
+
+    <li>
+        <strong>Ρυθμίστε τα email</strong>
+        <p>
+            Στο ίδιο αρχείο, τρεις γραμμές ακόμη:
+        </p>
+        <pre class="cmd">MAIL_MAILER=smtp
+MAIL_HOST=127.0.0.1
+MAIL_PORT=1025</pre>
+    </li>
+
+    <li>
+        <strong>Φτιάξτε τη βάση με δοκιμαστικά δεδομένα</strong>
+        <pre class="cmd">php artisan migrate:fresh --seed</pre>
+        <p>
+            Φτιάχνει δύο έτοιμους διοργανωτές με σκάφη, εκδρομές και κρατήσεις, ώστε να
+            υπάρχει κάτι να κοιτάξετε από την πρώτη στιγμή. Τον <em>δικό μας</em>
+            διοργανωτή θα τον φτιάξουμε από το μηδέν στο μέρος Γ.
+        </p>
+    </li>
+
+    <li>
+        <strong>Κατεβάστε το εργαλείο email</strong>
+        <p>
+            Από <code>github.com/axllent/mailpit/releases</code>, το αρχείο
+            <code>mailpit-windows-amd64.zip</code>. Βγάλτε το <code>mailpit.exe</code>
+            και βάλτε το στον φάκελο <code>tools\</code> μέσα στο kaiki.
+        </p>
+    </li>
+</ol>
+
+<div class="admin-only">
+    <span class="label">Βήμα 8 — θέλει διαχειριστή</span>
+    <p>
+        Χωρίς αυτό <strong>οι συνάδελφοι δεν θα συνδεθούν</strong>, όσο σωστά κι αν
+        τρέχουν όλα. Τα Windows μπλοκάρουν από προεπιλογή κάθε εισερχόμενη σύνδεση.
+        Δεξί κλικ στο μενού έναρξης, «Terminal (Admin)», και μία φορά:
+    </p>
+    <pre class="cmd">netsh advfirewall firewall add rule name="Kaiki panel 8000" dir=in action=allow protocol=TCP localport=8000 profile=private
+netsh advfirewall firewall add rule name="Kaiki guest 8001" dir=in action=allow protocol=TCP localport=8001 profile=private
+netsh advfirewall firewall add rule name="Kaiki email 8025" dir=in action=allow protocol=TCP localport=8025 profile=private</pre>
+    <p>
+        Το <code>profile=private</code> ανοίγει μόνο στο δίκτυο του γραφείου — όχι σε
+        δημόσιο WiFi.
+    </p>
+</div>
+
+<h2>Ξεκινάμε</h2>
+
+<p class="lede">
+    Μία εντολή, από τον φάκελο kaiki. Ανοίγει <strong>πέντε παράθυρα</strong>.
+</p>
+
+<pre class="cmd">powershell -ExecutionPolicy Bypass -File tools\start-testing.ps1</pre>
+
+<p>
+    Τα πέντε είναι: ο πίνακας, οι σελίδες επισκεπτών, <strong>ο εργάτης ουράς</strong>,
+    ο χρονοπρογραμματιστής, και το εργαλείο email. Το script διαβάζει μόνο του τη
+    διεύθυνση του μηχανήματος και σας τη δείχνει, και προειδοποιεί αν ξεχάσατε το
+    <code>.env</code> ή το τείχος προστασίας.
+</p>
+
+<div class="note">
+    <span class="label">Ο εργάτης ουράς είναι αυτός που ξεχνιέται</span>
+    <p>
+        Οι προσκλήσεις, οι επιβεβαιώσεις κρατήσεων και τα εισιτήρια δεν στέλνονται
+        απευθείας — μπαίνουν σε ουρά. Χωρίς τον εργάτη κάθονται εκεί για πάντα και
+        <strong>δεν εμφανίζεται κανένα μήνυμα σφάλματος πουθενά</strong>· απλώς δεν
+        έρχεται ποτέ τίποτα. Σε αυτό το μηχάνημα είχαν μαζευτεί 175 εργασίες πριν το
+        προσέξει κανείς. Αν κάτι «δεν έφτασε», κοιτάξτε πρώτα ότι αυτό το παράθυρο
+        τρέχει.
+    </p>
+</div>
+
+<h4>Πώς ξέρετε ότι δουλεύει</h4>
+<p>
+    Ανοίξτε στον φυλλομετρητή του ίδιου μηχανήματος τη διεύθυνση που σας έδειξε το
+    script. Αν φορτώνει η σελίδα εισόδου, το μισό είναι έτοιμο· το άλλο μισό είναι να
+    ανοίξει από <em>άλλον</em> υπολογιστή, που είναι το μέρος Β.
+</p>
+
+<section class="part">
+    <span class="num">Μέρος Β</span>
+    <h2>Πώς μπαίνει η ομάδα</h2>
+    <p>
+        Τίποτα να εγκαταστήσει κανείς. Ένας φυλλομετρητής και τρεις διευθύνσεις — και
+        το μηχάνημα του μέρους Α ανοιχτό.
+    </p>
+</section>
+
+<h2 class="continues">Οι τρεις διευθύνσεις</h2>
+
+<p class="lede">
+    Αντικαταστήστε το <code>192.168.1.43</code> με τη διεύθυνση που σας έδειξε το script
+    εκκίνησης. Θα αλλάξει αν το μηχάνημα ξανασυνδεθεί στο δίκτυο.
+</p>
+
+<table class="addresses">
+    <tr>
+        <th>Τι</th>
+        <th>Διεύθυνση</th>
+        <th>Ποιος τη χρειάζεται</th>
+    </tr>
+    <tr>
+        <td>Ο πίνακας</td>
+        <td><code>http://192.168.1.43:8000/app</code></td>
+        <td>Ο διοργανωτής και η ομάδα του</td>
+    </tr>
+    <tr>
+        <td>Οι σελίδες επισκεπτών</td>
+        <td><code>http://192.168.1.43:8001/{slug}</code></td>
+        <td>Όποιος παίζει τον πελάτη</td>
+    </tr>
+    <tr>
+        <td>Τα email</td>
+        <td><code>http://192.168.1.43:8025</code></td>
+        <td>Όλοι</td>
+    </tr>
+</table>
+
+<h2>Οι έτοιμοι λογαριασμοί</h2>
+
+<p>
+    Η δοκιμαστική βάση έρχεται με έναν διοργανωτή που δουλεύει ήδη μια σεζόν, ώστε να
+    υπάρχει κάτι να δείτε πριν φτιάξετε τον δικό σας. Κωδικός σε όλους:
+    <code>password</code>.
+</p>
+
+<table>
+    <tr>
+        <th>Λογαριασμός</th>
+        <th>Ρόλος</th>
+        <th>Πού μπαίνει</th>
+    </tr>
+    <tr>
+        <td><code>maria@aegean-blue.example</code></td>
+        <td>Ιδιοκτήτρια</td>
+        <td><code>/app</code></td>
+    </tr>
+    <tr>
+        <td><code>giorgos@aegean-blue.example</code></td>
+        <td>Διαχειριστής</td>
+        <td><code>/app</code></td>
+    </tr>
+    <tr>
+        <td><code>nikos@aegean-blue.example</code></td>
+        <td>Πλήρωμα</td>
+        <td><code>/app</code></td>
+    </tr>
+    <tr>
+        <td><code>admin@kaiki.example</code></td>
+        <td>Διαχειριστής πλατφόρμας</td>
+        <td><code>/admin</code></td>
+    </tr>
+</table>
+
+<div class="warn">
+    <span class="label">Οι δύο πίνακες δεν ανταλλάσσονται</span>
+    <p>
+        Ο <code>admin@kaiki.example</code> μπαίνει στο <code>/admin</code> και παίρνει
+        <strong>403 στο <code>/app</code></strong>. Η <code>maria</code> το αντίστροφο.
+        Δεν είναι σφάλμα: ο διαχειριστής της πλατφόρμας δεν ανήκει σε καμία επιχείρηση,
+        και ο διοργανωτής δεν βλέπει τους άλλους διοργανωτές. Αν δείτε αυτό το 403,
+        κοιτάξτε ποιος είναι συνδεδεμένος πριν το αναφέρετε.
+    </p>
+</div>
+
+<h2>Δοκιμάστε και τους τρεις ρόλους</h2>
+
+<p class="lede">
+    Το πιο χρήσιμο πράγμα που μπορείτε να κάνετε στην πρώτη μισή ώρα: μπείτε με τους
+    τρεις λογαριασμούς του ίδιου διοργανωτή, στη σειρά, και δείτε τι <em>δεν</em>
+    βλέπει ο καθένας.
+</p>
+
+<ul>
+    <li>
+        Η <strong>ιδιοκτήτρια</strong> τα βλέπει όλα — και είναι η μόνη που φτάνει στα
+        κλειδιά πληρωμών, στην ομάδα και στις ρυθμίσεις χρέωσης.
+    </li>
+    <li>
+        Ο <strong>διαχειριστής</strong> τρέχει την επιχείρηση καθημερινά: κρατήσεις,
+        εκδρομές, τιμές, πελάτες. Δεν αγγίζει χρήματα σε επίπεδο λογαριασμού.
+    </li>
+    <li>
+        Το <strong>πλήρωμα</strong> βλέπει σχεδόν τίποτα, και αυτό είναι το ζητούμενο:
+        αναχωρήσεις και επιβίβαση, μέσα στο παράθυρο της βάρδιας. Όχι τζίρο, όχι
+        ιστορικό πελατών.
+    </li>
+</ul>
+
+<p>
+    Αν κάποιος ρόλος βλέπει κάτι που δεν θα έπρεπε, <strong>αυτό είναι το πιο σοβαρό
+    πράγμα που μπορείτε να βρείτε</strong> σε αυτόν τον γύρο. Σημειώστε το πρώτο.
+</p>
+
+<section class="part">
+    <span class="num">Μέρος Γ</span>
+    <h2>Φτιάχνουμε καινούργιο διοργανωτή</h2>
+    <p>
+        Από εδώ και κάτω δεν κοιτάμε τα έτοιμα δεδομένα. Στήνουμε δική μας επιχείρηση
+        από το μηδέν — που είναι ακριβώς αυτό που θα δει ο πρώτος πραγματικός πελάτης.
+    </p>
+</section>
+
+<h2 class="continues">Μπαίνουμε ως πλατφόρμα</h2>
+
+<p class="lede">
+    Ο διοργανωτής δεν εγγράφεται μόνος του. Τον ανοίγει η πλατφόρμα και στέλνει
+    πρόσκληση στον ιδιοκτήτη.
+</p>
+
+<figure>
+    <img src="img/01-admin-login.jpg" alt="Η είσοδος του πίνακα πλατφόρμας">
+    <figcaption>
+        <b>/admin</b> — ξεχωριστή είσοδος από αυτήν του διοργανωτή. Μπείτε με
+        <code>admin@kaiki.example</code> και <code>password</code>.
+    </figcaption>
+</figure>
+
+<figure>
+    <img src="img/02-admin-tenants.jpg" alt="Η λίστα των διοργανωτών">
+    <figcaption>
+        <b>Οι διοργανωτές.</b> Κάθε επιχείρηση στην πλατφόρμα, με πακέτο, κατάσταση και
+        πόσες μέρες μένουν στη δοκιμή της.
+    </figcaption>
+</figure>
+
+<h2>Ο καινούργιος</h2>
+
+<p>
+    Πατήστε <strong>Νέος διοργανωτής</strong>. Η φόρμα ζητάει πέντε πράγματα και τίποτε
+    άλλο.
+</p>
+
+<figure>
+    <img src="img/03-new-operator-form.jpg" alt="Η φόρμα δημιουργίας διοργανωτή">
+    <figcaption>
+        <b>Πέντε πεδία.</b> Τα υπόλοιπα — τα χρώματα, τα σκάφη, οι τιμές — τα
+        συμπληρώνει ο ίδιος ο διοργανωτής. Μια φόρμα πλατφόρμας που τα ζητούσε όλα θα
+        ήταν φόρμα που κάποιος διαβάζει στο τηλέφωνο.
+    </figcaption>
+</figure>
+
+<table>
+    <tr>
+        <th>Πεδίο</th>
+        <th>Τι βάζουμε</th>
+    </tr>
+    <tr>
+        <td>Επωνυμία</td>
+        <td>Το όνομα της δοκιμαστικής επιχείρησης, π.χ. «Δοκιμαστικές Κρουαζιέρες»</td>
+    </tr>
+    <tr>
+        <td>Slug</td>
+        <td>Συμπληρώνεται μόνο του. Είναι η <strong>διεύθυνση</strong> της σελίδας — μικρά λατινικά και παύλες</td>
+    </tr>
+    <tr>
+        <td>Email χρέωσης</td>
+        <td>Της επιχείρησης. Δεν είναι λογαριασμός εισόδου</td>
+    </tr>
+    <tr>
+        <td>Ονοματεπώνυμο ιδιοκτήτη</td>
+        <td>Ποιος θα διοικεί</td>
+    </tr>
+    <tr>
+        <td>Email ιδιοκτήτη</td>
+        <td><strong>Αυτό γίνεται ο λογαριασμός εισόδου.</strong> Πρέπει να είναι μοναδικό</td>
+    </tr>
+</table>
+
+<div class="note">
+    <span class="label">Κανείς δεν πληκτρολογεί κωδικό — ούτε εμείς</span>
+    <p>
+        Ο λογαριασμός φτιάχνεται με έναν τυχαίο κωδικό που δεν βλέπει ποτέ κανείς, και ο
+        ιδιοκτήτης ορίζει δικό του μέσα από σύνδεσμο. Ένας διαχειριστής που θα
+        πληκτρολογούσε κωδικό θα έβαζε ένα λειτουργικό διαπιστευτήριο ξένης επιχείρησης
+        σε ένα email και σε ένα τετράδιο.
+    </p>
+</div>
+
+<figure>
+    <img src="img/04-operator-created.jpg" alt="Ο διοργανωτής δημιουργήθηκε">
+    <figcaption>
+        <b>Έτοιμος.</b> Η επιχείρηση μπαίνει σε <strong>δοκιμή 14 ημερών</strong> και η
+        πρόσκληση φεύγει προς τον ιδιοκτήτη.
+    </figcaption>
+</figure>
+
+<h2>Πού είναι η πρόσκληση</h2>
+
+<p class="lede">
+    Ανοίξτε <code>http://192.168.1.43:8025</code> και θα τη δείτε — μαζί με κάθε άλλο
+    email που θα στείλει το Kaiki από εδώ και πέρα.
+</p>
+
+<p>
+    Αν βιάζεστε ή αν το email δεν έφτασε, υπάρχει εντολή που τυπώνει τον σύνδεσμο
+    κατευθείαν. Από τον φάκελο kaiki, σε ένα PowerShell:
+</p>
+
+<pre class="cmd">php artisan kaiki:invitation-link <span class="c">owner@example.com</span></pre>
+<pre class="out">  Δοκιμαστής Ιδιοκτήτης — owner@example.com
+
+  http://192.168.1.43:8000/app/password-reset/reset?token=...&amp;email=...</pre>
+
+<div class="warn">
+    <span class="label">Αν ο σύνδεσμος λέει 127.0.0.1</span>
+    <p>
+        Τότε το <code>APP_URL</code> δεν άλλαξε στο μέρος Α, βήμα 4. Ο σύνδεσμος θα
+        ανοίγει μόνο στο μηχάνημα που τον έφτιαξε και σε κανέναν άλλο. Διορθώστε το
+        <code>.env</code>, τρέξτε <code>php artisan config:clear</code>, και ζητήστε νέον
+        σύνδεσμο με την εντολή παραπάνω.
+    </p>
+</div>
+
+<section class="part">
+    <span class="num">Μέρος Δ</span>
+    <h2>Πρώτη είσοδος</h2>
+    <p>
+        Από εδώ και πέρα είμαστε ο διοργανωτής. Ο λογαριασμός είναι άδειος — κανένα
+        σκάφος, καμία εκδρομή, κανένας πελάτης.
+    </p>
+</section>
+
+<h2 class="continues">Ορίζουμε κωδικό</h2>
+
+<figure>
+    <img src="img/05-set-password.jpg" alt="Η σελίδα ορισμού κωδικού">
+    <figcaption>
+        <b>Ο σύνδεσμος της πρόσκλησης.</b> Το email είναι συμπληρωμένο και δεν αλλάζει —
+        ο σύνδεσμος είναι υπογεγραμμένος και ισχύει για αυτόν τον λογαριασμό μόνο.
+    </figcaption>
+</figure>
+
+<p>
+    Βάλτε κωδικό που θα θυμάστε — θα τον μοιραστείτε με την ομάδα. Για τις δοκιμές
+    προτείνουμε κάτι σαν <code>kaiki-testing-2026</code>.
+</p>
+
+<div class="note">
+    <span class="label">Ο σύνδεσμος ξοδεύεται</span>
+    <p>
+        Είναι μιας χρήσης και λήγει. Αν τον ανοίξετε δεύτερη φορά δεν θα δουλέψει, και
+        αυτό είναι σωστό — δεν είναι σφάλμα να αναφέρετε. Ζητήστε καινούργιον με την
+        εντολή του μέρους Γ, ή από το «Ξεχάσατε τον κωδικό σας;» στη σελίδα εισόδου.
+    </p>
+</div>
+
+<h2>Ο οδηγός πρώτης ρύθμισης</h2>
+
+<p class="lede">
+    Μόλις μπείτε, ανοίγει μόνος του. Είναι το πρώτο πράγμα που θα δει κάθε πραγματικός
+    πελάτης, οπότε αξίζει να τον διαβάσετε σαν πελάτης και όχι σαν δοκιμαστής.
+</p>
+
+<figure>
+    <img src="img/08-setup-guide.jpg" alt="Ο οδηγός πρώτης ρύθμισης">
+    <figcaption>
+        <b>Έξι βήματα.</b> Πρώτος στο μενού όσο μένει κάτι ανοιχτό, με τον αριθμό των
+        βημάτων που απομένουν δίπλα του.
+    </figcaption>
+</figure>
+
+<table>
+    <tr>
+        <th>Βήμα</th>
+        <th>Τι ζητάει</th>
+        <th>Γιατί</th>
+    </tr>
+    <tr>
+        <td>Η επιχείρησή σας</td>
+        <td>Επωνυμία, ΑΦΜ, ΔΟΥ, διεύθυνση</td>
+        <td>Τυπώνονται στα παραστατικά</td>
+    </tr>
+    <tr>
+        <td>Η εμφάνισή σας</td>
+        <td>Λογότυπο και χρώματα</td>
+        <td>Σας πάει στη δική της οθόνη</td>
+    </tr>
+    <tr>
+        <td>ΦΠΑ</td>
+        <td>Τον συντελεστή που πουλάτε συνήθως</td>
+        <td>Προσυμπληρώνεται σε κάθε νέα εκδρομή</td>
+    </tr>
+    <tr>
+        <td>Το πρώτο σκάφος</td>
+        <td>—</td>
+        <td>Σας πάει στην οθόνη σκαφών</td>
+    </tr>
+    <tr>
+        <td>Η πρώτη εκδρομή</td>
+        <td>—</td>
+        <td>Σας πάει στην οθόνη εκδρομών</td>
+    </tr>
+    <tr>
+        <td>Έτοιμοι</td>
+        <td>—</td>
+        <td>Πού είναι οι σελίδες σας</td>
+    </tr>
+</table>
+
+<h4>Τι αξίζει να δοκιμάσετε εδώ</h4>
+
+<ul>
+    <li>
+        <strong>Παραλείψτε ένα βήμα.</strong> Κάθε βήμα έχει «Παράλειψη προς το παρόν».
+        Ο οδηγός πρέπει να προσπερνά αυτό που παραλείψατε και να μη σας το ξαναζητάει,
+        αλλά να συνεχίζει να το δείχνει ως ανοιχτό στη λίστα.
+    </li>
+    <li>
+        <strong>Βγείτε στη μέση.</strong> Πηγαίνετε αλλού στο μενού και γυρίστε. Πρέπει
+        να ανοίγει εκεί που σταματήσατε.
+    </li>
+    <li>
+        <strong>Κάντε ένα βήμα από αλλού.</strong> Προσθέστε σκάφος από την οθόνη
+        «Σκάφη» χωρίς να περάσετε από τον οδηγό. Το βήμα πρέπει να είναι ήδη
+        τσεκαρισμένο όταν γυρίσετε.
+    </li>
+    <li>
+        <strong>Τελειώστε τον.</strong> Πρέπει να <em>φύγει εντελώς</em> — από το μενού
+        και από τον πίνακα ελέγχου. Αν παραμείνει κάπου, είναι σφάλμα.
+    </li>
+</ul>
+
+<div class="note">
+    <span class="label">Ο ΦΠΑ δεν προτείνεται από εμάς</span>
+    <p>
+        Το βήμα του ΦΠΑ δεν σας λέει ποιον συντελεστή να διαλέξετε, επίτηδες: είναι
+        απάντηση λογιστή, και ένα λάθος εκεί γίνεται λάθος πάνω σε παραστατικό. Αν δεν
+        ξέρετε, παραλείψτε το.
+    </p>
+</div>
+
+<figure>
+    <img src="img/07-first-screen.jpg" alt="Ο πίνακας ελέγχου ενός νέου λογαριασμού">
+    <figcaption>
+        <b>Ο πίνακας, άδειος.</b> Όσο λείπουν βήματα, η λίστα κάθεται πάνω-πάνω — δίπλα
+        στα νούμερα, ποτέ στη θέση τους.
+    </figcaption>
+</figure>
+
+<section class="part">
+    <span class="num">Μέρος Ε</span>
+    <h2>Στήνουμε την επιχείρηση</h2>
+    <p>
+        Η σειρά έχει σημασία και δεν είναι αυθαίρετη: μια εκδρομή θέλει σκάφος, μια τιμή
+        θέλει εκδρομή, μια αναχώρηση θέλει και τα δύο.
+    </p>
+</section>
+
+<h2 class="continues">Πρώτα το λιμάνι</h2>
+
+<figure>
+    <img src="img/11-ports-empty.jpg" alt="Η οθόνη λιμανιών, άδεια">
+    <figcaption>
+        <b>Λιμάνια και σημεία συνάντησης.</b> Από πού φεύγει το σκάφος και πού στέκεται
+        ο επισκέπτης στις εννιά το πρωί.
+    </figcaption>
+</figure>
+
+<p>
+    Βάλτε όνομα και διεύθυνση. <strong>Αν συμπληρώσετε συντεταγμένες</strong>, η σελίδα
+    της εκδρομής δείχνει χάρτη· χωρίς αυτές δείχνει μόνο σύνδεσμο, που είναι καλύτερο
+    από σπασμένο κουτί στο σημείο που λέει στον πελάτη πού να πάει.
+</p>
+
+<h2>Το σκάφος</h2>
+
+<figure>
+    <img src="img/10-vessel-form.jpg" alt="Η φόρμα σκάφους">
+    <figcaption>
+        <b>Νέο σκάφος.</b> Όνομα, τύπος, μέγιστοι επιβάτες, λιμάνι βάσης.
+    </figcaption>
+</figure>
+
+<p>
+    Δύο πεδία κάνουν περισσότερα απ' όσα φαίνονται. Οι <strong>μέγιστοι επιβάτες</strong>
+    είναι νόμιμο όριο και καμία κράτηση δεν το ξεπερνά, ούτε χειροκίνητη. Ο
+    <strong>χρόνος προετοιμασίας</strong> είναι τα λεπτά που χρειάζεστε ανάμεσα σε δύο
+    εκδρομές του ίδιου σκάφους — και το Kaiki δεν θα πουλήσει ποτέ δύο που πέφτουν μέσα
+    σε αυτό το διάστημα.
+</p>
+
+<h4>Δοκιμάστε το όριο</h4>
+<p>
+    Βάλτε 10 επιβάτες, κάντε αργότερα κράτηση για 8, και μετά προσπαθήστε να το
+    κατεβάσετε σε 5. Πρέπει να αρνηθεί και να σας πει ποιες κρατήσεις το εμποδίζουν.
+</p>
+
+<h2>Η εκδρομή</h2>
+
+<figure>
+    <img src="img/13-product-form.jpg" alt="Η φόρμα εκδρομής">
+    <figcaption>
+        <b>Νέα εκδρομή.</b> Η μεγαλύτερη φόρμα του προϊόντος, σε ενότητες.
+    </figcaption>
+</figure>
+
+<p>
+    Η σημαντική απόφαση είναι ο <strong>τρόπος κράτησης</strong>, γιατί αλλάζει όλα τα
+    υπόλοιπα:
+</p>
+
+<table>
+    <tr>
+        <th>Τρόπος</th>
+        <th>Τι σημαίνει</th>
+    </tr>
+    <tr>
+        <td>Ανά θέση</td>
+        <td>Κοινή εκδρομή. Τιμή ανά ηλικία, και οι θέσεις μετρούν</td>
+    </tr>
+    <tr>
+        <td>Ολόκληρο το σκάφος</td>
+        <td>Ιδιωτική ναύλωση. Μία τιμή για το σκάφος</td>
+    </tr>
+    <tr>
+        <td>Κατόπιν ζήτησης</td>
+        <td>Δεν δείχνει τιμή. Ο πελάτης ζητάει, εσείς στέλνετε προσφορά</td>
+    </tr>
+</table>
+
+<p>
+    Για την πρώτη σας εκδρομή διαλέξτε <strong>ανά θέση</strong> — είναι η διαδρομή που
+    δοκιμάζει τα περισσότερα. Στις <em>κατηγορίες ηλικίας</em> αφήστε τουλάχιστον μία
+    σημειωμένη ως <strong>βασική</strong>: είναι αυτή πάνω στην οποία υπολογίζονται οι
+    υπόλοιπες.
+</p>
+
+<h2>Οι τιμές</h2>
+
+<p class="lede">
+    Στο κάτω μέρος της οθόνης της εκδρομής, καρτέλα <strong>Τιμές</strong>. Δεν
+    χρειάζεται να πάτε αλλού.
+</p>
+
+<ol class="walk">
+    <li>
+        <strong>Μία τιμή για όλες τις μέρες</strong>
+        <p>
+            Πατήστε «Νέα τιμή» και αφήστε την περίοδο <em>κενή</em>. Αυτή ισχύει όποτε
+            δεν ταιριάζει καμία περίοδος. Χωρίς αυτήν, η εκδρομή απλώς δεν πουλάει.
+        </p>
+    </li>
+    <li>
+        <strong>Μία για το καλοκαίρι</strong>
+        <p>
+            «Νέα τιμή» ξανά, και στο πεδίο περιόδου πατήστε το <strong>+</strong> για να
+            φτιάξετε την περίοδο επιτόπου — όνομα, από, έως. Βάλτε μεγαλύτερη τιμή.
+        </p>
+    </li>
+    <li>
+        <strong>Δείτε ότι πιάνει</strong>
+        <p>
+            Στη σελίδα της εκδρομής, διαλέξτε ημερομηνία μέσα στο καλοκαίρι και μία έξω.
+            Η τιμή πρέπει να αλλάζει.
+        </p>
+    </li>
+</ol>
+
+<div class="note">
+    <span class="label">Ποτέ μηδέν</span>
+    <p>
+        Αν μια μέρα δεν πέφτει σε καμία περίοδο και δεν υπάρχει προεπιλεγμένη τιμή, η
+        εκδρομή <strong>δεν πουλάει εκείνη τη μέρα</strong> — δεν βγάζει 0 €. Αν δείτε
+        μηδενική τιμή κάπου, αναφέρετέ το.
+    </p>
+</div>
+
+<h2>Το δρομολόγιο</h2>
+
+<p>
+    Μια εκδρομή χωρίς αναχωρήσεις δεν αγοράζεται. Στα <strong>Δρομολόγια</strong> ορίστε
+    κάτι σαν «κάθε Τρίτη και Πέμπτη στις 18:30», και το Kaiki παράγει τις αναχωρήσεις
+    μόνο του.
+</p>
+
+<div class="warn">
+    <span class="label">Οι αναχωρήσεις δεν εμφανίζονται αμέσως</span>
+    <p>
+        Παράγονται από εργασία στην ουρά. Αν το παράθυρο του <strong>εργάτη ουράς</strong>
+        δεν τρέχει, δεν θα εμφανιστεί καμία — και δεν θα υπάρξει μήνυμα σφάλματος
+        πουθενά. Δώστε λίγα δευτερόλεπτα και ανανεώστε την οθόνη «Αναχωρήσεις».
+    </p>
+</div>
+
+<h2>Και η πολιτική ακύρωσης</h2>
+
+<p>
+    Φτιάξτε μία με κλιμάκια — π.χ. «15 μέρες πριν: επιστροφή 100%, 3 μέρες πριν: 50%,
+    μετά: τίποτα» — και βάλτε την στην εκδρομή. Θα τη χρειαστείτε στο μέρος Ζ, όταν
+    ακυρώσουμε κράτηση και δούμε τι υπολογίζει.
+</p>
+
+<h4>Δημοσιεύστε</h4>
+<p>
+    Η εκδρομή έχει κατάσταση. Όσο είναι <em>πρόχειρη</em> δεν τη βλέπει κανείς. Στην
+    οθόνη της υπάρχει λίστα ελέγχου με ό,τι λείπει πριν μπορέσετε να τη δημοσιεύσετε —
+    αν κάτι από αυτά δεν βγάζει νόημα, αυτό είναι χρήσιμο εύρημα.
+</p>
+
+<section class="part">
+    <span class="num">Μέρος ΣΤ</span>
+    <h2>Το βλέπουμε σαν επισκέπτες</h2>
+    <p>
+        Ανοίξτε τη σελίδα σε <strong>άλλο παράθυρο</strong> — ιδιωτική περιήγηση, ή άλλο
+        μηχάνημα. Ο επισκέπτης δεν είναι συνδεδεμένος, και το θέμα είναι να το δείτε
+        όπως το βλέπει.
+    </p>
+</section>
+
+<h2 class="continues">Η διεύθυνσή σας</h2>
+
+<pre class="cmd">http://192.168.1.43:8001/<span class="c">to-slug-sas</span></pre>
+
+<p>
+    Το slug είναι αυτό που δώσατε στο μέρος Γ. Υπάρχει και κουμπί «Δείτε τη σελίδα σας»
+    πάνω αριστερά στον πίνακα, που πάει στο ίδιο μέρος.
+</p>
+
+<h2>Τι κοιτάμε</h2>
+
+<ol class="walk">
+    <li>
+        <strong>Η αρχική</strong>
+        <p>
+            Τα χρώματα και το λογότυπο που βάλατε στην «Εμφάνιση» πρέπει να είναι εδώ. Η
+            μπάρα αναζήτησης λειτουργεί από την πρώτη μέρα.
+        </p>
+    </li>
+    <li>
+        <strong>Η αναζήτηση</strong>
+        <p>
+            Ημερομηνία και άτομα. Δείχνει μόνο ό,τι όντως μπορεί να κλειστεί, και με την
+            τιμή <em>της συγκεκριμένης παρέας</em> — όχι «από …».
+        </p>
+    </li>
+    <li>
+        <strong>Η σελίδα της εκδρομής</strong>
+        <p>
+            Φωτογραφίες, τι περιλαμβάνει, ο χάρτης του σημείου συνάντησης, οι συχνές
+            ερωτήσεις, και το κουτί κράτησης δίπλα στον τίτλο.
+        </p>
+    </li>
+    <li>
+        <strong>Το ημερολόγιο</strong>
+        <p>
+            Στο κουτί κράτησης. <strong>Πράσινο</strong> όπου υπάρχουν θέσεις,
+            <strong>κόκκινο και διαγραμμένο</strong> όπου εξαντλήθηκαν, γκρι όπου δεν
+            υπάρχει αναχώρηση. Δοκιμάστε να διαλέξετε κόκκινη μέρα.
+        </p>
+    </li>
+    <li>
+        <strong>Η κράτηση</strong>
+        <p>
+            Το κουτί ρωτάει <strong>δύο πράγματα</strong>: πότε, και πόσοι. Μετά σας πάει
+            σε κανονική σελίδα ολοκλήρωσης, σε πλήρες πλάτος.
+        </p>
+    </li>
+    <li>
+        <strong>Η σελίδα ολοκλήρωσης</strong>
+        <p>
+            Εδώ βλέπετε <strong>ανάλυση τιμής</strong> και συμπληρώνετε στοιχεία για
+            πρώτη φορά. Σταματήστε στο κουμπί πληρωμής — δεν δοκιμάζουμε πληρωμές.
+        </p>
+    </li>
+</ol>
+
+<div class="note">
+    <span class="label">Οι θέσεις κρατούνται όσο συμπληρώνετε</span>
+    <p>
+        Από τη στιγμή που περνάτε στην ολοκλήρωση, οι θέσεις δεσμεύονται προσωρινά.
+        Δοκιμάστε το: ανοίξτε την ίδια αναχώρηση σε δεύτερο παράθυρο και δείτε ότι οι
+        διαθέσιμες θέσεις έχουν μειωθεί. Αν εγκαταλείψετε, ελευθερώνονται μόνες τους.
+    </p>
+</div>
+
+<h2>Χωρίς πληρωμή, μέχρι πού φτάνουμε</h2>
+
+<p class="lede">
+    Για να δείτε τι γίνεται <em>μετά</em> — επιβεβαίωση, εισιτήριο, επιβίβαση — δεν
+    χρειάζεται κάρτα. Καταχωρήστε την κράτηση από τον πίνακα.
+</p>
+
+<p>
+    Στον πίνακα, <strong>Κρατήσεις → Καταχώρηση κράτησης από τηλέφωνο</strong>. Είναι ο
+    ίδιος δρόμος που θα ακολουθούσε ένας διοργανωτής όταν του τηλεφωνούν, και παράγει
+    πραγματική κράτηση με όλα όσα τη συνοδεύουν. Μετά σημειώστε την ως πληρωμένη με
+    μετρητά.
+</p>
+
+<p>
+    Μόλις επιβεβαιωθεί, πηγαίνετε στο <code>http://192.168.1.43:8025</code>. Θα βρείτε
+    την επιβεβαίωση προς τον πελάτη — και το εισιτήριο με το QR.
+</p>
+
+<h2>Η φόρμα επικοινωνίας</h2>
+
+<p>
+    Στο μενού της σελίδας σας υπάρχει «Επικοινωνία». Στείλτε μήνυμα σαν πελάτης.
+    <strong>Δεν γίνεται email</strong>: καταχωρείται στα «Αιτήματα» του πίνακα, όπου έχει
+    κατάσταση και κάποιον που το κλείνει. Αν το στείλετε από σελίδα εκδρομής, πρέπει να
+    φτάνει με την εκδρομή δίπλα του.
+</p>
+
+<section class="part">
+    <span class="num">Μέρος Ζ</span>
+    <h2>Πίσω στον πίνακα</h2>
+    <p>
+        Η κράτηση έγινε. Τώρα δουλεύουμε σαν διοργανωτής που έχει πελάτες — που είναι
+        όπου περνάει ο περισσότερος χρόνος στην πραγματικότητα.
+    </p>
+</section>
+
+<h2 class="continues">Ο πίνακας ελέγχου</h2>
+
+<p class="lede">
+    Με μία κράτηση μέσα, τα νούμερα αρχίζουν να λένε κάτι. Κάθε ένα γράφει από κάτω τι
+    ακριβώς μετράει — αν κάποιο δεν βγάζει νόημα ή δεν συμφωνεί με ό,τι βλέπετε αλλού,
+    αυτό είναι εύρημα.
+</p>
+
+<ul>
+    <li><strong>Αναχωρήσεις σήμερα και αύριο</strong>, με πόσους επιβάτες</li>
+    <li><strong>Σε κίνδυνο</strong> — όσες δεν πιάνουν το ελάχιστο και φεύγουν σε 48 ώρες</li>
+    <li><strong>Εκκρεμή στοιχεία επιβατών</strong></li>
+    <li><strong>Οφειλόμενα</strong> και <strong>εισπράξεις εβδομάδας</strong></li>
+    <li><strong>Χρειάζονται προσοχή</strong> — αποφάσεις που περιμένουν εσάς</li>
+</ul>
+
+<h2>Τι να δοκιμάσετε</h2>
+
+<ol class="walk">
+    <li>
+        <strong>Το ημερολόγιο σκαφών</strong>
+        <p>
+            Η κράτησή σας πρέπει να φαίνεται πάνω στο σκάφος, με ορατό το κενό
+            προετοιμασίας γύρω της.
+        </p>
+    </li>
+    <li>
+        <strong>Η κατάσταση επιβατών</strong>
+        <p>
+            Από την αναχώρηση. Είναι το έγγραφο που διαβάζει το λιμεναρχείο. Αν βάλατε
+            βρέφος, <strong>πρέπει να είναι μέσα</strong> παρότι δεν πιάνει θέση.
+        </p>
+    </li>
+    <li>
+        <strong>Η επιβίβαση από κινητό</strong>
+        <p>
+            Ανοίξτε <code>http://192.168.1.43:8000/app/check-in</code> από τηλέφωνο στο
+            ίδιο δίκτυο. Δοκιμάστε να σαρώσετε <strong>το ίδιο εισιτήριο δύο φορές</strong>
+            — πρέπει να το πει καθαρά, όχι να βγάλει σφάλμα.
+        </p>
+    </li>
+    <li>
+        <strong>Ακύρωση</strong>
+        <p>
+            Ακυρώστε την κράτηση και δείτε τι υπολογίζει η πολιτική που φτιάξατε. Η
+            επιστροφή βγαίνει από την πολιτική <em>που ίσχυε όταν έγινε η κράτηση</em>,
+            όχι από τη σημερινή — δοκιμάστε να αλλάξετε την πολιτική μετά την κράτηση
+            και δείτε ότι δεν αλλάζει το ποσό.
+        </p>
+    </li>
+    <li>
+        <strong>Ακύρωση λόγω καιρού</strong>
+        <p>
+            Ξεχωριστή διαδρομή. Πρέπει πρώτα να <strong>σας δείξει</strong> ποιος παίρνει
+            τι πίσω, και μόνο μετά να στείλει. Τίποτα δεν ακυρώνεται μόνο του.
+        </p>
+    </li>
+    <li>
+        <strong>Προσφορά</strong>
+        <p>
+            Φτιάξτε εκδρομή «κατόπιν ζήτησης», ζητήστε τιμή ως πελάτης, και στην κράτηση
+            που θα εμφανιστεί πατήστε <strong>Δημιουργία προσφοράς</strong>. Συμπληρώστε
+            γραμμές, στείλτε, και ανοίξτε τον σύνδεσμο σαν πελάτης.
+        </p>
+    </li>
+    <li>
+        <strong>Προσκαλέστε την ομάδα σας</strong>
+        <p>
+            <strong>Ρυθμίσεις → Ομάδα.</strong> Προσκαλέστε συνάδελφο ως
+            <em>διαχειριστή</em> και άλλον ως <em>πλήρωμα</em>. Η πρόσκληση φτάνει στο
+            <code>:8025</code>· ο καθένας ορίζει δικό του κωδικό και μπαίνει. Μετά
+            συγκρίνετε τι βλέπει.
+        </p>
+    </li>
+</ol>
+
+<div class="note">
+    <span class="label">Τα Παραστατικά θα φαίνονται άδεια</span>
+    <p>
+        Ο μηχανισμός τιμολόγησης είναι χτισμένος, αλλά η αποστολή στην ΑΑΔΕ χρειάζεται
+        διαπιστευτήρια που δεν υπάρχουν ακόμη. Η οθόνη θα λέει «Κανένα παραστατικό». Δεν
+        είναι σφάλμα — είναι η τίμια συμπεριφορά· τίποτα δεν πρέπει να μοιάζει
+        καταχωρημένο στην εφορία ενώ δεν είναι.
+    </p>
+</div>
+
+<h2>Ό,τι πάει στραβά, πάει σε ένα σημείο</h2>
+
+<p>
+    <strong>Ρυθμίσεις → Τι πήγε στραβά.</strong> Μία λίστα με κάθε αποτυχία που μπορεί
+    να δει διοργανωτής — email που δεν έφυγε, ειδοποίηση που δεν παραδόθηκε, συγχρονισμός
+    που έσπασε — με κουμπί επανάληψης εκεί όπου η επανάληψη κάνει κάτι. Αν κάτι δεν
+    δούλεψε στις δοκιμές σας, κοιτάξτε εδώ πριν το αναφέρετε: μπορεί να σας πει το γιατί.
+</p>
+
+<section class="part">
+    <span class="num">Μέρος Η</span>
+    <h2>Τι δοκιμάζουμε, και πώς το λέμε</h2>
+    <p>
+        Ο σκοπός αυτού του γύρου δεν είναι να επιβεβαιώσουμε ότι δουλεύει. Είναι να
+        βρούμε πού δεν δουλεύει, όσο κοστίζει ακόμη λίγο να διορθωθεί.
+    </p>
+</section>
+
+<h2 class="continues">Τι είναι μέσα και τι έξω</h2>
+
+<table>
+    <tr>
+        <th>Δοκιμάζεται</th>
+        <th>Δεν δοκιμάζεται τώρα</th>
+    </tr>
+    <tr>
+        <td>Στήσιμο νέου διοργανωτή από το μηδέν</td>
+        <td>Πραγματικές πληρωμές με κάρτα</td>
+    </tr>
+    <tr>
+        <td>Σκάφη, εκδρομές, τιμές, δρομολόγια</td>
+        <td>Το πρόσθετο WordPress</td>
+    </tr>
+    <tr>
+        <td>Οι σελίδες επισκεπτών και η κράτηση</td>
+        <td>Αποστολή στην ΑΑΔΕ / myDATA</td>
+    </tr>
+    <tr>
+        <td>Πίνακας, ημερολόγιο, επιβίβαση, ακυρώσεις</td>
+        <td>SMS — κλειστά στην πρώτη φάση</td>
+    </tr>
+    <tr>
+        <td>Email, προσκλήσεις, ρόλοι</td>
+        <td>Ναυλοσύμφωνο ως επίσημο έγγραφο</td>
+    </tr>
+    <tr>
+        <td>Ελληνικά και Αγγλικά σε κάθε οθόνη</td>
+        <td>Αντοχή σε φόρτο</td>
+    </tr>
+</table>
+
+<h2>Τι αξίζει περισσότερο να βρεθεί</h2>
+
+<p class="lede">
+    Με τη σειρά. Τα πρώτα δύο είναι πιο σημαντικά από όλα τα υπόλοιπα μαζί.
+</p>
+
+<ol class="walk">
+    <li>
+        <strong>Κάποιος βλέπει κάτι που δεν πρέπει</strong>
+        <p>
+            Πλήρωμα που βλέπει τζίρο. Διοργανωτής που βλέπει δεδομένα άλλου διοργανωτή.
+            Οτιδήποτε τέτοιο σταματάει τα πάντα.
+        </p>
+    </li>
+    <li>
+        <strong>Νούμερο που δεν συμφωνεί με άλλο νούμερο</strong>
+        <p>
+            Ο πίνακας λέει τρεις κρατήσεις και η λίστα δείχνει δύο. Η τιμή στη σελίδα
+            διαφέρει από την τιμή στο ταμείο. Αυτά διαβρώνουν την εμπιστοσύνη σε όλα τα
+            υπόλοιπα.
+        </p>
+    </li>
+    <li>
+        <strong>Κάτι που δεν έγινε ποτέ και δεν είπε γιατί</strong>
+        <p>
+            Πατήσατε και δεν συνέβη τίποτα. Email που δεν έφτασε. Αναχωρήσεις που δεν
+            εμφανίστηκαν. Κοιτάξτε πρώτα ότι τρέχει ο <strong>εργάτης ουράς</strong> και
+            μετά τα «Τι πήγε στραβά».
+        </p>
+    </li>
+    <li>
+        <strong>Ελληνικά που δεν είναι ελληνικά</strong>
+        <p>
+            Αμετάφραστη λέξη, κακή διατύπωση, κείμενο που δεν χωράει. Δείτε και τις δύο
+            γλώσσες — ο διακόπτης είναι πάνω δεξιά.
+        </p>
+    </li>
+    <li>
+        <strong>Οθόνη που δεν διαβάζεται σε κινητό</strong>
+        <p>
+            Ειδικά η επιβίβαση και ο πίνακας, που είναι οι δύο που διαβάζονται όρθιος
+            στην προβλήτα.
+        </p>
+    </li>
+</ol>
+
+<h2>Πώς το γράφετε</h2>
+
+<p>
+    Τέσσερα πράγματα, και αρκούν. Χωρίς αυτά ένα εύρημα κοστίζει περισσότερο να
+    αναπαραχθεί απ' ό,τι να διορθωθεί.
+</p>
+
+<table>
+    <tr>
+        <td><strong>Ποιος ήσασταν</strong></td>
+        <td>Ο λογαριασμός και ο ρόλος. «Ως πλήρωμα», «ως επισκέπτης χωρίς σύνδεση»</td>
+    </tr>
+    <tr>
+        <td><strong>Τι κάνατε</strong></td>
+        <td>Τα βήματα, με τη σειρά, μέχρι το σημείο</td>
+    </tr>
+    <tr>
+        <td><strong>Τι περιμένατε</strong></td>
+        <td>Και τι έγινε αντ' αυτού</td>
+    </tr>
+    <tr>
+        <td><strong>Η διεύθυνση</strong></td>
+        <td>Αντιγράψτε την από τη μπάρα. Και στιγμιότυπο, αν φαίνεται</td>
+    </tr>
+</table>
+
+<div class="note">
+    <span class="label">Αν δεν είστε σίγουροι ότι είναι σφάλμα</span>
+    <p>
+        Αναφέρετέ το. «Μου φάνηκε περίεργο» είναι έγκυρο εύρημα και συχνά το πιο χρήσιμο
+        — τα προφανή σφάλματα βρίσκονται ούτως ή άλλως, ενώ αυτό που μπερδεύει έναν
+        άνθρωπο την πρώτη φορά δεν το βλέπει ποτέ όποιος έχει συνηθίσει την οθόνη.
+    </p>
+</div>
+
+<h2>Να ξαναρχίσουμε από την αρχή</h2>
+
+<p>
+    Αν τα δεδομένα μπερδευτούν και θέλετε καθαρή βάση, από τον φάκελο kaiki:
+</p>
+
+<pre class="cmd">php artisan migrate:fresh --seed</pre>
+
+<div class="warn">
+    <span class="label">Σβήνει τα πάντα</span>
+    <p>
+        Κάθε διοργανωτή που φτιάξατε, κάθε κράτηση, κάθε λογαριασμό συναδέλφου. Θα
+        χρειαστεί να ξαναπεράσετε από το μέρος Γ. Συνεννοηθείτε πρώτα — μπορεί κάποιος
+        άλλος να είναι στη μέση κάποιας δοκιμής.
+    </p>
+</div>
+
+<h2>Τι γίνεται μετά</h2>
+
+<p>
+    Ό,τι βρεθεί σε αυτόν τον γύρο διορθώνεται πριν στηθεί πραγματικός server. Αυτό είναι
+    και ο λόγος που το κάνουμε τοπικά πρώτα: ένα εύρημα εδώ κοστίζει μια διόρθωση· το
+    ίδιο εύρημα μπροστά σε πελάτη κοστίζει τον πελάτη.
+</p>
+</body>
+</html>

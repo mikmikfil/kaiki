@@ -1,0 +1,121 @@
+/*
+    What a runbook needs and the manual does not.
+
+    Only three things: a block for commands you type, a step list that a reader
+    can lose their place in and find again, and a way to mark the handful of
+    steps that need an administrator. Everything else — the measure, the
+    figures, the note boxes, the page margins — is `manual.css`, on purpose:
+    two documents that look almost alike are worse than two that look
+    different, because the reader cannot tell which one they are holding.
+*/
+
+/* --- commands you type --------------------------------------------- */
+
+pre.cmd {
+    background: #10161f;
+    color: #e6edf6;
+    border-radius: 5px;
+    padding: 11pt 13pt;
+    margin: 10pt 0 12pt;
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 8.6pt;
+    line-height: 1.62;
+    white-space: pre-wrap;
+    /* A command split across a page break is a command somebody types half of. */
+    page-break-inside: avoid;
+    overflow-wrap: anywhere;
+}
+
+pre.cmd .c {
+    color: #8fa3bd;
+}
+
+/* The output you should see back, so a reader can tell whether it worked
+   without asking. Quieter than the command, because it is not for typing. */
+pre.out {
+    background: #f4f6fa;
+    color: #47526b;
+    border-left: 3px solid #dce3ef;
+    padding: 9pt 12pt;
+    margin: -6pt 0 12pt;
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 8.2pt;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    page-break-inside: avoid;
+}
+
+/* --- numbered steps ------------------------------------------------- */
+
+ol.walk {
+    counter-reset: walk;
+    list-style: none;
+    padding: 0;
+    margin: 12pt 0;
+}
+
+ol.walk > li {
+    counter-increment: walk;
+    position: relative;
+    padding-left: 26pt;
+    margin-bottom: 13pt;
+}
+
+ol.walk > li::before {
+    content: counter(walk);
+    position: absolute;
+    left: 0;
+    top: 0.5pt;
+    width: 17pt;
+    height: 17pt;
+    border-radius: 50%;
+    background: #123a5e;
+    color: #fff;
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 8pt;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+ol.walk > li > strong:first-child {
+    display: block;
+    margin-bottom: 2pt;
+}
+
+/* --- the steps that need an administrator --------------------------- */
+
+.admin-only {
+    border: 1px solid #b5511f;
+    border-left-width: 4px;
+    background: #fdf6f2;
+    padding: 10pt 13pt;
+    margin: 12pt 0;
+    page-break-inside: avoid;
+}
+
+.admin-only .label {
+    display: block;
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 7.4pt;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: #b5511f;
+    margin-bottom: 4pt;
+}
+
+.admin-only p:last-child {
+    margin-bottom: 0;
+}
+
+/* --- the address table on the access page --------------------------- */
+
+table.addresses td:first-child {
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+table.addresses code {
+    font-size: 8.4pt;
+}
