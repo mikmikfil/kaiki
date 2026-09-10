@@ -10,6 +10,7 @@ use App\Http\Controllers\App\BoardingServiceWorkerController;
 use App\Http\Controllers\ExportDownloadController;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureTenantIsWritable;
+use App\Http\Middleware\OfferSetupOnce;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SetLocale;
 use App\Policies\TenantOwnedPolicy;
@@ -219,6 +220,11 @@ class AppPanelProvider extends PanelProvider
                 // After authentication, so the session user exists to resolve from.
                 ResolveTenant::class,
                 EnsureTenantIsWritable::class,
+                // After the tenant is resolved, because what it decides is a
+                // question about the tenant. Last in the stack, so it never
+                // stands between a request and the guard that would refuse it
+                // (#51, SAA-10).
+                OfferSetupOnce::class,
                 // isPersistent, or none of this runs on `POST /livewire/update`
                 // — which is every button in the panel. Filament only forwards
                 // auth middleware to Livewire's persistent list when asked, and
