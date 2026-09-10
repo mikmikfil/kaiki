@@ -14,6 +14,71 @@ declare(strict_types=1);
 */
 
 return [
+    'on_product' => [
+        'title' => 'Prices',
+        'add' => 'New price',
+        'edit' => 'Change price',
+        'more' => 'More',
+        'season' => [
+            'label' => 'Period',
+            'help' => 'Leave empty for the price that applies when no period matches.',
+            'default' => 'Every other date',
+        ],
+        'new_season' => [
+            'name' => 'Period name',
+            'starts_on' => 'From',
+            'ends_on' => 'To',
+        ],
+        'prices' => [
+            'label' => 'Price per category',
+            'help' => 'A category priced as a percentage of the base one may be left blank.',
+            'band' => 'Category',
+            'price' => 'Price',
+        ],
+        'vessel_price' => [
+            'label' => 'Boat price',
+            'help' => 'The price for the whole boat, in this period.',
+        ],
+        'extra_hour' => [
+            'label' => 'Extra hour',
+            'help' => 'Charged per hour beyond the duration.',
+        ],
+        'name' => [
+            'label' => 'Name',
+            'help' => 'For you only. The period shows when this is empty.',
+        ],
+        'is_active' => [
+            'label' => 'Active',
+            'help' => 'An inactive price means the trip does not sell in that period.',
+        ],
+        'deposit_type' => [
+            'label' => 'Deposit',
+        ],
+        'deposit_percent' => [
+            'label' => 'Deposit percentage',
+        ],
+        'deposit_fixed' => [
+            'label' => 'Deposit amount',
+        ],
+        'min_lead_time' => [
+            'label' => 'Minimum notice (hours)',
+            'help' => 'How many hours before departure booking closes.',
+        ],
+        'max_advance' => [
+            'label' => 'Maximum advance (days)',
+            'help' => 'How early somebody may book.',
+        ],
+        'table' => [
+            'season' => 'Period',
+            'price' => 'Price',
+            'deposit' => 'Deposit',
+            'is_active' => 'Active',
+        ],
+        'empty' => [
+            'heading' => 'No prices yet',
+            'body' => 'Without a price the trip does not sell. Start with one for every other date, and add periods where the price changes.',
+        ],
+    ],
 
     'cancellation' => [
         'nav' => 'Cancellation policies',

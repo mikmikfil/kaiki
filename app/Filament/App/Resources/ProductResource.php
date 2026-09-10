@@ -10,6 +10,7 @@ use App\Enums\BookingMode;
 use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource\Pages;
+use App\Filament\App\Resources\ProductResource\RelationManagers\RatePlansRelationManager;
 use App\Filament\Forms\TranslatableInput;
 use App\Models\CancellationPolicy;
 use App\Models\Port;
@@ -17,6 +18,7 @@ use App\Models\Product;
 use App\Models\VatRate;
 use App\Models\Vessel;
 use App\Support\Format\MoneyFormatter;
+use App\Support\Tenancy;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
@@ -362,6 +364,18 @@ class ProductResource extends Resource
                         ->label(__('catalog.product.form.vat_rate.label'))
                         ->helperText(__('catalog.product.form.vat_rate.help'))
                         ->options(static::vatRateOptions(...))
+                        // The account's own answer, from the setup guide (#51).
+                        // Per-product stays the truth — a cruise is passenger
+                        // transport and a barbecue extra is catering, and
+                        // data-model §2.3 says so — but an operator answers the
+                        // question once and overrides it where it differs,
+                        // rather than choosing from nothing every time.
+                        //
+                        // `default()` and not a fill, so it applies to a new
+                        // product only: an existing one whose rate was chosen
+                        // deliberately, or deliberately left empty, keeps what
+                        // it has.
+                        ->default(static::defaultVatRateId(...))
                         ->searchable()
                         ->preload(),
 
@@ -600,6 +614,25 @@ class ProductResource extends Resource
             ->all();
     }
 
+    /**
+     * The rate a new product starts on, or null if the account has not said.
+     *
+     * Checked against the selectable list rather than returned as stored. A
+     * rate withdrawn from the platform after an operator chose it would
+     * otherwise be pre-filled as an id the select cannot render — the field
+     * would look empty and submit a value, which is the worst of both.
+     */
+    public static function defaultVatRateId(): ?int
+    {
+        $id = Tenancy::check() ? Tenancy::current()?->default_vat_rate_id : null;
+
+        if ($id === null) {
+            return null;
+        }
+
+        return array_key_exists((int) $id, static::vatRateOptions()) ? (int) $id : null;
+    }
+
     /** @return array<int, string> */
     public static function vatRateOptions(): array
     {
@@ -626,6 +659,22 @@ class ProductResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->withoutGlobalScopes([SoftDeletingScope::class]);
+    }
+
+    /**
+     * The trip's prices, on the trip (#51 follow-up).
+     *
+     * Pricing one trip for two periods used to mean three screens and choosing
+     * the trip from a dropdown twice. `product_id` cannot be wrong here,
+     * because there is no such field — the trip is the record.
+     *
+     * @return array<int, class-string>
+     */
+    public static function getRelations(): array
+    {
+        return [
+            RatePlansRelationManager::class,
+        ];
     }
 
     /** @return array<string, PageRegistration> */
