@@ -1479,8 +1479,10 @@ M3 also carries three scope additions agreed after the milestone was written: th
    per ADR-0023, so the one-table-vs-two decision is revisited while it is cheap.
 4. **`docs/api.md` §10.2** still says "spectral lint (or equivalent)" and should name
    the equivalent chosen in ADR-0026.
-5. **GitHub Actions is blocked** on the account (failed payment / spending limit).
-   Work continues locally; branches push when the limit resets.
+5. **GitHub Actions is blocked** for an account-level reason rather than anything in
+   this repository, and it is the owner's to clear. Branches push normally; what waits
+   is the evidence a merge should be made on, not a mechanism — see the CI row in
+   `BUILD-LOG.md`, and the note there that `main` carries no branch protection.
 
 ---
 
