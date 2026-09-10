@@ -15,6 +15,11 @@ declare(strict_types=1);
 */
 
 return [
+    'quote' => [
+        'build' => 'Write a quote',
+        'built' => 'Quote created. Fill in the lines and send it.',
+        'open' => 'Open the quote',
+    ],
 
     'nav' => 'Bookings',
 

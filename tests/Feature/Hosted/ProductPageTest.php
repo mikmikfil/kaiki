@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\ProductStatus;
 use App\Enums\TenantStatus;
 use App\Models\Product;
+use App\Support\Format\MoneyFormatter;
 use App\Support\Tenancy;
 
 use function Pest\Laravel\get;
@@ -114,8 +115,15 @@ it('shows no price and offers an enquiry for a quote product', function (): void
 
     $body = (string) get(TripPage::url($tenant, $product, 'en'))->getContent();
 
+    // The **formatted** price rather than the digits. `not->toContain('900')`
+    // was three characters checked against a whole HTML document, and it failed
+    // whenever a generated uuid happened to contain them — about one run in a
+    // hundred. A test that goes red at random teaches everybody to ignore a red
+    // suite, which costs more than the thing it was guarding.
+    $leaked = MoneyFormatter::format(90000, 'en', 'EUR');
+
     expect($body)->toContain('Private charter')
-        ->and($body)->not->toContain('900')
+        ->and($body)->not->toContain($leaked)
         ->and($body)->not->toContain(__('hosted.product.price.from', [], 'en'))
         ->and($body)->toContain('data-kaiki-mount="enquiry"')
         ->and($body)->toContain(__('hosted.product.booking.enquiry_fallback', [], 'en'));

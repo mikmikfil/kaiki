@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources\BookingResource\Pages;
 
+use App\Domain\Booking\Actions\BuildQuote;
 use App\Domain\Booking\Actions\CreateManualBooking;
 use App\Domain\Booking\Actions\RecordManualPayment;
+use App\Enums\BookingStatus;
 use App\Enums\PaymentGatewayName;
 use App\Filament\App\Resources\BookingResource;
+use App\Filament\App\Resources\QuoteResource;
 use App\Models\Booking;
+use App\Models\Quote;
 use App\Support\Authorization\Capability;
 use App\Support\Format\MoneyFormatter;
 use Filament\Actions\Action;
@@ -147,7 +151,69 @@ class ViewBooking extends ViewRecord
 
                     Notification::make()->success()->title(__('bookings.payment.recorded'))->send();
                 }),
+
+            /*
+             * Writing the first offer — the entry point §4.4 assumed and
+             * nothing provided.
+             *
+             * `BuildQuote` was reachable from exactly one place in the whole
+             * application: **Revise**, on a quote that already existed. So an
+             * operator could rewrite an offer and could not write one, and a
+             * guest who asked for a price on a charter had their request sit in
+             * `quote_requested` with no way forward from any screen. The
+             * comment on `ListQuotes` said *"BuildQuote is reached from the
+             * booking"*, which was true about the plan and not about the code.
+             *
+             * There is deliberately still no **Νέα προσφορά** button on the
+             * quotes list: a quote belongs to a booking, and one created from a
+             * list of quotes would be an orphan. It belongs here, where the
+             * booking it is for is the record.
+             */
+            Action::make('build_quote')
+                ->label(__('bookings.quote.build'))
+                ->icon('heroicon-o-document-plus')
+                // §4.4's own guard, asked before the button is drawn rather
+                // than only when it is pressed: quoting a confirmed booking is
+                // not a revision, it is a different conversation.
+                ->visible(fn (): bool => $this->awaitingQuote() && $this->latestQuote() === null)
+                ->action(function (): void {
+                    $quote = app(BuildQuote::class)($this->booking(), Auth::id());
+
+                    Notification::make()->success()->title(__('bookings.quote.built'))->send();
+
+                    // Straight into the offer. The point of the button is the
+                    // screen behind it, and a notification saying "created"
+                    // with no way to reach it is the same dead end one level on.
+                    $this->redirect(QuoteResource::getUrl('edit', ['record' => $quote]));
+                }),
+
+            /* The offer that already exists, rather than a second one. */
+            Action::make('open_quote')
+                ->label(__('bookings.quote.open'))
+                ->icon('heroicon-o-document-text')
+                ->color('gray')
+                ->visible(fn (): bool => $this->latestQuote() !== null)
+                ->url(fn (): string => QuoteResource::getUrl('edit', ['record' => $this->latestQuote()])),
         ];
+    }
+
+    /** §4.4: only a booking in quote mode may be quoted. */
+    private function awaitingQuote(): bool
+    {
+        return in_array(
+            $this->booking()->status,
+            [BookingStatus::QuoteRequested, BookingStatus::QuoteSent],
+            strict: true,
+        ) && (Auth::user()?->hasCapability(Capability::ManageBookings) ?? false);
+    }
+
+    /** The newest version, which is the one an operator means by "the offer". */
+    private function latestQuote(): ?Quote
+    {
+        return Quote::query()
+            ->where('booking_id', $this->booking()->getKey())
+            ->orderByDesc('version')
+            ->first();
     }
 
     private function booking(): Booking
