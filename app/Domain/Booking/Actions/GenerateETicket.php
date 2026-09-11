@@ -60,9 +60,14 @@ final class GenerateETicket
     {
         $booking->loadMissing(['guests', 'product.meetingPoint', 'vessel']);
 
+        $tenant = Tenant::query()->find($booking->tenant_id);
+
         $html = view('pdf.e-ticket', [
             'booking' => $booking,
-            'brand' => $this->brand($booking),
+            'brand' => $this->brand($tenant, $booking),
+            // BKG-20 as amended: an operator who boards from the passenger list
+            // gets a ticket with no square on it that nothing would ever scan.
+            'qr' => $tenant?->usesQrCheckIn() ?? true,
         ])->render();
 
         $pdf = $this->render($html);
@@ -94,10 +99,8 @@ final class GenerateETicket
      *
      * @return array<string, mixed>
      */
-    private function brand(Booking $booking): array
+    private function brand(?Tenant $tenant, Booking $booking): array
     {
-        $tenant = Tenant::query()->find($booking->tenant_id);
-
         if (! $tenant instanceof Tenant) {
             return [];
         }

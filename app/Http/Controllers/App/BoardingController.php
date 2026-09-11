@@ -213,9 +213,19 @@ class BoardingController
         return $rows;
     }
 
-    /** TEN-8's crew capability, asserted explicitly — a route has no policy. */
+    /**
+     * TEN-8's crew capability, asserted explicitly — a route has no policy.
+     *
+     * A 404 rather than a 403 for an operator with QR boarding switched off
+     * (BKG-20, amended 2026-09-11): the page does not exist for them, and a
+     * crew member arriving from an old QR is not being refused anything.
+     */
     private static function permitted(): bool
     {
+        if (Tenancy::check() && ! CheckIn::qrEnabled()) {
+            abort(404);
+        }
+
         return Tenancy::check()
             && (Auth::user()?->hasCapability(Capability::CheckInGuests) ?? false);
     }

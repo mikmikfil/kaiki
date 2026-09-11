@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\App;
 
+use App\Filament\App\Pages\CheckIn;
 use Illuminate\Http\Response;
 
 /**
@@ -34,6 +35,10 @@ class BoardingServiceWorkerController
 {
     public function __invoke(): Response
     {
+        // No page to cache for an operator who does not scan (BKG-20, amended
+        // 2026-09-11), so no worker to install.
+        abort_unless(CheckIn::qrEnabled(), 404);
+
         $script = <<<'JS'
         const CACHE = 'kaiki-boarding-v1';
 

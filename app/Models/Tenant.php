@@ -64,6 +64,7 @@ use Stancl\Tenancy\Database\Concerns\TenantRun;
  * @property int $guest_document_retention_days
  * @property bool $auto_issue_invoice
  * @property bool $deposits_enabled
+ * @property bool|null $qr_check_in_enabled
  * @property array<string, mixed> $settings
  * @property int|null $balance_due_days_before_departure
  * @property string|null $weather_choice_default
@@ -100,6 +101,7 @@ class Tenant extends Model implements TenantContract
             'guest_document_retention_days' => 'integer',
             'auto_issue_invoice' => 'boolean',
             'deposits_enabled' => 'boolean',
+            'qr_check_in_enabled' => 'boolean',
             'onboarding_completed_at' => 'datetime',
             'onboarding_skipped_steps' => 'array',
         ];
@@ -182,6 +184,19 @@ class Tenant extends Model implements TenantContract
     public function defaultVatRate(): BelongsTo
     {
         return $this->belongsTo(VatRate::class, 'default_vat_rate_id');
+    }
+
+    /**
+     * Whether this operator boards people by scanning a QR (BKG-20, as amended 2026-09-11).
+     *
+     * Off means no QR on the ticket and no scanning page — the passenger list,
+     * with a tick beside each name, is still there. Null reads as on: it is the
+     * column's default and the state of every operator before the switch
+     * existed.
+     */
+    public function usesQrCheckIn(): bool
+    {
+        return $this->qr_check_in_enabled !== false;
     }
 
     /** Operators in `read_only` or `suspended` cannot write (see #7). */

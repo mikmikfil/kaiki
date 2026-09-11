@@ -14,6 +14,17 @@
 --}}
 <x-filament-panels::page>
 
+    @php($qrEnabled = $this->qrEnabled())
+
+    {{-- An operator who boards from the passenger list (BKG-20, amended
+         2026-09-11) gets the list and one sentence saying how to use it. --}}
+    @unless ($qrEnabled)
+        <x-filament::section>
+            <p class="text-sm">{{ __('checkin.subtitle_list') }}</p>
+        </x-filament::section>
+    @endunless
+
+    @if ($qrEnabled)
     <x-filament::section>
         <p class="text-sm">{{ __('checkin.subtitle') }}</p>
 
@@ -78,6 +89,7 @@
                 @endif
             </div>
         </x-filament::section>
+    @endif
     @endif
 
     <x-filament::section :heading="__('checkin.today.heading')">

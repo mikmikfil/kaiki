@@ -48,6 +48,10 @@
     $meetingPoint = $booking->product?->meetingPoint;
 
     $guests = $booking->guests->sortBy('position')->values();
+
+    // Off for an operator who boards from the passenger list (BKG-20, amended
+    // 2026-09-11). Absent means on, which is every ticket before the switch.
+    $showQr = $qr ?? true;
 @endphp
 <!doctype html>
 <html lang="{{ $locale }}">
@@ -160,10 +164,12 @@
                 </dl>
             </div>
 
-            <div class="qr">
-                {!! TicketQr::svgFor($guest) !!}
-                <div class="code">{{ $guest->ticket_code }}</div>
-            </div>
+            @if ($showQr)
+                <div class="qr">
+                    {!! TicketQr::svgFor($guest) !!}
+                    <div class="code">{{ $guest->ticket_code }}</div>
+                </div>
+            @endif
         </div>
 
         @if ($meetingPoint?->address)

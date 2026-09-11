@@ -21,6 +21,8 @@ return [
     'nav' => 'Check-in',
     'title' => 'Check-in',
     'subtitle' => 'Scan a ticket, or search today\'s passengers.',
+    // For an operator with QR boarding switched off: the list is the page.
+    'subtitle_list' => 'Today\'s passengers. Tap «Check in» beside each one as they board.',
 
     'scan' => [
         'label' => 'Ticket code',

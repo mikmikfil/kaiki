@@ -15,6 +15,7 @@ use App\Models\BookingGuest;
 use App\Models\User;
 use App\Support\Authorization\Capability;
 use App\Support\Format\DateTimeFormatter;
+use App\Support\Tenancy;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Notifications\Notification;
@@ -90,6 +91,24 @@ class CheckIn extends Page
         return __('panel.groups.operations');
     }
 
+    /** A QR in the menu of an operator who has none would be a promise the page does not keep. */
+    public static function getNavigationIcon(): string
+    {
+        return self::qrEnabled() ? 'heroicon-o-qr-code' : 'heroicon-o-clipboard-document-check';
+    }
+
+    /**
+     * Whether this operator scans tickets at all (BKG-20, amended 2026-09-11).
+     *
+     * Off, the page is the passenger list with a tap per name, and nothing
+     * else: no scan box, and a `?ticket=` from an old QR is ignored rather than
+     * acted on. The platform sets this on `/admin`; see `Tenant::usesQrCheckIn()`.
+     */
+    public static function qrEnabled(): bool
+    {
+        return Tenancy::current()?->usesQrCheckIn() ?? true;
+    }
+
     /**
      * TEN-8's two crew capabilities, and nothing wider.
      *
@@ -114,7 +133,7 @@ class CheckIn extends Page
     {
         $code = trim($this->ticket);
 
-        if ($code === '') {
+        if ($code === '' || ! self::qrEnabled()) {
             return null;
         }
 

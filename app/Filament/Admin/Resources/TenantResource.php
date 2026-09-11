@@ -13,6 +13,7 @@ use App\Policies\TenantPolicy;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
@@ -124,6 +125,14 @@ class TenantResource extends Resource
                         $state <= 7 => 'warning',
                         default => 'success',
                     }),
+
+                // Which operators board from the passenger list. Hidden by
+                // default: it is looked for, not scanned down.
+                IconColumn::make('qr_check_in_enabled')
+                    ->label(__('tenants.columns.qr_check_in'))
+                    ->state(fn (Tenant $record): bool => $record->usesQrCheckIn())
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('default_locale')
                     ->label(__('tenants.columns.locale'))

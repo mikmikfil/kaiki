@@ -44,6 +44,9 @@ class TenantFactory extends Factory
             // Off, like the column default and like every real operator until
             // they say otherwise. A test that wants an instalment says so.
             'deposits_enabled' => false,
+            // On, like the column default: every operator scanned tickets
+            // before the switch existed.
+            'qr_check_in_enabled' => true,
             // An operator who has been through the setup guide, like the legal
             // name and the ΑΦΜ two lines above: this factory has always built
             // somebody already trading, not somebody on their first afternoon.
@@ -89,6 +92,12 @@ class TenantFactory extends Factory
     public function takingDeposits(): self
     {
         return $this->state(fn (): array => ['deposits_enabled' => true]);
+    }
+
+    /** A small operator who boards from the passenger list, with no QR anywhere. */
+    public function withoutQrCheckIn(): self
+    {
+        return $this->state(fn (): array => ['qr_check_in_enabled' => false]);
     }
 
     /** A lapsed subscription: the panel opens, nothing can be written (#7). */

@@ -38,6 +38,9 @@ use Illuminate\Database\Eloquent\Model;
  * - **Sandbox** — a new operator should be able to be put in test mode by the
  *   person setting them up.
  * - **Trade** — a label for the merchant list. It does not change the product.
+ * - **QR boarding** — whether tickets carry a QR and the crew get a scanning
+ *   page (BKG-20, amended 2026-09-11). A one-boat operator boards from the
+ *   passenger list, and the platform decides this with them when they sign up.
  *
  * Everything else about an operator is theirs: their name, their address, their
  * VAT number, their colours. A platform screen that could rewrite those is a
@@ -77,7 +80,7 @@ class EditTenant extends EditRecord
      * Named once, so the snapshot and the diff cannot drift apart — which is
      * how an audit trail quietly stops recording one of them.
      */
-    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at'];
+    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'qr_check_in_enabled'];
 
     /** The operator's own words, captured by the confirmation and not by the form. */
     public ?string $auditReason = null;
@@ -117,6 +120,17 @@ class EditTenant extends EditRecord
                         ->helperText(__('tenants.edit.sandbox_help')),
                 ])
                 ->columns(2),
+
+            Section::make(__('tenants.edit.features'))
+                ->description(__('tenants.edit.features_help'))
+                ->schema([
+                    Toggle::make('qr_check_in_enabled')
+                        ->label(__('tenants.columns.qr_check_in'))
+                        ->helperText(__('tenants.edit.qr_check_in_help'))
+                        // Null is on (see `Tenant::usesQrCheckIn()`); a toggle
+                        // showing a null as off would switch it off on save.
+                        ->formatStateUsing(fn (?bool $state): bool => $state !== false),
+                ]),
         ]);
     }
 

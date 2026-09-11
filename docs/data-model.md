@@ -237,6 +237,7 @@ The operator. Not tenant-owned (it *is* the tenant). It was also the Cashier bil
 | `custom_domain_verified_at` | timestamp | yes | null | |
 | `hosted_page_enabled` | boolean | no | `true` | |
 | `is_sandbox` | boolean | no | `false` | sandbox tenants' bookings are `is_test` and purged nightly |
+| `qr_check_in_enabled` | boolean | **yes** | `true` | **added 2026-09-11** — BKG-20 as amended by the product owner: whether tickets carry a QR and the crew get the scanning pages. Off, the passenger list with a tick per name is the whole of boarding. Set by the platform on `/admin`, audited like the plan. Nullable so it could be added to an existing table (§6); null reads as on (`Tenant::usesQrCheckIn()`) |
 | `turnaround_buffer_minutes` | smallint unsigned | no | `60` | tenant default; a vessel may override |
 | `guest_document_retention_days` | smallint unsigned | no | `90` | GDPR purge horizon for `booking_guests.document_number` |
 | `auto_issue_invoice` | boolean | no | `false` | **Superseded 2026-09-08** by `invoice_auto_issue` (default **true**) and `invoice_auto_issue_delay_minutes` (default 15), which are what MYD-3.2 and ADR-0003 actually name. The old column defaulted `false` against a requirement that says auto-issue is on; rather than flip a default sitting in every seeded tenant, the pair was added and this one left in place unread. Remove it in a migration of its own once nothing references it | issue myDATA doc on confirmation |

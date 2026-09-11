@@ -32,6 +32,7 @@ return [
         'days_left' => 'Access',
         'access_ends' => 'Access ends',
         'sandbox' => 'Sandbox account',
+        'qr_check_in' => 'QR boarding',
     ],
 
     'filters' => [
@@ -69,6 +70,9 @@ return [
         'access_ends_help' => 'Empty means the trial end date applies, if there is one.',
         'account' => 'Account',
         'sandbox_help' => 'Bookings are marked as tests and stay out of every report.',
+        'features' => 'Features',
+        'features_help' => 'What a small business does not need. Switching something off deletes no data.',
+        'qr_check_in_help' => 'Off: tickets are issued without a QR and the crew get no scanning page. Boarding is done from the passenger list, one tap beside each name. Tickets already sent with a QR will no longer scan.',
         'confirm_heading' => 'Change this operator’s account',
         'confirm_body' => 'The change is recorded in the operator’s own audit trail, with your name and your reason.',
         'reason' => 'Reason',

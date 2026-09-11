@@ -46,6 +46,31 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## QR boarding becomes the platform's switch (BKG-20, amended 2026-09-11)
+
+Asked for by the product owner while deciding which functions a small operator — one boat, local trips — would never use. The QR was the first one taken out, and it is **his** switch rather than the operator's: it sits on the `/admin` edit screen beside the plan and the sandbox flag.
+
+### "Off" has to mean it everywhere at once
+
+Hiding the menu entry alone would leave a ticket whose QR scans to a page the operator was told they do not have. So one column, `tenants.qr_check_in_enabled`, is read in four places: the e-ticket (no square and no ticket code under it), the offline boarding page, its scan endpoint and its service worker (all **404**, not 403 — the page does not exist for them, and a crew member arriving from an old QR is not being refused anything), and the Filament check-in page, which loses the scan box and ignores `?ticket=` but **keeps the passenger list with a tap per name**. Check-in itself (BKG-21 … BKG-23) is not optional; the scan is.
+
+### On by default, and for everyone who exists today
+
+Tickets already in guests' bags carry a QR. A default of off would have made every one of them stop scanning the morning the migration ran. Nullable with a constant default so it could be added to an existing table (data-model §6), exactly as `deposits_enabled` was; null reads as on through `Tenant::usesQrCheckIn()`, and the admin toggle formats a null as on so saving an unrelated field cannot switch it off.
+
+### Audited like the plan
+
+It joins `EditTenant::AUDITED`, so switching it writes `qr_check_in_enabled_from` / `_to` into the operator's own trail with the platform owner's reason — SEC-16's three parts, unchanged. A hidden-by-default ✓/✗ column on the merchant list answers "who boards from the list".
+
+### Verification
+
+- `tests/Feature/Operations/QrCheckInSwitchTest.php` — **6 tests**: null reads as on; the boarding page, the scan endpoint and the worker 404 when off and nobody is checked in; the check-in page keeps the list and drops the scan box, ignoring `?ticket=`; the scan box is still there for an operator who scans; the ticket markup has no `<svg>` and no ticket code when off; the admin switch saves and writes exactly the two context keys.
+- With `OfflineBoardingTest`, `ETicketTest`, `TenantResourceTest`, `CheckInAccessTest`, `RoleMatrixTest`, `CheckInWindowTest`: **93 passed** after one fixture fix (the ticket test read guests outside the tenant). i18n gates: **87 passed**, including key resolution. PHPStan on every changed file: **no errors**. Pint: passed.
+- The e-ticket **PDF** itself was not rendered: the decision is one line in `GenerateETicket` and the template is asserted as markup, the same split `ETicketTest` already makes for everything that does not need Chromium.
+- The MySQL schema snapshot hash moves with this migration, like #131's did; it can only be regenerated in CI.
+
+---
+
 ## #51 — the setup guide, and the column it should have had since M1
 
 > 2026-09-10. Asked for out loud — *«πάμε να φτιάξουμε τον οδηγό πρώτης
