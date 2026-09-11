@@ -8,7 +8,7 @@ import { pollForConfirmation, readBookingStatus } from '../../booking/confirmati
 import {
   back,
   canAdvance,
-  initialState,
+  initialStateOn,
   isLastStep,
   next,
   type BookingState,
@@ -63,6 +63,8 @@ interface BookingMountProps {
   readonly t: Translator;
   readonly analytics: Analytics;
   readonly locale: string;
+  /** A day chosen on the operator's own calendar, through the trip page's `?date=`. */
+  readonly initialDate?: string | null;
 }
 
 export interface ProductSummary {
@@ -76,11 +78,21 @@ export interface ProductSummary {
 
 type Phase = 'walking' | 'submitting' | 'redirecting' | 'confirmed' | 'pending' | 'sold_out' | 'expired' | 'failed';
 
-export function BookingMount({ client, productUuid, product, t, analytics, locale }: BookingMountProps) {
+export function BookingMount({
+  client,
+  productUuid,
+  product,
+  t,
+  analytics,
+  locale,
+  initialDate = null,
+}: BookingMountProps) {
   const options: MachineOptions = { hasExtras: (product.extras ?? []).length > 0 };
   const api = useMemo(() => new BookingApi(client), [client]);
 
-  const [state, dispatch] = useReducer(reduce, initialState());
+  // A guest who pressed a day on the operator's own calendar starts on the
+  // party step with that day chosen (WGT-5 as amended 2026-09-11).
+  const [state, dispatch] = useReducer(reduce, null, () => initialStateOn(initialDate, options));
   const [phase, setPhase] = useState<Phase>('walking');
   const [draft, setDraft] = useState<DraftResult | null>(null);
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);

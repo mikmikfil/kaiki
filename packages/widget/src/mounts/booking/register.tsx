@@ -16,7 +16,7 @@ import { BookingMount, type ProductSummary } from './BookingMount';
  * The read goes through the shared client, so a page with a list mount and a
  * booking mount pays for one catalogue request rather than two (WGT-8, WGT-17).
  */
-function BookingMountLoader({ productUuid, client, t, analytics, locale }: MountProps) {
+function BookingMountLoader({ productUuid, client, t, analytics, locale, date = null }: MountProps) {
   const [product, setProduct] = useState<ProductSummary | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -61,6 +61,7 @@ function BookingMountLoader({ productUuid, client, t, analytics, locale }: Mount
       t={t}
       analytics={analytics}
       locale={locale}
+      initialDate={date}
     />
   );
 }

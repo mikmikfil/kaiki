@@ -42,6 +42,17 @@ export interface WidgetConfig {
   readonly credit: boolean;
   /** A CSS selector for the node to mount into; null means "where the script tag is". */
   readonly target: string | null;
+  /**
+   * `data-link="trip"`: the calendar's open days become links to the trip's
+   * page on Kaiki, carrying the day chosen (WGT-5 as amended 2026-09-11).
+   * Anything else leaves the calendar read-only, as it always was.
+   */
+  readonly link: 'trip' | null;
+  /**
+   * `data-date`: a day already chosen elsewhere, which the booking walk opens
+   * on. The hosted trip page passes it on from its `?date=`.
+   */
+  readonly date: string | null;
   /** Where the API lives, derived from the script's own `src`. */
   readonly apiBase: string;
 }
@@ -85,8 +96,22 @@ export function readConfig(script: HTMLScriptElement): WidgetConfig | null {
     // Same reading as `analytics` above, for the same reason.
     credit: (script.dataset.credit ?? 'true').toLowerCase() === 'true',
     target: value(script.dataset.target),
+    link: (script.dataset.link ?? '').trim().toLowerCase() === 'trip' ? 'trip' : null,
+    date: isoDate(script.dataset.date),
     apiBase: apiBaseFrom(script.src),
   };
+}
+
+/**
+ * A calendar day, or null.
+ *
+ * Only the shape is checked here. Whether the day still sails is the server's
+ * answer, and the walk already handles a day that has sold out since.
+ */
+function isoDate(raw: string | undefined): string | null {
+  const trimmed = (raw ?? '').trim();
+
+  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : null;
 }
 
 function mountOf(raw: string | undefined, productUuid: string | null): MountName {

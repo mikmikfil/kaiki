@@ -119,6 +119,21 @@ describe('the rest of the attributes', () => {
     expect(readConfig(embed({ 'data-key': 'pk_4', 'data-credit': 'true' }))?.credit).toBe(true);
   });
 
+  it('links the calendar to the trip page only when asked, in so many words', () => {
+    // WGT-5 as amended 2026-09-11. Off by default: a calendar that suddenly
+    // took guests away from the operator's page would be a change nobody chose.
+    expect(readConfig(embed({ 'data-key': 'pk_1', 'data-mount': 'calendar' }))?.link).toBeNull();
+    expect(readConfig(embed({ 'data-key': 'pk_2', 'data-link': 'trip' }))?.link).toBe('trip');
+    expect(readConfig(embed({ 'data-key': 'pk_3', 'data-link': ' Trip ' }))?.link).toBe('trip');
+    expect(readConfig(embed({ 'data-key': 'pk_4', 'data-link': 'yes' }))?.link).toBeNull();
+  });
+
+  it('passes a well-formed date through and drops anything else', () => {
+    expect(readConfig(embed({ 'data-key': 'pk_1', 'data-date': '2026-10-03' }))?.date).toBe('2026-10-03');
+    expect(readConfig(embed({ 'data-key': 'pk_2', 'data-date': '03/10/2026' }))?.date).toBeNull();
+    expect(readConfig(embed({ 'data-key': 'pk_3' }))?.date).toBeNull();
+  });
+
   it('takes the API origin from the script it was served by, never from an attribute', () => {
     const config = readConfig(
       embed({ 'data-key': 'pk_test_1', 'data-api': 'https://evil.example' }, 'https://api.kaiki.app/widget/v1/kaiki-widget.js'),

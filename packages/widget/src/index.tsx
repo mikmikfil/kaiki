@@ -117,6 +117,8 @@ function mount(config: WidgetConfig, script: HTMLScriptElement, doc: Document): 
             client={client}
             analytics={events}
             locale={t.locale}
+            link={config.link}
+            date={config.date}
           />,
           shadow.slot,
         );

@@ -11,7 +11,9 @@ use App\Domain\Hosted\Support\BlockText;
 use App\Domain\Hosted\Support\HostedUrl;
 use App\Domain\Hosted\Support\ProductJsonLd;
 use App\Models\Product;
+use App\Models\Tenant;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -88,7 +90,31 @@ class ProductPageController extends HostedController
                 $locale,
                 $page['fromPriceCents'],
             ),
+            'initialDate' => $this->initialDate($request, $tenant),
         ], $locale);
+    }
+
+    /**
+     * The day a guest already chose on the operator's own calendar.
+     *
+     * The calendar widget on their site links here with `?date=` (WGT-5 as
+     * amended 2026-09-11), and the booking box opens on that day. A malformed
+     * date, or one already past in the operator's own timezone, is ignored — a
+     * stale or hand-edited link opens the page exactly as it always did.
+     */
+    protected function initialDate(Request $request, Tenant $tenant): ?string
+    {
+        $raw = $request->query('date');
+
+        if (! is_string($raw) || preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $raw, $parts) !== 1) {
+            return null;
+        }
+
+        if (! checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])) {
+            return null;
+        }
+
+        return $raw >= Carbon::now($tenant->timezone)->toDateString() ? $raw : null;
     }
 
     /**

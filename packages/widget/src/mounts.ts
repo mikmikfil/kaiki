@@ -35,6 +35,10 @@ export interface MountProps {
   readonly t: Translator;
   readonly analytics: Analytics;
   readonly locale: string;
+  /** The embed's `data-link` — only the calendar reads it. */
+  readonly link?: 'trip' | null;
+  /** The embed's `data-date` — only the booking walk reads it. */
+  readonly date?: string | null;
 }
 
 export type MountComponent = ComponentType<MountProps>;

@@ -32,6 +32,21 @@ That is the whole thing. The widget renders where the tag sits.
 | `data-locale` | no | the page's `lang`, then the operator's default | `el` or `en`. |
 | `data-analytics` | no | `true` | `false` switches off the events below. Anything else leaves them on. |
 | `data-target` | no | — | A CSS selector to render into, for page builders that will not let a script sit where the widget should appear. |
+| `data-link` | no | — | `trip` on a `calendar` mount: every day with room becomes a link to the trip's page on Kaiki, with that day already chosen. Without it the calendar is read-only. |
+| `data-date` | no | — | A `YYYY-MM-DD` the `booking` mount opens on, at the party step. Kaiki's own trip page sets it from its `?date=`; you rarely need to. |
+
+**The calendar that leads to the booking** — for a website of your own. Put the
+calendar on your trip's page, and a guest who presses a day lands on the same
+trip on Kaiki with the day chosen, picks the party and pays:
+
+```html
+<script src="https://book.kaiki.app/widget/v1/kaiki-widget.js"
+        data-key="pk_live_…"
+        data-mount="calendar"
+        data-product="PRODUCT-UUID"
+        data-link="trip"
+        defer></script>
+```
 
 There is **no `data-api`**. The widget calls the origin it was served from, which
 is what makes a stolen embed snippet useless somewhere else.

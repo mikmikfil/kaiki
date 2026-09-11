@@ -513,6 +513,12 @@
                             data-mount="{{ $isQuote ? 'enquiry' : 'booking' }}"
                             data-product="{{ $product->uuid }}"
                             data-locale="{{ $locale }}"
+                            {{-- The day pressed on the operator's own calendar
+                                 (WGT-5 as amended 2026-09-11): the booking box
+                                 opens on it, at the party step. --}}
+                            @if ($initialDate ?? null)
+                                data-date="{{ $initialDate }}"
+                            @endif
                             {{-- «Με την τεχνολογία του Kaiki» is already in this
                                  page's footer. The line inside the widget is
                                  there to say whose booking form this is on

@@ -226,6 +226,31 @@ describe('the calendar mount', () => {
     expect(host.querySelector('.kaiki-legend')?.textContent).toContain('Available');
   });
 
+  it('keeps the days read-only unless the embed asks for them to lead somewhere', async () => {
+    render(<CalendarMount {...props({ client: client(() => ({ data: days })) })} />, host);
+    await settle();
+
+    await vi.waitFor(() => expect(host.querySelector('.kaiki-day-available')).not.toBeNull());
+
+    expect(host.querySelector('.kaiki-day-pick')).toBeNull();
+  });
+
+  it('makes an open day a button when linked to the trip page, and leaves a full one alone', async () => {
+    const api = client((url) =>
+      url.includes('/availability')
+        ? { data: days }
+        : { data: { uuid: 'product-uuid', canonical_url: 'https://book.kaiki.app/aegean-blue/sunset' } },
+    );
+
+    render(<CalendarMount {...props({ client: api, link: 'trip' })} />, host);
+    await settle();
+
+    // WGT-5 as amended 2026-09-11: the available day can be pressed, the sold
+    // out one is still drawn and labelled and does nothing.
+    await vi.waitFor(() => expect(host.querySelector('.kaiki-day-available .kaiki-day-pick')).not.toBeNull());
+    expect(host.querySelector('.kaiki-day-sold_out .kaiki-day-pick')).toBeNull();
+  });
+
   it('serves a month it has already fetched from memory', async () => {
     const seen: string[] = [];
 

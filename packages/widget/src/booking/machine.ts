@@ -85,6 +85,21 @@ export function initialState(): BookingState {
 }
 
 /**
+ * A walk that arrives with its date already answered.
+ *
+ * The operator's calendar on their own site links to the trip page with
+ * `?date=`, and the page hands the day to the widget (WGT-5 as amended
+ * 2026-09-11). Asking again would be asking a question the guest has just
+ * answered, so the walk starts on the party step — and `back()` still reaches
+ * the date, with the day shown as chosen, for a guest who changes their mind.
+ */
+export function initialStateOn(date: string | null, options: MachineOptions): BookingState {
+  const start = initialState();
+
+  return date === null ? start : next({ ...start, localDate: date }, options);
+}
+
+/**
  * The steps this product actually has.
  *
  * Derived rather than stored, so a product whose extras arrive after the first

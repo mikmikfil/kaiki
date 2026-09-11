@@ -29,9 +29,22 @@ interface ShellProps {
   readonly client: Api;
   readonly analytics: Analytics;
   readonly locale: string;
+  readonly link?: 'trip' | null;
+  readonly date?: string | null;
 }
 
-export function Shell({ mount, productUuid, category, t, poweredBy, client, analytics, locale }: ShellProps) {
+export function Shell({
+  mount,
+  productUuid,
+  category,
+  t,
+  poweredBy,
+  client,
+  analytics,
+  locale,
+  link = null,
+  date = null,
+}: ShellProps) {
   const Mount = resolveMount(mount);
 
   return (
@@ -46,6 +59,8 @@ export function Shell({ mount, productUuid, category, t, poweredBy, client, anal
           t={t}
           analytics={analytics}
           locale={locale}
+          link={link}
+          date={date}
         />
       )}
 

@@ -135,7 +135,8 @@ it('says why every skipped record is skipped', function (): void {
         app()->setLocale('el');
         $sentence = importRow($job, ImportRowType::Booking, '5503')->renderedMessages()[0];
 
-        expect($sentence)->toContain('2026-08-15')->not->toStartWith('imports.');
+        expect($sentence)->toContain('2026-08-15');
+        expect($sentence)->not->toStartWith('imports.');
     });
 })->group('fast');
 
@@ -335,6 +336,6 @@ it('keeps two operators imports apart', function (): void {
         // theirs was linked into ours.
         expect(ImportJob::query()->pluck('id')->all())->toBe([$mine->getKey()])
             ->and(Product::query()->count())->toBe(0)
-            ->and(collect($mine->mapping['products'])->pluck('action')->all())->not->toContain('link');
+            ->and(data_get($mine->mapping, 'products.*.action'))->not->toContain('link');
     });
 })->group('fast');

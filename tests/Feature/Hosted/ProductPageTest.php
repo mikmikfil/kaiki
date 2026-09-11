@@ -37,6 +37,41 @@ use Tests\Support\Hosted\TripPage;
 |
 */
 
+/** A trip page address with the day an operator's calendar would send. */
+function tripUrlOnDate(string $url, string $date): string
+{
+    return $url . (str_contains($url, '?') ? '&' : '?') . 'date=' . $date;
+}
+
+it('opens the booking box on the day the operator calendar sent', function (): void {
+    // WGT-5 as amended 2026-09-11: a guest presses a day on the operator's own
+    // site, lands here, and chooses the party next.
+    $tenant = OperatorPage::operator('dated-trip');
+    $product = TripPage::create($tenant);
+    TripPage::departure($tenant, $product);
+
+    $date = now($tenant->timezone)->addDays(10)->toDateString();
+
+    get(tripUrlOnDate(TripPage::url($tenant, $product, 'en'), $date))
+        ->assertOk()
+        ->assertSee('data-date="' . $date . '"', escape: false);
+})->group('fast');
+
+it('ignores a date that is malformed, impossible or already past', function (): void {
+    $tenant = OperatorPage::operator('undated-trip');
+    $product = TripPage::create($tenant);
+    TripPage::departure($tenant, $product);
+
+    $past = now($tenant->timezone)->subDay()->toDateString();
+
+    foreach (['tomorrow', '2026-02-30', $past] as $bad) {
+        // A stale or hand-edited link opens the page as it always did.
+        get(tripUrlOnDate(TripPage::url($tenant, $product, 'en'), $bad))
+            ->assertOk()
+            ->assertDontSee('data-date=', escape: false);
+    }
+})->group('fast');
+
 it('renders every section HOS-1 lists', function (): void {
     $tenant = OperatorPage::operator('full-trip');
     $product = TripPage::create($tenant);
