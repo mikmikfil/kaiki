@@ -118,6 +118,17 @@ await page.locator('[id="data.qr_check_in_enabled"]').first()
   .evaluate((el) => el.scrollIntoView({ block: 'center' }));
 await shot(page, '04b-operator-features', '.fi-section:has([id="data.qr_check_in_enabled"])');
 
+// --- 2c. the platform's own screens (2026-09-11) ----------------------
+//
+// «Υγεία πλατφόρμας» and «Ανακοινώσεις», which part Ζ asks the reader to
+// test. Photographed empty-handed: the health page as it is, the
+// announcements list without inventing a notice.
+await page.goto(`${PANEL}/admin/health?lang=el`, { waitUntil: 'networkidle' });
+await shot(page, '04c-admin-health');
+
+await page.goto(`${PANEL}/admin/announcements?lang=el`, { waitUntil: 'networkidle' });
+await shot(page, '04d-admin-announcements');
+
 // --- 3. the owner sets a password and signs in ------------------------
 //
 // The link is minted the way `kaiki:invitation-link` mints it, because that is
@@ -187,6 +198,14 @@ for (const [name, path] of [
 await owner.goto(`${PANEL}/app/settings`, { waitUntil: 'networkidle' });
 await owner.waitForTimeout(1800);
 await shot(owner, '14-settings-hub');
+
+// --- 7. the importer, empty (2026-09-11) ------------------------------
+//
+// Reached from the «Εισαγωγή από WooCommerce» card; a new operator has
+// imported nothing, which is what the reader will see before part Ζ's step.
+await owner.goto(`${PANEL}/app/imports`, { waitUntil: 'networkidle' });
+await owner.waitForTimeout(1800);
+await shot(owner, '15-imports-empty');
 
 await browser.close();
 

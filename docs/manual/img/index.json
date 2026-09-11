@@ -1,5 +1,5 @@
 {
-  "takenAt": "2026-09-11T08:11:02.506Z",
+  "takenAt": "2026-09-11T09:41:46.225Z",
   "shots": [
     {
       "name": "dashboard",
@@ -138,6 +138,30 @@
       "url": "/app/departure-reconciliation"
     },
     {
+      "name": "imports",
+      "url": "/app/imports"
+    },
+    {
+      "name": "import-upload",
+      "url": "/app/imports"
+    },
+    {
+      "name": "import-review",
+      "url": "/app/imports/6bcb1851-6905-4219-9b32-070ce1506c78"
+    },
+    {
+      "name": "announcement-banner",
+      "url": "/app"
+    },
+    {
+      "name": "vessels-limit",
+      "url": "/app/vessels?lang=el"
+    },
+    {
+      "name": "domains-pro-only",
+      "url": "/app/domains?lang=el"
+    },
+    {
       "name": "crew-boarding-phone",
       "url": "/app/boarding"
     },
@@ -164,6 +188,14 @@
     {
       "name": "admin-vat-rates",
       "url": "/admin/vat-rates?lang=el"
+    },
+    {
+      "name": "admin-health",
+      "url": "/admin/health?lang=el"
+    },
+    {
+      "name": "admin-announcements",
+      "url": "/admin/announcements?lang=el"
     },
     {
       "name": "guest-home",

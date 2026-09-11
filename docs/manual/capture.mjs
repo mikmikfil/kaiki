@@ -43,6 +43,7 @@
  */
 
 import { chromium } from '@playwright/test';
+import { execSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -61,7 +62,34 @@ const PEOPLE = {
   manager: 'giorgos@aegean-blue.example',
   crew: 'nikos@aegean-blue.example',
   admin: 'admin@kaiki.example',
+  // Ionian Sunset: Solo with ten boats since plan limits became real
+  // (2026-09-11) — the demo of a limit reached.
+  soloOwner: 'elena@ionian-sunset.example',
 };
+
+const ROOT = resolve(HERE, '..', '..');
+const PHP = process.env.KAIKI_PHP ?? 'C:\\Users\\Mike\\php84\\php.exe';
+
+/** One line of PHP through `artisan tinker`, returning its last printed word. */
+function tinker(code) {
+  const out = execSync(`"${PHP}" artisan tinker --execute="${code}"`, { cwd: ROOT, encoding: 'utf8' });
+
+  return out.trim().split(/\s+/).pop();
+}
+
+/**
+ * The demo import's review page.
+ *
+ * Found rather than hard-coded: the uuid changes every time the demo import is
+ * run again, and a manual that photographed a 404 would say nothing about why.
+ */
+function demoImportUrl() {
+  const uuid = tinker(
+    "App\\Support\\Tenancy::forTenant(App\\Models\\Tenant::where('slug','aegean-blue')->first(), fn () => print(App\\Models\\ImportJob::query()->latest('id')->value('uuid') ?? 'none'));",
+  );
+
+  return uuid && uuid !== 'none' ? `/app/imports/${uuid}` : null;
+}
 
 /**
  * The panel, as the owner sees it — which is everything.
@@ -106,6 +134,18 @@ const PANEL_SHOTS = [
   ['integrations', '/app/integrations'],
   ['calendar-sync', '/app/calendar-sync'],
   ['departure-reconciliation', '/app/departure-reconciliation'],
+  // The WooCommerce / YITH importer (2026-09-11), owner only.
+  ['imports', '/app/imports'],
+];
+
+/**
+ * An operator at their plan's limit: Solo with ten boats. The vessels list
+ * says so and «Νέο» has become «Αναβάθμιση πακέτου»; the domain screen shows
+ * what Pro includes instead of the form.
+ */
+const SOLO_SHOTS = [
+  ['vessels-limit', '/app/vessels'],
+  ['domains-pro-only', '/app/domains'],
 ];
 
 /** The two screens a crew member has, on the device they hold. */
@@ -133,6 +173,9 @@ const ADMIN_SHOTS = [
   ['admin-tenants', '/admin/tenants?lang=el'],
   ['admin-tenant-edit', '/admin/tenants/1/edit?lang=el', '[id="data.qr_check_in_enabled"]'],
   ['admin-vat-rates', '/admin/vat-rates?lang=el'],
+  // The platform panel (2026-09-11): health, and the announcements list.
+  ['admin-health', '/admin/health?lang=el'],
+  ['admin-announcements', '/admin/announcements?lang=el'],
 ];
 
 const GUEST_SHOTS = [
@@ -222,6 +265,83 @@ mkdirSync(OUT, { recursive: true });
 
   for (const [name, url] of PANEL_SHOTS) {
     taken.push(await shoot(context, name, url, PANEL));
+  }
+
+  // The importer's upload form is a modal behind «Νέα εισαγωγή», so it is
+  // opened by clicking the button a person would click.
+  {
+    const page = await context.newPage();
+
+    try {
+      await page.goto(`${PANEL}/app/imports`, { waitUntil: 'domcontentloaded' });
+      await settle(page);
+      await page.getByRole('button', { name: 'Νέα εισαγωγή' }).first().click();
+      await page.waitForTimeout(1200);
+      await page.screenshot({ path: resolve(OUT, 'import-upload.jpg'), type: 'jpeg', quality: 78 });
+      process.stdout.write('  import-upload\n');
+      taken.push({ name: 'import-upload', url: '/app/imports' });
+    } catch (error) {
+      process.stdout.write(`  import-upload — FAILED: ${error.message.split('\n')[0]}\n`);
+      taken.push(null);
+    } finally {
+      await page.close();
+    }
+  }
+
+  // The review screen of the demo import, which has already run.
+  const reviewUrl = demoImportUrl();
+
+  if (reviewUrl) {
+    taken.push(await shoot(context, 'import-review', reviewUrl, PANEL));
+  } else {
+    process.stdout.write('  import-review — skipped: no demo import on Aegean Blue\n');
+  }
+
+  await context.close();
+}
+
+// The owner, with a platform announcement on screen — created for this one
+// shot and deleted straight after, so no fake notice is left behind.
+{
+  const context = await browser.newContext({
+    viewport: DESKTOP,
+    deviceScaleFactor: 1.5,
+    locale: 'el-GR',
+    timezoneId: 'Europe/Athens',
+  });
+
+  const script = resolve(HERE, 'capture-announce.php').replace(/\\/g, '/');
+  const created = tinker(`require '${script}';`);
+  const id = (created.match(/ANNOUNCEMENT_ID=(\d+)/) ?? [])[1];
+
+  try {
+    await signIn(context, PEOPLE.owner, 'app');
+    process.stdout.write('owner with an announcement, 1280×860:\n');
+    taken.push(await shoot(context, 'announcement-banner', '/app', PANEL));
+  } finally {
+    if (id) {
+      tinker(`App\\Models\\PlatformAnnouncement::query()->whereKey(${id})->delete(); echo 'deleted';`);
+    }
+
+    await context.close();
+  }
+}
+
+// An operator on Solo, at the limit.
+{
+  const context = await browser.newContext({
+    viewport: DESKTOP,
+    deviceScaleFactor: 1.5,
+    locale: 'el-GR',
+    timezoneId: 'Europe/Athens',
+  });
+
+  await signIn(context, PEOPLE.soloOwner, 'app');
+  process.stdout.write('solo owner, 1280×860:\n');
+
+  // `?lang=el`: Ionian Sunset's owner writes in English.
+  for (const [name, url] of SOLO_SHOTS) {
+    taken.push(await shoot(context, name, `${url}?lang=el`, PANEL));
   }
 
   await context.close();
