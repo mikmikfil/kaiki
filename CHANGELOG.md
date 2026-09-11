@@ -4,6 +4,12 @@
 
 > Entries for #118 … #122 — the dashboard, the vessel calendar, recorded cash, the weather-cancellation workflow and the manifests — are not written here. They are on `main` with their reasoning in each commit message; inventing changelog prose for them after the fact would be reconstruction rather than a record, which is the same rule this project applies in `docs/BUILD-LOG.md`.
 
+### Υγεία πλατφόρμας και ανακοινώσεις
+
+Στο `/admin` υπάρχει πια η **«Υγεία πλατφόρμας»**: πόσες εργασίες περιμένουν και πόση ώρα, ποιες απέτυχαν, και ποιος διοργανωτής έχει ανοιχτό πρόβλημα με την ΑΑΔΕ, τις πληρωμές ή τα ημερολόγια — με σύνδεσμο κατευθείαν στον λογαριασμό του.
+
+Και **ανακοινώσεις**: γράφετε ένα σύντομο μήνυμα, στα ελληνικά και στα αγγλικά, με ημερομηνίες αν θέλετε, και εμφανίζεται πάνω σε κάθε σελίδα του πίνακα κάθε διοργανωτή. Ο καθένας το κλείνει μόνος του, και μένει κλειστό μέχρι την επόμενη ανακοίνωση.
+
 ### Τα πακέτα ισχύουν πια στην πράξη
 
 Κάθε πακέτο είχε από την αρχή τα όριά του — Solo ένα σκάφος, Fleet πέντε, Pro απεριόριστα μαζί με δικό σας domain και webhooks — αλλά **δεν τα έλεγχε τίποτα**. Τώρα ελέγχονται τη στιγμή που φτιάχνετε κάτι καινούργιο:

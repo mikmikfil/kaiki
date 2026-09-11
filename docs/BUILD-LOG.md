@@ -46,6 +46,22 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## M7 — The platform panel: health, and a banner (SAA-1, SAA-17)
+
+`/admin` could list operators and edit their plan; it could not say whether the platform itself was working. **«Υγεία πλατφόρμας»** answers SAA-17 on one screen: the queue (depth, how long the oldest job has waited, the driver), failed jobs (the exact total, a split by class over the latest 500, the 15 newest with their first error line and uuid), and operators with open failures — myDATA, unprocessed gateway webhooks, unreadable calendars — each linking to its merchant-list record.
+
+**Cross-tenant on purpose.** Invoices and iCal sources are read inside `Tenancy::withoutTenancy()`, named at each call, using **the same definitions as the operator's own feed** (#127's `needsAttention()`, `needingAttention()`, `ATTENTION_THRESHOLD`) so a red badge in an operator's panel and the platform's count cannot disagree. Counts are current states, not a thirty-day window, and PAY-7's orphaned gateway events get a line of their own.
+
+**No retry button, deliberately.** SEC-16 wants a platform write recorded with actor, time and reason, and `audit_logs` is operator-owned (`tenant_id` required); a failed job often has no operator to record it against. The screen names `queue:retry` / `queue:forget` with each uuid instead. A platform-level trail is a decision of its own.
+
+**The announcement banner (SAA-1).** The super-admin writes a short EL/EN message with a severity and optional dates; it shows above every `/app` page for every role through `CONTENT_START`, never at `/admin`. Only the newest current announcement is a candidate, and closing it records a row in `platform_announcement_dismissals` — a table of its own, because a column on `users` would be an `ALTER` on an existing table (§6). Markup is stripped on save as well as escaped on render. The dismissals table's foreign key is named by hand: the generated name is over MySQL's 64 characters, which SQLite would never have said.
+
+**Seen on the first load:** two failed `ExpireStaleHoldsJob` runs with *"database is locked"* — SQLite on this machine while test suites and the worker wrote at once. The screen doing its job on day one; production runs MySQL.
+
+Verified: 15 new tests (`PlatformHealthTest` 4, `AnnouncementTest` 11); `tests/Feature/Panel/Admin` with the i18n gates and model isolation, 402 passed. PHPStan and Pint clean. Looked at in a browser at 1440 px and 390 px.
+
+---
+
 ## M7 — Plan limits, enforced at last (SAA-8)
 
 `app/Enums/Plan.php` has carried three rules since M0 — `vesselLimit()`, `allowsCustomDomain()`, `allowsWebhooks()` — and **nothing read any of them**. A `Solo` operator could build ten boats, point a domain at the platform and register webhooks. A price list that is not enforced is a pricing page that is not true, and SAA-8 was the first M7 item that waited on no decision.

@@ -2589,6 +2589,8 @@ No new tables. The plugin is a pure API client.
 47. *(the subscription tables were Cashier's; ADR-0028 removed the provider and M7 is blocked until one is chosen)*
 48. `import_jobs` (FK → `tenants`, `users`)
 49. `import_job_rows` (FK → `tenants`, `import_jobs`)
+50. `platform_announcements` (FK → `users`) — **added 2026-09-11**, SAA-1's banner. Platform-owned (no `tenant_id`, listed in `platform_owned_models`): `message` translatable JSON with no companions, `severity` string (`info`/`warning`, `AnnouncementSeverity`), `starts_at`/`ends_at` nullable, `is_active`, `created_by_user_id` nullable `nullOnDelete`. Index `(is_active, starts_at)` for the one query every `/app` page runs.
+51. `platform_announcement_dismissals` (FK → `platform_announcements` cascade, `users` cascade) — one row per person per announcement, unique on the pair; the foreign key to the announcement is named by hand (`pa_dismissals_announcement_fk`) because the generated name exceeds MySQL's 64 characters. A table rather than a column on `users`, which would be an `ALTER` on an existing table (§6).
 
 ### M8 — Launch hardening
 

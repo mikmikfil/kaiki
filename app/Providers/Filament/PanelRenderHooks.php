@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Providers\Filament;
 
 use App\Domain\Hosted\Support\HostedUrl;
+use App\Domain\Platform\Support\Announcements;
 use App\Filament\App\Pages\Settings;
+use App\Models\PlatformAnnouncement;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Support\Locale\LocaleOptions;
 use App\Support\Tenancy;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Chrome shared by `/app` and `/admin`.
@@ -65,6 +69,14 @@ final class PanelRenderHooks
         FilamentView::registerRenderHook(
             PanelsRenderHook::SIDEBAR_FOOTER,
             static fn (): View|string => self::settingsItem(),
+        );
+
+        // The platform's announcement (SAA-1), above every page's content in
+        // `/app`. Decided inside the hook, like the rest: a resolved tenant is
+        // what makes this the operator panel, and `/admin` never has one.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::CONTENT_START,
+            static fn (): View|string => self::announcement(),
         );
 
         // The way back to «Ρυθμίσεις», on every screen its cards lead to.
@@ -127,6 +139,38 @@ final class PanelRenderHooks
             'icon' => Settings::getNavigationIcon(),
             'active' => Settings::isCurrent(),
             'badge' => Settings::getNavigationBadge(),
+        ]);
+    }
+
+    /**
+     * The current announcement for this person, or nothing.
+     *
+     * Nothing at `/admin` (no tenant) and nothing for a super-admin: the person
+     * who wrote the notice does not need it on every page of a panel they
+     * reach only by impersonation, and impersonation does not exist yet.
+     */
+    private static function announcement(): View|string
+    {
+        if (! Tenancy::check()) {
+            return '';
+        }
+
+        $user = Auth::user();
+
+        if (! $user instanceof User || $user->isSuperAdmin()) {
+            return '';
+        }
+
+        $announcement = Announcements::currentFor($user);
+
+        if (! $announcement instanceof PlatformAnnouncement) {
+            return '';
+        }
+
+        return view('filament.app.announcement-banner', [
+            'message' => $announcement->message,
+            'severity' => $announcement->severity->value,
+            'dismissUrl' => route('filament.app.announcements.dismiss', ['announcement' => $announcement->getKey()]),
         ]);
     }
 

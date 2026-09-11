@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\GatewayWebhookEvent;
+use App\Models\PlatformAnnouncement;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\VatRate;
@@ -115,6 +116,12 @@ return [
          * never does.
          */
         GatewayWebhookEvent::class,
+
+        // The platform's announcement banner (SAA-1, 2026-09-11): one notice
+        // to every operator at once, written by the super-admin. Platform-owned
+        // forever, like `VatRate` — there is no operator it could belong to.
+        // Its per-person dismissals are a plain table with no model.
+        PlatformAnnouncement::class,
     ],
 
 ];

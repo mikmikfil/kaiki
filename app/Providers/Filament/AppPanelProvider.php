@@ -8,6 +8,7 @@ use App\Filament\App\Pages\Settings;
 use App\Filament\Avatars\InitialsAvatarProvider;
 use App\Http\Controllers\App\BoardingController;
 use App\Http\Controllers\App\BoardingServiceWorkerController;
+use App\Http\Controllers\App\DismissAnnouncementController;
 use App\Http\Controllers\ExportDownloadController;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureTenantIsWritable;
@@ -194,6 +195,13 @@ class AppPanelProvider extends PanelProvider
 
                 Route::post('boarding/scan', [BoardingController::class, 'scan'])
                     ->name('boarding.scan');
+
+                // The platform announcement's close button (SAA-1). Here for
+                // the same reason as the two above: the panel's session, CSRF
+                // and `ResolveTenant`, with nothing for the controller to set up.
+                Route::post('announcements/{announcement}/dismiss', DismissAnnouncementController::class)
+                    ->whereNumber('announcement')
+                    ->name('announcements.dismiss');
             })
             ->middleware([
                 EncryptCookies::class,
