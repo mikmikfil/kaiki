@@ -32,7 +32,7 @@ export type Intention = 'draft' | 'checkout' | 'cancel';
 export class IdempotencyKeys {
   private readonly keys = new Map<string, string>();
 
-  constructor(private readonly generate: () => string = uuid) {}
+  constructor(private readonly generate: () => string = () => uuidV4()) {}
 
   /**
    * The key for this intention, minted once and kept.
@@ -108,22 +108,39 @@ export function draftFingerprint(input: {
   ].join('|');
 }
 
-function uuid(): string {
-  const crypto = globalThis.crypto;
-
-  if (crypto !== undefined && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
+/**
+ * A version-4 UUID, whatever the page.
+ *
+ * `randomUUID` is a secure-context API: an http:// page on anything but
+ * `localhost` does not have it — a staging site, or Kaiki's own pages opened on
+ * a phone through the developer's LAN address. The fallback **must still be a
+ * UUIDv4**: `EnforceIdempotencyKey` refuses anything else with a 422. It used
+ * to be 32 bare hex characters, so every booking from such a page failed with
+ * «Κάτι πήγε στραβά» before a draft existed (found 2026-09-11, from the trip
+ * page on 192.168.1.43). The key is not a secret — the server scopes it to the
+ * API key — so `getRandomValues`, or failing that `Math.random`, is entropy
+ * enough; what matters is the shape.
+ */
+export function uuidV4(source: Pick<Crypto, 'getRandomValues'> & Partial<Pick<Crypto, 'randomUUID'>> | undefined = globalThis.crypto): string {
+  if (source !== undefined && typeof source.randomUUID === 'function') {
+    return source.randomUUID();
   }
 
-  // A staging site on plain http has no `randomUUID`. This is not a security
-  // token — the server treats a key as an opaque string and scopes it to the
-  // API key — so `getRandomValues` where it exists, and time plus entropy where
-  // it does not, are both fine.
-  const random = crypto?.getRandomValues?.(new Uint8Array(16));
+  const bytes = new Uint8Array(16);
 
-  if (random !== undefined) {
-    return [...random].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+  if (source !== undefined && typeof source.getRandomValues === 'function') {
+    source.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i += 1) {
+      bytes[i] = Math.floor(Math.random() * 256);
+    }
   }
 
-  return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
+  // RFC 4122 §4.4: the version nibble is 4, the variant bits are 10.
+  bytes[6] = ((bytes[6] as number) & 0x0f) | 0x40;
+  bytes[8] = ((bytes[8] as number) & 0x3f) | 0x80;
+
+  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
