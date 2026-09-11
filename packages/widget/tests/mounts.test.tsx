@@ -279,7 +279,16 @@ describe('the calendar mount', () => {
     const api = client((url) =>
       url.includes('/availability')
         ? { data: days }
-        : { data: { uuid: 'product-uuid', canonical_url: 'https://book.kaiki.app/aegean-blue/sunset' } },
+        : // The payload's real shape: the trip page at the top as `booking_url`,
+          // and `canonical_url` only under `seo`. A fake with `canonical_url` at
+          // the top is how this shipped read-only once.
+          {
+            data: {
+              uuid: 'product-uuid',
+              booking_url: 'https://book.kaiki.app/aegean-blue/sunset',
+              seo: { canonical_url: 'https://book.kaiki.app/aegean-blue/sunset' },
+            },
+          },
     );
 
     render(<CalendarMount {...props({ client: api, link: 'trip' })} />, host);

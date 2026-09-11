@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 import { FIXTURE_ORIGIN, embed, isoDaysAhead, pickDay, reachCheckoutButton, widget, world } from './support/world';
 
@@ -32,6 +32,27 @@ import { FIXTURE_ORIGIN, embed, isoDaysAhead, pickDay, reachCheckoutButton, widg
  * widget ran on, because that is the one value a unit test has to invent.
  */
 
+/**
+ * Every passenger's name, on a trip that needs a manifest.
+ *
+ * The checkout folds each passenger into a `<details>` with only the first
+ * open, so a party of eight is a list rather than twenty-four fields. A guest
+ * opens the next one to fill it in, and so does this.
+ */
+async function fillPassengers(page: Page, name: string): Promise<void> {
+  const rows = page.locator('details.passenger');
+
+  for (let i = 0; i < (await rows.count()); i += 1) {
+    const row = rows.nth(i);
+
+    if ((await row.getAttribute('open')) === null) {
+      await row.locator('summary').click();
+    }
+
+    await row.locator('input[name$="[full_name]"]').fill(name);
+  }
+}
+
 test('a guest books a trip, pays in the sandbox and lands on their booking', async ({ page }) => {
   const run = world();
 
@@ -63,10 +84,7 @@ test('a guest books a trip, pays in the sandbox and lands on their booking', asy
   await page.locator('#guest_email').fill('maria@example.test');
   await page.locator('#guest_phone').fill('+30 210 000 0000');
 
-  // A trip that needs a manifest asks for each passenger's name as well.
-  for (const passenger of await page.locator('input[name$="[full_name]"]').all()) {
-    await passenger.fill('Maria Papadopoulou');
-  }
+  await fillPassengers(page, 'Maria Papadopoulou');
 
   await page.locator('input[name="terms"]').check();
   await page.locator('button.pay').click();
@@ -96,9 +114,7 @@ test('a declined card brings the guest back to the checkout to try again', async
   await page.locator('#guest_name').fill('Nikos Andreou');
   await page.locator('#guest_email').fill('nikos@example.test');
 
-  for (const passenger of await page.locator('input[name$="[full_name]"]').all()) {
-    await passenger.fill('Nikos Andreou');
-  }
+  await fillPassengers(page, 'Nikos Andreou');
 
   await page.locator('input[name="terms"]').check();
   await page.locator('button.pay').click();

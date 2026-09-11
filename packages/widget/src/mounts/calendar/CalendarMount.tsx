@@ -27,7 +27,7 @@ import { MonthGrid, startOfMonth, useAvailability } from './MonthGrid';
  * party, the extras and the payment happen there. `data-link="trip"` turns it on;
  * without it nothing about this mount changes.
  *
- * The address comes from the API's `canonical_url` for the trip, never from a
+ * The address comes from the API's `booking_url` for the trip, never from a
  * path assembled here: a URL built in a browser from a config value is a guess
  * about somebody else's deployment. Until it arrives, or if it never does, the
  * days stay read-only rather than leading to a 404.
@@ -80,9 +80,15 @@ function useTripUrl(client: Api, productUuid: string | null): string | null {
 
     // The same request the booking mount makes, through the same client, so a
     // page with both pays for it once (WGT-8).
+    // `booking_url` is the trip's hosted page, at the top of the payload.
+    // It read `canonical_url` there until 2026-09-11 — which the contract keeps
+    // under `seo` — so every linked calendar stayed read-only, and the unit
+    // test passed because its fake payload made the same mistake.
     client
-      .get<{ data: { canonical_url?: string | null } }>(`/products/${productUuid}`)
-      .then((response) => setUrl(response.data.canonical_url ?? null))
+      .get<{ data: { booking_url?: string | null; seo?: { canonical_url?: string | null } | null } }>(
+        `/products/${productUuid}`,
+      )
+      .then((response) => setUrl(response.data.booking_url ?? response.data.seo?.canonical_url ?? null))
       .catch(() => setUrl(null));
   }, [client, productUuid]);
 

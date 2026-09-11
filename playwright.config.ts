@@ -84,7 +84,10 @@ const serverEnv = {
   DB_DATABASE: DATABASE,
   // The hosted pages are scoped to this host, and for one run it is the server
   // itself — otherwise `/{operator}` never matches and the run tests nothing.
-  KAIKI_HOSTED_HOST: '127.0.0.1',
+  // With the port: the checkout link is built from this, and without it the
+  // browser went to port 80 and met «connection refused» the first time a spec
+  // actually followed the checkout (2026-09-11). Routes match on the name only.
+  KAIKI_HOSTED_HOST: `127.0.0.1:${PORT}`,
   // The webhook and the sandbox settlement both queue work. `sync` runs it
   // inline, which is what makes a confirmation visible by the time the redirect
   // lands rather than whenever a worker happens to exist.
