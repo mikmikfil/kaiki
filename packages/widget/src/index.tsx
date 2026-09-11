@@ -1,6 +1,7 @@
 import { render } from 'preact';
 
 import { analytics } from './analytics';
+import { appearanceProperties } from './appearance';
 import { type Api, ApiClient } from './api-client';
 import { ensureFontLink, loadBranding, type BrandPayload } from './branding';
 import { findEmbeds, readConfig, type WidgetConfig } from './config';
@@ -87,8 +88,13 @@ function mount(config: WidgetConfig, script: HTMLScriptElement, doc: Document): 
   const draw = (): void => {
     loadBranding(client).then(
       (brand: BrandPayload) => {
-        shadow.applyBranding(brand);
-        ensureFontLink(brand, doc);
+        // The WordPress plugin's own look goes over the branding. With a font
+        // of its own, Kaiki's Google font is not asked for at all (WGT-10).
+        shadow.applyBranding(brand, appearanceProperties(config.appearance));
+
+        if (config.appearance.font === null) {
+          ensureFontLink(brand, doc);
+        }
 
         const t = translator(
           resolveLocale({

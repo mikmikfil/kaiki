@@ -43,6 +43,8 @@ interface ProductCard {
   readonly from_price_formatted: string | null;
   readonly booking_url: string | null;
   readonly meeting_point?: { readonly name?: string } | null;
+  /** The first gallery image, an absolute URL on the platform (§3.2). */
+  readonly hero_image_url?: string | null;
 }
 
 export function ListMount({ client, category, t, analytics }: MountProps) {
@@ -127,6 +129,15 @@ export function ListMount({ client, category, t, analytics }: MountProps) {
       <ul class="kaiki-cards" role="list">
         {shown.map((product) => (
           <li class="kaiki-card" key={product.uuid}>
+            {/* The trip's photograph, asked for on 2026-09-11. `alt=""` because
+                the title right under it says what it is; a description here
+                would be read out before every title. Lazy, so a grid of
+                twenty-four does not cost twenty-four downloads up front. */}
+            {product.hero_image_url ? (
+              <img class="kaiki-card-image" src={product.hero_image_url} alt="" loading="lazy" decoding="async" />
+            ) : null}
+
+            <div class="kaiki-card-body">
             <h3 class="kaiki-heading">
               {product.booking_url === null ? (
                 product.title
@@ -157,6 +168,7 @@ export function ListMount({ client, category, t, analytics }: MountProps) {
                 </>
               )}
             </p>
+            </div>
           </li>
         ))}
       </ul>

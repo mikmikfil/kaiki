@@ -90,11 +90,26 @@ final class Shortcodes {
 	/**
 	 * `[kaiki_calendar product="uuid"]` — a month of availability.
 	 *
+	 * Every day with room is a link to the trip's page on Kaiki, with that day
+	 * already chosen (the widget's WGT-5 as amended 2026-09-11) — **by default**,
+	 * because a guest who finds a free day and cannot click it has been shown a
+	 * door with no handle. `link="none"` (or `off`, `no`, `false`) leaves the
+	 * calendar read-only, for the operator who puts a booking form right under
+	 * it. Any other value is the default: an attribute an editor mistyped
+	 * should not quietly switch off the one thing the calendar is for.
+	 *
 	 * @param  array<string, string>|string $atts The shortcode attributes.
 	 * @return string
 	 */
 	public static function calendar( $atts ): string {
-		$atts = shortcode_atts( array( 'product' => '' ), self::attributes( $atts ), 'kaiki_calendar' );
+		$atts = shortcode_atts(
+			array(
+				'product' => '',
+				'link'    => 'trip',
+			),
+			self::attributes( $atts ),
+			'kaiki_calendar'
+		);
 
 		$product = self::uuid( $atts['product'] );
 
@@ -106,7 +121,17 @@ final class Shortcodes {
 			);
 		}
 
-		return self::wrap( Bundle::embed( 'calendar', array( 'product' => $product ) ) );
+		return self::wrap(
+			Bundle::embed(
+				'calendar',
+				array(
+					'product' => $product,
+					// `Bundle::embed` drops an empty value, so switching the link
+					// off means the attribute is absent rather than `none`.
+					'link'    => self::links_to_trip( (string) $atts['link'] ) ? 'trip' : '',
+				)
+			)
+		);
 	}
 
 	/**
@@ -133,6 +158,17 @@ final class Shortcodes {
 	 */
 	private static function attributes( $atts ): array {
 		return is_array( $atts ) ? $atts : array();
+	}
+
+	/**
+	 * Does the calendar's `link` attribute leave the days clickable?
+	 *
+	 * Yes unless it says one of the ways people write "no".
+	 *
+	 * @param string $value The attribute as typed.
+	 */
+	private static function links_to_trip( string $value ): bool {
+		return ! in_array( strtolower( trim( $value ) ), array( 'none', 'off', 'no', 'false' ), true );
 	}
 
 	/**

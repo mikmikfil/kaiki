@@ -136,6 +136,7 @@ final class CreateManualBooking
             utm: $data->utm,
             isTest: $data->isTest,
             skipHold: $overriding,
+            originUrl: $data->originUrl,
         );
     }
 

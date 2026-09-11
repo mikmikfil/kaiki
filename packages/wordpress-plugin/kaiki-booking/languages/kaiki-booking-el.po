@@ -293,3 +293,75 @@ msgstr "Σε ποιον ανήκει το κείμενο"
 
 msgid "You own the short summary, the featured image and the address."
 msgstr "Η σύντομη περίληψη, η κύρια εικόνα και η διεύθυνση ανήκουν σε εσάς."
+
+msgid "Appearance"
+msgstr "Εμφάνιση"
+
+msgid "How the booking form, the calendar and the trip list look on this site. «As in Kaiki» uses the colours and font from your Kaiki panel. Choose your own to match this site instead; anything you leave empty stays as in Kaiki."
+msgstr "Πώς φαίνονται σε αυτόν τον ιστότοπο η φόρμα κράτησης, το ημερολόγιο και η λίστα εκδρομών. Το «Όπως στο Kaiki» χρησιμοποιεί τα χρώματα και τη γραμματοσειρά από τον πίνακα του Kaiki. Διαλέξτε δικά σας για να ταιριάζουν με τον ιστότοπο· ό,τι αφήσετε κενό μένει όπως στο Kaiki."
+
+msgid "Style"
+msgstr "Στυλ"
+
+msgid "As in Kaiki"
+msgstr "Όπως στο Kaiki"
+
+msgid "My own"
+msgstr "Δικό μου"
+
+msgid "Button colour"
+msgstr "Χρώμα κουμπιών"
+
+msgid "The text on the buttons turns white or black by itself, whichever is easier to read."
+msgstr "Το κείμενο στα κουμπιά γίνεται μόνο του λευκό ή μαύρο, όποιο διαβάζεται πιο εύκολα."
+
+msgid "Text colour"
+msgstr "Χρώμα κειμένου"
+
+msgid "Background colour"
+msgstr "Χρώμα φόντου"
+
+msgid "Font"
+msgstr "Γραμματοσειρά"
+
+msgid "My theme's font"
+msgstr "Η γραμματοσειρά του θέματός μου"
+
+msgid "Kaiki's font"
+msgstr "Η γραμματοσειρά του Kaiki"
+
+msgid "Another font my theme loads"
+msgstr "Άλλη γραμματοσειρά που φορτώνει το θέμα μου"
+
+msgid "Font name"
+msgstr "Όνομα γραμματοσειράς"
+
+msgid "Exactly as your theme names it. Latin letters, digits, spaces and hyphens only. A font your theme does not load will not appear."
+msgstr "Ακριβώς όπως την ονομάζει το θέμα σας. Μόνο λατινικά γράμματα, αριθμοί, κενά και παύλες. Γραμματοσειρά που δεν φορτώνει το θέμα σας δεν θα εμφανιστεί."
+
+msgid "Corner roundness"
+msgstr "Στρογγύλεμα γωνιών"
+
+msgid "From 0 (square) to 30 (very round). Leave it empty to keep Kaiki's."
+msgstr "Από 0 (τετράγωνες) έως 30 (πολύ στρογγυλές). Αφήστε το κενό για να μείνει όπως στο Kaiki."
+
+msgid "Preview"
+msgstr "Προεπισκόπηση"
+
+msgid "Sunset cruise"
+msgstr "Κρουαζιέρα στο ηλιοβασίλεμα"
+
+msgid "Three hours along the coast, with a stop for a swim."
+msgstr "Τρεις ώρες κατά μήκος της ακτής, με στάση για μπάνιο."
+
+msgid "Book now"
+msgstr "Κράτηση τώρα"
+
+msgid "A sketch, not the real form. Anything you leave empty is shown here in Kaiki's default colours, and your theme's font only appears on your site itself."
+msgstr "Πρόχειρο σχέδιο, όχι η πραγματική φόρμα. Ό,τι αφήσετε κενό εμφανίζεται εδώ με τα προεπιλεγμένα χρώματα του Kaiki, και η γραμματοσειρά του θέματός σας φαίνεται μόνο στον ίδιο τον ιστότοπο."
+
+msgid "Days lead to the booking"
+msgstr "Οι μέρες οδηγούν στην κράτηση"
+
+msgid "A day with room opens the trip on Kaiki, with that day already chosen."
+msgstr "Μια μέρα με διαθέσιμες θέσεις ανοίγει την εκδρομή στο Kaiki, με αυτή τη μέρα ήδη επιλεγμένη."

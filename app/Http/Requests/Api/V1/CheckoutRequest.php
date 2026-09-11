@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Api\V1;
 
-use App\Domain\Hosted\Support\HostedHost;
+use App\Domain\Hosted\Support\AllowedOrigin;
 use App\Enums\PaymentGatewayName;
 use App\Enums\PaymentKind;
 use App\Http\Middleware\AuthenticateGuestToken;
@@ -30,6 +30,9 @@ use Illuminate\Validation\Validator;
  * sandbox checkout page is the first thing that actually sends a browser there,
  * and a validated field is a precondition of that rather than an improvement
  * on it.
+ *
+ * The check itself moved to {@see AllowedOrigin} on 2026-09-11, when
+ * `origin_url` on `POST /bookings` became the second field asking it.
  *
  * ## `kind` is where the two-session model shows up in the wire format
  *
@@ -78,7 +81,9 @@ class CheckoutRequest extends FormRequest
                     return;
                 }
 
-                if ($this->isAllowedReturnTarget($url)) {
+                $key = $this->attributes->get('api_key');
+
+                if (AllowedOrigin::permits($url, $key instanceof ApiKey ? $key : null)) {
                     return;
                 }
 
@@ -98,30 +103,6 @@ class CheckoutRequest extends FormRequest
     public function kind(): PaymentKind
     {
         return PaymentKind::from((string) $this->input('kind'));
-    }
-
-    private function isAllowedReturnTarget(string $url): bool
-    {
-        $parts = parse_url($url);
-
-        if (! is_array($parts) || ! isset($parts['scheme'], $parts['host'])) {
-            return false;
-        }
-
-        $host = strtolower((string) $parts['host']);
-
-        // A page we serve ourselves — the hosted pages, and the guest booking
-        // page a confirmation links to.
-        if ($host === HostedHost::name() || $host === strtolower((string) parse_url((string) config('app.url'), PHP_URL_HOST))) {
-            return true;
-        }
-
-        $port = isset($parts['port']) ? ':' . $parts['port'] : '';
-        $origin = strtolower((string) $parts['scheme']) . '://' . $host . $port;
-
-        $key = $this->attributes->get('api_key');
-
-        return $key instanceof ApiKey && $key->allowsOrigin($origin);
     }
 
     /** Null picks the operator's default, which is what the schema says. */

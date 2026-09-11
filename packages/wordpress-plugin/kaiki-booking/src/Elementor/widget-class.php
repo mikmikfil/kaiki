@@ -46,7 +46,7 @@ class Widget extends Widget_Base {
 	/**
 	 * What this widget renders and what it asks for.
 	 *
-	 * @var array{title: string, callback: string, product: bool, category: bool}
+	 * @var array{title: string, callback: string, product: bool, category: bool, link: bool}
 	 */
 	private array $definition;
 
@@ -54,10 +54,10 @@ class Widget extends Widget_Base {
 	 * Elementor constructs widgets itself, so the two Kaiki arguments come
 	 * first and its own two keep their defaults.
 	 *
-	 * @param string                                                                $slug       The widget name.
-	 * @param array{title: string, callback: string, product: bool, category: bool} $definition What it renders.
-	 * @param array<string, mixed>                                                  $data       Elementor's own data.
-	 * @param array<string, mixed>|null                                             $args       Elementor's own args.
+	 * @param string                                                                            $slug       The widget name.
+	 * @param array{title: string, callback: string, product: bool, category: bool, link: bool} $definition What it renders.
+	 * @param array<string, mixed>                                                              $data       Elementor's own data.
+	 * @param array<string, mixed>|null                                                         $args       Elementor's own args.
 	 */
 	public function __construct( string $slug, array $definition, array $data = array(), $args = null ) {
 		$this->slug       = $slug;
@@ -132,6 +132,20 @@ class Widget extends Widget_Base {
 			);
 		}
 
+		if ( $this->definition['link'] ) {
+			// On by default, like the shortcode and the block.
+			$this->add_control(
+				'link',
+				array(
+					'label'        => __( 'Days lead to the booking', 'kaiki-booking' ),
+					'type'         => Controls_Manager::SWITCHER,
+					'description'  => __( 'A day with room opens the trip on Kaiki, with that day already chosen.', 'kaiki-booking' ),
+					'return_value' => 'yes',
+					'default'      => 'yes',
+				)
+			);
+		}
+
 		$this->end_controls_section();
 	}
 
@@ -147,10 +161,7 @@ class Widget extends Widget_Base {
 
 		$html = call_user_func(
 			array( Shortcodes::class, $this->definition['callback'] ),
-			array(
-				'product'  => isset( $settings['product'] ) ? (string) $settings['product'] : '',
-				'category' => isset( $settings['category'] ) ? (string) $settings['category'] : '',
-			)
+			Widgets::shortcode_attributes( $this->definition, is_array( $settings ) ? $settings : array() )
 		);
 
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped at the point of output inside the shortcode; escaping again would show the markup as text.

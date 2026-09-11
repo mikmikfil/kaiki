@@ -7,6 +7,7 @@ namespace App\Http\Requests\Api\V1;
 use App\Domain\Booking\Actions\CreateManualBooking;
 use App\Domain\Booking\Actions\ImportBooking;
 use App\Domain\Booking\Data\BookingDraftData;
+use App\Domain\Hosted\Support\AllowedOrigin;
 use App\Domain\Pricing\Actions\ComputePrice;
 use App\Enums\BookingSource;
 use App\Models\AgeBand;
@@ -47,6 +48,16 @@ use Illuminate\Support\Carbon;
  * because that is what a checkbox produces; what is written is `now()` and the
  * request IP, because a boolean records that somebody ticked a box and a
  * timestamp records when — which is the half that answers a dispute.
+ *
+ * ## `origin_url` is dropped, never refused, when the key may not send a guest there
+ *
+ * The page the guest was on, for the «← Επιστροφή στην ιστοσελίδα» link on the
+ * checkout and booking pages (product owner, 2026-09-11). It is rendered as an
+ * `href` on a page that looks like the operator's, so it is held to the same
+ * rule as `return_url` — {@see AllowedOrigin}. A value that fails that rule is
+ * stored as null rather than answered with a 422: a link we will not print is
+ * not a reason to lose somebody's seats. A value that is not a URL at all is
+ * still refused, because that is a client bug and not a policy question.
  */
 class BookingCreateRequest extends FormRequest
 {
@@ -96,6 +107,10 @@ class BookingCreateRequest extends FormRequest
 
             // See the class docblock: rejected rather than filtered.
             'source' => ['nullable', 'string', 'in:widget,hosted,wordpress'],
+
+            // See the class docblock: checked against the key's origins in
+            // `originUrl()`, and dropped rather than refused when it fails.
+            'origin_url' => ['nullable', 'url', 'max:2000'],
 
             'utm' => ['sometimes', 'array'],
             'utm.source' => ['nullable', 'string', 'max:120'],
@@ -230,7 +245,27 @@ class BookingCreateRequest extends FormRequest
             userAgent: substr((string) $this->userAgent(), 0, 500),
             utm: $this->utm(),
             isTest: $this->isTestKey(),
+            originUrl: $this->originUrl(),
         );
+    }
+
+    /**
+     * `origin_url`, when the key may send a guest there — otherwise null.
+     *
+     * Only reached after validation, so anything here is already a URL of at
+     * most 2000 characters; the question left is whose.
+     */
+    public function originUrl(): ?string
+    {
+        $url = $this->input('origin_url');
+
+        if (! is_string($url) || $url === '') {
+            return null;
+        }
+
+        $key = $this->attributes->get('api_key');
+
+        return AllowedOrigin::permits($url, $key instanceof ApiKey ? $key : null) ? $url : null;
     }
 
     /** A present, non-blank string, or null. */

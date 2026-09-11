@@ -114,10 +114,27 @@ final class HostedUrl
         $local = str_ends_with($name, '.test')
             || $name === 'localhost'
             || str_ends_with($name, '.localhost')
-            || $name === '127.0.0.1'
-            || $name === '::1';
+            || self::isPrivateAddress($name);
 
         return sprintf('%s://%s', $local ? 'http' : 'https', $host);
+    }
+
+    /**
+     * Loopback, a LAN address or anything else reserved — never a public site.
+     *
+     * It was `127.0.0.1` and `::1` only, so a developer who set the hosted host
+     * to their machine's LAN address to open the pages on a phone
+     * (`192.168.1.43:8001`) got every checkout link and every trip link as
+     * `https://`, which the local server does not speak: «This site can't be
+     * reached» at the moment a guest pressed «Συνέχεια στην κράτηση». No
+     * production host is a private address, so nothing live changes.
+     */
+    private static function isPrivateAddress(string $name): bool
+    {
+        $ip = trim($name, '[]');
+
+        return filter_var($ip, FILTER_VALIDATE_IP) !== false
+            && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
     }
 
     /**

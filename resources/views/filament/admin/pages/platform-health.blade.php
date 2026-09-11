@@ -194,7 +194,7 @@
         .ka-nowrap { white-space: nowrap; }
 
         .ka-health-link { color: rgb(var(--primary-600)); font-weight: 500; }
-        .ka-health-link:hover { text-decoration: underline; }
+        .ka-health-link:hover { color: rgb(var(--primary-500)); }
 
         .dark .ka-health-table th, .dark .ka-health-table td { border-bottom-color: rgba(255, 255, 255, .08); }
         .dark .ka-health-link { color: rgb(var(--primary-400)); }

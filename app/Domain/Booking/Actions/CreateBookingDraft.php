@@ -157,6 +157,7 @@ final class CreateBookingDraft
                 'terms_accepted_at' => $data->termsAcceptedAt,
                 'ip_address' => $data->ipAddress,
                 'user_agent' => $data->userAgent === null ? null : mb_substr($data->userAgent, 0, 500),
+                'origin_url' => $data->originUrl,
                 ...$data->utmColumns(),
             ])->save();
 

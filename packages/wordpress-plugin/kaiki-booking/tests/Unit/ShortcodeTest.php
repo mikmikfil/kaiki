@@ -51,6 +51,45 @@ final class ShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'data-key="pk_live_abc"', $html );
 	}
 
+	public function test_the_calendar_leads_to_the_trip_page_by_default(): void {
+		// Decided 2026-09-11: a guest who finds a free day and cannot click it
+		// has been shown a door with no handle. So the plain shortcode links,
+		// and so does one with a value nobody meant as "no".
+		foreach ( array( null, 'trip', 'TRIP', 'yes', 'trpi' ) as $link ) {
+			Bundle::reset();
+
+			$atts = array( 'product' => self::UUID );
+
+			if ( null !== $link ) {
+				$atts['link'] = $link;
+			}
+
+			$html = Shortcodes::calendar( $atts );
+
+			$this->assertStringContainsString( 'data-mount="calendar"', $html );
+			$this->assertStringContainsString( 'data-link="trip"', $html, 'link=' . ( $link ?? '(absent)' ) );
+		}
+	}
+
+	public function test_the_calendar_stays_read_only_when_the_link_is_switched_off(): void {
+		// For the operator who puts a booking form right under the calendar.
+		// Absent rather than `data-link="none"`: the widget's default is
+		// read-only, and the plugin says only what differs from it.
+		foreach ( array( 'none', 'off', 'no', 'false', ' None ' ) as $link ) {
+			Bundle::reset();
+
+			$html = Shortcodes::calendar(
+				array(
+					'product' => self::UUID,
+					'link'    => $link,
+				)
+			);
+
+			$this->assertStringContainsString( 'data-mount="calendar"', $html );
+			$this->assertStringNotContainsString( 'data-link', $html, 'link=' . $link );
+		}
+	}
+
 	public function test_it_embeds_the_alias_and_never_a_version(): void {
 		// ADR-0011: a release reaches an operator without anybody editing
 		// anything, which only works while the embed names the alias.

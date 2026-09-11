@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Guest;
 
 use App\Domain\Branding\Actions\GetBrandPayload;
+use App\Domain\Hosted\Support\HostedUrl;
+use App\Models\Booking;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Http\Request;
@@ -75,6 +77,29 @@ abstract class GuestPageController
     protected function brandFor(Tenant $tenant, string $locale): array
     {
         return Tenancy::forTenant($tenant, fn (): array => ($this->brand)($tenant, $locale));
+    }
+
+    /**
+     * Where «← Επιστροφή στην ιστοσελίδα» goes, or null for no link at all.
+     *
+     * The product owner's instruction (2026-09-11). The page the guest was on,
+     * when the widget sent one and the key allowed it; otherwise the operator's
+     * hosted home page, **only** when that page is served — a bookings-only
+     * operator's home is a 404 (ADR-0029), and a link to a 404 is worse than
+     * none.
+     *
+     * Decided here rather than in the view, so the checkout and booking pages
+     * cannot disagree about it.
+     */
+    protected function backToSiteUrl(Booking $booking, Tenant $tenant): ?string
+    {
+        $origin = $booking->origin_url;
+
+        if (is_string($origin) && $origin !== '') {
+            return $origin;
+        }
+
+        return HostedUrl::homeEnabledFor($tenant) ? HostedUrl::operator($tenant) : null;
     }
 
     /**

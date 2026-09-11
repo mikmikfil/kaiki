@@ -165,6 +165,46 @@ describe('the list mount', () => {
   });
 });
 
+describe('the list mount photographs', () => {
+  const card = (overrides: Record<string, unknown>) => ({
+    uuid: 'uuid-x',
+    slug: 'x',
+    title: 'Sunset cruise',
+    summary: null,
+    category: 'sunset',
+    mode: 'per_seat',
+    duration_minutes: 180,
+    from_price_cents: 4500,
+    from_price_formatted: '€45.00',
+    booking_url: 'https://book.kaiki.app/aegean-blue/sunset',
+    ...overrides,
+  });
+
+  it('shows each trip photograph at the top of its card', async () => {
+    const api = client(() => ({
+      data: [card({ uuid: 'with', hero_image_url: 'https://book.kaiki.app/storage/products/1/sunset.jpg' })],
+    }));
+
+    render(<ListMount {...props({ client: api })} />, host);
+    await settle();
+
+    const image = host.querySelector<HTMLImageElement>('.kaiki-card .kaiki-card-image');
+
+    expect(image?.getAttribute('src')).toBe('https://book.kaiki.app/storage/products/1/sunset.jpg');
+    // The title under it names the trip; the photo is not read out twice.
+    expect(image?.getAttribute('alt')).toBe('');
+    expect(image?.getAttribute('loading')).toBe('lazy');
+  });
+
+  it('draws no empty frame for a trip without a photograph', async () => {
+    render(<ListMount {...props({ client: client(() => ({ data: [card({ hero_image_url: null })] })) })} />, host);
+    await settle();
+
+    expect(host.querySelector('.kaiki-card')).not.toBeNull();
+    expect(host.querySelector('.kaiki-card-image')).toBeNull();
+  });
+});
+
 describe('the calendar mount', () => {
   /**
    * Two days in the **current** month, because that is the month the mount

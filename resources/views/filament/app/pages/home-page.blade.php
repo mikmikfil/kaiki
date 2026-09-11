@@ -17,7 +17,7 @@
                 href="{{ $this->publicUrl() }}"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="text-sm text-primary-600 hover:underline dark:text-primary-400"
+                class="text-sm font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400"
             >
                 {{ __('home_page.actions.view') }}
             </a>

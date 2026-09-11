@@ -44,6 +44,30 @@ describe('finding embeds', () => {
     expect(findEmbeds(document)).toHaveLength(1);
   });
 
+  it('finds every shortcode on a WordPress page, although only the first carries the src', () => {
+    // How the plugin prints two shortcodes: the bundle once, then attributes only.
+    embed({ 'data-key': 'pk_live_1', 'data-mount': 'booking', 'data-product': 'uuid-1' });
+
+    const second = document.createElement('script');
+    second.setAttribute('data-key', 'pk_live_1');
+    second.setAttribute('data-mount', 'list');
+    document.body.appendChild(second);
+
+    const embeds = findEmbeds(document);
+
+    expect(embeds).toHaveLength(2);
+    // And the second calls the platform's API, not the operator's own site.
+    expect(readConfig(embeds[1] as HTMLScriptElement)?.apiBase).toBe('https://api.kaiki.app/api/v1');
+  });
+
+  it('still ignores a src-less tag that does not carry one of our keys', () => {
+    const inline = document.createElement('script');
+    inline.setAttribute('data-key', 'GTM-XYZ');
+    document.body.appendChild(inline);
+
+    expect(findEmbeds(document)).toHaveLength(0);
+  });
+
   it('refuses an embed with no key rather than rendering an error at a guest', () => {
     const script = embed({ 'data-key': '  ' });
 

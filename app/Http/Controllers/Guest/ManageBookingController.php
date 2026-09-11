@@ -81,6 +81,7 @@ final class ManageBookingController extends GuestPageController
             'entitlement' => RefundEntitlement::forCancellation($booking),
             'canCancel' => self::canCancel($booking),
             'weatherChoiceDue' => self::weatherChoiceIsOpen($booking),
+            'backUrl' => $this->backToSiteUrl($booking, $tenant),
         ]);
     }
 

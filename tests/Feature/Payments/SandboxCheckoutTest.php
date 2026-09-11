@@ -174,6 +174,30 @@ it('falls back to the guest booking page when nothing named a return address', f
         ->assertRedirect(route('guest.booking', ['token' => $booking->manage_token]));
 })->group('fast');
 
+it('sends a declined guest back to the checkout page to try again', function (): void {
+    // 2026-09-11: not to the widget's return address. The guest has not paid,
+    // the details they typed are on the booking, and BKG-12 has just re-held
+    // their seats — the checkout page is the one place they can act on that.
+    [, $booking] = sandboxFixture(returnUrl: 'https://aegean-blue.example/thank-you');
+
+    post('/sandbox/checkout/fake_sandbox_reference/fail')
+        ->assertRedirect(route('guest.checkout', ['token' => $booking->manage_token]))
+        ->assertSessionHasErrors(['checkout' => __('guest.checkout.payment_failed', [], $booking->locale)]);
+})->group('fast');
+
+it('keeps the old redirect when a decline leaves nothing to pay for', function (): void {
+    // BKG-12's other branch: the boat filled while the guest was failing to
+    // pay, so the booking expired. A checkout page for it would only bounce.
+    [$tenant, $booking] = sandboxFixture(returnUrl: 'https://aegean-blue.example/thank-you');
+
+    Tenancy::forTenant($tenant, static function () use ($booking): void {
+        Departure::query()->whereKey($booking->departure_id)->update(['capacity' => 2, 'seats_sold' => 10]);
+    });
+
+    post('/sandbox/checkout/fake_sandbox_reference/fail')
+        ->assertRedirect('https://aegean-blue.example/thank-you');
+})->group('fast');
+
 it('is where the fake gateway actually sends a guest', function (): void {
     // The seam between the two halves of this: if the gateway stopped pointing
     // here, every test above would still pass and nobody would ever reach the

@@ -17,7 +17,13 @@ msgstr ""
 msgid "A booking form for one trip: date, party, details, pay."
 msgstr ""
 
+msgid "A day with room opens the trip on Kaiki, with that day already chosen."
+msgstr ""
+
 msgid "A month of availability for one trip."
+msgstr ""
+
+msgid "A sketch, not the real form. Anything you leave empty is shown here in Kaiki's default colours, and your theme's font only appears on your site itself."
 msgstr ""
 
 msgid "A trip you switch off in Kaiki is unpublished here, and one you delete is moved to the trash. Nothing is removed permanently."
@@ -35,13 +41,31 @@ msgstr ""
 msgid "An enquiry form, for trips with no published price."
 msgstr ""
 
+msgid "Another font my theme loads"
+msgstr ""
+
 msgid "Anything on a page is public. If it ever appears on one, delete the key in your Kaiki panel and make a new one."
+msgstr ""
+
+msgid "Appearance"
+msgstr ""
+
+msgid "As in Kaiki"
+msgstr ""
+
+msgid "Background colour"
 msgstr ""
 
 msgid "Boat"
 msgstr ""
 
+msgid "Book now"
+msgstr ""
+
 msgid "Bookings are briefly unavailable. Please try again in a moment, or contact us directly."
+msgstr ""
+
+msgid "Button colour"
 msgstr ""
 
 msgid "Cache, in seconds"
@@ -65,7 +89,13 @@ msgstr ""
 msgid "Connected. This site can read your trips."
 msgstr ""
 
+msgid "Corner roundness"
+msgstr ""
+
 msgid "Create a page on this site for each trip"
+msgstr ""
+
+msgid "Days lead to the booking"
 msgstr ""
 
 msgid "Departs from"
@@ -74,10 +104,22 @@ msgstr ""
 msgid "Duration"
 msgstr ""
 
+msgid "Exactly as your theme names it. Latin letters, digits, spaces and hyphens only. A font your theme does not load will not appear."
+msgstr ""
+
 msgid "Follow the page (recommended)"
 msgstr ""
 
 msgid "Following the page uses WPML or Polylang if you have one, and your site language if you do not."
+msgstr ""
+
+msgid "Font"
+msgstr ""
+
+msgid "Font name"
+msgstr ""
+
+msgid "From 0 (square) to 30 (very round). Leave it empty to keep Kaiki's."
 msgstr ""
 
 msgid "From your Kaiki panel, on the trip."
@@ -87,6 +129,9 @@ msgid "From your Kaiki panel, under API keys. This one is safe on a public page:
 msgstr ""
 
 msgid "How long your trips are remembered on this site. Changes you make in Kaiki appear immediately anyway — Kaiki tells this site when something changed."
+msgstr ""
+
+msgid "How the booking form, the calendar and the trip list look on this site. «As in Kaiki» uses the colours and font from your Kaiki panel. Choose your own to match this site instead; anything you leave empty stays as in Kaiki."
 msgstr ""
 
 msgid "Is it connected?"
@@ -155,6 +200,9 @@ msgstr ""
 msgid "Kaiki trips"
 msgstr ""
 
+msgid "Kaiki's font"
+msgstr ""
+
 msgid "Language"
 msgstr ""
 
@@ -171,6 +219,12 @@ msgid "Leave this as it is unless you were told otherwise."
 msgstr ""
 
 msgid "Live updates"
+msgstr ""
+
+msgid "My own"
+msgstr ""
+
+msgid "My theme's font"
 msgstr ""
 
 msgid "Never paste this key into a page, a post, a widget or a theme file."
@@ -194,6 +248,9 @@ msgstr ""
 msgid "Only you can see this:"
 msgstr ""
 
+msgid "Preview"
+msgstr ""
+
 msgid "Publishable key"
 msgstr ""
 
@@ -203,7 +260,16 @@ msgstr ""
 msgid "Settings → Kaiki Booking"
 msgstr ""
 
+msgid "Style"
+msgstr ""
+
+msgid "Sunset cruise"
+msgstr ""
+
 msgid "Test the connection"
+msgstr ""
+
+msgid "Text colour"
 msgstr ""
 
 msgid "That does not look like a publishable key. A publishable key starts with pk_. Never paste a secret key here — it would be sent to every visitor."
@@ -219,6 +285,9 @@ msgid "That request could not be verified."
 msgstr ""
 
 msgid "That request is too old."
+msgstr ""
+
+msgid "The text on the buttons turns white or black by itself, whichever is easier to read."
 msgstr ""
 
 msgid "There is no key saved yet."
@@ -240,6 +309,9 @@ msgid "This site could not reach Kaiki. If it keeps happening, your host may be 
 msgstr ""
 
 msgid "This site is not set up to receive updates."
+msgstr ""
+
+msgid "Three hours along the coast, with a stop for a swim."
 msgstr ""
 
 msgid "Trip"

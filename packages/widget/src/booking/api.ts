@@ -69,7 +69,7 @@ export class BookingApi {
 
     const response = await this.client.post<{ data: Record<string, unknown> }>(
       '/bookings',
-      draftPayload(state, productUuid, locale),
+      { ...draftPayload(state, productUuid, locale), origin_url: originUrl() },
       { headers: { 'Idempotency-Key': key } },
     );
 
@@ -82,6 +82,30 @@ export class BookingApi {
   /** Availability for a product, which the cache serves for sixty seconds. */
   async availability(productUuid: string, from: string, to: string, pax?: number): Promise<unknown> {
     return this.client.get('/availability', { query: { product: productUuid, from, to, pax } });
+  }
+}
+
+/**
+ * The page the guest is booking from, for the «back to the website» link on the
+ * checkout and booking pages (asked for 2026-09-11).
+ *
+ * Without the fragment, and only an http(s) page. The API keeps it only when it
+ * is on an origin the key allows, so a hand-written embed cannot turn Kaiki's
+ * own pages into a link to somewhere else.
+ */
+function originUrl(): string | null {
+  try {
+    const url = new URL(window.location.href);
+
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return null;
+    }
+
+    url.hash = '';
+
+    return url.toString();
+  } catch {
+    return null;
   }
 }
 

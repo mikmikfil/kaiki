@@ -92,7 +92,35 @@ final class CheckoutController extends GuestPageController
             'booking' => $booking->load(['product', 'departure', 'guests']),
             'token' => $token,
             'needsGuestDetails' => (bool) $booking->product?->guest_details_required,
+            'backUrl' => $this->backToSiteUrl($booking, $tenant),
         ]);
+    }
+
+    /**
+     * Where a guest lands after a payment that did not go through.
+     *
+     * Back on this page with a sentence saying so, while the booking can still
+     * be paid for — the details they typed are already on the booking, so the
+     * form refills and «try again» is one press (product owner, 2026-09-11).
+     * Their booking page otherwise: BKG-12 expires a booking whose seats went
+     * while the guest was failing to pay, and a checkout for it would only
+     * bounce them there anyway.
+     *
+     * One method because two places send a guest back from a gateway — the
+     * sandbox page and Viva's Failure URL — and a guest must not be able to
+     * tell which one they were on by where they end up.
+     */
+    public static function returnAfterFailedPayment(Booking $booking): RedirectResponse
+    {
+        if (! self::isPayable($booking)) {
+            return redirect()->route('guest.booking', ['token' => $booking->manage_token]);
+        }
+
+        return redirect()
+            ->route('guest.checkout', ['token' => $booking->manage_token])
+            // In the booking's own locale (TOK-5): this request came from a
+            // gateway, which says nothing useful about the guest's language.
+            ->withErrors(['checkout' => __('guest.checkout.payment_failed', [], $booking->locale)]);
     }
 
     public function pay(Request $request, string $token): RedirectResponse
@@ -194,8 +222,11 @@ final class CheckoutController extends GuestPageController
      * gateway, changed their mind and pressed Back has a booking in that state
      * and a hold that has not expired, and sending them to a "your booking"
      * page they cannot pay from is the worst of both.
+     *
+     * Public since the gateway return pages ask the same question — see
+     * {@see self::returnAfterFailedPayment()}.
      */
-    private static function isPayable(Booking $booking): bool
+    public static function isPayable(Booking $booking): bool
     {
         return in_array($booking->status, [BookingStatus::Draft, BookingStatus::PendingPayment], true);
     }

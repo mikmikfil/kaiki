@@ -22,6 +22,11 @@
 
 @section('content')
 
+    {{-- The same link, and the same decision, as the checkout page. --}}
+    @if ($backUrl)
+        <p class="back-to-site"><a href="{{ $backUrl }}">{{ __('guest.back_to_site') }}</a></p>
+    @endif
+
     <div class="card">
         <h1>{{ $booking->product?->title ?? __('guest.booking.title') }}</h1>
         <p class="muted">{{ __('guest.common.reference') }}: <strong>{{ $booking->reference }}</strong></p>

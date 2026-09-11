@@ -53,9 +53,10 @@ test.describe('the four mounts', () => {
     const root = widget(page);
 
     // The four lines above the date picker — brand decision 3 of 2026-09-04 —
-    // and then the picker itself.
+    // and then the picker itself: a month grid since 2026-09-10, with the days
+    // that can be booked as buttons.
     await expect(root.getByRole('heading', { name: 'Pick a date' })).toBeVisible();
-    await expect(root.locator('input[type="date"]')).toBeVisible();
+    await expect(root.locator('button.kaiki-day-pick').first()).toBeVisible();
   });
 });
 

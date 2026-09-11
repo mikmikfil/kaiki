@@ -57,7 +57,6 @@ export const en = {
   'booking.expired.heading': 'We could not hold your seats any longer',
   'booking.expired.body': 'The hold ran out, so the seats went back. Nothing was charged — start again and they may still be there.',
   'booking.expired.retry': 'Start again',
-
   // The list, calendar and enquiry mounts (issue 108).
   'list.from': 'from',
   'list.all': 'All trips',
@@ -69,6 +68,9 @@ export const en = {
   'calendar.status.available': 'Available',
   'calendar.status.sold_out': 'Sold out',
   'calendar.status.unavailable': 'Not sailing',
+  // What the API calls a day with no departure scheduled. It reached screen
+  // readers as the raw key until 2026-09-11.
+  'calendar.status.not_operating': 'Not sailing',
   'calendar.status.on_request': 'On request',
   'calendar.status.past': 'Past',
   'enquiry.heading': 'Ask us about this trip',

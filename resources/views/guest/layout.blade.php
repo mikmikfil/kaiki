@@ -116,6 +116,11 @@
             font: inherit; font-weight: 600; text-decoration: none;
         }
 
+        /* No underlined links on a guest page, at rest or on hover — the
+           product owner's rule of 2026-09-11. A link says so with the
+           operator's colour and weight instead; the focus ring stays. */
+        a, a:hover { text-decoration: none; }
+
         .btn.secondary { background: transparent; color: var(--kaiki-text, #14202b); border: 1px solid rgba(0, 0, 0, .2); }
         .btn.danger { background: #a8321f; }
         .btn + .btn { margin-top: .5rem; }
@@ -229,6 +234,18 @@
         }
 
         .notice.bad { border-left-color: #a8321f; }
+
+        /* The back-to-the-website link (2026-09-11). Never underlined, at rest
+           or on hover — the product owner's rule — so the operator's colour and
+           the weight say it is a link, and the focus ring says where the
+           keyboard is. */
+        .back-to-site { margin: 0 0 .9rem; font-size: .92rem; }
+        .back-to-site a { color: var(--kaiki-primary, #0b3d91); font-weight: 600; text-decoration: none; }
+        .back-to-site a:hover { text-decoration: none; opacity: .8; }
+        .back-to-site a:focus-visible {
+            outline: 2px solid var(--kaiki-primary, #0b3d91); outline-offset: 3px;
+            border-radius: 2px; text-decoration: none;
+        }
 
         footer.brand { padding: 1.5rem 0 0; font-size: .85rem; color: rgba(0, 0, 0, .55); }
     </style>

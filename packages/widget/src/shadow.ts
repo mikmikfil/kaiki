@@ -41,7 +41,8 @@ export interface ShadowHost {
   readonly root: ShadowRoot;
   /** Where a mount renders. Styles live outside it, so a re-render cannot drop them. */
   readonly slot: HTMLElement;
-  applyBranding(brand: BrandPayload): void;
+  /** The branding, then `overrides` — the WordPress plugin's own look — on top. */
+  applyBranding(brand: BrandPayload, overrides?: string): void;
 }
 
 let instances = 0;
@@ -83,8 +84,10 @@ export function createShadowHost(target: Element, doc: Document = document, befo
     host,
     root,
     slot,
-    applyBranding(payload: BrandPayload): void {
-      brand(`:host {\n  ${brandProperties(payload)};\n}`);
+    applyBranding(payload: BrandPayload, overrides = ''): void {
+      // One block, overrides last: a later declaration of the same custom
+      // property wins, so only what the operator set changes.
+      brand(`:host {\n  ${brandProperties(payload)}${overrides === '' ? '' : `;\n  ${overrides}`};\n}`);
     },
   };
 }
@@ -193,6 +196,10 @@ const BASE_STYLES = `
 .kaiki-root *::before,
 .kaiki-root *::after { box-sizing: inherit; }
 
+/* Links are never underlined (2026-09-11). Every link here is set in the
+   operator's primary or weight instead, and keeps the focus ring below. */
+.kaiki-root a { text-decoration: none; }
+
 .kaiki-root p { margin: 0 0 .7rem; }
 .kaiki-root p:last-child { margin-bottom: 0; }
 
@@ -221,8 +228,9 @@ const BASE_STYLES = `
   border: 1px solid var(--kaiki-primary);
   background: var(--kaiki-primary);
   /* The label sits on the operator's primary, so it takes their background
-     colour rather than a white this file is not allowed to name. */
-  color: var(--kaiki-background);
+     colour rather than a white this file is not allowed to name — or the
+     readable colour the WordPress plugin worked out for its own button colour. */
+  color: var(--kaiki-on-primary, var(--kaiki-background));
   border-radius: var(--kaiki-radius, 10px);
   padding: .62rem 1.1rem;
   min-height: 44px;
@@ -310,8 +318,7 @@ const BASE_STYLES = `
 }
 .kaiki-resume a { color: var(--kaiki-primary); font-weight: 600; }
 
-.kaiki-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }
-.kaiki-button-ghost { background: transparent; color: var(--kaiki-primary); }
+.kaiki-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }.kaiki-button-ghost { background: transparent; color: var(--kaiki-primary); }
 /* Its own hover. The shared .kaiki-button:hover darkens the fill to the
    primary colour, which on a button whose text is that same primary colour put
    «Πίσω» dark on dark. A tint keeps the text readable in any operator's brand. */
@@ -328,7 +335,7 @@ const BASE_STYLES = `
   border-radius: var(--kaiki-radius, 10px);
   padding: .4rem .8rem; min-height: 40px;
 }
-.kaiki-tab-active { background: var(--kaiki-primary); border-color: var(--kaiki-primary); color: var(--kaiki-background); }
+.kaiki-tab-active { background: var(--kaiki-primary); border-color: var(--kaiki-primary); color: var(--kaiki-on-primary, var(--kaiki-background)); }
 
 /* Cards are equal height with the price row pinned to the bottom — settled on
    4 September, because prices at different heights read as a mistake. 14px on
@@ -341,11 +348,21 @@ const BASE_STYLES = `
 .kaiki-card {
   display: flex; flex-direction: column;
   border: 1px solid color-mix(in srgb, var(--kaiki-text) 12%, transparent);
-  border-radius: 14px; padding: 1rem 1.05rem;
+  border-radius: 14px; overflow: hidden;
 }
+/* The photograph runs to the card's edges; the text keeps the padding. One
+   ratio for every card, so a row of photos lines up whatever was uploaded. */
+.kaiki-card-image {
+  display: block; width: 100%; height: auto; max-width: 100%;
+  aspect-ratio: 16 / 10; object-fit: cover;
+  background: color-mix(in srgb, var(--kaiki-text) 6%, var(--kaiki-background));
+}
+.kaiki-card-body { display: flex; flex-direction: column; flex: 1; padding: 1rem 1.05rem; }
 .kaiki-card h3 { margin: 0 0 .35rem; }
 .kaiki-card h3 a { color: inherit; text-decoration: none; }
-.kaiki-card h3 a:hover { text-decoration: underline; text-underline-offset: .16em; }
+/* No underline, at rest or on hover — the product owner's rule of 2026-09-11.
+   The hover says the title is a link in the operator's own colour instead. */
+.kaiki-card h3 a:hover { color: var(--kaiki-primary); }
 .kaiki-card .kaiki-facts { font-size: .82rem; margin-bottom: .6rem; }
 .kaiki-card-price { margin: auto 0 0; padding-top: .6rem; }
 .kaiki-card-price strong { font-size: 1.1rem; }

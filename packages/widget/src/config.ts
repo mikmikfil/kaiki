@@ -16,6 +16,8 @@
  * they mean something else, not for the common ones.
  */
 
+import { readAppearance, type Appearance } from './appearance';
+
 /** The four mounts of WGT-6. The last two arrive in #108. */
 export type MountName = 'booking' | 'list' | 'calendar' | 'enquiry';
 
@@ -53,6 +55,8 @@ export interface WidgetConfig {
    * on. The hosted trip page passes it on from its `?date=`.
    */
   readonly date: string | null;
+  /** The WordPress plugin's «Appearance» settings, each checked (see `appearance.ts`). */
+  readonly appearance: Appearance;
   /** Where the API lives, derived from the script's own `src`. */
   readonly apiBase: string;
 }
@@ -65,10 +69,24 @@ export interface WidgetConfig {
  * the tag — which is what half the page builders in WPP-2's list do.
  */
 export function findEmbeds(doc: Document = document): HTMLScriptElement[] {
-  return Array.from(doc.querySelectorAll<HTMLScriptElement>('script[data-key]')).filter((script) =>
-    /kaiki-widget(\.min)?\.js/.test(script.src),
+  return Array.from(doc.querySelectorAll<HTMLScriptElement>('script[data-key]')).filter(
+    (script) => BUNDLE.test(script.src) || (script.src === '' && PUBLISHABLE.test((script.dataset.key ?? '').trim())),
   );
 }
+
+const BUNDLE = /kaiki-widget(\.min)?\.js/;
+
+/**
+ * A tag with no `src` of its own is still an embed when it carries one of our keys.
+ *
+ * The WordPress plugin prints the bundle's `src` on the **first** shortcode of a
+ * page and only the attributes on the rest, so the file loads once. Matching on
+ * the filename alone threw those away: every WordPress page with two shortcodes
+ * showed the first and two empty boxes (found 2026-09-11, on a page laid out
+ * exactly as the plugin prints it). A tag manager's `data-key` has a `src` and
+ * no `pk_` prefix, so it is still left alone.
+ */
+const PUBLISHABLE = /^pk_(live|test)_/;
 
 export function readConfig(script: HTMLScriptElement): WidgetConfig | null {
   const key = (script.dataset.key ?? '').trim();
@@ -98,8 +116,28 @@ export function readConfig(script: HTMLScriptElement): WidgetConfig | null {
     target: value(script.dataset.target),
     link: (script.dataset.link ?? '').trim().toLowerCase() === 'trip' ? 'trip' : null,
     date: isoDate(script.dataset.date),
-    apiBase: apiBaseFrom(script.src),
+    appearance: readAppearance(script.dataset),
+    apiBase: apiBaseFrom(bundleSrc(script)),
   };
+}
+
+/**
+ * The bundle's own address, for a tag that has one and for one that does not.
+ *
+ * A tag without a `src` (see {@see findEmbeds}) takes it from the tag on the
+ * page that loaded the bundle — otherwise its API base would resolve against
+ * the operator's own site, which has no booking API.
+ */
+function bundleSrc(script: HTMLScriptElement): string {
+  if (script.src !== '') {
+    return script.src;
+  }
+
+  const loader = Array.from(script.ownerDocument.querySelectorAll<HTMLScriptElement>('script[src]')).find((candidate) =>
+    BUNDLE.test(candidate.src),
+  );
+
+  return loader?.src ?? '';
 }
 
 /**

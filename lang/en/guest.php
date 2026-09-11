@@ -32,6 +32,10 @@ return [
         'lang' => 'Ελληνικά',
     ],
 
+    // On the checkout and booking pages; goes to the page the guest started
+    // from, or to the operator's hosted home page.
+    'back_to_site' => '← Back to the website',
+
     'link' => [
         /*
          * One sentence for every failure. TOK-4: never a distinction between
@@ -74,6 +78,7 @@ return [
         'pay' => 'Pay :amount',
         'secure' => 'Payment is taken on Viva Wallet\'s own secure checkout. Your card details never pass through us and are never stored here.',
         'refused' => 'We could not start the payment. Please try again, or contact the operator.',
+        'payment_failed' => 'The payment did not go through. You were not charged — please try again.',
     ],
     'booking' => [
         'title' => 'Your booking',

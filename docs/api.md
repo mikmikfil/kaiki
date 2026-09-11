@@ -3238,6 +3238,17 @@ components:
           type: [string, "null"]
           enum: [widget, hosted, wordpress, null]
           description: Where the booking came from. `manual` and `import` are back-office only and are rejected here.
+        origin_url:
+          type: [string, "null"]
+          format: uri
+          maxLength: 2000
+          description: |
+            The full URL of the page the guest was on (added 2026-09-11). The hosted checkout and
+            booking pages link back to it as «← Επιστροφή στην ιστοσελίδα». Stored only when it is
+            an allowed origin for the key, or a hosted-page URL — the same rule as `return_url` on
+            checkout — and only for `http` and `https`. Any other value is **dropped** (stored as
+            null), never refused: a link that will not be printed is not a reason to fail the
+            booking. A value that is not a URL at all is still a `422`.
         utm:
           type: object
           description: Attribution, stored verbatim.

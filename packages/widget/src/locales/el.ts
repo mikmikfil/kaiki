@@ -56,7 +56,6 @@ export const el: Record<MessageKey, string> = {
   'booking.expired.heading': 'Δεν μπορέσαμε να κρατήσουμε άλλο τις θέσεις',
   'booking.expired.body': 'Η κράτηση θέσεων έληξε και οι θέσεις επέστρεψαν. Δεν χρεωθήκατε — ξεκινήστε ξανά και ίσως είναι ακόμη εκεί.',
   'booking.expired.retry': 'Ξεκινήστε ξανά',
-
   // Τα μπλοκ λίστας, ημερολογίου και ερωτήματος (issue 108).
   'list.from': 'από',
   'list.all': 'Όλες οι εκδρομές',
@@ -68,6 +67,7 @@ export const el: Record<MessageKey, string> = {
   'calendar.status.available': 'Διαθέσιμη',
   'calendar.status.sold_out': 'Εξαντλήθηκε',
   'calendar.status.unavailable': 'Δεν εκτελείται',
+  'calendar.status.not_operating': 'Δεν εκτελείται',
   'calendar.status.on_request': 'Κατόπιν ζήτησης',
   'calendar.status.past': 'Πέρασε',
   'enquiry.heading': 'Ρωτήστε μας για την εκδρομή',

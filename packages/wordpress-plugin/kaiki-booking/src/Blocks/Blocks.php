@@ -48,28 +48,36 @@ final class Blocks {
 	 * the Elementor version quietly not having it, discovered six months later
 	 * by an operator who uses the other editor.
 	 *
-	 * @var array<string, array{callback: string, product: bool, category: bool}>
+	 * `link` is the calendar's «days lead to the booking» switch, and only the
+	 * calendar has one: it is the only embed that shows days without booking
+	 * them itself.
+	 *
+	 * @var array<string, array{callback: string, product: bool, category: bool, link: bool}>
 	 */
 	public const BLOCKS = array(
 		'booking'  => array(
 			'callback' => 'booking',
 			'product'  => true,
 			'category' => false,
+			'link'     => false,
 		),
 		'list'     => array(
 			'callback' => 'trip_list',
 			'product'  => false,
 			'category' => true,
+			'link'     => false,
 		),
 		'calendar' => array(
 			'callback' => 'calendar',
 			'product'  => true,
 			'category' => false,
+			'link'     => true,
 		),
 		'enquiry'  => array(
 			'callback' => 'enquiry',
 			'product'  => true,
 			'category' => false,
+			'link'     => false,
 		),
 	);
 
@@ -92,36 +100,68 @@ final class Blocks {
 	 */
 	public static function register_blocks(): void {
 		foreach ( self::BLOCKS as $name => $block ) {
+			$attributes = array(
+				'product'  => array(
+					'type'    => 'string',
+					'default' => '',
+				),
+				'category' => array(
+					'type'    => 'string',
+					'default' => '',
+				),
+			);
+
+			if ( $block['link'] ) {
+				// On by default, like the shortcode: a calendar block dropped into
+				// a page should do what a calendar shortcode pasted there does.
+				$attributes['link'] = array(
+					'type'    => 'boolean',
+					'default' => true,
+				);
+			}
+
 			register_block_type(
 				'kaiki/' . $name,
 				array(
 					'api_version'     => 2,
 					'editor_script'   => 'kaiki-blocks',
-					'attributes'      => array(
-						'product'  => array(
-							'type'    => 'string',
-							'default' => '',
-						),
-						'category' => array(
-							'type'    => 'string',
-							'default' => '',
-						),
-					),
+					'attributes'      => $attributes,
 					// The shortcode's own callback. Not a copy of it, not a
 					// second implementation, and not a template that happens to
 					// produce the same markup today.
 					'render_callback' => static function ( array $attributes ) use ( $block ): string {
 						return call_user_func(
 							array( Shortcodes::class, $block['callback'] ),
-							array(
-								'product'  => isset( $attributes['product'] ) ? (string) $attributes['product'] : '',
-								'category' => isset( $attributes['category'] ) ? (string) $attributes['category'] : '',
-							)
+							self::shortcode_attributes( $block, $attributes )
 						);
 					},
 				)
 			);
 		}
+	}
+
+	/**
+	 * A block's attributes, as the shortcode attributes they stand for.
+	 *
+	 * Public so a test can hold it against the shortcode. A block saved before
+	 * the calendar had a switch carries no `link` at all, and it meant what the
+	 * calendar now does by default — so absent is on.
+	 *
+	 * @param array{callback: string, product: bool, category: bool, link: bool} $block      The block's definition.
+	 * @param array<string, mixed>                                               $attributes What the editor saved.
+	 * @return array<string, string>
+	 */
+	public static function shortcode_attributes( array $block, array $attributes ): array {
+		$atts = array(
+			'product'  => isset( $attributes['product'] ) ? (string) $attributes['product'] : '',
+			'category' => isset( $attributes['category'] ) ? (string) $attributes['category'] : '',
+		);
+
+		if ( $block['link'] ) {
+			$atts['link'] = ! empty( $attributes['link'] ?? true ) ? 'trip' : 'none';
+		}
+
+		return $atts;
 	}
 
 	/**

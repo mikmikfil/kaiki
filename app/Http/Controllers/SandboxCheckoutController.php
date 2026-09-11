@@ -7,6 +7,7 @@ namespace App\Http\Controllers;
 use App\Domain\Booking\Actions\ConfirmFromWebhook;
 use App\Domain\Payments\Gateways\FakeGateway;
 use App\Enums\PaymentStatus;
+use App\Http\Controllers\Guest\CheckoutController;
 use App\Models\Booking;
 use App\Models\Payment;
 use App\Models\Tenant;
@@ -98,6 +99,23 @@ final class SandboxCheckoutController
         Tenancy::forTenant($tenant, static function () use ($payment, $succeeded): void {
             app(ConfirmFromWebhook::class)($payment, succeeded: $succeeded);
         });
+
+        if (! $succeeded) {
+            // Re-read: `ConfirmFromWebhook` has just moved it back to `draft`
+            // with a fresh hold, or on to `expired`, and the copy resolved
+            // above still says `pending_payment`.
+            $fresh = Tenancy::withoutTenancy(static fn (): ?Booking => Booking::query()
+                ->withoutGlobalScopes()
+                ->find($booking->getKey()));
+
+            // Back to the checkout page to try again, the same place Viva's
+            // Failure URL sends a live guest — but only while there is still
+            // something to pay for. An expired booking keeps the redirect
+            // below, exactly as before 2026-09-11.
+            if ($fresh instanceof Booking && CheckoutController::isPayable($fresh)) {
+                return CheckoutController::returnAfterFailedPayment($fresh);
+            }
+        }
 
         // Whatever the widget sent with the checkout request, validated against
         // the key's allowed origins before it was stored. Falling back to the

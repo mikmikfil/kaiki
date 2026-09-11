@@ -99,7 +99,7 @@
              reached only through a ticket's QR, which an operator without QR
              boarding does not print. --}}
         <p class="mb-3 text-sm">
-            <a href="{{ route('filament.app.boarding') }}" class="font-medium text-primary-600 underline">{{ __('checkin.offline_link') }}</a>
+            <a href="{{ route('filament.app.boarding') }}" class="font-semibold text-primary-600">{{ __('checkin.offline_link') }}</a>
         </p>
 
         @if ($bookings->isEmpty())

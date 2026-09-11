@@ -38,11 +38,19 @@ final class SettingsPage {
 	private const GROUP = 'kaiki_booking_settings';
 
 	/**
+	 * The admin page's hook suffix, as `add_options_page` returned it.
+	 *
+	 * @var string
+	 */
+	private static string $hook = '';
+
+	/**
 	 * Hook the screen up. Admin only; nothing here runs on a visitor's request.
 	 */
 	public static function register(): void {
 		add_action( 'admin_menu', array( self::class, 'add_page' ) );
 		add_action( 'admin_init', array( self::class, 'register_fields' ) );
+		add_action( 'admin_enqueue_scripts', array( self::class, 'enqueue_assets' ) );
 		add_action( 'admin_post_kaiki_test_connection', array( self::class, 'handle_test_connection' ) );
 	}
 
@@ -50,13 +58,132 @@ final class SettingsPage {
 	 * Under Settings, where a WordPress user looks for a plugin's settings.
 	 */
 	public static function add_page(): void {
-		add_options_page(
+		$hook = add_options_page(
 			__( 'Kaiki Booking', 'kaiki-booking' ),
 			__( 'Kaiki Booking', 'kaiki-booking' ),
 			'manage_options',
 			self::SLUG,
 			array( self::class, 'render' )
 		);
+
+		self::$hook = is_string( $hook ) ? $hook : '';
+	}
+
+	/**
+	 * WordPress's own colour picker, on this screen and no other.
+	 *
+	 * The hook fires on every admin page, and a plugin that loaded its scripts
+	 * on all of them is a plugin that breaks somebody else's screen one day.
+	 * The picker is WordPress's rather than one of ours because it is the one
+	 * an operator has already used in the Customizer, and it needs no build.
+	 *
+	 * @param string $hook_suffix The admin page being loaded.
+	 */
+	public static function enqueue_assets( $hook_suffix ): void {
+		if ( '' === self::$hook || self::$hook !== $hook_suffix ) {
+			return;
+		}
+
+		wp_enqueue_style( 'wp-color-picker' );
+		wp_enqueue_script( 'wp-color-picker' );
+		wp_add_inline_script( 'wp-color-picker', self::appearance_script() );
+	}
+
+	/**
+	 * The few lines that make the «Appearance» section behave.
+	 *
+	 * Inline rather than a file, for the reason `Blocks.php` gives for having no
+	 * build: it shows and hides some rows and repaints a preview, and a second
+	 * asset to version and cache-bust would be more machinery than behaviour.
+	 *
+	 * The contrast rule is written again here, in JavaScript, so the preview's
+	 * button text matches what `Appearance::on_primary()` will send. The
+	 * fallbacks are Kaiki's default brand (hull teal on white) — the preview
+	 * cannot know the operator's own Kaiki branding, so it says so underneath.
+	 */
+	private static function appearance_script(): string {
+		return <<<'JS'
+( function ( $ ) {
+	'use strict';
+
+	var fallback = { primary: '#0b4f4a', text: '#16211f', background: '#ffffff', radius: 8 };
+
+	function luminance( hex ) {
+		var channels = [ 1, 3, 5 ].map( function ( start ) {
+			var value = parseInt( hex.substr( start, 2 ), 16 ) / 255;
+
+			return value <= 0.03928 ? value / 12.92 : Math.pow( ( value + 0.055 ) / 1.055, 2.4 );
+		} );
+
+		return 0.2126 * channels[ 0 ] + 0.7152 * channels[ 1 ] + 0.0722 * channels[ 2 ];
+	}
+
+	function contrast( first, second ) {
+		return ( Math.max( first, second ) + 0.05 ) / ( Math.min( first, second ) + 0.05 );
+	}
+
+	function onPrimary( hex ) {
+		var own = luminance( hex );
+
+		return contrast( own, luminance( '#ffffff' ) ) >= contrast( own, luminance( '#111111' ) ) ? '#ffffff' : '#111111';
+	}
+
+	function colour( field, otherwise ) {
+		var value = String( $( field ).val() || '' ).trim().toLowerCase();
+
+		return /^#[0-9a-f]{6}$/.test( value ) ? value : otherwise;
+	}
+
+	$( function () {
+		var $section = $( '#kaiki-appearance' );
+		var preview = document.getElementById( 'kaiki-appearance-preview' );
+
+		if ( ! $section.length || ! preview ) {
+			return;
+		}
+
+		function update() {
+			var custom = $section.find( 'input[name$="[appearance]"]:checked' ).val() === 'custom';
+			var fontMode = $section.find( 'input[name$="[font_mode]"]:checked' ).val();
+			var fontName = String( $( '#kaiki_font_name' ).val() || '' ).replace( /[^A-Za-z0-9 \-]/g, '' ).trim();
+			var radius = parseInt( $( '#kaiki_radius' ).val(), 10 );
+			var primary = colour( '#kaiki_primary', fallback.primary );
+			var font = 'Inter, system-ui, sans-serif';
+
+			if ( fontMode === 'theme' ) {
+				font = 'inherit';
+			} else if ( fontMode === 'custom' && fontName ) {
+				font = '"' + fontName + '", sans-serif';
+			}
+
+			$section.find( '.kaiki-appearance-custom' ).prop( 'hidden', ! custom );
+			$( '#kaiki-font-name' ).prop( 'hidden', fontMode !== 'custom' );
+
+			preview.style.setProperty( '--kaiki-primary', primary );
+			preview.style.setProperty( '--kaiki-on-primary', onPrimary( primary ) );
+			preview.style.setProperty( '--kaiki-text', colour( '#kaiki_text', fallback.text ) );
+			preview.style.setProperty( '--kaiki-background', colour( '#kaiki_background', fallback.background ) );
+			preview.style.setProperty( '--kaiki-radius', ( isNaN( radius ) ? fallback.radius : Math.max( 0, Math.min( 30, radius ) ) ) + 'px' );
+			preview.style.setProperty( '--kaiki-font', font );
+		}
+
+		// The picker changes the field after it calls back, so the repaint waits
+		// for the value to land.
+		$section.find( '.kaiki-colour' ).wpColorPicker( {
+			change: function () {
+				window.setTimeout( update );
+			},
+			clear: function () {
+				window.setTimeout( update );
+			}
+		} );
+
+		$section.on( 'change input', update );
+
+		update();
+	} );
+}( jQuery ) );
+JS;
 	}
 
 	/**
@@ -123,6 +250,44 @@ final class SettingsPage {
 			// URL, and a value with a slash or a space in it produces rewrite
 			// rules that match nothing and a hundred 404s nobody can explain.
 			'trip_base'       => self::clean_base( $input['trip_base'] ?? '' ),
+		) + self::sanitize_appearance( $input );
+	}
+
+	/**
+	 * The «Appearance» fields.
+	 *
+	 * Through the same validators `Settings::all()` reads them with, so there is
+	 * one definition of "a colour" in the plugin rather than a save-side one and
+	 * a read-side one that drift. The custom values are kept even while the
+	 * choice is «As in Kaiki», so switching back to «My own» brings them back
+	 * instead of making the operator pick their colours again.
+	 *
+	 * @param array<string, mixed> $input The submitted option.
+	 * @return array<string, mixed>
+	 */
+	private static function sanitize_appearance( array $input ): array {
+		$font_mode = Settings::font_mode( $input['font_mode'] ?? null );
+		$font_name = Settings::font_name( $input['font_name'] ?? null );
+
+		// «A font my theme loads» with no usable name is not a choice anybody
+		// made; saving it as Kaiki's font makes the screen show what the widget
+		// will actually do.
+		if ( 'custom' === $font_mode && '' === $font_name ) {
+			$font_mode = 'kaiki';
+		}
+
+		$radius = Settings::radius( $input['radius'] ?? null );
+
+		return array(
+			'appearance' => Settings::appearance_mode( $input['appearance'] ?? null ),
+			'primary'    => Settings::colour( $input['primary'] ?? null ),
+			'text'       => Settings::colour( $input['text'] ?? null ),
+			'background' => Settings::colour( $input['background'] ?? null ),
+			'font_mode'  => $font_mode,
+			'font_name'  => $font_name,
+			// Empty rather than null in the option, like the colours: "not set"
+			// is one value in `wp_options`, whichever field it is.
+			'radius'     => null === $radius ? '' : $radius,
 		);
 	}
 
@@ -290,6 +455,8 @@ final class SettingsPage {
 					</tr>
 				</table>
 
+				<?php self::render_appearance( $settings ); ?>
+
 				<h2 class="title"><?php echo esc_html__( 'Live updates', 'kaiki-booking' ); ?></h2>
 
 				<p class="description" style="max-width:44rem">
@@ -412,6 +579,173 @@ final class SettingsPage {
 			</form>
 		</div>
 		<?php
+	}
+
+	/**
+	 * The «Appearance» section: one site-wide look for every embed.
+	 *
+	 * Site-wide rather than per shortcode on purpose. An operator has one brand
+	 * and one theme; a colour field on every block would be the same answer
+	 * typed eight times and, by the ninth, typed differently.
+	 *
+	 * The rows start in the state the saved settings imply, and the inline
+	 * script keeps them in step as the operator changes the choice — so the
+	 * screen does not flash every field before hiding most of them.
+	 *
+	 * @param array<string, mixed> $settings What `Settings::all()` returned.
+	 */
+	private static function render_appearance( array $settings ): void {
+		$name   = Settings::OPTION;
+		$custom = 'custom' === $settings['appearance'];
+
+		?>
+		<h2 class="title"><?php echo esc_html__( 'Appearance', 'kaiki-booking' ); ?></h2>
+
+		<p class="description" style="max-width:44rem">
+			<?php echo esc_html__( 'How the booking form, the calendar and the trip list look on this site. «As in Kaiki» uses the colours and font from your Kaiki panel. Choose your own to match this site instead; anything you leave empty stays as in Kaiki.', 'kaiki-booking' ); ?>
+		</p>
+
+		<style>
+			#kaiki-appearance-preview { --kaiki-primary: #0b4f4a; --kaiki-on-primary: #ffffff; --kaiki-text: #16211f; --kaiki-background: #ffffff; --kaiki-radius: 8px; --kaiki-font: Inter, system-ui, sans-serif; }
+			#kaiki-appearance-preview .kaiki-preview-card { max-width: 20rem; padding: 16px; border: 1px solid #dcdcde; border-radius: var(--kaiki-radius); background: var(--kaiki-background); color: var(--kaiki-text); font-family: var(--kaiki-font); }
+			#kaiki-appearance-preview .kaiki-preview-card p { margin: 4px 0 12px; color: inherit; }
+			#kaiki-appearance-preview .kaiki-preview-button { padding: 8px 16px; border: 0; border-radius: var(--kaiki-radius); background: var(--kaiki-primary); color: var(--kaiki-on-primary); font: inherit; font-weight: 600; cursor: default; }
+		</style>
+
+		<table class="form-table" role="presentation" id="kaiki-appearance">
+			<tr>
+				<th scope="row"><?php echo esc_html__( 'Style', 'kaiki-booking' ); ?></th>
+				<td>
+					<fieldset>
+						<legend class="screen-reader-text"><span><?php echo esc_html__( 'Style', 'kaiki-booking' ); ?></span></legend>
+						<label>
+							<input type="radio" value="kaiki" name="<?php echo esc_attr( $name ); ?>[appearance]" <?php checked( ! $custom ); ?>>
+							<?php echo esc_html__( 'As in Kaiki', 'kaiki-booking' ); ?>
+						</label>
+						<br>
+						<label>
+							<input type="radio" value="custom" name="<?php echo esc_attr( $name ); ?>[appearance]" <?php checked( $custom ); ?>>
+							<?php echo esc_html__( 'My own', 'kaiki-booking' ); ?>
+						</label>
+					</fieldset>
+				</td>
+			</tr>
+
+			<tr class="kaiki-appearance-custom"<?php self::hidden_unless( $custom ); ?>>
+				<th scope="row">
+					<label for="kaiki_primary"><?php echo esc_html__( 'Button colour', 'kaiki-booking' ); ?></label>
+				</th>
+				<td>
+					<input type="text" class="kaiki-colour" id="kaiki_primary" maxlength="7"
+						name="<?php echo esc_attr( $name ); ?>[primary]"
+						value="<?php echo esc_attr( (string) $settings['primary'] ); ?>">
+					<p class="description">
+						<?php echo esc_html__( 'The text on the buttons turns white or black by itself, whichever is easier to read.', 'kaiki-booking' ); ?>
+					</p>
+				</td>
+			</tr>
+
+			<tr class="kaiki-appearance-custom"<?php self::hidden_unless( $custom ); ?>>
+				<th scope="row">
+					<label for="kaiki_text"><?php echo esc_html__( 'Text colour', 'kaiki-booking' ); ?></label>
+				</th>
+				<td>
+					<input type="text" class="kaiki-colour" id="kaiki_text" maxlength="7"
+						name="<?php echo esc_attr( $name ); ?>[text]"
+						value="<?php echo esc_attr( (string) $settings['text'] ); ?>">
+				</td>
+			</tr>
+
+			<tr class="kaiki-appearance-custom"<?php self::hidden_unless( $custom ); ?>>
+				<th scope="row">
+					<label for="kaiki_background"><?php echo esc_html__( 'Background colour', 'kaiki-booking' ); ?></label>
+				</th>
+				<td>
+					<input type="text" class="kaiki-colour" id="kaiki_background" maxlength="7"
+						name="<?php echo esc_attr( $name ); ?>[background]"
+						value="<?php echo esc_attr( (string) $settings['background'] ); ?>">
+				</td>
+			</tr>
+
+			<tr class="kaiki-appearance-custom"<?php self::hidden_unless( $custom ); ?>>
+				<th scope="row"><?php echo esc_html__( 'Font', 'kaiki-booking' ); ?></th>
+				<td>
+					<fieldset>
+						<legend class="screen-reader-text"><span><?php echo esc_html__( 'Font', 'kaiki-booking' ); ?></span></legend>
+						<label>
+							<input type="radio" value="theme" name="<?php echo esc_attr( $name ); ?>[font_mode]" <?php checked( $settings['font_mode'], 'theme' ); ?>>
+							<?php echo esc_html__( 'My theme\'s font', 'kaiki-booking' ); ?>
+						</label>
+						<br>
+						<label>
+							<input type="radio" value="kaiki" name="<?php echo esc_attr( $name ); ?>[font_mode]" <?php checked( $settings['font_mode'], 'kaiki' ); ?>>
+							<?php echo esc_html__( 'Kaiki\'s font', 'kaiki-booking' ); ?>
+						</label>
+						<br>
+						<label>
+							<input type="radio" value="custom" name="<?php echo esc_attr( $name ); ?>[font_mode]" <?php checked( $settings['font_mode'], 'custom' ); ?>>
+							<?php echo esc_html__( 'Another font my theme loads', 'kaiki-booking' ); ?>
+						</label>
+					</fieldset>
+
+					<div id="kaiki-font-name"<?php self::hidden_unless( 'custom' === $settings['font_mode'] ); ?>>
+						<p>
+							<label for="kaiki_font_name"><?php echo esc_html__( 'Font name', 'kaiki-booking' ); ?></label>
+							<input type="text" class="regular-text" id="kaiki_font_name" maxlength="60"
+								name="<?php echo esc_attr( $name ); ?>[font_name]"
+								value="<?php echo esc_attr( (string) $settings['font_name'] ); ?>"
+								placeholder="Open Sans">
+						</p>
+						<p class="description">
+							<?php echo esc_html__( 'Exactly as your theme names it. Latin letters, digits, spaces and hyphens only. A font your theme does not load will not appear.', 'kaiki-booking' ); ?>
+						</p>
+					</div>
+				</td>
+			</tr>
+
+			<tr class="kaiki-appearance-custom"<?php self::hidden_unless( $custom ); ?>>
+				<th scope="row">
+					<label for="kaiki_radius"><?php echo esc_html__( 'Corner roundness', 'kaiki-booking' ); ?></label>
+				</th>
+				<td>
+					<input type="number" class="small-text" id="kaiki_radius" min="0" max="30" step="1"
+						name="<?php echo esc_attr( $name ); ?>[radius]"
+						value="<?php echo esc_attr( null === $settings['radius'] ? '' : (string) $settings['radius'] ); ?>">
+					px
+					<p class="description">
+						<?php echo esc_html__( 'From 0 (square) to 30 (very round). Leave it empty to keep Kaiki\'s.', 'kaiki-booking' ); ?>
+					</p>
+				</td>
+			</tr>
+
+			<tr class="kaiki-appearance-custom"<?php self::hidden_unless( $custom ); ?>>
+				<th scope="row"><?php echo esc_html__( 'Preview', 'kaiki-booking' ); ?></th>
+				<td>
+					<div id="kaiki-appearance-preview" aria-hidden="true">
+						<div class="kaiki-preview-card">
+							<strong><?php echo esc_html__( 'Sunset cruise', 'kaiki-booking' ); ?></strong>
+							<p><?php echo esc_html__( 'Three hours along the coast, with a stop for a swim.', 'kaiki-booking' ); ?></p>
+							<button type="button" class="kaiki-preview-button" tabindex="-1"><?php echo esc_html__( 'Book now', 'kaiki-booking' ); ?></button>
+						</div>
+					</div>
+					<p class="description">
+						<?php echo esc_html__( 'A sketch, not the real form. Anything you leave empty is shown here in Kaiki\'s default colours, and your theme\'s font only appears on your site itself.', 'kaiki-booking' ); ?>
+					</p>
+				</td>
+			</tr>
+		</table>
+		<?php
+	}
+
+	/**
+	 * A ` hidden` attribute, unless the condition holds.
+	 *
+	 * @param bool $visible Whether the element should be shown.
+	 */
+	private static function hidden_unless( bool $visible ): void {
+		if ( ! $visible ) {
+			echo ' hidden';
+		}
 	}
 
 	/**

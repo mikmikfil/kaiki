@@ -51,41 +51,22 @@ test('a guest can complete the whole booking without touching a mouse', async ({
 
   await expect(root.getByRole('heading', { name: 'Pick a date' })).toBeVisible();
 
-  const date = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
-  const [year, month, day] = date.split('-');
-
-  await tabTo(page, 'input[type="date"]');
-  // A native date input has no value to insert into — it is three segments, and
-  // a keyboard user fills it by typing digits in the browser locale's order.
-  // The run pins `en-US`, so that order is month, day, year.
-  await page.keyboard.type(`${month}${day}${year}`);
+  // The date step is a month grid (2026-09-10): the days that can be booked
+  // are buttons, reached by Tab and pressed with Enter like any other.
+  await tabTo(page, 'button.kaiki-day-pick');
+  await page.keyboard.press('Enter');
 
   await advance(page, root, 'How many of you?');
 
   await tabTo(page, 'input[type="number"]');
   await page.keyboard.type('2');
 
-  await advance(page, root, 'Your details');
-
-  await tabTo(page, 'input[autocomplete="name"]');
-  await page.keyboard.type('Maria Papadopoulou');
-  await page.keyboard.press('Tab');
-  await page.keyboard.type('maria@example.test');
-  await page.keyboard.press('Tab');
-  await page.keyboard.type('+30 210 000 0000');
-
-  // The terms checkbox, ticked with the space bar like any other checkbox.
-  await tabTo(page, 'input[type="checkbox"]');
-  await page.keyboard.press('Space');
-
-  await expect(root.getByRole('checkbox')).toBeChecked();
-
-  await advance(page, root, 'Check and pay');
-
-  // Reaching the pay button by keyboard is where the walk ends. Pressing it is
-  // the booking spec's job, and doing it twice would take two more seats out of
-  // a departure with a real capacity.
-  await tabTo(page, 'button', 'Pay and confirm');
+  // The name, the email and the consent are typed on the checkout page since
+  // ADR-0030, so the widget's walk ends on the button that opens it. Reaching
+  // it by keyboard is where this spec stops: pressing it is the booking spec's
+  // job, and doing it twice would take two more seats out of a departure with
+  // a real capacity.
+  await tabTo(page, 'button', 'Continue to checkout');
 });
 
 /**

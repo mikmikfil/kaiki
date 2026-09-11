@@ -34,6 +34,25 @@ That is the whole thing. The widget renders where the tag sits.
 | `data-target` | no | — | A CSS selector to render into, for page builders that will not let a script sit where the widget should appear. |
 | `data-link` | no | — | `trip` on a `calendar` mount: every day with room becomes a link to the trip's page on Kaiki, with that day already chosen. Without it the calendar is read-only. |
 | `data-date` | no | — | A `YYYY-MM-DD` the `booking` mount opens on, at the party step. Kaiki's own trip page sets it from its `?date=`; you rarely need to. |
+| `data-primary` | no | your Kaiki branding | `#rrggbb`. The colour of buttons, the chosen tab and the chosen day. |
+| `data-on-primary` | no | your Kaiki background | `#rrggbb`. The text on those buttons. The WordPress plugin works out the readable one for you. |
+| `data-text` / `data-background` | no | your Kaiki branding | `#rrggbb` each. |
+| `data-font` | no | your Kaiki font | `inherit` for your own site's font, or the name of a font your site already loads. With either, Kaiki's Google font is not requested. |
+| `data-radius` | no | your Kaiki branding | `0`–`30`, in pixels. |
+
+The six appearance attributes are applied **over** the branding in your Kaiki
+panel, one by one — set only a button colour and everything else stays as it
+is there. A value that is not in the form above is ignored rather than guessed.
+
+### On WordPress
+
+The plugin writes these tags for you. Under **Settings → Kaiki Booking →
+Appearance**, «As in Kaiki» sends none of the appearance attributes; «My own»
+sends the colours, font and roundness you choose there, for every shortcode,
+block and Elementor widget on the site. `[kaiki_calendar]` leads to the booking
+by default (`data-link="trip"`); `link="none"` makes it a calendar to look at.
+A page may carry any number of shortcodes: only the first tag loads the file,
+and the widget finds the rest by their key.
 
 **The calendar that leads to the booking** — for a website of your own. Put the
 calendar on your trip's page, and a guest who presses a day lands on the same
@@ -77,6 +96,7 @@ A working policy, with `book.kaiki.gr` standing in for the platform domain:
 Content-Security-Policy:
   script-src 'self' https://book.kaiki.gr;
   connect-src 'self' https://book.kaiki.gr;
+  img-src 'self' https://book.kaiki.gr;
   style-src 'self';
 ```
 
@@ -90,9 +110,10 @@ Content-Security-Policy:
   the default system font stack the widget makes no third-party request at all
   (WGT-10, GDR-12).
 
-No `img-src` entry is needed. The widget loads no images: the operator's identity
-is carried by their colours and their name, which is also what makes it render
-the same on a page that blocks remote images.
+The `img-src` entry is for the trip photographs on the `list` mount's cards
+(added 2026-09-11), which come from the platform. A page that blocks them still
+gets every card — title, facts and price — with a quiet grey band where the
+photograph would be; nothing else in the widget loads an image.
 
 If a page builder runs the widget inside an iframe of its own, the policy above
 belongs on the document the iframe loads.

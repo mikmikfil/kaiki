@@ -108,6 +108,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $eticket_path
  * @property string|null $eticket_hash
  * @property Carbon|null $eticket_generated_at
+ * @property string|null $origin_url
  */
 class Booking extends Model
 {

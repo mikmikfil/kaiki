@@ -39,7 +39,12 @@ final class Settings {
 	/**
 	 * Everything safe to hand to anything.
 	 *
-	 * @return array{publishable_key: string, api_base: string, locale_mode: string, cache_ttl: int, seo_pages: bool, trip_base: string}
+	 * The appearance fields are read through the same validators the settings
+	 * screen saves them with, so a value that reached the option some other way —
+	 * an import, a migration, somebody's `update_option` — is still a colour or
+	 * nothing by the time it is written into a page.
+	 *
+	 * @return array{publishable_key: string, api_base: string, locale_mode: string, cache_ttl: int, seo_pages: bool, trip_base: string, appearance: 'kaiki'|'custom', primary: string, text: string, background: string, font_mode: 'theme'|'kaiki'|'custom', font_name: string, radius: int|null}
 	 */
 	public static function all(): array {
 		$stored = get_option( self::OPTION, array() );
@@ -59,7 +64,104 @@ final class Settings {
 			'cache_ttl'       => self::ttl( $stored ),
 			'seo_pages'       => ! empty( $stored['seo_pages'] ),
 			'trip_base'       => self::text( $stored, 'trip_base', 'tours' ),
+			// «As in Kaiki» unless the operator chose otherwise: the branding
+			// they set in their Kaiki panel is already the widget's look, and a
+			// plugin that overrode it by default would make that panel lie.
+			'appearance'      => self::appearance_mode( $stored['appearance'] ?? null ),
+			'primary'         => self::colour( $stored['primary'] ?? null ),
+			'text'            => self::colour( $stored['text'] ?? null ),
+			'background'      => self::colour( $stored['background'] ?? null ),
+			'font_mode'       => self::font_mode( $stored['font_mode'] ?? null ),
+			'font_name'       => self::font_name( $stored['font_name'] ?? null ),
+			'radius'          => self::radius( $stored['radius'] ?? null ),
 		);
+	}
+
+	/**
+	 * `kaiki` or `custom`, and `kaiki` for anything else.
+	 *
+	 * @param mixed $value The stored or submitted value.
+	 * @return 'kaiki'|'custom'
+	 */
+	public static function appearance_mode( $value ): string {
+		return 'custom' === $value ? 'custom' : 'kaiki';
+	}
+
+	/**
+	 * `theme`, `kaiki` or `custom`, and `kaiki` for anything else.
+	 *
+	 * The fallback is Kaiki's font rather than the theme's because it is the one
+	 * that changes nothing: an operator who switched to their own appearance to
+	 * change a colour should not find the font changed as well.
+	 *
+	 * @param mixed $value The stored or submitted value.
+	 * @return 'theme'|'kaiki'|'custom'
+	 */
+	public static function font_mode( $value ): string {
+		return in_array( $value, array( 'theme', 'kaiki', 'custom' ), true ) ? $value : 'kaiki';
+	}
+
+	/**
+	 * A `#rrggbb` colour in lower case, or an empty string meaning "not set".
+	 *
+	 * Six digits and nothing else — no names, no `rgb()`, no three-digit short
+	 * form. The value ends up in a CSS custom property inside the widget, and a
+	 * format this narrow is one that cannot carry anything but a colour there.
+	 *
+	 * @param mixed $value The stored or submitted value.
+	 */
+	public static function colour( $value ): string {
+		if ( ! is_string( $value ) ) {
+			return '';
+		}
+
+		$value = strtolower( trim( $value ) );
+
+		return 1 === preg_match( '/^#[0-9a-f]{6}$/', $value ) ? $value : '';
+	}
+
+	/**
+	 * The name of a font the theme already loads, reduced to letters, digits,
+	 * spaces and hyphens, at most 60 characters.
+	 *
+	 * Filtered rather than refused, because `Open Sans` and `Open Sans;` are the
+	 * same font to the operator who typed them. What survives is a name that
+	 * cannot close a CSS declaration or a quoted string, which is the whole risk
+	 * of a free-text font field. ASCII only: font-family names that matter here
+	 * are the theme's own, and those are Latin.
+	 *
+	 * @param mixed $value The stored or submitted value.
+	 */
+	public static function font_name( $value ): string {
+		if ( ! is_string( $value ) ) {
+			return '';
+		}
+
+		$value = (string) preg_replace( '/[^A-Za-z0-9 \-]/', '', $value );
+		$value = trim( (string) preg_replace( '/\s+/', ' ', $value ) );
+
+		return trim( substr( $value, 0, 60 ) );
+	}
+
+	/**
+	 * Corner roundness in whole pixels, 0 to 30, or null meaning "not set".
+	 *
+	 * Clamped rather than refused, like the cache lifetime: somebody who typed
+	 * 50 wanted "very round", and 30 is the roundest that still reads as a
+	 * button rather than a pill with the text falling out of it.
+	 *
+	 * @param mixed $value The stored or submitted value.
+	 */
+	public static function radius( $value ): ?int {
+		if ( is_int( $value ) ) {
+			return max( 0, min( 30, $value ) );
+		}
+
+		if ( ! is_string( $value ) || ! is_numeric( trim( $value ) ) ) {
+			return null;
+		}
+
+		return max( 0, min( 30, (int) round( (float) trim( $value ) ) ) );
 	}
 
 	/**

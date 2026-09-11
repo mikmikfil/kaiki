@@ -1018,6 +1018,7 @@ The aggregate root. `per_seat` bookings point at a `departure_id`; `per_vessel` 
 | `utm_term` | varchar(120) | yes | null | |
 | `utm_content` | varchar(120) | yes | null | |
 | `referrer_url` | varchar(500) | yes | null | |
+| `origin_url` | varchar(2000) | yes | null | **added 2026-09-11** — the page the guest was on when the widget created the draft, for the «← Επιστροφή στην ιστοσελίδα» link on `/c/` and `/b/`. Written by `POST /api/v1/bookings` only when it is an allowed origin for the key or a page Kaiki serves (`AllowedOrigin`, the same rule as `payments.return_url`); anything else is stored as null rather than refused. Not `referrer_url`, which is attribution: this one is rendered as a link |
 | `balance_due_at` | timestamp | yes | null | PRC-27.2, **added by #83** — computed and written at confirmation, never derived on read, so the reminder scheduler and the "Υπόλοιπα" dashboard bucket can index it |
 | `weather_choice` | varchar(16) | yes | null | `refund` \| `voucher` \| `rebook` — PHP enum `WeatherChoice`, **added by #84** (CXL-7) |
 | `weather_choice_at` | timestamp | yes | null | **added by #84** — CXL-7 records the choice *"with timestamp and IP"* |
@@ -2542,6 +2543,8 @@ Rules that produce this order:
 > **Six more added outside this list by #84**, for CXL-6 and CXL-7, which needed somewhere to record a guest's weather-cancellation choice and its two deadlines. `bookings.weather_choice`, `weather_choice_at`, `weather_choice_ip`, `weather_choice_due_at` and `weather_choice_reminded_at`, plus `tenants.weather_choice_default` (nullable, default `refund`). All six are nullable with no foreign key, so §6's rule permits them; the migration carries no item number for the same reason as #83's.
 >
 > **Columns rather than a `booking_weather_choices` table**, because a weather choice is one fact per booking, made once and never superseded — a table would carry a unique index on `booking_id` and one row per booking, which is a column with extra steps and a join on the path of a sweeper that runs every hour.
+
+> **One more added outside this list on 2026-09-11**: `bookings.origin_url` (varchar 2000, nullable, no default, no foreign key), for the checkout and booking pages' «back to the website» link. Nullable with no FK, so §6's rule permits it; `2026_09_11_000003_add_origin_url_to_bookings.php` carries no item number for the same reason as #83's.
 
 
 29. `integration_credentials` (FK → `tenants`)

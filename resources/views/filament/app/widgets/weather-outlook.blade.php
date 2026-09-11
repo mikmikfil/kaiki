@@ -118,7 +118,7 @@
 
         /* Quiet on purpose: a credit line, not a row of the panel. */
         .kw-source { margin-top: .9rem; font-size: .68rem; color: rgb(var(--gray-400)); }
-        .kw-source a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+        .kw-source a { color: inherit; font-weight: 600; text-decoration: none; }
 
         .kw-affected { font-size: .8rem; color: rgb(var(--gray-700)); }
         .kw-clear { font-size: .8rem; color: rgb(var(--gray-400)); }

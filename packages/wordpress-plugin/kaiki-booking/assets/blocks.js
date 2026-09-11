@@ -113,18 +113,28 @@
 	 * @param {string}  description What it does, for the inserter and the canvas.
 	 * @param {boolean} needsTrip   Whether it takes a trip.
 	 * @param {boolean} takesCategory Whether it takes a category.
+	 * @param {boolean} leadsToBooking Whether its days can lead to the booking.
 	 */
-	function registerKaikiBlock( name, title, description, needsTrip, takesCategory ) {
+	function registerKaikiBlock( name, title, description, needsTrip, takesCategory, leadsToBooking ) {
+		var attributes = {
+			product: { type: 'string', default: '' },
+			category: { type: 'string', default: '' },
+		};
+
+		// The same attributes `Blocks.php` registers, or the editor and the
+		// server disagree about what the block holds. On by default, like the
+		// shortcode.
+		if ( leadsToBooking ) {
+			attributes.link = { type: 'boolean', default: true };
+		}
+
 		blocks.registerBlockType( 'kaiki/' + name, {
 			apiVersion: 2,
 			title: title,
 			description: description,
 			category: 'widgets',
 			icon: 'tickets-alt',
-			attributes: {
-				product: { type: 'string', default: '' },
-				category: { type: 'string', default: '' },
-			},
+			attributes: attributes,
 			edit: function ( props ) {
 				var blockProps = blockEditor.useBlockProps();
 
@@ -146,6 +156,16 @@
 									value: props.attributes.category,
 									onChange: function ( next ) {
 										props.setAttributes( { category: next } );
+									},
+								} )
+								: null,
+							leadsToBooking
+								? el( components.ToggleControl, {
+									label: __( 'Days lead to the booking', 'kaiki-booking' ),
+									help: __( 'A day with room opens the trip on Kaiki, with that day already chosen.', 'kaiki-booking' ),
+									checked: props.attributes.link !== false,
+									onChange: function ( next ) {
+										props.setAttributes( { link: next } );
 									},
 								} )
 								: null
@@ -177,6 +197,7 @@
 		__( 'Kaiki booking form', 'kaiki-booking' ),
 		__( 'A booking form for one trip: date, party, details, pay.', 'kaiki-booking' ),
 		true,
+		false,
 		false
 	);
 
@@ -185,7 +206,8 @@
 		__( 'Kaiki trips', 'kaiki-booking' ),
 		__( 'Your trips as a grid, with a link to book each one.', 'kaiki-booking' ),
 		false,
-		true
+		true,
+		false
 	);
 
 	registerKaikiBlock(
@@ -193,7 +215,8 @@
 		__( 'Kaiki availability calendar', 'kaiki-booking' ),
 		__( 'A month of availability for one trip.', 'kaiki-booking' ),
 		true,
-		false
+		false,
+		true
 	);
 
 	registerKaikiBlock(
@@ -201,6 +224,7 @@
 		__( 'Kaiki enquiry form', 'kaiki-booking' ),
 		__( 'An enquiry form, for trips with no published price.', 'kaiki-booking' ),
 		true,
+		false,
 		false
 	);
 } )(

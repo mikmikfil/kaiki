@@ -88,6 +88,14 @@ final class BookingDraftData extends Data
          * rather than assuming one.
          */
         public readonly bool $skipHold = false,
+        /**
+         * The page the guest was on, for the «back to the website» link.
+         *
+         * Already checked against the key's origins by the caller
+         * ({@see BookingCreateRequest::originUrl()}); a back-office booking has
+         * none, which is what null means.
+         */
+        public readonly ?string $originUrl = null,
     ) {}
 
     /**

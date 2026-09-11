@@ -96,4 +96,56 @@
             {{ __('integrations.help.never_shown') }}
         </p>
     @endif
+
+    {{--
+        Viva's Success and Failure URLs (2026-09-11).
+
+        Shown whether or not Viva is configured yet, because the payment source
+        is created in Viva's dashboard *before* its keys are pasted here, and
+        these are two of the fields that form asks for. Built with `route()`, so
+        they are this installation's own addresses rather than a string somebody
+        has to keep in step with `routes/web.php`.
+    --}}
+    @php($vivaReturn = [
+        'success' => route('pay.viva.success'),
+        'failure' => route('pay.viva.failure'),
+    ])
+
+    <section
+        class="fi-section rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+        aria-label="{{ __('integrations.viva_return.heading') }}"
+    >
+        <h2 class="text-base font-semibold leading-6 text-gray-950 dark:text-white">
+            {{ __('integrations.viva_return.heading') }}
+        </h2>
+
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            {{ __('integrations.viva_return.help') }}
+        </p>
+
+        <dl class="mt-4 space-y-3">
+            @foreach ($vivaReturn as $which => $url)
+                <div class="space-y-1">
+                    <dt class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {{ __('integrations.viva_return.' . $which) }}
+                    </dt>
+                    <dd class="flex flex-wrap items-center gap-2">
+                        {{-- `select-all`, so one click selects the whole address
+                             even where the clipboard API is refused. --}}
+                        <code class="select-all break-all rounded bg-gray-50 px-2 py-1 font-mono text-sm text-gray-800 ring-1 ring-gray-950/10 dark:bg-white/5 dark:text-gray-200 dark:ring-white/10">{{ $url }}</code>
+
+                        <x-filament::button
+                            size="xs"
+                            color="gray"
+                            icon="heroicon-m-clipboard"
+                            x-data="{}"
+                            x-on:click="window.navigator.clipboard.writeText({{ \Illuminate\Support\Js::from($url) }}); $tooltip({{ \Illuminate\Support\Js::from(__('integrations.viva_return.copied')) }}, { theme: $store.theme, timeout: 2000 })"
+                        >
+                            {{ __('integrations.viva_return.copy') }}
+                        </x-filament::button>
+                    </dd>
+                </div>
+            @endforeach
+        </dl>
+    </section>
 </x-filament-panels::page>

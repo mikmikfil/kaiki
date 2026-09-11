@@ -62,7 +62,11 @@ final class Bundle {
 			'data-locale' => Locale::current(),
 		);
 
-		foreach ( $data as $name => $value ) {
+		// The mount's own attributes, then the site's appearance. The appearance
+		// is on every tag rather than only the first because each tag is its own
+		// widget (WGT-8), and a second calendar in the operator's colours beside
+		// a first one in Kaiki's would be a bug report.
+		foreach ( array_merge( $data, Appearance::attributes() ) as $name => $value ) {
 			if ( '' !== $value ) {
 				$attributes[ 'data-' . $name ] = $value;
 			}

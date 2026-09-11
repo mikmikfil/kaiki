@@ -51,6 +51,45 @@ $GLOBALS['kaiki_test_transients'] = array();
 function kaiki_test_reset(): void {
 	$GLOBALS['kaiki_test_options']    = array();
 	$GLOBALS['kaiki_test_transients'] = array();
+	$GLOBALS['kaiki_test_blocks']     = array();
+}
+
+/**
+ * Not WordPress's sanitiser: enough of it that the settings sanitiser runs.
+ *
+ * @param string $str The value to sanitise.
+ */
+function sanitize_text_field( string $str ): string {
+	return trim( (string) preg_replace( '/[\r\n\t ]+/', ' ', wp_strip_all_tags( $str ) ) );
+}
+
+/**
+ * @param string $text The value to strip.
+ */
+function wp_strip_all_tags( string $text ): string {
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags -- This *is* the stand-in for the alternative.
+	return strip_tags( $text );
+}
+
+/**
+ * @param string $url The address to sanitise.
+ */
+function esc_url_raw( string $url ): string {
+	return $url;
+}
+
+/**
+ * The block registry, which is all `register_block_type` is here: the test
+ * wants the attributes a block declares and the callback it renders with.
+ *
+ * @param  string               $name The block name.
+ * @param  array<string, mixed> $args The registration.
+ * @return bool
+ */
+function register_block_type( string $name, array $args = array() ): bool {
+	$GLOBALS['kaiki_test_blocks'][ $name ] = $args;
+
+	return true;
 }
 
 /**

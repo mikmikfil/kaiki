@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import type { Locator, Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 
 /**
  * The seeded world, and how a spec puts the widget in front of a browser
@@ -95,6 +95,59 @@ export async function embed(page: Page, options: EmbedOptions = {}): Promise<voi
  */
 export function widget(page: Page): Locator {
   return page.locator('#embed [data-kaiki-widget]').first();
+}
+
+/** A calendar day `days` from today, as the widget labels it. */
+export function isoDaysAhead(days: number): string {
+  return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
+ * Press the first bookable day on or after `date` in the widget's month grid.
+ *
+ * The date step has been a grid since 2026-09-10 rather than a native input,
+ * and a date a fortnight out may fall in next month — so this pages forward
+ * until it finds one, and says so loudly if four months have nothing.
+ */
+export async function pickDay(root: Locator, date: string): Promise<string> {
+  for (let month = 0; month < 4; month += 1) {
+    await expect(root.locator('.kaiki-days')).toBeVisible();
+
+    const labels = await root
+      .locator('button.kaiki-day-pick')
+      .evaluateAll((buttons) => buttons.map((button) => button.getAttribute('aria-label') ?? ''));
+    const hit = labels.find((label) => label.slice(0, 10) >= date);
+
+    if (hit !== undefined) {
+      await root.locator(`button.kaiki-day-pick[aria-label="${hit}"]`).click();
+
+      return hit.slice(0, 10);
+    }
+
+    const shown = await root.locator('.kaiki-calendar-head strong').textContent();
+
+    await root.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(root.locator('.kaiki-calendar-head strong')).not.toHaveText(shown ?? '');
+  }
+
+  throw new Error(`No bookable day on or after ${date} within four months.`);
+}
+
+/**
+ * Past the extras step when the trip has one, to the button that opens the
+ * checkout. A trip with no extras ends on the party step; one with them ends
+ * on extras — and either way the last button says where it goes.
+ */
+export async function reachCheckoutButton(root: Locator): Promise<Locator> {
+  const checkout = root.getByRole('button', { name: 'Continue to checkout' });
+
+  if (!(await checkout.isVisible())) {
+    await root.getByRole('button', { name: 'Continue', exact: true }).click();
+  }
+
+  await expect(checkout).toBeEnabled();
+
+  return checkout;
 }
 
 /**

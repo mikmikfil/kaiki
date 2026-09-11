@@ -322,6 +322,19 @@ it('never puts a stored secret on the page', function (): void {
         ->assertSee('cret', escape: false);
 })->group('fast');
 
+it('shows the two Viva return addresses to paste into the payment source', function (): void {
+    // Viva takes no return address per order: these are set once, on the
+    // merchant's payment source, and only the operator can put them there.
+    // Shown before any credential exists, because the source is created first.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    actingAs($owner)->get('/app/integrations')
+        ->assertSuccessful()
+        ->assertSee(route('pay.viva.success'), escape: false)
+        ->assertSee(route('pay.viva.failure'), escape: false)
+        ->assertSee(__('integrations.viva_return.help'), escape: false);
+})->group('fast');
+
 it('does not let one operator verify another operator credential', function (): void {
     $owner = OperatorUser::withRole(Role::Owner);
     $stranger = OperatorUser::withRole(Role::Owner);

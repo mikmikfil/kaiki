@@ -7,6 +7,7 @@ use App\Http\Controllers\Guest\CheckoutController;
 use App\Http\Controllers\Guest\GuestDetailsController;
 use App\Http\Controllers\Guest\ManageBookingController;
 use App\Http\Controllers\Guest\QuoteController;
+use App\Http\Controllers\Guest\VivaReturnController;
 use App\Http\Controllers\Guest\VoucherController;
 use App\Http\Controllers\Hosted\ContactPageController;
 use App\Http\Controllers\Hosted\HostedPageController;
@@ -113,6 +114,14 @@ Route::middleware(['guest.token', 'guest.throttle'])->group(function (): void {
     Route::post('/q/{token}/request-new', [QuoteController::class, 'requestNew'])->name('guest.quote.request-new');
 
     Route::get('/v/{code}', [VoucherController::class, 'show'])->name('guest.voucher');
+
+    // Viva's Success and Failure URLs (2026-09-11). Not token pages, but the
+    // order code in `?s=` is the same kind of credential-shaped lookup: the
+    // same headers keep it out of a `Referer`, and the same failure budget
+    // makes walking the order-code space expensive. Navigation only — the
+    // webhook confirms. See `VivaReturnController`.
+    Route::get('/pay/viva/success', [VivaReturnController::class, 'success'])->name('pay.viva.success');
+    Route::get('/pay/viva/failure', [VivaReturnController::class, 'failure'])->name('pay.viva.failure');
 });
 
 /*

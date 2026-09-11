@@ -497,7 +497,7 @@
         }
 
         .pager-step { color: var(--kaiki-primary); text-decoration: none; font-weight: 600; }
-        .pager-step:hover { text-decoration: underline; }
+        .pager-step:hover { color: color-mix(in srgb, var(--kaiki-primary) 80%, var(--ink)); }
         .pager-step.is-off { color: var(--ink-faint); font-weight: 400; }
 
         .pager-pages { list-style: none; margin: 0; padding: 0; display: flex; gap: .3rem; }

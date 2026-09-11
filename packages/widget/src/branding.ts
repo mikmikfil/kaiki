@@ -50,6 +50,13 @@ export interface BrandPayload {
   readonly tenant?: { readonly default_locale?: string; readonly name?: string };
 }
 
+/**
+ * The system stack, named here and nowhere else. A font *stack* rather than a
+ * family — no third-party request, no download, and the guest's own device
+ * decides (WGT-10). The plugin's own-font setting puts its family ahead of it.
+ */
+export const SYSTEM_STACK = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+
 const pending = new WeakMap<Api, Promise<BrandPayload>>();
 
 /** WGT-8's single fetch, whatever the number of mounts. */
@@ -96,13 +103,11 @@ export function brandProperties(brand: BrandPayload): string {
     declarations.push(`--kaiki-radius: ${Math.max(0, Math.round(brand.button_radius_px))}px`);
   }
 
-  // The system stack is named here and nowhere else. It is a font *stack*
-  // rather than a family — no third-party request, no download, and the guest's
-  // own device decides (WGT-10).
   const family = brand.font?.family;
-  const stack = 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 
-  declarations.push(`--kaiki-font: ${family === undefined || family === '' ? stack : `${quote(family)}, ${stack}`}`);
+  declarations.push(
+    `--kaiki-font: ${family === undefined || family === '' ? SYSTEM_STACK : `${quote(family)}, ${SYSTEM_STACK}`}`,
+  );
 
   return declarations.join(';\n  ');
 }

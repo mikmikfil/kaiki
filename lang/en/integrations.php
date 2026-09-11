@@ -106,4 +106,18 @@ return [
         'never_shown' => 'Once saved, we never show these back to you — only the last four characters, so you can tell which one you pasted.',
         'live_warning' => 'These are live details. A booking made with them charges a real card.',
     ],
+
+    /*
+     * The two addresses an operator pastes into their Viva payment source.
+     * Viva takes no return address per order, so without these a guest who
+     * paid lands wherever the dashboard happened to say.
+     */
+    'viva_return' => [
+        'heading' => 'Viva: where guests come back to after paying',
+        'help' => 'In your Viva account, open the payment source you use for Kaiki and paste these two addresses into its Success URL and Failure URL, so guests return to their booking — or to the checkout page to try again if the payment does not go through.',
+        'success' => 'Success URL',
+        'failure' => 'Failure URL',
+        'copy' => 'Copy',
+        'copied' => 'Copied',
+    ],
 ];

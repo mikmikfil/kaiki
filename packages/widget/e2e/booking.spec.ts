@@ -1,113 +1,113 @@
 import { expect, test } from '@playwright/test';
 
-import { analyticsEvents, collectAnalytics, embed, widget, world } from './support/world';
+import { FIXTURE_ORIGIN, embed, isoDaysAhead, pickDay, reachCheckoutButton, widget, world } from './support/world';
 
 /**
- * A person buys a boat trip (spec TST-3, issue 111).
+ * A person buys a boat trip (spec TST-3, issue 111; rewritten 2026-09-11).
  *
- * ## This is the first test in the project that proves the product
+ * ## This is the test in the project that proves the product
  *
- * Every gate before it proves a rule about the code. This one drives a real
- * browser through a real widget on a real second origin, against a real server,
- * to a real confirmed booking — and the whole M2 machine meets the M3 widget
- * here for the first time.
+ * Every other gate proves a rule about the code. This one drives a real browser
+ * through a real widget on a real second origin, against a real server, to a
+ * real confirmed booking.
+ *
+ * ## The walk it follows is today's
+ *
+ * Date on a month grid (2026-09-10), then the party, then «Continue to
+ * checkout», which takes the whole page to Kaiki's checkout (ADR-0030): the
+ * guest's details and the consent are typed there, the payment happens on the
+ * gateway's page, and the guest lands on their booking page. The spec it
+ * replaces still typed into a date input and a details step that were both
+ * removed on 2026-09-10, and had failed every run since.
  *
  * ## The payment is the sandbox path, and it is our own page
  *
  * PAY-11: a `*_test_` key makes `bookings.is_test` true, which routes checkout
- * to the fake gateway, which redirects to the sandbox checkout page. No
- * third-party sandbox, no card, no account — and no `page.route()` standing in
- * for a payment either. The browser genuinely leaves the operator's site, pays,
- * and comes back.
+ * to the fake gateway and its sandbox page. No third-party sandbox, no card.
  *
- * ## The confirmation is asserted twice, deliberately
+ * ## And the way back to the operator's site
  *
- * Once as the guest sees it — the widget's own confirmation, after WGT-20's
- * poll — and once as the operator sees it, by reading the booking back through
- * the API. The first without the second would pass on a widget that says
- * "confirmed" because it stopped asking; the second without the first would
- * pass on a booking nobody could tell had been made.
+ * The page the guest started on travels with the draft (2026-09-11), so both
+ * Kaiki pages offer a link back to it — asserted here on the real origin the
+ * widget ran on, because that is the one value a unit test has to invent.
  */
 
-test('a guest books a trip, pays in the sandbox and comes back confirmed', async ({ page, request, baseURL }) => {
+test('a guest books a trip, pays in the sandbox and lands on their booking', async ({ page }) => {
   const run = world();
 
-  await collectAnalytics(page);
   await embed(page, { mount: 'booking', product: run.product_uuid });
 
   const root = widget(page);
 
   await expect(root.getByRole('heading', { name: 'Pick a date' })).toBeVisible();
 
-  // A date the seeder guarantees a departure on: `DemoBookableSeeder` generates
-  // a season's worth from a weekly rule, so a fortnight out is always sailing.
-  const date = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
-
-  await root.locator('input[type="date"]').fill(date);
-  await root.getByRole('button', { name: 'Continue' }).click();
+  await pickDay(root, isoDaysAhead(14));
+  await root.getByRole('button', { name: 'Continue', exact: true }).click();
 
   await expect(root.getByRole('heading', { name: 'How many of you?' })).toBeVisible();
 
   // The first age band, whatever the operator called it.
   await root.locator('input[type="number"]').first().fill('2');
-  await root.getByRole('button', { name: 'Continue' }).click();
 
-  // The extras step, which the issue asks the run to pass through with
-  // something added. An operator with no extras skips it, so this is tolerant
-  // of both — what matters is that the step does not stop the walk.
-  const extras = root.getByRole('heading', { name: 'Anything else?' });
+  const checkoutButton = await reachCheckoutButton(root);
 
-  if (await extras.isVisible()) {
-    const first = root.locator('input[type="number"]').first();
+  await checkoutButton.click();
 
-    if (await first.isVisible()) {
-      await first.fill('1');
-    }
+  // **The browser leaves the operator's site** for Kaiki's checkout page.
+  await page.waitForURL(/\/c\//, { timeout: 30_000 });
 
-    await root.getByRole('button', { name: 'Continue' }).click();
+  // The way back, to the page the widget was on.
+  await expect(page.locator(`a[href^="${FIXTURE_ORIGIN}"]`).first()).toBeVisible();
+
+  await page.locator('#guest_name').fill('Maria Papadopoulou');
+  await page.locator('#guest_email').fill('maria@example.test');
+  await page.locator('#guest_phone').fill('+30 210 000 0000');
+
+  // A trip that needs a manifest asks for each passenger's name as well.
+  for (const passenger of await page.locator('input[name$="[full_name]"]').all()) {
+    await passenger.fill('Maria Papadopoulou');
   }
 
-  await expect(root.getByRole('heading', { name: 'Your details' })).toBeVisible();
+  await page.locator('input[name="terms"]').check();
+  await page.locator('button.pay').click();
 
-  await root.getByLabel('Full name').fill('Maria Papadopoulou');
-  await root.getByLabel('Email').fill('maria@example.test');
-  await root.getByLabel('Phone').fill('+30 210 000 0000');
-  await root.getByRole('checkbox').check();
-  await root.getByRole('button', { name: 'Continue' }).click();
-
-  await expect(root.getByRole('heading', { name: 'Check and pay' })).toBeVisible();
-
-  await root.getByRole('button', { name: 'Pay and confirm' }).click();
-
-  // **The browser leaves the operator's site.** This is the sandbox checkout
-  // page on the application's own origin, and it says what it is before it says
-  // anything else.
+  // The sandbox checkout, saying what it is before anything else.
   await page.waitForURL(/\/sandbox\/checkout\//, { timeout: 30_000 });
-
   await expect(page.getByText('Test mode', { exact: false })).toBeVisible();
+  await page.locator('button.pay').click();
 
-  await page.getByRole('button', { name: 'Pay' }).click();
+  // Paid: the guest's own booking page, with the way back still offered.
+  await page.waitForURL(/\/b\//, { timeout: 30_000 });
+  await expect(page.locator(`a[href^="${FIXTURE_ORIGIN}"]`).first()).toBeVisible();
+});
 
-  // …and comes back to where it started, which is what `return_url` is for.
-  await page.waitForURL((url) => !url.pathname.startsWith('/sandbox'), { timeout: 30_000 });
+test('a declined card brings the guest back to the checkout to try again', async ({ page }) => {
+  await embed(page, { mount: 'booking', product: world().product_uuid });
 
-  // WGT-20's poll, as the guest sees it.
-  await expect(widget(page).getByRole('heading', { name: 'You are booked' })).toBeVisible({ timeout: 30_000 });
+  const root = widget(page);
 
-  // And as the operator sees it. `booking-confirmed` carries the product, which
-  // is how the analytics event names the booking without naming the guest.
-  const events = await analyticsEvents(page);
-  const confirmed = events.find((event) => event.name === 'kaiki:booking-confirmed');
+  await pickDay(root, isoDaysAhead(15));
+  await root.getByRole('button', { name: 'Continue', exact: true }).click();
+  await root.locator('input[type="number"]').first().fill('1');
+  await (await reachCheckoutButton(root)).click();
 
-  expect(confirmed).toBeDefined();
-  expect(confirmed?.detail.product_uuid).toBe(run.product_uuid);
+  await page.waitForURL(/\/c\//, { timeout: 30_000 });
 
-  // No guest data ever leaves in an event (the allow-list in `analytics.ts`).
-  for (const event of events) {
-    expect(Object.keys(event.detail ?? {})).not.toContain('email');
-    expect(Object.keys(event.detail ?? {})).not.toContain('full_name');
+  await page.locator('#guest_name').fill('Nikos Andreou');
+  await page.locator('#guest_email').fill('nikos@example.test');
+
+  for (const passenger of await page.locator('input[name$="[full_name]"]').all()) {
+    await passenger.fill('Nikos Andreou');
   }
 
-  expect(baseURL).toBeTruthy();
-  expect(request).toBeTruthy();
+  await page.locator('input[name="terms"]').check();
+  await page.locator('button.pay').click();
+
+  await page.waitForURL(/\/sandbox\/checkout\//, { timeout: 30_000 });
+  await page.locator('button.decline').click();
+
+  // Back on the checkout, told what happened, with the details still there.
+  await page.waitForURL(/\/c\//, { timeout: 30_000 });
+  await expect(page.locator('.notice-error')).toBeVisible();
+  await expect(page.locator('#guest_name')).toHaveValue('Nikos Andreou');
 });

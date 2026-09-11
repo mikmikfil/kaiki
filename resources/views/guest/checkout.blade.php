@@ -54,6 +54,12 @@
 
 @section('content')
 
+{{-- Decided by the controller (`backToSiteUrl()`): the page the guest came
+     from, else the operator's hosted home, else nothing. --}}
+@if ($backUrl)
+    <p class="back-to-site"><a href="{{ $backUrl }}">{{ __('guest.back_to_site') }}</a></p>
+@endif
+
 <div class="checkout-grid">
 
     <aside class="checkout-side">
