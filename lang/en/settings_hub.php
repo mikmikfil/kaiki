@@ -41,6 +41,7 @@ return [
         'calendar_sync' => 'Availability to and from other platforms',
         'api_keys' => 'For your website, the widget and WordPress',
         'webhooks' => 'Booking notices to your own systems',
+        'import' => 'Trips and bookings from WooCommerce',
     ],
 
 ];

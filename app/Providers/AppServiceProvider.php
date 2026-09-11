@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Contracts\ImportSource;
 use App\Contracts\MyDataGateway;
 use App\Domain\Catalog\Actions\GuardVesselCapacity;
 use App\Domain\Catalog\Actions\SaveProduct;
 use App\Domain\Compliance\Gateways\NullMyDataGateway;
+use App\Domain\Import\Sources\WooCommerceYithSource;
 use App\Domain\Media\Actions\StoreUploadedImage;
 use App\Domain\Tenancy\Support\DnsLookup;
 use App\Domain\Tenancy\Support\SystemDnsLookup;
@@ -109,6 +111,11 @@ class AppServiceProvider extends ServiceProvider
          * interface is what makes that a one-line change here.
          */
         $this->app->bind(MyDataGateway::class, NullMyDataGateway::class);
+
+        // The importer's source (spec EXT-5). The file-upload WooCommerce/YITH
+        // reader today; a REST or Bokun source is another implementation, and
+        // the dry-run, review and commit machinery does not change for it.
+        $this->app->bind(ImportSource::class, WooCommerceYithSource::class);
     }
 
     /**

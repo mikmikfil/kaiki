@@ -8,6 +8,7 @@ use App\Filament\App\Resources\ApiKeyResource;
 use App\Filament\App\Resources\AuditLogResource;
 use App\Filament\App\Resources\ExportResource;
 use App\Filament\App\Resources\FaqResource;
+use App\Filament\App\Resources\ImportJobResource;
 use App\Filament\App\Resources\NotificationLogResource;
 use App\Filament\App\Resources\StaffResource;
 use App\Filament\App\Resources\WebhookEndpointResource;
@@ -94,6 +95,7 @@ class Settings extends Page
             'calendar_sync' => CalendarSync::class,
             'api_keys' => ApiKeyResource::class,
             'webhooks' => WebhookEndpointResource::class,
+            'import' => ImportJobResource::class,
         ],
     ];
 

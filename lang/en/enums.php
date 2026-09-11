@@ -624,6 +624,43 @@ return [
         'expired' => ['label' => 'Expired'],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Import from WooCommerce / YITH (SAA-13 … SAA-15)
+    |--------------------------------------------------------------------------
+    */
+    'import_source' => [
+        'woocommerce_yith' => ['label' => 'WooCommerce, with API keys'],
+        'csv' => ['label' => 'Bookings file (CSV)'],
+        'wxr' => ['label' => 'Files from WordPress (XML and CSV)'],
+    ],
+
+    'import_status' => [
+        'pending' => ['label' => 'Waiting'],
+        'analysing' => ['label' => 'Reading the files'],
+        'mapping_review' => ['label' => 'Waiting for your review'],
+        'running' => ['label' => 'Importing'],
+        'completed' => ['label' => 'Completed'],
+        'failed' => ['label' => 'Stopped — can be resumed'],
+        'cancelled' => ['label' => 'Cancelled'],
+    ],
+
+    'import_row_status' => [
+        'pending' => ['label' => 'Not checked yet'],
+        'mapped' => ['label' => 'Will be imported'],
+        'skipped' => ['label' => 'Skipped'],
+        'imported' => ['label' => 'Imported'],
+        'failed' => ['label' => 'Failed'],
+    ],
+
+    'import_row_type' => [
+        'category' => ['label' => 'Category'],
+        'people_type' => ['label' => 'Passenger type'],
+        'product' => ['label' => 'Trip'],
+        'customer' => ['label' => 'Customer'],
+        'booking' => ['label' => 'Booking'],
+    ],
+
     'notification_template' => [
         'booking_confirmed' => ['label' => 'Booking confirmed'],
         'booking_cancelled' => ['label' => 'Booking cancelled'],

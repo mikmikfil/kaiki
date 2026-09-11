@@ -28,6 +28,9 @@ function matrix(): array
         'manage_gateway_credentials' => [Capability::ManageGatewayCredentials, [Role::Owner]],
         'manage_staff' => [Capability::ManageStaff, [Role::Owner]],
         'delete_tenant' => [Capability::DeleteTenant, [Role::Owner]],
+        // SAA-13: the widest single write in the product, and a file of every
+        // past customer's contact details.
+        'import_data' => [Capability::ImportData, [Role::Owner]],
 
         // Owner and manager: running the business.
         'manage_catalogue' => [Capability::ManageCatalogue, [Role::Owner, Role::Manager]],

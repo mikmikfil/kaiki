@@ -46,6 +46,24 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## M7 — The WooCommerce / YITH importer, from two files (SAA-13 … SAA-15)
+
+An operator uploads the WordPress export (WXR) and YITH's bookings CSV; **nothing is written until they have seen what will happen.** The dry run records every source record in `import_job_rows` and proposes a mapping (data-model §3.7): trips whose title matches an existing Kaiki trip are **linked**, shop products that are not YITH booking products are **skipped**, person types map to adult/child/infant from their names, and only upcoming bookings in "still on" statuses are kept. Every skip carries its reason on the row, stored as a translation key so it reads in the viewer's language.
+
+**Commit goes row by row.** One bad row fails alone and the run carries on; only `mapped` and `failed` rows are picked up, so a stopped import is **resumed** by pressing the button again. Idempotent by source id **across** imports as well as within one — the same export uploaded twice is two jobs — through an extra index, `import_rows_tenant_src_idx`, recorded in the data model.
+
+**What arrives, and how.** Trips as **drafts** with age bands and a default rate plan from YITH's costs, published through the usual CAT-15 checklist; WordPress's one-language text is copied into EL and EN with a warning on the row. Bookings go through #89's `ImportBooking`, so nothing is announced — no event, mail, invoice or webhook (BKG-34), which the tests fake and assert. Per-seat bookings get a manual departure where none exists, so their seats are really taken. Customers become each booking's lead guest rather than rows of their own. **The importer never creates a vessel**, so plan limits never apply: trips go on a boat the operator already has, and with two or more the review screen asks which.
+
+**Owner only** — `Capability::ImportData`, new, added to the role matrix — reached as a card in «Ρυθμίσεις» → «Για προχωρημένους». The uploaded files are deleted when the import completes. No new packages: SimpleXML for the WXR, `league/csv` for the CSV.
+
+**One thing the queue did.** The worker running on this machine predated the new `ImportSource` binding, so the first demo import failed with a `BindingResolutionException` — it is in `failed_jobs`, and the new health page shows it. A long-running worker keeps the code it booted with; `queue:restart` after a deploy is not optional, and M8's deploy script must do it.
+
+**Verification.** 23 new tests (`ImportParsingTest`, `ImportFlowTest`, `ImportAccessTest`): dry run writes nothing; commit writes draft trips, bands, prices, confirmed bookings and a shared departure holding both parties' seats; nothing is dispatched; nothing twice, within one import or across two; a stopped import resumes and writes only what was missing; every skip has a reason; a changed mapping re-evaluates without writing; two operators' imports stay apart; managers and crew get 403. With Booking, I18n and the isolation and policy gates: 646 passed. The full suite's result is in the commit message.
+
+**Deferred, and named:** the REST / API-key source (a second `ImportSource`; it needs a real WordPress to build against); a check against a real YITH export — the readers tolerate missing keys, but the first real file may need adjustments; XMLReader instead of SimpleXML for very large exports; a test of the Livewire upload itself (`StartImport` is tested directly).
+
+---
+
 ## M7 — The platform panel: health, and a banner (SAA-1, SAA-17)
 
 `/admin` could list operators and edit their plan; it could not say whether the platform itself was working. **«Υγεία πλατφόρμας»** answers SAA-17 on one screen: the queue (depth, how long the oldest job has waited, the driver), failed jobs (the exact total, a split by class over the latest 500, the 15 newest with their first error line and uuid), and operators with open failures — myDATA, unprocessed gateway webhooks, unreadable calendars — each linking to its merchant-list record.

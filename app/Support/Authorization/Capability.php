@@ -27,6 +27,15 @@ enum Capability: string
     case ManageStaff = 'manage_staff';
     case DeleteTenant = 'delete_tenant';
 
+    /**
+     * Bring a catalogue and a season's bookings in from WooCommerce (SAA-13).
+     *
+     * Owner only, because an import writes products, prices, departures and
+     * bookings in one confirmed step — the widest single write in the product
+     * — and reads a file holding every past customer's name and email.
+     */
+    case ImportData = 'import_data';
+
     // Owner and manager: the day-to-day business.
     case ManageCatalogue = 'manage_catalogue';
     case ManagePricing = 'manage_pricing';
@@ -68,7 +77,8 @@ enum Capability: string
             self::ManageApiKeys,
             self::ManageGatewayCredentials,
             self::ManageStaff,
-            self::DeleteTenant => [Role::Owner],
+            self::DeleteTenant,
+            self::ImportData => [Role::Owner],
 
             // Everything a manager needs to run the operation day to day.
             self::ManageCatalogue,

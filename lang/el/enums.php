@@ -609,6 +609,43 @@ return [
         'expired' => ['label' => 'Έληξε'],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Εισαγωγή από WooCommerce / YITH (SAA-13 … SAA-15)
+    |--------------------------------------------------------------------------
+    */
+    'import_source' => [
+        'woocommerce_yith' => ['label' => 'WooCommerce, με κλειδιά API'],
+        'csv' => ['label' => 'Αρχείο κρατήσεων (CSV)'],
+        'wxr' => ['label' => 'Αρχεία από το WordPress (XML και CSV)'],
+    ],
+
+    'import_status' => [
+        'pending' => ['label' => 'Σε αναμονή'],
+        'analysing' => ['label' => 'Διαβάζονται τα αρχεία'],
+        'mapping_review' => ['label' => 'Περιμένει τον έλεγχό σας'],
+        'running' => ['label' => 'Γίνεται η εισαγωγή'],
+        'completed' => ['label' => 'Ολοκληρώθηκε'],
+        'failed' => ['label' => 'Σταμάτησε — μπορεί να συνεχιστεί'],
+        'cancelled' => ['label' => 'Ακυρώθηκε'],
+    ],
+
+    'import_row_status' => [
+        'pending' => ['label' => 'Δεν έχει ελεγχθεί'],
+        'mapped' => ['label' => 'Θα εισαχθεί'],
+        'skipped' => ['label' => 'Παραλείπεται'],
+        'imported' => ['label' => 'Εισήχθη'],
+        'failed' => ['label' => 'Απέτυχε'],
+    ],
+
+    'import_row_type' => [
+        'category' => ['label' => 'Κατηγορία'],
+        'people_type' => ['label' => 'Κατηγορία επιβάτη'],
+        'product' => ['label' => 'Εκδρομή'],
+        'customer' => ['label' => 'Πελάτης'],
+        'booking' => ['label' => 'Κράτηση'],
+    ],
+
     'notification_template' => [
         'booking_confirmed' => ['label' => 'Επιβεβαίωση κράτησης'],
         'booking_cancelled' => ['label' => 'Ακύρωση κράτησης'],

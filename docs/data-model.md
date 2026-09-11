@@ -1639,7 +1639,7 @@ Indexes: `import_jobs_uuid_unique`; `import_jobs_tenant_status_idx` (`tenant_id`
 | `messages` | json | no | `[]` | per-row warnings shown in the review screen |
 | timestamps | | | | |
 
-Indexes: `import_rows_job_src_uq` (`import_job_id`, `source_type`, `source_id`) **unique** — re-running an import never duplicates; `import_rows_tenant_job_status_idx` (`tenant_id`, `import_job_id`, `status`) — the review screen's paginated query.
+Indexes: `import_rows_job_src_uq` (`import_job_id`, `source_type`, `source_id`) **unique** — re-running an import never duplicates; `import_rows_tenant_job_status_idx` (`tenant_id`, `import_job_id`, `status`) — the review screen's paginated query; **`import_rows_tenant_src_idx` (`tenant_id`, `source_type`, `source_id`)** — *added by the importer build (2026-09-11)*: SAA-15's idempotency is "by source identifier", and the same export uploaded twice is **two** jobs, so the committer asks whether an earlier job of this tenant already imported the record. `messages` holds `{key, params}` translation keys rather than sentences, so a row renders in the reader's language. **Built:** migrations `2026_09_11_000020/21`, `App\Domain\Import`, `ImportJobResource` (owner only, `Capability::ImportData`).
 
 ---
 

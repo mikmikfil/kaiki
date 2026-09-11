@@ -4,6 +4,12 @@
 
 > Entries for #118 … #122 — the dashboard, the vessel calendar, recorded cash, the weather-cancellation workflow and the manifests — are not written here. They are on `main` with their reasoning in each commit message; inventing changelog prose for them after the fact would be reconstruction rather than a record, which is the same rule this project applies in `docs/BUILD-LOG.md`.
 
+### Εισαγωγή από WooCommerce και YITH Booking
+
+Αν πουλούσατε εκδρομές με WordPress, τις φέρνετε στο Kaiki με δύο αρχεία: την εξαγωγή του WordPress και τις κρατήσεις του YITH. **Πρώτα βλέπετε τι θα γίνει** — ποια εκδρομή θα δημιουργηθεί, ποια θα συνδεθεί με μια που ήδη έχετε, ποια κράτηση παραλείπεται και γιατί. Τίποτα δεν γράφεται πριν πατήσετε «Εισαγωγή».
+
+Οι εκδρομές μπαίνουν ως πρόχειρα, εισάγονται μόνο οι επόμενες κρατήσεις, και οι επιβάτες **δεν λαμβάνουν κανένα email ή SMS**. Αν κάτι σταματήσει στη μέση, το ξαναπατάτε και συνεχίζει από εκεί που έμεινε, χωρίς διπλές εγγραφές. Τα αρχεία διαγράφονται μόλις ολοκληρωθεί. Βρίσκεται στις «Ρυθμίσεις» → «Για προχωρημένους», μόνο για τον ιδιοκτήτη.
+
 ### Υγεία πλατφόρμας και ανακοινώσεις
 
 Στο `/admin` υπάρχει πια η **«Υγεία πλατφόρμας»**: πόσες εργασίες περιμένουν και πόση ώρα, ποιες απέτυχαν, και ποιος διοργανωτής έχει ανοιχτό πρόβλημα με την ΑΑΔΕ, τις πληρωμές ή τα ημερολόγια — με σύνδεσμο κατευθείαν στον λογαριασμό του.
