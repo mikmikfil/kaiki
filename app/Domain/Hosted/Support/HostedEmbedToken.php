@@ -88,8 +88,8 @@ final class HostedEmbedToken
     /**
      * The tenant this token asserts, as an unsaved publishable key.
      *
-     * Null for anything wrong: a bad signature, an expired token, a tenant that
-     * has been deleted, or a hosted page that has since been switched off. The
+     * Null for anything wrong: a bad signature, an expired token, or a tenant
+     * that has been deleted. The
      * caller turns all of those into the same `invalid_key` — distinguishing
      * them in the response would tell an attacker which half they got right.
      *
@@ -138,17 +138,9 @@ final class HostedEmbedToken
             return null;
         }
 
-        // The operator turned their hosted site off between the page being
-        // rendered and this request. The page is 404 by now, and the token it
-        // minted must not outlive it.
-        // The coarse question on purpose (ADR-0029): a token minted for a
-        // trip page must stay valid while any page is live, and only die when
-        // the site is switched off entirely. An operator who turns the
-        // marketing home page off has not revoked their own widget.
-        if (! $tenant->hosted_site_mode->servesAnything()) {
-            return null;
-        }
-
+        // No site-mode check: the booking pages this token is minted for are
+        // served in both modes (ADR-0029 as amended 2026-09-11), and an
+        // operator whose home page is turned off has not revoked their widget.
         return self::transientKey($tenant, $origins);
     }
 

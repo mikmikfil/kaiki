@@ -100,17 +100,15 @@ it('is refused when a byte of it has been changed', function (): void {
     expect(HostedEmbedToken::resolve(substr($token, 0, -1) . 'x'))->toBeNull();
 });
 
-it('will not open a hosted page the operator has switched off', function (): void {
-    $tenant = OperatorPage::operator('embed-disabled');
+it('keeps working when the platform turns the home page off', function (): void {
+    $tenant = OperatorPage::operator('embed-bookings-only');
 
     $token = HostedEmbedToken::issue($tenant);
 
-    $tenant->forceFill(['hosted_site_mode' => HostedSiteMode::Off])->save();
+    $tenant->forceFill(['hosted_site_mode' => HostedSiteMode::BookingsOnly])->save();
 
-    // The page is 404 by now (HOS-6). A token it minted a minute earlier must
-    // not outlive it, or switching the site off would leave a working key in
-    // every browser that had the page open.
-    expect(HostedEmbedToken::resolve($token))->toBeNull();
+    // The trip page that minted it is still served, so its widget must be too.
+    expect(HostedEmbedToken::resolve($token))->not->toBeNull();
 });
 
 it('cannot do anything a publishable key could not', function (): void {

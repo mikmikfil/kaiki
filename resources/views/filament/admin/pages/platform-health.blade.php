@@ -127,7 +127,11 @@
                             @foreach ($tenants as $row)
                                 <tr>
                                     <td>
-                                        <a href="{{ $this->tenantUrl($row['tenant_id']) }}" class="ka-health-link">{{ $row['name'] }}</a>
+                                        @if ($row['tenant_uuid'])
+                                            <a href="{{ $this->tenantUrl($row['tenant_uuid']) }}" class="ka-health-link">{{ $row['name'] }}</a>
+                                        @else
+                                            {{ $row['name'] }}
+                                        @endif
                                     </td>
                                     <td class="ka-num">{{ $row['mydata'] ?: '·' }}</td>
                                     <td class="ka-num">{{ $row['gateway_webhooks'] ?: '·' }}</td>

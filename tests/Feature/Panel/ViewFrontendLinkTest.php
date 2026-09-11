@@ -20,9 +20,9 @@ use Tests\Support\OperatorUser;
 | A way out to the guest's side of the product, from the top of the sidebar.
 | Two things are worth pinning, and neither is that it renders:
 |
-| 1. **It is absent when the hosted page is switched off** (HOS-6). A button
-|    leading to a 404 teaches an operator the feature is broken rather than
-|    switched off, and that is a support call.
+| 1. **It is absent when there is no home page** (*bookings only*, ADR-0029). A
+|    button leading to a 404 teaches an operator the feature is broken rather
+|    than switched off, and that is a support call.
 | 2. **It is not in `/admin`.** The super-admin has no tenant (ADR-0020) and so
 |    no page to view; an unscoped render hook would put a link to nowhere in
 |    front of the one person who cannot use it.
@@ -43,12 +43,12 @@ it('offers the operator their own page', function (): void {
         ->and($html)->toContain('target="_blank"');
 })->group('fast');
 
-it('says nothing when the operator has switched their page off', function (): void {
+it('says nothing when the operator has no home page', function (): void {
     $user = OperatorUser::withRole(Role::Owner);
 
     Tenancy::withoutTenancy(static fn () => Tenant::query()
         ->whereKey($user->tenant_id)
-        ->update(['hosted_site_mode' => HostedSiteMode::Off]));
+        ->update(['hosted_site_mode' => HostedSiteMode::BookingsOnly]));
 
     $html = (string) actingAs($user)->get('/app')->assertSuccessful()->getContent();
 

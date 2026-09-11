@@ -33,6 +33,7 @@ return [
         'access_ends' => 'Access ends',
         'sandbox' => 'Sandbox account',
         'qr_check_in' => 'QR boarding',
+        'hosted_site_mode' => 'Pages we publish',
     ],
 
     'filters' => [
@@ -73,6 +74,7 @@ return [
         'features' => 'Features',
         'features_help' => 'What a small business does not need. Switching something off deletes no data.',
         'qr_check_in_help' => 'Off: tickets are issued without a QR and no screen has a scan box. Boarding is done from the passenger list, one tap beside each name — including on the page that works without a signal. Tickets already sent with a QR will no longer scan.',
+        'hosted_site_mode_help' => 'The booking pages — a page per trip, search and the legal pages — are published in both. The full website adds the home page. The operator sees this but cannot change it. Takes effect at once; bookings already made are never affected.',
         'confirm_heading' => 'Change this operator’s account',
         'confirm_body' => 'The change is recorded in the operator’s own audit trail, with your name and your reason.',
         'reason' => 'Reason',

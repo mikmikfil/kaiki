@@ -31,9 +31,9 @@ use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
  * ## The tenant is already resolved, and that is why this is short
  *
  * TEN-4's third strategy reads the first path segment as an operator slug **on
- * the hosted host only** ({@see HostedSlugResolver}, #7), and declines one whose
- * page is switched off — so the `tenant` middleware has resolved the operator
- * and produced HOS-6's 404 before a method here runs.
+ * the hosted host only** ({@see HostedSlugResolver}, #7), and declines an
+ * unknown one — so the `tenant` middleware has resolved the operator, or
+ * produced the 404, before a method here runs.
  *
  * That is also why nothing here wraps a `Tenancy::forTenant()` around the
  * render. The token pages of #86 must, because a token resolves its own tenant

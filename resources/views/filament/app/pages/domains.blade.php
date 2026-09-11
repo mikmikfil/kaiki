@@ -4,9 +4,9 @@
 
     The domain half is mostly explanation, because the work happens at a
     registrar we cannot reach: the exact CNAME, where it goes, and the truth
-    about how long it takes. The mode half is one question with three answers,
-    and it sits first because it is the larger one — there is no point pointing
-    a domain at pages nobody is serving.
+    about how long it takes. The mode half is read-only: the platform sets it on
+    /admin (ADR-0029 as amended 2026-09-11), and this says which it is and who
+    to ask. It sits first because it says which pages a domain will point at.
 
     Nothing here is a hardcoded string — `NoHardcodedStringsTest` scans this
     directory (I18N-1).
@@ -16,19 +16,17 @@
         <div class="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
             <h3 class="text-sm font-semibold">{{ __('domains.mode.heading') }}</h3>
 
-            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                {{ __('domains.mode.help') }}
+            @if ($label = $this->siteModeLabel())
+                <p class="mt-3 text-sm font-medium">{{ $label }}</p>
+
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    {{ $this->siteModeHelp() }}
+                </p>
+            @endif
+
+            <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                {{ __('domains.mode.managed') }}
             </p>
-
-            <form wire:submit="saveMode" class="mt-4">
-                {{ $this->modeForm }}
-
-                <div class="mt-4 flex justify-end">
-                    <x-filament::button type="submit">
-                        {{ __('domains.mode.save') }}
-                    </x-filament::button>
-                </div>
-            </form>
         </div>
 
         {{-- SAA-8: on a plan without domains the setup instructions and the form

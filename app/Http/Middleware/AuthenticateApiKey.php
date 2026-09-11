@@ -38,8 +38,8 @@ final class AuthenticateApiKey
 
             if ($apiKey === null) {
                 // One answer for a bad signature, an expired token and a
-                // hosted page since switched off. Telling them apart would
-                // tell an attacker which half they got right.
+                // deleted operator. Telling them apart would tell an
+                // attacker which half they got right.
                 return $this->reject('api.errors.invalid_key', 'invalid_key', 401);
             }
         } else {

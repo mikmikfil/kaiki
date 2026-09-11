@@ -83,12 +83,13 @@ final class HostedUrl
      * the first and not the second. A single method would have to be wrong for
      * one of them.
      */
-    public static function bookingEnabledFor(Tenant $tenant): bool
-    {
-        return $tenant->hosted_site_mode->servesBookingPages();
-    }
-
-    /** Does this operator serve the marketing home page they compose from blocks? */
+    /**
+     * Does this operator serve the marketing home page they compose from blocks?
+     *
+     * The only page a site mode can switch off. Trip pages, search and the legal
+     * pages are served in both modes (ADR-0029 as amended 2026-09-11), so the
+     * API's `booking_url` needs no such question.
+     */
     public static function homeEnabledFor(Tenant $tenant): bool
     {
         return $tenant->hosted_site_mode->servesHomePage();

@@ -7,6 +7,7 @@ namespace App\Filament\Admin\Resources\TenantResource\Pages;
 use App\Domain\Audit\Actions\RecordAuditEntry;
 use App\Domain\Audit\Data\AuditEntryData;
 use App\Enums\AuditAction;
+use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
 use App\Enums\TenantStatus;
 use App\Enums\TenantVertical;
@@ -16,13 +17,13 @@ use BackedEnum;
 use DateTimeInterface;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Database\Eloquent\Model;
 
 /**
  * The five things the platform owner may change about an operator (SAA-1, SEC-16).
@@ -80,7 +81,7 @@ class EditTenant extends EditRecord
      * Named once, so the snapshot and the diff cannot drift apart — which is
      * how an audit trail quietly stops recording one of them.
      */
-    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'qr_check_in_enabled'];
+    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'qr_check_in_enabled', 'hosted_site_mode'];
 
     /** The operator's own words, captured by the confirmation and not by the form. */
     public ?string $auditReason = null;
@@ -130,6 +131,24 @@ class EditTenant extends EditRecord
                         // Null is on (see `Tenant::usesQrCheckIn()`); a toggle
                         // showing a null as off would switch it off on save.
                         ->formatStateUsing(fn (?bool $state): bool => $state !== false),
+
+                    // ADR-0029's two states (amended 2026-09-11), decided by the
+                    // platform with the operator — the same place and the same
+                    // trail as QR boarding. The operator's own screen only shows it.
+                    Radio::make('hosted_site_mode')
+                        ->label(__('tenants.columns.hosted_site_mode'))
+                        ->helperText(__('tenants.edit.hosted_site_mode_help'))
+                        ->options(HostedSiteMode::options())
+                        ->descriptions(array_combine(
+                            array_map(static fn (HostedSiteMode $mode): string => $mode->value, HostedSiteMode::cases()),
+                            array_map(
+                                static fn (HostedSiteMode $mode): string => (string) __(
+                                    HostedSiteMode::translationNamespace() . '.' . $mode->value . '.help'
+                                ),
+                                HostedSiteMode::cases(),
+                            ),
+                        ))
+                        ->required(),
                 ]),
         ]);
     }
@@ -299,10 +318,5 @@ class EditTenant extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         return $data;
-    }
-
-    protected function resolveRecord(int|string $key): Model
-    {
-        return TenantResource::getEloquentQuery()->findOrFail($key);
     }
 }

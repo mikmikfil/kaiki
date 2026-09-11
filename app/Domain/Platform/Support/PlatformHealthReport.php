@@ -130,7 +130,7 @@ final class PlatformHealthReport
     /**
      * Operators with at least one open failure, the most troubled first.
      *
-     * @return list<array{tenant_id: int, name: string, mydata: int, gateway_webhooks: int, ical: int, total: int}>
+     * @return list<array{tenant_id: int, tenant_uuid: ?string, name: string, mydata: int, gateway_webhooks: int, ical: int, total: int}>
      */
     public function perTenant(): array
     {
@@ -161,15 +161,18 @@ final class PlatformHealthReport
 
         // Trashed included: a cancelled operator with a failed invoice is still
         // somebody's unfinished business with the tax office.
-        /** @var array<int, string> $names */
-        $names = Tenant::withTrashed()->whereIn('id', $ids)->pluck('name', 'id')->all();
+        $tenants = Tenant::withTrashed()->whereIn('id', $ids)->get(['id', 'uuid', 'name'])->keyBy('id');
 
         $rows = [];
 
         foreach ($ids as $id) {
+            $tenant = $tenants->get($id);
+
             $row = [
                 'tenant_id' => $id,
-                'name' => $names[$id] ?? ('#' . $id),
+                // The panel's links carry the uuid (`HasUuid`), never the id.
+                'tenant_uuid' => $tenant?->uuid,
+                'name' => $tenant->name ?? ('#' . $id),
                 'mydata' => $mydata[$id] ?? 0,
                 'gateway_webhooks' => $gateway[$id] ?? 0,
                 'ical' => $ical[$id] ?? 0,

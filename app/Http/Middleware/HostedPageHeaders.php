@@ -22,8 +22,8 @@ use Symfony\Component\HttpFoundation\Response;
  * The first version of this middleware looked the operator up by slug itself.
  * That was a **second** implementation of something #7 had already built and
  * built better: {@see HostedSlugResolver} is strategy 3 of TEN-4, it already
- * declines a tenant whose site is switched off entirely, so the chain ends in
- * HOS-6's plain 404, and it already caches the answer — which matters on a page
+ * declines an unknown slug, so the chain ends in a plain 404, and it already
+ * caches the answer — which matters on a page
  * that is meant to be crawled.
  *
  * It also only reads the first path segment **on the hosted host**, which is

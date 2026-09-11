@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\AuditAction;
+use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
 use App\Enums\Role;
 use App\Enums\TenantStatus;
@@ -320,6 +321,46 @@ it('reports nothing rather than breaking on an empty platform', function (): voi
     actingAs(superAdmin())->get('/admin')->assertSuccessful();
 })->group('fast');
 
+it('opens an operator from the link the merchant list gives it', function (): void {
+    // The link carries the uuid (`HasUuid`). The page once looked the record up
+    // by id, so every Edit button in the list was a 404.
+    $tenant = Tenant::factory()->create();
+
+    actingAs(superAdmin())
+        ->get(TenantResource::getUrl('edit', ['record' => $tenant], panel: 'admin'))
+        ->assertSuccessful();
+})->group('fast');
+
+it('lets the platform decide which pages an operator gets, with a reason, in their own trail', function (): void {
+    $tenant = Tenant::factory()->create(['hosted_site_mode' => HostedSiteMode::Full]);
+
+    editTenantPage(superAdmin(), $tenant)
+        ->assertFormSet(['hosted_site_mode' => HostedSiteMode::Full->value])
+        ->fillForm(['hosted_site_mode' => HostedSiteMode::BookingsOnly->value])
+        ->callAction('save', ['auditReason' => 'Έχει ήδη δική του ιστοσελίδα.'])
+        ->assertHasNoErrors();
+
+    expect($tenant->fresh()?->hosted_site_mode)->toBe(HostedSiteMode::BookingsOnly);
+
+    Tenancy::forTenant($tenant, function (): void {
+        $entry = AuditLog::query()->where('action', AuditAction::TenantUpdated->value)->sole();
+
+        expect($entry->context)->toMatchArray([
+            'hosted_site_mode_from' => 'full',
+            'hosted_site_mode_to' => 'bookings_only',
+        ]);
+    });
+})->group('fast');
+
+it('opens a cancelled operator too', function (): void {
+    $tenant = Tenant::factory()->create();
+    $tenant->delete();
+
+    actingAs(superAdmin())
+        ->get(TenantResource::getUrl('edit', ['record' => $tenant], panel: 'admin'))
+        ->assertSuccessful();
+})->group('fast');
+
 /**
  * A mounted edit page on the **admin** panel.
  *
@@ -333,7 +374,7 @@ function editTenantPage(User $admin, Tenant $tenant): Testable
 {
     Filament::setCurrentPanel(Filament::getPanel('admin'));
 
-    return Livewire::actingAs($admin)->test(EditTenant::class, ['record' => $tenant->getKey()]);
+    return Livewire::actingAs($admin)->test(EditTenant::class, ['record' => $tenant->getRouteKey()]);
 }
 
 it('records who changed an operator, when, and why', function (): void {

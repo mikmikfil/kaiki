@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\DomainStatus;
+use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
 use App\Enums\Role;
 use App\Filament\App\Pages\Domains;
@@ -34,6 +35,22 @@ it('lets an owner and a manager reach the domains screen', function (Role $role)
 
 it('refuses crew the domains screen', function (): void {
     actingAs(OperatorUser::withRole(Role::Crew))->get('/app/domains')->assertForbidden();
+})->group('fast');
+
+it('shows the operator which pages are published, with no way to change it', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    Tenancy::withoutTenancy(static fn () => Tenant::query()
+        ->whereKey($owner->tenant_id)
+        ->update(['hosted_site_mode' => HostedSiteMode::BookingsOnly]));
+
+    $html = (string) actingAs($owner)->get('/app/domains')->assertSuccessful()->getContent();
+
+    // The platform sets it on /admin (ADR-0029 as amended 2026-09-11); the
+    // operator reads it here and is told who to ask.
+    expect($html)->toContain(e(HostedSiteMode::options()[HostedSiteMode::BookingsOnly->value]))
+        ->and($html)->toContain(e(__('domains.mode.managed')))
+        ->and($html)->not->toContain('saveMode');
 })->group('fast');
 
 /**

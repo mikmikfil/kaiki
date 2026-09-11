@@ -235,7 +235,7 @@ The operator. Not tenant-owned (it *is* the tenant). It was also the Cashier bil
 | `trial_ends_at` | timestamp | yes | null | |
 | `custom_domain` | varchar(190) | yes | null | unique; Caddy on-demand TLS looks this up |
 | `custom_domain_verified_at` | timestamp | yes | null | |
-| `hosted_page_enabled` | boolean | no | `true` | |
+| `hosted_site_mode` | varchar(16) | no | `full` | `bookings_only` \| `full` (ADR-0029, amended 2026-09-11 — `off` retired); set on `/admin` only |
 | `is_sandbox` | boolean | no | `false` | sandbox tenants' bookings are `is_test` and purged nightly |
 | `qr_check_in_enabled` | boolean | **yes** | `true` | **added 2026-09-11** — BKG-20 as amended by the product owner: whether tickets carry a QR and the boarding pages offer a scan box. Off, the passenger list with a tap per name is the whole of boarding, online and offline. Set by the platform on `/admin`, audited like the plan. Nullable so it could be added to an existing table (§6); null reads as on (`Tenant::usesQrCheckIn()`) |
 | `turnaround_buffer_minutes` | smallint unsigned | no | `60` | tenant default; a vessel may override |

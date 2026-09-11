@@ -194,7 +194,7 @@ it('lets the platform switch it off, with a reason, in the operator\'s own trail
     Filament::setCurrentPanel(Filament::getPanel('admin'));
 
     Livewire::actingAs($admin)
-        ->test(EditTenant::class, ['record' => $tenant->getKey()])
+        ->test(EditTenant::class, ['record' => $tenant->getRouteKey()])
         ->assertFormSet(['qr_check_in_enabled' => true])
         ->fillForm(['qr_check_in_enabled' => false])
         ->callAction('save', ['auditReason' => 'Ένα σκάφος, επιβίβαση από τη λίστα.'])

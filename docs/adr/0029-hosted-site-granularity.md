@@ -86,3 +86,34 @@ so that the pricing decision, whenever it is made, has something to gate.
 **Migration, not `ALTER`.** Per `docs/data-model.md` §0 the column changes in the
 M0 migration with a `migrate:fresh`, which is how every other column on `tenants`
 has changed.
+
+## Amendment — 2026-09-11: two states, set by the platform
+
+**Decided by:** the product owner.
+
+**Off is retired.** Compared against WebHotelier and FareHarbor, neither offers
+an operator "no pages": every property or company always has its hosted booking
+pages, and a widget or a "Book now" link on the operator's own site leads into
+them. Kaiki's *off* also did not hold together on its own terms — checkout is on
+Kaiki in every mode, and it asks the guest to accept terms that live on a legal
+page *off* 404'd. Two states remain: **bookings only** and **full**. Operators
+who were *off* move to *bookings only* (migration
+`2026_09_11_000002_retire_hosted_site_mode_off`), the nearest state that still
+publishes no home page under their name.
+
+**The platform chooses, not the operator.** The mode is set on `/admin` on the
+operator's edit screen, beside the plan and QR boarding, and audited the same
+way (SEC-16). The operator's «Η ιστοσελίδα σας» screen shows it read-only and
+says who to ask.
+
+**Consequences.** The coarse question — "is there a site at all?" — is gone:
+`HostedSlugResolver` resolves every operator, and `HostedEmbedToken` no longer
+checks the mode. The one remaining question, `servesHomePage()`, is asked by
+`HostedPageController::index` and nobody else.
+
+**Not decided here: a pop-up checkout.** FareHarbor keeps the guest on the
+operator's site through payment, in an overlay. That is a property of the
+widget, not a site mode — an operator on either mode could want it — and it is
+on the roadmap as its own item. It needs Kaiki's pages to be framable by the
+operator's registered origins (today every page sends `frame-ancestors 'none'`)
+and an answer on whether Viva's payment step can run inside a frame.

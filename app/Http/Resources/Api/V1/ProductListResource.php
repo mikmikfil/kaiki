@@ -102,7 +102,8 @@ class ProductListResource extends JsonResource
     }
 
     /**
-     * The hosted page for this trip, when the operator serves one (HOS-1).
+     * The hosted page for this trip (HOS-1). Every operator serves one — both
+     * site modes publish the trip pages (ADR-0029 as amended 2026-09-11).
      *
      * Built through {@see HostedUrl} rather than `route()`: these routes are
      * registered on `book.{platform-domain}` and `route()` here would resolve
@@ -113,9 +114,7 @@ class ProductListResource extends JsonResource
     {
         $tenant = Tenancy::current();
 
-        return $tenant !== null && HostedUrl::bookingEnabledFor($tenant)
-            ? HostedUrl::product($tenant, $this->resource)
-            : null;
+        return $tenant !== null ? HostedUrl::product($tenant, $this->resource) : null;
     }
 
     /** The first gallery image, which is what a card renders. */

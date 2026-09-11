@@ -6,7 +6,6 @@ use App\Domain\Tenancy\Actions\GenerateApiKey;
 use App\Domain\Tenancy\Actions\RevokeApiKey;
 use App\Enums\ApiKeyType;
 use App\Enums\ApiScope;
-use App\Enums\HostedSiteMode;
 use App\Models\ApiKey;
 use App\Models\Tenant;
 use App\Models\TenantDomain;
@@ -151,13 +150,6 @@ it('does not read a path segment as a slug on any other host', function (): void
     Tenant::factory()->create(['slug' => 'aegean-blue']);
 
     get('http://other.example/aegean-blue')->assertNotFound();
-})->group('fast');
-
-it('404s a hosted page the operator has switched off', function (): void {
-    // HOS-6. Switched off should look switched off, not broken.
-    Tenant::factory()->create(['slug' => 'quiet-operator', 'hosted_site_mode' => HostedSiteMode::Off]);
-
-    get('http://book.kaiki.test/quiet-operator')->assertNotFound();
 })->group('fast');
 
 it('resolves from the panel session', function (): void {

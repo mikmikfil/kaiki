@@ -90,10 +90,15 @@ class PlatformHealth extends Page
         return CarbonInterval::seconds($seconds)->cascade()->forHumans(['parts' => 2]);
     }
 
-    /** The operator's own record in the merchant list, where the platform acts on it. */
-    public function tenantUrl(int $tenantId): string
+    /**
+     * The operator's own record in the merchant list, where the platform acts on it.
+     *
+     * By uuid: `Tenant` routes by it (`HasUuid`), so a link built from the id
+     * is a 404.
+     */
+    public function tenantUrl(string $tenantUuid): string
     {
-        return TenantResource::getUrl('edit', ['record' => $tenantId], panel: 'admin');
+        return TenantResource::getUrl('edit', ['record' => $tenantUuid], panel: 'admin');
     }
 
     /** `App\Jobs\DeliverWebhook` reads better as `DeliverWebhook`. */

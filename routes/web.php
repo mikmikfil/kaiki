@@ -156,9 +156,8 @@ Route::post('/sandbox/checkout/{reference}/fail', [SandboxCheckoutController::cl
 | `/app`, `/admin` and any probe route a test registers — it did, and it broke
 | eight of #7's own tenant-resolution tests the moment it landed. `TEN-4`'s
 | third strategy already reads the first segment as a slug on that host and
-| nowhere else, and `HostedSlugResolver` already declines an operator whose page
-| is switched off, so `tenant` does the resolving and HOS-6's 404 comes for
-| free.
+| nowhere else, and `HostedSlugResolver` already declines an unknown slug, so
+| `tenant` does the resolving and the 404 comes for free.
 |
 | No `guest.throttle` here, unlike the token pages: a hosted page is public and
 | indexable by design (HOS-2), and rate-limiting a crawler is how an operator

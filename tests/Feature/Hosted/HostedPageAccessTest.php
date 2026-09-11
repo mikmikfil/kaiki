@@ -12,19 +12,14 @@ use Tests\Support\Hosted\HostedRequest;
 
 /*
 |--------------------------------------------------------------------------
-| HOS-1, HOS-6, HOS-10: who gets served, who gets a 404, and who gets both
+| HOS-1, HOS-10: who gets served, who gets a 404, and who gets both
 |--------------------------------------------------------------------------
 |
-| Three states a hosted page can be in, and two of them are easy to build
-| wrong in the same direction — by being *helpful*.
+| An unknown slug is a 404. There is no "switched off" operator any more —
+| ADR-0029 as amended 2026-09-11 serves the booking pages in both site modes —
+| and the one state easy to build wrong is the *helpful* one:
 |
-|   switched off   HOS-6 says 404. A friendly "this operator is not available"
-|                  page tells the internet the operator exists, which is
-|                  exactly what somebody who turned their page off did not
-|                  want. It is also indistinguishable from an unknown slug,
-|                  deliberately.
-|
-|   read-only      HOS-10 says the opposite: serve it **in full**, and replace
+|   read-only      HOS-10 says serve it **in full**, and replace
 |                  only the booking with a message. This is the one place in
 |                  the product where a lapsed subscription changes nothing for
 |                  the guest — SAA-7 closes the API's writes and leaves this
@@ -41,27 +36,17 @@ it('serves an active operator page', function (): void {
         ->assertSee(e($tenant->name), escape: false);
 })->group('fast');
 
-it('404s an operator whose page is switched off', function (): void {
-    Tenant::factory()->create(['slug' => 'switched-off', 'hosted_site_mode' => HostedSiteMode::Off]);
-
-    // Not a redirect and not an empty shell. HOS-6, read literally.
-    get(HostedRequest::url('/switched-off'))->assertNotFound();
-})->group('fast');
-
 it('404s a slug that belongs to nobody', function (): void {
     get(HostedRequest::url('/no-such-operator'))->assertNotFound();
 })->group('fast');
 
-it('answers identically for a disabled page and an unknown slug', function (): void {
-    Tenant::factory()->create(['slug' => 'switched-off', 'hosted_site_mode' => HostedSiteMode::Off]);
+it('serves a bookings-only operator their trip pages and no home page', function (): void {
+    $tenant = Tenant::factory()->create(['slug' => 'own-website', 'hosted_site_mode' => HostedSiteMode::BookingsOnly]);
 
-    $disabled = get(HostedRequest::url('/switched-off'));
-    $unknown = get(HostedRequest::url('/no-such-operator'));
-
-    // The two must be indistinguishable from outside, or the 404 leaks the one
-    // fact it exists to hide: that this operator has an account.
-    expect($disabled->getStatusCode())->toBe($unknown->getStatusCode())
-        ->and($disabled->getContent())->toBe($unknown->getContent());
+    // The operator with a website of their own: no second home page under
+    // their name, but the legal page their checkout's terms point to is there.
+    get(HostedRequest::url('/own-website'))->assertNotFound();
+    get(HostedRequest::url('/own-website/legal'))->assertOk()->assertSee(e($tenant->name), escape: false);
 })->group('fast');
 
 it('serves a read-only operator in full, with the booking replaced', function (): void {

@@ -113,7 +113,7 @@ it('counts open failures per operator, each as itself', function (): void {
         ->assertSee('Aegean Health Test')
         ->assertSee('Ionian Health Test')
         // Each name leads to the operator's own record in the merchant list.
-        ->assertSee(TenantResource::getUrl('edit', ['record' => $aegean->getKey()], panel: 'admin'), escape: false);
+        ->assertSee(TenantResource::getUrl('edit', ['record' => $aegean->getRouteKey()], panel: 'admin'), escape: false);
 })->group('fast');
 
 it('reports the queue depth, the oldest wait and the failed jobs by class', function (): void {

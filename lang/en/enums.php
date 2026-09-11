@@ -47,10 +47,6 @@ return [
     ],
 
     'hosted_site_mode' => [
-        'off' => [
-            'label' => 'No pages',
-            'help' => 'We publish no pages for you. You use the booking form on your own website only.',
-        ],
         'bookings_only' => [
             'label' => 'Booking pages only',
             'help' => 'A page per trip, the search page and the legal pages — with no home page. For an operator who already has a website and wants only the part that takes bookings.',

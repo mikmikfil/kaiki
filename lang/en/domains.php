@@ -20,10 +20,7 @@ return [
 
     'mode' => [
         'heading' => 'What we publish',
-        'help' => 'Takes effect at once. Bookings already made are never affected — a guest still reaches their own booking page exactly as before.',
-        'label' => 'Pages we publish',
-        'saved' => 'Saved.',
-        'save' => 'Save',
+        'managed' => 'We agree this with you when your account is opened. To change it, write to us.',
     ],
 
     'cname' => [
