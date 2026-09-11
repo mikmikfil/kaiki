@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources;
 
+use App\Enums\ImportRowStatus;
 use App\Enums\ImportRowType;
 use App\Enums\ImportSource;
 use App\Enums\ImportStatus;
@@ -11,6 +12,7 @@ use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\ImportJobResource\Pages;
 use App\Models\ImportJob;
 use App\Policies\ImportJobPolicy;
+use App\Support\Tenancy;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\Action;
@@ -74,7 +76,10 @@ class ImportJobResource extends Resource
             ->columns([
                 TextColumn::make('created_at')
                     ->label(__('imports.table.created'))
-                    ->dateTime(),
+                    // Day first, in the operator's own clock. The default was
+                    // «Σεπ 11, 2026 12:27:51» — English order, UTC, seconds.
+                    ->dateTime('d/m/Y H:i')
+                    ->timezone(static fn (): ?string => Tenancy::current()?->timezone),
 
                 TextColumn::make('source')
                     ->label(__('imports.table.source'))
@@ -108,12 +113,23 @@ class ImportJobResource extends Resource
             ->emptyStateDescription(__('imports.empty.body'));
     }
 
-    /** "3 trips, 7 bookings" — what the files held, whatever became of it. */
+    /**
+     * "Imported 3 trips, 4 bookings" once it has run; "to import: …" before.
+     *
+     * It used to add up every record in the files, whatever became of it — the
+     * hat from the shop and the cancelled bookings included — so the list said
+     * "4 trips, 7 bookings" for an import that brought in 3 and 4. An operator
+     * checking the result against their WordPress would count a discrepancy
+     * that was not there.
+     */
     public static function summary(ImportJob $record): string
     {
-        $count = static fn (ImportRowType $type): int => array_sum((array) ($record->stats[$type->value] ?? []));
+        $ran = in_array($record->status, [ImportStatus::Running, ImportStatus::Completed, ImportStatus::Failed], true);
+        $status = $ran ? ImportRowStatus::Imported : ImportRowStatus::Mapped;
 
-        return (string) __('imports.table.summary_line', [
+        $count = static fn (ImportRowType $type): int => (int) (((array) ($record->stats[$type->value] ?? []))[$status->value] ?? 0);
+
+        return (string) __($ran ? 'imports.table.summary_imported' : 'imports.table.summary_planned', [
             'products' => $count(ImportRowType::Product),
             'bookings' => $count(ImportRowType::Booking),
         ]);

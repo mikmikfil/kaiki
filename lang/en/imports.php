@@ -51,7 +51,8 @@ return [
         'status' => 'Status',
         'summary' => 'Contents',
         'by' => 'By',
-        'summary_line' => ':products trips, :bookings bookings',
+        'summary_imported' => 'Imported :products trips, :bookings bookings',
+        'summary_planned' => 'To import: :products trips, :bookings bookings',
     ],
 
     'empty' => [

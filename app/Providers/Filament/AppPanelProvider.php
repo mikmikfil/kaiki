@@ -17,6 +17,7 @@ use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SetLocale;
 use App\Policies\TenantOwnedPolicy;
 use App\Support\Tenancy;
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Http\Middleware\Authenticate;
@@ -128,6 +129,12 @@ class AppPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Blue,
             ])
+            // No font from a third-party host. Filament's default loads Inter
+            // from fonts.bunny.net, which the panel's own CSP (SEC-10) blocks —
+            // so it never loaded, and every page logged the refusal. Local
+            // provider with no URL: the stack falls back to the system font the
+            // panel was already showing, and no operator's IP leaves for a font.
+            ->font('Inter', provider: LocalFontProvider::class)
             ->brandName(config('app.name'))
             ->discoverResources(in: app_path('Filament/App/Resources'), for: 'App\\Filament\\App\\Resources')
             ->discoverPages(in: app_path('Filament/App/Pages'), for: 'App\\Filament\\App\\Pages')

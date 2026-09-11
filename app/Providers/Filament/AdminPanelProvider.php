@@ -7,6 +7,7 @@ namespace App\Providers\Filament;
 use App\Filament\Avatars\InitialsAvatarProvider;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\SetLocale;
+use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -68,6 +69,8 @@ class AdminPanelProvider extends PanelProvider
             ->colors([
                 'primary' => Color::Rose,
             ])
+            // As `/app`: no font from fonts.bunny.net, which SEC-10's CSP blocks.
+            ->font('Inter', provider: LocalFontProvider::class)
             ->brandName(fn (): string => __('panel.admin.brand'))
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')

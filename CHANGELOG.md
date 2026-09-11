@@ -4,6 +4,12 @@
 
 > Entries for #118 … #122 — the dashboard, the vessel calendar, recorded cash, the weather-cancellation workflow and the manifests — are not written here. They are on `main` with their reasoning in each commit message; inventing changelog prose for them after the fact would be reconstruction rather than a record, which is the same rule this project applies in `docs/BUILD-LOG.md`.
 
+### Μικρές διορθώσεις σε ό,τι φαίνεται
+
+- Τα κουμπιά και οι τίτλοι γράφουν πια σωστά ελληνικά σε κάθε οθόνη: «Προσθήκη», «Νέα εγγραφή: Ανακοίνωση», «Επεξεργασία: Σκάφος», «Αποθήκευση και νέα εγγραφή» — αντί για «Προσθήκη Ανακοίνωση», «Δημιουργία Έμπορος» και «Δημιούργησε & Δημιούργησε ακόμα ένα».
+- Στη λίστα εισαγωγών η ημερομηνία είναι ελληνική και στη δική σας ώρα, και το σύνολο λέει τι **εισήχθη** (ή τι θα εισαχθεί), όχι πόσες γραμμές είχαν τα αρχεία.
+- Ο πίνακας δεν ζητά πια γραμματοσειρά από εξωτερική υπηρεσία.
+
 ### Εισαγωγή από WooCommerce και YITH Booking
 
 Αν πουλούσατε εκδρομές με WordPress, τις φέρνετε στο Kaiki με δύο αρχεία: την εξαγωγή του WordPress και τις κρατήσεις του YITH. **Πρώτα βλέπετε τι θα γίνει** — ποια εκδρομή θα δημιουργηθεί, ποια θα συνδεθεί με μια που ήδη έχετε, ποια κράτηση παραλείπεται και γιατί. Τίποτα δεν γράφεται πριν πατήσετε «Εισαγωγή».

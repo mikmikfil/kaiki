@@ -92,8 +92,10 @@
                                 <tr>
                                     <td class="ka-nowrap">{{ $job['failed_at']->diffForHumans() }}</td>
                                     <td class="ka-health-mono">{{ $this->shortClass($job['class']) }}</td>
-                                    <td>{{ $job['error'] }}</td>
-                                    <td class="ka-health-mono ka-nowrap">{{ $job['uuid'] }}</td>
+                                    <td class="ka-health-error">{{ $job['error'] }}</td>
+                                    {{-- Wraps rather than being clipped: the whole uuid
+                                         is what `queue:retry` needs, so a cut one is useless. --}}
+                                    <td class="ka-health-mono ka-health-uuid">{{ $job['uuid'] }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -165,6 +167,13 @@
         .ka-health-sub:not(:first-child) { margin-top: 1.25rem; }
 
         .ka-health-scroll { overflow-x: auto; }
+
+        /* An error line carries a Windows or Linux path with no spaces, which
+           would otherwise hold the table wider than its card and push the
+           uuid column out of sight. Both break anywhere; the uuid keeps enough
+           width to read in two lines rather than five. */
+        .ka-health-error { overflow-wrap: anywhere; }
+        .ka-health-uuid { overflow-wrap: anywhere; min-width: 19ch; }
 
         .ka-health-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
         .ka-health-table th {

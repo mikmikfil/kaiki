@@ -46,6 +46,20 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## Five small things the documentation pass photographed
+
+The second docs pass of 2026-09-11 walked every new screen with a camera and wrote down what was wrong. None of it was a defect a test would catch; all of it was visible to an operator.
+
+- **«Προσθήκη Ανακοίνωση», «Δημιουργία Έμπορος».** Filament's Greek glues the model label on uninflected — `Προσθήκη :label`, `Δημιουργία :label`, `Επεξεργασία :label` — and a Greek noun after those wants the genitive, which no single template can produce for every label. The first overrides of the package's language files: `lang/vendor/filament-actions/{el,en}/create.php` and `lang/vendor/filament-panels/{el,en}/resources/pages/{create,edit,view}-record.php`. The button says «Προσθήκη» alone (the page names the thing), and titles put the label after a colon — «Νέα εγγραφή: Ανακοίνωση», «Επεξεργασία: Σκάφος» — where the nominative is right. The create page's own buttons said «Δημιούργησε & Δημιούργησε ακόμα ένα» and its breadcrumb «Δημιούργησε»; they are «Αποθήκευση», «Αποθήκευση και νέα εγγραφή» and «Νέα εγγραφή» now, in the page and in the modal alike. Laravel merges vendor overrides key by key, so only the changed keys are there, and the English files carry Filament's own strings so both locales override the same keys. Every resource in both panels is fixed at once.
+- **The health page clipped the failed job's uuid** at 1280 px — the one value `queue:retry` needs whole. It wraps now.
+- **The importer list's date read «Σεπ 11, 2026 12:27:51»** — English order, UTC, seconds. `d/m/Y H:i` in the operator's timezone, as the invoices list already does.
+- **«4 εκδρομές, 7 κρατήσεις» for an import that brought in 3 and 4.** The summary added up every record in the files, the shop's hat and the cancelled bookings included. It now says «Εισήχθησαν …» with the imported rows once the import has run, and «Θα εισαχθούν …» with the mapped ones before.
+- **Both panels asked fonts.bunny.net for Inter on every page, and their own CSP refused it** (SEC-10: `font-src 'self'`), so the console logged a violation per page and the font never loaded. `->font('Inter', provider: LocalFontProvider::class)` with no URL: nothing is requested, the stack falls back to the system font the panels were already showing, and no operator's IP leaves for a typeface — the same reasoning that took the avatars off ui-avatars.com.
+
+Verified: Panel, Import and I18n 546 passed; PHPStan clean; the overrides resolve («Προσθήκη | Νέα εγγραφή: Ανακοίνωση | Επεξεργασία: Σκάφος», English unchanged); the screens looked at again with the console watched. The full suite's result is in the commit message.
+
+---
+
 ## M7 — The WooCommerce / YITH importer, from two files (SAA-13 … SAA-15)
 
 An operator uploads the WordPress export (WXR) and YITH's bookings CSV; **nothing is written until they have seen what will happen.** The dry run records every source record in `import_job_rows` and proposes a mapping (data-model §3.7): trips whose title matches an existing Kaiki trip are **linked**, shop products that are not YITH booking products are **skipped**, person types map to adult/child/infant from their names, and only upcoming bookings in "still on" statuses are kept. Every skip carries its reason on the row, stored as a translation key so it reads in the viewer's language.

@@ -54,7 +54,11 @@ return [
         'status' => 'Κατάσταση',
         'summary' => 'Περιεχόμενο',
         'by' => 'Από',
-        'summary_line' => ':products εκδρομές, :bookings κρατήσεις',
+        // What actually became Kaiki rows once an import has run, and what will
+        // before it has — never the raw count of records in the files, which
+        // included the skipped ones and read larger than what was imported.
+        'summary_imported' => 'Εισήχθησαν :products εκδρομές, :bookings κρατήσεις',
+        'summary_planned' => 'Θα εισαχθούν :products εκδρομές, :bookings κρατήσεις',
     ],
 
     'empty' => [
