@@ -54,7 +54,11 @@ class DemoTenantSeeder extends Seeder
                     'whatsapp' => 'https://wa.me/302104123456',
                 ],
             ],
-            'plan' => Plan::Fleet,
+            // Pro since plan limits became real (SAA-8, 2026-09-11): the demo
+            // fleet is ten boats, which is over Fleet's five, and the demo is
+            // also where a custom domain and webhooks are shown. Ionian Sunset
+            // below stays on Solo with ten boats — the demo of a limit reached.
+            'plan' => Plan::Pro,
             'status' => TenantStatus::Active,
             'trial_ends_at' => null,
         ]);

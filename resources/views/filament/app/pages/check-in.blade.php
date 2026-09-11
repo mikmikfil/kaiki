@@ -112,7 +112,10 @@
                     <div class="rounded-lg border border-gray-200 p-3">
                         <div class="flex items-baseline justify-between gap-2">
                             <span class="font-medium">{{ $booking->product?->title }}</span>
-                            <span class="text-sm text-gray-500">{{ $booking->local_time }}</span>
+                            {{-- Hours and minutes. The column is a `time` and
+                                 printed raw it read «08:30:00» — seconds nobody
+                                 on a quay has ever needed. --}}
+                            <span class="text-sm text-gray-500">{{ substr((string) $booking->local_time, 0, 5) }}</span>
                         </div>
                         <p class="text-xs text-gray-500">
                             {{ $booking->reference }} ·

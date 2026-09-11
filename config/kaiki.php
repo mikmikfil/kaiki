@@ -1006,4 +1006,14 @@ return [
 
     ],
 
+    'plans' => [
+        /*
+         | Where an operator's "upgrade" link goes when a plan limit stops them
+         | (SAA-8). There is no billing screen until the Viva subscriptions are
+         | built, so this is a contact page or a `mailto:`; empty falls back to
+         | `mailto:` the platform's own from-address. See `PlanLimits`.
+         */
+        'upgrade_url' => env('KAIKI_UPGRADE_URL'),
+    ],
+
 ];

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources\WebhookEndpointResource\Pages;
 
+use App\Domain\Tenancy\Support\PlanLimits;
 use App\Filament\App\Resources\WebhookEndpointResource;
 use App\Models\WebhookEndpoint;
+use App\Support\Tenancy;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Contracts\View\View;
@@ -39,11 +41,35 @@ class ListWebhookEndpoints extends ListRecords
     #[Locked]
     public ?string $revealedName = null;
 
+    /**
+     * Webhooks are a Pro feature (SAA-3). On any other plan the page still
+     * lists what the operator already has — those keep sending — and "new"
+     * becomes the way to a bigger plan, with the reason in the subheading.
+     */
+    public function getSubheading(): ?string
+    {
+        return self::allowed() ? null : (string) __('plans.webhooks.body');
+    }
+
+    private static function allowed(): bool
+    {
+        $tenant = Tenancy::current();
+
+        return $tenant === null || PlanLimits::canUseWebhooks($tenant);
+    }
+
     /** @return array<int, Action> */
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('upgrade')
+                ->label(__('plans.upgrade'))
+                ->icon('heroicon-o-arrow-up-circle')
+                ->url(PlanLimits::upgradeUrl(), shouldOpenInNewTab: true)
+                ->visible(! self::allowed()),
+
             Action::make('create')
+                ->visible(self::allowed())
                 ->label(__('webhooks.actions.create.label'))
                 ->icon('heroicon-o-plus')
                 ->modalHeading(__('webhooks.actions.create.heading'))
@@ -52,6 +78,12 @@ class ListWebhookEndpoints extends ListRecords
                 ->form(WebhookEndpointResource::formSchema())
                 ->authorize(fn (): bool => Auth::user()?->can('create', WebhookEndpoint::class) ?? false)
                 ->action(function (array $data): void {
+                    // The button is hidden off Pro; this is the same rule for a
+                    // request that did not come from the button.
+                    if (! self::allowed()) {
+                        return;
+                    }
+
                     $endpoint = WebhookEndpoint::query()->create([
                         'name' => (string) $data['name'],
                         'url' => (string) $data['url'],

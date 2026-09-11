@@ -6,6 +6,7 @@ namespace App\Filament\App\Pages;
 
 use App\Domain\Tenancy\Actions\CheckDomains;
 use App\Domain\Tenancy\Actions\VerifyDomain;
+use App\Domain\Tenancy\Support\PlanLimits;
 use App\Enums\DomainStatus;
 use App\Enums\HostedSiteMode;
 use App\Models\BrandProfile;
@@ -193,6 +194,25 @@ class Domains extends Page implements HasForms
         return TenantDomain::query()->orderBy('id')->get();
     }
 
+    /**
+     * Whether this operator's plan includes their own domain (SAA-3, SAA-8).
+     *
+     * Asked before a domain is *added* and nowhere else. A verified domain on
+     * an operator who has since moved down a plan keeps serving: taking a
+     * business's website off the air is not what a billing change should do.
+     */
+    public function allowsCustomDomain(): bool
+    {
+        $tenant = Tenancy::current();
+
+        return $tenant !== null && PlanLimits::canUseCustomDomain($tenant);
+    }
+
+    public function upgradeUrl(): string
+    {
+        return PlanLimits::upgradeUrl();
+    }
+
     /** What the operator types into their registrar. */
     public function target(): string
     {
@@ -203,6 +223,18 @@ class Domains extends Page implements HasForms
     {
         abort_unless(static::canAccess(), 403);
         abort_unless(Gate::allows('update', BrandProfile::query()->firstOrFail()), 403);
+
+        // The screen shows no form on a plan without domains; this is the same
+        // rule for a request that did not come from the screen.
+        if (! $this->allowsCustomDomain()) {
+            Notification::make()
+                ->title(__('plans.pro_only'))
+                ->body(__('plans.domains.body'))
+                ->warning()
+                ->send();
+
+            return;
+        }
 
         $state = (array) $this->getForm('form')?->getState();
         $hostname = TenantDomain::normalise((string) ($state['hostname'] ?? ''));

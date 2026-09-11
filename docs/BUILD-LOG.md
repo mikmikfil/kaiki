@@ -38,11 +38,51 @@ Each entry records the **verification actually run** and its **real output** —
 | ~~**ADR-0025** — the operator audit log~~ | ~~product owner~~ | ~~Decided 2026-09-04~~ — **built by #53.** |
 | **Advisory `from_price_cents` per age band** (`docs/api.md` §9 item 6) | product owner | M3 — the widget's list mount |
 | ~~**A billing provider for M7**, after Cashier came out with Stripe~~ | ~~product owner~~ | ~~M7~~ — **Decided 2026-09-08: Viva Wallet, the same gateway operators use for guests (ADR-0028 as amended).** |
-| **Whether the full hosted site is a paid tier**, and what each plan gets | product owner | before `Plan`'s three predicates get their first caller — ADR-0029 settles the *shape* of the switch, not the price |
+| **Whether the full hosted site is a paid tier**, and what each plan gets | product owner | before the hosted site is sold as a tier — ADR-0029 settles the *shape* of the switch, not the price. *(Update 2026-09-11: `Plan`'s three predicates now have their caller — `PlanLimits` enforces vessels, domains and webhooks at creation (SAA-8). The numbers are still M0's and still yours to change.)* |
 | **Open-Meteo's commercial subscription**, or another provider — the free endpoint is non-commercial only (ADR-0027) | product owner | before a paying operator sees «Καιρός» |
 | **OpenStreetMap's tile usage policy**, or a paid tile provider — the Foundation's tiles are a best-effort free service and the policy asks heavy users to go elsewhere. The meeting-point map moved onto them because Google's keyless embed stopped working (see below) | product owner | before the hosted pages carry real traffic |
 | ~~**No screen for adding staff.**~~ | ~~product owner~~ | ~~before the first operator hires anybody~~ — **built 2026-09-08**, along with the password reset both panels also lacked. |
 | **A date filter on the departures list.** #129 found it has none; the default ascending sort happens to put today first with the current seed, so an operator tapping the "sailing today and tomorrow" figure lands on the whole table | product owner | a screen change, not a bug — decide whether the figure should filter or the list should default to today |
+
+---
+
+## M7 — Plan limits, enforced at last (SAA-8)
+
+`app/Enums/Plan.php` has carried three rules since M0 — `vesselLimit()`, `allowsCustomDomain()`, `allowsWebhooks()` — and **nothing read any of them**. A `Solo` operator could build ten boats, point a domain at the platform and register webhooks. A price list that is not enforced is a pricing page that is not true, and SAA-8 was the first M7 item that waited on no decision.
+
+### One place asks, and it asks at the point of creation
+
+`App\Domain\Tenancy\Support\PlanLimits` answers the three questions; the vessel form, the domain screen and the webhook screen all come to it rather than reading the enum their own way. **SAA-8's other half — "never silently truncated" — is why it is asked only when something is created.** An operator moved down a plan keeps every boat, domain and webhook: nothing is deleted, hidden or stopped, and a verified domain keeps serving, because a billing change must not take a business's website off the air.
+
+**Not in a model observer.** The demo seeders, the importer and every factory create vessels directly; a limit in the model would fail each of them on a rule that is about what a person may do in the panel.
+
+### What each screen does
+
+- **Vessels.** The list's subheading says «Έχετε 3 από 5 σκάφη του πακέτου Fleet»; at the limit the "new" button becomes «Αναβάθμιση πακέτου» — changed rather than removed, because an operator who looks for "new" and finds nothing assumes the product is broken. `CreateVessel::beforeCreate()` refuses with a persistent notification carrying the reason and the upgrade link, **after** validation, so a form error is still reported first and somebody who reached the form by URL is told why on the button.
+- **Domains.** Off Pro, the CNAME instructions and the form give way to «Διαθέσιμο στο πακέτο Pro» and the upgrade button; domains already there are still listed. `add()` refuses too, for a request that did not come from the screen.
+- **Webhooks.** Off Pro, "new" becomes the upgrade link and the subheading says why; existing endpoints are listed and keep sending. The create action refuses server-side as well.
+
+### Where "upgrade" goes
+
+There is no billing screen until the Viva subscriptions exist, so `KAIKI_UPGRADE_URL` (a contact page or `mailto:`) with a fallback to `mailto:` the platform's from-address. When billing lands it becomes that screen's URL and nothing that links to it moves.
+
+### The demo operator moved to Pro
+
+Aegean Blue has ten boats — over Fleet's five — and is where the domain and webhook screens are shown, so `DemoTenantSeeder` now makes it Pro (and the local database was moved the same way). Ionian Sunset stays on Solo with ten boats: the demo of a limit reached.
+
+### Tests changed, not deleted
+
+Three `DomainsPageTest` cases ("adds a hostname as pending", "refuses one another operator registered", "refuses something that is not a hostname") ran on the factory's Trial plan. Two of them assert that *nothing was created* — and would have kept passing for the wrong reason, the plan refusing before the hostname was ever looked at. They now run on a Pro operator, so they test what they say.
+
+### Verification
+
+- `tests/Feature/Panel/PlanLimitsTest.php` — **8 tests**: Solo keeps one boat and is refused a second with the reason; Fleet adds a fifth and is refused a sixth (SAA-8's own example); Pro has no limit; a Solo operator with three boats keeps and sees all three with "upgrade" in place of "new"; the usage line; domains Pro-only while an existing verified domain survives; webhooks Pro-only; the upgrade URL with and without configuration.
+- Panel, Operations, Webhooks, Tenancy and I18n together: **1044 passed**. PHPStan on every changed file: no errors. Pint: passed. The full suite's result is in the commit message.
+
+### Still open, and not mine
+
+- **The numbers** are the code's since M0 — Trial and Solo one boat, Fleet five, Pro unlimited plus domain and webhooks. Trial having one boat means an operator evaluating with two cannot; a product-owner call, and one line in `Plan.php`.
+- **ADR-0029's three site states were already built** — `HostedSiteMode` and the operator's control on «Η ιστοσελίδα σας» landed with the booking hand-off on 2026-09-09. What ADR-0029 left open is whether the full site is a paid tier, which is `PlanLimits` plus one predicate the day it is decided.
 
 ---
 

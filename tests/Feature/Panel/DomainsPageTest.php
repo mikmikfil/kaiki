@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 use App\Enums\DomainStatus;
+use App\Enums\Plan;
 use App\Enums\Role;
 use App\Filament\App\Pages\Domains;
 use App\Models\Tenant;
 use App\Models\TenantDomain;
+use App\Models\User;
 use App\Support\Tenancy;
 use Livewire\Livewire;
 
@@ -34,8 +36,19 @@ it('refuses crew the domains screen', function (): void {
     actingAs(OperatorUser::withRole(Role::Crew))->get('/app/domains')->assertForbidden();
 })->group('fast');
 
+/**
+ * An owner on Pro — the only plan with a custom domain (SAA-3). The tests below
+ * are about what the screen does with a hostname, and on a smaller plan the
+ * screen refuses before looking at one (`PlanLimitsTest` covers that), which
+ * would let a "nothing was created" assertion pass for the wrong reason.
+ */
+function domainsProOwner(): User
+{
+    return OperatorUser::withRole(Role::Owner, Tenant::factory()->create(['plan' => Plan::Pro]));
+}
+
 it('adds a hostname as pending, never as verified', function (): void {
-    $owner = OperatorUser::withRole(Role::Owner);
+    $owner = domainsProOwner();
 
     tenancy()->initialize(Tenant::query()->findOrFail($owner->tenant_id));
 
@@ -53,7 +66,7 @@ it('adds a hostname as pending, never as verified', function (): void {
 })->group('fast');
 
 it('refuses a hostname another operator already registered', function (): void {
-    $owner = OperatorUser::withRole(Role::Owner);
+    $owner = domainsProOwner();
     $other = Tenant::factory()->create();
 
     Tenancy::forTenant($other, static fn () => TenantDomain::query()->create([
@@ -77,7 +90,7 @@ it('refuses a hostname another operator already registered', function (): void {
 })->group('fast');
 
 it('refuses something that is not a hostname, and the platform own address', function (): void {
-    $owner = OperatorUser::withRole(Role::Owner);
+    $owner = domainsProOwner();
 
     tenancy()->initialize(Tenant::query()->findOrFail($owner->tenant_id));
 
