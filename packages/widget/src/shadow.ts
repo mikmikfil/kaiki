@@ -312,6 +312,10 @@ const BASE_STYLES = `
 
 .kaiki-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: 1rem; }
 .kaiki-button-ghost { background: transparent; color: var(--kaiki-primary); }
+/* Its own hover. The shared .kaiki-button:hover darkens the fill to the
+   primary colour, which on a button whose text is that same primary colour put
+   «Πίσω» dark on dark. A tint keeps the text readable in any operator's brand. */
+.kaiki-button-ghost:hover { background: color-mix(in srgb, var(--kaiki-primary) 8%, var(--kaiki-background)); }
 .kaiki-button:disabled { opacity: .5; cursor: not-allowed; }
 
 /* --- the list, calendar and enquiry mounts (issue 108) ------------- */
