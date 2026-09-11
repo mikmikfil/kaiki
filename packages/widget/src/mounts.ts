@@ -39,6 +39,8 @@ export interface MountProps {
   readonly link?: 'trip' | null;
   /** The embed's `data-date` — only the booking walk reads it. */
   readonly date?: string | null;
+  /** False for `data-vessel="hide"` — only the booking walk's four lines read it. */
+  readonly showVessel?: boolean;
 }
 
 export type MountComponent = ComponentType<MountProps>;

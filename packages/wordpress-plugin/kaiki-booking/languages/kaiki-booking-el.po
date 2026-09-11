@@ -165,9 +165,6 @@ msgstr "Ρυθμίσεις → Kaiki Booking"
 msgid "This booking form needs to know which trip it is for. Use %s, with the trip id from your Kaiki panel."
 msgstr "Αυτή η φόρμα κράτησης πρέπει να ξέρει σε ποια εκδρομή αναφέρεται. Χρησιμοποιήστε %s, με τον κωδικό της εκδρομής από τον πίνακα του Kaiki."
 
-msgid "This calendar needs to know which trip it is for. Use %s, with the trip id from your Kaiki panel."
-msgstr "Αυτό το ημερολόγιο πρέπει να ξέρει σε ποια εκδρομή αναφέρεται. Χρησιμοποιήστε %s, με τον κωδικό της εκδρομής από τον πίνακα του Kaiki."
-
 msgid "Category"
 msgstr "Κατηγορία"
 
@@ -176,9 +173,6 @@ msgstr "Από τον πίνακα του Kaiki, στην καρτέλα της 
 
 msgid "Kaiki"
 msgstr "Kaiki"
-
-msgid "Kaiki availability calendar"
-msgstr "Ημερολόγιο διαθεσιμότητας Kaiki"
 
 msgid "Kaiki booking form"
 msgstr "Φόρμα κράτησης Kaiki"
@@ -197,9 +191,6 @@ msgstr "Κωδικός εκδρομής"
 
 msgid "A booking form for one trip: date, party, details, pay."
 msgstr "Φόρμα κράτησης για μία εκδρομή: ημερομηνία, άτομα, στοιχεία, πληρωμή."
-
-msgid "A month of availability for one trip."
-msgstr "Ένας μήνας διαθεσιμότητας για μία εκδρομή."
 
 msgid "An enquiry form, for trips with no published price."
 msgstr "Φόρμα ερωτήματος, για εκδρομές χωρίς δημοσιευμένη τιμή."
@@ -297,8 +288,8 @@ msgstr "Η σύντομη περίληψη, η κύρια εικόνα και η
 msgid "Appearance"
 msgstr "Εμφάνιση"
 
-msgid "How the booking form, the calendar and the trip list look on this site. «As in Kaiki» uses the colours and font from your Kaiki panel. Choose your own to match this site instead; anything you leave empty stays as in Kaiki."
-msgstr "Πώς φαίνονται σε αυτόν τον ιστότοπο η φόρμα κράτησης, το ημερολόγιο και η λίστα εκδρομών. Το «Όπως στο Kaiki» χρησιμοποιεί τα χρώματα και τη γραμματοσειρά από τον πίνακα του Kaiki. Διαλέξτε δικά σας για να ταιριάζουν με τον ιστότοπο· ό,τι αφήσετε κενό μένει όπως στο Kaiki."
+msgid "How the booking form and the trip list look on this site. «As in Kaiki» uses the colours and font from your Kaiki panel. Choose your own to match this site instead; anything you leave empty stays as in Kaiki."
+msgstr "Πώς φαίνονται σε αυτόν τον ιστότοπο η φόρμα κράτησης και η λίστα εκδρομών. Το «Όπως στο Kaiki» χρησιμοποιεί τα χρώματα και τη γραμματοσειρά από τον πίνακα του Kaiki. Διαλέξτε δικά σας για να ταιριάζουν με τον ιστότοπο· ό,τι αφήσετε κενό μένει όπως στο Kaiki."
 
 msgid "Style"
 msgstr "Στυλ"
@@ -360,8 +351,8 @@ msgstr "Κράτηση τώρα"
 msgid "A sketch, not the real form. Anything you leave empty is shown here in Kaiki's default colours, and your theme's font only appears on your site itself."
 msgstr "Πρόχειρο σχέδιο, όχι η πραγματική φόρμα. Ό,τι αφήσετε κενό εμφανίζεται εδώ με τα προεπιλεγμένα χρώματα του Kaiki, και η γραμματοσειρά του θέματός σας φαίνεται μόνο στον ίδιο τον ιστότοπο."
 
-msgid "Days lead to the booking"
-msgstr "Οι μέρες οδηγούν στην κράτηση"
+msgid "Show the boat's name"
+msgstr "Εμφάνιση του ονόματος του σκάφους"
 
-msgid "A day with room opens the trip on Kaiki, with that day already chosen."
-msgstr "Μια μέρα με διαθέσιμες θέσεις ανοίγει την εκδρομή στο Kaiki, με αυτή τη μέρα ήδη επιλεγμένη."
+msgid "Hide it if the same boat does every trip, or if you would rather not name it."
+msgstr "Κρύψτε το αν όλες οι εκδρομές γίνονται με το ίδιο σκάφος ή αν προτιμάτε να μην το αναφέρετε."

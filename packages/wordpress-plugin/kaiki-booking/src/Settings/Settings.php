@@ -44,7 +44,7 @@ final class Settings {
 	 * an import, a migration, somebody's `update_option` — is still a colour or
 	 * nothing by the time it is written into a page.
 	 *
-	 * @return array{publishable_key: string, api_base: string, locale_mode: string, cache_ttl: int, seo_pages: bool, trip_base: string, appearance: 'kaiki'|'custom', primary: string, text: string, background: string, font_mode: 'theme'|'kaiki'|'custom', font_name: string, radius: int|null}
+	 * @return array{publishable_key: string, api_base: string, locale_mode: string, cache_ttl: int, seo_pages: bool, trip_base: string, appearance: 'kaiki'|'custom', primary: string, text: string, background: string, font_mode: 'theme'|'kaiki'|'custom', font_name: string, radius: int|null, show_vessel: bool}
 	 */
 	public static function all(): array {
 		$stored = get_option( self::OPTION, array() );
@@ -74,6 +74,11 @@ final class Settings {
 			'font_mode'       => self::font_mode( $stored['font_mode'] ?? null ),
 			'font_name'       => self::font_name( $stored['font_name'] ?? null ),
 			'radius'          => self::radius( $stored['radius'] ?? null ),
+			// On unless it was switched off. Absent reads as on rather than
+			// through `! empty()`, because every option saved before this
+			// setting existed has no such key — and none of those operators
+			// chose to hide their boat.
+			'show_vessel'     => ! array_key_exists( 'show_vessel', $stored ) || ! empty( $stored['show_vessel'] ),
 		);
 	}
 

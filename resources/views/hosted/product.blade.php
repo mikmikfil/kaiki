@@ -519,7 +519,7 @@
                             @if ($initialDate ?? null)
                                 data-date="{{ $initialDate }}"
                             @endif
-                            {{-- «Με την τεχνολογία του Kaiki» is already in this
+                            {{-- «Powered by Kaiki» is already in this
                                  page's footer. The line inside the widget is
                                  there to say whose booking form this is on
                                  somebody else's website; on ours it is the same

@@ -17,12 +17,6 @@ msgstr ""
 msgid "A booking form for one trip: date, party, details, pay."
 msgstr ""
 
-msgid "A day with room opens the trip on Kaiki, with that day already chosen."
-msgstr ""
-
-msgid "A month of availability for one trip."
-msgstr ""
-
 msgid "A sketch, not the real form. Anything you leave empty is shown here in Kaiki's default colours, and your theme's font only appears on your site itself."
 msgstr ""
 
@@ -95,9 +89,6 @@ msgstr ""
 msgid "Create a page on this site for each trip"
 msgstr ""
 
-msgid "Days lead to the booking"
-msgstr ""
-
 msgid "Departs from"
 msgstr ""
 
@@ -128,10 +119,13 @@ msgstr ""
 msgid "From your Kaiki panel, under API keys. This one is safe on a public page: it can read your catalogue and start a booking, and nothing else."
 msgstr ""
 
+msgid "Hide it if the same boat does every trip, or if you would rather not name it."
+msgstr ""
+
 msgid "How long your trips are remembered on this site. Changes you make in Kaiki appear immediately anyway — Kaiki tells this site when something changed."
 msgstr ""
 
-msgid "How the booking form, the calendar and the trip list look on this site. «As in Kaiki» uses the colours and font from your Kaiki panel. Choose your own to match this site instead; anything you leave empty stays as in Kaiki."
+msgid "How the booking form and the trip list look on this site. «As in Kaiki» uses the colours and font from your Kaiki panel. Choose your own to match this site instead; anything you leave empty stays as in Kaiki."
 msgstr ""
 
 msgid "Is it connected?"
@@ -171,9 +165,6 @@ msgid "Kaiki answered in a way this plugin did not understand. It will try again
 msgstr ""
 
 msgid "Kaiki answered, but not in a way this plugin understands. Try again shortly."
-msgstr ""
-
-msgid "Kaiki availability calendar"
 msgstr ""
 
 msgid "Kaiki booking form"
@@ -260,6 +251,9 @@ msgstr ""
 msgid "Settings → Kaiki Booking"
 msgstr ""
 
+msgid "Show the boat's name"
+msgstr ""
+
 msgid "Style"
 msgstr ""
 
@@ -297,9 +291,6 @@ msgid "They are rewritten every time you change the trip in Kaiki, so editing th
 msgstr ""
 
 msgid "This booking form needs to know which trip it is for. Use %s, with the trip id from your Kaiki panel."
-msgstr ""
-
-msgid "This calendar needs to know which trip it is for. Use %s, with the trip id from your Kaiki panel."
 msgstr ""
 
 msgid "This site could not reach Kaiki at all. Check the address above, or try again in a minute."

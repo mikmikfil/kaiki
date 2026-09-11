@@ -9,10 +9,23 @@ import type { ProductSummary } from './BookingMount';
  * once in the mockup and once on the hosted product page, which carries the same
  * four lines above the same mount.
  *
- * A `<dl>` rather than four paragraphs, because that is what it is: four
- * labelled facts, and a screen reader reads the label with the value.
+ * The vessel line is the operator's to leave out (`data-vessel="hide"`, the
+ * WordPress plugin's «Show the boat's name» box, 2026-09-11): one boat that does
+ * every trip, or a boat they would rather not name, is a line that says nothing
+ * to a guest. The other three stay whatever the setting.
+ *
+ * A `<dl>` rather than four paragraphs, because that is what it is: labelled
+ * facts, and a screen reader reads the label with the value.
  */
-export function FourLines({ product, t }: { readonly product: ProductSummary; readonly t: Translator }) {
+export function FourLines({
+  product,
+  t,
+  showVessel = true,
+}: {
+  readonly product: ProductSummary;
+  readonly t: Translator;
+  readonly showVessel?: boolean;
+}) {
   return (
     <dl class="kaiki-four-lines">
       <div>
@@ -27,10 +40,12 @@ export function FourLines({ product, t }: { readonly product: ProductSummary; re
         <dt>{t('booking.lines.port')}</dt>
         <dd>{product.meeting_point?.name ?? '—'}</dd>
       </div>
-      <div>
-        <dt>{t('booking.lines.vessel')}</dt>
-        <dd>{product.vessel?.name ?? '—'}</dd>
-      </div>
+      {showVessel ? (
+        <div>
+          <dt>{t('booking.lines.vessel')}</dt>
+          <dd>{product.vessel?.name ?? '—'}</dd>
+        </div>
+      ) : null}
     </dl>
   );
 }

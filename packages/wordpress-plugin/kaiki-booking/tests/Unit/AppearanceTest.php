@@ -135,11 +135,57 @@ final class AppearanceTest extends TestCase {
 		);
 
 		$first  = Shortcodes::booking( array( 'product' => self::UUID ) );
-		$second = Shortcodes::calendar( array( 'product' => self::UUID ) );
+		$second = Shortcodes::trip_list( array() );
 
 		$this->assertStringContainsString( 'data-primary="#0b3d91"', $first );
 		$this->assertStringContainsString( 'data-primary="#0b3d91"', $second );
 		$this->assertStringNotContainsString( 'src=', $second );
+	}
+
+	public function test_the_boats_name_shows_by_default(): void {
+		self::configure( array() );
+
+		$this->assertTrue( Settings::all()['show_vessel'] );
+		$this->assertStringNotContainsString( 'data-vessel', Shortcodes::booking( array( 'product' => self::UUID ) ) );
+	}
+
+	public function test_switching_the_boats_name_off_hides_it_on_every_embed_under_either_choice(): void {
+		// It is about what the form says, not how it looks, so «As in Kaiki»
+		// does not switch it back on.
+		foreach ( array( 'kaiki', 'custom' ) as $choice ) {
+			Bundle::reset();
+
+			self::configure(
+				array(
+					'appearance'  => $choice,
+					'show_vessel' => false,
+				)
+			);
+
+			$this->assertStringContainsString( 'data-vessel="hide"', Shortcodes::booking( array( 'product' => self::UUID ) ), $choice );
+			$this->assertStringContainsString( 'data-vessel="hide"', Shortcodes::trip_list( array() ), $choice );
+		}
+	}
+
+	public function test_an_option_saved_before_the_setting_existed_shows_the_boats_name(): void {
+		// Every site that saved its settings before 2026-09-11 has no
+		// `show_vessel` key, and none of those operators chose to hide the boat.
+		self::configure(
+			array(
+				'appearance' => 'custom',
+				'primary'    => '#0b3d91',
+			)
+		);
+
+		$this->assertTrue( Settings::all()['show_vessel'] );
+		$this->assertStringNotContainsString( 'data-vessel', Shortcodes::booking( array( 'product' => self::UUID ) ) );
+	}
+
+	public function test_the_sanitiser_reads_an_unticked_box_as_off(): void {
+		// WordPress does not submit an unticked checkbox at all, so from the
+		// form "absent" means "off", unlike an old stored option.
+		$this->assertFalse( SettingsPage::sanitize( array( 'publishable_key' => '' ) )['show_vessel'] );
+		$this->assertTrue( SettingsPage::sanitize( array( 'show_vessel' => '1' ) )['show_vessel'] );
 	}
 
 	public function test_the_button_text_is_whichever_colour_reads_better(): void {

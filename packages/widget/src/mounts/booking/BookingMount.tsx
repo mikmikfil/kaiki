@@ -65,6 +65,8 @@ interface BookingMountProps {
   readonly locale: string;
   /** A day chosen on the operator's own calendar, through the trip page's `?date=`. */
   readonly initialDate?: string | null;
+  /** False when the operator chose to leave the boat's name out (`data-vessel="hide"`). */
+  readonly showVessel?: boolean;
 }
 
 export interface ProductSummary {
@@ -86,6 +88,7 @@ export function BookingMount({
   analytics,
   locale,
   initialDate = null,
+  showVessel = true,
 }: BookingMountProps) {
   const options: MachineOptions = { hasExtras: (product.extras ?? []).length > 0 };
   const api = useMemo(() => new BookingApi(client), [client]);
@@ -296,7 +299,7 @@ export function BookingMount({
 
   return (
     <div class="kaiki-booking">
-      <FourLines product={product} t={t} />
+      <FourLines product={product} t={t} showVessel={showVessel} />
 
       {draft !== null ? <Hold hold={hold} t={t} /> : null}
 

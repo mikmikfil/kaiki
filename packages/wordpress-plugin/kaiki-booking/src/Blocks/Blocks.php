@@ -17,7 +17,7 @@ use const Kaiki\Booking\VERSION;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Four blocks, each a server-rendered wrapper around its shortcode (WPP-5).
+ * Three blocks, each a server-rendered wrapper around its shortcode (WPP-5).
  *
  * ## "Server-rendered wrappers" is the load-bearing phrase
  *
@@ -34,50 +34,37 @@ defined( 'ABSPATH' ) || exit;
  *
  * The editor script is plain JavaScript against the `wp.*` globals WordPress
  * already ships. `@wordpress/scripts` would give JSX and a bundler, and would
- * add a Node build to a PHP plugin that has none — for four blocks whose entire
+ * add a Node build to a PHP plugin that has none — for three blocks whose entire
  * interface is a select and a text field. A build nobody can run is a block
  * nobody can fix.
  */
 final class Blocks {
 
 	/**
-	 * The four, and which shortcode each one is.
+	 * The three, and which shortcode each one is.
 	 *
 	 * Public so `EditorParityTest` can hold it against Elementor's list: the
 	 * failure worth preventing is somebody adding an attribute to the block and
 	 * the Elementor version quietly not having it, discovered six months later
 	 * by an operator who uses the other editor.
 	 *
-	 * `link` is the calendar's «days lead to the booking» switch, and only the
-	 * calendar has one: it is the only embed that shows days without booking
-	 * them itself.
-	 *
-	 * @var array<string, array{callback: string, product: bool, category: bool, link: bool}>
+	 * @var array<string, array{callback: string, product: bool, category: bool}>
 	 */
 	public const BLOCKS = array(
-		'booking'  => array(
+		'booking' => array(
 			'callback' => 'booking',
 			'product'  => true,
 			'category' => false,
-			'link'     => false,
 		),
-		'list'     => array(
+		'list'    => array(
 			'callback' => 'trip_list',
 			'product'  => false,
 			'category' => true,
-			'link'     => false,
 		),
-		'calendar' => array(
-			'callback' => 'calendar',
-			'product'  => true,
-			'category' => false,
-			'link'     => true,
-		),
-		'enquiry'  => array(
+		'enquiry' => array(
 			'callback' => 'enquiry',
 			'product'  => true,
 			'category' => false,
-			'link'     => false,
 		),
 	);
 
@@ -111,15 +98,6 @@ final class Blocks {
 				),
 			);
 
-			if ( $block['link'] ) {
-				// On by default, like the shortcode: a calendar block dropped into
-				// a page should do what a calendar shortcode pasted there does.
-				$attributes['link'] = array(
-					'type'    => 'boolean',
-					'default' => true,
-				);
-			}
-
 			register_block_type(
 				'kaiki/' . $name,
 				array(
@@ -143,25 +121,22 @@ final class Blocks {
 	/**
 	 * A block's attributes, as the shortcode attributes they stand for.
 	 *
-	 * Public so a test can hold it against the shortcode. A block saved before
-	 * the calendar had a switch carries no `link` at all, and it meant what the
-	 * calendar now does by default — so absent is on.
+	 * Public so a test can hold it against the shortcode and against the
+	 * Elementor widget's own mapping. Every block takes the same two attributes
+	 * today, so the definition is not consulted; it is a parameter so that a
+	 * block-specific attribute has somewhere to go.
 	 *
-	 * @param array{callback: string, product: bool, category: bool, link: bool} $block      The block's definition.
-	 * @param array<string, mixed>                                               $attributes What the editor saved.
+	 * @param array{callback: string, product: bool, category: bool} $block      The block's definition.
+	 * @param array<string, mixed>                                   $attributes What the editor saved.
 	 * @return array<string, string>
 	 */
 	public static function shortcode_attributes( array $block, array $attributes ): array {
-		$atts = array(
+		unset( $block );
+
+		return array(
 			'product'  => isset( $attributes['product'] ) ? (string) $attributes['product'] : '',
 			'category' => isset( $attributes['category'] ) ? (string) $attributes['category'] : '',
 		);
-
-		if ( $block['link'] ) {
-			$atts['link'] = ! empty( $attributes['link'] ?? true ) ? 'trip' : 'none';
-		}
-
-		return $atts;
 	}
 
 	/**

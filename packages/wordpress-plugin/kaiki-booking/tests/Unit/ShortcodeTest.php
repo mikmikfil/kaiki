@@ -1,6 +1,6 @@
 <?php
 /**
- * The four shortcodes, and what they do when they are written wrongly.
+ * The three shortcodes, and what they do when they are written wrongly.
  *
  * @package Kaiki\Booking
  */
@@ -15,7 +15,7 @@ use Kaiki\Booking\Shortcodes\Shortcodes;
 use PHPUnit\Framework\TestCase;
 
 /**
- * WPP-4's four, and the three ways an operator gets them wrong.
+ * The plugin's three, and the three ways an operator gets them wrong.
  *
  * The interesting assertions are not that a correct shortcode renders. They are
  * that a **wrong** one is survivable: no fatal, nothing alarming for a visitor,
@@ -51,43 +51,18 @@ final class ShortcodeTest extends TestCase {
 		$this->assertStringContainsString( 'data-key="pk_live_abc"', $html );
 	}
 
-	public function test_the_calendar_leads_to_the_trip_page_by_default(): void {
-		// Decided 2026-09-11: a guest who finds a free day and cannot click it
-		// has been shown a door with no handle. So the plain shortcode links,
-		// and so does one with a value nobody meant as "no".
-		foreach ( array( null, 'trip', 'TRIP', 'yes', 'trpi' ) as $link ) {
-			Bundle::reset();
+	public function test_there_is_no_calendar_shortcode_any_more(): void {
+		// Taken out 2026-09-11 by the product owner's decision. Asserted so it is
+		// not quietly added back: the widget still has a calendar mount, and
+		// "the plugin could expose that" is an easy afternoon's work.
+		Shortcodes::register();
 
-			$atts = array( 'product' => self::UUID );
+		$registered = array_keys( $GLOBALS['kaiki_test_shortcodes'] );
 
-			if ( null !== $link ) {
-				$atts['link'] = $link;
-			}
+		sort( $registered );
 
-			$html = Shortcodes::calendar( $atts );
-
-			$this->assertStringContainsString( 'data-mount="calendar"', $html );
-			$this->assertStringContainsString( 'data-link="trip"', $html, 'link=' . ( $link ?? '(absent)' ) );
-		}
-	}
-
-	public function test_the_calendar_stays_read_only_when_the_link_is_switched_off(): void {
-		// For the operator who puts a booking form right under the calendar.
-		// Absent rather than `data-link="none"`: the widget's default is
-		// read-only, and the plugin says only what differs from it.
-		foreach ( array( 'none', 'off', 'no', 'false', ' None ' ) as $link ) {
-			Bundle::reset();
-
-			$html = Shortcodes::calendar(
-				array(
-					'product' => self::UUID,
-					'link'    => $link,
-				)
-			);
-
-			$this->assertStringContainsString( 'data-mount="calendar"', $html );
-			$this->assertStringNotContainsString( 'data-link', $html, 'link=' . $link );
-		}
+		$this->assertSame( array( 'kaiki_booking', 'kaiki_enquiry', 'kaiki_list' ), $registered );
+		$this->assertFalse( method_exists( Shortcodes::class, 'calendar' ) );
 	}
 
 	public function test_it_embeds_the_alias_and_never_a_version(): void {

@@ -48,7 +48,7 @@ final class Bundle {
 	/**
 	 * The embed for one mount, or an empty string when nothing can be rendered.
 	 *
-	 * @param string                $mount   `booking`, `list`, `calendar` or `enquiry`.
+	 * @param string                $mount   `booking`, `list` or `enquiry`.
 	 * @param array<string, string> $data    Extra `data-` attributes, unescaped.
 	 */
 	public static function embed( string $mount, array $data = array() ): string {
@@ -64,8 +64,8 @@ final class Bundle {
 
 		// The mount's own attributes, then the site's appearance. The appearance
 		// is on every tag rather than only the first because each tag is its own
-		// widget (WGT-8), and a second calendar in the operator's colours beside
-		// a first one in Kaiki's would be a bug report.
+		// widget (WGT-8), and a trip list in the operator's colours beside a
+		// booking form in Kaiki's would be a bug report.
 		foreach ( array_merge( $data, Appearance::attributes() ) as $name => $value ) {
 			if ( '' !== $value ) {
 				$attributes[ 'data-' . $name ] = $value;

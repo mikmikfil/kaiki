@@ -28,8 +28,9 @@ use ReflectionClass;
  *
  * Elementor's own widget class cannot be constructed here (it extends a class
  * that only exists when Elementor does), so what is asserted is the wiring: the
- * definitions name callbacks that exist on `Shortcodes`, and the same four
- * across both editors.
+ * definitions name callbacks that exist on `Shortcodes`, the same three across
+ * both editors, and the settings each editor saves become the same shortcode
+ * attributes and therefore the same markup.
  */
 final class EditorParityTest extends TestCase {
 
@@ -50,10 +51,9 @@ final class EditorParityTest extends TestCase {
 	}
 
 	public function test_every_block_renders_through_a_shortcode_that_exists(): void {
-		$blocks = ( new ReflectionClass( Blocks::class ) )->getConstant( 'BLOCKS' );
+		$blocks = self::blocks();
 
-		$this->assertIsArray( $blocks );
-		$this->assertCount( 4, $blocks );
+		$this->assertCount( 3, $blocks );
 
 		foreach ( $blocks as $name => $block ) {
 			$this->assertTrue(
@@ -72,17 +72,17 @@ final class EditorParityTest extends TestCase {
 		}
 	}
 
-	public function test_the_two_editors_offer_the_same_four_things(): void {
+	public function test_the_two_editors_offer_the_same_three_things(): void {
 		// An operator who moves from Gutenberg to Elementor should not discover
-		// that one of their embeds does not exist there.
-		$blocks = ( new ReflectionClass( Blocks::class ) )->getConstant( 'BLOCKS' );
-
-		$block_callbacks  = array_column( (array) $blocks, 'callback' );
+		// that one of their embeds does not exist there. And the calendar is in
+		// neither: it was taken out of the plugin on 2026-09-11.
+		$block_callbacks  = array_column( self::blocks(), 'callback' );
 		$widget_callbacks = array_column( Widgets::definitions(), 'callback' );
 
 		sort( $block_callbacks );
 		sort( $widget_callbacks );
 
+		$this->assertSame( array( 'booking', 'enquiry', 'trip_list' ), $block_callbacks );
 		$this->assertSame( $block_callbacks, $widget_callbacks );
 	}
 
@@ -90,132 +90,12 @@ final class EditorParityTest extends TestCase {
 		// Same question, two vocabularies. A block that took a category and an
 		// Elementor widget that did not would be the drift this file exists to
 		// prevent.
-		$blocks  = (array) ( new ReflectionClass( Blocks::class ) )->getConstant( 'BLOCKS' );
-		$widgets = Widgets::definitions();
-
-		foreach ( $blocks as $block ) {
-			$match = null;
-
-			foreach ( $widgets as $widget ) {
-				if ( $widget['callback'] === $block['callback'] ) {
-					$match = $widget;
-				}
-			}
+		foreach ( self::blocks() as $block ) {
+			$match = self::widget_for( $block['callback'] );
 
 			$this->assertNotNull( $match, "No Elementor widget renders {$block['callback']}." );
 			$this->assertSame( $block['product'], $match['product'], "The {$block['callback']} embeds disagree about `product`." );
 			$this->assertSame( $block['category'], $match['category'], "The {$block['callback']} embeds disagree about `category`." );
-			$this->assertSame( $block['link'], $match['link'], "The {$block['callback']} embeds disagree about `link`." );
-		}
-	}
-
-	public function test_only_the_calendar_block_has_the_link_switch_and_it_starts_on(): void {
-		Blocks::register_blocks();
-
-		$registered = $GLOBALS['kaiki_test_blocks'];
-
-		$this->assertSame(
-			array(
-				'type'    => 'boolean',
-				'default' => true,
-			),
-			$registered['kaiki/calendar']['attributes']['link'] ?? null
-		);
-
-		foreach ( array( 'kaiki/booking', 'kaiki/list', 'kaiki/enquiry' ) as $name ) {
-			$this->assertArrayNotHasKey( 'link', $registered[ $name ]['attributes'], "{$name} has a link switch it cannot use." );
-		}
-	}
-
-	public function test_the_calendar_block_renders_what_the_calendar_shortcode_renders(): void {
-		// Through the registered render callback itself, so this is the path a
-		// real page takes: on, off, and a block saved before the switch existed.
-		Blocks::register_blocks();
-
-		$render = $GLOBALS['kaiki_test_blocks']['kaiki/calendar']['render_callback'];
-
-		$cases = array(
-			'on'           => array(
-				array(
-					'product' => self::UUID,
-					'link'    => true,
-				),
-				'trip',
-			),
-			'off'          => array(
-				array(
-					'product' => self::UUID,
-					'link'    => false,
-				),
-				'none',
-			),
-			'saved before' => array( array( 'product' => self::UUID ), 'trip' ),
-		);
-
-		foreach ( $cases as $label => list( $attributes, $link ) ) {
-			Bundle::reset();
-
-			$from_block = $render( $attributes );
-
-			Bundle::reset();
-
-			$from_shortcode = Shortcodes::calendar(
-				array(
-					'product' => self::UUID,
-					'link'    => $link,
-				)
-			);
-
-			$this->assertSame( $from_shortcode, $from_block, "The calendar block ({$label}) and shortcode disagree." );
-		}
-	}
-
-	public function test_the_elementor_calendar_passes_its_switch_to_the_shortcode(): void {
-		$definitions = Widgets::definitions();
-		$calendar    = $definitions['kaiki-calendar'];
-
-		// Elementor's switcher saves `yes` or an empty string.
-		$this->assertSame( 'trip', Widgets::shortcode_attributes( $calendar, array( 'link' => 'yes' ) )['link'] );
-		$this->assertSame( 'none', Widgets::shortcode_attributes( $calendar, array( 'link' => '' ) )['link'] );
-		// A widget placed before the switch existed meant what the calendar now
-		// does by default.
-		$this->assertSame( 'trip', Widgets::shortcode_attributes( $calendar, array() )['link'] );
-
-		// And nothing else is handed a `link` it would ignore.
-		$this->assertArrayNotHasKey( 'link', Widgets::shortcode_attributes( $definitions['kaiki-booking'], array( 'link' => 'yes' ) ) );
-	}
-
-	public function test_the_elementor_and_block_calendars_render_the_same_markup(): void {
-		$blocks = (array) ( new ReflectionClass( Blocks::class ) )->getConstant( 'BLOCKS' );
-		$widget = Widgets::definitions()['kaiki-calendar'];
-
-		foreach ( array( true, false ) as $on ) {
-			Bundle::reset();
-
-			$from_block = Shortcodes::calendar(
-				Blocks::shortcode_attributes(
-					$blocks['calendar'],
-					array(
-						'product' => self::UUID,
-						'link'    => $on,
-					)
-				)
-			);
-
-			Bundle::reset();
-
-			$from_elementor = Shortcodes::calendar(
-				Widgets::shortcode_attributes(
-					$widget,
-					array(
-						'product' => self::UUID,
-						'link'    => $on ? 'yes' : '',
-					)
-				)
-			);
-
-			$this->assertSame( $from_block, $from_elementor );
-			$this->assertSame( $on, str_contains( $from_block, 'data-link="trip"' ) );
 		}
 	}
 
@@ -237,5 +117,90 @@ final class EditorParityTest extends TestCase {
 		);
 
 		$this->assertSame( $from_shortcode, $from_block );
+	}
+
+	public function test_every_registered_block_renders_what_its_shortcode_renders(): void {
+		// Through the render callback WordPress is actually given, not a copy of
+		// what it is meant to do.
+		Blocks::register_blocks();
+
+		$this->assertCount( 3, $GLOBALS['kaiki_test_blocks'] );
+
+		foreach ( self::blocks() as $name => $block ) {
+			$saved = array(
+				'product'  => self::UUID,
+				'category' => 'shared',
+			);
+
+			Bundle::reset();
+
+			$from_block = $GLOBALS['kaiki_test_blocks'][ 'kaiki/' . $name ]['render_callback']( $saved );
+
+			Bundle::reset();
+
+			$from_shortcode = call_user_func( array( Shortcodes::class, $block['callback'] ), $saved );
+
+			$this->assertSame( $from_shortcode, $from_block, "The {$name} block and its shortcode disagree." );
+		}
+	}
+
+	public function test_a_block_and_an_elementor_widget_with_the_same_settings_render_the_same_markup(): void {
+		foreach ( self::blocks() as $name => $block ) {
+			$saved = array(
+				'product'  => self::UUID,
+				'category' => 'shared',
+			);
+
+			$widget = self::widget_for( $block['callback'] );
+
+			$this->assertNotNull( $widget );
+
+			Bundle::reset();
+
+			$from_block = call_user_func( array( Shortcodes::class, $block['callback'] ), Blocks::shortcode_attributes( $block, $saved ) );
+
+			Bundle::reset();
+
+			$from_elementor = call_user_func( array( Shortcodes::class, $widget['callback'] ), Widgets::shortcode_attributes( $widget, $saved ) );
+
+			$this->assertSame( $from_block, $from_elementor, "The {$name} block and its Elementor widget disagree." );
+		}
+	}
+
+	public function test_neither_editor_keeps_a_setting_left_over_from_the_calendar(): void {
+		Blocks::register_blocks();
+
+		foreach ( $GLOBALS['kaiki_test_blocks'] as $name => $registered ) {
+			$this->assertSame( array( 'product', 'category' ), array_keys( $registered['attributes'] ), "{$name} registers an attribute nothing reads." );
+		}
+
+		foreach ( Widgets::definitions() as $slug => $definition ) {
+			$this->assertArrayNotHasKey( 'link', $definition, "{$slug} still has the calendar's link switch." );
+		}
+	}
+
+	/**
+	 * The block definitions.
+	 *
+	 * @return array<string, array{callback: string, product: bool, category: bool}>
+	 */
+	private static function blocks(): array {
+		return (array) ( new ReflectionClass( Blocks::class ) )->getConstant( 'BLOCKS' );
+	}
+
+	/**
+	 * The Elementor definition that renders a given shortcode callback.
+	 *
+	 * @param string $callback The shortcode callback.
+	 * @return array{title: string, callback: string, product: bool, category: bool}|null
+	 */
+	private static function widget_for( string $callback ): ?array {
+		foreach ( Widgets::definitions() as $definition ) {
+			if ( $definition['callback'] === $callback ) {
+				return $definition;
+			}
+		}
+
+		return null;
 	}
 }

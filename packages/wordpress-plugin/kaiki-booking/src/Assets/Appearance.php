@@ -24,6 +24,13 @@ defined( 'ABSPATH' ) || exit;
  * none — a site that never opened this section renders exactly what it rendered
  * before the section existed.
  *
+ * ## The boat's name is the exception to the choice
+ *
+ * «Show the boat's name» applies under «As in Kaiki» and «My own» alike: which
+ * boat a trip runs on is a question of what the form says, not of how it
+ * looks. It is on by default, and only switching it off emits anything —
+ * `data-vessel="hide"`.
+ *
  * ## The button's text colour is not a setting
  *
  * It is worked out from the button colour, because the only right answer is
@@ -53,11 +60,12 @@ final class Appearance {
 	public static function attributes(): array {
 		$settings = Settings::all();
 
-		if ( 'custom' !== $settings['appearance'] ) {
-			return array();
-		}
+		// Before the choice is looked at, because it applies under either.
+		$attributes = $settings['show_vessel'] ? array() : array( 'vessel' => 'hide' );
 
-		$attributes = array();
+		if ( 'custom' !== $settings['appearance'] ) {
+			return $attributes;
+		}
 
 		if ( '' !== $settings['primary'] ) {
 			$attributes['primary']    = $settings['primary'];

@@ -57,6 +57,12 @@ export interface WidgetConfig {
   readonly date: string | null;
   /** The WordPress plugin's «Appearance» settings, each checked (see `appearance.ts`). */
   readonly appearance: Appearance;
+  /**
+   * `data-vessel="hide"`: leave the boat's name out of the booking form's four
+   * lines. The WordPress plugin sets it from its «Show the boat's name» box
+   * (2026-09-11); without it the boat is shown, as it always was.
+   */
+  readonly showVessel: boolean;
   /** Where the API lives, derived from the script's own `src`. */
   readonly apiBase: string;
 }
@@ -117,6 +123,7 @@ export function readConfig(script: HTMLScriptElement): WidgetConfig | null {
     link: (script.dataset.link ?? '').trim().toLowerCase() === 'trip' ? 'trip' : null,
     date: isoDate(script.dataset.date),
     appearance: readAppearance(script.dataset),
+    showVessel: (script.dataset.vessel ?? '').trim().toLowerCase() !== 'hide',
     apiBase: apiBaseFrom(bundleSrc(script)),
   };
 }

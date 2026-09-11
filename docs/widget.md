@@ -39,6 +39,7 @@ That is the whole thing. The widget renders where the tag sits.
 | `data-text` / `data-background` | no | your Kaiki branding | `#rrggbb` each. |
 | `data-font` | no | your Kaiki font | `inherit` for your own site's font, or the name of a font your site already loads. With either, Kaiki's Google font is not requested. |
 | `data-radius` | no | your Kaiki branding | `0`–`30`, in pixels. |
+| `data-vessel` | no | shown | `hide` leaves the boat's name out of the booking form's lines. The WordPress plugin's «Show the boat's name» box sets it. |
 
 The six appearance attributes are applied **over** the branding in your Kaiki
 panel, one by one — set only a button colour and everything else stays as it
@@ -49,8 +50,9 @@ is there. A value that is not in the form above is ignored rather than guessed.
 The plugin writes these tags for you. Under **Settings → Kaiki Booking →
 Appearance**, «As in Kaiki» sends none of the appearance attributes; «My own»
 sends the colours, font and roundness you choose there, for every shortcode,
-block and Elementor widget on the site. `[kaiki_calendar]` leads to the booking
-by default (`data-link="trip"`); `link="none"` makes it a calendar to look at.
+block and Elementor widget on the site. The plugin offers the booking form, the
+trip list and the enquiry form; it has no calendar shortcode (removed on
+2026-09-11 — the booking form already opens on a month of availability).
 A page may carry any number of shortcodes: only the first tag loads the file,
 and the widget finds the rest by their key.
 

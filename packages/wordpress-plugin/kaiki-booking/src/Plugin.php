@@ -40,11 +40,11 @@ final class Plugin {
 		// `is_admin()` would never exist when Kaiki called.
 		Webhook::register();
 
-		// The four shortcodes (WPP-4). Registered always, because a shortcode in
+		// The three shortcodes (WPP-4). Registered always, because a shortcode in
 		// a page is rendered on the front end and previewed in the editor.
 		Shortcodes::register();
 
-		// The same four embeds through the two editors an operator may be using
+		// The same three embeds through the two editors an operator may be using
 		// (WPP-5). Each registration is a no-op when its editor is absent, which
 		// is the ordinary case for both.
 		Blocks::register();

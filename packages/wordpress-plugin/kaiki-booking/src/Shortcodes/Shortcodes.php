@@ -1,6 +1,6 @@
 <?php
 /**
- * The four shortcodes WPP-4 fixes.
+ * The three shortcodes an operator can use.
  *
  * @package Kaiki\Booking
  */
@@ -15,11 +15,15 @@ use Kaiki\Booking\Settings\Settings;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * `[kaiki_booking]`, `[kaiki_list]`, `[kaiki_calendar]`, `[kaiki_enquiry]`.
+ * `[kaiki_booking]`, `[kaiki_list]`, `[kaiki_enquiry]`.
+ *
+ * WPP-4 fixed four. The availability calendar was taken out of the plugin on
+ * 2026-09-11 by the product owner's decision: operators get the booking form,
+ * the trip list and the enquiry form, and nothing that only shows dates.
  *
  * The plugin's whole promise is here: an operator pastes one of these into a
  * page and takes a booking. Blocks and Elementor widgets, which come next, are
- * nicer ways of producing the same four strings — WPP-5 fixes them as
+ * nicer ways of producing the same three strings — WPP-5 fixes them as
  * *server-rendered wrappers around the shortcodes*, so this file is the one
  * rendering path and there is never a second opinion about the markup.
  *
@@ -40,12 +44,11 @@ defined( 'ABSPATH' ) || exit;
 final class Shortcodes {
 
 	/**
-	 * Register all four.
+	 * Register all three.
 	 */
 	public static function register(): void {
 		add_shortcode( 'kaiki_booking', array( self::class, 'booking' ) );
 		add_shortcode( 'kaiki_list', array( self::class, 'trip_list' ) );
-		add_shortcode( 'kaiki_calendar', array( self::class, 'calendar' ) );
 		add_shortcode( 'kaiki_enquiry', array( self::class, 'enquiry' ) );
 	}
 
@@ -88,53 +91,6 @@ final class Shortcodes {
 	}
 
 	/**
-	 * `[kaiki_calendar product="uuid"]` — a month of availability.
-	 *
-	 * Every day with room is a link to the trip's page on Kaiki, with that day
-	 * already chosen (the widget's WGT-5 as amended 2026-09-11) — **by default**,
-	 * because a guest who finds a free day and cannot click it has been shown a
-	 * door with no handle. `link="none"` (or `off`, `no`, `false`) leaves the
-	 * calendar read-only, for the operator who puts a booking form right under
-	 * it. Any other value is the default: an attribute an editor mistyped
-	 * should not quietly switch off the one thing the calendar is for.
-	 *
-	 * @param  array<string, string>|string $atts The shortcode attributes.
-	 * @return string
-	 */
-	public static function calendar( $atts ): string {
-		$atts = shortcode_atts(
-			array(
-				'product' => '',
-				'link'    => 'trip',
-			),
-			self::attributes( $atts ),
-			'kaiki_calendar'
-		);
-
-		$product = self::uuid( $atts['product'] );
-
-		if ( '' === $product ) {
-			return self::misconfigured(
-				/* translators: %s: an example of a correct shortcode. */
-				__( 'This calendar needs to know which trip it is for. Use %s, with the trip id from your Kaiki panel.', 'kaiki-booking' ),
-				'[kaiki_calendar product="…"]'
-			);
-		}
-
-		return self::wrap(
-			Bundle::embed(
-				'calendar',
-				array(
-					'product' => $product,
-					// `Bundle::embed` drops an empty value, so switching the link
-					// off means the attribute is absent rather than `none`.
-					'link'    => self::links_to_trip( (string) $atts['link'] ) ? 'trip' : '',
-				)
-			)
-		);
-	}
-
-	/**
 	 * `[kaiki_enquiry]` — the form for a trip with no published price.
 	 *
 	 * `product` is optional here: an enquiry about the fleet in general is a
@@ -158,17 +114,6 @@ final class Shortcodes {
 	 */
 	private static function attributes( $atts ): array {
 		return is_array( $atts ) ? $atts : array();
-	}
-
-	/**
-	 * Does the calendar's `link` attribute leave the days clickable?
-	 *
-	 * Yes unless it says one of the ways people write "no".
-	 *
-	 * @param string $value The attribute as typed.
-	 */
-	private static function links_to_trip( string $value ): bool {
-		return ! in_array( strtolower( trim( $value ) ), array( 'none', 'off', 'no', 'false' ), true );
 	}
 
 	/**

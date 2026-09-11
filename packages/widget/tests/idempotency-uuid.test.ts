@@ -16,7 +16,7 @@ const V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}
 
 describe('the idempotency key', () => {
   it('uses randomUUID where the page has it', () => {
-    expect(uuidV4({ randomUUID: () => 'from-the-browser', getRandomValues: (a) => a } as Crypto)).toBe('from-the-browser');
+    expect(uuidV4({ randomUUID: () => 'from-the-browser', getRandomValues: (a: ArrayBufferView) => a } as unknown as Crypto)).toBe('from-the-browser');
   });
 
   it('is still a UUIDv4 on an http page without randomUUID', () => {

@@ -246,6 +246,10 @@ JS;
 				: 'auto',
 			'cache_ttl'       => (int) ( $input['cache_ttl'] ?? 300 ),
 			'seo_pages'       => ! empty( $input['seo_pages'] ),
+			// A checkbox, so absent from the form means unticked. Only an option
+			// saved before the setting existed reads absent as on, and that is
+			// `Settings::all()`'s job, not this one's.
+			'show_vessel'     => ! empty( $input['show_vessel'] ),
 			// A permalink base, not free text: it becomes part of every trip's
 			// URL, and a value with a slash or a space in it produces rewrite
 			// rules that match nothing and a hundred 404s nobody can explain.
@@ -602,7 +606,7 @@ JS;
 		<h2 class="title"><?php echo esc_html__( 'Appearance', 'kaiki-booking' ); ?></h2>
 
 		<p class="description" style="max-width:44rem">
-			<?php echo esc_html__( 'How the booking form, the calendar and the trip list look on this site. «As in Kaiki» uses the colours and font from your Kaiki panel. Choose your own to match this site instead; anything you leave empty stays as in Kaiki.', 'kaiki-booking' ); ?>
+			<?php echo esc_html__( 'How the booking form and the trip list look on this site. «As in Kaiki» uses the colours and font from your Kaiki panel. Choose your own to match this site instead; anything you leave empty stays as in Kaiki.', 'kaiki-booking' ); ?>
 		</p>
 
 		<style>
@@ -628,6 +632,22 @@ JS;
 							<?php echo esc_html__( 'My own', 'kaiki-booking' ); ?>
 						</label>
 					</fieldset>
+				</td>
+			</tr>
+
+			<?php // Not a «My own» row: it applies under either choice, so it is never hidden. ?>
+			<tr>
+				<th scope="row"><?php echo esc_html__( 'Boat', 'kaiki-booking' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" value="1"
+							name="<?php echo esc_attr( $name ); ?>[show_vessel]"
+							<?php checked( (bool) $settings['show_vessel'] ); ?>>
+						<?php echo esc_html__( 'Show the boat\'s name', 'kaiki-booking' ); ?>
+					</label>
+					<p class="description">
+						<?php echo esc_html__( 'Hide it if the same boat does every trip, or if you would rather not name it.', 'kaiki-booking' ); ?>
+					</p>
 				</td>
 			</tr>
 

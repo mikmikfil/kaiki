@@ -18,7 +18,9 @@ export const el: Record<MessageKey, string> = {
   'widget.error.unavailable': 'Η online κράτηση δεν είναι διαθέσιμη αυτή τη στιγμή.',
   'widget.error.contact': 'Επικοινωνήστε μαζί μας και θα κλείσουμε την κράτησή σας απευθείας.',
   'widget.mount.missing': 'Αυτή η ενότητα κράτησης δεν είναι ακόμη διαθέσιμη.',
-  'widget.powered_by': 'Με την τεχνολογία του Kaiki',
+  // In English in both locales, by the product owner's choice (2026-09-11):
+  // it is a brand line, and the brand's own words.
+  'widget.powered_by': 'Powered by Kaiki',
 
   // Το μπλοκ κράτησης (#107).
   'booking.next': 'Συνέχεια',

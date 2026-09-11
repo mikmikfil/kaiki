@@ -22,7 +22,7 @@ it stores no guest details in WordPress.
 
 = What you get =
 
-* Shortcodes: `[kaiki_booking product="…"]`, `[kaiki_list]`, `[kaiki_calendar product="…"]`, `[kaiki_enquiry]`
+* Shortcodes: `[kaiki_booking product="…"]`, `[kaiki_list]`, `[kaiki_enquiry]`
 * Gutenberg blocks and Elementor widgets, with the same options
 * Optional trip pages, so search engines find your trips on your own site too
 * Greek and English, following WPML, Polylang or your site language

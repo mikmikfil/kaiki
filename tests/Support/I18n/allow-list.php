@@ -68,6 +68,10 @@ return [
         // language that uses the metric system, which is all of them.
         'hosted.product.boat.metres' => 'SI unit symbol, not prose.',
 
+        // The brand line under every hosted page, kept in English in the Greek
+        // interface too — the product owner's choice on 2026-09-11.
+        'hosted.footer.powered_by' => 'Brand line; English in both locales by decision of 2026-09-11.',
+
         // The name of Google's service, as it appears in their own Greek
         // interface. Translating it would leave an operator searching for a
         // product that is not called that anywhere they can look it up.

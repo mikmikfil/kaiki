@@ -191,7 +191,9 @@ return [
         'terms' => 'Όροι',
         'privacy' => 'Απόρρητο',
         'cancellation' => 'Πολιτική ακύρωσης',
-        'powered_by' => 'Με την τεχνολογία του Kaiki',
+        // In English in both locales, by the product owner's choice
+        // (2026-09-11): a brand line, in the brand's own words.
+        'powered_by' => 'Powered by Kaiki',
     ],
 
     'contact' => [

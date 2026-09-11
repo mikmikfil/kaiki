@@ -46,7 +46,7 @@ class Widget extends Widget_Base {
 	/**
 	 * What this widget renders and what it asks for.
 	 *
-	 * @var array{title: string, callback: string, product: bool, category: bool, link: bool}
+	 * @var array{title: string, callback: string, product: bool, category: bool}
 	 */
 	private array $definition;
 
@@ -54,10 +54,10 @@ class Widget extends Widget_Base {
 	 * Elementor constructs widgets itself, so the two Kaiki arguments come
 	 * first and its own two keep their defaults.
 	 *
-	 * @param string                                                                            $slug       The widget name.
-	 * @param array{title: string, callback: string, product: bool, category: bool, link: bool} $definition What it renders.
-	 * @param array<string, mixed>                                                              $data       Elementor's own data.
-	 * @param array<string, mixed>|null                                                         $args       Elementor's own args.
+	 * @param string                                                                $slug       The widget name.
+	 * @param array{title: string, callback: string, product: bool, category: bool} $definition What it renders.
+	 * @param array<string, mixed>                                                  $data       Elementor's own data.
+	 * @param array<string, mixed>|null                                             $args       Elementor's own args.
 	 */
 	public function __construct( string $slug, array $definition, array $data = array(), $args = null ) {
 		$this->slug       = $slug;
@@ -128,20 +128,6 @@ class Widget extends Widget_Base {
 					'type'        => Controls_Manager::TEXT,
 					'description' => __( 'Leave empty to show every trip.', 'kaiki-booking' ),
 					'default'     => '',
-				)
-			);
-		}
-
-		if ( $this->definition['link'] ) {
-			// On by default, like the shortcode and the block.
-			$this->add_control(
-				'link',
-				array(
-					'label'        => __( 'Days lead to the booking', 'kaiki-booking' ),
-					'type'         => Controls_Manager::SWITCHER,
-					'description'  => __( 'A day with room opens the trip on Kaiki, with that day already chosen.', 'kaiki-booking' ),
-					'return_value' => 'yes',
-					'default'      => 'yes',
 				)
 			);
 		}
