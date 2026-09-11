@@ -10,9 +10,9 @@
 
     **Container queries, not viewport ones.** The column count depends on how
     wide the content area is, and that depends on whether the sidebar is open,
-    which the viewport knows nothing about. So it is one column on a phone, two
-    on a tablet, three beside an open sidebar on a laptop, and four when there
-    is room.
+    which the viewport knows nothing about. The cards are **squares**, four to
+    a row from a laptop up, three on a tablet and two on a phone (product
+    owner, 2026-09-11 — after trying three wide cards to a row).
 
     No `text-transform: uppercase` anywhere, because uppercasing Greek strips
     the accents (I18N-2). No hardcoded strings: `NoHardcodedStringsTest` scans
@@ -58,31 +58,55 @@
     <style>
         .ka-hub { container-type: inline-size; }
 
-        .ka-hub-section + .ka-hub-section { margin-top: 1.75rem; }
+        .ka-hub-section + .ka-hub-section { margin-top: 2.25rem; }
 
         .ka-hub-heading {
-            font-size: .875rem; font-weight: 600;
+            font-size: .9375rem; font-weight: 600;
             color: rgb(var(--gray-500));
-            margin: 0 0 .65rem;
+            margin: 0 0 .85rem;
         }
 
         .ka-hub-grid {
             list-style: none; margin: 0; padding: 0;
-            display: grid; gap: .75rem;
+            display: grid; gap: 1.1rem;
             grid-template-columns: minmax(0, 1fr);
         }
 
-        @container (min-width: 30rem) { .ka-hub-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @container (min-width: 46rem) { .ka-hub-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-        @container (min-width: 64rem) { .ka-hub-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        /* Squares, so two to a row even on a phone: one square a screen wide
+           would be a poster. Three on a tablet, four from a laptop up. */
+        /* `--ka-square` is one column's width, in container units, so a card's
+           minimum height equals its width. */
+        .ka-hub-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            --ka-square: calc((100cqi - 1.1rem) / 2);
+        }
 
-        .ka-hub-grid > li { display: flex; }
+        @container (min-width: 36rem) {
+            .ka-hub-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); --ka-square: calc((100cqi - 2.2rem) / 3); }
+        }
 
+        @container (min-width: 50rem) {
+            .ka-hub-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); --ka-square: calc((100cqi - 3.3rem) / 4); }
+        }
+
+        .ka-hub-grid > li { display: block; min-width: 0; }
+
+        /* Square by **minimum height**, not by `aspect-ratio`.
+           `aspect-ratio` was tried twice and failed both ways on a phone: in a
+           stretched flex item a taller neighbour's height became this card's
+           width and pushed it off the screen; with the height pinned instead,
+           a long Greek description ran out of the bottom. A minimum height of
+           one column's width is square when the text fits, grows when it does
+           not, and `height: 100%` of the stretched `li` keeps every card in a
+           row the same height. */
         .ka-hub-card {
-            flex: 1;
-            display: flex; align-items: flex-start; gap: .85rem;
-            padding: 1rem 1.1rem;
-            border-radius: .75rem;
+            box-sizing: border-box;
+            width: 100%; height: 100%; min-width: 0;
+            min-height: var(--ka-square);
+            overflow-wrap: break-word;
+            display: flex; flex-direction: column; justify-content: space-between; gap: 1rem;
+            padding: 1.35rem;
+            border-radius: .9rem;
             background: #fff;
             box-shadow: 0 0 0 1px rgba(var(--gray-950), .06), 0 1px 2px rgba(0, 0, 0, .04);
             color: inherit; text-decoration: none;
@@ -101,24 +125,31 @@
         .ka-hub-icon {
             flex: none;
             display: inline-flex; align-items: center; justify-content: center;
-            width: 2.5rem; height: 2.5rem;
-            border-radius: .6rem;
+            width: 3.25rem; height: 3.25rem;
+            border-radius: .8rem;
             background: rgba(var(--primary-500), .1);
             color: rgb(var(--primary-600));
         }
 
-        .ka-hub-glyph { width: 1.35rem; height: 1.35rem; }
+        .ka-hub-glyph { width: 1.75rem; height: 1.75rem; }
 
-        .ka-hub-text { display: flex; flex-direction: column; gap: .2rem; min-width: 0; }
+        .ka-hub-text { display: flex; flex-direction: column; gap: .35rem; min-width: 0; }
+
+        @container (max-width: 36rem) {
+            .ka-hub-card { padding: 1rem; }
+            .ka-hub-icon { width: 2.75rem; height: 2.75rem; }
+            .ka-hub-title { font-size: .975rem; }
+            .ka-hub-description { font-size: .8125rem; }
+        }
 
         .ka-hub-title {
-            display: flex; align-items: center; flex-wrap: wrap; gap: .4rem;
-            font-size: .9375rem; font-weight: 600; line-height: 1.3;
+            display: flex; align-items: center; flex-wrap: wrap; gap: .45rem;
+            font-size: 1.0625rem; font-weight: 600; line-height: 1.3;
             color: rgb(var(--gray-950));
         }
 
         .ka-hub-description {
-            font-size: .8125rem; line-height: 1.4;
+            font-size: .9rem; line-height: 1.45;
             color: rgb(var(--gray-500));
         }
 

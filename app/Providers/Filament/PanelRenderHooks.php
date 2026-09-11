@@ -58,6 +58,15 @@ final class PanelRenderHooks
             static fn (): View => view('filament.touch-targets'),
         );
 
+        // «Ρυθμίσεις» at the very bottom of the sidebar, outside the scrolling
+        // menu. Decided inside the hook, like the link at the top: `/admin` has
+        // no tenant and gets nothing, and crew — who may open none of the
+        // cards — get nothing either.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::SIDEBAR_FOOTER,
+            static fn (): View|string => self::settingsItem(),
+        );
+
         // The way back to «Ρυθμίσεις», on every screen its cards lead to.
         // Scoped by class, and a resource's own class is in the scope of all
         // its pages (`Resources\Pages\Page::getRenderHookScopes`), so list,
@@ -102,6 +111,22 @@ final class PanelRenderHooks
             'url' => $tenant instanceof Tenant && HostedUrl::homeEnabledFor($tenant)
                 ? HostedUrl::operator($tenant)
                 : null,
+        ]);
+    }
+
+    /** The sidebar's last entry, or nothing for somebody with no card to open. */
+    private static function settingsItem(): View|string
+    {
+        if (! Settings::canAccess()) {
+            return '';
+        }
+
+        return view('filament.app.settings-sidebar', [
+            'url' => Settings::getUrl(),
+            'label' => Settings::getNavigationLabel(),
+            'icon' => Settings::getNavigationIcon(),
+            'active' => Settings::isCurrent(),
+            'badge' => Settings::getNavigationBadge(),
         ]);
     }
 

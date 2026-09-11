@@ -12,7 +12,6 @@ use App\Filament\App\Resources\NotificationLogResource;
 use App\Filament\App\Resources\StaffResource;
 use App\Filament\App\Resources\WebhookEndpointResource;
 use App\Support\Tenancy;
-use Filament\Navigation\NavigationItem;
 use Filament\Pages\Page;
 use Filament\Resources\Resource;
 use Illuminate\Contracts\Support\Htmlable;
@@ -50,13 +49,16 @@ class Settings extends Page
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
 
     /**
-     * Straight after the dashboard.
+     * Not in the menu itself: pinned to the very bottom of the sidebar instead.
      *
-     * Filament places ungrouped items above every group, so this either sits
-     * at the top or needs a group of its own, and a group holding a single
-     * item that repeats its own heading is worse than the top.
+     * The product owner's placement (2026-09-11), and the usual one — settings
+     * are what you go looking for, not what you do every morning. Filament
+     * always places ungrouped items above every group, so a registered item
+     * could only ever sit at the top. `PanelRenderHooks` draws this one in the
+     * sidebar's footer, with Filament's own item component, so it looks and
+     * behaves like every other entry (badge, active state, collapsed tooltip).
      */
-    protected static ?int $navigationSort = -1;
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static string $view = 'filament.app.pages.settings';
 
@@ -156,21 +158,14 @@ class Settings extends Page
     }
 
     /**
-     * The sidebar item stays lit while the operator is inside any of the cards.
+     * Whether the sidebar item should be lit: on this page, or inside any card.
      *
      * Without this, opening «Επωνυμία» from here would leave nothing in the
      * sidebar highlighted, and the operator could not tell where they are.
-     *
-     * @return array<NavigationItem>
      */
-    public static function getNavigationItems(): array
+    public static function isCurrent(): bool
     {
-        return array_map(
-            static fn (NavigationItem $item): NavigationItem => $item->isActiveWhen(
-                static fn (): bool => request()->routeIs(self::activeRoutePatterns()),
-            ),
-            parent::getNavigationItems(),
-        );
+        return request()->routeIs(self::activeRoutePatterns());
     }
 
     /**

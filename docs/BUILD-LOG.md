@@ -48,7 +48,9 @@ Each entry records the **verification actually run** and its **real output** —
 
 ## «Ρυθμίσεις» became a page of cards (product owner, 2026-09-11)
 
-The collapsed third sidebar group from #127 held fifteen screens with no word of explanation between them. It is now **one item** leading to `/app/settings`: fifteen cards in four sections — the business, what guests see, history and files, for the advanced — each with the screen's own icon and title and one plain line saying what it is for. The whole card is the link; the grid runs from one column on a phone to three at 1280px and four at 1536px, measured against the content area rather than the viewport, so an open sidebar is accounted for.
+The collapsed third sidebar group from #127 held fifteen screens with no word of explanation between them. It is now **one item** leading to `/app/settings`: fifteen cards in four sections — the business, what guests see, history and files, for the advanced — each with the screen's own icon and title and one plain line saying what it is for. The whole card is the link, and the cards are **squares** — icon at the top, title and line beneath — four to a row from a laptop up, three on a tablet, two on a phone. That is the third layout of the day: wide cards four to a row, then bigger ones three to a row, then squares four to a row, each the product owner's call after seeing the last. Measured against the content area rather than the viewport, so an open sidebar is accounted for; a square grows taller rather than clipping when a Greek description needs another line.
+
+**The item sits at the very bottom of the sidebar**, also the product owner's placement. Filament puts every ungrouped item above the groups, so a registered menu item could only ever be at the top; `Settings` is therefore unregistered and drawn in `SIDEBAR_FOOTER` — outside the scrolling menu, pinned to the bottom — with Filament's own `sidebar.item` component, so its badge, active state and collapsed tooltip match every other entry.
 
 ### The hub keeps no role list of its own
 

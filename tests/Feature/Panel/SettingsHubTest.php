@@ -166,7 +166,25 @@ it('puts the hub itself in an owner\'s sidebar', function (): void {
     });
 
     // The rendered menu, not a predicate: this is what an operator sees.
-    actingAs($owner)->get('/app')->assertSuccessful()->assertSee(Settings::getUrl(), escape: false);
+    $html = (string) actingAs($owner)->get('/app?lang=el')->assertSuccessful()->getContent();
+
+    // At the very bottom, in the sidebar's footer, below the last group — the
+    // product owner's placement. Filament would put a registered ungrouped
+    // item at the top, which is why this is a render hook and not a menu item.
+    $footer = strpos($html, 'ka-sidebar-settings');
+    // Escaped, because the label is «Εκδρομές & σκάφη» and the page says `&amp;`.
+    $lastGroup = strrpos($html, e(__('panel.groups.catalogue', [], 'el')));
+
+    expect($footer)->not->toBeFalse()
+        ->and($lastGroup)->not->toBeFalse()
+        ->and($footer)->toBeGreaterThan($lastGroup)
+        ->and(substr($html, (int) $footer, 2000))->toContain(Settings::getUrl());
+})->group('fast');
+
+it('leaves the hub out of the sidebar of somebody with no card to open', function (): void {
+    $crew = OperatorUser::withRole(Role::Crew);
+
+    actingAs($crew)->get('/app')->assertSuccessful()->assertDontSee('ka-sidebar-settings', escape: false);
 })->group('fast');
 
 it('offers the way back to the hub from a screen it leads to', function (): void {
