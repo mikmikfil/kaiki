@@ -23,6 +23,8 @@ return [
     'subtitle' => 'Scan a ticket, or search today\'s passengers.',
     // For an operator with QR boarding switched off: the list is the page.
     'subtitle_list' => 'Today\'s passengers. Tap «Check in» beside each one as they board.',
+    // The offline page works only once it has been loaded, so the link says when.
+    'offline_link' => 'No signal on the quay? Open this page before you leave the office.',
 
     'scan' => [
         'label' => 'Ticket code',

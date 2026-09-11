@@ -17,8 +17,8 @@ return [
 
     'title' => 'Boarding',
 
-    'online' => 'ONLINE',
-    'offline' => 'NO SIGNAL',
+    'online' => 'Online',
+    'offline' => 'No signal',
 
     'placeholder' => 'Ticket code',
     'scan' => 'Scan',
@@ -28,12 +28,14 @@ return [
     'already' => 'Already aboard',
     'unknown' => 'Unknown code',
 
-    'queue_one' => '1 scan waiting for a signal.',
-    'queue_count' => ':count scans waiting for a signal.',
+    // "Boardings" rather than "scans": a tapped name queues the same way.
+    'queue_one' => '1 boarding waiting for a signal.',
+    'queue_count' => ':count boardings waiting for a signal.',
     'synced' => 'All sent.',
 
     'aboard' => 'Aboard',
     'waiting' => 'Expected',
+    'board' => 'Board',
 
     'unnamed' => 'No name',
 

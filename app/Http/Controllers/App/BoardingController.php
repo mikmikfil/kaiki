@@ -78,6 +78,10 @@ class BoardingController
         abort_unless(self::permitted(), 403);
 
         return view('app.boarding', [
+            // Off (BKG-20, amended 2026-09-11): no scan box and no `?ticket=`,
+            // and the page is the list with a button per name — which is what
+            // a small operator on a quay with no signal needs most.
+            'qrEnabled' => CheckIn::qrEnabled(),
             'manifest' => $this->manifest(),
             'generatedAt' => Carbon::now()->toIso8601String(),
             'tenantId' => Tenancy::id(),
@@ -216,16 +220,13 @@ class BoardingController
     /**
      * TEN-8's crew capability, asserted explicitly — a route has no policy.
      *
-     * A 404 rather than a 403 for an operator with QR boarding switched off
-     * (BKG-20, amended 2026-09-11): the page does not exist for them, and a
-     * crew member arriving from an old QR is not being refused anything.
+     * Open whether or not the operator scans. The first version answered 404
+     * with QR boarding off, which took away the only boarding that works with
+     * no signal from exactly the operators least likely to have one. A tapped
+     * name posts its guest's ticket code through the same queue a scan does.
      */
     private static function permitted(): bool
     {
-        if (Tenancy::check() && ! CheckIn::qrEnabled()) {
-            abort(404);
-        }
-
         return Tenancy::check()
             && (Auth::user()?->hasCapability(Capability::CheckInGuests) ?? false);
     }

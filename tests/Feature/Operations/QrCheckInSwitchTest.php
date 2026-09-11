@@ -34,7 +34,8 @@ use Tests\Support\OperatorUser;
 | leaving the others would be a ticket whose QR scans to a 404:
 |
 | - the ticket carries **no** QR and no ticket code under it;
-| - the offline boarding page, its scan endpoint and its service worker 404;
+| - the offline boarding page loses its scan box and ignores `?ticket=`, and
+|   keeps the list with a button per name, queued offline like a scan;
 | - the check-in page loses the scan box and ignores `?ticket=`, and keeps the
 |   list with a tap per name — check-in itself is not optional, the scan is.
 |
@@ -74,19 +75,61 @@ it('reads an operator with no value as scanning, because that is every operator 
         ->and(Tenant::factory()->withoutQrCheckIn()->create()->usesQrCheckIn())->toBeFalse();
 })->group('fast');
 
-it('answers 404 on the boarding page, its scan endpoint and its worker when QR is off', function (): void {
+it('keeps the no-signal page without QR, as a list with a button per name', function (): void {
     [$tenant, $crew, $guest] = qrSwitchCrew(qr: false);
 
-    actingAs($crew)->get(route('filament.app.boarding'))->assertNotFound();
-    actingAs($crew)->get(route('filament.app.boarding.sw'))->assertNotFound();
-    actingAs($crew)
-        ->postJson(route('filament.app.boarding.scan'), ['scans' => [['ticket_code' => 'TCK-QR-SWITCH']]])
-        ->assertNotFound();
+    // The first version answered 404 here, which took the only boarding that
+    // works with no signal away from the operators least likely to have one.
+    $body = (string) actingAs($crew)->get(route('filament.app.boarding'))->assertOk()->getContent();
 
-    // Nobody boarded by a scan the operator does not do.
+    expect($body)->toContain('Νίκος Αλεξίου')
+        ->and($body)->toContain('TCK-QR-SWITCH')
+        ->and($body)->not->toContain('id="scanForm"')
+        // An old QR's `?ticket=` is ignored by the page's script, not acted on.
+        ->and($body)->toContain('var QR_ENABLED = false');
+
+    actingAs($crew)->get(route('filament.app.boarding.sw'))->assertOk();
+
+    // A tapped name posts its guest's code through the same queue a scan uses,
+    // and the same Action decides.
+    $tap = actingAs($crew)
+        ->postJson(route('filament.app.boarding.scan'), ['scans' => [['ticket_code' => 'TCK-QR-SWITCH']]])
+        ->assertOk();
+
+    expect($tap->json('results.0.status'))->toBe('checked_in');
+
     Tenancy::forTenant($tenant, function () use ($guest): void {
-        expect($guest->fresh()->checked_in_at)->toBeNull();
+        expect($guest->fresh()->checked_in_at)->not->toBeNull();
     });
+})->group('fast');
+
+it('keeps the scan box on the no-signal page for an operator who scans', function (): void {
+    [, $crew] = qrSwitchCrew(qr: true);
+
+    $body = (string) actingAs($crew)->get(route('filament.app.boarding'))->assertOk()->getContent();
+
+    expect($body)->toContain('id="scanForm"')->toContain('var QR_ENABLED = true');
+})->group('fast');
+
+it('offers early boarding from the list, before the window opens', function (): void {
+    [$tenant, $crew, $guest] = qrSwitchCrew(qr: false);
+
+    // Two hours out: the window (thirty minutes by default) has not opened, so
+    // a plain tap would be refused. Until this fix the override existed only
+    // beside a scanned ticket — without QR there was no way to board early,
+    // while the refusal message said a manager could.
+    Tenancy::forTenant($tenant, function () use ($guest): void {
+        $guest->booking?->forceFill([
+            'starts_at_utc' => Carbon::now()->addHours(2),
+            'ends_at_utc' => Carbon::now()->addHours(5),
+        ])->save();
+    });
+
+    actingAs($crew)
+        ->get(route('filament.app.pages.check-in', ['lang' => 'el']))
+        ->assertOk()
+        ->assertSee(__('checkin.actions.override.label', [], 'el'))
+        ->assertSee(__('checkin.offline_link', [], 'el'));
 })->group('fast');
 
 it('keeps the passenger list and drops the scan box when QR is off', function (): void {

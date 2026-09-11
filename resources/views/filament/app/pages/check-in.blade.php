@@ -95,12 +95,20 @@
     <x-filament::section :heading="__('checkin.today.heading')">
         @php($bookings = $this->todaysBookings())
 
+        {{-- The way to the page that works without a signal. It used to be
+             reached only through a ticket's QR, which an operator without QR
+             boarding does not print. --}}
+        <p class="mb-3 text-sm">
+            <a href="{{ route('filament.app.boarding') }}" class="font-medium text-primary-600 underline">{{ __('checkin.offline_link') }}</a>
+        </p>
+
         @if ($bookings->isEmpty())
             <p class="text-sm">{{ __('checkin.today.none') }}</p>
         @else
             <div class="flex flex-col gap-4">
                 @foreach ($bookings as $booking)
                     @php($guests = $booking->guests->sortBy('position'))
+                    @php($early = $this->isEarly($booking))
                     <div class="rounded-lg border border-gray-200 p-3">
                         <div class="flex items-baseline justify-between gap-2">
                             <span class="font-medium">{{ $booking->product?->title }}</span>
@@ -132,7 +140,13 @@
                                         </span>
                                     @else
                                         <span class="flex gap-1">
-                                            {{ ($this->checkInAction)(['guest' => $guest->getKey()]) }}
+                                            {{-- Before the window opens a plain tap is refused,
+                                                 so the row offers the way that is not. --}}
+                                            @if ($early)
+                                                {{ ($this->overrideAction)(['guest' => $guest->getKey()]) }}
+                                            @else
+                                                {{ ($this->checkInAction)(['guest' => $guest->getKey()]) }}
+                                            @endif
                                             {{ ($this->noShowAction)(['guest' => $guest->getKey()]) }}
                                         </span>
                                     @endif

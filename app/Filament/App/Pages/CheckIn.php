@@ -170,6 +170,20 @@ class CheckIn extends Page
             ->get();
     }
 
+    /**
+     * Whether this booking's window has yet to open — the list then offers
+     * early boarding with a reason instead of a plain tap that would be refused.
+     *
+     * Until 2026-09-11 the override lived only beside a scanned ticket, so
+     * somebody boarding from the list — every operator without QR, and anyone
+     * whose guest forgot the ticket — was told "a manager can check in early
+     * with a reason" and shown no button to do it.
+     */
+    public function isEarly(Booking $booking): bool
+    {
+        return CheckInWindow::forBooking($booking, $booking->product)->isEarly();
+    }
+
     /** The window, as a crew member reads it. */
     public function windowFor(Booking $booking): string
     {

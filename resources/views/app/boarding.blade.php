@@ -110,6 +110,17 @@
         .who b { display: block; font-size: .95rem; }
         .who span { font-size: .78rem; color: var(--soft); }
 
+        /* One per name, for boarding without a ticket in hand — and the only
+           control on the page for an operator without QR. 44px tall at least,
+           the smallest thing a thumb hits reliably. */
+        .board {
+            flex: none;
+            font-size: .9rem; font-weight: 600;
+            min-height: 44px; padding: .5rem .95rem;
+            background: var(--sea); color: #fff;
+            border: 0; border-radius: 10px;
+        }
+
         .tick { font-size: .78rem; font-weight: 600; white-space: nowrap; }
         .tick.yes { color: var(--ok); }
         .tick.no { color: var(--soft); }
@@ -125,6 +136,9 @@
 </header>
 
 <main>
+    {{-- No scan box for an operator without QR boarding: their tickets carry
+         no code to scan. The list below is the whole page. --}}
+    @if ($qrEnabled)
     <form class="scan" id="scanForm" autocomplete="off">
         <input id="code"
                name="code"
@@ -136,6 +150,7 @@
                aria-label="{{ __('boarding.placeholder') }}">
         <button type="submit">{{ __('boarding.scan') }}</button>
     </form>
+    @endif
 
     <div id="result" role="status" aria-live="polite"></div>
 
@@ -163,6 +178,10 @@
     var byCode = {};
     manifest.forEach(function (row) { byCode[row.ticket_code] = row; });
 
+    // Whether this operator scans at all. Off, there is no scan box and a
+    // `?ticket=` from an old QR is ignored rather than acted on.
+    var QR_ENABLED = @json($qrEnabled);
+
     var DB_NAME = 'kaiki-boarding-{{ $tenantId }}';
     var STORE = 'queue';
 
@@ -183,7 +202,8 @@
         queueCount: @json(__('boarding.queue_count')),
         synced: @json(__('boarding.synced')),
         aboard: @json(__('boarding.aboard')),
-        waiting: @json(__('boarding.waiting'))
+        waiting: @json(__('boarding.waiting')),
+        board: @json(__('boarding.board'))
     };
 
     /* ---------------------------------------------------------------
@@ -261,12 +281,26 @@
             who.appendChild(name);
             who.appendChild(sub);
 
-            var tick = document.createElement('span');
-            tick.className = 'tick ' + (row.checked_in ? 'yes' : 'no');
-            tick.textContent = row.checked_in ? T.aboard : T.waiting;
-
             li.appendChild(who);
-            li.appendChild(tick);
+
+            if (row.checked_in) {
+                var tick = document.createElement('span');
+                tick.className = 'tick yes';
+                tick.textContent = T.aboard;
+                li.appendChild(tick);
+            } else {
+                // A button, not a tappable row: a thumb scrolling a list of
+                // forty names must not board somebody by brushing past them.
+                // It goes through `scan()`, so a tap is queued offline and
+                // reconciled by the server exactly as a scan is.
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'board';
+                btn.textContent = T.board;
+                btn.addEventListener('click', function () { scan(row.ticket_code); });
+                li.appendChild(btn);
+            }
+
             list.appendChild(li);
         });
     }
@@ -341,6 +375,12 @@
                 (payload.results || []).forEach(function (res) {
                     var row = byCode[res.ticket_code];
                     if (row) { row.checked_in = res.status === 'checked_in' || res.status === 'already'; }
+
+                    // Refused — usually a tap before the window opens. The
+                    // optimistic tick is withdrawn above, and the reason is the
+                    // server's own Greek sentence (CNV-11), so crew know what
+                    // to do next rather than watching a tick vanish.
+                    if (res.status === 'refused') { say('bad', res.message || T.unknown, res.guest || ''); }
                 });
 
                 render();
@@ -364,12 +404,14 @@
         if (on) { sync(); }
     }
 
-    document.getElementById('scanForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-        scan(codeInput.value);
-        codeInput.value = '';
-        codeInput.focus();
-    });
+    if (codeInput) {
+        document.getElementById('scanForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            scan(codeInput.value);
+            codeInput.value = '';
+            codeInput.focus();
+        });
+    }
 
     window.addEventListener('online', net);
     window.addEventListener('offline', net);
@@ -379,12 +421,12 @@
 
     // A QR scanned with the camera lands here with the code in the query.
     var fromUrl = new URLSearchParams(location.search).get('ticket');
-    if (fromUrl) { scan(fromUrl); }
+    if (QR_ENABLED && fromUrl) { scan(fromUrl); }
 
     render();
     showQueue();
     net();
-    codeInput.focus();
+    if (codeInput) { codeInput.focus(); }
 
     if ('serviceWorker' in navigator) {
         // Scoped to this path by where it is served from, so nothing else in

@@ -46,6 +46,28 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## Boarding without a QR, finished — and two gaps the first version left
+
+Walking the boarding flow step by step for the product owner, after the QR switch landed, found two things it had got wrong.
+
+### The no-signal page was switched off with the QR, and it should not have been
+
+The QR entry below made `/app/boarding`, its scan endpoint and its worker answer **404** with QR off. That took the only boarding that works with no signal away from exactly the operators least likely to have one — a small boat, a small quay. The page stays now, for everyone. Without QR it loses the scan box and ignores `?ticket=` (`QR_ENABLED` in its script), and every name that is not yet aboard carries a **«Επιβίβαση» button** — a button rather than a tappable row, so a thumb scrolling forty names cannot board somebody by brushing past. The tap goes through the page's existing `scan()`, so it is queued in IndexedDB and reconciled by `CheckInGuest` exactly as a scan is; no new endpoint and no new domain logic. A refused tap now shows the server's Greek reason rather than a tick silently disappearing. The check-in page links to it, because until now the only way in was a ticket's QR.
+
+### Early boarding existed only beside a scanned ticket
+
+BKG-22's override — board before the window with a reason — was rendered only in the scanned-guest panel. The list offered «Επιβίβαση» and «Δεν εμφανίστηκε»; tapping «Επιβίβαση» early was refused with *"a manager can check in early with a reason"*, and there was no button to do it. Every operator without QR, and anyone whose guest forgot the ticket, had no early boarding at all. Each row now offers «Πρόωρη επιβίβαση» instead of «Επιβίβαση» while the booking's window is still shut (`CheckIn::isEarly()`), for everyone.
+
+### And the no-signal badge read «ΣΕ ΣΥΝΔΕΣΗ»
+
+Uppercase Greek in a lang file, against I18N-2 and the settled design rule. «Σε σύνδεση» / «Χωρίς σήμα» now.
+
+### Verification
+
+`QrCheckInSwitchTest` — the 404 test replaced by three: the no-signal page without QR is the list with no scan form, `QR_ENABLED = false`, and a tapped code checks the guest in; the scan form is still there for an operator who scans; a booking two hours out shows «Πρόωρη επιβίβαση» in the list and the link to the no-signal page. Results below in the commit.
+
+---
+
 ## «Ρυθμίσεις» became a page of cards (product owner, 2026-09-11)
 
 The collapsed third sidebar group from #127 held fifteen screens with no word of explanation between them. It is now **one item** leading to `/app/settings`: fifteen cards in four sections — the business, what guests see, history and files, for the advanced — each with the screen's own icon and title and one plain line saying what it is for. The whole card is the link, and the cards are **squares** — icon at the top, title and line beneath — four to a row from a laptop up, three on a tablet, two on a phone. That is the third layout of the day: wide cards four to a row, then bigger ones three to a row, then squares four to a row, each the product owner's call after seeing the last. Measured against the content area rather than the viewport, so an open sidebar is accounted for; a square grows taller rather than clipping when a Greek description needs another line.
