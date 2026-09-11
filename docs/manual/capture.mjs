@@ -71,6 +71,9 @@ const PEOPLE = {
  */
 const PANEL_SHOTS = [
   ['dashboard', '/app'],
+  // «Ρυθμίσεις» since 2026-09-11: one item at the bottom of the sidebar,
+  // opening a page of cards rather than a collapsed group of fifteen links.
+  ['settings', '/app/settings'],
   ['departures', '/app/departures'],
   ['bookings', '/app/bookings'],
   ['calendar', '/app/calendar'],
@@ -111,10 +114,25 @@ const CREW_PHONE_SHOTS = [
   ['crew-dashboard-phone', '/app'],
 ];
 
+/** The owner's settings cards on a phone — two to a row, which is the point of squares. */
+const OWNER_PHONE_SHOTS = [
+  ['settings-phone', '/app/settings'],
+];
+
+/**
+ * The third element, when present, is a selector to scroll to before the shot.
+ *
+ * The operator edit form's «Λειτουργίες» section — the QR boarding switch —
+ * sits below the fold at 860px, and a shot of the top of the form would show
+ * the plan and the status and not the thing the chapter is about.
+ */
+// `?lang=el` because the demo platform admin's own language is English, and a
+// Greek manual with English admin screens reads as two products.
 const ADMIN_SHOTS = [
-  ['admin-dashboard', '/admin'],
-  ['admin-tenants', '/admin/tenants'],
-  ['admin-vat-rates', '/admin/vat-rates'],
+  ['admin-dashboard', '/admin?lang=el'],
+  ['admin-tenants', '/admin/tenants?lang=el'],
+  ['admin-tenant-edit', '/admin/tenants/1/edit?lang=el', '[id="data.qr_check_in_enabled"]'],
+  ['admin-vat-rates', '/admin/vat-rates?lang=el'],
 ];
 
 const GUEST_SHOTS = [
@@ -157,12 +175,21 @@ async function settle(page) {
   await page.waitForTimeout(700);
 }
 
-async function shoot(context, name, url, base) {
+async function shoot(context, name, url, base, scrollTo = null) {
   const page = await context.newPage();
 
   try {
     await page.goto(base + url, { waitUntil: 'domcontentloaded' });
     await settle(page);
+
+    if (scrollTo) {
+      // A selector rather than label text: the admin's own locale decides the
+      // label, and a Greek string never matches an English page.
+      await page.locator(scrollTo).first()
+        .evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      await page.waitForTimeout(300);
+    }
+
     await page.screenshot({ path: resolve(OUT, `${name}.jpg`), type: 'jpeg', quality: 78 });
     process.stdout.write(`  ${name}\n`);
 
@@ -221,6 +248,27 @@ mkdirSync(OUT, { recursive: true });
   await context.close();
 }
 
+// The owner, on a phone — the settings cards at 390px.
+{
+  const context = await browser.newContext({
+    viewport: PHONE,
+    deviceScaleFactor: 3,
+    isMobile: true,
+    hasTouch: true,
+    locale: 'el-GR',
+    timezoneId: 'Europe/Athens',
+  });
+
+  await signIn(context, PEOPLE.owner, 'app');
+  process.stdout.write('owner, 390×844:\n');
+
+  for (const [name, url] of OWNER_PHONE_SHOTS) {
+    taken.push(await shoot(context, name, url, PANEL));
+  }
+
+  await context.close();
+}
+
 // The platform operator — a different panel and a different person.
 {
   const context = await browser.newContext({
@@ -233,8 +281,8 @@ mkdirSync(OUT, { recursive: true });
   await signIn(context, PEOPLE.admin, 'admin');
   process.stdout.write('platform admin, 1280×860:\n');
 
-  for (const [name, url] of ADMIN_SHOTS) {
-    taken.push(await shoot(context, name, url, PANEL));
+  for (const [name, url, scrollTo] of ADMIN_SHOTS) {
+    taken.push(await shoot(context, name, url, PANEL, scrollTo));
   }
 
   await context.close();

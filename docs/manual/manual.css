@@ -240,10 +240,11 @@ ol.steps > li::before {
 
 .note .label, .warn .label {
     display: block;
-    font-size: 8pt;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    font-size: 8.6pt;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    /* No `text-transform: uppercase`, here or anywhere in this file: uppercasing
+       Greek strips the accents (I18N-2) — «ΟΧΙ ΣΤΗ ΜΕΣΗ» for «όχι στη μέση». */
     color: var(--hull);
     margin-bottom: 1mm;
 }
@@ -267,9 +268,8 @@ tr { break-inside: avoid; }
 th {
     text-align: start;
     font-weight: 600;
-    font-size: 8.4pt;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    font-size: 8.8pt;
+    letter-spacing: 0.01em;
     color: var(--muted);
     border-bottom: 1pt solid var(--hull);
     padding: 0 2.5mm 1.5mm 0;
@@ -294,10 +294,9 @@ tbody tr:last-child td { border-bottom: none; }
 
 .part .num {
     font-family: var(--mono);
-    font-size: 9pt;
+    font-size: 10pt;
     font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
+    letter-spacing: 0.04em;
     color: var(--rust);
     display: block;
     margin-bottom: 3mm;

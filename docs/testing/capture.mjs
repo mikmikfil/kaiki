@@ -70,17 +70,20 @@ const page = await ctx.newPage();
 console.log('Operator for this run:', OPERATOR.slug);
 
 // --- 1. the platform admin signs in ----------------------------------
-await page.goto(`${PANEL}/admin/login`, { waitUntil: 'networkidle' });
+// `?lang=el` throughout the admin half: the demo platform admin's own language
+// is English, and this is a Greek document.
+await page.goto(`${PANEL}/admin/login?lang=el`, { waitUntil: 'networkidle' });
 await shot(page, '01-admin-login');
 
 await page.locator('[id="data.email"]').fill('admin@kaiki.example');
 await page.locator('[id="data.password"]').fill('password');
 await page.locator('form button[type=submit]').first().click();
 await page.waitForTimeout(2500);
+await page.goto(`${PANEL}/admin/tenants?lang=el`, { waitUntil: 'networkidle' });
 await shot(page, '02-admin-tenants');
 
 // --- 2. a new operator ------------------------------------------------
-await page.goto(`${PANEL}/admin/tenants/create`, { waitUntil: 'networkidle' });
+await page.goto(`${PANEL}/admin/tenants/create?lang=el`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1200);
 
 await page.locator('[id="data.name"]').fill(OPERATOR.name);
@@ -96,6 +99,24 @@ await shot(page, '03-new-operator-form');
 await page.locator('.fi-form-actions button[type=submit]').first().click();
 await page.waitForTimeout(3500);
 await shot(page, '04-operator-created');
+
+// --- 2b. the features a small operator may not want ------------------
+//
+// The operator's edit form, scrolled to «Λειτουργίες» — the QR boarding switch
+// the walkthrough asks the reader to decide with the operator (2026-09-11).
+// The id is read the way a person would find it, from the operator's slug.
+const { execSync: exec } = await import('node:child_process');
+const tenantId = exec(
+  `php artisan tinker --execute="echo App\\Models\\Tenant::where('slug','${OPERATOR.slug}')->value('id');"`,
+  { cwd: resolve(HERE, '..', '..'), encoding: 'utf8' },
+).trim().split(/\s+/).pop();
+
+await page.goto(`${PANEL}/admin/tenants/${tenantId}/edit?lang=el`, { waitUntil: 'networkidle' });
+await page.waitForTimeout(1200);
+// By the field's id, not its label: the label follows the admin's locale.
+await page.locator('[id="data.qr_check_in_enabled"]').first()
+  .evaluate((el) => el.scrollIntoView({ block: 'center' }));
+await shot(page, '04b-operator-features', '.fi-section:has([id="data.qr_check_in_enabled"])');
 
 // --- 3. the owner sets a password and signs in ------------------------
 //
@@ -158,6 +179,14 @@ for (const [name, path] of [
   await owner.waitForTimeout(1800);
   await shot(owner, name);
 }
+
+// --- 6. «Ρυθμίσεις», at the bottom of the menu -----------------------
+//
+// Every "Ρυθμίσεις → …" step in the walkthrough starts here since 2026-09-11:
+// one item at the foot of the sidebar, opening a page of cards.
+await owner.goto(`${PANEL}/app/settings`, { waitUntil: 'networkidle' });
+await owner.waitForTimeout(1800);
+await shot(owner, '14-settings-hub');
 
 await browser.close();
 
