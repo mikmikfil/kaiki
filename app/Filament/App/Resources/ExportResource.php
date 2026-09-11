@@ -6,6 +6,7 @@ namespace App\Filament\App\Resources;
 
 use App\Enums\ExportStatus;
 use App\Enums\ExportType;
+use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\ExportResource\Pages;
 use App\Jobs\RunExportJob;
 use App\Models\ExportJob;
@@ -50,6 +51,9 @@ class ExportResource extends Resource
     protected static ?string $model = ExportJob::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-down-tray';
+
+    /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?int $navigationSort = 62;
 

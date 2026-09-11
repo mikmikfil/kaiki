@@ -8,6 +8,7 @@ use App\Domain\Tenancy\Actions\RevokeApiKey;
 use App\Enums\ApiKeyEnvironment;
 use App\Enums\ApiKeyType;
 use App\Enums\ApiScope;
+use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\ApiKeyResource\Pages;
 use App\Models\ApiKey;
 use Closure;
@@ -44,6 +45,9 @@ class ApiKeyResource extends Resource
     protected static ?string $model = ApiKey::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-key';
+
+    /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?int $navigationSort = 30;
 

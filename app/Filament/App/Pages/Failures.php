@@ -61,6 +61,9 @@ class Failures extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-exclamation-triangle';
 
+    /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static string $view = 'filament.app.pages.failures';
 
     /** Below the notification log it partly supersedes, above the exports. */

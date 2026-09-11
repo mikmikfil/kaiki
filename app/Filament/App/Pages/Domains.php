@@ -66,6 +66,9 @@ class Domains extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-globe-alt';
 
+    /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?int $navigationSort = 91;
 
     protected static string $view = 'filament.app.pages.domains';

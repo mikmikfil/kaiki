@@ -10,6 +10,7 @@ use App\Enums\NotificationChannel;
 use App\Enums\NotificationProvider;
 use App\Enums\NotificationStatus;
 use App\Enums\NotificationTemplate;
+use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\NotificationLogResource\Pages;
 use App\Models\NotificationLog;
 use App\Support\Tenancy;
@@ -56,6 +57,9 @@ class NotificationLogResource extends Resource
     protected static ?string $model = NotificationLog::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-envelope';
+
+    /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?int $navigationSort = 60;
 

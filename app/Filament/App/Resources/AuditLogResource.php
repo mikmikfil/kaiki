@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources;
 
 use App\Enums\AuditAction;
+use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\AuditLogResource\Pages;
 use App\Models\AuditLog;
 use App\Models\User;
@@ -54,6 +55,9 @@ class AuditLogResource extends Resource
     protected static ?string $model = AuditLog::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
+
+    /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?int $navigationSort = 40;
 

@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources;
 use App\Domain\Tenancy\Actions\InviteStaffMember;
 use App\Enums\Role;
 use App\Exceptions\LastOwnerException;
+use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\StaffResource\Pages;
 use App\Models\User;
 use App\Support\Authorization\Capability;
@@ -65,6 +66,9 @@ class StaffResource extends Resource
     protected static ?string $model = User::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
+
+    /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?int $navigationSort = 10;
 

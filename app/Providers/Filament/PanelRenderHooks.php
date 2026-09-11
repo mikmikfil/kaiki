@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers\Filament;
 
 use App\Domain\Hosted\Support\HostedUrl;
+use App\Filament\App\Pages\Settings;
 use App\Models\Tenant;
 use App\Support\Locale\LocaleOptions;
 use App\Support\Tenancy;
@@ -55,6 +56,17 @@ final class PanelRenderHooks
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
             static fn (): View => view('filament.touch-targets'),
+        );
+
+        // The way back to «Ρυθμίσεις», on every screen its cards lead to.
+        // Scoped by class, and a resource's own class is in the scope of all
+        // its pages (`Resources\Pages\Page::getRenderHookScopes`), so list,
+        // create and edit get it alike. `getUrl()` is resolved at render time,
+        // inside the panel, not here at boot.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::PAGE_START,
+            static fn (): View => view('filament.app.settings-hub-back', ['url' => Settings::getUrl()]),
+            scopes: Settings::destinations(),
         );
 
         // Login and password reset render a "simple page" with no topbar. This

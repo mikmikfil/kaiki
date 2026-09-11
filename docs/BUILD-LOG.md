@@ -46,6 +46,31 @@ Each entry records the **verification actually run** and its **real output** —
 
 ---
 
+## «Ρυθμίσεις» became a page of cards (product owner, 2026-09-11)
+
+The collapsed third sidebar group from #127 held fifteen screens with no word of explanation between them. It is now **one item** leading to `/app/settings`: fifteen cards in four sections — the business, what guests see, history and files, for the advanced — each with the screen's own icon and title and one plain line saying what it is for. The whole card is the link; the grid runs from one column on a phone to three at 1280px and four at 1536px, measured against the content area rather than the viewport, so an open sidebar is accounted for.
+
+### The hub keeps no role list of its own
+
+A card appears only when its screen's own `canAccess()` says yes, so it cannot drift from TEN-8. A manager gets no «Συνδέσεις» and no «Πληρωμές»; crew get no cards, so no sidebar item, and `/app/settings` answers 403. `SettingsHubTest` compares the cards shown to each role against what each target screen answers for that role, rather than against a second hard-coded list.
+
+### Not a Filament cluster, on purpose
+
+A cluster would have moved every screen under `/app/settings/…` and broken the manual's links, the testing walkthrough's and people's bookmarks. The fifteen screens keep their addresses, leave only the sidebar (`$shouldRegisterNavigation = false`), and each gets a «Πίσω στις ρυθμίσεις» link through one render hook scoped to exactly those pages. The sidebar item stays active inside any of them.
+
+### The failure badge moved with its screen
+
+«Τι πήγε στραβά» carried the only red badge in the old group. It now sits on the «Ρυθμίσεις» item and on its card, so a bad morning is still visible from the sidebar — and it still answers null when no tenant is resolved, which `NavigationBadgeTest` asserts.
+
+### Verification
+
+- `tests/Feature/Panel/SettingsHubTest.php` — **11 tests, 84 assertions**.
+- `tests/Feature/Panel`, `tests/Feature/Operations`, `tests/Feature/I18n` together: **578 passed** (2206 assertions). `composer stan`: no errors across 1129 files. `composer lint:test`: passed.
+- Looked at in a browser at 1280, 1536 and 390 pixels, and one target screen with the back link.
+- **Not done:** the operator manual has no `/app/settings` screenshot yet; `docs/manual/capture.mjs` needs a shot and the PDF a rebuild.
+
+---
+
 ## QR boarding becomes the platform's switch (BKG-20, amended 2026-09-11)
 
 Asked for by the product owner while deciding which functions a small operator — one boat, local trips — would never use. The QR was the first one taken out, and it is **his** switch rather than the operator's: it sits on the `/admin` edit screen beside the plan and the sandbox flag.

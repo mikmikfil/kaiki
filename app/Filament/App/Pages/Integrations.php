@@ -58,6 +58,9 @@ class Integrations extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-puzzle-piece';
 
+    /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?int $navigationSort = 95;
 
     protected static string $view = 'filament.app.pages.integrations';

@@ -57,6 +57,9 @@ class CalendarSync extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-path-rounded-square';
 
+    /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?int $navigationSort = 66;
 
     protected static string $view = 'filament.app.pages.calendar-sync';

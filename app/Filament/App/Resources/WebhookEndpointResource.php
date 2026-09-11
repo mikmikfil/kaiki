@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources;
 use App\Domain\Webhooks\EventRegistry;
 use App\Domain\Webhooks\Support\SafeUrl;
 use App\Enums\WebhookEvent;
+use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\WebhookEndpointResource\Pages;
 use App\Filament\App\Resources\WebhookEndpointResource\RelationManagers\DeliveriesRelationManager;
 use App\Jobs\DeliverWebhook;
@@ -52,6 +53,9 @@ class WebhookEndpointResource extends Resource
     protected static ?string $model = WebhookEndpoint::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-bolt';
+
+    /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
+    protected static bool $shouldRegisterNavigation = false;
 
     /** Beside the API keys: both are how somebody else's software reaches this one. */
     protected static ?int $navigationSort = 32;

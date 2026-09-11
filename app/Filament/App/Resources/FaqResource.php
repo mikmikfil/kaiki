@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources;
 
 use App\Filament\App\Pages\HomePage;
+use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\FaqResource\Pages;
 use App\Filament\Forms\TranslatableInput;
 use App\Models\Faq;
@@ -58,6 +59,9 @@ class FaqResource extends Resource
     protected static ?string $model = Faq::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-question-mark-circle';
+
+    /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?int $navigationSort = 89;
 

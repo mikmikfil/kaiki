@@ -62,6 +62,9 @@ class HomePage extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-home-modern';
 
+    /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?int $navigationSort = 88;
 
     protected static string $view = 'filament.app.pages.home-page';
