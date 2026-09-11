@@ -1,4 +1,4 @@
-<#
+﻿<#
     Kaiki — start everything the testing week needs, on one machine.
 
         powershell -ExecutionPolicy Bypass -File tools\start-testing.ps1
