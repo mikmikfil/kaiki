@@ -150,12 +150,47 @@ final class GetBrandPayload
             . ':wght@400;500;600;700&display=swap';
     }
 
+    /**
+     * A brand asset's URL — **signed**, because the disk it lives on refuses
+     * anything else.
+     *
+     * SEC-13: *"All uploads are validated by content type and magic bytes,
+     * stored outside the web root, and served through a signed URL."* The disk
+     * is configured for exactly that — `storage/app/private` with Laravel's
+     * `serve` route in front of it — and this method asked it for `url()`,
+     * which is the unsigned path. The route answers that with **403**.
+     *
+     * Every operator logo, dark logo, favicon and email header was therefore a
+     * broken image: on the hosted pages, in the widget, and in
+     * `GET /api/v1/branding`. Nobody had noticed because until the first real
+     * catalogue was loaded on 14 September, no brand profile in any database
+     * here had an asset on it — there was never an image to be broken.
+     *
+     * ## The expiry
+     *
+     * A day, not the payload's sixty seconds. The two clocks answer different
+     * questions: the cache TTL is how soon a *colour change* reaches a page,
+     * and this is how long a URL already sitting in a rendered page, a cached
+     * CDN response or an email keeps working. Tying the second to the first
+     * would hand out links that die a minute after the page that carries them.
+     */
     private function assetUrl(BrandProfile $profile, BrandAsset $asset): ?string
     {
         $path = $profile->getAttribute($asset->column());
 
-        return is_string($path) && $path !== ''
-            ? Storage::disk(config('kaiki.branding.uploads.disk', 'public'))->url($path)
-            : null;
+        if (! is_string($path) || $path === '') {
+            return null;
+        }
+
+        $disk = Storage::disk((string) config('kaiki.branding.uploads.disk', 'public'));
+
+        // A public disk has no signing and does not need any; `temporaryUrl()`
+        // throws there rather than falling back, so the question is asked of
+        // the driver rather than of the config name.
+        return $disk->providesTemporaryUrls()
+            ? $disk->temporaryUrl($path, now()->addSeconds(
+                (int) config('kaiki.branding.uploads.url_ttl_seconds', 86400),
+            ))
+            : $disk->url($path);
     }
 }

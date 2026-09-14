@@ -236,6 +236,17 @@ return [
             'disk' => env('KAIKI_BRAND_DISK', 'local'),
 
             /*
+             * How long a signed brand-asset URL stays valid.
+             *
+             * A day, and deliberately not `cache_ttl_seconds` above: that one
+             * is how soon a colour change reaches a page, this one is how long
+             * a link already inside a rendered page, a CDN response or an email
+             * keeps working. Sixty seconds would be a logo that disappears
+             * while somebody is still reading the page it is on.
+             */
+            'url_ttl_seconds' => 86400,
+
+            /*
              * 2 MB, from BRD-7. In kilobytes because that is the unit Laravel's
              * `max:` validation rule takes, and converting at the call site is
              * how a limit ends up meaning something different in two places.
