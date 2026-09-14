@@ -237,6 +237,7 @@ The operator. Not tenant-owned (it *is* the tenant). It was also the Cashier bil
 | `custom_domain_verified_at` | timestamp | yes | null | |
 | `hosted_site_mode` | varchar(16) | no | `full` | `bookings_only` \| `full` (ADR-0029, amended 2026-09-11 — `off` retired); set on `/admin` only |
 | `is_sandbox` | boolean | no | `false` | sandbox tenants' bookings are `is_test` and purged nightly |
+| `check_in_enabled` | boolean | **yes** | `true` | **added 2026-09-14** — whether this operator boards people through Kaiki at all. Off, neither boarding page opens and tickets carry no QR (`usesQrCheckIn()` reads this one first, so the two cannot disagree). The manifest, the departure sweep and a booking's own progress to `completed` are untouched: the switch removes a surface, not a fact. Platform-set on `/admin`, audited; null reads as on (`Tenant::usesCheckIn()`) |
 | `qr_check_in_enabled` | boolean | **yes** | `true` | **added 2026-09-11** — BKG-20 as amended by the product owner: whether tickets carry a QR and the boarding pages offer a scan box. Off, the passenger list with a tap per name is the whole of boarding, online and offline. Set by the platform on `/admin`, audited like the plan. Nullable so it could be added to an existing table (§6); null reads as on (`Tenant::usesQrCheckIn()`) |
 | `turnaround_buffer_minutes` | smallint unsigned | no | `60` | tenant default; a vessel may override |
 | `guest_document_retention_days` | smallint unsigned | no | `90` | GDPR purge horizon for `booking_guests.document_number` |

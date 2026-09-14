@@ -83,6 +83,12 @@ class VatRateResource extends Resource
     {
         return [
             Section::make(__('vat.sections.identity'))
+                // The rules of this table, where somebody is about to break
+                // one: a rate is never edited in place, and a withdrawn one is
+                // retired rather than deleted. Both are enforced below — the
+                // fields lock and there is no delete action — and neither is
+                // guessable from a disabled input.
+                ->description(__('vat.sections.identity_help'))
                 ->schema([
                     TextInput::make('code')
                         ->label(__('vat.form.code.label'))

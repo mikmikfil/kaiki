@@ -224,10 +224,17 @@ class BoardingController
      * with QR boarding off, which took away the only boarding that works with
      * no signal from exactly the operators least likely to have one. A tapped
      * name posts its guest's ticket code through the same queue a scan does.
+     *
+     * Closed when the operator boards nobody, which is the wider switch and a
+     * different question: with no check-in there is no gesture for this page to
+     * queue. Leaving it open would be the mirror of the bug above — one
+     * boarding surface still live after the feature was switched off, reachable
+     * by anybody who had bookmarked it.
      */
     private static function permitted(): bool
     {
         return Tenancy::check()
+            && (Tenancy::current()?->usesCheckIn() ?? true)
             && (Auth::user()?->hasCapability(Capability::CheckInGuests) ?? false);
     }
 }

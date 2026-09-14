@@ -26,6 +26,7 @@ return [
 
     'sections' => [
         'identity' => 'The rate',
+        'identity_help' => 'A rate is never corrected in place: every invoice keeps frozen the rate that applied when it was issued, and an edit here would silently rewrite all of them. When the law changes, you add a new row with the same code and a later date. When a rate stops being offered, you take it out of the selectable list rather than deleting it — old rows still point at it.',
         'validity' => 'Period in force',
     ],
 

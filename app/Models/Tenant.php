@@ -65,6 +65,7 @@ use Stancl\Tenancy\Database\Concerns\TenantRun;
  * @property bool $auto_issue_invoice
  * @property bool $deposits_enabled
  * @property bool|null $qr_check_in_enabled
+ * @property bool|null $check_in_enabled
  * @property array<string, mixed> $settings
  * @property int|null $balance_due_days_before_departure
  * @property string|null $weather_choice_default
@@ -102,6 +103,7 @@ class Tenant extends Model implements TenantContract
             'auto_issue_invoice' => 'boolean',
             'deposits_enabled' => 'boolean',
             'qr_check_in_enabled' => 'boolean',
+            'check_in_enabled' => 'boolean',
             'onboarding_completed_at' => 'datetime',
             'onboarding_skipped_steps' => 'array',
         ];
@@ -196,7 +198,28 @@ class Tenant extends Model implements TenantContract
      */
     public function usesQrCheckIn(): bool
     {
-        return $this->qr_check_in_enabled !== false;
+        // Governed by the switch above it rather than merely sitting beside it:
+        // "we scan tickets" is not a state an operator who checks nobody in can
+        // be in, and two independent booleans would let `/admin` save exactly
+        // that pair. Null reads as on, here as there.
+        return $this->usesCheckIn() && $this->qr_check_in_enabled !== false;
+    }
+
+    /**
+     * Whether this operator boards people through Kaiki at all.
+     *
+     * Off, there is no check-in screen — no scan box and no passenger list with
+     * a tap beside each name. What stays is everything that is a record rather
+     * than a gesture: the manifest still prints, the departure still completes,
+     * and a booking still reaches `completed` on the day.
+     *
+     * A skipper with one boat and twelve people in front of them does not need
+     * a screen to tell them who turned up. Null reads as on, which is every
+     * operator who existed before the column did.
+     */
+    public function usesCheckIn(): bool
+    {
+        return $this->check_in_enabled !== false;
     }
 
     /** Operators in `read_only` or `suspended` cannot write (see #7). */
