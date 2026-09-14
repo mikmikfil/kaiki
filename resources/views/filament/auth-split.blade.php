@@ -46,6 +46,10 @@
         );
     }
 
+    /* Both layouts hang a wordmark off this, so it is the containing block at
+       every width. */
+    .fi-simple-layout { position: relative; }
+
     @media (min-width: 1024px) {
         .fi-simple-layout {
             /* Two columns. `min-h-screen` is Filament's and stays; the flex
@@ -57,9 +61,8 @@
                the column does, so this is about how much picture there is, not
                about room for fields.
 
-               `position: relative` makes this the containing block for the
-               wordmark below. */
-            position: relative;
+               The containing block for the wordmark is set once, outside this
+               query, because the phone puts a wordmark on a banner too. */
             display: grid;
             grid-template-columns: 42% 58%;
             align-items: stretch;
@@ -73,17 +76,19 @@
            string. A copy would be a second place to change the product's name,
            and it would be the place nobody remembers.
 
-           The rust rule above it is the one the rest of the product uses to
-           open a block, at the one size where it reads as a mark rather than
-           as a border. */
+           It had a rust rule above it for an afternoon and lost it: on a
+           photograph a short bar over a word reads as a stray graphic rather
+           than as the accent it is on a white page. */
+        /* Above `lg` the mark on the photograph is Filament's own `.fi-logo`,
+           so the phone's copy is not rendered at all. */
+        .kaiki-auth-brandmark { display: none; }
+
         .fi-simple-layout .fi-logo {
             position: absolute;
             inset-block-end: 3.25rem;
             inset-inline-start: 3.5rem;
             z-index: 2;
             margin: 0;
-            padding-block-start: .95rem;
-            border-block-start: 3px solid var(--kaiki-rust, #b5511f);
             color: #fff;
             font-size: 2.9rem;
             font-weight: 800;
@@ -160,6 +165,23 @@
         .fi-simple-layout > *:not(.fi-simple-main-ctn) {
             grid-column: 2;
         }
+
+        /* Left, not centred. A centred heading over left-aligned fields is two
+           alignments in a column four inches wide. */
+        .fi-simple-layout .fi-simple-header { align-items: flex-start; }
+
+        /* And the language switch with it. The switcher carries an inline
+           `justify-content: flex-end` for the case where it is the only thing
+           at the top of a page and has nothing to line up with; here it has the
+           heading directly below it, so it starts where the heading starts.
+           Inline styles are why this needs `!important`. */
+        .fi-simple-page > div:has(> .kaiki-locale-switcher) {
+            justify-content: flex-start !important;
+        }
+
+        .fi-simple-layout .fi-simple-header-heading {
+            text-align: start;
+        }
     }
 
     /* Past this width the picture does not need to keep growing with the
@@ -168,7 +190,91 @@
         .fi-simple-layout { grid-template-columns: 44% 56%; }
     }
 
-    /* Below `lg`: no photograph, and the card carries its own weight again.
-       Nothing is declared here — Filament's own layout is already right — which
-       is the point of scoping every rule above to a minimum width. */
+    /* --- below `lg` ------------------------------------------------
+       No photograph: one above a sign-in form on a phone is a screenful of
+       scrolling between an operator and the password field.
+
+       What was left was not Filament's layout working, though — it was
+       Filament's layout with nothing to sit on. `fi-simple-main` is a white
+       card with a ring, and its corners only round from 640px up, so at 390px
+       it rendered as a full-width white band with a hairline across the screen
+       at each end, floating in grey. Three bands, and none of them meant
+       anything.
+
+       So on a phone it stops pretending to be a card: the page is one surface,
+       the same patterned off-white as the form's half on a wide screen, and the
+       form sits on it. The alignment matches too — heading and wordmark to the
+       left, where the fields already were. */
+    @media (max-width: 1023.98px) {
+        .fi-simple-layout {
+            background-color: #f7f9fc;
+            background-image:
+                radial-gradient(ellipse 22rem 26rem at 50% 45%,
+                                rgba(247, 249, 252, .97) 40%,
+                                rgba(247, 249, 252, 0) 80%),
+                radial-gradient(circle at center,
+                                rgba(18, 58, 94, .07) 1.1px, transparent 1.1px);
+            background-size: 100% 100%, 22px 22px;
+        }
+
+        /* Not a card any more: no ground of its own, no ring, no shadow. */
+        .fi-simple-layout .fi-simple-main {
+            background: transparent;
+            box-shadow: none;
+            --tw-ring-color: transparent;
+        }
+
+        .fi-simple-layout .fi-simple-header { align-items: flex-start; }
+        .fi-simple-layout .fi-simple-header-heading { text-align: start; }
+
+        /* Under the banner, not floating in the middle of what is left of the
+           screen. Filament centres this vertically, which is right for a card
+           on an empty page and wrong once there is a masthead above it — it
+           left a hand's width of dotted nothing between the two. */
+        .fi-simple-layout > .fi-simple-main-ctn { align-items: flex-start; }
+        .fi-simple-layout .fi-simple-main { margin-block: 2.25rem; }
+
+        /* The mark on top, centred, and no photograph.
+
+           A band of the picture was tried here first and taken out: on a phone
+           the sign-in screen is one job, and a masthead is the part of it that
+           can be a name rather than a scene.
+
+           This is `auth-brandmark.blade.php`, not Filament's `.fi-logo` —
+           Filament renders that one below the language switcher, and the order
+           wanted is mark, language, form. Filament's copy is hidden here so
+           there is exactly one on screen. */
+        .fi-simple-layout .fi-logo { display: none; }
+
+        /* The language switch to the left, under the mark and over the form,
+           where the heading and the fields already start. Its inline
+           `justify-content: flex-end` is for a page where it is the only thing
+           at the top; here it has a column to line up with. */
+        .fi-simple-page > div:has(> .kaiki-locale-switcher) {
+            justify-content: flex-start !important;
+        }
+
+        .kaiki-auth-brandmark {
+            display: flex;
+            justify-content: center;
+            margin-block-end: 1.1rem;
+        }
+
+        .kaiki-auth-brandmark span {
+            font-size: 2rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -.02em;
+            color: var(--kaiki-navy, #123a5e);
+        }
+
+        /* A logo is whatever shape it is; this only stops a wide one running
+           off a 390px screen. */
+        .kaiki-auth-brandmark img {
+            max-block-size: 3rem;
+            max-inline-size: 70%;
+            inline-size: auto;
+        }
+    }
+    }
 </style>

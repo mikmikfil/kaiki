@@ -15,6 +15,7 @@ use App\Http\Middleware\EnsureTenantIsWritable;
 use App\Http\Middleware\OfferSetupOnce;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SetLocale;
+use App\Models\PlatformBrand;
 use App\Policies\TenantOwnedPolicy;
 use App\Support\Tenancy;
 use Filament\FontProviders\LocalFontProvider;
@@ -28,7 +29,6 @@ use Filament\Navigation\NavigationGroup;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -126,15 +126,24 @@ class AppPanelProvider extends PanelProvider
              * database.
              */
             ->passwordReset()
-            ->colors([
-                'primary' => Color::Blue,
-            ])
             // No font from a third-party host. Filament's default loads Inter
             // from fonts.bunny.net, which the panel's own CSP (SEC-10) blocks —
             // so it never loaded, and every page logged the refusal. Local
             // provider with no URL: the stack falls back to the system font the
             // panel was already showing, and no operator's IP leaves for a font.
             ->font('Inter', provider: LocalFontProvider::class)
+            /*
+             * The platform's own logo, set on `/admin` → Εμφάνιση.
+             *
+             * A closure, so the database is read while the panel renders
+             * rather than while it is registered — this provider also boots
+             * during `artisan migrate` on a database that has no tables yet.
+             * Null falls back to `brandName()`, which is what both panels
+             * showed before there was anywhere to upload a logo.
+             */
+            ->brandLogo(fn (): ?string => PlatformBrand::logoUrl())
+            ->darkModeBrandLogo(fn (): ?string => PlatformBrand::logoUrl(dark: true))
+            ->favicon(fn (): ?string => PlatformBrand::faviconUrl())
             ->brandName(config('app.name'))
             ->discoverResources(in: app_path('Filament/App/Resources'), for: 'App\\Filament\\App\\Resources')
             ->discoverPages(in: app_path('Filament/App/Pages'), for: 'App\\Filament\\App\\Pages')

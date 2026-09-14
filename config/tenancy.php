@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\GatewayWebhookEvent;
 use App\Models\PlatformAnnouncement;
+use App\Models\PlatformBrand;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\VatRate;
@@ -87,6 +88,18 @@ return [
         // scope here would make super-admins invisible to their own panel.
         // Access control for users is a policy question (#9).
         User::class,
+
+        /*
+         * Kaiki's own logo and colours, set on `/admin` → Εμφάνιση.
+         *
+         * Platform-owned in the plainest sense of the word: there is one row
+         * and it describes the platform. An operator's equivalent is
+         * `BrandProfile`, which *is* tenant-scoped — the two are separate
+         * tables precisely so that this one can be unscoped without putting a
+         * nullable `tenant_id` in the middle of the brand data every operator
+         * page reads.
+         */
+        PlatformBrand::class,
 
         // The first genuinely platform-owned reference table: VAT rates are
         // set by Greek tax law, not by operators (#47, ADR-0002 Option A). A

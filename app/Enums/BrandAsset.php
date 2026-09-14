@@ -90,4 +90,18 @@ enum BrandAsset: string
     {
         return "brand/{$tenantId}/{$this->value}";
     }
+
+    /**
+     * Where the platform's own asset of this kind lives.
+     *
+     * Outside `brand/` entirely rather than under a reserved tenant id. A
+     * platform logo filed as `brand/0/logo_light` is one off-by-one away from
+     * being handed to an operator, and "send me everything for this operator"
+     * would have to learn an exception. A separate prefix cannot collide with
+     * an id at all.
+     */
+    public function platformDirectory(): string
+    {
+        return "platform-brand/{$this->value}";
+    }
 }

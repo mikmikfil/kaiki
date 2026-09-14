@@ -8,10 +8,14 @@ use App\Domain\Hosted\Support\HostedUrl;
 use App\Domain\Platform\Support\Announcements;
 use App\Filament\App\Pages\Settings;
 use App\Models\PlatformAnnouncement;
+use App\Models\PlatformBrand;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Locale\LocaleOptions;
 use App\Support\Tenancy;
+use Filament\Facades\Filament;
+use Filament\Support\Colors\Color;
+use Filament\Support\Facades\FilamentColor;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
 use Illuminate\Contracts\View\View;
@@ -29,6 +33,8 @@ final class PanelRenderHooks
 {
     public static function register(): void
     {
+        self::platformColors();
+
         // The topbar, for every authenticated panel page.
         FilamentView::registerRenderHook(
             PanelsRenderHook::TOPBAR_END,
@@ -62,15 +68,6 @@ final class PanelRenderHooks
             static fn (): View => view('filament.touch-targets'),
         );
 
-        // The split sign-in screen: a photograph on one half, the form on the
-        // other. Every rule in it is scoped to `.fi-simple-layout`, which only
-        // the login and password-reset pages render, so it costs the rest of
-        // the panel nothing but the bytes.
-        FilamentView::registerRenderHook(
-            PanelsRenderHook::HEAD_END,
-            static fn (): View => view('filament.auth-split'),
-        );
-
         // «Ρυθμίσεις» at the very bottom of the sidebar, outside the scrolling
         // menu. Decided inside the hook, like the link at the top: `/admin` has
         // no tenant and gets nothing, and crew — who may open none of the
@@ -99,6 +96,36 @@ final class PanelRenderHooks
             scopes: Settings::destinations(),
         );
 
+        // The split sign-in screen: a photograph on one half, the form on the
+        // other.
+        //
+        // `SIMPLE_PAGE_START` rather than `HEAD_END`, which is where it started.
+        // Every rule in it is scoped to `.fi-simple-layout` — a class only the
+        // login and password-reset pages carry — so on every other page it was
+        // inert, and "inert" was the whole argument for leaving it in the head
+        // of all of them.
+        //
+        // It is not inert, though: the stylesheet *names* `.kaiki-locale-switcher`
+        // in a selector, and `LocaleSwitcherTest` asserts that a tenant selling
+        // in one language is served a page with that string nowhere in it. A
+        // style rule is not a switcher, but the test is right that the string
+        // should not be there — nothing on that page has anything to do with
+        // one. A `<style>` in the body is valid and applies, and this way the
+        // rules ship only with the screens they style.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::SIMPLE_PAGE_START,
+            static fn (): View => view('filament.auth-split'),
+        );
+
+        // The brand mark above the sign-in form on a phone. **Registered before
+        // the switcher below**, because hooks render in the order they are
+        // added and the order asked for is mark, then language, then form —
+        // which the markup cannot produce on its own. See the view.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::SIMPLE_PAGE_START,
+            static fn (): View => view('filament.auth-brandmark'),
+        );
+
         // Login and password reset render a "simple page" with no topbar. This
         // is the one place the switcher matters most: an operator who cannot
         // read the sign-in form has no other way to change the language, and no
@@ -107,6 +134,30 @@ final class PanelRenderHooks
             PanelsRenderHook::SIMPLE_PAGE_START,
             static fn (): View => self::localeSwitcher(alignEnd: true),
         );
+    }
+
+    /**
+     * The platform's palette, from `/admin` → Εμφάνιση.
+     *
+     * `Filament::serving()` rather than each panel's `->colors()`, and the
+     * difference is when the database is read. `->colors()` takes an array,
+     * so the value has to exist while the provider is registering — which is
+     * also what happens during `artisan migrate` on a database with no tables,
+     * during `config:cache`, and in a container whose database is not up. This
+     * runs only when a panel is actually being served to somebody.
+     *
+     * `Color::hex()` turns one colour into the eleven shades Filament needs;
+     * the two here are the only ones the screen lets anybody change, so nothing
+     * else in the palette can be left in an unreadable state by a bad pair.
+     */
+    private static function platformColors(): void
+    {
+        Filament::serving(static function (): void {
+            FilamentColor::register([
+                'primary' => Color::hex(PlatformBrand::primary()),
+                'accent' => Color::hex(PlatformBrand::accent()),
+            ]);
+        });
     }
 
     /**

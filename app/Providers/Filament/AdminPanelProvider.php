@@ -7,6 +7,7 @@ namespace App\Providers\Filament;
 use App\Filament\Avatars\InitialsAvatarProvider;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\SetLocale;
+use App\Models\PlatformBrand;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -15,7 +16,6 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -66,11 +66,20 @@ class AdminPanelProvider extends PanelProvider
              * database.
              */
             ->passwordReset()
-            ->colors([
-                'primary' => Color::Rose,
-            ])
             // As `/app`: no font from fonts.bunny.net, which SEC-10's CSP blocks.
             ->font('Inter', provider: LocalFontProvider::class)
+            /*
+             * The platform's own logo, set on `/admin` → Εμφάνιση.
+             *
+             * A closure, so the database is read while the panel renders
+             * rather than while it is registered — this provider also boots
+             * during `artisan migrate` on a database that has no tables yet.
+             * Null falls back to `brandName()`, which is what both panels
+             * showed before there was anywhere to upload a logo.
+             */
+            ->brandLogo(fn (): ?string => PlatformBrand::logoUrl())
+            ->darkModeBrandLogo(fn (): ?string => PlatformBrand::logoUrl(dark: true))
+            ->favicon(fn (): ?string => PlatformBrand::faviconUrl())
             ->brandName(fn (): string => __('panel.admin.brand'))
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
