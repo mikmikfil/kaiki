@@ -8,10 +8,10 @@ use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Models\Booking;
 use App\Models\CharterAgreement;
 use App\Models\Tenant;
+use App\Support\Pdf\ChromiumPdf;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
-use Spatie\Browsershot\Browsershot;
 
 /**
  * The PDF a guest shows at the quay (spec BKG-13.1, ENV-20, SEC-14).
@@ -117,24 +117,7 @@ final class GenerateETicket
      */
     private function render(string $html): string
     {
-        $shot = Browsershot::html($html)
-            ->format('A4')
-            ->margins(12, 12, 12, 12)
-            ->showBackground()
-            // SEC-14, both halves.
-            ->noSandbox()
-            ->setOption('args', ['--disable-web-security=false'])
-            ->timeout((int) config('kaiki.tickets.timeout_seconds', 30));
-
-        $chrome = config('kaiki.tickets.chrome_path');
-
-        if (is_string($chrome) && $chrome !== '') {
-            // ENV-20: locally this points at an installed Chrome through an
-            // `.env` path. In CI the binary is on `PATH` and this is unset.
-            $shot->setChromePath($chrome);
-        }
-
-        return $shot->pdf();
+        return ChromiumPdf::render($html, ChromiumPdf::MARGIN_TICKET);
     }
 
     /**

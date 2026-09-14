@@ -9,11 +9,11 @@ use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Enums\InvoiceStatus;
 use App\Models\Invoice;
 use App\Models\Tenant;
+use App\Support\Pdf\ChromiumPdf;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
-use Spatie\Browsershot\Browsershot;
 
 /**
  * The invoice a guest can download (spec MYD-12).
@@ -122,21 +122,7 @@ final class GenerateInvoicePdf
      */
     private function render(string $html): string
     {
-        $shot = Browsershot::html($html)
-            ->format('A4')
-            ->margins(15, 15, 15, 15)
-            ->showBackground()
-            ->noSandbox()
-            ->setOption('args', ['--disable-web-security=false'])
-            ->timeout((int) config('kaiki.tickets.timeout_seconds', 30));
-
-        $chrome = config('kaiki.tickets.chrome_path');
-
-        if (is_string($chrome) && $chrome !== '') {
-            $shot->setChromePath($chrome);
-        }
-
-        return $shot->pdf();
+        return ChromiumPdf::render($html, ChromiumPdf::MARGIN_DOCUMENT);
     }
 
     /**

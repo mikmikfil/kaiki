@@ -10,12 +10,12 @@ use App\Enums\ManifestColumn;
 use App\Models\Departure;
 use App\Models\User;
 use App\Support\Authorization\Capability;
+use App\Support\Pdf\ChromiumPdf;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Radio;
 use Filament\Tables\Actions\Action;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Response;
-use Spatie\Browsershot\Browsershot;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -141,10 +141,13 @@ final class ManifestAction
     /**
      * Blade through Chromium (ARC-10, which forbids dompdf).
      *
-     * `setHtml` rather than a URL: the renderer has no session, so pointing it
-     * at a panel page would render a login screen — and pointing it at an
-     * unauthenticated route would mean an unauthenticated route that renders
-     * passport numbers.
+     * Through {@see ChromiumPdf}, which is where the Browsershot settings live
+     * for all four of this product's PDFs. This one used to build its own and
+     * had drifted: no `noSandbox()`, no `--disable-web-security=false`, no
+     * timeout — all three SEC-14's — and no ENV-20 `chrome_path`, which is how
+     * it was noticed, by throwing `ProcessFailedException` on a machine where
+     * the other three printed. The manifest is the document made of passport
+     * numbers, so it was the worst one to have the weakest settings.
      */
     private static function pdf(GenerateManifest $generate, Manifest $manifest, string $layout): StreamedResponse
     {
@@ -153,10 +156,7 @@ final class ManifestAction
             ['manifest' => $manifest],
         )->render();
 
-        $pdf = Browsershot::html($html)
-            ->format('A4')
-            ->showBackground()
-            ->pdf();
+        $pdf = ChromiumPdf::render($html);
 
         return Response::streamDownload(
             static function () use ($pdf): void {
