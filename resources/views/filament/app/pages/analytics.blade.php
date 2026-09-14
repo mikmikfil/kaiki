@@ -423,6 +423,52 @@
         @endif
     </x-filament::section>
 
+    {{-- The funnel (ADR-0032). Counts per step, and the ratio between two of
+         them — never called a conversion rate, because cookieless means nobody
+         is followed from one step to the next and a number named something it
+         is not is worse than no number. --}}
+    <x-filament::section>
+        <x-slot name="heading">{{ __('analytics.funnel.heading') }}</x-slot>
+        <x-slot name="description">{{ __('analytics.funnel.help') }}</x-slot>
+
+        @if (! $report['has_counts'])
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('analytics.funnel.empty') }}</p>
+        @else
+            @php $widest = max(1, $report['funnel'][0]['count'] ?: 1); @endphp
+
+            <table class="w-full text-sm">
+                <thead class="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
+                    <tr>
+                        <th class="py-2">{{ __('analytics.funnel.step') }}</th>
+                        <th class="py-2 text-right">{{ __('analytics.funnel.count') }}</th>
+                        <th class="py-2 text-right">{{ __('analytics.funnel.ratio') }}</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @foreach ($report['funnel'] as $step)
+                        <tr>
+                            <td class="py-2">
+                                {{ __('analytics.funnel.metrics.' . $step['metric']) }}
+
+                                {{-- A bar the width of the step, so the shape of
+                                     the drop-off is readable without doing the
+                                     division in your head. --}}
+                                <span
+                                    class="mt-1 block h-1 rounded"
+                                    style="width: {{ round(($step['count'] / $widest) * 100, 1) }}%; background: rgb(var(--primary-600))"
+                                ></span>
+                            </td>
+                            <td class="py-2 text-right align-top tabular-nums">{{ $step['count'] }}</td>
+                            <td class="py-2 text-right align-top tabular-nums">
+                                {{ $step['ratio'] === null ? '—' : $percent($step['ratio']) }}
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    </x-filament::section>
+
     {{-- Cancellations. --}}
     <x-filament::section>
         <x-slot name="heading">{{ __('analytics.cancellations.heading') }}</x-slot>

@@ -402,6 +402,26 @@ Exactly one per tenant.
 **Notes.** Colours are stored as hex strings rather than parsed components because the only consumers are CSS custom properties and the email templates. `custom_css` is stored raw and sanitised on **read** as well as write, so tightening the sanitiser later does not require a data migration. **Settled: plain path columns, no polymorphic media table.** Modelled here and on `vessels` / `products` / `ports` / `extras`. `spatie/laravel-medialibrary` is rejected — a new package, a new table and a new tenancy-scoping problem for the sake of a handful of upload fields, and tenancy scoping is the one risk this product cannot afford. One `App\Domain\Media\Actions\StoreUploadedImage` validates, resizes with `intervention/image` and writes to disk; conversions are synchronous at fixed documented sizes, with a `media:rebuild` Artisan command for a size change. Galleries are ordered JSON arrays and the Filament form owns reordering. Revisit only if gallery management becomes an operator complaint. (per [ADR-0021](adr/0021-image-and-file-storage.md), Option A)
 
 
+#### `analytics_daily`
+
+Counted visits and funnel steps ([ADR-0032](adr/0032-first-party-visit-counting.md), 2026-09-14). **A rollup and never a log**: one row is *"this tenant, on this local day, saw this many of this thing"*. There is no visitor id, no session id, no IP address and no user agent in it, which is what makes GDR-12 hold and leaves nothing to purge under GDR-3.
+
+| column | type | null | default | notes |
+|---|---|---|---|---|
+| `id` | bigint unsigned AI | no | — | |
+| `tenant_id` | bigint unsigned | no | — | FK cascade |
+| `date` | date | no | — | the **tenant's** local day, the calendar every figure on the statistics page uses |
+| `metric` | varchar(32) | no | — | `App\Domain\Analytics\Support\AnalyticsMetric`: `page_view` \| `widget_ready` \| `product_viewed` \| `availability_loaded` \| `booking_started` \| `checkout_started` \| `booking_confirmed` \| `enquiry_submitted` \| `widget_error` |
+| `dimension` | varchar(32) | no | `''` | what the count is broken down by, or empty |
+| `dimension_value` | varchar(64) | no | `''` | a product uuid, an error code. **Not nullable**: it is in the unique index, and MySQL treats every null there as distinct, which would split a count in two instead of incrementing it |
+| `count` | int unsigned | no | `0` | |
+| `value_cents` | bigint unsigned | no | `0` | summed only for a metric that carries money |
+| timestamps | | | | |
+
+**Indexes** — `analytics_daily_point_uq` on (`tenant_id`, `date`, `metric`, `dimension`, `dimension_value`) **unique**: the upsert target, and the whole correctness of the table rests on it. `analytics_daily_range_idx` on (`tenant_id`, `date`) for the read.
+
+Written by `CountAnalyticsEvent` as an atomic increment, never by a model save — a read-modify-write is the one shape that loses counts under concurrency.
+
 #### `home_page_blocks`
 
 The operator's landing page, as an ordered list of typed blocks (#102). Added by the design review of 2026-09-04, after this document was written — recorded here because it is schema.

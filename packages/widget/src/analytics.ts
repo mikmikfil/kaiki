@@ -66,25 +66,82 @@ export interface Analytics {
 }
 
 /**
- * @param enabled WGT-7's `data-analytics`. When off, nothing is dispatched at
- *   all — not a stripped event, not an empty one.
+ * Where a counted event is sent, when the operator's own panel is counting
+ * (ADR-0032).
  */
-export function analytics(enabled: boolean, version: string, target: EventTarget = document): Analytics {
+export interface Beacon {
+  readonly apiBase: string;
+  readonly key: string;
+}
+
+/**
+ * @param enabled WGT-7's `data-analytics`. When off, nothing is dispatched at
+ *   all — not a stripped event, not an empty one, and nothing is sent to Kaiki.
+ * @param beacon ADR-0032. Given, the same scrubbed detail is also counted in
+ *   the operator's own statistics page. Omitted, the widget behaves exactly as
+ *   it did before that decision: a DOM event and nothing else.
+ */
+export function analytics(
+  enabled: boolean,
+  version: string,
+  target: EventTarget = document,
+  beacon?: Beacon,
+): Analytics {
   return {
     emit(name: EventName, detail: Record<string, unknown> = {}): void {
       if (!enabled) {
         return;
       }
 
+      const clean = scrub(detail);
+
       target.dispatchEvent(
         new CustomEvent(name, {
-          detail: { widget_version: version, ...scrub(detail) },
+          detail: { widget_version: version, ...clean },
           bubbles: true,
           composed: true,
         }),
       );
+
+      if (beacon) {
+        count(beacon, name, clean);
+      }
     },
   };
+}
+
+/**
+ * Send one count to Kaiki, and never let it matter.
+ *
+ * ## `fetch` with `keepalive`, not `sendBeacon`
+ *
+ * `sendBeacon` cannot set a header, and the API is authenticated by one. A
+ * `keepalive` fetch survives the page being closed the same way a beacon does
+ * and can carry `Authorization`, which is the whole difference.
+ *
+ * ## It cannot fail loudly
+ *
+ * The promise is swallowed. This runs on a page in the middle of selling
+ * something, and an unhandled rejection from a counter — or worse, an exception
+ * inside `emit` — would put a defect in the booking flow in exchange for a
+ * number nobody is watching. The scrubbed detail is what is sent, so the
+ * allow-list above is the only thing that decides what leaves the browser.
+ */
+function count(beacon: Beacon, event: EventName, detail: EventDetail): void {
+  try {
+    void fetch(`${beacon.apiBase}/events`, {
+      method: 'POST',
+      keepalive: true,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${beacon.key}`,
+      },
+      body: JSON.stringify({ event, ...detail }),
+    }).catch(() => undefined);
+  } catch {
+    // An environment without `fetch`, or one that refuses it. Counting is the
+    // least important thing this widget does.
+  }
 }
 
 /**

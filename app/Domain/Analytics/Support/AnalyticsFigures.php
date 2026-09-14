@@ -10,6 +10,7 @@ use App\Enums\BookingStatus;
 use App\Enums\DepartureStatus;
 use App\Enums\PaymentKind;
 use App\Enums\PaymentStatus;
+use App\Models\AnalyticsDaily;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Payment;
@@ -68,6 +69,13 @@ final class AnalyticsFigures
 {
     /** A sailing this empty is worth a second look. */
     public const QUIET_FILL = 0.5;
+
+    /**
+     * Counted metrics per range, so the funnel and the visit count are one query.
+     *
+     * @var array<string, array<string, array{count: int, value: int}>>
+     */
+    private array $countsByRange = [];
 
     public function __construct(private readonly string $timezone) {}
 
@@ -516,6 +524,102 @@ final class AnalyticsFigures
             'total' => $total,
             'rate' => $total === 0 ? null : $cancelled / $total,
         ];
+    }
+
+    // -- visits and the funnel (ADR-0032) ----------------------------------
+
+    /**
+     * The counted steps in the range, in funnel order.
+     *
+     * ## Counts, and the ratio between consecutive steps — not a conversion rate
+     *
+     * Cookieless means no visitor is followed from one step to the next
+     * (ADR-0032), so "40% of people who looked went on to book" is a sentence
+     * this data cannot support. What it can support is "there were 40 of these
+     * and 16 of those", and the ratio between two counts. The page says which,
+     * because a number called something it is not is worse than no number.
+     *
+     * @return list<array{metric: string, count: int, value: int, ratio: float|null}>
+     */
+    public function funnel(LocalRange $range): array
+    {
+        $counted = $this->counts($range);
+        $steps = [];
+        $previous = null;
+
+        foreach (AnalyticsMetric::funnel() as $metric) {
+            $count = $counted[$metric->value]['count'] ?? 0;
+
+            $steps[] = [
+                'metric' => $metric->value,
+                'count' => $count,
+                'value' => $counted[$metric->value]['value'] ?? 0,
+                // Null for the first step and for a step whose predecessor was
+                // never counted: a ratio to nothing is a division nobody can
+                // read, and 0/0 is not "nought per cent".
+                // Cast, because PHP's `/` hands back an `int` when the division
+                // is exact — `0 / 25` is `0`, not `0.0` — and a shape that is
+                // sometimes int and sometimes float is one every caller has to
+                // remember.
+                'ratio' => $previous === null || $previous === 0 ? null : (float) ($count / $previous),
+            ];
+
+            $previous = $count;
+        }
+
+        return $steps;
+    }
+
+    /** How many hosted pages were served in the range. */
+    public function visits(LocalRange $range): int
+    {
+        return $this->counts($range)[AnalyticsMetric::PageView->value]['count'] ?? 0;
+    }
+
+    /** Has anything at all been counted yet? */
+    public function hasCounts(LocalRange $range): bool
+    {
+        return $this->counts($range) !== [];
+    }
+
+    /**
+     * Every counted metric in the range, summed.
+     *
+     * One query for the whole block, cached on the instance: the page asks for
+     * the funnel and the visit count separately, and they are the same rows.
+     *
+     * @return array<string, array{count: int, value: int}>
+     */
+    private function counts(LocalRange $range): array
+    {
+        // **The tenant is in the key.** Without it, one instance asked for two
+        // operators in one request answers the second with the first one's
+        // numbers — which is a cross-tenant leak wearing the clothes of a
+        // performance optimisation, and is exactly what the isolation suite
+        // exists to catch. Found by a test that counted two tenants and asked
+        // both.
+        $key = (Tenancy::current()?->getKey() ?? 0) . ':' . $range->startLocalDate . '/' . $range->endLocalDate;
+
+        if (array_key_exists($key, $this->countsByRange)) {
+            return $this->countsByRange[$key];
+        }
+
+        $rows = AnalyticsDaily::query()
+            ->whereBetween('date', [$range->startLocalDate, $range->endLocalDate])
+            ->selectRaw('metric, COALESCE(SUM(count), 0) as counted, COALESCE(SUM(value_cents), 0) as value')
+            ->groupBy('metric')
+            ->get();
+
+        $counts = [];
+
+        foreach ($rows as $row) {
+            $counts[(string) $row->getAttribute('metric')?->value] = [
+                'count' => (int) $row->getAttribute('counted'),
+                'value' => (int) $row->getAttribute('value'),
+            ];
+        }
+
+        return $this->countsByRange[$key] = $counts;
     }
 
     /** Is there test data being kept out of these figures? */

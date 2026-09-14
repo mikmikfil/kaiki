@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Domain\Analytics\Support\HostedPageViews;
 use App\Domain\Hosted\Support\HostedPageCsp;
 use App\Domain\Hosted\Support\VideoEmbed;
 use App\Domain\Tenancy\Resolvers\HostedSlugResolver;
@@ -75,7 +76,7 @@ class HostedPageHeaders
 
         config(['livewire.inject_assets' => false]);
 
-        return $this->withHeaders($next($request), $tenant, $nonce);
+        return $this->withHeaders($request, $next($request), $tenant, $nonce);
     }
 
     /**
@@ -85,7 +86,7 @@ class HostedPageHeaders
      * a hosted page is exactly what an operator wants indexed. That difference
      * is the whole point of HOS-2's structured data.
      */
-    private function withHeaders(Response $response, Tenant $tenant, string $nonce): Response
+    private function withHeaders(Request $request, Response $response, Tenant $tenant, string $nonce): Response
     {
         $profile = Tenancy::forTenant(
             $tenant,
@@ -99,6 +100,11 @@ class HostedPageHeaders
 
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
+
+        // ADR-0032's page count, from the one class that is on every hosted
+        // page however it was routed. It writes an aggregate and nothing to the
+        // visitor's browser, so it changes nothing about the headers above.
+        HostedPageViews::record($request, $response, $tenant);
 
         return $response;
     }

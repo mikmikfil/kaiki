@@ -161,6 +161,9 @@ Rules:
 | `GET /api/v1/guest-details/{token}` | — | — | ✓ `guest_details_token` | — |
 | `PUT /api/v1/guest-details/{token}` | — | — | ✓ `guest_details_token` | — |
 | `GET /api/v1/sync/products` | — | ✓ | — | `products.read` |
+| `POST /api/v1/events` | ✓ | ✓ | — | — ² |
+
+² `POST /api/v1/events` (ADR-0032) requires **no scope**, which is the one exception in this table. The existing publishable keys were issued before the endpoint existed and would all have to be re-scoped for the widget to count anything — a migration and a support thread in exchange for a counter. What its holder can do with it is add to their **own** operator's aggregate counts; it reads nothing and returns nothing.
 
 ¹ `POST /bookings/{uuid}/checkout` accepts a `pk_` **only** while the booking is still `draft` and its hold is unexpired — that is the widget completing the flow it started in the same session. Once the booking is `confirmed` (paying a balance) the `pk_` is rejected and a `manage_token` is required, because at that point the caller is claiming to be a specific guest, not a specific website.
 
@@ -1683,6 +1686,62 @@ paths:
         '429': { $ref: '#/components/responses/TooManyRequests' }
         '500': { $ref: '#/components/responses/ServerError' }
 
+  /api/v1/events:
+    post:
+      operationId: countEvent
+      summary: Count an analytics event (ADR-0032)
+      description: |
+        The widget's analytics beacon. It adds one to an **aggregate** counter in the
+        operator's own statistics page and stores nothing about the visitor: no id, no
+        session, no IP address, no user agent, and one row per tenant per day per metric
+        however many people there were. Nothing is written to the visitor's browser, so
+        GDR-12's "no tracking cookie on a guest-facing page" holds and there is no consent
+        question for an operator to answer.
+
+        Only the eight event names WGT-11 fixed are counted. Anything else is ignored.
+        The only dimension a caller may set is `product_uuid`, and only when it is shaped
+        like a uuid; `value_cents` is read only for `kaiki:booking-confirmed`.
+
+        **It answers `204` whatever happens** — an unknown event, a malformed body, a
+        missing tenant. It is called from a page in the middle of taking a booking, and a
+        4xx here would be one defect in a caller's error handling away from a guest seeing
+        a failure. What protects the table is the allow-list, not the status code.
+
+        No scope is required: a publishable key sits in the source of a public page, and
+        what its holder can do here is add to their own operator's counts.
+      tags: [Analytics]
+      security:
+        - PublishableKey: []
+        - SecretKey: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/AnalyticsEvent'
+                - type: object
+                  required: [events]
+                  properties:
+                    events:
+                      type: array
+                      maxItems: 20
+                      items: { $ref: '#/components/schemas/AnalyticsEvent' }
+            examples:
+              one:
+                summary: One event
+                value: { event: "kaiki:booking-started", product_uuid: "0199a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b" }
+              batch:
+                summary: Two queued while the page was hidden
+                value: { events: [ { event: "kaiki:ready" }, { event: "kaiki:product-viewed" } ] }
+      responses:
+        '204':
+          description: Counted, ignored, or neither. There is no body and no way to tell.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
   /api/v1/sync/products:
     get:
       operationId: syncProducts
@@ -2284,6 +2343,43 @@ components:
                     request_id: 01JZ8Q3M7K5V2N9X4T6B8W1Y0R
 
   schemas:
+
+    AnalyticsEvent:
+      type: object
+      description: |
+        One counted event (ADR-0032). The `event` name is the only required field and is
+        matched against WGT-11's eight; anything else is ignored rather than refused.
+        Every other field here is on the widget's own allow-list, and nothing that could
+        identify a visitor may appear in one — no name, email, phone or token.
+      required: [event]
+      properties:
+        event:
+          type: string
+          enum:
+            - "kaiki:ready"
+            - "kaiki:product-viewed"
+            - "kaiki:availability-loaded"
+            - "kaiki:booking-started"
+            - "kaiki:checkout-started"
+            - "kaiki:booking-confirmed"
+            - "kaiki:enquiry-submitted"
+            - "kaiki:error"
+        product_uuid:
+          type: string
+          format: uuid
+          description: Counted as a dimension when it is shaped like a uuid, dropped otherwise.
+        value_cents:
+          type: integer
+          minimum: 0
+          description: Read only for `kaiki:booking-confirmed`. Never a price computed in a browser.
+        widget_version: { type: string }
+        mount: { type: string }
+        locale: { type: string, enum: [el, en] }
+        departure_uuid: { type: string, format: uuid }
+        date: { type: string, format: date }
+        pax: { type: integer }
+        currency: { type: string }
+        error_code: { type: string }
 
     # ---------- Common ----------
 

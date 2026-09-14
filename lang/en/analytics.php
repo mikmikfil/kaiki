@@ -118,6 +118,26 @@ return [
         'share' => 'Share',
     ],
 
+    'funnel' => [
+        'heading' => 'From a visit to a booking',
+        'help' => 'How many reached each step. We count it ourselves, with no cookie and no third party: nobody is followed from one step to the next, so these are counts and the ratio between two consecutive steps — not a per-person conversion rate.',
+        'step' => 'Step',
+        'count' => 'How many',
+        'ratio' => 'Against the step before',
+        'empty' => 'Nothing has been counted for this period yet. Visits are counted from the moment Kaiki was updated.',
+        'metrics' => [
+            'page_view' => 'Visits to your pages',
+            'widget_ready' => 'Booking box opened',
+            'product_viewed' => 'Looked at a trip',
+            'availability_loaded' => 'Saw availability',
+            'booking_started' => 'Started a booking',
+            'checkout_started' => 'Reached the payment',
+            'booking_confirmed' => 'Paid',
+            'enquiry_submitted' => 'Sent a question',
+            'widget_error' => 'Errors in the booking box',
+        ],
+    ],
+
     'test_data' => 'Test bookings are not counted in any of these figures.',
 
     'empty' => 'Nothing to show for this period.',

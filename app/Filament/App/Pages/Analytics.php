@@ -243,6 +243,9 @@ class Analytics extends Page
             'campaigns' => $figures->byCampaign($range),
             'referrers' => $figures->byReferrer($range),
             'cancellations' => $figures->cancellations($range),
+            'funnel' => $figures->funnel($range),
+            'visits' => $figures->visits($range),
+            'has_counts' => $figures->hasCounts($range),
             'has_test_bookings' => $figures->hasTestBookings(),
         ];
     }
