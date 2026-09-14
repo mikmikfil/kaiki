@@ -62,6 +62,15 @@ final class PanelRenderHooks
             static fn (): View => view('filament.touch-targets'),
         );
 
+        // The split sign-in screen: a photograph on one half, the form on the
+        // other. Every rule in it is scoped to `.fi-simple-layout`, which only
+        // the login and password-reset pages render, so it costs the rest of
+        // the panel nothing but the bytes.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View => view('filament.auth-split'),
+        );
+
         // «Ρυθμίσεις» at the very bottom of the sidebar, outside the scrolling
         // menu. Decided inside the hook, like the link at the top: `/admin` has
         // no tenant and gets nothing, and crew — who may open none of the
