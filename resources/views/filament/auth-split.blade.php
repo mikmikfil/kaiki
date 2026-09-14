@@ -41,24 +41,57 @@
         --kaiki-auth-scrim: linear-gradient(
             to bottom,
             rgba(11, 39, 64, .10) 0%,
-            rgba(11, 39, 64, .38) 62%,
-            rgba(11, 39, 64, .62) 100%
+            rgba(11, 39, 64, .40) 60%,
+            rgba(11, 39, 64, .74) 100%
         );
     }
 
     @media (min-width: 1024px) {
         .fi-simple-layout {
-            /* Two halves, not a centred column. `min-h-screen` is Filament's
-               and stays; the flex column it sets is replaced.
+            /* Two columns. `min-h-screen` is Filament's and stays; the flex
+               column it sets is replaced.
 
-               40/60 was tried on 14 September to give the form more room and
-               taken back the same day: at 40% the photograph stops being a
-               picture and starts being a stripe down the edge, and the form
-               did not need the width — it is capped at 28rem either way, so
-               everything the column gained became empty margin. */
+               42/58, arrived at by going too far first: 40/60 turned the
+               photograph into a stripe down the edge and was taken back to
+               halves, then trimmed twice. The form is capped at 28rem whatever
+               the column does, so this is about how much picture there is, not
+               about room for fields.
+
+               `position: relative` makes this the containing block for the
+               wordmark below. */
+            position: relative;
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 42% 58%;
             align-items: stretch;
+        }
+
+        /* The wordmark, moved onto the photograph's bottom-left corner.
+
+           The element is Filament's own `.fi-logo` — the panel's `brandName()`
+           or `brandLogo()`, whichever is configured — taken out of the flow and
+           placed against the layout rather than copied into a `content:`
+           string. A copy would be a second place to change the product's name,
+           and it would be the place nobody remembers.
+
+           The rust rule above it is the one the rest of the product uses to
+           open a block, at the one size where it reads as a mark rather than
+           as a border. */
+        .fi-simple-layout .fi-logo {
+            position: absolute;
+            inset-block-end: 3.25rem;
+            inset-inline-start: 3.5rem;
+            z-index: 2;
+            margin: 0;
+            padding-block-start: .95rem;
+            border-block-start: 3px solid var(--kaiki-rust, #b5511f);
+            color: #fff;
+            font-size: 2.9rem;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -.025em;
+            /* The photograph is a photograph: no gradient is dark everywhere a
+               bright sky might be, so the type carries its own shadow too. */
+            text-shadow: 0 2px 20px rgba(6, 16, 20, .55);
         }
 
         .fi-simple-layout::before {
@@ -79,9 +112,31 @@
 
         /* The form's half. `items-center` and `justify-center` are Filament's
            and do the right thing inside the grid cell already; this only stops
-           the card growing to the full width of the half. */
+           the card growing to the full width of the half.
+
+           ## The pattern behind it
+
+           A dot grid in the brand navy at seven per cent — enough that the half
+           is a surface rather than a blank, not enough to be a thing anybody
+           looks at. Two gradients rather than an image: a `radial-gradient`
+           needs no file, no request and no `img-src` allowance, and it stays
+           sharp at any pixel ratio.
+
+           The wash on top is what keeps it honest. Dots running straight under
+           a password field make the field harder to read, so a soft ellipse of
+           the page's own colour sits over the middle and fades them out exactly
+           where the form is. The pattern survives at the edges, which is where
+           it was wanted. */
         .fi-simple-layout > .fi-simple-main-ctn {
             padding-inline: 2rem;
+            background-color: #f7f9fc;
+            background-image:
+                radial-gradient(ellipse 34rem 30rem at 50% 48%,
+                                rgba(247, 249, 252, .97) 38%,
+                                rgba(247, 249, 252, 0) 78%),
+                radial-gradient(circle at center,
+                                rgba(18, 58, 94, .07) 1.1px, transparent 1.1px);
+            background-size: 100% 100%, 22px 22px;
         }
 
         .fi-simple-layout .fi-simple-main {
@@ -107,9 +162,10 @@
         }
     }
 
-    /* Wide enough for the split to be generous rather than merely possible. */
+    /* Past this width the picture does not need to keep growing with the
+       window; two points back gives the form the difference. */
     @media (min-width: 1536px) {
-        .fi-simple-layout { grid-template-columns: 1.1fr 1fr; }
+        .fi-simple-layout { grid-template-columns: 44% 56%; }
     }
 
     /* Below `lg`: no photograph, and the card carries its own weight again.
