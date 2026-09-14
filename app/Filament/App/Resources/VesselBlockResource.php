@@ -58,11 +58,11 @@ class VesselBlockResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
 
-    protected static ?int $navigationSort = 45;
+    protected static ?int $navigationSort = 30;
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.catalogue');
+        return __('panel.groups.fleet');
     }
 
     public static function getNavigationLabel(): string

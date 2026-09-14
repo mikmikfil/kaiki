@@ -14,7 +14,8 @@ return [
 
     'groups' => [
         'operations' => 'Λειτουργία',
-        'catalogue' => 'Εκδρομές & σκάφη',
+        'catalogue' => 'Κατάλογος',
+        'fleet' => 'Πρόγραμμα & στόλος',
         'settings' => 'Ρυθμίσεις',
     ],
 

@@ -31,7 +31,7 @@ class DepartureReconciliation extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-exclamation-triangle';
 
-    protected static ?int $navigationSort = 35;
+    protected static ?int $navigationSort = 50;
 
     protected static string $view = 'filament.app.pages.departure-reconciliation';
 
@@ -75,7 +75,7 @@ class DepartureReconciliation extends Page
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.catalogue');
+        return __('panel.groups.fleet');
     }
 
     public static function getNavigationLabel(): string

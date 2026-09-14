@@ -14,7 +14,8 @@ return [
 
     'groups' => [
         'operations' => 'Operations',
-        'catalogue' => 'Trips & boats',
+        'catalogue' => 'Catalogue',
+        'fleet' => 'Schedule & fleet',
         'settings' => 'Settings',
     ],
 

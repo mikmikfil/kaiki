@@ -46,11 +46,11 @@ class PortResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-map-pin';
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 40;
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.catalogue');
+        return __('panel.groups.fleet');
     }
 
     public static function getNavigationLabel(): string

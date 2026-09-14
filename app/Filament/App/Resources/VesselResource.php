@@ -54,7 +54,7 @@ class VesselResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-lifebuoy';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 20;
 
     /**
      * The `specs` keys this form renders (`docs/data-model.md` §3.9).
@@ -71,7 +71,7 @@ class VesselResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.catalogue');
+        return __('panel.groups.fleet');
     }
 
     public static function getNavigationLabel(): string

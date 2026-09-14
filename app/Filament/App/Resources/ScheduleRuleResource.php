@@ -60,11 +60,11 @@ class ScheduleRuleResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
 
-    protected static ?int $navigationSort = 30;
+    protected static ?int $navigationSort = 10;
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.catalogue');
+        return __('panel.groups.fleet');
     }
 
     public static function getNavigationLabel(): string

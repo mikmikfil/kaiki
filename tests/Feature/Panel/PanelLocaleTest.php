@@ -20,11 +20,15 @@ use function Pest\Laravel\get;
 it('translates the panel navigation groups in both locales', function (): void {
     app()->setLocale('en');
     expect(__('panel.groups.operations'))->toBe('Operations')
-        ->and(__('panel.groups.catalogue'))->toBe('Trips & boats');
+        ->and(__('panel.groups.catalogue'))->toBe('Catalogue')
+        ->and(__('panel.groups.fleet'))->toBe('Schedule & fleet')
+        ->and(__('panel.groups.settings'))->toBe('Settings');
 
     app()->setLocale('el');
     expect(__('panel.groups.operations'))->toBe('Λειτουργία')
-        ->and(__('panel.groups.catalogue'))->toBe('Εκδρομές & σκάφη');
+        ->and(__('panel.groups.catalogue'))->toBe('Κατάλογος')
+        ->and(__('panel.groups.fleet'))->toBe('Πρόγραμμα & στόλος')
+        ->and(__('panel.groups.settings'))->toBe('Ρυθμίσεις');
 })->group('fast');
 
 it('translates the super-admin brand name', function (): void {

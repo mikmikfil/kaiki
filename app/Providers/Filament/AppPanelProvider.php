@@ -167,9 +167,27 @@ class AppPanelProvider extends PanelProvider
              * you rarely need read better as a page you can scan than as a list
              * you first have to open.
              */
+            /*
+             * The order the sidebar reads in, and it is an argument rather than
+             * a list: what is happening today, then what you sell, then when it
+             * sails and with what.
+             *
+             * «Κατάλογος» and «Πρόγραμμα & στόλος» were one group called
+             * «Εκδρομές & σκάφη» until 14 September. Ten entries covering three
+             * unrelated ideas — the thing sold, the rule that says when it runs,
+             * and the boats — and the product owner asked, in as many words,
+             * what the difference between a δρομολόγιο and an εκδρομή was. A
+             * menu that has to be explained is a menu that is wrong, so the two
+             * ideas are two groups and the group names answer the question.
+             *
+             * Αναχωρήσεις moved out of it into «Λειτουργία»: it is the screen
+             * an operator opens every morning, and it was filed with the
+             * once-a-season ones.
+             */
             ->navigationGroups([
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.operations')),
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.catalogue')),
+                NavigationGroup::make()->label(fn (): string => __('panel.groups.fleet')),
             ])
             /*
              * The export download (OPS-18).

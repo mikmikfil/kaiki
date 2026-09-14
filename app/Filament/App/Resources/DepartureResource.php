@@ -75,11 +75,11 @@ class DepartureResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-flag';
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 3;
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.catalogue');
+        return __('panel.groups.operations');
     }
 
     public static function getNavigationLabel(): string
