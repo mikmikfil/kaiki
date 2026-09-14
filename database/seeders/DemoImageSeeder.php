@@ -85,6 +85,11 @@ class DemoImageSeeder extends Seeder
     private const HOME_IMAGES = [
         ['demo-hero.jpg', 'demo-story.jpg', 'demo-contact.jpg'],
         ['demo-hero-2.jpg', 'demo-story-2.jpg', 'demo-contact-2.jpg'],
+        // The third operator gets the first set again, on the product owner's
+        // own instruction: «could be the same as aegean cruises no problem».
+        // Two operators are never looked at side by side, and a third pair of
+        // photographs is a licence question for a demo nobody is comparing.
+        ['demo-hero.jpg', 'demo-story.jpg', 'demo-contact.jpg'],
     ];
 
     /**

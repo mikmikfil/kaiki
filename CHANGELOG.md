@@ -4,6 +4,10 @@
 
 > Entries for #118 … #122 — the dashboard, the vessel calendar, recorded cash, the weather-cancellation workflow and the manifests — are not written here. They are on `main` with their reasoning in each commit message; inventing changelog prose for them after the fact would be reconstruction rather than a record, which is the same rule this project applies in `docs/BUILD-LOG.md`.
 
+### Ο τρίτος διοργανωτής στα δοκιμαστικά δεδομένα
+
+Το «Actionseaze Sailing Tours» υπήρχε μόνο σε έναν υπολογιστή, γιατί είχε δημιουργηθεί από τη διαδικασία εγγραφής και όχι από τα δοκιμαστικά δεδομένα — οπότε κάθε ανακατασκευή της βάσης το έσβηνε μαζί με τη σελίδα που είχε στηθεί πάνω του. Μπαίνει πια κανονικά: δικός του στόλος, δικός του κατάλογος, δική του αρχική σελίδα με φωτογραφίες.
+
 ### Από την επίσκεψη στην κράτηση — και ποιος μετράει
 
 Στα «Στατιστικά» υπάρχει πια και το χωνί: πόσοι είδαν τις σελίδες σας, πόσοι άνοιξαν μια εκδρομή, πόσοι είδαν διαθεσιμότητα, πόσοι ξεκίνησαν κράτηση, πόσοι έφτασαν στην πληρωμή, πόσοι πλήρωσαν.

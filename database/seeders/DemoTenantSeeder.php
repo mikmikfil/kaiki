@@ -16,15 +16,21 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Two demo operators with deliberately different shapes (ENV-13).
+ * Three demo operators with deliberately different shapes (ENV-13).
  *
  * Deterministic — fixed slugs, emails and ids — because the isolation suite in
  * #8 and every later catalog test asserts against this data. Nothing here is
  * random; a seeder that produced different data on each run would make those
  * tests flaky for reasons unrelated to what they test.
  *
- * Two tenants, not one: isolation cannot be demonstrated with a single tenant,
- * and the second exists so a leak has somewhere to leak *from*.
+ * More than one tenant, because isolation cannot be demonstrated with a single
+ * one: the others exist so a leak has somewhere to leak *from*.
+ *
+ * The third arrived on 2026-09-14. It had been signed up through onboarding on
+ * one development machine and lived nowhere else, so every `migrate:fresh
+ * --seed` deleted it along with the demo page somebody had arranged on it. A
+ * demo that has to be rebuilt by hand after each rebuild is a demo that stops
+ * being rebuilt.
  */
 class DemoTenantSeeder extends Seeder
 {
@@ -97,6 +103,39 @@ class DemoTenantSeeder extends Seeder
         $this->createStaff($ionian, 'ionian-sunset.example', [
             ['Elena Rossi', 'elena', Role::Owner],
             ['Andreas Kollias', 'andreas', Role::Crew],
+        ]);
+
+        // The third, added 2026-09-14 at the product owner's request.
+        //
+        // It existed only on one development machine — signed up through
+        // onboarding while the panel was being built — so a `migrate:fresh
+        // --seed` deleted it and the demo it had been arranged into. A demo
+        // nobody can reproduce is a demo that has to be rebuilt by hand every
+        // time the database is rebuilt, which is how the home page of #102
+        // ended up unseeded for a fortnight.
+        //
+        // Deliberately the *third* shape: a trial account with a Greek name and
+        // an English-speaking market, so the two above keep their own jobs —
+        // the fleet operator and the single-boat one.
+        $actionseaze = $this->createTenant([
+            'name' => 'Actionseaze Sailing Tours',
+            'slug' => 'actionseaze',
+            'legal_name' => 'ACTIONSEAZE ΝΑΥΤΙΛΙΑΚΗ ΙΚΕ',
+            'vat_number' => '805566778',
+            'tax_office' => 'ΔΟΥ Ρόδου',
+            'city' => 'Ρόδος',
+            'postcode' => '85100',
+            'email' => 'info@actionseaze.example',
+            'phone' => '+30 22410 33221',
+            'address_line1' => 'Ακτή Μιαούλη 15',
+            'default_locale' => 'el',
+            'plan' => Plan::Trial,
+            'status' => TenantStatus::Trialing,
+            'trial_ends_at' => now()->addDays(30),
+        ]);
+
+        $this->createStaff($actionseaze, 'actionseaze.example', [
+            ['Δημήτρης Σακελλάρης', 'dimitris', Role::Owner],
         ]);
 
         // Platform staff: no tenant, `/admin` only.
