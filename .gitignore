@@ -71,6 +71,23 @@ Thumbs.db
 # plugin work" should not have to run a build first.
 /docs/wordpress/guide.html
 
+# The two presentations and their screenshots, moved into the repository on
+# 14 September so the generators stop living in a temporary folder that gets
+# swept. The **scripts** are committed — they are the deck; the 46 MB of
+# full-resolution PNGs and the two .pptx they produce are not, for the same
+# reason the manual's PDF is not. `node docs/deck/shots.mjs docs/deck` and
+# `python docs/deck/deck.py` rebuild both from a running Kaiki.
+/docs/deck/deck-shots
+/docs/deck/*.pptx
+/docs/deck-team/shots
+/docs/deck-team/preview
+/docs/deck-team/*.pptx
+
+# The questions document's intermediate page. Its PDF is written straight to
+# the desktop and never into the repository.
+/docs/erotiseis/erotiseis.html
+/docs/erotiseis/check.pdf
+
 # Mailpit, downloaded rather than committed — 28 MB of binary that
 # `docs/testing/` tells you how to fetch (testing only, never production).
 /tools/*.exe

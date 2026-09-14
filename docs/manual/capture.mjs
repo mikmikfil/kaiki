@@ -77,6 +77,22 @@ function tinker(code) {
   return out.trim().split(/\s+/).pop();
 }
 
+/** An operator's public identifier, which is what the panel's URLs are built from. */
+function tenantRouteKey(slug) {
+  return tinker(`print(App\\Models\\Tenant::where('slug','${slug}')->value('uuid') ?? '');`);
+}
+
+/**
+ * Is this person in the database at all?
+ *
+ * A development database is not always the full demo seed, and a sign-in that
+ * cannot succeed fails as a thirty-second navigation timeout rather than as a
+ * sentence anybody can act on.
+ */
+async function exists(email) {
+  return tinker(`print(App\\Models\\User::where('email','${email}')->exists() ? 'yes' : 'no');`) === 'yes';
+}
+
 /**
  * The demo import's review page.
  *
@@ -105,6 +121,11 @@ const PANEL_SHOTS = [
   ['departures', '/app/departures'],
   ['bookings', '/app/bookings'],
   ['calendar', '/app/calendar'],
+  // Pinned to a period rather than left on the default, so the figure is the
+  // same page every time it is re-taken: "the last 30 days" is a different
+  // month every month, and a manual whose screenshots drift is one nobody can
+  // tell has been updated.
+  ['analytics', '/app/analytics?period=this_year'],
   ['check-in', '/app/check-in'],
   ['products', '/app/products'],
   ['vessels', '/app/vessels'],
@@ -171,7 +192,11 @@ const OWNER_PHONE_SHOTS = [
 const ADMIN_SHOTS = [
   ['admin-dashboard', '/admin?lang=el'],
   ['admin-tenants', '/admin/tenants?lang=el'],
-  ['admin-tenant-edit', '/admin/tenants/1/edit?lang=el', '[id="data.qr_check_in_enabled"]'],
+  // The **uuid**, not the id. `TenantResource` resolves by route key and every
+  // public identifier in this product is a uuid (§1.1), so `/tenants/1/edit`
+  // is a 404 — and a 404 fails here as a thirty-second locator timeout rather
+  // than as a missing page, which is how this figure went stale unnoticed.
+  ['admin-tenant-edit', `/admin/tenants/${tenantRouteKey('aegean-blue')}/edit?lang=el`, '[id="data.check_in_enabled"]'],
   ['admin-vat-rates', '/admin/vat-rates?lang=el'],
   // The platform panel (2026-09-11): health, and the announcements list.
   ['admin-health', '/admin/health?lang=el'],
@@ -238,7 +263,9 @@ async function shoot(context, name, url, base, scrollTo = null) {
 
     return { name, url };
   } catch (error) {
-    process.stdout.write(`  ${name} — FAILED: ${error.message.split('\n')[0]}\n`);
+    // The URL, because the two ways this fails look identical without it: a
+    // selector that no longer matches, and a page that was never there.
+    process.stdout.write(`  ${name} — FAILED at ${base}${url}: ${error.message.split('\n')[0]}\n`);
 
     return null;
   } finally {
@@ -328,7 +355,17 @@ mkdirSync(OUT, { recursive: true });
 }
 
 // An operator on Solo, at the limit.
-{
+//
+// **Skipped rather than fatal when that operator is not in this database.** A
+// development database is not always the full demo seed — on 14 September the
+// product owner asked for every operator except two to be cleared out, and this
+// block then failed the whole run thirty screenshots in, on a sign-in that
+// could never succeed. The figures it takes are committed, so a run without it
+// leaves them as they were rather than leaving holes.
+//
+// Loudly, though: a silently skipped capture is a manual that quietly stops
+// describing the product.
+if (await exists(PEOPLE.soloOwner)) {
   const context = await browser.newContext({
     viewport: DESKTOP,
     deviceScaleFactor: 1.5,
@@ -345,6 +382,12 @@ mkdirSync(OUT, { recursive: true });
   }
 
   await context.close();
+} else {
+  process.stdout.write(
+    `SKIPPED — ${PEOPLE.soloOwner} is not in this database, so the plan-limit figures\n` +
+      `  (${SOLO_SHOTS.map(([name]) => name).join(', ')}) keep their committed versions.\n` +
+      '  Seed the full demo to re-take them.\n',
+  );
 }
 
 // The crew, on a phone at the quay.

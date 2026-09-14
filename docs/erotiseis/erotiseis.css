@@ -1,0 +1,410 @@
+/*
+ * Ερωτήσεις για λογιστή και δικηγόρο — A4, light only.
+ *
+ * Tokens and type are the manual's (docs/manual/manual.css): hull teal, Inter,
+ * IBM Plex Mono for numbers. Two rules of this document on top of that:
+ *   - nothing is ever uppercased, by markup or by CSS, because uppercase Greek
+ *     loses its accents; there is no text-transform anywhere in this file;
+ *   - every question leaves ruled space for a handwritten answer.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;600&display=swap');
+
+:root {
+    --hull: #0b4f4a;
+    --hull-deep: #063733;
+    --rust: #b5511f;
+    --ink: #16211f;
+    --muted: #5c6a67;
+    --faint: #8a9794;
+    --rule: #d9e2e0;
+    --line: #c3cfcc;
+    --wash: #f4f7f6;
+    --paper: #ffffff;
+
+    --sans: 'Inter', system-ui, 'Segoe UI', sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+}
+
+@page {
+    size: A4;
+    margin: 17mm 16mm 19mm;
+
+    @bottom-left {
+        content: "Kaiki · Ερωτήσεις για λογιστή και δικηγόρο · 11 Σεπτεμβρίου 2026";
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+        font-size: 7.5pt;
+        color: #8a9794;
+    }
+
+    @bottom-right {
+        content: "Σελίδα " counter(page) " από " counter(pages);
+        font-family: 'Inter', 'Segoe UI', sans-serif;
+        font-size: 7.5pt;
+        color: #8a9794;
+    }
+}
+
+@page :first {
+    @bottom-left { content: none; }
+    @bottom-right { content: none; }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+    background: var(--paper);
+    color: var(--ink);
+}
+
+body {
+    margin: 0;
+    font-family: var(--sans);
+    font-size: 10.2pt;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+p { margin: 0 0 2.6mm; orphans: 2; widows: 2; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+/* ---------------------------------------------------------------- cover -- */
+
+.cover {
+    min-height: 258mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    break-after: page;
+    padding-top: 22mm;
+}
+
+.cover .mark {
+    font-size: 26pt;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    color: var(--hull);
+    margin: 0 0 14mm;
+}
+
+.cover .mark span {
+    display: inline-block;
+    width: 9mm;
+    height: 2.2mm;
+    background: var(--rust);
+    margin-left: 3mm;
+    vertical-align: middle;
+    border-radius: 1px;
+}
+
+.cover h1 {
+    font-size: 30pt;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    color: var(--hull-deep);
+    margin: 0 0 5mm;
+    max-width: 18ch;
+}
+
+.cover .date {
+    font-family: var(--mono);
+    font-size: 10pt;
+    color: var(--rust);
+    margin: 0 0 12mm;
+}
+
+.cover .standfirst {
+    font-size: 12pt;
+    line-height: 1.6;
+    color: var(--ink);
+    max-width: 60ch;
+    margin: 0 0 5mm;
+}
+
+.cover .howto {
+    font-size: 10.2pt;
+    color: var(--muted);
+    max-width: 62ch;
+}
+
+.cover .disclaimer {
+    border-left: 2.5pt solid var(--rust);
+    background: #fdf4ef;
+    padding: 4mm 5mm;
+    font-size: 10pt;
+    max-width: 150mm;
+}
+
+.cover .disclaimer p:last-child { margin-bottom: 0; }
+
+.cover .meeting {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6mm;
+    margin-top: 8mm;
+    font-size: 9pt;
+    color: var(--muted);
+}
+
+.cover .meeting div {
+    border-top: 0.6pt solid var(--line);
+    padding-top: 1.5mm;
+    min-height: 12mm;
+}
+
+/* ---------------------------------------------------------------- index -- */
+
+.index { break-after: page; }
+
+h2 {
+    font-size: 19pt;
+    font-weight: 800;
+    letter-spacing: -0.018em;
+    line-height: 1.15;
+    color: var(--hull-deep);
+    margin: 0 0 3mm;
+    break-after: avoid;
+}
+
+.lede {
+    font-size: 10.8pt;
+    color: var(--muted);
+    max-width: 66ch;
+    margin: 0 0 6mm;
+}
+
+.index h3 {
+    font-size: 11.5pt;
+    font-weight: 700;
+    color: var(--hull);
+    margin: 7mm 0 2mm;
+}
+
+.index table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9.4pt;
+}
+
+.index td {
+    padding: 1.8mm 2mm 1.8mm 0;
+    border-bottom: 0.5pt solid var(--rule);
+    vertical-align: top;
+}
+
+.index td.n {
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--rust);
+    width: 10mm;
+}
+
+.index td.when {
+    color: var(--muted);
+    width: 58mm;
+    font-size: 8.8pt;
+}
+
+.index td.tick { width: 8mm; text-align: right; }
+
+.box {
+    display: inline-block;
+    width: 3.6mm;
+    height: 3.6mm;
+    border: 0.8pt solid var(--hull);
+    border-radius: 0.6mm;
+    vertical-align: -0.4mm;
+}
+
+/* ---------------------------------------------------------------- parts -- */
+
+.part-head {
+    break-before: page;
+    border-bottom: 1.2pt solid var(--hull);
+    padding-bottom: 3mm;
+    margin-bottom: 6mm;
+}
+
+.part-head .kicker {
+    font-family: var(--mono);
+    font-size: 8.5pt;
+    color: var(--rust);
+    display: block;
+    margin-bottom: 1.5mm;
+}
+
+.part-head h2 { font-size: 24pt; margin-bottom: 2mm; }
+
+.part-head p {
+    color: var(--muted);
+    font-size: 10.2pt;
+    max-width: 68ch;
+    margin: 0;
+}
+
+.xref {
+    font-size: 9.4pt;
+    background: var(--wash);
+    border-left: 2.5pt solid var(--hull);
+    padding: 2.5mm 4mm;
+    margin: 0 0 6mm;
+}
+
+/* A part opens on a page of its own, so each part can be printed and handed
+   to its professional separately, with its own list of questions. */
+.part-open {
+    break-before: page;
+    break-after: page;
+    padding-top: 34mm;
+}
+
+.part-open .part-head { break-before: auto; }
+
+.part-open ol.plist {
+    list-style: none;
+    padding: 0;
+    margin: 8mm 0 0;
+    font-size: 10.2pt;
+}
+
+.part-open ol.plist li {
+    display: flex;
+    gap: 3mm;
+    padding: 2.2mm 0;
+    border-bottom: 0.5pt solid var(--rule);
+}
+
+.part-open ol.plist .n {
+    flex: none;
+    min-width: 9mm;
+    font-family: var(--mono);
+    font-weight: 600;
+    color: var(--rust);
+}
+
+/* ------------------------------------------------------------- question -- */
+
+.q {
+    border: 0.75pt solid var(--rule);
+    border-radius: 2.5mm;
+    padding: 4.5mm 5mm 3mm;
+    margin: 0 0 6mm;
+    break-inside: avoid;
+}
+
+.q header {
+    display: flex;
+    align-items: baseline;
+    gap: 3mm;
+    margin-bottom: 3mm;
+}
+
+.q .num {
+    flex: none;
+    font-family: var(--mono);
+    font-size: 9pt;
+    font-weight: 600;
+    color: #fff;
+    background: var(--hull);
+    border-radius: 1.2mm;
+    padding: 0.6mm 2mm;
+    position: relative;
+    top: -0.4mm;
+}
+
+.q h3 {
+    font-size: 12.5pt;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+    color: var(--hull-deep);
+    margin: 0;
+    flex: 1;
+}
+
+.q .ref {
+    flex: none;
+    font-family: var(--mono);
+    font-size: 7pt;
+    color: var(--faint);
+    white-space: nowrap;
+}
+
+.q dl {
+    display: grid;
+    grid-template-columns: 36mm 1fr;
+    column-gap: 4mm;
+    row-gap: 2.2mm;
+    margin: 0 0 3mm;
+}
+
+.q dt {
+    font-size: 8.6pt;
+    font-weight: 600;
+    color: var(--hull);
+    line-height: 1.45;
+    padding-top: 0.5mm;
+}
+
+.q dd { margin: 0; }
+
+.q dd p:last-child, .q dd ul:last-child { margin-bottom: 0; }
+
+.q dd.ask { font-weight: 500; }
+
+.q ul {
+    margin: 1mm 0 0;
+    padding-left: 4.5mm;
+}
+
+.q li { margin-bottom: 0.8mm; }
+
+.q .also {
+    font-size: 9pt;
+    color: var(--muted);
+}
+
+/* Handwriting space. 8 mm between rules is roughly a ruled notebook. */
+.answer {
+    border-top: 0.6pt dashed var(--line);
+    padding-top: 1.5mm;
+}
+
+.answer .label {
+    font-size: 8pt;
+    color: var(--faint);
+    display: block;
+}
+
+.answer .line {
+    height: 8mm;
+    border-bottom: 0.6pt solid var(--line);
+}
+
+/* ---------------------------------------------------------------- notes -- */
+
+.notes { break-before: page; }
+
+.notes h3 {
+    font-size: 13pt;
+    font-weight: 700;
+    color: var(--hull-deep);
+    margin: 0 0 1mm;
+}
+
+.notes p { color: var(--muted); font-size: 9.4pt; }
+
+.notes .line {
+    height: 8.5mm;
+    border-bottom: 0.6pt solid var(--line);
+}
+
+/* --------------------------------------------------------------- screen -- */
+
+@media screen {
+    body { max-width: 180mm; margin: 0 auto; padding: 10mm 12mm 30mm; }
+    .cover { min-height: auto; }
+}

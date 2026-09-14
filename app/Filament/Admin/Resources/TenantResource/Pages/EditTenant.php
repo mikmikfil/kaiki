@@ -146,7 +146,14 @@ class EditTenant extends EditRecord
                         // "scanning, on" under "check-in, off" is a pair that
                         // means nothing, and a greyed-out control still invites
                         // somebody to wonder which one wins.
-                        ->visible(fn (Get $get): bool => (bool) $get('check_in_enabled')),
+                        //
+                        // `!== false` and not a truthy test, for the same reason
+                        // `Tenant::usesCheckIn()` reads it that way: the column
+                        // is null for every operator who existed before it, and
+                        // a truthy test hid this toggle from all of them — which
+                        // is how the manual's screenshot of this very section
+                        // failed to capture.
+                        ->visible(fn (Get $get): bool => $get('check_in_enabled') !== false),
 
                     // ADR-0029's two states (amended 2026-09-11), decided by the
                     // platform with the operator — the same place and the same

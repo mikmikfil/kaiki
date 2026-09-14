@@ -121,6 +121,28 @@ it('keeps the departure and its bookings moving without a boarding screen', func
     });
 })->group('fast');
 
+it('offers the QR question only while check-in is on', function (): void {
+    $admin = User::factory()->superAdmin()->create();
+
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    // The column is null for every operator who existed before it, and a truthy
+    // visibility test hid this toggle from all of them — which is how the
+    // manual's screenshot of this section failed to capture, two hours after it
+    // was written.
+    $before = Tenant::factory()->create(['check_in_enabled' => null]);
+
+    Livewire::actingAs($admin)
+        ->test(EditTenant::class, ['record' => $before->getRouteKey()])
+        ->assertFormFieldExists('qr_check_in_enabled');
+
+    $off = Tenant::factory()->withoutCheckIn()->create();
+
+    Livewire::actingAs($admin)
+        ->test(EditTenant::class, ['record' => $off->getRouteKey()])
+        ->assertFormFieldDoesNotExist('qr_check_in_enabled');
+})->group('fast');
+
 it('lets the platform switch it off, with a reason, in the operator\'s own trail', function (): void {
     $tenant = Tenant::factory()->create();
     $admin = User::factory()->superAdmin()->create();
