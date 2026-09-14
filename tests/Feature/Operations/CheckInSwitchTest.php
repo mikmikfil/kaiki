@@ -141,7 +141,9 @@ it('lets the platform switch it off, with a reason, in the operator\'s own trail
         $entry = AuditLog::query()->where('action', AuditAction::TenantUpdated->value)->sole();
 
         expect($entry->user_id)->toBe($admin->id)
-            ->and($entry->context)->toBe([
+            // `toEqual`, because MySQL's JSON type sorts an object's keys by
+            // length and SQLite keeps them as written.
+            ->and($entry->context)->toEqual([
                 'check_in_enabled_from' => true,
                 'check_in_enabled_to' => false,
             ]);

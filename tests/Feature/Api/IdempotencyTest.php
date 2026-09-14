@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 use App\Models\Booking;
 use App\Support\Tenancy;
+use Illuminate\Cache\RedisStore;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 use function Pest\Laravel\postJson;
 
@@ -263,4 +265,15 @@ it('forgets a key after twenty-four hours', function (): void {
     Tenancy::forTenant($fixture['tenant'], function (): void {
         expect(Booking::query()->count())->toBe(2);
     });
-})->group('fast');
+})->skip(
+    // Redis expires a key on its own clock, so travelling in Carbon's does not
+    // forget it and this test asserts the opposite of what the store does. The
+    // array and database drivers compare an expiry against `Carbon::now()`,
+    // which is what makes the travel real there.
+    //
+    // A sentence rather than a silent pass: what is skipped is the *simulation*
+    // of a day passing, not the promise — the TTL itself is one line in
+    // `IdempotencyStore::ttlSeconds()` and is the same number on every driver.
+    fn (): bool => Cache::getStore() instanceof RedisStore,
+    'Redis expires on its own clock, so a day cannot be travelled through here.',
+)->group('fast');

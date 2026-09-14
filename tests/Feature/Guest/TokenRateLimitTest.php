@@ -88,10 +88,13 @@ it('counts a success against the lookup budget and not the failure one', functio
 
     get('/b/' . $booking->manage_token)->assertOk();
 
-    expect(RateLimiter::attempts(ThrottleTokenLookups::lookupKey('127.0.0.1')))->toBe(1)
+    // Cast, because a counter read back from Redis is the string `'1'` and from
+    // the array store the integer `1`. The number is the assertion; which
+    // driver the cache happens to be is not.
+    expect((int) RateLimiter::attempts(ThrottleTokenLookups::lookupKey('127.0.0.1')))->toBe(1)
         // Counting successes as failures would lock a guest out of their own
         // booking for refreshing it, which is the failure this split avoids.
-        ->and(RateLimiter::attempts(ThrottleTokenLookups::failureKey('127.0.0.1')))->toBe(0);
+        ->and((int) RateLimiter::attempts(ThrottleTokenLookups::failureKey('127.0.0.1')))->toBe(0);
 });
 
 it('limits the voucher page on the same budget, which is the harder one for a short code', function (): void {

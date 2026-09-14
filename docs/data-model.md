@@ -1392,7 +1392,7 @@ myDATA (AADE) document. One booking may have several (an ΑΛΠ plus a later can
 | `tenant_id` | bigint unsigned | no | — | FK cascade |
 | `booking_id` | bigint unsigned | no | — | FK `restrictOnDelete` |
 | `template_key` | varchar(48) | no | `default` | which Blade template |
-| `template_version` | varchar(16) | no | — | e.g. `2026.1` — the exact version rendered |
+| `template_version` | varchar(32) | no | — | the exact version rendered, e.g. `provisional-2026-09`. **Widened from 16 on 2026-09-14**: the constant it stores is nineteen characters, which MySQL refuses and SQLite silently accepts — six tests passed locally and failed in CI |
 | `fields_snapshot` | text | no | — | **encrypted:array** — §3.8; everything merged into the template |
 | `pdf_path` | varchar(255) | yes | null | |
 | `pdf_hash` | char(64) | yes | null | SHA-256 of the file; proves the PDF was not swapped |

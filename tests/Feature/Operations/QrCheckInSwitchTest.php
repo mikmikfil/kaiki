@@ -207,7 +207,11 @@ it('lets the platform switch it off, with a reason, in the operator\'s own trail
         $entry = AuditLog::query()->where('action', AuditAction::TenantUpdated->value)->sole();
 
         expect($entry->user_id)->toBe($admin->id)
-            ->and($entry->context)->toBe([
+            // `toEqual` and not `toBe`: MySQL's JSON type normalises an object
+            // by sorting its keys — shortest first — so `…_to` comes back
+            // before `…_from` there and after it on SQLite. The contents are
+            // the assertion; the order is the database's business.
+            ->and($entry->context)->toEqual([
                 'qr_check_in_enabled_from' => true,
                 'qr_check_in_enabled_to' => false,
             ]);
