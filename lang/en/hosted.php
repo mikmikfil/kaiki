@@ -17,6 +17,7 @@ return [
 
     'nav' => [
         'language' => 'Language',
+        'menu' => 'Menu',
     ],
 
     'index' => [

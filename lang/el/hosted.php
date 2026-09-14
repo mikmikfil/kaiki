@@ -18,6 +18,7 @@ return [
 
     'nav' => [
         'language' => 'Γλώσσα',
+        'menu' => 'Μενού',
     ],
 
     'index' => [

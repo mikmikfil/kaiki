@@ -157,6 +157,118 @@
             background: var(--kaiki-primary); border-color: var(--kaiki-primary); color: #fff;
         }
 
+        /* --- the burger -----------------------------------------------
+           The header on a phone, 14 September. One flex row with four things in
+           it had nowhere to go at 390px: the operator's name broke onto three
+           lines, «Βρείτε εκδρομή» onto two, and the header took 310px — a third
+           of the screen — before the page had said anything. An operator with a
+           longer name than this one fared worse, and most of them have one.
+
+           **The language switch stays out of the burger.** Brand decision 2 of
+           2026-09-04 asks for a visible ΕΛ/EN on every guest surface, and a
+           switch folded behind a menu is not visible. It is also the control a
+           visitor reaches for in the first two seconds, before they want a menu
+           at all. So the row on a phone is: name, ΕΛ/EN, burger.
+
+           Each of the two navigations is `display: none` where it does not
+           belong, which is what keeps the copy that is not on screen out of the
+           tab order and out of the accessibility tree. See
+           `partials/nav-links.blade.php` for why there are two. */
+
+        details.menu { display: none; }
+
+        @media (max-width: 40rem) {
+            header.site .wrap {
+                gap: .65rem;
+                padding-block: .85rem;
+            }
+
+            .site-nav { display: none; }
+
+            /* The name takes the slack and gives it back: it may shrink below
+               its content, and it ellipses rather than wrapping. A masthead
+               three lines deep is worse than a truncated one, and a logo — the
+               usual case — is unaffected either way. */
+            .brand { min-width: 0; flex: 1 1 auto; }
+            .brand .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+            .langs { flex: 0 0 auto; margin-left: auto; }
+
+            /* `position: relative` is on the header rather than here so the
+               panel can span the full width of the screen instead of the width
+               of a 44px button. */
+            details.menu { display: block; flex: 0 0 auto; }
+
+            details.menu > summary {
+                display: grid;
+                place-items: center;
+                /* 44px: the smallest target a thumb hits reliably, and the size
+                   the language switch beside it already is. */
+                inline-size: 2.75rem;
+                block-size: 2.75rem;
+                border: 1px solid var(--rule);
+                border-radius: var(--kaiki-radius);
+                color: var(--ink-soft);
+                cursor: pointer;
+                /* The disclosure triangle. `list-style` covers Firefox and
+                   Chrome, `::-webkit-details-marker` the Safari that ignores
+                   it. */
+                list-style: none;
+            }
+            details.menu > summary::-webkit-details-marker { display: none; }
+            details.menu > summary:focus-visible {
+                outline: 2px solid var(--kaiki-primary);
+                outline-offset: 2px;
+            }
+            details.menu > summary .icon { inline-size: 1.35rem; block-size: 1.35rem; }
+
+            /* Three bars into a cross. The middle bar fades, the outer two
+               rotate onto each other — and the transition is declared only where
+               motion is welcome. */
+            details.menu .bar { transform-origin: center; }
+            @media (prefers-reduced-motion: no-preference) {
+                details.menu .bar { transition: transform .18s ease, opacity .18s ease; }
+            }
+            details.menu[open] > summary {
+                background: var(--kaiki-primary);
+                border-color: var(--kaiki-primary);
+                color: #fff;
+            }
+            details.menu[open] .bar.mid { opacity: 0; }
+            details.menu[open] .bar.top { transform: translateY(6px) rotate(45deg); }
+            details.menu[open] .bar.bot { transform: translateY(-6px) rotate(-45deg); }
+
+            /* The panel. Absolute rather than in the flow, so opening it moves
+               the page's content down by nothing — a header that changes height
+               when a menu opens pushes the thing the visitor was reading off the
+               screen. */
+            header.site { position: relative; z-index: 30; }
+
+            .menu-panel {
+                position: absolute;
+                inset-inline: 0;
+                top: 100%;
+                display: flex;
+                flex-direction: column;
+                font-size: 1rem;
+                background: var(--surface);
+                border-bottom: 1px solid var(--rule);
+                box-shadow: 0 12px 28px rgba(6, 16, 20, .12);
+                padding: .35rem clamp(1.25rem, 3vw, 2.5rem) .85rem;
+            }
+
+            /* Full-width rows, not a stack of short links: the whole row is the
+               target, which is what a thumb expects of a menu. */
+            .menu-panel a {
+                padding-block: .85rem;
+                border-top: 1px solid var(--rule);
+                text-decoration: none;
+                color: var(--ink);
+            }
+            .menu-panel a:first-child { border-top: 0; }
+            .menu-panel a:hover { color: var(--kaiki-primary); }
+        }
+
         /* --- content --- */
 
         main { padding-block: 0 4.5rem; }
@@ -810,7 +922,10 @@
                tall empty field above it and a crowded strip below. */
             align-items: center;
             margin-inline: calc(50% - 50vw);
-            min-height: min(60vh, 32rem);
+            /* Raised from 60vh/32rem on 14 September. Kept a step below the
+               photographed hero below, so a page with no picture still reads as
+               the shorter of the two rather than as a taller empty band. */
+            min-height: min(68vh, 38rem);
             padding: 0;
         }
 
@@ -856,12 +971,14 @@
             color: #fff;
             background: var(--kaiki-primary);
             isolation: isolate;
-            /* Down from 86vh. A hero that fills the screen is a page whose
-               first scroll reveals nothing new — and this one carries a search
-               card, so what a visitor most wants to see below it is the trips.
-               Tall enough for the photograph to be a photograph, short enough
-               that the first card is already showing on a laptop. */
-            min-height: min(74vh, 43rem);
+            /* 86vh originally, then 74vh, and 84vh from 14 September — asked
+               for, with the cost stated rather than discovered later: at 74vh
+               the trips below started at 841px and a 900px laptop showed their
+               top edge; at 84vh they start at 931px and the first scroll is the
+               one that reveals them. The search card in the hero is what makes
+               that trade payable — a visitor with a date in mind never needs to
+               reach the cards at all. */
+            min-height: min(84vh, 50rem);
         }
 
         .hero.has-image .hero-image,
@@ -2077,8 +2194,7 @@
              for and nobody uses — and "how do I reach a person" is the question
              a visitor asks on whichever page they happen to be standing on. --}}
         <nav class="site-nav">
-            <a href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.search.nav') }}</a>
-            <a href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.contact.nav') }}</a>
+            @include('hosted.partials.nav-links')
         </nav>
 
         <nav class="langs" aria-label="{{ __('hosted.nav.language') }}">
@@ -2088,6 +2204,42 @@
                    @if ($code === $locale) aria-current="true" @endif>{{ $label }}</a>
             @endforeach
         </nav>
+
+        {{-- The same links behind a burger, on a phone only.
+
+             ## Why `<details>` and not a button
+
+             The hosted pages run with no JavaScript at all (HOS-2), so the
+             toggle has to be markup. `<details>` is the only element that opens
+             and closes on its own: it is focusable, it answers the space bar and
+             the enter key, it reports itself as expanded or collapsed to a
+             screen reader, and none of that is code anybody here has to keep
+             working.
+
+             The alternative — a hidden checkbox with a `<label>` — needs three
+             extra elements and an `aria-expanded` that nothing updates, which is
+             a burger that lies to the people who most need it to be honest.
+
+             It comes last in the row and last in the markup, so a tab key
+             visits the header in the order a thumb crosses it. --}}
+        <details class="menu">
+            <summary aria-label="{{ __('hosted.nav.menu') }}" title="{{ __('hosted.nav.menu') }}">
+                {{-- Two states in one drawing: three bars, and the cross they
+                     become when the panel is open. CSS swaps them, so the icon
+                     needs no script either. --}}
+                <svg class="icon burger" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
+                    <line class="bar top" x1="3" y1="6" x2="21" y2="6"/>
+                    <line class="bar mid" x1="3" y1="12" x2="21" y2="12"/>
+                    <line class="bar bot" x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+            </summary>
+
+            <nav class="menu-panel" aria-label="{{ __('hosted.nav.menu') }}">
+                @include('hosted.partials.nav-links')
+            </nav>
+        </details>
+
     </div>
 </header>
 
