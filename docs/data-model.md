@@ -237,6 +237,7 @@ The operator. Not tenant-owned (it *is* the tenant). It was also the Cashier bil
 | `custom_domain_verified_at` | timestamp | yes | null | |
 | `hosted_site_mode` | varchar(16) | no | `full` | `bookings_only` \| `full` (ADR-0029, amended 2026-09-11 — `off` retired); set on `/admin` only |
 | `is_sandbox` | boolean | no | `false` | sandbox tenants' bookings are `is_test` and purged nightly |
+| `check_in_enabled` | boolean | **yes** | `true` | **added 2026-09-14** — whether this operator boards people through Kaiki at all. Off, neither boarding page opens and tickets carry no QR (`usesQrCheckIn()` reads this one first, so the two cannot disagree). The manifest, the departure sweep and a booking's own progress to `completed` are untouched: the switch removes a surface, not a fact. Platform-set on `/admin`, audited; null reads as on (`Tenant::usesCheckIn()`) |
 | `qr_check_in_enabled` | boolean | **yes** | `true` | **added 2026-09-11** — BKG-20 as amended by the product owner: whether tickets carry a QR and the boarding pages offer a scan box. Off, the passenger list with a tap per name is the whole of boarding, online and offline. Set by the platform on `/admin`, audited like the plan. Nullable so it could be added to an existing table (§6); null reads as on (`Tenant::usesQrCheckIn()`) |
 | `turnaround_buffer_minutes` | smallint unsigned | no | `60` | tenant default; a vessel may override |
 | `guest_document_retention_days` | smallint unsigned | no | `90` | GDPR purge horizon for `booking_guests.document_number` |
@@ -401,6 +402,26 @@ Exactly one per tenant.
 **Notes.** Colours are stored as hex strings rather than parsed components because the only consumers are CSS custom properties and the email templates. `custom_css` is stored raw and sanitised on **read** as well as write, so tightening the sanitiser later does not require a data migration. **Settled: plain path columns, no polymorphic media table.** Modelled here and on `vessels` / `products` / `ports` / `extras`. `spatie/laravel-medialibrary` is rejected — a new package, a new table and a new tenancy-scoping problem for the sake of a handful of upload fields, and tenancy scoping is the one risk this product cannot afford. One `App\Domain\Media\Actions\StoreUploadedImage` validates, resizes with `intervention/image` and writes to disk; conversions are synchronous at fixed documented sizes, with a `media:rebuild` Artisan command for a size change. Galleries are ordered JSON arrays and the Filament form owns reordering. Revisit only if gallery management becomes an operator complaint. (per [ADR-0021](adr/0021-image-and-file-storage.md), Option A)
 
 
+#### `analytics_daily`
+
+Counted visits and funnel steps ([ADR-0032](adr/0032-first-party-visit-counting.md), 2026-09-14). **A rollup and never a log**: one row is *"this tenant, on this local day, saw this many of this thing"*. There is no visitor id, no session id, no IP address and no user agent in it, which is what makes GDR-12 hold and leaves nothing to purge under GDR-3.
+
+| column | type | null | default | notes |
+|---|---|---|---|---|
+| `id` | bigint unsigned AI | no | — | |
+| `tenant_id` | bigint unsigned | no | — | FK cascade |
+| `date` | date | no | — | the **tenant's** local day, the calendar every figure on the statistics page uses |
+| `metric` | varchar(32) | no | — | `App\Domain\Analytics\Support\AnalyticsMetric`: `page_view` \| `widget_ready` \| `product_viewed` \| `availability_loaded` \| `booking_started` \| `checkout_started` \| `booking_confirmed` \| `enquiry_submitted` \| `widget_error` |
+| `dimension` | varchar(32) | no | `''` | what the count is broken down by, or empty |
+| `dimension_value` | varchar(64) | no | `''` | a product uuid, an error code. **Not nullable**: it is in the unique index, and MySQL treats every null there as distinct, which would split a count in two instead of incrementing it |
+| `count` | int unsigned | no | `0` | |
+| `value_cents` | bigint unsigned | no | `0` | summed only for a metric that carries money |
+| timestamps | | | | |
+
+**Indexes** — `analytics_daily_point_uq` on (`tenant_id`, `date`, `metric`, `dimension`, `dimension_value`) **unique**: the upsert target, and the whole correctness of the table rests on it. `analytics_daily_range_idx` on (`tenant_id`, `date`) for the read.
+
+Written by `CountAnalyticsEvent` as an atomic increment, never by a model save — a read-modify-write is the one shape that loses counts under concurrency.
+
 #### `home_page_blocks`
 
 The operator's landing page, as an ordered list of typed blocks (#102). Added by the design review of 2026-09-04, after this document was written — recorded here because it is schema.
@@ -416,6 +437,8 @@ The operator's landing page, as an ordered list of typed blocks (#102). Added by
 | `heading` | json | yes | null | **translatable**, nullable: a gallery has no heading |
 | `body` | json | yes | null | **translatable**, **plain text, never markup** — rendered only through `BlockText` |
 | `image_path` | varchar(255) | yes | null | ADR-0021 Option A: a path, not a media row |
+| `video_path` | varchar(255) | yes | null | the hero only: an uploaded MP4 or WebM behind the masthead; `image_path` is its poster |
+| `video_url` | varchar(255) | yes | null | the hero only: a YouTube or Vimeo link, stored as the operator typed it and parsed on render by `VideoEmbed`. `video_path` wins when both are set |
 | `images` | json | yes | null | the gallery: a list of `{path, alt: {el, en}}` |
 | `settings` | json | yes | null | the per-type knobs, none of them translated; whitelisted by `BlockSettings` |
 | timestamps | | | | |
@@ -1389,7 +1412,7 @@ myDATA (AADE) document. One booking may have several (an ΑΛΠ plus a later can
 | `tenant_id` | bigint unsigned | no | — | FK cascade |
 | `booking_id` | bigint unsigned | no | — | FK `restrictOnDelete` |
 | `template_key` | varchar(48) | no | `default` | which Blade template |
-| `template_version` | varchar(16) | no | — | e.g. `2026.1` — the exact version rendered |
+| `template_version` | varchar(32) | no | — | the exact version rendered, e.g. `provisional-2026-09`. **Widened from 16 on 2026-09-14**: the constant it stores is nineteen characters, which MySQL refuses and SQLite silently accepts — six tests passed locally and failed in CI |
 | `fields_snapshot` | text | no | — | **encrypted:array** — §3.8; everything merged into the template |
 | `pdf_path` | varchar(255) | yes | null | |
 | `pdf_hash` | char(64) | yes | null | SHA-256 of the file; proves the PDF was not swapped |

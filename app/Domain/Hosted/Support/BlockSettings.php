@@ -60,6 +60,11 @@ final class BlockSettings
                 // form, and an operator who wants everything picks the source
                 // rather than the number.
                 'limit' => 0,
+                // The featured rail is a recommendation, and an operator with
+                // four trips is recommending their whole catalogue to itself.
+                // Turned off, there is nothing to hold back and every trip
+                // falls through to the one grid.
+                'show_featured' => true,
             ],
             HomeBlockType::Story => [
                 'image_side' => 'right',

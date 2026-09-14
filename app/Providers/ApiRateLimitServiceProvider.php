@@ -50,6 +50,11 @@ final class ApiRateLimitServiceProvider extends ServiceProvider
         'api-enquiries' => [120, 5],
         'api-vouchers' => [120, 10],
         'api-sync' => [120, 120],
+        // ADR-0032's beacon. Generous per key, because one visitor walking
+        // through a booking sends six of these and a busy operator has many
+        // visitors at once; tight per IP, because a single browser that sends
+        // three hundred events a minute is not a visitor.
+        'api-events' => [1200, 300],
     ];
 
     public function boot(): void

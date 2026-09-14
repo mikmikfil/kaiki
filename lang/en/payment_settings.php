@@ -31,7 +31,7 @@ return [
     'fields' => [
         'default_vat_rate' => [
             'label' => 'Default rate',
-            'help' => 'We do not suggest a rate: it is an accountant\'s answer, and a mistake here becomes a mistake on a tax document.',
+            'help' => 'It fills in every new trip, and you change it where a trip differs. We do not suggest a rate: it is an accountant\'s answer, and a mistake here becomes a mistake on a tax document.',
         ],
         'deposits_enabled' => [
             'label' => 'I take a deposit',

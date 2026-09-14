@@ -27,6 +27,22 @@
     already knows the answer, and `@media (prefers-reduced-motion)` cannot switch
     an attribute off — so the markup is chosen here rather than styled later.
 
+    ## Three sources, in one order
+
+    An **uploaded file** wins, then a **YouTube or Vimeo link**, then the
+    photograph on its own. The file is first because it is on our own disk,
+    inside our own policy and under a size limit the form states; an operator
+    with both has a leftover rather than a preference, and the editor says which
+    one plays. {@see \App\Models\HomePageBlock::videoEmbed()}
+
+    A framed video cannot carry a `poster` attribute the way `<video>` can, so
+    the photograph is rendered **underneath** it as an ordinary image. That is
+    what a visitor sees while the player loads, what they keep if the provider
+    is unreachable where they are — a hotel network, a work laptop — and what
+    shows instead of the loop when they have asked for reduced motion, which for
+    an iframe is the only lever there is. A hero with a link and no photograph
+    still reads: `.hero.has-image` is the operator's own colour underneath.
+
     ## The search bar belongs here
 
     A visitor arriving at a boat operator's home page has a date and a number of
@@ -42,9 +58,10 @@
     $cta = $block->setting('cta');
     $poster = HostedAsset::url($block->image_path);
     $video = HostedAsset::url($block->video_path ?? null);
+    $embed = $block->videoEmbed();
 @endphp
 
-<section class="block hero @if ($poster || $video) has-image @endif">
+<section class="block hero @if ($poster || $video || $embed) has-image @endif">
     @if ($video)
         <video class="hero-image hero-video"
                autoplay
@@ -57,13 +74,35 @@
                tabindex="-1">
             <source src="{{ $video }}" type="{{ str_ends_with($video, '.webm') ? 'video/webm' : 'video/mp4' }}">
         </video>
-    @elseif ($poster)
-        <img class="hero-image"
-             src="{{ $poster }}"
-             alt=""
-             {{-- Decorative: the heading beside it says the same thing, and a
-                  screen reader announcing both reads the operator's name twice. --}}
-             loading="eager">
+    @else
+        @if ($poster)
+            <img class="hero-image"
+                 src="{{ $poster }}"
+                 alt=""
+                 {{-- Decorative: the heading beside it says the same thing, and a
+                      screen reader announcing both reads the operator's name twice. --}}
+                 loading="eager">
+        @endif
+
+        @if ($embed)
+            {{-- The frame is the operator's, the URL is ours: `VideoEmbed`
+                 builds it from a provider we name and an id matched against a
+                 pattern, so nothing an operator typed reaches this attribute.
+
+                 `aria-hidden` and `tabindex="-1"` keep a decorative player out
+                 of the reading order and out of the tab order — it has no
+                 controls to reach anyway, and a keyboard that lands inside an
+                 iframe is the worst kind of trap. --}}
+            <div class="hero-embed" aria-hidden="true">
+                <iframe src="{{ $embed->embedUrl() }}"
+                        title="{{ __('hosted.blocks.hero.video') }}"
+                        tabindex="-1"
+                        loading="lazy"
+                        referrerpolicy="strict-origin-when-cross-origin"
+                        allow="autoplay; encrypted-media; picture-in-picture"
+                        frameborder="0"></iframe>
+            </div>
+        @endif
     @endif
 
     <div class="hero-copy">

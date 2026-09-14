@@ -100,6 +100,12 @@ class TenantFactory extends Factory
         return $this->state(fn (): array => ['qr_check_in_enabled' => false]);
     }
 
+    /** An operator who boards nobody through Kaiki: no scan, and no list either. */
+    public function withoutCheckIn(): self
+    {
+        return $this->state(fn (): array => ['check_in_enabled' => false]);
+    }
+
     /** A lapsed subscription: the panel opens, nothing can be written (#7). */
     public function readOnly(): self
     {

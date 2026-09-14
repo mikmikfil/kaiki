@@ -331,15 +331,50 @@ EN,
 
     public function run(): void
     {
+        // Every demo operator, named rather than "all tenants": a development
+        // database also holds accounts somebody signed up through onboarding to
+        // watch the wizard work, and filling those with ten boats they never
+        // asked for would destroy the thing they were made to show.
         Tenant::query()
-            ->whereIn('slug', ['aegean-blue', 'ionian-sunset'])
+            ->whereIn('slug', ['aegean-blue', 'ionian-sunset', 'actionseaze'])
             ->get()
             ->each(function (Tenant $tenant): void {
                 Tenancy::forTenant($tenant, function (): void {
+                    $this->fillPort();
                     $this->fillFleet();
                     $this->fillCatalogue();
                 });
             });
+    }
+
+    /**
+     * A harbour to leave from, for an operator `DemoCatalogSeeder` does not know.
+     *
+     * That seeder writes bespoke ports for the two operators it was written
+     * around. A third one reached `fillCatalogue()` with no port, which returns
+     * early — so it ended up with ten boats and no trips, a demo that looks
+     * broken in a way nothing reports. One generic harbour is enough: what the
+     * third operator exists to demonstrate is a fleet and a catalogue, not a
+     * second set of hand-written meeting instructions.
+     */
+    private function fillPort(): void
+    {
+        if (Port::query()->exists()) {
+            return;
+        }
+
+        Port::query()->create([
+            'name' => ['el' => 'Λιμάνι Ρόδου', 'en' => 'Rhodes Harbour'],
+            'address' => 'Μανδράκι, Ρόδος 851 00',
+            'lat' => '36.4500000',
+            'lng' => '28.2270000',
+            'instructions' => [
+                'el' => 'Συνάντηση στο Μανδράκι, μπροστά από τα ελάφια. Ελάτε 15 λεπτά νωρίτερα.',
+                'en' => 'Meet at Mandraki, in front of the deer columns. Please arrive 15 minutes early.',
+            ],
+            'sort_order' => 0,
+            'is_active' => true,
+        ]);
     }
 
     /** Top the boats up to ten, leaving the seeded ones untouched. */

@@ -114,6 +114,13 @@ jobs:
   test-suite:
     name: Pest on SQLite, with the coverage gate
     runs-on: ubuntu-latest
+    # The runner's own Chrome, the same binary `pdf-chromium` is pointed at.
+    # The `chromium` group is still excluded from this job — this is for the
+    # renders the rest of the suite does on its way past.
+    env:
+      KAIKI_CHROME_PATH: /usr/bin/google-chrome
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
+
     steps:
       - uses: actions/checkout@v4
 
@@ -127,6 +134,27 @@ jobs:
           coverage: pcov
 
       - uses: ramsey/composer-install@v3
+
+      # The suite renders PDFs well outside the `chromium` group, and that is
+      # not a leak to be plugged: `GenerateETicketOnConfirmation` is a queued
+      # listener and the test queue is `sync`, so every booking that confirms in
+      # a test prints a ticket — and the invoice and charter-agreement tests
+      # call their renderer directly. Browsershot needs Puppeteer's Node bridge
+      # and a browser for both, so this job needs them as much as
+      # `pdf-chromium` does.
+      #
+      # Without them the job fails with `Cannot find module 'puppeteer'` in
+      # files that have nothing to do with PDFs, which is what red-lit every run
+      # between 6 and 14 September.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install Puppeteer without its bundled Chromium
+        run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: '1'
 
       - name: Prepare environment
         run: |
@@ -214,6 +242,9 @@ jobs:
       SESSION_DRIVER: redis
       REDIS_HOST: 127.0.0.1
       REDIS_PORT: '6379'
+      # The runner's own Chrome, for the PDFs the suite prints on its way past.
+      KAIKI_CHROME_PATH: /usr/bin/google-chrome
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
 
     steps:
       - uses: actions/checkout@v4
@@ -225,6 +256,27 @@ jobs:
           coverage: none
 
       - uses: ramsey/composer-install@v3
+
+      # The suite renders PDFs well outside the `chromium` group, and that is
+      # not a leak to be plugged: `GenerateETicketOnConfirmation` is a queued
+      # listener and the test queue is `sync`, so every booking that confirms in
+      # a test prints a ticket — and the invoice and charter-agreement tests
+      # call their renderer directly. Browsershot needs Puppeteer's Node bridge
+      # and a browser for both, so this job needs them as much as
+      # `pdf-chromium` does.
+      #
+      # Without them the job fails with `Cannot find module 'puppeteer'` in
+      # files that have nothing to do with PDFs, which is what red-lit every run
+      # between 6 and 14 September.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install Puppeteer without its bundled Chromium
+        run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: '1'
 
       - name: Prepare environment
         run: |
@@ -268,6 +320,13 @@ jobs:
   runtime-gates:
     name: Tenant isolation and the timezone run
     runs-on: ubuntu-latest
+    # The runner's own Chrome, the same binary `pdf-chromium` is pointed at.
+    # The `chromium` group is still excluded from this job — this is for the
+    # renders the rest of the suite does on its way past.
+    env:
+      KAIKI_CHROME_PATH: /usr/bin/google-chrome
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/google-chrome
+
     steps:
       - uses: actions/checkout@v4
 
@@ -278,6 +337,27 @@ jobs:
           coverage: none
 
       - uses: ramsey/composer-install@v3
+
+      # The suite renders PDFs well outside the `chromium` group, and that is
+      # not a leak to be plugged: `GenerateETicketOnConfirmation` is a queued
+      # listener and the test queue is `sync`, so every booking that confirms in
+      # a test prints a ticket — and the invoice and charter-agreement tests
+      # call their renderer directly. Browsershot needs Puppeteer's Node bridge
+      # and a browser for both, so this job needs them as much as
+      # `pdf-chromium` does.
+      #
+      # Without them the job fails with `Cannot find module 'puppeteer'` in
+      # files that have nothing to do with PDFs, which is what red-lit every run
+      # between 6 and 14 September.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install Puppeteer without its bundled Chromium
+        run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: '1'
 
       - name: Prepare environment
         run: |
@@ -372,8 +452,9 @@ jobs:
 
       # ENV-20: *"CI always runs them."* The group is excluded from
       # `composer test` because a developer without a browser must not get a
-      # false green — which makes this job the only place the PDFs are ever
-      # actually rendered. If it stops running, nothing else notices.
+      # false green. This job is where a rendered PDF is **asserted**; it is not
+      # the only place one is rendered, and believing that it was is what left
+      # three other jobs without a browser they turn out to need.
       - name: Pest, chromium group
         run: php vendor/bin/pest --group=chromium
         env:

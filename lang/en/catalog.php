@@ -287,7 +287,7 @@ return [
             ],
             'vat_rate' => [
                 'label' => 'VAT rate',
-                'help' => 'The rate printed on the receipt.',
+                'help' => 'Pick from the rates the platform keeps — you never type a percentage, because the law sets it. A trip is usually passenger transport; an extra such as food may take a different one. The rate is frozen onto the booking the moment its price is worked out, so a later change never rewrites an old receipt. Which one applies to you is your accountant\'s answer.',
             ],
             'guest_details_required' => [
                 'label' => 'Collect passenger details',

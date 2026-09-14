@@ -65,6 +65,18 @@ class SaveHomePage
                     'sort_order' => $order++,
                     'is_visible' => (bool) ($input['is_visible'] ?? true),
                     'image_path' => $type->hasImage() ? $this->path($input['image_path'] ?? null) : null,
+                    // The hero only, both of them. Until now neither was
+                    // written at all: the form had the upload field from the
+                    // day the column was added and this Action never read it,
+                    // so an operator who uploaded a masthead video watched it
+                    // disappear on save with nothing to tell them why.
+                    'video_path' => $type === HomeBlockType::Hero ? $this->path($input['video_path'] ?? null) : null,
+                    // Stored as the operator typed it. `VideoEmbed` is what
+                    // decides whether it is a link this platform can frame, and
+                    // it decides that on the way out — so a link that is merely
+                    // mistyped is still in the field when they come back to fix
+                    // it, rather than silently gone.
+                    'video_url' => $type === HomeBlockType::Hero ? $this->url($input['video_url'] ?? null) : null,
                     'images' => $type === HomeBlockType::Gallery ? $this->images($input['images'] ?? null) : null,
                     'settings' => BlockSettings::normalise($type, is_array($input['settings'] ?? null) ? $input['settings'] : []),
                 ]);
@@ -125,6 +137,12 @@ class SaveHomePage
         }
 
         return $translations === [] ? null : $translations;
+    }
+
+    /** A pasted link, trimmed, or null when the field is empty. */
+    protected function url(mixed $value): ?string
+    {
+        return is_string($value) && trim($value) !== '' ? trim($value) : null;
     }
 
     protected function path(mixed $value): ?string

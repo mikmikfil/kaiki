@@ -405,7 +405,10 @@ it('records who changed an operator, when, and why', function (): void {
             ->and($entry->created_at)->not->toBeNull()
             // Only what moved, with both sides of it. A row listing five fields
             // on an edit that changed two is a row nobody can read in a year.
-            ->and($entry->context)->toBe([
+            // `toEqual`: MySQL's JSON type sorts an object's keys by length, so
+            // the four come back in a different order there than on SQLite.
+            // What is asserted is that these four and only these four are in it.
+            ->and($entry->context)->toEqual([
                 'plan_from' => 'solo',
                 'plan_to' => 'fleet',
                 'status_from' => 'trialing',

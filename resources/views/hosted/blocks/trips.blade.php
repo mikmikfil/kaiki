@@ -20,9 +20,17 @@
 --}}
 <section class="block trips-block" @if ($anchor) id="{{ $anchor }}" @endif>
     @php
-        $featured = $products->where('is_featured', true)->take(6)->values();
+        // The rail is optional. An operator with four trips is recommending
+        // their whole catalogue to itself, and the grid on its own reads
+        // better; with the rail off there is nothing held back, so every
+        // product falls through to it.
+        $showFeatured = (bool) $block->setting('show_featured', true);
 
-        if ($featured->isEmpty()) {
+        $featured = $showFeatured
+            ? $products->where('is_featured', true)->take(6)->values()
+            : collect();
+
+        if ($showFeatured && $featured->isEmpty()) {
             $featured = $products->take(6)->values();
         }
 
@@ -59,15 +67,17 @@
              the scroll container, and an absolutely positioned box resolves
              against its nearest positioned ancestor — put that on the rail
              itself and the buttons slide away with the cards. --}}
-        <div class="trips-rail-frame">
-        <ul class="trips trips-rail"
-            tabindex="0"
-            aria-label="{{ $block->heading ?: __('hosted.index.trips') }}">
-            @foreach ($featured as $product)
-                @include('hosted.partials.trip-card', ['product' => $product])
-            @endforeach
-        </ul>
-        </div>
+        @if ($featured->isNotEmpty())
+            <div class="trips-rail-frame">
+            <ul class="trips trips-rail"
+                tabindex="0"
+                aria-label="{{ $block->heading ?: __('hosted.index.trips') }}">
+                @foreach ($featured as $product)
+                    @include('hosted.partials.trip-card', ['product' => $product])
+                @endforeach
+            </ul>
+            </div>
+        @endif
 
         @if ($rest->isNotEmpty())
             @php
@@ -89,7 +99,13 @@
                 $pageUrl = fn (int $n): string => request()->fullUrlWithQuery(['trips' => $n]) . $fragment;
             @endphp
 
-            <h3 class="trips-more">{{ __('hosted.index.all_trips') }}</h3>
+            {{-- Only when there is a rail above it to distinguish it from. With
+                 the rail off the grid is the whole list, and the block's own
+                 heading already says so — a second title over one grid reads
+                 as a section that lost its contents. --}}
+            @if ($featured->isNotEmpty())
+                <h3 class="trips-more">{{ __('hosted.index.all_trips') }}</h3>
+            @endif
 
             <ul class="trips">
                 @foreach ($shown as $product)

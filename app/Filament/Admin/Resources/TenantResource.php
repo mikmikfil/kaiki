@@ -126,8 +126,15 @@ class TenantResource extends Resource
                         default => 'success',
                     }),
 
-                // Which operators board from the passenger list. Hidden by
-                // default: it is looked for, not scanned down.
+                // Which operators board people at all, and which of those
+                // scan. Both hidden by default: they are looked for, not
+                // scanned down.
+                IconColumn::make('check_in_enabled')
+                    ->label(__('tenants.columns.check_in'))
+                    ->state(fn (Tenant $record): bool => $record->usesCheckIn())
+                    ->boolean()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 IconColumn::make('qr_check_in_enabled')
                     ->label(__('tenants.columns.qr_check_in'))
                     ->state(fn (Tenant $record): bool => $record->usesQrCheckIn())

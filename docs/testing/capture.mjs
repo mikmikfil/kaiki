@@ -104,10 +104,18 @@ await shot(page, '04-operator-created');
 //
 // The operator's edit form, scrolled to «Λειτουργίες» — the QR boarding switch
 // the walkthrough asks the reader to decide with the operator (2026-09-11).
-// The id is read the way a person would find it, from the operator's slug.
+// The identifier is read the way a person would find it, from the operator's
+// slug — and it is the **uuid**, not the id: `TenantResource` resolves by route
+// key, and every public identifier in this product is a uuid (§1.1). With the
+// id, the page is a 404 and this fails thirty seconds later as a locator
+// timeout, which names neither cause.
+//
+// `php84` by its path, because `php` on a developer machine may well be 8.3,
+// which dies on Composer's platform check before it reaches the query.
 const { execSync: exec } = await import('node:child_process');
+const PHP = process.env.KAIKI_PHP ?? 'C:\\Users\\Mike\\php84\\php.exe';
 const tenantId = exec(
-  `php artisan tinker --execute="echo App\\Models\\Tenant::where('slug','${OPERATOR.slug}')->value('id');"`,
+  `"${PHP}" artisan tinker --execute="echo App\\Models\\Tenant::where('slug','${OPERATOR.slug}')->value('uuid');"`,
   { cwd: resolve(HERE, '..', '..'), encoding: 'utf8' },
 ).trim().split(/\s+/).pop();
 
@@ -136,7 +144,7 @@ await shot(page, '04d-admin-announcements');
 // proves the link works rather than asserting that it should.
 const { execSync } = await import('node:child_process');
 const printed = execSync(
-  `php artisan kaiki:invitation-link ${OPERATOR.ownerEmail}`,
+  `"${PHP}" artisan kaiki:invitation-link ${OPERATOR.ownerEmail}`,
   { cwd: resolve(HERE, '..', '..'), encoding: 'utf8' },
 );
 const link = (printed.match(/https?:\/\/\S*password-reset\S*/) ?? [])[0];

@@ -22,7 +22,7 @@ return [
 
     'index' => [
         'meta_description' => 'Boat trips and charters with :operator. Book online.',
-        'trips' => 'Our trips',
+        'trips' => 'Featured trips',
         'no_trips' => 'There are no trips on sale at the moment.',
         'duration' => ':minutes minutes',
         'view' => 'See this trip',
@@ -40,6 +40,12 @@ return [
                 'trips' => 'See our trips',
                 'contact' => 'Get in touch',
             ],
+            // The title of a decorative frame. Nobody reads it out — the
+            // element is hidden from assistive technology — but an iframe with
+            // no title at all is a finding in every accessibility audit, and a
+            // title in the wrong language is the kind of detail these pages are
+            // translated to get right.
+            'video' => 'Background video',
         ],
         // The FAQ block renders `faqs` rows (#103); the heading is the only
         // text it carries, and this is what it says when the operator has not

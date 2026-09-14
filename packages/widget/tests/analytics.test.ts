@@ -86,4 +86,72 @@ describe('emitting', () => {
         // means the page hears nothing.
         expect(listener).not.toHaveBeenCalled();
     });
+
+    it('counts the event in the operator own panel, with the scrubbed detail', () => {
+        const fetchMock = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
+        vi.stubGlobal('fetch', fetchMock);
+
+        analytics(true, '1.2.3', new EventTarget(), {
+            apiBase: 'https://book.kaiki.test/api/v1',
+            key: 'pk_test',
+        }).emit('kaiki:booking-confirmed', {
+            product_uuid: 'uuid-1',
+            value_cents: 4200,
+            guest_email: 'nikos@example.com',
+            manage_token: 'secret',
+        });
+
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+
+        const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+
+        expect(url).toBe('https://book.kaiki.test/api/v1/events');
+        expect(init.keepalive).toBe(true);
+
+        const body = JSON.parse(String(init.body)) as Record<string, unknown>;
+
+        // The allow-list is the only thing deciding what leaves the browser, so
+        // the guest's email and the manage token are not in it — which is the
+        // assertion that matters here, the same one GDR-12 turns on.
+        expect(body).toEqual({ event: 'kaiki:booking-confirmed', product_uuid: 'uuid-1', value_cents: 4200 });
+
+        vi.unstubAllGlobals();
+    });
+
+    it('sends nothing to Kaiki when the operator switched analytics off', () => {
+        const fetchMock = vi.fn(() => Promise.resolve(new Response(null, { status: 204 })));
+        vi.stubGlobal('fetch', fetchMock);
+
+        analytics(false, '1.2.3', new EventTarget(), {
+            apiBase: 'https://book.kaiki.test/api/v1',
+            key: 'pk_test',
+        }).emit('kaiki:ready');
+
+        expect(fetchMock).not.toHaveBeenCalled();
+
+        vi.unstubAllGlobals();
+    });
+
+    it('never lets a refused count reach the page', () => {
+        vi.stubGlobal('fetch', () => {
+            throw new Error('blocked');
+        });
+
+        const target = new EventTarget();
+        const listener = vi.fn();
+
+        target.addEventListener('kaiki:ready', listener);
+
+        // The DOM event still fires and `emit` still returns: a counter that
+        // can throw inside a booking flow is worse than no counter.
+        expect(() =>
+            analytics(true, '1.2.3', target, { apiBase: 'https://book.kaiki.test/api/v1', key: 'pk_test' }).emit(
+                'kaiki:ready',
+            ),
+        ).not.toThrow();
+
+        expect(listener).toHaveBeenCalledTimes(1);
+
+        vi.unstubAllGlobals();
+    });
 });

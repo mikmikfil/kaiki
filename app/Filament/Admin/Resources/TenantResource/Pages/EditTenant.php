@@ -23,6 +23,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Pages\EditRecord;
 
 /**
@@ -81,7 +82,7 @@ class EditTenant extends EditRecord
      * Named once, so the snapshot and the diff cannot drift apart — which is
      * how an audit trail quietly stops recording one of them.
      */
-    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'qr_check_in_enabled', 'hosted_site_mode'];
+    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'check_in_enabled', 'qr_check_in_enabled', 'hosted_site_mode'];
 
     /** The operator's own words, captured by the confirmation and not by the form. */
     public ?string $auditReason = null;
@@ -125,12 +126,34 @@ class EditTenant extends EditRecord
             Section::make(__('tenants.edit.features'))
                 ->description(__('tenants.edit.features_help'))
                 ->schema([
+                    // The wider of the two, and first: an operator who boards
+                    // nobody has no use for the question below it.
+                    Toggle::make('check_in_enabled')
+                        ->label(__('tenants.columns.check_in'))
+                        ->helperText(__('tenants.edit.check_in_help'))
+                        ->formatStateUsing(fn (?bool $state): bool => $state !== false)
+                        // The QR toggle reads this, so the form has to know the
+                        // moment it moves rather than on the next round trip.
+                        ->live(),
+
                     Toggle::make('qr_check_in_enabled')
                         ->label(__('tenants.columns.qr_check_in'))
                         ->helperText(__('tenants.edit.qr_check_in_help'))
                         // Null is on (see `Tenant::usesQrCheckIn()`); a toggle
                         // showing a null as off would switch it off on save.
-                        ->formatStateUsing(fn (?bool $state): bool => $state !== false),
+                        ->formatStateUsing(fn (?bool $state): bool => $state !== false)
+                        // Hidden rather than disabled while check-in is off:
+                        // "scanning, on" under "check-in, off" is a pair that
+                        // means nothing, and a greyed-out control still invites
+                        // somebody to wonder which one wins.
+                        //
+                        // `!== false` and not a truthy test, for the same reason
+                        // `Tenant::usesCheckIn()` reads it that way: the column
+                        // is null for every operator who existed before it, and
+                        // a truthy test hid this toggle from all of them — which
+                        // is how the manual's screenshot of this very section
+                        // failed to capture.
+                        ->visible(fn (Get $get): bool => $get('check_in_enabled') !== false),
 
                     // ADR-0029's two states (amended 2026-09-11), decided by the
                     // platform with the operator — the same place and the same

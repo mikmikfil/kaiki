@@ -117,6 +117,15 @@ class CheckIn extends Page
      */
     public static function canAccess(): bool
     {
+        // The operator's switch first, because it is the wider question: an
+        // operator who boards nobody through Kaiki has no use for this page
+        // whatever the person looking at it is allowed to do. Off, it leaves
+        // the navigation and the URL 403s — the manifest, the departure and
+        // the booking's own progress to `completed` are all untouched.
+        if (! (Tenancy::current()?->usesCheckIn() ?? true)) {
+            return false;
+        }
+
         $user = Auth::user();
 
         return $user instanceof User && $user->hasCapability(Capability::CheckInGuests);

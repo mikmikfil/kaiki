@@ -77,7 +77,7 @@ function mount(config: WidgetConfig, script: HTMLScriptElement, doc: Document): 
   }
 
   const client = clientFor(config);
-  const events = analytics(config.analytics, VERSION);
+  const events = analytics(config.analytics, VERSION, document, { apiBase: config.apiBase, key: config.key });
   const shadow = createShadowHost(placement.parent, doc, placement.before);
 
   // Something on the screen before the first byte of branding arrives.

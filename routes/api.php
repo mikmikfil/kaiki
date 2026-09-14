@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\AvailabilityController;
 use App\Http\Controllers\Api\V1\BookingController;
 use App\Http\Controllers\Api\V1\BrandingController;
 use App\Http\Controllers\Api\V1\EnquiryController;
+use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\PriceQuoteController;
 use App\Http\Controllers\Api\V1\ProductController;
@@ -293,4 +294,28 @@ Route::middleware([
     'throttle:api-sync',
 ])->group(function (): void {
     Route::get('/sync/products', SyncProductController::class)->name('api.v1.sync.products');
+});
+
+/*
+ * ADR-0032 — the analytics beacon.
+ *
+ * No `api.scope`, and deliberately: the existing publishable keys were issued
+ * before this endpoint existed and would all have to be re-scoped for the
+ * widget to count anything, which is a migration and a support thread for a
+ * counter. What a caller can do with it is add to their **own** tenant's
+ * aggregate counts, which reveals nothing and is the operator's own data.
+ *
+ * No `tenant.writable` either: a lapsed subscription closes bookings (SAA-7),
+ * and a page view is not a booking.
+ *
+ * `throttle:api-events` is generous per key and tight per IP — one visitor
+ * walking through a booking sends six of these, and three hundred a minute
+ * from one browser is not a visitor.
+ */
+Route::middleware([
+    'api.key',
+    'tenant',
+    'throttle:api-events',
+])->group(function (): void {
+    Route::post('/events', EventController::class)->name('api.v1.events.store');
 });
