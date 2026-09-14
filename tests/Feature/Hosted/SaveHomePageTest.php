@@ -148,6 +148,48 @@ it('normalises settings rather than storing what it was handed', function (): vo
     });
 });
 
+it('stores the hero video, both kinds of it', function (): void {
+    // The upload field existed from the day the column did and this Action
+    // never read it, so an operator who uploaded a masthead video watched it
+    // vanish on save with nothing to tell them why. The link arrived with the
+    // fix, and both are asserted here so neither can be dropped again in
+    // silence.
+    savingOperator(function (): void {
+        app(SaveHomePage::class)([
+            OperatorPage::input(HomeBlockType::Hero, [
+                'video_path' => 'home/hero.mp4',
+                'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            ]),
+        ]);
+
+        $block = HomePageBlock::query()->sole();
+
+        expect($block->video_path)->toBe('home/hero.mp4')
+            // Stored as it was typed. Whether it is a link this platform can
+            // frame is decided on the way out, so a mistyped one is still in
+            // the field when the operator comes back to fix it.
+            ->and($block->video_url)->toBe('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    });
+})->group('fast');
+
+it('keeps a hero video off every other kind of block', function (): void {
+    savingOperator(function (): void {
+        app(SaveHomePage::class)([
+            OperatorPage::input(HomeBlockType::Story, [
+                'video_path' => 'home/hero.mp4',
+                'video_url' => 'https://vimeo.com/347119375',
+            ]),
+        ]);
+
+        $block = HomePageBlock::query()->sole();
+
+        // A video behind a story or a contact panel is decoration competing
+        // with the words next to it; behind a masthead it *is* the masthead.
+        expect($block->video_path)->toBeNull()
+            ->and($block->video_url)->toBeNull();
+    });
+})->group('fast');
+
 it('keeps a gallery image that has no description yet', function (): void {
     savingOperator(function (): void {
         (new SaveHomePage)([OperatorPage::input(HomeBlockType::Gallery, [

@@ -995,6 +995,42 @@
             z-index: 0;
         }
 
+        /* A video framed from YouTube or Vimeo, made to behave like the two
+           above it. Same layer: over the operator's colour and the photograph
+           that stands in for it, under the scrim. */
+        .hero.has-image .hero-embed {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            /* It has no controls and is not in the tab order, so it should not
+               swallow a drag-scroll on a phone either. */
+            pointer-events: none;
+        }
+
+        /* `object-fit: cover` does nothing to an iframe — the player is not a
+           replaced image, it letterboxes itself inside whatever box it is
+           given. So the box is made bigger than the hero in whichever direction
+           is short of sixteen by nine and centred, and the overflow is clipped:
+           the same crop the photograph gets, arrived at by other means. */
+        .hero.has-image .hero-embed iframe {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: max(100%, 177.78vh);
+            height: max(100%, 56.25vw);
+            border: 0;
+        }
+
+        /* The one lever an iframe leaves. An uploaded file can be given or
+           refused its autoplay attribute in the markup; a framed player cannot,
+           so for a visitor who asked for less motion the frame is not shown at
+           all and the photograph underneath is the hero. */
+        @media (prefers-reduced-motion: reduce) {
+            .hero.has-image .hero-embed { display: none; }
+        }
+
 /* The scrim, rebuilt — it used to be the reason the hero looked dead.
 
            It was the operator's primary at 25% → 55% → 88%, top to bottom,

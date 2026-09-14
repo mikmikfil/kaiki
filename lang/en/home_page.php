@@ -54,6 +54,11 @@ return [
             'help' => 'A short clip for the top of the page — a few seconds, no sound. MP4 or WebM, up to 20 MB. Keep the photograph above as well: it is what a visitor sees until the video loads, and what they see instead if they have asked for less motion.',
         ],
 
+        'video_url' => [
+            'label' => 'Or a link to a video',
+            'help' => 'A YouTube or Vimeo address. It plays in the background of the masthead, silently and on a loop — paste the ordinary link to the video, the one from the address bar. If you have uploaded a file above, that one plays and this is ignored.',
+        ],
+
         'image' => [
             'label' => 'Image',
             'help' => 'JPEG, PNG or WebP, up to 4 MB. Wide photographs work best.',
@@ -90,6 +95,11 @@ return [
 
         'category' => [
             'label' => 'Category',
+        ],
+
+        'show_featured' => [
+            'label' => 'A row of highlights first',
+            'help' => 'The trips you marked as featured, in a row a visitor can swipe, with the rest underneath. Turn it off to show every trip in one grid — which reads better with a handful of trips.',
         ],
 
         'limit' => [
@@ -129,6 +139,13 @@ return [
             'label' => 'Meeting point',
             'help' => 'One of your saved meeting points, so this section always agrees with the trip pages.',
         ],
+    ],
+
+    // Read beside the field, by somebody who has pasted a link that looked
+    // perfectly good to them. So it names the two providers rather than saying
+    // the address is invalid — which would send them to check their typing.
+    'validation' => [
+        'video_url' => 'The video link must be a YouTube or Vimeo address.',
     ],
 
     'actions' => [

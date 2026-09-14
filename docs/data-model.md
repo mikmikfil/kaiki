@@ -416,6 +416,8 @@ The operator's landing page, as an ordered list of typed blocks (#102). Added by
 | `heading` | json | yes | null | **translatable**, nullable: a gallery has no heading |
 | `body` | json | yes | null | **translatable**, **plain text, never markup** — rendered only through `BlockText` |
 | `image_path` | varchar(255) | yes | null | ADR-0021 Option A: a path, not a media row |
+| `video_path` | varchar(255) | yes | null | the hero only: an uploaded MP4 or WebM behind the masthead; `image_path` is its poster |
+| `video_url` | varchar(255) | yes | null | the hero only: a YouTube or Vimeo link, stored as the operator typed it and parsed on render by `VideoEmbed`. `video_path` wins when both are set |
 | `images` | json | yes | null | the gallery: a list of `{path, alt: {el, en}}` |
 | `settings` | json | yes | null | the per-type knobs, none of them translated; whitelisted by `BlockSettings` |
 | timestamps | | | | |

@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Domain\Hosted\Support\BlockSettings;
 use App\Domain\Hosted\Support\BlockText;
+use App\Domain\Hosted\Support\VideoEmbed;
 use App\Enums\HomeBlockType;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasKaikiTranslations;
@@ -43,6 +44,7 @@ use Illuminate\Support\HtmlString;
  * @property string|null $body translatable, plain text
  * @property string|null $image_path
  * @property string|null $video_path
+ * @property string|null $video_url a YouTube or Vimeo link, as the operator typed it
  * @property array<int, array<string, mixed>>|null $images
  * @property array<string, mixed>|null $settings
  */
@@ -126,6 +128,25 @@ class HomePageBlock extends Model
     public function setting(string $key, mixed $default = null): mixed
     {
         return $this->settings()[$key] ?? $default;
+    }
+
+    /**
+     * The hero's third-party video, when it has one and no uploaded file.
+     *
+     * The uploaded file wins when an operator has both. It is on our own disk,
+     * inside our own policy and under the size limit the form states, so
+     * preferring it is the choice that keeps the page ours; the editor says as
+     * much beside the link field, which is the only place the rule could be
+     * discovered from.
+     *
+     * Null for a link that does not parse, which renders exactly as no link at
+     * all: the photograph. {@see VideoEmbed}
+     */
+    public function videoEmbed(): ?VideoEmbed
+    {
+        return $this->video_path === null || $this->video_path === ''
+            ? VideoEmbed::parse($this->video_url)
+            : null;
     }
 
     /** The operator's prose, escaped, with paragraphs. */

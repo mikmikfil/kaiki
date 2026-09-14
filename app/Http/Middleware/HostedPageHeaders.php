@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Domain\Hosted\Support\HostedPageCsp;
+use App\Domain\Hosted\Support\VideoEmbed;
 use App\Domain\Tenancy\Resolvers\HostedSlugResolver;
 use App\Models\BrandProfile;
+use App\Models\HomePageBlock;
 use App\Models\IntegrationCredential;
 use App\Models\Tenant;
 use App\Support\Tenancy;
@@ -92,13 +94,56 @@ class HostedPageHeaders
 
         $response->headers->set(
             'Content-Security-Policy',
-            HostedPageCsp::build($profile, $this->gatewayOrigins($tenant), $nonce),
+            HostedPageCsp::build($profile, $this->gatewayOrigins($tenant), $nonce, $this->videoOrigins($tenant)),
         );
 
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
         return $response;
+    }
+
+    /**
+     * The video players this operator's own hero frames, if any.
+     *
+     * ## One query, on every hosted page rather than only the home page
+     *
+     * A hero renders on the home page alone, so a product page gets a policy
+     * naming a player it does not frame. The alternative is for this middleware
+     * to know which route is the home page — and there are two of them, one per
+     * URL shape, with the custom-domain root registered somewhere else again.
+     * A header that is right on all four URLs beats a narrower one that is
+     * wrong on the fourth, and "wrong" here means a video that silently does
+     * not play with the reason in the visitor's console.
+     *
+     * It stays conditional on the **operator**, which is the part that matters:
+     * an operator who has pasted no link has no player in their policy at all.
+     *
+     * @return list<string>
+     */
+    private function videoOrigins(Tenant $tenant): array
+    {
+        return Tenancy::forTenant($tenant, static function (): array {
+            $origins = [];
+
+            $urls = HomePageBlock::query()
+                ->forPage()
+                ->whereNotNull('video_url')
+                ->pluck('video_url');
+
+            foreach ($urls as $url) {
+                // A link that does not parse is not rendered either, so it
+                // contributes nothing here — the two agree because they ask the
+                // same parser.
+                $origin = VideoEmbed::parse(is_string($url) ? $url : null)?->origin();
+
+                if ($origin !== null && ! in_array($origin, $origins, true)) {
+                    $origins[] = $origin;
+                }
+            }
+
+            return $origins;
+        });
     }
 
     /**

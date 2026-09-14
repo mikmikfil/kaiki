@@ -12,6 +12,7 @@ use App\Enums\ProductCategory;
 use App\Filament\Forms\TranslatableInput;
 use App\Models\HomePageBlock;
 use App\Models\Port;
+use App\Rules\EmbeddableVideoUrl;
 use App\Support\Tenancy;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\FileUpload;
@@ -143,6 +144,7 @@ class HomePage extends Page implements HasForms
             'body' => $block->getTranslations('body'),
             'image_path' => $block->image_path,
             'video_path' => $block->video_path,
+            'video_url' => $block->video_url,
             'images' => $block->images ?? [],
             'settings' => $block->settings(),
         ])->all();
@@ -285,6 +287,22 @@ class HomePage extends Page implements HasForms
             $this->video('video_path')
                 ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Hero->value),
 
+            // The same masthead, for the operator whose film is already made.
+            // Most of them have one — on YouTube, in every resolution, on
+            // somebody else's bandwidth — and no amount of explaining the
+            // twenty-megabyte upload limit turns it into an MP4 they can
+            // produce. The link is the shorter path to the same page.
+            TextInput::make('video_url')
+                ->label(__('home_page.form.video_url.label'))
+                ->helperText(__('home_page.form.video_url.help'))
+                ->placeholder('https://www.youtube.com/watch?v=...')
+                ->maxLength(255)
+                // Not `->url()`: that accepts every scheme and host there is,
+                // and would pass a link this page cannot frame. The rule asks
+                // the same parser the page does.
+                ->rule(new EmbeddableVideoUrl)
+                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Hero->value),
+
             // --- hero ---
 
             Select::make('settings.cta')
@@ -319,6 +337,12 @@ class HomePage extends Page implements HasForms
                 ->native(false)
                 ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Trips->value
                     && $get('settings.source') === BlockSettings::SOURCE_CATEGORY),
+
+            Toggle::make('settings.show_featured')
+                ->label(__('home_page.form.show_featured.label'))
+                ->helperText(__('home_page.form.show_featured.help'))
+                ->default(true)
+                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Trips->value),
 
             TextInput::make('settings.limit')
                 ->label(__('home_page.form.limit.label'))

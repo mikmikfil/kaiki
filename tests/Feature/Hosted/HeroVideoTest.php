@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Hosted\Support\HostedPageCsp;
 use App\Enums\HomeBlockType;
 use App\Models\HomePageBlock;
 
@@ -88,6 +89,110 @@ it('allows the media in the page policy, or the video is blocked in silence', fu
 
     expect((string) $response->headers->get('Content-Security-Policy'))
         ->toContain("media-src 'self'");
+})->group('fast');
+
+it('frames a YouTube link behind the masthead, with the photograph underneath it', function (): void {
+    $tenant = OperatorPage::operator('with-a-link');
+
+    OperatorPage::as($tenant, function (): void {
+        HomePageBlock::factory()->ofType(HomeBlockType::Hero)->at(0)->create([
+            'heading' => ['el' => 'Τίτλος', 'en' => 'Heading'],
+            'image_path' => 'home/hero.jpg',
+            'video_url' => 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+        ]);
+    });
+
+    $html = (string) get(HostedRequest::url('/with-a-link'))->assertOk()->getContent();
+
+    // The privacy-enhanced host, muted and looping — and never the operator's
+    // own string, which is where an attribute could be broken out of.
+    expect($html)->toContain('https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ')
+        ->and($html)->toContain('mute=1')
+        // An iframe has no `poster`, so the photograph is a real element
+        // beneath it: what a visitor sees while the player loads, where the
+        // provider is unreachable, and when they asked for less motion.
+        ->and($html)->toContain('<img class="hero-image"');
+})->group('fast');
+
+it('names the player in the page policy, or the frame is blocked in silence', function (): void {
+    $tenant = OperatorPage::operator('frame-policy');
+
+    OperatorPage::as($tenant, function (): void {
+        HomePageBlock::factory()->ofType(HomeBlockType::Hero)->at(0)->create([
+            'heading' => ['el' => 'Τίτλος', 'en' => 'Heading'],
+            'video_url' => 'https://vimeo.com/347119375',
+        ]);
+    });
+
+    $csp = (string) get(HostedRequest::url('/frame-policy'))
+        ->assertOk()
+        ->headers->get('Content-Security-Policy');
+
+    expect($csp)->toContain('https://player.vimeo.com')
+        // The map is still there: this widens `frame-src`, it does not replace it.
+        ->and($csp)->toContain(HostedPageCsp::MAPS_ORIGIN)
+        // And only the provider this operator uses.
+        ->and($csp)->not->toContain('youtube');
+})->group('fast');
+
+it('leaves the policy alone for an operator who has pasted no link', function (): void {
+    $tenant = OperatorPage::operator('no-link-at-all');
+
+    OperatorPage::as($tenant, function (): void {
+        HomePageBlock::factory()->ofType(HomeBlockType::Hero)->at(0)->create([
+            'heading' => ['el' => 'Τίτλος', 'en' => 'Heading'],
+            'image_path' => 'home/hero.jpg',
+        ]);
+    });
+
+    $csp = (string) get(HostedRequest::url('/no-link-at-all'))
+        ->assertOk()
+        ->headers->get('Content-Security-Policy');
+
+    // The same argument as the font origins: an operator who has not asked for
+    // a third party has no reason to carry one in their policy.
+    expect($csp)->toContain('frame-src ' . HostedPageCsp::MAPS_ORIGIN)
+        ->and($csp)->not->toContain('vimeo')
+        ->and($csp)->not->toContain('youtube');
+})->group('fast');
+
+it('plays the uploaded file when an operator has both, and says so nowhere else', function (): void {
+    $tenant = OperatorPage::operator('both-of-them');
+
+    OperatorPage::as($tenant, function (): void {
+        HomePageBlock::factory()->ofType(HomeBlockType::Hero)->at(0)->create([
+            'heading' => ['el' => 'Τίτλος', 'en' => 'Heading'],
+            'video_path' => 'home/hero.mp4',
+            'video_url' => 'https://youtu.be/dQw4w9WgXcQ',
+        ]);
+    });
+
+    $html = (string) get(HostedRequest::url('/both-of-them'))->assertOk()->getContent();
+
+    // The file is on our own disk, inside our own policy, under a size limit
+    // the form states. An operator with both has a leftover, not a preference.
+    expect($html)->toContain('<source src="/storage/home/hero.mp4"')
+        ->and($html)->not->toContain('youtube-nocookie');
+})->group('fast');
+
+it('falls back to the photograph for a link it cannot frame', function (): void {
+    $tenant = OperatorPage::operator('a-bad-link');
+
+    OperatorPage::as($tenant, function (): void {
+        // Saved before the rule existed, or written by an import. The editor
+        // refuses this one; the page still has to render.
+        HomePageBlock::factory()->ofType(HomeBlockType::Hero)->at(0)->create([
+            'heading' => ['el' => 'Τίτλος', 'en' => 'Heading'],
+            'image_path' => 'home/hero.jpg',
+            'video_url' => 'https://www.facebook.com/watch?v=1234567890',
+        ]);
+    });
+
+    $html = (string) get(HostedRequest::url('/a-bad-link'))->assertOk()->getContent();
+
+    expect($html)->toContain('<img class="hero-image"')
+        ->and($html)->not->toContain('<iframe')
+        ->and($html)->not->toContain('facebook.com');
 })->group('fast');
 
 it('never points the video at another origin', function (): void {

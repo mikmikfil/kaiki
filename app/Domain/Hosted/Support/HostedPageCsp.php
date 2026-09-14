@@ -59,8 +59,9 @@ final class HostedPageCsp
     /**
      * @param  list<string>  $gatewayOrigins  the redirect hosts of the gateways this operator has connected
      * @param  string  $nonce  the per-response nonce for the brand `<style>` block
+     * @param  list<string>  $videoOrigins  the players this operator's hero frames, if any
      */
-    public static function build(?BrandProfile $profile, array $gatewayOrigins, string $nonce): string
+    public static function build(?BrandProfile $profile, array $gatewayOrigins, string $nonce, array $videoOrigins = []): string
     {
         $self = "'self'";
 
@@ -114,7 +115,7 @@ final class HostedPageCsp
             // A hosted page is never framed. It frames exactly one thing.
             'frame-ancestors' => ["'none'"],
 
-            // The meeting-point map, and nothing else.
+            // The meeting-point map, and the operator's own hero video.
             //
             // This is the one origin in the policy that is **not** conditional
             // on the operator's configuration, and the reason is that it is not
@@ -126,7 +127,17 @@ final class HostedPageCsp
             // Narrow on purpose. The exact origin and not a wildcard: a
             // wildcard over a provider's domain admits every property it
             // serves there, including the ones that host user uploads.
-            'frame-src' => [self::MAPS_ORIGIN],
+            //
+            // The video players are the conditional half, and they follow the
+            // fonts rather than the map: an operator who has not pasted a
+            // YouTube link has no reason for a policy that admits YouTube. The
+            // caller says which — the origins come from `VideoEmbed`, one
+            // constant per provider, never from the link itself, so a pasted
+            // string cannot widen this header.
+            'frame-src' => array_values(array_unique(array_merge(
+                [self::MAPS_ORIGIN],
+                self::originsOf($videoOrigins),
+            ))),
             'object-src' => ["'none'"],
             'base-uri' => [$self],
         ];
