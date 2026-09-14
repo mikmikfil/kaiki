@@ -9,6 +9,10 @@ use App\Domain\Availability\Support\OccupationCollector;
 use App\Domain\Booking\Support\BookingHoldSource;
 use App\Domain\Booking\Support\BookingProductCount;
 use App\Domain\Catalog\Actions\SaveProduct;
+use App\Events\BookingCancelled;
+use App\Events\BookingConfirmed;
+use App\Listeners\Booking\BlockVesselOnPrivateBooking;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -52,5 +56,14 @@ class BookingServiceProvider extends ServiceProvider
         $this->app->tag([BookingHoldSource::class], CheckSeatAvailability::EXPIRED_HOLDS_TAG);
         $this->app->tag([BookingHoldSource::class], OccupationCollector::HOLD_SOURCE_TAG);
         $this->app->tag([BookingProductCount::class], SaveProduct::TAG);
+    }
+
+    public function boot(): void
+    {
+        // AVL-35, specified since M0 and never built: a whole-boat booking has
+        // to take the hull off every other product that sells it. See the
+        // listener for why it was invisible until a real catalogue arrived.
+        Event::listen(BookingConfirmed::class, [BlockVesselOnPrivateBooking::class, 'handleConfirmed']);
+        Event::listen(BookingCancelled::class, [BlockVesselOnPrivateBooking::class, 'handleCancelled']);
     }
 }
