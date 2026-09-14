@@ -4,6 +4,12 @@
 
 > Entries for #118 … #122 — the dashboard, the vessel calendar, recorded cash, the weather-cancellation workflow and the manifests — are not written here. They are on `main` with their reasoning in each commit message; inventing changelog prose for them after the fact would be reconstruction rather than a record, which is the same rule this project applies in `docs/BUILD-LOG.md`.
 
+### «Οδηγός WordPress» — καινούργιο εγχειρίδιο
+
+Για τον διοργανωτή που έχει ήδη ιστοσελίδα. Οκτώ μέρη: τι είναι το πρόσθετο και τι δεν αγγίζει, εγκατάσταση και κλειδί, όλες οι ρυθμίσεις πεδίο προς πεδίο, πού μπαίνει το κουτί κράτησης (shortcodes, blocks, Elementor), οι σελίδες εκδρομών για τη Google και ποιος είναι ιδιοκτήτης ποιου κειμένου, η μεταφορά από WooCommerce, τα πέντε πράγματα που πάνε στραβά — και τι δεν έχει γίνει ακόμη.
+
+Χτίζεται με μία εντολή από το `docs/wordpress/`, όπως τα άλλα δύο έγγραφα. Δεν έχει ακόμη εικόνες: οι οθόνες είναι του WordPress, και το πρόγραμμα που τις φωτογραφίζει θέλει πραγματικό WordPress να τρέχει. Το κείμενο δεν αλλάζει όταν μπουν.
+
 ### Ο τρίτος διοργανωτής στα δοκιμαστικά δεδομένα
 
 Το «Actionseaze Sailing Tours» υπήρχε μόνο σε έναν υπολογιστή, γιατί είχε δημιουργηθεί από τη διαδικασία εγγραφής και όχι από τα δοκιμαστικά δεδομένα — οπότε κάθε ανακατασκευή της βάσης το έσβηνε μαζί με τη σελίδα που είχε στηθεί πάνω του. Μπαίνει πια κανονικά: δικός του στόλος, δικός του κατάλογος, δική του αρχική σελίδα με φωτογραφίες.

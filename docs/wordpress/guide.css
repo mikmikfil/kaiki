@@ -1,0 +1,88 @@
+/*
+    What a plugin guide needs and the manual does not.
+
+    Two things only: a block for something the reader copies into a page, and a
+    definition table for a screen of settings. Everything else — the measure,
+    the note boxes, the part openers, the `@page` margins — is `manual.css`, on
+    purpose.
+*/
+
+/* --- something you copy --------------------------------------------- */
+
+pre.copy {
+    background: #10161f;
+    color: #e6edf6;
+    border-radius: 5px;
+    padding: 11pt 13pt;
+    margin: 10pt 0 12pt;
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 9pt;
+    line-height: 1.62;
+    white-space: pre-wrap;
+    /* A shortcode split across a page break is a shortcode somebody copies
+       half of. */
+    page-break-inside: avoid;
+    overflow-wrap: anywhere;
+}
+
+pre.copy .c {
+    color: #8fa3bd;
+}
+
+code {
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 0.92em;
+    background: #f1f4f9;
+    border-radius: 3px;
+    padding: 0.5pt 3pt;
+}
+
+/* --- a screen of settings, field by field ---------------------------- */
+
+table.fields {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10pt 0 14pt;
+    font-size: 9.4pt;
+}
+
+table.fields th,
+table.fields td {
+    text-align: left;
+    vertical-align: top;
+    padding: 6pt 8pt 6pt 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+table.fields th {
+    width: 32%;
+    font-weight: 600;
+    color: var(--hull-deep);
+}
+
+table.fields tr {
+    page-break-inside: avoid;
+}
+
+/* A row for something that must never be done. The manual's note box is for
+   an aside; this is for a warning, and it should not look like an aside. */
+.danger {
+    border-left: 3px solid var(--rust);
+    background: #fdf4ef;
+    padding: 9pt 12pt;
+    margin: 12pt 0;
+    page-break-inside: avoid;
+}
+
+.danger .label {
+    display: block;
+    font-size: 7.6pt;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--rust);
+    margin-bottom: 3pt;
+}
+
+.danger p:last-child {
+    margin-bottom: 0;
+}

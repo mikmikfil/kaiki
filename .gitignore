@@ -65,6 +65,12 @@ Thumbs.db
 /docs/manual/manual.html
 /docs/manual/kaiki-manual.pdf
 
+# The WordPress guide's intermediate HTML, for the same reason. Its PDF **is**
+# committed, unlike the manual's: it carries no screenshots, so it is under a
+# megabyte, and a reader who clones this repository to answer "how does the
+# plugin work" should not have to run a build first.
+/docs/wordpress/guide.html
+
 # Mailpit, downloaded rather than committed — 28 MB of binary that
 # `docs/testing/` tells you how to fetch (testing only, never production).
 /tools/*.exe
