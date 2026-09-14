@@ -48,14 +48,16 @@
 
     @media (min-width: 1024px) {
         .fi-simple-layout {
-            /* Two columns, not a centred column. `min-h-screen` is Filament's
+            /* Two halves, not a centred column. `min-h-screen` is Filament's
                and stays; the flex column it sets is replaced.
 
-               Not halves: the photograph is decoration and the form is the
-               reason anybody opened the page, so the form takes the larger
-               share. 40/60 at this width. */
+               40/60 was tried on 14 September to give the form more room and
+               taken back the same day: at 40% the photograph stops being a
+               picture and starts being a stripe down the edge, and the form
+               did not need the width — it is capped at 28rem either way, so
+               everything the column gained became empty margin. */
             display: grid;
-            grid-template-columns: 40% 60%;
+            grid-template-columns: 1fr 1fr;
             align-items: stretch;
         }
 
@@ -105,11 +107,9 @@
         }
     }
 
-    /* On a very wide screen the photograph does not need the extra pixels — it
-       is the same picture either way — so the width goes to the form's side,
-       where it becomes margin around the fields rather than more sea. */
+    /* Wide enough for the split to be generous rather than merely possible. */
     @media (min-width: 1536px) {
-        .fi-simple-layout { grid-template-columns: 36% 64%; }
+        .fi-simple-layout { grid-template-columns: 1.1fr 1fr; }
     }
 
     /* Below `lg`: no photograph, and the card carries its own weight again.
