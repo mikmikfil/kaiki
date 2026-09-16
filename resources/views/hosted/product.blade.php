@@ -207,7 +207,7 @@
                 <h2>{{ __('hosted.product.highlights') }}</h2>
                 <ul class="trip-list trip-list-star">
                     @foreach ($highlights as $line)
-                        <li>{{ $line }}</li>
+                        <li><span class="trip-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg></span>{{ $line }}</li>
                     @endforeach
                 </ul>
             </section>
@@ -242,7 +242,7 @@
                         <h2>{{ __('hosted.product.includes') }}</h2>
                         <ul class="trip-list trip-list-yes includes">
                             @foreach ($includes as $line)
-                                <li>{{ $line }}</li>
+                                <li><span class="trip-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>{{ $line }}</li>
                             @endforeach
                         </ul>
                     </div>
@@ -253,7 +253,7 @@
                         <h2>{{ __('hosted.product.excludes') }}</h2>
                         <ul class="trip-list trip-list-no excludes">
                             @foreach ($excludes as $line)
-                                <li>{{ $line }}</li>
+                                <li><span class="trip-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" focusable="false"><path d="M7 7l10 10M17 7 7 17"/></svg></span>{{ $line }}</li>
                             @endforeach
                         </ul>
                     </div>
@@ -266,7 +266,7 @@
                 <h2>{{ __('hosted.product.what_to_bring') }}</h2>
                 <ul class="trip-list trip-list-bag what_to_bring">
                     @foreach ($bring as $line)
-                        <li>{{ $line }}</li>
+                        <li><span class="trip-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></span>{{ $line }}</li>
                     @endforeach
                 </ul>
             </section>

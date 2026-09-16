@@ -2565,12 +2565,18 @@
            bring — each drawn only when the operator filled it in.
 
            Plain on purpose (Mike, 2026-09-16): no icons, no coloured marks, no
-           bold. Each line sits on a hairline, the way a printed programme
-           lists things; «not included» is the same list in a softer ink. */
-        ul.trip-list { list-style: none; margin: 0; padding: 0; display: grid; font-size: 1rem; line-height: 1.55; }
-        ul.trip-list li { padding-block: .65rem; border-block-end: 1px solid var(--line); color: var(--kaiki-text); }
-        ul.trip-list li:first-child { padding-block-start: 0; }
-        ul.trip-list li:last-child { border-block-end: 0; padding-block-end: 0; }
+           bold, no rules between the lines; «not included» is the same list in
+           a softer ink. */
+        ul.trip-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; font-size: 1rem; line-height: 1.55; }
+        ul.trip-list li {
+            display: grid; grid-template-columns: 1.05rem minmax(0, 1fr); gap: .8rem; align-items: start;
+            color: var(--kaiki-text);
+        }
+        /* The marks came back very light (Mike, 2026-09-16): a thin line in a
+           faint ink, no tile, no colour — enough to tell the four lists apart
+           at a glance without the lines turning into badges. */
+        .trip-mark { display: block; line-height: 0; padding-block-start: .2rem; color: color-mix(in srgb, var(--kaiki-text) 38%, transparent); }
+        .trip-mark .icon { inline-size: 1.05rem; block-size: 1.05rem; stroke-width: 1.3; }
         .trip-list-no li { color: var(--ink-soft); }
 
         /* The programme: a thin line, a small quiet dot per stop, and the time
@@ -3003,7 +3009,7 @@
         .hero + .stats-block {
             display: block; position: relative; z-index: 3;
             margin-block-start: calc(-1 * var(--section-gap) - 4rem);
-            padding: 0; inline-size: 100%;
+            padding: 0; margin-inline: 0; inline-size: auto;
         }
         .hero + .stats-block .section-head {
             position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden;
