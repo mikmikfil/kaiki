@@ -153,6 +153,34 @@ enum IntegrationProvider: string
     }
 
     /**
+     * The providers an operator is offered on the connections screen.
+     *
+     * Not every case here: the enum is what the *platform* can store credentials
+     * for, and the form is what one operator has any business setting up. As of
+     * 2026-09-16 that is the gateway and AADE, by the product owner's decision.
+     *
+     * The SMS vendors are out because SMS is off for the first phase (#127), and
+     * Postmark because email is sent by the platform's own account rather than
+     * per operator — offering either is offering a field that changes nothing.
+     * Their cases stay, because rows already written keep working and the
+     * credential machinery is unchanged; only the menu is shorter.
+     *
+     * @return array<string, string> value => label, for the select
+     */
+    public static function operatorOptions(): array
+    {
+        $offered = [self::Viva, self::Mydata];
+
+        $options = [];
+
+        foreach ($offered as $provider) {
+            $options[$provider->value] = $provider->label();
+        }
+
+        return $options;
+    }
+
+    /**
      * Can we fetch this provider's webhook secret ourselves?
      *
      * Viva's verification key is retrievable with the OAuth2 token the client

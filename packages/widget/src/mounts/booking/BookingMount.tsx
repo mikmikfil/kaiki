@@ -228,6 +228,11 @@ export function BookingMount({
 
       if (status === 'pending_payment') {
         // A payment is genuinely under way: this is the case WGT-20 is about.
+        //
+        // The checkout address is kept whatever the poll decides, because the
+        // guest who is here *because they did not pay* needs somewhere to go —
+        // and from this side the two cases are indistinguishable.
+        setResumeUrl(remembered.checkoutUrl);
         setPhase('submitting');
 
         const result = await pollForConfirmation(client, remembered.uuid, remembered.token);
@@ -274,7 +279,27 @@ export function BookingMount({
   }
 
   if (phase === 'pending') {
-    return <Outcome t={t} heading="booking.pending.heading" body="booking.pending.body" />;
+    // **Both sentences at once, and a way out of the second.**
+    //
+    // `pending_payment` covers two opposite situations — the money is on its way
+    // and the webhook has not landed, or the guest left the gateway's page
+    // without paying — and this screen cannot tell them apart, because only the
+    // gateway can. It used to say «Η πληρωμή στάλθηκε», which is a claim, and
+    // for the guest who never paid it was simply untrue: they were told their
+    // payment was sent and given nothing to press.
+    //
+    // (The server now asks the gateway on the read behind this screen, so most
+    // of the time the guest never sees it — they get «Η κράτηση έγινε» instead.
+    // This is what is left when the gateway itself has no settled answer yet.)
+    return (
+      <Outcome
+        t={t}
+        heading="booking.pending.heading"
+        body="booking.pending.body"
+        onRetry={resumeUrl === null ? undefined : () => { globalThis.location.href = resumeUrl; }}
+        retryKey={resumeUrl === null ? undefined : 'booking.pending.resume'}
+      />
+    );
   }
 
   if (phase === 'sold_out') {

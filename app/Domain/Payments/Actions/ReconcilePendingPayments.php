@@ -94,6 +94,24 @@ final class ReconcilePendingPayments
     }
 
     /**
+     * One payment, asked about now.
+     *
+     * The scheduled sweep is for stragglers nobody is watching. This is for the
+     * opposite case: a guest is sitting in front of the widget *right now*,
+     * their booking says `pending_payment`, and the widget has to decide between
+     * two sentences that mean opposite things — «your payment is on its way» and
+     * «you have not paid yet». Only the gateway knows which is true, so it is
+     * asked at the moment the answer is needed rather than up to five minutes
+     * later.
+     *
+     * @return 'confirmed'|'failed'|null null when the gateway had no settled answer
+     */
+    public function forPayment(Payment $payment): ?string
+    {
+        return $this->reconcile($payment);
+    }
+
+    /**
      * Every payment old enough to be suspicious and young enough to matter.
      *
      * Outside tenancy, because this runs from the scheduler with no tenant in

@@ -212,7 +212,7 @@ class Integrations extends Page
         return [
             Select::make('provider')
                 ->label(__('integrations.form.provider.label'))
-                ->options(IntegrationProvider::options())
+                ->options(IntegrationProvider::operatorOptions())
                 ->required()
                 ->native(false)
                 // The fields below depend on it, so the form has to re-render
