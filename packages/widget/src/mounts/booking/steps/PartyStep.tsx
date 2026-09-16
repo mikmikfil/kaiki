@@ -1,3 +1,4 @@
+import { seatedPax } from '../../../booking/machine';
 import type { BookingState } from '../../../booking/machine';
 import type { Translator } from '../../../i18n';
 
@@ -10,6 +11,24 @@ import type { Translator } from '../../../i18n';
  * **No price appears here.** PRC-1 and WGT-13: the total comes from the server
  * at review, and a widget multiplying a band price by a quantity would be
  * computing one.
+ *
+ * ## The ceiling is the boat, not a round number
+ *
+ * Every field was `max="99"`, on every product, whatever was floating. A guest
+ * could ask a twelve-seat caique for forty people, walk the rest of the way,
+ * and be refused at the far end by `insufficient_capacity` — after the details,
+ * after the manifest, at the button that takes money. The seats left on the
+ * chosen departure came back with the availability a step earlier
+ * (`state.seatsAvailable`), so the ceiling is known here and the refusal can
+ * happen where the mistake is made.
+ *
+ * It is a ceiling on the **party**, not on the field: eleven seats left and
+ * eight adults already chosen leaves three for the children. Bands that ride
+ * without a seat are not counted against it — see `seatedPax`.
+ *
+ * Null seats mean nobody told us: a per-vessel window, a quote product, or a
+ * day with more than one sailing. Then there is no honest ceiling and the field
+ * is left open, exactly as it was.
  */
 export function PartyStep({
   state,
@@ -18,36 +37,84 @@ export function PartyStep({
   onChange,
 }: {
   readonly state: BookingState;
-  readonly bands: readonly { readonly uuid: string; readonly code: string; readonly label: string }[];
+  readonly bands: readonly {
+    readonly uuid: string;
+    readonly code: string;
+    readonly label: string;
+    readonly counts_toward_capacity?: boolean;
+  }[];
   readonly t: Translator;
   readonly onChange: (patch: Partial<BookingState>) => void;
 }) {
+  const seats = state.seatsAvailable;
+  const taken = seatedPax(state, bands);
+
   return (
     <div class="kaiki-step">
       <h3 class="kaiki-heading">{t('booking.party.heading')}</h3>
 
-      {bands.map((band) => (
-        <label class="kaiki-field kaiki-inline" key={band.uuid}>
-          <span>{band.label}</span>
-          <input
-            type="number"
-            min="0"
-            max="99"
-            inputMode="numeric"
-            value={String(state.pax[band.uuid] ?? 0)}
-            onInput={(event) =>
-              onChange({
-                pax: {
-                  ...state.pax,
-                  // Keyed by uuid, which is what the contract's `PaxSelection`
-                  // carries. The code is the operator's label for it.
-                  [band.uuid]: Math.max(0, Number((event.currentTarget as HTMLInputElement).value) || 0),
-                },
-              })
-            }
-          />
-        </label>
-      ))}
+      {bands.map((band) => {
+        const qty = state.pax[band.uuid] ?? 0;
+        const free = band.counts_toward_capacity === false;
+
+        // What this band alone could be raised to: everything left over once
+        // the other seated bands have taken theirs.
+        const ceiling = seats === null || free ? undefined : Math.max(qty, seats - (taken - (free ? 0 : qty)));
+
+        return (
+          <label class="kaiki-field kaiki-inline" key={band.uuid}>
+            <span>{band.label}</span>
+            <input
+              type="number"
+              min="0"
+              max={ceiling === undefined ? undefined : String(ceiling)}
+              inputMode="numeric"
+              value={String(qty)}
+              onInput={(event) => {
+                const asked = Math.max(0, Number((event.currentTarget as HTMLInputElement).value) || 0);
+
+                onChange({
+                  pax: {
+                    ...state.pax,
+                    // Keyed by uuid, which is what the contract's `PaxSelection`
+                    // carries. The code is the operator's label for it.
+                    //
+                    // Clamped here as well as in `max`, because `max` on a
+                    // number input is advice to the spinner and no obstacle at
+                    // all to a typed digit or a paste.
+                    [band.uuid]: ceiling === undefined ? asked : Math.min(asked, ceiling),
+                  },
+                });
+              }}
+            />
+          </label>
+        );
+      })}
+
+      {/* Only once they are running out. A departure with eleven free has no
+          reason to say so — that is pressure without information. */}
+      {seats !== null && seats - taken <= 3 ? (
+        <p class="kaiki-muted" role="status">
+          {left(seats - taken, t)}
+        </p>
+      ) : null}
     </div>
   );
+}
+
+/**
+ * Three sentences rather than one with a number in it.
+ *
+ * `t()` is a lookup and a `replace`; it has no plural rules, and «Μένουν 1
+ * θέσεις» is what pretending otherwise produces. Zero gets its own sentence
+ * because it is not a count at all — the party has taken the boat.
+ */
+function left(seats: number, t: Translator): string {
+  if (seats <= 0) {
+    return t('booking.party.seats_full');
+  }
+
+  return seats === 1
+    ? t('booking.party.seats_left_one')
+    : t('booking.party.seats_left_many').replace(':count', String(seats));
 }

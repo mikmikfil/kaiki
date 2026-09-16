@@ -36,7 +36,20 @@ export const en = {
   'booking.lines.vessel': 'Boat',
   'booking.date.heading': 'Pick a date',
   'booking.date.label': 'Date',
+  'booking.date.which_departure': 'Which departure?',
   'booking.party.heading': 'How many of you?',
+  'booking.peek.from': 'from :amount',
+  'booking.peek.price_unknown': 'On request',
+  'booking.peek.pick_date': 'Pick a date',
+  'booking.peek.people_one': 'one person',
+  'booking.peek.people_many': ':count people',
+  'booking.sheet.close': 'Close',
+  'enquiry.peek.summary': 'We answer with a quote',
+  // Only once the seats are running out. A departure with eleven free has no
+  // reason to say so — that is pressure without information.
+  'booking.party.seats_left_one': 'One seat left.',
+  'booking.party.seats_left_many': ':count seats left.',
+  'booking.party.seats_full': 'That is every seat left.',
   'booking.extras.heading': 'Anything else?',
   // The three contact labels the *enquiry* mount uses (BKG-24). The booking
   // walk stopped asking for these when the checkout page took them over

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'preact/hooks';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'preact/hooks';
 
 import type { Analytics } from '../../analytics';
 import type { Api } from '../../api-client';
@@ -13,8 +13,10 @@ import {
   next,
   type BookingState,
   type MachineOptions,
+  countedPax,
   type Step,
 } from '../../booking/machine';
+import { usePriceQuote } from '../../booking/price';
 import type { Translator } from '../../i18n';
 import { forgetDraft, recallDraft, rememberDraft } from '../../storage';
 import { DateStep } from './steps/DateStep';
@@ -22,6 +24,7 @@ import { ExtrasStep } from './steps/ExtrasStep';
 import { FourLines } from './FourLines';
 import { Hold } from './Hold';
 import { PartyStep } from './steps/PartyStep';
+import { Peek, useSettled, useSheetMode } from './Sheet';
 
 /**
  * The booking mount (WGT-18 as amended by ADR-0030, WGT-19, WGT-20).
@@ -72,9 +75,17 @@ interface BookingMountProps {
 export interface ProductSummary {
   readonly title: string;
   readonly duration_minutes: number;
+  /** The cheapest adult price, already rendered by the server. Null on a quote product. */
+  readonly from_price_formatted?: string | null;
   readonly meeting_point?: { readonly name?: string } | null;
   readonly vessel?: { readonly name?: string } | null;
-  readonly age_bands?: readonly { readonly uuid: string; readonly code: string; readonly label: string }[];
+  readonly age_bands?: readonly {
+    readonly uuid: string;
+    readonly code: string;
+    readonly label: string;
+    /** `false` for a band that rides without a seat — an infant on a lap. */
+    readonly counts_toward_capacity?: boolean;
+  }[];
   readonly extras?: readonly { readonly uuid: string; readonly name: string; readonly price_formatted?: string }[];
 }
 
@@ -297,51 +308,157 @@ export function BookingMount({
 
   const last = isLastStep(state, options);
 
+  // ---- the bottom sheet (ADR-0033) ------------------------------------
+
+  const rootRef = useRef<HTMLDivElement>(null);
+  const sheet = useSheetMode(rootRef);
+  const settled = useSettled(sheet);
+  const [open, setOpen] = useState(false);
+
+  const quote = usePriceQuote(client, state, productUuid, locale);
+
+  /**
+   * What the bar says, and when it stops hedging.
+   *
+   * `από 55,00 €` until a real total exists, then the total alone. The prefix is
+   * not decoration: it is the difference between an indication and a promise,
+   * and a bar still carrying it after two adults have been chosen is lying on
+   * every scroll. A quote that failed falls back rather than blanking — the
+   * checkout page renders the frozen snapshot and needs no request at all.
+   */
+  const peekPrice =
+    quote.total ??
+    (product.from_price_formatted == null
+      ? t('booking.peek.price_unknown')
+      : t('booking.peek.from').replace(':amount', product.from_price_formatted));
+
+  const peekSummary = useMemo(() => {
+    if (state.localDate === null) {
+      return t('booking.peek.pick_date');
+    }
+
+    const parts = [dayLabel(state.localDate, locale)];
+
+    if (state.localTime !== null) {
+      parts.push(state.localTime);
+    }
+
+    const people = countedPax(state);
+
+    if (people > 0) {
+      parts.push(
+        people === 1
+          ? t('booking.peek.people_one')
+          : t('booking.peek.people_many').replace(':count', String(people)),
+      );
+    }
+
+    return parts.join(' · ');
+  }, [state, locale, t]);
+
+  // Escape closes, and the focus goes back to the bar that opened it rather
+  // than to the top of somebody's page (WGT-21).
+  useEffect(() => {
+    if (!sheet || !open) {
+      return;
+    }
+
+    const root = rootRef.current;
+    const view = root?.ownerDocument?.defaultView;
+
+    if (view == null) {
+      return;
+    }
+
+    const onKey = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+        root?.querySelector<HTMLButtonElement>('.kaiki-peek')?.focus();
+      }
+    };
+
+    view.addEventListener('keydown', onKey);
+
+    return () => {
+      view.removeEventListener('keydown', onKey);
+    };
+  }, [sheet, open]);
+
+  // A walk that has started is a walk worth showing. Opening on the first
+  // choice spares a guest a second tap to see what they just did.
+  useEffect(() => {
+    if (sheet && state.step !== 'date') {
+      setOpen(true);
+    }
+  }, [sheet, state.step]);
+
   return (
-    <div class="kaiki-booking">
-      <FourLines product={product} t={t} showVessel={showVessel} />
-
-      {draft !== null ? <Hold hold={hold} t={t} /> : null}
-
-      {resumeUrl !== null ? (
-        <p class="kaiki-resume">
-          <a href={resumeUrl}>{t('booking.resume')}</a>
-        </p>
+    <>
+      {/* The page behind an open sheet is not scrolled past and not tapped
+          through. A button rather than a div, so Escape is not the only way out
+          for somebody who never reaches for Escape. */}
+      {sheet && open ? (
+        <button type="button" class="kaiki-scrim" aria-label={t('booking.sheet.close')} onClick={() => setOpen(false)} />
       ) : null}
 
-      <StepView
-        step={state.step}
-        state={state}
-        product={product}
-        client={client}
-        productUuid={productUuid}
-        t={t}
-        onChange={(patch) => dispatch({ type: 'patch', patch })}
-      />
-
-      <div class="kaiki-actions">
-        {state.step !== 'date' ? (
-          <button type="button" class="kaiki-button kaiki-button-ghost" onClick={retreat}>
-            {t('booking.back')}
-          </button>
+      <div class="kaiki-booking" ref={rootRef} data-sheet={sheet} data-open={sheet && open} data-settled={settled}>
+        {sheet ? (
+          <Peek
+            price={peekPrice}
+            summary={peekSummary}
+            action={last ? t('booking.checkout') : t('booking.next')}
+            ready={canAdvance(state, options)}
+            open={open}
+            onToggle={() => setOpen((was) => !was)}
+          />
         ) : null}
 
-        {last ? (
-          <button
-            type="button"
-            class="kaiki-button"
-            onClick={() => void submit()}
-            disabled={phase !== 'walking' || !canAdvance(state, options)}
-          >
-            {t(phase === 'walking' ? 'booking.checkout' : 'booking.submitting')}
-          </button>
-        ) : (
-          <button type="button" class="kaiki-button" onClick={advance} disabled={!canAdvance(state, options)}>
-            {t('booking.next')}
-          </button>
-        )}
+        <div class="kaiki-sheet-scroll">
+          <FourLines product={product} t={t} showVessel={showVessel} />
+
+          {draft !== null ? <Hold hold={hold} t={t} /> : null}
+
+          {resumeUrl !== null ? (
+            <p class="kaiki-resume">
+              <a href={resumeUrl}>{t('booking.resume')}</a>
+            </p>
+          ) : null}
+
+          <StepView
+            step={state.step}
+            state={state}
+            product={product}
+            client={client}
+            productUuid={productUuid}
+            t={t}
+            onChange={(patch) => dispatch({ type: 'patch', patch })}
+          />
+        </div>
+
+        <div class="kaiki-actions">
+          {state.step !== 'date' ? (
+            <button type="button" class="kaiki-button kaiki-button-ghost" onClick={retreat}>
+              {t('booking.back')}
+            </button>
+          ) : null}
+
+          {last ? (
+            <button
+              type="button"
+              class="kaiki-button"
+              onClick={() => void submit()}
+              disabled={phase !== 'walking' || !canAdvance(state, options)}
+            >
+              {t(phase === 'walking' ? 'booking.checkout' : 'booking.submitting')}
+            </button>
+          ) : (
+            <button type="button" class="kaiki-button" onClick={advance} disabled={!canAdvance(state, options)}>
+              {t('booking.next')}
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -434,6 +551,26 @@ function reduce(state: BookingState, action: Action): BookingState {
   }
 }
 
-function countedPax(state: BookingState): number {
-  return Object.values(state.pax).reduce((total, qty) => total + Math.max(0, qty), 0);
+
+/**
+ * «16 Σεπ» — the day and the month, in the guest's language.
+ *
+ * `Intl` rather than a table of month names: the bundles carry sentences, not
+ * calendars, and a date is one of the few things every browser already knows
+ * how to say. The year is left out because the bar has one line and a trip
+ * being booked is nearly always this one or next.
+ */
+function dayLabel(localDate: string, locale: string): string {
+  const date = new Date(`${localDate}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return localDate;
+  }
+
+  try {
+    return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(date);
+  } catch {
+    // An unknown locale tag is not a reason to show nothing.
+    return localDate;
+  }
 }

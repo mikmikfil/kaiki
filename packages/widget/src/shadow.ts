@@ -497,6 +497,266 @@ const BASE_STYLES = `
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
 }
 
+/* ---- the day's sailings ----------------------------------------------
+
+   Radios rather than a select: there are two or three of them, they are the
+   thing being decided, and a closed dropdown hides both the choice and the fact
+   that a choice exists. The input stays a real radio for the keyboard and the
+   accessibility tree; the label is what gets drawn. */
+.kaiki-times { border: 0; margin: .9rem 0 0; padding: 0; display: grid; gap: .4rem; }
+
+.kaiki-times legend {
+  padding: 0;
+  margin-bottom: .45rem;
+  font-size: .92rem;
+  font-weight: 600;
+}
+
+.kaiki-time {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .6rem .75rem;
+  min-height: 44px;
+  border: 1px solid color-mix(in srgb, var(--kaiki-text) 16%, transparent);
+  border-radius: var(--kaiki-radius, 10px);
+  cursor: pointer;
+}
+
+.kaiki-time:has(input:checked) {
+  border-color: var(--kaiki-primary);
+  background: color-mix(in srgb, var(--kaiki-primary) 8%, var(--kaiki-background));
+}
+
+.kaiki-time:has(input:focus-visible) {
+  outline: 2px solid var(--kaiki-primary);
+  outline-offset: 2px;
+}
+
+.kaiki-time-at { font-weight: 600; font-variant-numeric: tabular-nums; }
+.kaiki-time-left { margin-inline-start: auto; font-size: .82rem; color: var(--kaiki-secondary-text); }
+
+/* ---- the bottom sheet (ADR-0033) -------------------------------------
+
+   Below 60rem the booking card leaves the flow and pins to the bottom of the
+   screen, collapsed to a bar. It is the same element in both arrangements —
+   [data-sheet="true"] is the whole difference — because two elements would be
+   two calendars, two pieces of state and one of them always stale.
+
+   The sheet is only ever switched on when a probe has confirmed that a fixed
+   element in here can actually reach the viewport (WGT-22). On a page that
+   traps it, "data-sheet" never becomes true and this block never applies. */
+
+/* The frame comes off when the card leaves the flow. Without this the host page
+   keeps an empty bordered box where the widget used to be, and the sheet draws
+   its own surface on top of it — two cards, one of them containing nothing. */
+.kaiki-root:has(.kaiki-booking[data-sheet="true"]) {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  min-height: 0;
+}
+
+.kaiki-booking[data-sheet="true"] {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: 2147483000;
+
+  display: flex;
+  flex-direction: column;
+
+  /* Not "vh". Safari's collapsing chrome makes "vh" taller than the screen, and
+     the part that overflows is the bottom — which is where the button is. */
+  max-height: 85svh;
+
+  background: var(--kaiki-background);
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--kaiki-text) 12%, transparent);
+  /* Square, both corners. The leading one because the tab rises out of it and
+     a curve there would leave a crescent of page showing under it; the trailing
+     one because the page's own bar has never had a radius, and a sheet that
+     rounds a corner the bar it replaces does not is one more thing moving at
+     the handover. */
+  border-radius: 0;
+  padding: 0;
+  box-shadow: 0 -10px 30px -12px color-mix(in srgb, var(--kaiki-text) 34%, transparent);
+
+  transform: translateY(calc(100% - var(--kaiki-peek-height, 5.5rem)));
+}
+
+/* The transition arrives a paint after the sheet does, so its own resting
+   position is not the first thing it animates to. See useSettled(). */
+.kaiki-booking[data-sheet="true"][data-settled="true"] {
+  transition: transform .34s cubic-bezier(.32, .72, 0, 1);
+}
+
+.kaiki-booking[data-sheet="true"][data-open="true"] { transform: translateY(0); }
+
+/* The bar. A full-width target rather than a chevron: it is the one control on
+   the screen and a thumb should not have to aim at it. */
+.kaiki-peek {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  width: 100%;
+  min-height: var(--kaiki-peek-height, 5.5rem);
+  padding: .7rem 1rem .85rem;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.kaiki-peek-text { flex: 1; min-width: 0; }
+
+.kaiki-peek-price {
+  display: block;
+  font-size: 1.22rem;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.kaiki-peek-summary {
+  display: block;
+  margin-top: .05rem;
+  font-size: .82rem;
+  color: var(--kaiki-secondary-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kaiki-peek-action {
+  flex: none;
+  border-radius: var(--kaiki-radius, 10px);
+  background: var(--kaiki-primary);
+  /* Same reasoning as .kaiki-button: the operator's background on the
+     operator's primary, never a white this file is not allowed to name. */
+  color: var(--kaiki-on-primary, var(--kaiki-background));
+  font-size: .9rem;
+  font-weight: 600;
+  padding: .62rem 1rem;
+  white-space: nowrap;
+}
+
+.kaiki-peek-action[data-ready="false"] { opacity: .45; }
+
+/* The tab that stands above the bar.
+
+   Rounded at the top and open at the bottom, in the sheet's own surface and
+   the sheet's own hairline, so the bar's top edge runs into it instead of
+   under it: the -1px pulls it down over that border line, which is what turns
+   two shapes into one outline. It clears the sheet's rounded corner rather
+   than sitting in it — at 1.25rem the corner has finished curving.
+
+   The arrow inside turns over when the sheet opens; the tab does not move,
+   because it is the handle and a handle that jumps is a handle you have to
+   find again. */
+.kaiki-peek-tab {
+  position: absolute;
+  bottom: 100%;
+  inset-inline-start: 0;
+  margin-bottom: -1px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* No width of its own: the padding draws the shape around the arrow, so the
+     two cannot drift apart the way a fixed width and a percentage-sized glyph
+     did — that was the wide flat slab with a small mark stranded in it. The
+     1rem on the leading side puts the arrow over the price rather than over
+     the gutter, so the tab is flush with the screen and its contents are still
+     on the column everything else in the bar sits on. */
+  padding: .34rem 1rem .4rem;
+  box-sizing: border-box;
+
+  background: var(--kaiki-background);
+  border: 1px solid color-mix(in srgb, var(--kaiki-text) 12%, transparent);
+  /* Nothing to draw against the edge of the screen, and nothing to round
+     there either: the tab runs off the side rather than floating near it. */
+  border-bottom: 0;
+  border-inline-start: 0;
+  border-radius: 0 .4rem 0 0;
+  color: var(--kaiki-primary);
+}
+
+.kaiki-peek-tab svg {
+  display: block;
+  width: 1.2rem;
+  height: .7rem;
+  overflow: visible;
+  transition: transform .28s cubic-bezier(.32, .72, 0, 1);
+}
+
+.kaiki-peek-tab[data-open="true"] svg { transform: rotate(180deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .kaiki-peek-tab svg { transition: none; }
+}
+
+/* The middle scrolls; the price above it and the buttons below it do not. The
+   action never leaves the screen however far down the walk a guest reads. */
+.kaiki-booking[data-sheet="true"] .kaiki-sheet-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+  padding: 0 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--kaiki-text) 9%, transparent);
+}
+
+.kaiki-booking[data-sheet="true"] .kaiki-actions {
+  flex: none;
+  margin: 0;
+  padding: .7rem 1rem calc(.8rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid color-mix(in srgb, var(--kaiki-text) 9%, transparent);
+}
+
+/* "Πίσω" and "Συνέχεια στην κράτηση" are not the same size of thing, and giving
+   them the same width made the long one wrap onto two lines while the short one
+   sat in half a screen of its own. Back takes what it needs; the action takes
+   the rest. They stay on one row — wrapped, the primary ends up under a ghost
+   button, which reads as the lesser of the two. */
+.kaiki-booking[data-sheet="true"] .kaiki-actions { flex-wrap: nowrap; align-items: stretch; }
+
+.kaiki-booking[data-sheet="true"] .kaiki-actions .kaiki-button {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-inline: .8rem;
+}
+
+.kaiki-booking[data-sheet="true"] .kaiki-actions .kaiki-button-ghost {
+  flex: 0 0 auto;
+  padding-inline: .95rem;
+}
+
+/* Closed, the walk is present for the machine and gone for everyone else: not
+   tabbable, not announced, not painted. */
+.kaiki-booking[data-sheet="true"]:not([data-open="true"]) .kaiki-sheet-scroll,
+.kaiki-booking[data-sheet="true"]:not([data-open="true"]) .kaiki-actions {
+  visibility: hidden;
+}
+
+.kaiki-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 2147482999;
+  border: 0;
+  padding: 0;
+  background: color-mix(in srgb, var(--kaiki-text) 42%, transparent);
+  animation: kaiki-scrim-in .3s ease;
+}
+
+@keyframes kaiki-scrim-in { from { opacity: 0; } to { opacity: 1; } }
+
 @media (prefers-reduced-motion: reduce) {
   .kaiki-root * { transition: none !important; animation: none !important; }
 }

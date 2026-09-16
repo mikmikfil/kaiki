@@ -103,7 +103,11 @@ describe('emitting', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
 
-        const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+        // `mock.calls[0]` is typed `[] | undefined`, so the direct cast is one
+        // TypeScript refuses — the two shapes do not overlap. The call is known
+        // to exist (asserted above), so this goes through `unknown` rather than
+        // loosening the tuple it is checked against.
+        const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
 
         expect(url).toBe('https://book.kaiki.test/api/v1/events');
         expect(init.keepalive).toBe(true);

@@ -40,6 +40,21 @@ final class HostedUrl
         return self::withLocale(sprintf('%s/%s', self::origin(), $tenant->slug), $locale);
     }
 
+    /**
+     * The operator's terms, privacy notice and cancellation policy (HOS-9).
+     *
+     * Built here for the same reason as everything else in this class: the
+     * checkout page links to it, and the checkout page is reached from an
+     * operator's own WordPress site, where a relative path points at nothing.
+     * It is served for every operator regardless of the hosted-site tier —
+     * ADR-0029 retired the `off` state precisely because a checkout asks a
+     * guest to accept terms that live on this page.
+     */
+    public static function legal(Tenant $tenant, ?string $locale = null): string
+    {
+        return self::withLocale(sprintf('%s/%s/legal', self::origin(), $tenant->slug), $locale);
+    }
+
     /** One trip's page. */
     public static function product(Tenant $tenant, Product $product, ?string $locale = null): string
     {

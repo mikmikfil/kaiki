@@ -36,9 +36,26 @@ import type { Translator } from '../../i18n';
  * apart.
  */
 
+/**
+ * One bookable departure on a day, as `GET /availability` already sends it.
+ *
+ * Only the fields the widget has a use for. `seats_available` accounts for
+ * unexpired holds and is advisory (ADR-0006) — it is what the party stepper is
+ * capped at, not what the booking is confirmed against; the server still
+ * refuses with `insufficient_capacity` if the last seat went while the guest
+ * was typing.
+ */
+export interface DepartureOption {
+  readonly uuid: string;
+  readonly window: { readonly local_time: string };
+  readonly seats_available: number;
+}
+
 export interface AvailabilityDay {
   readonly local_date: string;
   readonly status: string;
+  /** Absent on a `per_vessel` or `quote` product, whose days are not departures. */
+  readonly departures?: readonly DepartureOption[];
 }
 
 /**
@@ -51,7 +68,12 @@ export function useAvailability(
   client: Api,
   productUuid: string | null,
   month: Date,
-): { statuses: Map<string, string>; loading: boolean; failed: boolean } {
+): {
+  statuses: Map<string, string>;
+  departures: Map<string, readonly DepartureOption[]>;
+  loading: boolean;
+  failed: boolean;
+} {
   const range = useMemo(() => monthRange(month), [month]);
 
   const [days, setDays] = useState<AvailabilityDay[] | null>(null);
@@ -100,7 +122,31 @@ export function useAvailability(
     return map;
   }, [days]);
 
-  return { statuses, loading: days === null, failed };
+  /**
+   * The departures the same response already carried, kept rather than thrown
+   * away.
+   *
+   * This map was the missing half of a real defect: the booking walk knew only
+   * which *day* a guest had picked, so a `per_seat` draft went to the server
+   * with `departure_uuid: null` even on a day with exactly one sailing, the
+   * party step capped at a hardcoded 99 rather than at the seats that were
+   * left, and nothing on screen could say «09:00» because nothing had read it.
+   * All three facts were on the wire the whole time — `GET /availability`
+   * sends `departures[]` per day — and stopped at the status map above.
+   */
+  const departures = useMemo(() => {
+    const map = new Map<string, readonly DepartureOption[]>();
+
+    for (const day of days ?? []) {
+      if (Array.isArray(day.departures) && day.departures.length > 0) {
+        map.set(day.local_date, day.departures);
+      }
+    }
+
+    return map;
+  }, [days]);
+
+  return { statuses, departures, loading: days === null, failed };
 }
 
 export function MonthGrid({

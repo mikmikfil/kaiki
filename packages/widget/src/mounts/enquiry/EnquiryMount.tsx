@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'preact/hooks';
+import { useMemo, useRef, useState } from 'preact/hooks';
 
 import type { ApiError } from '../../api-client';
 import { registerMount, type MountProps } from '../../mounts';
+import { Peek, useSettled, useSheetMode } from '../booking/Sheet';
 
 /**
  * The `enquiry` mount (WGT-5, BKG-24, #85's spam filters).
@@ -47,6 +48,25 @@ interface EnquiryFields {
 export function EnquiryMount({ client, productUuid, t, analytics, locale }: MountProps) {
   // Captured when the component first renders, which is what the field means.
   const renderedAt = useMemo(() => new Date().toISOString(), []);
+
+  /**
+   * A quote trip gets the same bottom sheet, minus the half it cannot have.
+   *
+   * ADR-0033 is written around a price and a walk, and this mount has neither:
+   * BKG-24 forbids a price on a quote product, and there is nothing to step
+   * through — it is one form. What it shares is the problem the ADR was raised
+   * for. The enquiry form sits in the same aside, at the same bottom of the same
+   * page, and a visitor on a phone scrolls past the whole trip to reach it.
+   *
+   * So the bar carries «Κατόπιν ζήτησης» where a price would be — which is what
+   * the page is required to say instead of a number — and opens the form. No
+   * summary that changes, because nothing has been chosen; no disabled state,
+   * because asking is always allowed.
+   */
+  const rootRef = useRef<HTMLFormElement>(null);
+  const sheet = useSheetMode(rootRef);
+  const settled = useSettled(sheet);
+  const [open, setOpen] = useState(false);
 
   const [fields, setFields] = useState<EnquiryFields>({
     name: '',
@@ -106,7 +126,32 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale }: Moun
   }
 
   return (
-    <form class="kaiki-step" onSubmit={(event) => void submit(event)} noValidate>
+    <>
+      {sheet && open ? (
+        <button type="button" class="kaiki-scrim" aria-label={t('booking.sheet.close')} onClick={() => setOpen(false)} />
+      ) : null}
+
+      <form
+        class="kaiki-booking kaiki-step"
+        ref={rootRef}
+        data-sheet={sheet}
+        data-open={sheet && open}
+        data-settled={settled}
+        onSubmit={(event) => void submit(event)}
+        noValidate
+      >
+        {sheet ? (
+          <Peek
+            price={t('booking.peek.price_unknown')}
+            summary={t('enquiry.peek.summary')}
+            action={t('enquiry.submit')}
+            ready
+            open={open}
+            onToggle={() => setOpen((was) => !was)}
+          />
+        ) : null}
+
+        <div class="kaiki-sheet-scroll">
       <h3 class="kaiki-heading">{t('enquiry.heading')}</h3>
 
       {error === null ? null : (
@@ -161,12 +206,15 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale }: Moun
         </label>
       </div>
 
-      <div class="kaiki-actions">
-        <button type="submit" class="kaiki-button" disabled={state === 'sending'}>
-          {t(state === 'sending' ? 'enquiry.sending' : 'enquiry.submit')}
-        </button>
-      </div>
-    </form>
+        </div>
+
+        <div class="kaiki-actions">
+          <button type="submit" class="kaiki-button" disabled={state === 'sending'}>
+            {t(state === 'sending' ? 'enquiry.sending' : 'enquiry.submit')}
+          </button>
+        </div>
+      </form>
+    </>
   );
 }
 

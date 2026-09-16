@@ -63,6 +63,26 @@ export interface WidgetConfig {
    * (2026-09-11); without it the boat is shown, as it always was.
    */
   readonly showVessel: boolean;
+  /**
+   * `data-branding="inherit"` — the host page has already applied the brand.
+   *
+   * WGT-9's custom properties inherit through the shadow boundary, so a page
+   * that has set them on the widget's own container has already answered
+   * `GET /branding` for us. Kaiki's hosted trip page is exactly that page: it
+   * paints itself in the operator's colours and then asks the widget to fetch
+   * the same values again before drawing anything.
+   *
+   * Measured on the trip page, that fetch was 796 ms during which the booking
+   * bar the page had already drawn sat waiting to be replaced by an identical
+   * one. With this set, the widget draws on the properties it inherits and
+   * makes no branding request at all.
+   *
+   * Only meaningful together with `data-locale`, which the hosted page always
+   * sends: the branding payload is also WGT-15's third fallback for the
+   * operator's house language, and skipping it must not skip an answer nobody
+   * else has. Off by default, because a stranger's website has set nothing.
+   */
+  readonly inheritBranding: boolean;
   /** Where the API lives, derived from the script's own `src`. */
   readonly apiBase: string;
 }
@@ -124,6 +144,9 @@ export function readConfig(script: HTMLScriptElement): WidgetConfig | null {
     date: isoDate(script.dataset.date),
     appearance: readAppearance(script.dataset),
     showVessel: (script.dataset.vessel ?? '').trim().toLowerCase() !== 'hide',
+    inheritBranding:
+      (script.dataset.branding ?? '').trim().toLowerCase() === 'inherit' &&
+      (script.dataset.locale ?? '').trim() !== '',
     apiBase: apiBaseFrom(bundleSrc(script)),
   };
 }

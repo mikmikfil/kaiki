@@ -32,6 +32,13 @@
     $primary = $colors['primary'] ?? '#123A5E';
     $accent = $colors['accent'] ?? '#B5511F';
     $text = $colors['text'] ?? '#131A22';
+    // The other two of WGT-9's five. The page had no use for them itself —
+    // its own surfaces are `--surface` and `--paper` — so it never printed
+    // them, and that was harmless until `data-branding="inherit"` made the
+    // widget read its colours from here instead of fetching them. Missing,
+    // `--kaiki-background` left every surface inside the widget transparent.
+    $secondary = $colors['secondary'] ?? $primary;
+    $background = $colors['background'] ?? '#FFFFFF';
     $radius = $brand['button_radius_px'] ?? 10;
     $fontCss = $brand['font']['css_url'] ?? null;
     $fontFamily = $brand['font']['family'] ?? 'Inter';
@@ -70,7 +77,9 @@
     <style nonce="{{ $nonce }}">
         :root {
             --kaiki-primary: {{ $primary }};
+            --kaiki-secondary: {{ $secondary }};
             --kaiki-accent: {{ $accent }};
+            --kaiki-background: {{ $background }};
             --kaiki-text: {{ $text }};
             --kaiki-radius: {{ $radius }}px;
             --kaiki-font: {{ $fontFamily }}, Inter, "Helvetica Neue", Arial, sans-serif;
@@ -1383,6 +1392,168 @@
            photograph, title, card, and then the page — which is a markup change
            to the trip page, not a rule here. Written down rather than left as a
            comment that lies about the layout. */
+        /* ---- when the widget becomes a bottom sheet (ADR-0033) ----------
+
+           The widget decides at runtime whether it can pin itself to the
+           viewport — narrow enough, and no ancestor trapping `position: fixed`
+           (WGT-22) — and writes the answer onto its own host element as
+           `data-kaiki-sheet`. The page cannot work that out for itself, and a
+           media query here would be a second opinion free to disagree with the
+           one that matters.
+
+           What follows is only about not saying everything twice. The bar
+           carries the price and the trip's four lines, so the copies above the
+           mount come off; the details, the «who pays what» and the operator's
+           contact card stay, because the bar carries none of those. */
+        .booking:has([data-kaiki-sheet="true"]) > .price,
+        .booking:has([data-kaiki-sheet="true"]) > .four-lines { display: none; }
+
+        /* ---- the page's own booking bar ---------------------------------
+
+           Printed in the HTML so it is on screen at first paint, instead of
+           after 80 KB of script and two API calls. It is a link to `#book` and
+           nothing more: no state, no price that can go stale beyond the
+           from-price already on the page, and no JavaScript, so it survives a
+           blocked bundle (WGT-23) and a host that traps `position: fixed`
+           (WGT-22) — the two cases where the sheet never arrives at all.
+
+           It is the floor. The widget's sheet is the upgrade, and the moment
+           the widget says it has pinned itself this one leaves. */
+        .book-bar {
+            position: fixed;
+            inset-inline: 0;
+            inset-block-end: 0;
+            z-index: 40;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            /* Matched to the widget's peek bar — 5.5rem of it, the same
+               padding, the same two lines in the same sizes. The handover has
+               to be invisible, and the only way for it to be invisible is for
+               the two to be the same shape.
+
+               The side padding is a flat 1rem because `.kaiki-peek` is a flat
+               1rem. It used to be `clamp(1rem, 4vw, 1.5rem)`, the page's own
+               gutter, which agrees with the widget only on a narrow phone: at
+               600px the two are 8px apart, so the price and the button slid
+               sideways at the moment of the handover. The page gutter is the
+               wrong thing to follow here — this bar is a stand-in for the
+               widget, not part of the page's grid. */
+            min-block-size: 5.5rem;
+            padding: .7rem 1rem .85rem;
+            padding-block-end: calc(.85rem + env(safe-area-inset-bottom, 0px));
+            background: var(--surface);
+            border-block-start: 1px solid var(--rule);
+            box-shadow: 0 -8px 24px -14px color-mix(in srgb, var(--kaiki-text) 40%, transparent);
+
+            /* It waits before it shows itself.
+
+               Matching the widget's peek word for word and pixel for pixel got
+               the handover down to a flicker, and a flicker is still something
+               a visitor sees: the bar paints at first paint, the widget mounts
+               around half a second later, and for that half second there is a
+               bar on screen that is about to be replaced by another one. Even
+               when the two agree exactly, the swap catches the eye.
+
+               So this one holds for 900ms. If the widget mounts first — which
+               on anything but a cold cache it does — the rule below takes this
+               bar off the page before it was ever painted, and the guest sees
+               one bar arrive once, already the real one. If the widget never
+               comes (no JavaScript, a blocked bundle, a host that traps fixed
+               positioning — ADR-0033's whole reason for existing) this appears
+               at 900ms and does its job.
+
+               An animation rather than a transition, because nothing changes
+               it: it runs once on its own, needs no class flipped by script,
+               and so still runs with JavaScript off. `backwards` holds the
+               from-state during the delay. */
+            animation: book-bar-in .18s ease-out .9s backwards;
+        }
+
+        @keyframes book-bar-in {
+            from { opacity: 0; transform: translateY(100%); }
+            to { opacity: 1; transform: none; }
+        }
+
+        /* The delay is a reveal, not motion, for anybody who asked for less of
+           it: still late, still no slide. */
+        @media (prefers-reduced-motion: reduce) {
+            .book-bar { animation: book-bar-appear 0s linear .9s backwards; }
+            @keyframes book-bar-appear { from { opacity: 0; } to { opacity: 1; } }
+        }
+
+        @media (min-width: 60rem) { .book-bar { display: none; } }
+
+        .book-bar-text { flex: 1; min-width: 0; }
+
+        .book-bar-price { display: flex; align-items: baseline; gap: .35rem; line-height: 1.2; }
+        .book-bar-price .from { font-size: .8rem; font-weight: 400; color: var(--ink-soft); }
+        .book-bar-price strong { font-size: 1.22rem; font-weight: 700; letter-spacing: -.02em; }
+
+        .book-bar-summary {
+            display: block;
+            margin-block-start: .05rem;
+            font-size: .82rem;
+            color: var(--ink-soft);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* The widget's `.kaiki-peek-tab`, copied to the pixel: same size, same
+           offset, same surface and hairline, so the handover leaves it where it
+           was. It never turns here — this bar does not open. */
+        .book-bar-tab {
+            position: absolute;
+            inset-block-end: 100%;
+            inset-inline-start: 0;
+            margin-block-end: -1px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: .34rem 1rem .4rem;
+
+            background: var(--surface);
+            border: 1px solid var(--rule);
+            border-block-end: 0;
+            border-inline-start: 0;
+            border-radius: 0 .4rem 0 0;
+            color: var(--kaiki-primary);
+        }
+
+        .book-bar-tab svg { display: block; inline-size: 1.2rem; block-size: .7rem; overflow: visible; }
+
+        /* The pill is the widget's `.kaiki-peek-action`, not the page's small
+           button: `.62rem` of padding against `.55rem`, and the shell's 1.5
+           line-height against the page button's 1. Left alone, the two agree on
+           their right edge and their middle and differ by 7px in height, which
+           is the pill changing size under a bar that has not moved. The `- 1px`
+           is this button's border, which the widget's span does not have. */
+        .book-bar .button {
+            flex: none;
+            padding-block: calc(.62rem - 1px);
+            padding-inline: calc(1rem - 1px);
+            line-height: 1.5;
+        }
+
+        /* Gone the moment the real thing exists — otherwise two bars stack. */
+        body:has([data-kaiki-sheet="true"]) .book-bar { display: none; }
+
+        /* Either bar occupies the bottom of the screen for good, so the page
+           owes it that much clearance — otherwise the footer and the last thing
+           in the aside sit underneath it and can never be read. */
+        body:has([data-kaiki-sheet="true"]),
+        body:has(.book-bar) {
+            padding-block-end: calc(6.75rem + env(safe-area-inset-bottom, 0px));
+        }
+
+        @media (min-width: 60rem) {
+            body:has(.book-bar):not(:has([data-kaiki-sheet="true"])) { padding-block-end: 0; }
+        }
+
         .product-body { display: grid; gap: clamp(2rem, 4vw, 3.5rem); }
 
         .product-main { display: flex; flex-direction: column; gap: clamp(2rem, 4vw, 3rem); min-width: 0; }
@@ -1393,8 +1564,59 @@
                 align-items: start;
             }
 
-            .product-aside { order: 2; position: sticky; top: 1.5rem; }
+            .product-aside { order: 2; }
             .product-main { order: 1; }
+
+            /* **The column sticks, and scrolls inside itself when it is tall.**
+
+               Two failures, and this is the arrangement that has neither.
+
+               The column was sticky with no height cap, and a sticky box taller
+               than the viewport is a trap: it pins at its offset and everything
+               below the fold inside it can never be scrolled into view. The
+               aside runs 200px past the screen on a 1440x900 desktop and 440px
+               past it on a short laptop, so «Έχετε απορίες;» was unreachable at
+               every desktop size.
+
+               Sticking the *card* instead fixed reachability and broke
+               something else: a sticky element stays put while its siblings keep
+               scrolling, so the cards below it slid underneath and the contact
+               card disappeared behind the booking form.
+
+               So the whole column is one sticky box again, capped at the screen
+               and scrolling inside itself when it does not fit. Nothing overlaps,
+               because there is one box; nothing is trapped, because the box
+               scrolls. `svh`, not `vh`: a mobile browser's collapsing chrome
+               makes `vh` taller than the screen and the part that overflows is
+               the bottom. */
+            .product-aside {
+                position: sticky;
+                top: 1.5rem;
+                max-block-size: calc(100svh - 3rem);
+                overflow-y: auto;
+                overscroll-behavior: contain;
+
+                /* Thin and in the page's own greys. `scrollbar-gutter: stable`
+                   was worse than the problem it solved: it reserves an empty
+                   channel down the side of the card whether or not anything
+                   scrolls, which reads as a rendering fault rather than as a
+                   scrollbar. This leaves no gutter and a track that is barely
+                   there until a thumb is in it. */
+                scrollbar-width: thin;
+                scrollbar-color: color-mix(in srgb, var(--kaiki-text) 22%, transparent) transparent;
+            }
+
+            .product-aside::-webkit-scrollbar { inline-size: 6px; }
+            .product-aside::-webkit-scrollbar-track { background: transparent; }
+
+            .product-aside::-webkit-scrollbar-thumb {
+                border-radius: 999px;
+                background: color-mix(in srgb, var(--kaiki-text) 18%, transparent);
+            }
+
+            .product-aside:hover::-webkit-scrollbar-thumb {
+                background: color-mix(in srgb, var(--kaiki-text) 30%, transparent);
+            }
         }
 
         /* Normal case with letter-spacing doing the emphasis. I18N-2 forbids
@@ -1421,13 +1643,24 @@
         ul.facts { order: 1; }
 
         ul.facts {
-            list-style: none; margin: 0 0 1.5rem; padding: 0;
-            display: flex; flex-wrap: wrap; gap: 1.1rem 2.2rem;
-            font-size: .92rem; color: var(--ink-soft); letter-spacing: .01em;
+            list-style: none; margin: 0 0 1.25rem; padding: 0;
+            display: flex; flex-wrap: wrap; gap: .85rem 1.7rem;
+            font-size: .9rem; color: var(--ink-soft); letter-spacing: .01em;
         }
 
-        ul.facts li { display: grid; gap: .4rem; justify-items: start; }
-        ul.facts .icon { inline-size: 1.15rem; block-size: 1.15rem; color: var(--kaiki-primary); }
+        ul.facts li { display: grid; gap: .35rem; justify-items: start; }
+        ul.facts .icon { inline-size: 1.05rem; block-size: 1.05rem; color: var(--kaiki-primary); }
+
+        /* On a phone the five facts are the last thing between the title and
+           the trip itself, so they lie down: the icon beside its value rather
+           than above it, which is the shape `li.trip .facts` already uses on
+           the cards. Stacked, with the gaps a wide column can afford, they cost
+           most of a screen before the itinerary has started. */
+        @media (max-width: 48rem) {
+            ul.facts { gap: .5rem 1.1rem; margin-block-end: 1rem; font-size: .875rem; }
+            ul.facts li { display: flex; align-items: center; gap: .4rem; }
+            ul.facts .icon { inline-size: .95rem; block-size: .95rem; }
+        }
 
         /* --- the trip page's gallery: masonry, and a lightbox ----------
 
@@ -1437,8 +1670,10 @@
            rather than as a contact sheet of identical crops. The seeder stores
            these at their natural size for exactly this reason.
 
-           Three columns down to two and then one, so a phone gets one column of
-           full-width photographs rather than three thumbnails. */
+           Three columns down to two, and two is where it stops. One column of
+           full-width photographs was several flicks of gallery between the FAQ
+           and the foot of the page, on the half of the traffic least willing to
+           scroll; two keeps a wall of pictures reading as a wall. */
 /* `ul.` again, and for the same reason the image rule needs it: `.shots`
            sets `display: grid`, it sits later in this stylesheet, and it has
            exactly the same specificity — so it won on order, `columns` was
@@ -1464,7 +1699,13 @@
         .shots-masonry .shot-open:focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 3px; }
 
         @media (max-width: 60rem) { ul.shots-masonry { columns: 2; } }
-        @media (max-width: 34rem) { ul.shots-masonry { columns: 1; } }
+
+        /* Two columns survive onto the phone; only the gutter narrows, so the
+           photographs take the width the gaps were holding. */
+        @media (max-width: 34rem) {
+            ul.shots-masonry { column-gap: .55rem; }
+            ul.shots-masonry li { margin-block-end: .55rem; }
+        }
 
         /* The lightbox. Open when the URL names it, and nothing else.
            `display` rather than opacity, so a closed panel is out of the
@@ -1555,6 +1796,44 @@
            others, because it is what gives each tab a hit area. */
         .tab-label:first-of-type { padding-inline-start: 0; }
 
+        /* On a phone the row stops wrapping and starts scrolling.
+
+           «Επόμενες αναχωρήσεις», «Πού συναντιόμαστε» and «Το σκάφος» do not fit
+           across 360 pixels, so `flex-wrap: wrap` broke them over two and three
+           lines — and each line kept its own `border-block-end`, so the rule
+           under the row was drawn through the middle of the tabs and the active
+           underline landed on whichever line that tab had wrapped onto. One
+           scrolling line is the shape every phone already knows.
+
+           The rule moves from `border-block-end` to an inset shadow: a border
+           sits outside the padding box, `overflow-x: auto` forces `overflow-y`
+           to clip, and the labels' -1px overhang was cut off. A shadow paints
+           inside, so the labels cover it exactly as they did. */
+        @media (max-width: 48rem) {
+            .tablist {
+                flex-wrap: nowrap;
+                gap: 0;
+                overflow-x: auto;
+                overflow-y: hidden;
+                scrollbar-width: none;
+                -webkit-overflow-scrolling: touch;
+                border-block-end: 0;
+                box-shadow: inset 0 -1px 0 var(--rule);
+                margin-block-end: 1.25rem;
+            }
+
+            .tablist::-webkit-scrollbar { display: none; }
+
+            .tab-label {
+                flex: none;
+                margin-block-end: 0;
+                padding: .6rem .85rem;
+                font-size: .88rem;
+            }
+
+            .tab-label:first-of-type { padding-inline-start: 0; }
+        }
+
         .tabpanel { display: none; }
 
         /* One pair per tab. There are three, so writing them out is shorter and
@@ -1588,7 +1867,30 @@
             grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
         }
 
-        .boat-facts > div { display: grid; gap: .15rem; }
+        .boat-facts > div { display: grid; gap: .15rem; min-width: 0; }
+
+        /* Two columns on a phone, and said outright rather than left to
+           `auto-fit`.
+
+           The track above asks for 11rem before it will make a second column,
+           so with the 2rem gutter two of them need 384 pixels of content width
+           — four more than a 414-pixel phone has left after the page's own
+           margins. It therefore collapsed to one column on every handset made,
+           and «Τύπος», «Μήκος», «Πλήρωμα» went down the screen one under the
+           other, each a short label over a shorter value.
+
+           `minmax(0, 1fr)` rather than `1fr`: a grid item refuses to shrink
+           below its content by default, and a captain with a long name would
+           otherwise push the row wider than the screen. */
+        @media (max-width: 48rem) {
+            .boat-facts {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: .8rem 1rem;
+                margin-block-end: 1.25rem;
+            }
+
+            .boat-facts dd { overflow-wrap: anywhere; }
+        }
         .boat-facts dt { font-size: .72rem; font-weight: 600; letter-spacing: .08em; color: var(--ink-faint); }
         .boat-facts dd { margin: 0; font-size: .98rem; font-weight: 600; }
 
@@ -1906,6 +2208,39 @@
             padding: .4rem .85rem;
         }
 
+        /* Two to a row on a phone.
+
+           Wrapped flex put one chip per line there — a chip is a date, a time
+           and sometimes «τελευταία θέση», and two of those never fit across
+           393px, so the row that was supposed to be readable at a glance came
+           out as the column it was drawn to replace. A two-column grid forces
+           the pair; the chip wraps inside itself when it has a seats-left line
+           to carry, and the grid gives its neighbour the same height. */
+        @media (max-width: 47.99rem) {
+            ul.departures {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                align-items: stretch;
+            }
+
+            ul.departures li {
+                flex-wrap: wrap;
+                row-gap: .1rem;
+                column-gap: .4rem;
+                align-items: center;
+                align-content: center;
+                justify-content: center;
+                text-align: center;
+                /* A two-line chip in a 999px pill is a lozenge with nothing in
+                   its ends. The page's own radius keeps it a chip. */
+                border-radius: var(--kaiki-radius);
+                padding: .45rem .6rem;
+            }
+
+            ul.departures .few-left,
+            ul.departures .sold-out { flex-basis: 100%; }
+        }
+
         .departures .when { font-variant-numeric: tabular-nums; }
         .departures .sold-out { font-size: .78rem; color: var(--kaiki-accent); letter-spacing: .04em; }
 
@@ -2212,6 +2547,24 @@
             font-size: .8rem; color: var(--ink-faint);
         }
     </style>
+
+    {{-- The booking bundle, fetched from the first byte of the page.
+
+         The `<script defer>` that loads it sits inside the booking card, which
+         is most of a trip page below the top of the document — and `defer`
+         starts the download when the *parser reaches the tag*, not when the
+         page starts. So on a phone the bundle queued behind the whole
+         itinerary, the FAQ and every photograph, and the real booking bar could
+         not exist until all of that had been read off the wire.
+
+         A preload in the head starts the same request immediately and hands the
+         finished script to the tag below, which executes it in exactly the same
+         place and order. Nothing about the page's behaviour changes; only when
+         the bytes arrive does.
+
+         `@stack` because only the trip page has a widget: preloading a bundle
+         the page never runs is a wasted request charged to somebody's data. --}}
+    @stack('head')
 </head>
 <body>
 

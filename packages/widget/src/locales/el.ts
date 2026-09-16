@@ -37,7 +37,20 @@ export const el: Record<MessageKey, string> = {
   'booking.lines.vessel': 'Σκάφος',
   'booking.date.heading': 'Διαλέξτε ημερομηνία',
   'booking.date.label': 'Ημερομηνία',
+  'booking.date.which_departure': 'Ποια αναχώρηση;',
   'booking.party.heading': 'Πόσα άτομα είστε;',
+  'booking.peek.from': 'από :amount',
+  'booking.peek.price_unknown': 'Κατόπιν ζήτησης',
+  'booking.peek.pick_date': 'Διαλέξτε ημερομηνία',
+  'booking.peek.people_one': 'ένα άτομο',
+  'booking.peek.people_many': ':count άτομα',
+  'booking.sheet.close': 'Κλείσιμο',
+  'enquiry.peek.summary': 'Απαντάμε με προσφορά',
+  // Μόνο όταν οι θέσεις σώνονται. Μια αναχώρηση με έντεκα ελεύθερες δεν έχει
+  // λόγο να το λέει — πίεση χωρίς πληροφορία.
+  'booking.party.seats_left_one': 'Μένει μία θέση.',
+  'booking.party.seats_left_many': 'Μένουν :count θέσεις.',
+  'booking.party.seats_full': 'Πήρατε όλες τις θέσεις που μένουν.',
   'booking.extras.heading': 'Θέλετε κάτι ακόμη;',
   // Οι τρεις ετικέτες στοιχείων που χρησιμοποιεί το μπλοκ *αιτήματος*
   // (BKG-24). Η διαδρομή κράτησης σταμάτησε να τις ζητά όταν τις ανέλαβε η

@@ -242,5 +242,5 @@ it('answers the paths the widget actually calls, and no others', function (): vo
 
     // If this list grows, the CSP snippet in docs/widget.md and the scopes an
     // operator's publishable key needs both have to grow with it.
-    expect($paths)->toBe(['availability', 'bookings', 'branding', 'enquiries', 'products']);
+    expect($paths)->toBe(['availability', 'bookings', 'branding', 'enquiries', 'price-quote', 'products']);
 })->group('fast');

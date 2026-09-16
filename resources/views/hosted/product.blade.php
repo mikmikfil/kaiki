@@ -32,6 +32,15 @@
         $isQuote = $product->mode === \App\Enums\BookingMode::Quote;
     @endphp
 
+    {{-- Only when this page is actually going to run it — a read-only tenant
+         renders a sentence instead of a widget, and preloading a bundle nothing
+         executes is a wasted megabyte off somebody's data plan. --}}
+    @if (! $readOnly)
+        @push('head')
+            <link rel="preload" as="script" href="{{ \App\Domain\Hosted\Support\HostedWidget::bundleUrl() }}">
+        @endpush
+    @endif
+
     <nav class="crumbs" aria-label="{{ __('hosted.product.breadcrumb') }}">
         <a href="{{ route('hosted.index', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ $tenant->name }}</a>
         <span aria-hidden="true">›</span>
@@ -525,6 +534,14 @@
                                  somebody else's website; on ours it is the same
                                  sentence twice, forty pixels apart. --}}
                             data-credit="false"
+                            {{-- This page paints itself in the operator's
+                                 colours already, and WGT-9's custom properties
+                                 inherit through the shadow boundary — so the
+                                 widget is standing in them before it draws.
+                                 Asking `GET /branding` for the same values cost
+                                 796 ms of the page's own booking bar waiting to
+                                 be replaced by an identical one. --}}
+                            data-branding="inherit"
                             defer></script>
                 </div>
             @endif
@@ -675,6 +692,83 @@
                 @endif
             </aside>
         </div>
+
+        @if (! $readOnly)
+            {{-- The bar that is there before the widget is (ADR-0033).
+
+                 The sheet is the widget's, and the widget cannot exist until it
+                 has loaded 80 KB and answered two API calls — branding and the
+                 product. On a phone on a quay that is a visible wait during
+                 which the trip page has, once again, no way to book anything.
+
+                 So the page draws the bar itself, in the HTML, and it is a
+                 plain link to `#book`. It costs no request, it is correct the
+                 moment the first paint happens, and it keeps working with
+                 JavaScript blocked — which is WGT-23's requirement and HOS-4's,
+                 and the reason this could never have been the widget's job.
+
+                 When the widget does arrive and decides it can pin itself, it
+                 writes `data-kaiki-sheet` on its host and the rule in the
+                 stylesheet takes this one off the screen. Until then, and on
+                 any page where a transformed ancestor traps `position: fixed`,
+                 this is what a visitor gets. --}}
+            {{-- Built to the widget's peek bar, line for line.
+
+                 It was one line — a price and a button — and the widget's is
+                 two, a price over the next thing to do. So the handover was
+                 visible: the bar appeared, sat there, then grew a second line
+                 when the bundle finished. It read as the page loading twice.
+
+                 Same two lines, same words, same height, so the moment the
+                 widget takes over nothing moves. What changes is that the
+                 second line stops being a fixed sentence and starts tracking
+                 what the guest has chosen.
+
+                 «Same words» is the part that took a second pass. The bar was
+                 built from `price.from` and `booking.heading` — the aside's
+                 keys — and the widget's peek says something else: «από» against
+                 «Από», «Συνέχεια» against «Κράτηση». Both bars were the same
+                 shape in the same place, so what a visitor saw at ~490 ms was
+                 the words changing under a bar that had not moved, which reads
+                 as the page correcting itself. `hosted.product.bar.*` exists so
+                 these three strings can track the widget's peek without
+                 dragging the aside's copy along: `booking.peek.from`,
+                 `booking.next` and `enquiry.submit` in the widget's locales are
+                 the other half of each pair, and the two move together. --}}
+            <p class="book-bar">
+                {{-- The widget's tab, in the widget's place. Here it is
+                     decoration and nothing else — this bar is an anchor to
+                     `#book` and has nothing to expand — but it has to be drawn
+                     all the same, or it appears out of nowhere at the handover
+                     and the bar that was meant to be the same shape changes
+                     shape after half a second. --}}
+                <span class="book-bar-tab" aria-hidden="true">
+                    <svg viewBox="0 0 24 14" width="100%" height="100%" focusable="false">
+                        <path d="M2.6 11.1 12 2.9l9.4 8.2" fill="none" stroke="currentColor"
+                              stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </span>
+
+                <span class="book-bar-text">
+                    <span class="book-bar-price">
+                        @if (! $isQuote && $fromPriceFormatted)
+                            <span class="from">{{ __('hosted.product.bar.from') }}</span>
+                            <strong>{{ $fromPriceFormatted }}</strong>
+                        @else
+                            <strong>{{ __('hosted.product.price.on_request') }}</strong>
+                        @endif
+                    </span>
+
+                    <span class="book-bar-summary">
+                        {{ $isQuote ? __('hosted.product.booking.enquire_summary') : __('hosted.product.booking.pick_date') }}
+                    </span>
+                </span>
+
+                <a class="button button-small" href="#book">
+                    {{ $isQuote ? __('hosted.product.bar.enquire_action') : __('hosted.product.bar.action') }}
+                </a>
+            </p>
+        @endif
 
         @if ($schema)
             {{-- HOS-2's `Product` and `Event` graph. Nonced for the same reason

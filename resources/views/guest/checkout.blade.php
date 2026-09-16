@@ -66,12 +66,19 @@
 
     <div class="card">
         <h1>{{ __('guest.checkout.title') }}</h1>
-        <p class="muted">{{ __('guest.common.reference') }}: <strong>{{ $booking->reference }}</strong></p>
-
         {{-- `dl.rows` is the layout's own two-column list, used by every other
              guest page. A second pattern here would be a second thing to keep
-             in step. --}}
+             in step.
+
+             The reference is the first row of it rather than a sentence above
+             it, which is where it used to be: on a phone that put one value
+             hard left while every value under it was right-aligned, and the
+             column of figures read as though the code had been left out of
+             it. --}}
         <dl class="rows">
+            <dt>{{ __('guest.common.reference') }}</dt>
+            <dd><strong>{{ $booking->reference }}</strong></dd>
+
             <dt>{{ __('guest.checkout.trip') }}</dt>
             <dd>{{ $booking->product?->title }}</dd>
 
@@ -83,8 +90,37 @@
         </dl>
 
         @if ($booking->hold_expires_at)
-            {{-- ADR-0005's hold, said once and plainly. --}}
-            <p class="muted">{{ __('guest.checkout.hold', ['time' => $booking->hold_expires_at->timezone(config('app.timezone'))->format('H:i')]) }}</p>
+            {{-- ADR-0005's hold, in the unit the question is asked in.
+
+                 «Μέχρι τις 13:43» made a guest read a clock and subtract. It
+                 now leads with the minutes — and keeps the time, because this
+                 page has no script and the minutes are therefore frozen at the
+                 moment it rendered. Either alone can mislead somebody who left
+                 the tab open; together they cannot, because the time is what
+                 stays true and the minutes are what is immediately legible. --}}
+            @php
+                $expires = $booking->hold_expires_at->timezone($timezone);
+                $secondsLeft = now()->diffInSeconds($booking->hold_expires_at, false);
+                $minutes = (int) ceil($secondsLeft / 60);
+            @endphp
+
+            {{-- An expired hold says so.
+
+                 It used to read `max(1, …)`, so a hold that ran out twenty
+                 minutes ago printed «άλλο ένα λεπτό» — the page telling a guest
+                 their seats are held when they are not, which is the one thing
+                 this sentence must never do. The floor was there to keep the
+                 plural rule fed; the honest branch is a different sentence. --}}
+            <p class="muted">
+                @if ($secondsLeft <= 0)
+                    {{ __('guest.checkout.hold_expired') }}
+                @else
+                    {{ __(
+                        $minutes === 1 ? 'guest.checkout.hold_minutes_one' : 'guest.checkout.hold_minutes_many',
+                        ['count' => $minutes, 'time' => $expires->format('H:i')],
+                    ) }}
+                @endif
+            </p>
         @endif
     </div>
 
@@ -121,6 +157,22 @@
                 'deposit' => $money($depositCents),
                 'balance' => $money($booking->total_cents - $depositCents),
             ]) }}</p>
+        @endif
+
+        {{-- What happens if they cannot come, said before they pay rather than
+             after.
+
+             It is the sentence out of `policy_snapshot` — the same frozen copy
+             a refund is computed from (§5.9) — so this cannot promise one thing
+             and the refund do another. On a day trip that a north wind can
+             cancel, it is the question a guest actually has at this button, and
+             the page answered it nowhere: the consent line named a policy and
+             did not show it. --}}
+        @if ($policySummary !== null)
+            <div class="policy">
+                <h3>{{ __('guest.checkout.policy_heading') }}</h3>
+                <p class="muted">{{ $policySummary }}</p>
+            </div>
         @endif
 
         {{-- The button lives here, under the price it is about to charge, and
@@ -174,8 +226,40 @@
         </div>
     @enderror
 
-    <form id="checkout-form" method="post" action="{{ route('guest.checkout.pay', ['token' => $token]) }}" class="card">
+    {{-- `novalidate`, and the server does the checking.
+
+         The browser's own validation looked free and was not. It speaks the
+         *device's* language, so a Greek page on a phone set to English refuses
+         with «Please fill out this field»; it reports one field at a time, so a
+         guest fixes four things in four round trips; and its bubble vanishes on
+         the next tap, leaving somebody staring at a form that will not submit
+         and no longer says why.
+
+         Laravel already validates every one of these rules and the template
+         already renders `@error` beside each field in the guest's own language.
+         Turning the native layer off is what lets those be *seen* — before,
+         the browser refused first and the server's Greek messages were
+         unreachable for anyone the browser could catch.
+
+         Nothing is weakened by this: `required` stays on the inputs for the
+         accessibility tree, and the server was always the thing that decided. --}}
+    <form id="checkout-form" method="post" action="{{ route('guest.checkout.pay', ['token' => $token]) }}" class="card" novalidate>
         @csrf
+
+        {{-- Every failure at once, at the top, each one a link to the field it
+             came from. A phone shows one field at a time; without this, «what
+             is still wrong» is a question only scrolling can answer. --}}
+        @if ($errors->any())
+            <div class="notice notice-error" role="alert" tabindex="-1" id="form-errors">
+                <p><strong>{{ __('guest.checkout.errors_heading') }}</strong></p>
+                <ul class="error-list">
+                    @foreach ($errors->keys() as $field)
+                        @continue($field === 'checkout')
+                        <li><a href="#{{ \App\Support\Format\FieldAnchor::for($field) }}">{{ $errors->first($field) }}</a></li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
 
         <h2>{{ __('guest.checkout.your_details') }}</h2>
 
@@ -267,9 +351,15 @@
                                value="{{ old("guests.$i.full_name") }}">
                         @error("guests.$i.full_name") <p class="field-error">{{ $message }}</p> @enderror
 
+                        {{-- Required, like the name beside it. The manifest is
+                             the reason this whole section exists, and a
+                             document number is the half of it that is not a
+                             name — optional here meant a list could be filed
+                             with the numbers missing. --}}
                         <label for="g{{ $i }}_doc">{{ __('guest.checkout.document') }}</label>
-                        <input id="g{{ $i }}_doc" name="guests[{{ $i }}][document_number]" type="text"
+                        <input id="g{{ $i }}_doc" name="guests[{{ $i }}][document_number]" type="text" required
                                value="{{ old("guests.$i.document_number") }}">
+                        @error("guests.$i.document_number") <p class="field-error">{{ $message }}</p> @enderror
 
                         <label for="g{{ $i }}_dob">{{ __('guest.checkout.date_of_birth') }}</label>
                         <input id="g{{ $i }}_dob" name="guests[{{ $i }}][date_of_birth]" type="date"
@@ -279,10 +369,17 @@
             @endforeach
         @endif
 
+        {{-- The sentence is the lang file's; only the anchor is built here, so
+             no translation carries markup. `{!! !!}` because that anchor has to
+             survive — the one value that is not a literal is the URL, and it is
+             escaped before it goes in. --}}
         <p class="consent">
             <label>
-                <input type="checkbox" name="terms" value="1" required @checked(old('terms'))>
-                {{ __('guest.checkout.terms') }}
+                <input id="terms" type="checkbox" name="terms" value="1" required @checked(old('terms'))>
+                {!! __('guest.checkout.terms', [
+                    'link' => '<a href="' . e($legalUrl) . '" target="_blank" rel="noopener">'
+                        . e(__('guest.checkout.terms_link')) . '</a>',
+                ]) !!}
             </label>
             @error('terms') <span class="field-error">{{ $message }}</span> @enderror
         </p>
