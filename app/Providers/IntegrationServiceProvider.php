@@ -7,10 +7,12 @@ namespace App\Providers;
 use App\Contracts\WeatherProvider;
 use App\Domain\Integrations\Support\CredentialRepository;
 use App\Domain\Integrations\Support\VerifierRegistry;
+use App\Domain\Integrations\Verifiers\VivaCredentialVerifier;
 use App\Domain\Operations\Weather\OpenMeteoProvider;
 use App\Domain\Payments\Gateways\FakeGateway;
 use App\Domain\Payments\Gateways\VivaSmartCheckoutGateway;
 use App\Domain\Payments\Support\GatewayResolver;
+use App\Enums\IntegrationProvider;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -28,14 +30,17 @@ use Illuminate\Support\ServiceProvider;
  * registered in a service provider's `boot()` would be lost the next time
  * anything resolved a fresh instance.
  *
- * ## The registry is deliberately empty today
+ * ## The registry has Viva in it, and nothing else yet
  *
- * The same shape as `GuardVesselCapacity::TAG` and `SaveProduct::TAG` in
- * {@see AppServiceProvider}, and for the same reason: #79 stores credentials,
- * and the clients that can *check* them arrive with the issues that introduce
- * them — Viva with the `PaymentGateway` contract, Postmark and the
- * SMS vendors with the notification issue, myDATA in M6. Each of those adds one
- * `register()` line here.
+ * #79 stored credentials, and the clients that can *check* them arrive with the
+ * issues that introduce them — Postmark and the SMS vendors with the
+ * notification issue, myDATA in M6. Each of those adds one `register()` line
+ * here.
+ *
+ * Viva's arrived on 2026-09-16, later than it should have: `verified_at` gates
+ * `usableForRealCall()`, so while nothing could set it, `GatewayResolver` found
+ * no usable gateway and a sandbox tenant fell through to the fake checkout
+ * rather than reaching Viva at all.
  *
  * Until then `VerifyIntegrationCredential` says so in Greek rather than
  * reporting success, and `VerifierCoverageTest` records which providers are
@@ -47,8 +52,19 @@ class IntegrationServiceProvider extends ServiceProvider
     {
         $this->app->singleton(CredentialRepository::class);
 
-        $this->app->singleton(VerifierRegistry::class, static function (): VerifierRegistry {
-            return new VerifierRegistry;
+        $this->app->singleton(VerifierRegistry::class, function (): VerifierRegistry {
+            $registry = new VerifierRegistry;
+
+            // Viva, the one gateway (ADR-0028). Registered here rather than in
+            // `boot()` because the registry is a singleton whose registrations
+            // have to survive, and resolved lazily so that constructing the
+            // registry does not construct an HTTP client.
+            $registry->register(
+                IntegrationProvider::Viva,
+                $this->app->make(VivaCredentialVerifier::class),
+            );
+
+            return $registry;
         });
 
         // The three gateways and the resolver that picks between them (#82).

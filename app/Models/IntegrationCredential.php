@@ -56,6 +56,7 @@ use Illuminate\Support\Str;
  * @property Carbon|null $verified_at
  * @property string|null $last_error
  * @property string|null $webhook_secret encrypted
+ * @property string|null $webhook_token the operator's half of their webhook URL; not a secret, but unguessable
  */
 class IntegrationCredential extends Model
 {
@@ -150,7 +151,13 @@ class IntegrationCredential extends Model
             }
         }
 
-        return ! ($this->provider->issuesWebhookSecret() && ($this->webhook_secret ?? '') === '');
+        // The webhook secret counts against completeness only where the
+        // operator is the one who supplies it. Viva's key is fetched with the
+        // credentials above, the first time the gateway calls the operator's
+        // own webhook address — so a Viva row without one is waiting on a
+        // handshake, not missing a field, and refusing to verify it would
+        // refuse a credential set that is in fact complete.
+        return ! ($this->provider->requiresWebhookSecretFromOperator() && ($this->webhook_secret ?? '') === '');
     }
 
     /**
@@ -197,6 +204,24 @@ class IntegrationCredential extends Model
      * Inactive rows are still matched: a webhook for a deactivated integration
      * is a thing that must be recorded and investigated, not silently dropped.
      */
+    public static function findByWebhookToken(IntegrationProvider $provider, string $token): ?self
+    {
+        // Same reasoning as the lookup below — it runs outside tenancy because
+        // it is what *resolves* the tenant — with one difference: the token is
+        // long and random, so a miss is a miss rather than an invitation to try
+        // the next value. Inactive rows still match, for the same reason.
+        if ($token === '') {
+            return null;
+        }
+
+        return Tenancy::withoutTenancy(
+            static fn (): ?self => static::query()
+                ->where('provider', $provider->value)
+                ->where('webhook_token', $token)
+                ->first(),
+        );
+    }
+
     public static function findByExternalAccount(IntegrationProvider $provider, string $externalAccountId): ?self
     {
         if ($externalAccountId === '') {

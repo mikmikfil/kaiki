@@ -36,6 +36,16 @@ final class GatewayCallFailed extends RuntimeException
     private function __construct(
         public readonly TranslatableMessage $description,
         public readonly PaymentGatewayName $gateway,
+        /**
+         * Nothing came back, as against something that came back and said no.
+         *
+         * A caller has to be able to tell these apart without reading the
+         * message: a refusal sends an operator to re-copy their keys, and doing
+         * that to somebody whose gateway was merely down for a minute is a wasted
+         * afternoon — while a reconciler that read "unreachable" as "unpaid"
+         * would cancel bookings during an outage.
+         */
+        public readonly bool $unreachable = false,
     ) {
         parent::__construct($description->operatorEn);
     }
@@ -62,6 +72,7 @@ final class GatewayCallFailed extends RuntimeException
                 replacements: ['gateway' => $gateway->label()],
             ),
             $gateway,
+            unreachable: true,
         );
     }
 }

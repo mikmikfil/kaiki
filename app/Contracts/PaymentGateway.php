@@ -9,6 +9,7 @@ use App\Domain\Payments\Data\RefundResult;
 use App\Domain\Payments\Data\TranslatableMessage;
 use App\Enums\PaymentKind;
 use App\Models\Booking;
+use App\Models\IntegrationCredential;
 use App\Models\Payment;
 use Brick\Money\Money;
 use Illuminate\Http\Request;
@@ -68,7 +69,13 @@ interface PaymentGateway
      * Called **before any parsing**, on the raw body. A payload parsed before
      * it is verified is a payload an attacker chose.
      */
-    public function verifyWebhook(Request $request): bool;
+    /**
+     * @param  IntegrationCredential|null  $credential  the row the endpoint already resolved
+     *                                                  from the URL, where the address carries
+     *                                                  the operator; null leaves the gateway to
+     *                                                  find it in the payload as before
+     */
+    public function verifyWebhook(Request $request, ?IntegrationCredential $credential = null): bool;
 
     /**
      * Give money back, up to what was actually taken.

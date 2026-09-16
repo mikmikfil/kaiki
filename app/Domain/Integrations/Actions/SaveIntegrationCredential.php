@@ -74,7 +74,19 @@ final class SaveIntegrationCredential
                 'environment' => $data->environment,
             ]);
 
+            // Minted once, on the first save that needs one, and carried
+            // through every later save. Rotating it on each write would break
+            // the address the operator has already pasted into the gateway's
+            // dashboard — a silent break, because the gateway keeps posting to
+            // a URL that has stopped resolving.
+            $token = $credential->webhook_token;
+
+            if ($data->provider->issuesWebhookSecret() && ($token === null || $token === '')) {
+                $token = bin2hex(random_bytes(20));
+            }
+
             $credential->forceFill([
+                'webhook_token' => $token,
                 'credentials' => $data->knownCredentials(),
                 'public_config' => $data->knownPublicConfig(),
                 'external_account_id' => $data->externalAccountId(),

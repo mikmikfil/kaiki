@@ -120,8 +120,17 @@ class Integrations extends Page
     public function saveCredentialsAction(): Action
     {
         return Action::make('saveCredentials')
-            ->label(__('integrations.actions.save'))
+            // Adding and editing are the same operation against the same unique
+            // key, but they are not the same thing to read: on a page with no
+            // connections yet, a button called «Αποθήκευση» looks like it saves
+            // a form that is not there. With a row to edit it says «Αποθήκευση»;
+            // without one it says «Νέα σύνδεση», and the modal's own submit
+            // button says «Αποθήκευση» either way.
+            ->label(fn (array $arguments): string => isset($arguments['credential'])
+                ? __('integrations.actions.save')
+                : __('integrations.actions.create'))
             ->modalHeading(__('integrations.page.title'))
+            ->modalSubmitActionLabel(__('integrations.actions.save'))
             ->form($this->credentialForm())
             ->fillForm(fn (array $arguments): array => $this->prefill($arguments))
             ->action(function (array $data): void {
@@ -265,7 +274,12 @@ class Integrations extends Page
                 ->maxLength(500);
         }
 
-        if ($provider->issuesWebhookSecret()) {
+        // Only where the operator is the only source of it. Viva's key is
+        // readable with the client id and secret above — which is why their own
+        // WordPress plugin asks for those two and nothing else — so the field
+        // was asking somebody to go and perform our API call by hand. It is
+        // fetched when the gateway first calls the operator's webhook address.
+        if ($provider->requiresWebhookSecretFromOperator()) {
             $fields[] = TextInput::make('webhook_secret')
                 ->label(__('integrations.fields.webhook_secret'))
                 ->password()
