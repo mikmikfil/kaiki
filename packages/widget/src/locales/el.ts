@@ -66,6 +66,7 @@ export const el: Record<MessageKey, string> = {
   'booking.pending.heading': 'Εκκρεμεί η επιβεβαίωση',
   'booking.pending.body': 'Αν πληρώσατε, περιμένουμε την επιβεβαίωση της τράπεζας και θα έχετε email μέσα σε λίγα λεπτά. Αν δεν προλάβατε να ολοκληρώσετε, συνεχίστε από εδώ.',
   'booking.pending.resume': 'Συνεχίστε την πληρωμή',
+  'booking.pending.dismiss': 'Δεν θέλω να συνεχίσω',
   'booking.sold_out.heading': 'Οι θέσεις μόλις εξαντλήθηκαν',
   'booking.sold_out.body': 'Κάποιος τις έκλεισε όσο αποφασίζατε. Ίσως υπάρχει άλλη ημερομηνία.',
   'booking.sold_out.retry': 'Άλλη ημερομηνία',

@@ -298,6 +298,20 @@ export function BookingMount({
         body="booking.pending.body"
         onRetry={resumeUrl === null ? undefined : () => { globalThis.location.href = resumeUrl; }}
         retryKey={resumeUrl === null ? undefined : 'booking.pending.resume'}
+        // **Not a cancel.** It forgets the booking *here* and gives the guest a
+        // working form back; it does not touch the booking itself. Cancelling
+        // would be the one dangerous button on this screen: nobody on this side
+        // knows whether the money moved, and «not settled yet» becomes «paid»
+        // for anybody finishing 3-D Secure in another tab. The seats are
+        // released by `ExpireAbandonedCheckoutsJob` within the hour either way,
+        // and the booking stays reachable from its own link and from the
+        // operator's panel.
+        onDismiss={() => {
+          forgetDraft();
+          setResumeUrl(null);
+          setPhase('walking');
+        }}
+        dismissKey="booking.pending.dismiss"
       />
     );
   }
@@ -525,12 +539,17 @@ function Outcome({
   body,
   onRetry,
   retryKey,
+  onDismiss,
+  dismissKey,
 }: {
   readonly t: Translator;
   readonly heading: string;
   readonly body: string;
   readonly onRetry?: () => void;
   readonly retryKey?: string;
+  /** A quieter second way out, where an outcome has two honest answers. */
+  readonly onDismiss?: () => void;
+  readonly dismissKey?: string;
 }) {
   return (
     // `alert` rather than `status`: this replaced what the guest was doing, and
@@ -546,6 +565,12 @@ function Outcome({
       {onRetry !== undefined && retryKey !== undefined ? (
         <button type="button" class="kaiki-button" onClick={onRetry}>
           {t(retryKey as never)}
+        </button>
+      ) : null}
+
+      {onDismiss !== undefined && dismissKey !== undefined ? (
+        <button type="button" class="kaiki-button kaiki-button-quiet" onClick={onDismiss}>
+          {t(dismissKey as never)}
         </button>
       ) : null}
     </div>

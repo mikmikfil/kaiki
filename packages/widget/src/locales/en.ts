@@ -65,6 +65,7 @@ export const en = {
   'booking.pending.heading': 'Waiting for confirmation',
   'booking.pending.body': 'If you paid, we are waiting for your bank to confirm it and an email will follow in a few minutes. If you did not finish, carry on from here.',
   'booking.pending.resume': 'Continue payment',
+  'booking.pending.dismiss': 'I do not want to continue',
   'booking.sold_out.heading': 'Those seats have just gone',
   'booking.sold_out.body': 'Somebody booked them while you were deciding. Another date may be free.',
   'booking.sold_out.retry': 'Pick another date',

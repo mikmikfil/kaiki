@@ -221,6 +221,23 @@ const BASE_STYLES = `
 
 .kaiki-muted { color: var(--kaiki-secondary-text); font-size: .9rem; }
 
+/* The second answer on a screen that has two, and the lesser of them. It reads
+   as a way out rather than as an alternative to the action beside it: no fill,
+   the secondary ink, and the same 44px target because a thumb does not care
+   which of the two it is aiming at. */
+.kaiki-button-quiet {
+  margin-inline-start: .5rem;
+  border-color: transparent;
+  background: transparent;
+  color: var(--kaiki-secondary-text);
+  font-weight: 500;
+}
+
+.kaiki-button-quiet:hover {
+  color: var(--kaiki-text);
+  border-color: color-mix(in srgb, var(--kaiki-text) 16%, transparent);
+}
+
 .kaiki-button {
   font: inherit;
   font-weight: 600;
