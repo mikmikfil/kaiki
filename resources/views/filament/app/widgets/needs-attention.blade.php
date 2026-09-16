@@ -74,5 +74,18 @@
             .ka-item { grid-template-columns: auto minmax(0, 1fr); }
             .ka-when { grid-column: 2; text-align: left; }
         }
+
+        /* --- dark ------------------------------------------------------------
+           A list whose whole job is to be read quickly. `--gray-800` on white is
+           the strongest thing in the row; on a dark ground it is very nearly the
+           ground, so the title all but disappeared and the overdue marker — the
+           one item here that must never be missed — lost its contrast with it.
+           Each shade moves to its opposite number on the ramp. */
+        .dark .ka-item { border-bottom-color: rgba(255, 255, 255, .08); }
+        .dark .ka-title { color: rgb(var(--gray-100)); }
+        .dark .ka-detail,
+        .dark .ka-when { color: rgb(var(--gray-400)); }
+        .dark .ka-when .is-undated { color: rgb(var(--gray-500)); }
+        .dark .ka-when .is-overdue { color: rgb(var(--danger-400)); }
     </style>
 </x-filament-widgets::widget>

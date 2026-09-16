@@ -33,8 +33,72 @@
     a screenful of scrolling between an operator and the password field, which is
     the opposite of the point. The brand colour fills the space instead, which
     also means the form never lands on a white page with nothing on it.
+
+    ## These screens are light, whatever the operator's laptop is set to
+
+    Everything below paints a light ground — `#f7f9fc`, the dot grid, the scrim
+    over the photograph. Filament, meanwhile, still puts `dark` on `<html>`
+    whenever the operating system asks for it, and its own utilities then set
+    `dark:text-white` on the heading, the labels, the inputs and the hints. The
+    result on a laptop in dark mode was **white type on that near-white ground**:
+    the labels were invisible and the heading was a ghost.
+
+    The fix is to take `dark` off, not to answer it. A dark variant of this
+    screen is a second design — a second photograph treatment, a second scrim, a
+    second dot grid — and this screen is one composition built around a bright
+    photograph. Overriding the colours one utility at a time was the other
+    option and it is a losing game: the live page carries `dark:` classes on the
+    heading, the logo, the required marker, the input wrapper, the input itself,
+    the error message, the hint and the card, and the next Filament release adds
+    more without telling us.
+
+    **Why it is safe to remove.** The class is written once by Filament's own
+    script in the head, from `prefers-color-scheme` when no choice is stored.
+    Nothing re-applies it here: the theme switcher lives in the user menu, and
+    these four pages have no user menu — nobody is signed in yet. Removing it in
+    the body therefore sticks, and an operator's stored preference is untouched
+    for every page behind the sign-in.
+
+    It runs at `SIMPLE_PAGE_START`, which is the first thing inside the layout
+    and before any of the form is parsed, so the class is gone before there is
+    anything painted to flash.
 --}}
+<script>
+    /* Not `x-data`, not Alpine: this has to run as the parser reaches it, and
+       Alpine has not started yet.
+
+       **Twice, because Filament applies the class twice.** Its head script calls
+       `loadDarkMode()` as the page parses *and* registers it on
+       `livewire:navigated` — which Livewire v3 fires on the first load too, not
+       only on an SPA navigation. Removing the class once, here in the body, was
+       therefore undone a moment later by an event that had not fired yet. This
+       listener is registered after Filament's, so for the same event it runs
+       second, which is the whole trick.
+
+       **Guarded by the layout, not by the URL.** `livewire:navigated` also fires
+       when the operator signs in and is carried to a panel page without a full
+       page load, and a listener on `document` outlives the body it was written
+       into. Asking whether a simple layout is on the page answers "are we still
+       on a sign-in screen" exactly, and keeps the dashboard's dark mode — and
+       the operator's stored preference — untouched. */
+    (function () {
+        const lightenAuthScreens = () => {
+            if (document.querySelector('.fi-simple-layout')) {
+                document.documentElement.classList.remove('dark');
+            }
+        };
+
+        lightenAuthScreens();
+        document.addEventListener('livewire:navigated', lightenAuthScreens);
+    })();
+</script>
+
 <style>
+    /* The other half of the same decision. `color-scheme` is what the *browser*
+       paints — the form controls' own chrome, the scrollbar, the caret — and it
+       reads the OS, not the class above. Without this the fields keep a dark
+       browser chrome on a light page. */
+    .fi-simple-layout { color-scheme: light; }
     /* The scrim over the photograph's lower half, so «Powered by Kaiki» and the
        locale switcher stay legible on a bright sky. Declared once, used twice. */
     :root {
@@ -275,6 +339,5 @@
             max-inline-size: 70%;
             inline-size: auto;
         }
-    }
     }
 </style>

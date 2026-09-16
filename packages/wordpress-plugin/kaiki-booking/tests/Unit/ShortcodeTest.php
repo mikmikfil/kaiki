@@ -151,6 +151,70 @@ final class ShortcodeTest extends TestCase {
 		$this->assertStringNotContainsString( '<script>alert', $html );
 	}
 
+	public function test_a_booking_form_on_a_trip_page_finds_its_own_trip(): void {
+		// The whole point of the fallback: a template is written once and
+		// rendered for every trip there is, so it cannot carry the id of one of
+		// them. The page supplies it.
+		$GLOBALS['kaiki_test_current_post']                = 7;
+		$GLOBALS['kaiki_test_post_meta'][7]['_kaiki_uuid'] = self::UUID;
+
+		$html = Shortcodes::booking( array() );
+
+		$this->assertStringContainsString( 'data-product="' . self::UUID . '"', $html );
+		$this->assertStringContainsString( 'data-mount="booking"', $html );
+	}
+
+	public function test_a_typed_trip_id_beats_the_page_it_is_on(): void {
+		// The attribute is the more specific statement and the only one an
+		// operator can see. A template must never override it.
+		$other = '11111111-2222-3333-4444-555555555555';
+
+		$GLOBALS['kaiki_test_current_post']                = 7;
+		$GLOBALS['kaiki_test_post_meta'][7]['_kaiki_uuid'] = self::UUID;
+
+		$html = Shortcodes::booking( array( 'product' => $other ) );
+
+		$this->assertStringContainsString( 'data-product="' . $other . '"', $html );
+		$this->assertStringNotContainsString( self::UUID, $html );
+	}
+
+	public function test_a_trip_id_in_post_meta_is_validated_like_a_typed_one(): void {
+		// Post meta is writable by anything else on the site. That it did not
+		// come from a page editor is a reason to expect it to be well formed,
+		// not a reason to trust it.
+		$GLOBALS['kaiki_test_can']                         = true;
+		$GLOBALS['kaiki_test_current_post']                = 7;
+		$GLOBALS['kaiki_test_post_meta'][7]['_kaiki_uuid'] = '"><script>alert(1)</script>';
+
+		$html = Shortcodes::booking( array() );
+
+		$this->assertStringNotContainsString( '<script>alert', $html );
+		$this->assertStringContainsString( 'kaiki_booking product', $html );
+	}
+
+	public function test_a_page_that_is_about_no_trip_still_gets_the_notice(): void {
+		// A contact page carries no `_kaiki_uuid`, and a booking form on one is
+		// still a mistake worth telling an editor about.
+		$GLOBALS['kaiki_test_can']          = true;
+		$GLOBALS['kaiki_test_current_post'] = 7;
+
+		$html = Shortcodes::booking( array() );
+
+		$this->assertStringContainsString( 'kaiki_booking product', $html );
+		$this->assertStringNotContainsString( '<script', $html );
+	}
+
+	public function test_an_enquiry_form_on_a_trip_page_finds_its_own_trip(): void {
+		// `product` stays optional here — an enquiry about the fleet in general
+		// is a real thing — but on a trip page it should be about that trip.
+		$GLOBALS['kaiki_test_current_post']                = 7;
+		$GLOBALS['kaiki_test_post_meta'][7]['_kaiki_uuid'] = self::UUID;
+
+		$html = Shortcodes::enquiry( array() );
+
+		$this->assertStringContainsString( 'data-product="' . self::UUID . '"', $html );
+	}
+
 	public function test_an_unknown_category_is_an_empty_list_rather_than_an_error(): void {
 		// WGT-6. An operator writes `category` into a page once, and the page
 		// outlives the trips it was written for.

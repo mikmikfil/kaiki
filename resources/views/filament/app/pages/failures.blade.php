@@ -120,5 +120,21 @@
             .kf-row { flex-direction: column; gap: .5rem; }
             .kf-when { align-items: flex-start; flex-direction: row; align-items: center; }
         }
+
+        /* --- dark ------------------------------------------------------------
+           This page is read when something has gone wrong and somebody is trying
+           to find out what. The three tiers of type — what happened, the
+           explanation, the raw detail — have to keep their order, and on a dark
+           ground `--gray-600` explanation text sat below the `--gray-400` detail
+           it is supposed to outrank. Inverting the ramp puts them back in order.
+
+           The rule between rows goes to white at eight per cent for the same
+           reason it does elsewhere: a `--gray-200` hairline is a bright line. */
+        .dark .kf-row { border-bottom-color: rgba(255, 255, 255, .08); }
+        .dark .kf-explanation { color: rgb(var(--gray-300)); }
+        .dark .kf-ref,
+        .dark .kf-when,
+        .dark .kf-empty-detail { color: rgb(var(--gray-400)); }
+        .dark .kf-detail { color: rgb(var(--gray-500)); }
     </style>
 </x-filament-panels::page>

@@ -16,7 +16,9 @@ tests run against a real site rather than a local one.
 3. Press **Test the connection**. It tells you one of four things, and three of
    them tell you exactly what to change.
 4. Put `[kaiki_booking product="…"]` on a page. The trip id is in your Kaiki
-   panel, on the trip.
+   panel, on the trip. On a **trip page** — one the plugin's own sync made, or
+   one of yours carrying the trip id — leave `product` out and the page fills it
+   in; that is what makes a single template work for every trip.
 
 That is the whole setup. Everything below is optional.
 
@@ -24,10 +26,14 @@ That is the whole setup. Everything below is optional.
 
 ## Blocks and Elementor
 
-If you use the block editor, insert **Kaiki booking form**, **Kaiki trips**,
-**Kaiki availability calendar** or **Kaiki enquiry form** and pick the trip from
-a list — no ids to copy. Elementor has the same four widgets with the same
-options.
+If you use the block editor, insert **Kaiki booking form**, **Kaiki trips** or
+**Kaiki enquiry form** and pick the trip from a list — no ids to copy. Elementor
+has the same three widgets with the same options.
+
+In an Elementor **theme template** for trips, leave the trip id empty: the
+template is rendered for every trip, so it cannot carry the id of one of them.
+The control also accepts a dynamic tag, for a site whose trip id lives in a
+custom field of its own.
 
 Whichever you use, the page ends up identical: the blocks and the widgets are
 wrappers around the shortcodes below, not separate implementations of them.
@@ -38,18 +44,35 @@ a real booking while laying out a page.
 
 ---
 
-## The four shortcodes
+## The three shortcodes
 
 | Shortcode | What appears |
 |---|---|
-| `[kaiki_booking product="…"]` | The booking form for one trip: date, party, extras, details, pay. |
+| `[kaiki_booking product="…"]` | The booking form for one trip: date, party, extras, details, pay. On a trip page `product` may be left out. |
 | `[kaiki_list]` | Your trips as a grid. `category="shared"` narrows it. |
-| `[kaiki_calendar product="…"]` | A month of availability for one trip. |
 | `[kaiki_enquiry]` | An enquiry form. `product="…"` ties it to one trip; without it, it is about your fleet in general. |
 
+There were four. The availability calendar was taken out of the plugin on
+2026-09-11 by the product owner's decision: operators get the booking form, the
+trip list and the enquiry form, and nothing that only shows dates. The widget
+still has a calendar mount, and `ShortcodeTest` asserts the plugin does not
+expose it — so this is the current list, not a list waiting to be tidied.
+
 Blocks and Elementor widgets do exactly the same thing with a mouse instead of a
-paste — they are wrappers around these four, so whichever you use, the page ends
+paste — they are wrappers around these three, so whichever you use, the page ends
 up the same.
+
+### Leaving `product` out
+
+A shortcode with no `product` is a question — *which trip is this page about?* —
+rather than a mistake, and the answer is the `_kaiki_uuid` custom field on the
+post being rendered. The plugin's own sync writes that field on every trip page
+it creates, so a template over those works with no setup; a site that keeps its
+trips as its own pages adds the same field and the same template works there.
+
+A typed id always wins over the page it is on. A page with neither still gets the
+notice below, because a booking form that quietly picks a trip is a booking form
+that sells the wrong one.
 
 **The booking script loads only on pages that use one of them.** A page with no
 shortcode has nothing extra on it at all.
@@ -129,6 +152,12 @@ With WPML or Polylang installed, each trip becomes one page per language you
 publish in Kaiki. Without them, each trip becomes one page, in your site's own
 language. A trip you have not translated yet gets no page in that language —
 better than a page whose title is in the wrong one.
+
+The pages are **registered with WPML or Polylang as translations of each other**,
+so your language switcher moves between them: the page in your site's own
+language is the original and the rest hang off it. The language codes used are
+the ones your site actually has, not ours — a site whose English is `en-GB` is
+told `en-GB`.
 
 ### When it runs
 

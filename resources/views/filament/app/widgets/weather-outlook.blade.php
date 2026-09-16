@@ -127,5 +127,32 @@
             .kw-row { grid-template-columns: 1fr; gap: .5rem; }
             .kw-days { flex-wrap: wrap; }
         }
+
+        /* --- dark ------------------------------------------------------------
+           The day chips are the part that breaks: `--gray-50` on a `--gray-200`
+           border is a white tile with a grey edge, and on a dark page it is a
+           row of lights. The over-limit chip keeps its warning hue — that one
+           has to stay findable, which is its whole job — but sits on a dark
+           wash of it rather than a pale one. */
+        .dark .kw-day {
+            background: rgb(var(--gray-900));
+            border-color: rgb(var(--gray-700));
+        }
+
+        .dark .kw-day.is-over {
+            background: rgba(var(--warning-500), .16);
+            border-color: rgb(var(--warning-600));
+        }
+
+        .dark .kw-day.is-over .kw-bft { color: rgb(var(--warning-300)); }
+
+        .dark .kw-row { border-bottom-color: rgba(255, 255, 255, .08); }
+        .dark .kw-name { color: rgb(var(--gray-200)); }
+        .dark .kw-affected { color: rgb(var(--gray-300)); }
+        .dark .kw-limit,
+        .dark .kw-dow { color: rgb(var(--gray-400)); }
+        .dark .kw-src,
+        .dark .kw-source,
+        .dark .kw-clear { color: rgb(var(--gray-500)); }
     </style>
 </x-filament-widgets::widget>

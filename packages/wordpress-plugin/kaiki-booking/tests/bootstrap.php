@@ -52,6 +52,9 @@ function kaiki_test_reset(): void {
 	$GLOBALS['kaiki_test_options']    = array();
 	$GLOBALS['kaiki_test_transients'] = array();
 	$GLOBALS['kaiki_test_blocks']     = array();
+	// No loop, which is what a shortcode in a sidebar widget sees. A test that
+	// wants a trip page says so.
+	$GLOBALS['kaiki_test_current_post'] = false;
 }
 
 /**
@@ -325,6 +328,7 @@ function kaiki_test_reset_posts(): void {
 	$GLOBALS['kaiki_test_cron']          = array();
 	$GLOBALS['kaiki_test_http']          = array();
 	$GLOBALS['kaiki_test_http_requests'] = array();
+	$GLOBALS['kaiki_test_current_post']  = false;
 }
 
 /**
@@ -445,6 +449,21 @@ function get_post_field( string $field, int $id ): string {
 }
 
 /**
+ * The post in the loop.
+ *
+ * WordPress returns `false` when there is no loop, which is the state every
+ * test is in unless it says otherwise — a shortcode in a widget, in a template
+ * with no post, or in this test suite. A test that wants a trip page sets
+ * `$GLOBALS['kaiki_test_current_post']` to a post id.
+ *
+ * @return int|false
+ */
+// phpcs:ignore WordPress.NamingConventions.ValidFunctionName.FunctionNameInvalid -- WordPress's own name for it; a snake_case stub would stand in for nothing.
+function get_the_ID() {
+	return $GLOBALS['kaiki_test_current_post'] ?? false;
+}
+
+/**
  * @param  int    $id     The post.
  * @param  string $key    The meta key.
  * @param  bool   $single Whether to return one value.
@@ -524,14 +543,38 @@ function has_filter( string $hook ): bool {
 }
 
 /**
+ * Run the callbacks a test registered, in order, threading the value.
+ *
+ * This used to return `$value` untouched, which was enough while nothing in the
+ * plugin filtered anything it had not registered itself. `TripTranslations` asks
+ * WPML two questions through `apply_filters` — the active languages and a post's
+ * `trid` — so a test standing in for WPML has to be able to answer.
+ *
+ * Extra arguments are passed on, because `wpml_element_trid` is asked about a
+ * particular post and a stub that dropped the post id could only ever answer the
+ * same thing for all of them.
+ *
  * @param  string $hook  The hook name.
  * @param  mixed  $value The value being filtered.
+ * @param  mixed  ...$args Whatever else the caller passed.
  * @return mixed
  */
-function apply_filters( string $hook, $value ) {
-	unset( $hook );
+function apply_filters( string $hook, $value, ...$args ) {
+	foreach ( $GLOBALS['kaiki_test_hooks'][ $hook ] ?? array() as $callback ) {
+		$value = $callback( $value, ...$args );
+	}
 
 	return $value;
+}
+
+/**
+ * @param string $hook    The hook name.
+ * @param mixed  ...$args Whatever the caller passed.
+ */
+function do_action( string $hook, ...$args ): void {
+	foreach ( $GLOBALS['kaiki_test_hooks'][ $hook ] ?? array() as $callback ) {
+		$callback( ...$args );
+	}
 }
 
 /**

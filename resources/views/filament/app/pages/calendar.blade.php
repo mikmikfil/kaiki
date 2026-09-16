@@ -269,5 +269,58 @@
         @media (max-width: 48rem) {
             .cal-ruler, .cal-row { grid-template-columns: 7rem minmax(32rem, 1fr); }
         }
+
+        /* --- dark ------------------------------------------------------------
+           Filament's palette variables do **not** change between the themes:
+           `--gray-50` is the same near-white in both, and the `dark:` utilities
+           in its own markup work by naming a *different shade*, not by the shade
+           meaning something different. Everything above therefore painted a
+           light calendar onto a dark page — a white track with white grid lines,
+           which is what an operator reported.
+
+           So these rules name the other end of the same ramp. They are not a
+           second design: every hue, every weight and every relationship is the
+           one above, read against a dark ground instead of a light one. */
+        .dark .cal-track {
+            background: rgb(var(--gray-900));
+            border-color: rgb(var(--gray-700));
+        }
+
+        .dark .cal-ruler .cal-track { background: transparent; }
+
+        /* The lines that divide the hours have to stay *quieter* than the track's
+           own border, or the grid reads as a table. On white that is a light
+           grey; on black it is a white at eight per cent, which is the same
+           instruction. */
+        .dark .grid-line { background: rgba(255, 255, 255, .08); }
+
+        .dark .cal-hint,
+        .dark .cal-empty,
+        .dark .cal-key,
+        .dark .cal-label span { color: rgb(var(--gray-400)); }
+
+        .dark .cal-ruler .tick { color: rgb(var(--gray-400)); }
+
+        /* A block and an external booking are greys against the sailings, and a
+           grey chosen to sit below white now has to sit above black. Both move
+           up the ramp by exactly as much as the ground moved down. */
+        .dark .bar.is-block,
+        .dark .swatch.is-block { background: rgb(var(--gray-500)); }
+
+        .dark .bar.is-external,
+        .dark .swatch.is-external {
+            background: repeating-linear-gradient(45deg,
+                rgb(var(--gray-400)), rgb(var(--gray-400)) 6px,
+                rgb(var(--gray-600)) 6px, rgb(var(--gray-600)) 12px);
+        }
+
+        /* Cancelled is the one that inverts rather than shifts: on white it is a
+           pale bar with dark type, so on black it is a dark bar with pale type.
+           Struck through either way — the strike is the meaning, the colour is
+           only how quiet it is. */
+        .dark .bar.is-cancelled {
+            background: rgb(var(--gray-700));
+            color: rgb(var(--gray-400));
+        }
     </style>
 </x-filament-panels::page>

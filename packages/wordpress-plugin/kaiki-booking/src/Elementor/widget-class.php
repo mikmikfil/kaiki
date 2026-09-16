@@ -114,8 +114,21 @@ class Widget extends Widget_Base {
 				array(
 					'label'       => __( 'Trip id', 'kaiki-booking' ),
 					'type'        => Controls_Manager::TEXT,
-					'description' => __( 'From your Kaiki panel, on the trip.', 'kaiki-booking' ),
+					'description' => __( 'From your Kaiki panel, on the trip. Leave empty on a trip template and the page fills it in.', 'kaiki-booking' ),
 					'default'     => '',
+
+					/*
+					 * Elementor's dynamic tags, so the id can come from a custom
+					 * field rather than be typed. Left on even though
+					 * `CurrentTrip` already resolves an empty one: the fallback
+					 * reads `_kaiki_uuid` and an operator whose trip id lives in
+					 * a field of their own needs a way to point at it that does
+					 * not involve renaming their data to suit us.
+					 *
+					 * Harmless without Elementor Pro — the free editor ignores
+					 * the key and renders the plain text field.
+					 */
+					'dynamic'     => array( 'active' => true ),
 				)
 			);
 		}
