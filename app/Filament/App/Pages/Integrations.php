@@ -121,13 +121,14 @@ class Integrations extends Page
     {
         return Action::make('saveCredentials')
             // Adding and editing are the same operation against the same unique
-            // key, but they are not the same thing to read: on a page with no
-            // connections yet, a button called «Αποθήκευση» looks like it saves
-            // a form that is not there. With a row to edit it says «Αποθήκευση»;
-            // without one it says «Νέα σύνδεση», and the modal's own submit
-            // button says «Αποθήκευση» either way.
+            // key, but they are not the same thing to read. A button that opens
+            // a form says what it opens: «Επεξεργασία» on a connection that
+            // exists, «Νέα σύνδεση» where there is none. «Αποθήκευση» belongs on
+            // the modal's own submit button, where something is actually being
+            // saved — on the card it asked an operator to press save to start
+            // editing, which is backwards.
             ->label(fn (array $arguments): string => isset($arguments['credential'])
-                ? __('integrations.actions.save')
+                ? __('integrations.actions.edit')
                 : __('integrations.actions.create'))
             ->modalHeading(__('integrations.page.title'))
             ->modalSubmitActionLabel(__('integrations.actions.save'))

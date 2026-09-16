@@ -101,6 +101,7 @@ return [
         // "Save" on an empty page never says that a new connection starts
         // there — an operator looks for a "new" button.
         'create' => 'New connection',
+        'edit' => 'Edit',
         'save' => 'Save',
         'deactivate' => 'Switch off',
         'deactivated' => 'Switched off. Your details are kept, so you can switch it back on without pasting them again.',
