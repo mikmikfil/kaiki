@@ -701,6 +701,9 @@ return [
         'booking.cancelled' => ['label' => 'Booking cancelled'],
         'departure.cancelled' => ['label' => 'Departure cancelled'],
         'guest_details.completed' => ['label' => 'Passenger details completed'],
+        'product.published' => ['label' => 'Trip published'],
+        'product.updated' => ['label' => 'Trip changed'],
+        'product.unpublished' => ['label' => 'Trip withdrawn'],
     ],
 
     'delivery_status' => [

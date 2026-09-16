@@ -27,6 +27,8 @@ return [
         'trips' => 'Featured trips',
         'no_trips' => 'There are no trips on sale at the moment.',
         'duration' => ':minutes minutes',
+        'duration_hours' => '{1} :hours hour|[2,*] :hours hours',
+        'duration_hours_minutes' => '{1} :hours hour :minutes minutes|[2,*] :hours hours :minutes minutes',
         'view' => 'See this trip',
         'see_all' => 'See every trip',
         'all_trips' => 'All our trips',

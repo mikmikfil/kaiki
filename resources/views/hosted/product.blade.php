@@ -91,7 +91,7 @@
             <ul class="facts">
                 <li>
                     @include('hosted.partials.icon', ['name' => 'clock'])
-                    <span>{{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}</span>
+                    <span>{{ \App\Domain\Hosted\Support\TripDuration::format((int) $product->duration_minutes) }}</span>
                 </li>
                 @if ($startTime)
                     <li>
@@ -227,7 +227,7 @@
                                 <p>{{ $stop['description'] }}</p>
                             @endif
                             @if (isset($stop['duration_minutes']) && is_numeric($stop['duration_minutes']) && (int) $stop['duration_minutes'] > 0)
-                                <p class="muted">{{ __('hosted.index.duration', ['minutes' => (int) $stop['duration_minutes']]) }}</p>
+                                <p class="muted">{{ \App\Domain\Hosted\Support\TripDuration::format((int) $stop['duration_minutes']) }}</p>
                             @endif
                         </li>
                     @endforeach
@@ -527,7 +527,7 @@
 
             <dl class="four-lines">
                 <div><dt>{{ __('hosted.product.booking.trip') }}</dt><dd>{{ $product->title }}</dd></div>
-                <div><dt>{{ __('hosted.product.booking.duration') }}</dt><dd>{{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}</dd></div>
+                <div><dt>{{ __('hosted.product.booking.duration') }}</dt><dd>{{ \App\Domain\Hosted\Support\TripDuration::format((int) $product->duration_minutes) }}</dd></div>
                 <div><dt>{{ __('hosted.product.booking.port') }}</dt><dd>{{ $port?->name ?? '—' }}</dd></div>
                 <div><dt>{{ __('hosted.product.booking.vessel') }}</dt><dd>{{ $product->vessel?->name ?? '—' }}</dd></div>
             </dl>

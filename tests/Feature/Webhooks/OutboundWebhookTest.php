@@ -144,7 +144,9 @@ it('never sends a webhook for an imported booking', function (): void {
     // seasons of `booking.confirmed` at somebody's accounting system.
     expect(app(DispatchWebhookEvent::class)->forBooking($booking, WebhookEvent::BookingConfirmed))->toBe(0);
 
-    Queue::assertNothingPushed();
+    // Not `assertNothingPushed()`: the booking factory creates a trip, and a
+    // new trip queues its own catalogue event. That is not this booking.
+    Queue::assertNotPushed(DeliverWebhook::class);
 });
 
 it('sends a test booking, flagged rather than suppressed', function (): void {

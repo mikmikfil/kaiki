@@ -1080,7 +1080,7 @@ JS;
 			<div class="kaiki-admin__card-head">
 				<h2 class="kaiki-admin__card-title"><?php echo esc_html__( 'Live updates', 'kaiki-booking' ); ?></h2>
 				<p class="kaiki-admin__help">
-					<?php echo esc_html__( 'Kaiki tells this site the moment something changes — a new trip, a new price — so visitors never see an out-of-date catalogue. Paste the update secret from your Kaiki panel to switch it on.', 'kaiki-booking' ); ?>
+					<?php echo esc_html__( 'Kaiki tells this site the moment a trip changes, so visitors never see an out-of-date catalogue. In your Kaiki panel, open Settings → Webhooks, add a webhook with the address below, tick the three trip events, and paste the secret it shows you here.', 'kaiki-booking' ); ?>
 				</p>
 			</div>
 

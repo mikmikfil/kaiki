@@ -71,7 +71,7 @@
     <li><strong>Τα ονόματα μενού της Viva</strong>, το όνομα του γεγονότος webhook (Transaction Payment Created) και οι κάρτες δοκιμής — από την τεκμηρίωση της Viva, όχι από τον κώδικα.</li>
     <li><strong>MariaDB.</strong> Το σχήμα ελέγχεται μόνο σε MySQL 8.0.</li>
     <li><strong>Αν χρειάζεται το <code>KAIKI_HOSTED_VIVA_ORIGIN</code></strong> στο staging (μέρος Δ).</li>
-    <li><strong>Το zip του προσθέτου</strong>: δεν υπάρχει επίσημο build, η λίστα αρχείων είναι δική μας.</li>
+    <li><strong>Το zip του προσθέτου</strong>: φτιάχνεται με <code>npm run plugin:zip</code> και ελέγχεται ότι ανοίγει και ότι το autoloader φορτώνει τις κλάσεις, αλλά δεν έχει ανέβει ακόμη σε πραγματικό WordPress.</li>
     <li><strong>Αν το demo seed στέλνει email</strong> προς τις ψεύτικες διευθύνσεις· γι' αυτό τρέχει με <code>MAIL_MAILER=log</code>.</li>
 </ul>
 

@@ -129,8 +129,8 @@ msgstr "Kaiki Booking: το Kaiki απέρριψε το κλειδί. Ελέγξ
 msgid "Kaiki Booking: this site could not reach Kaiki. Visitors are seeing a short message instead of the booking form."
 msgstr "Kaiki Booking: ο ιστότοπος δεν μπόρεσε να επικοινωνήσει με το Kaiki. Οι επισκέπτες βλέπουν ένα σύντομο μήνυμα αντί για τη φόρμα κράτησης."
 
-msgid "Kaiki tells this site the moment something changes — a new trip, a new price — so visitors never see an out-of-date catalogue. Paste the update secret from your Kaiki panel to switch it on."
-msgstr "Το Kaiki ενημερώνει τον ιστότοπο τη στιγμή που κάτι αλλάζει — νέα εκδρομή, νέα τιμή — ώστε οι επισκέπτες να μη βλέπουν ποτέ παλιό κατάλογο. Επικολλήστε το μυστικό ενημερώσεων από τον πίνακα του Kaiki για να το ενεργοποιήσετε."
+msgid "Kaiki tells this site the moment a trip changes, so visitors never see an out-of-date catalogue. In your Kaiki panel, open Settings → Webhooks, add a webhook with the address below, tick the three trip events, and paste the secret it shows you here."
+msgstr "Το Kaiki ενημερώνει τον ιστότοπο τη στιγμή που αλλάζει μια εκδρομή, ώστε οι επισκέπτες να μη βλέπουν ποτέ παλιό κατάλογο. Στον πίνακα του Kaiki ανοίξτε Ρυθμίσεις → Webhooks, προσθέστε ένα webhook με τη διεύθυνση παρακάτω, επιλέξτε τα τρία συμβάντα εκδρομών και επικολλήστε εδώ το μυστικό κλειδί που θα σας δείξει."
 
 msgid "Live updates"
 msgstr "Άμεσες ενημερώσεις"

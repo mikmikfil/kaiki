@@ -2150,7 +2150,8 @@ Publishable keys may hold only `*.read` scopes plus `bookings.write` (draft crea
 ### 3.13 `webhook_endpoints.events`
 
 ```json
-["booking.confirmed", "booking.cancelled", "departure.cancelled", "guest_details.completed"]
+["booking.confirmed", "booking.cancelled", "departure.cancelled", "guest_details.completed",
+ "product.published", "product.updated", "product.unpublished"]
 ```
 
 Validated against the event registry in `app/Domain/Webhooks/EventRegistry.php`. Unknown values are rejected at save so a typo does not silently disable a subscription.

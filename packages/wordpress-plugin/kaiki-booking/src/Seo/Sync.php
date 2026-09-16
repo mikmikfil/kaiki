@@ -9,6 +9,7 @@ declare( strict_types = 1 );
 
 namespace Kaiki\Booking\Seo;
 
+use Kaiki\Booking\Http\Webhook;
 use Kaiki\Booking\Settings\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -16,8 +17,8 @@ defined( 'ABSPATH' ) || exit;
 /**
  * One code path, two triggers (WPP-6, WPP-7).
  *
- * WP-Cron runs it hourly and the inbound webhook runs it on a change. Both call
- * {@see self::run()} — a webhook that took its own path would drift from the
+ * WP-Cron runs it hourly and the inbound webhook asks for it on a change. Both
+ * end in {@see self::run()} — a webhook that took its own path would drift from the
  * nightly one, and the drift would show up as "it works when I wait and not when
  * I save", which is the hardest kind of bug to be told about.
  *
@@ -49,6 +50,15 @@ defined( 'ABSPATH' ) || exit;
 final class Sync {
 
 	public const HOOK = 'kaiki_sync_trips';
+
+	/**
+	 * The one-off run a catalogue webhook asks for.
+	 *
+	 * A hook of its own rather than a second event on {@see self::HOOK}:
+	 * WordPress refuses a single event within ten minutes of another event on
+	 * the same hook, and the hourly one is often that close.
+	 */
+	public const SOON_HOOK = 'kaiki_sync_trips_soon';
 
 	/**
 	 * Where the traversal is, so an interrupted run resumes rather than restarts.
@@ -102,11 +112,12 @@ final class Sync {
 		}
 
 		add_action( self::HOOK, array( self::class, 'run' ) );
+		add_action( self::SOON_HOOK, array( self::class, 'run_soon' ) );
 
-		// The webhook's own hook, which {@see \Kaiki\Booking\Http\Webhook} fires
-		// after it has verified a delivery. Verification is that file's job and
+		// The webhook's catalogue hook, which {@see Webhook} fires after it has
+		// verified a `product.*` delivery. Verification is that file's job and
 		// this one trusts it, which is the reason the two are separate.
-		add_action( 'kaiki_webhook_received', array( self::class, 'run' ) );
+		add_action( Webhook::CATALOGUE_ACTION, array( self::class, 'schedule_soon' ) );
 
 		if ( ! wp_next_scheduled( self::HOOK ) ) {
 			wp_schedule_event( time() + HOUR_IN_SECONDS, 'hourly', self::HOOK );
@@ -117,11 +128,54 @@ final class Sync {
 	 * Stop the schedule, for when the feature is switched off or removed.
 	 */
 	public static function unschedule(): void {
-		$next = wp_next_scheduled( self::HOOK );
+		foreach ( array( self::HOOK, self::SOON_HOOK ) as $hook ) {
+			$next = wp_next_scheduled( $hook );
 
-		if ( false !== $next ) {
-			wp_unschedule_event( (int) $next, self::HOOK );
+			if ( false !== $next ) {
+				wp_unschedule_event( (int) $next, $hook );
+			}
 		}
+	}
+
+	/**
+	 * Ask for a run straight away, without doing it in this request.
+	 *
+	 * The webhook has ten seconds to answer (§8.4), and a sync is up to four
+	 * pages of a hundred products. So this schedules one single event — a
+	 * second catalogue event before it runs finds it already waiting — and
+	 * nudges WP-Cron, which answers in the background on its own loopback
+	 * request rather than waiting for the next visitor.
+	 */
+	public static function schedule_soon(): void {
+		if ( ! Settings::seo_pages_enabled() ) {
+			return;
+		}
+
+		if ( false === wp_next_scheduled( self::SOON_HOOK ) ) {
+			wp_schedule_single_event( time(), self::SOON_HOOK );
+		}
+
+		if ( function_exists( 'spawn_cron' ) ) {
+			spawn_cron();
+		}
+	}
+
+	/**
+	 * The webhook's run: the same {@see self::run()}, unless one is already going.
+	 *
+	 * A run already in flight may have read the page this change is on before
+	 * the change was made, and `run()` would simply return on the lock. So the
+	 * request is put back a minute later instead of being dropped until the
+	 * hourly run.
+	 */
+	public static function run_soon(): void {
+		if ( false !== get_transient( self::LOCK ) ) {
+			wp_schedule_single_event( time() + MINUTE_IN_SECONDS, self::SOON_HOOK );
+
+			return;
+		}
+
+		self::run();
 	}
 
 	/**

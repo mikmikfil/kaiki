@@ -17,6 +17,7 @@
         "plugin:lint": "composer --working-dir=packages/wordpress-plugin/kaiki-booking run lint",
         "plugin:lint:fix": "composer --working-dir=packages/wordpress-plugin/kaiki-booking run lint:fix",
         "plugin:test": "composer --working-dir=packages/wordpress-plugin/kaiki-booking run test",
+        "plugin:zip": "node packages/wordpress-plugin/build-zip.mjs",
         "mjml:build": "node -e \"console.log('mjml:build — compiles email templates to committed HTML; lands in M2. Stub.')\"",
         "widget:guards": "npm -w packages/widget run guards",
         "widget:test": "npm -w packages/widget run test"

@@ -17,6 +17,7 @@ use App\Enums\Role;
 use App\Events\BookingConfirmed;
 use App\Filament\App\Resources\ImportJobResource\Pages\ReviewImport;
 use App\Jobs\CommitImportJob;
+use App\Jobs\PublishProductChange;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\ImportJob;
@@ -209,7 +210,11 @@ it('dispatches no notification, invoice or webhook for an imported booking', fun
     // queued job, no invoice row, no webhook delivery.
     Event::assertNotDispatched(BookingConfirmed::class);
     Mail::assertNothingSent();
-    Queue::assertNothingPushed();
+
+    // Nothing but the catalogue event for the trips the import created — a
+    // website mirroring the catalogue should hear about those. BKG-34 is about
+    // the bookings, and no booking job is queued.
+    expect(array_diff(array_keys(Queue::pushedJobs()), [PublishProductChange::class]))->toBe([]);
 
     Tenancy::forTenant($tenant, function (): void {
         expect(Booking::query()->count())->toBe(4)

@@ -8,6 +8,7 @@ use App\Enums\WebhookEvent;
 use App\Http\Resources\Api\V1\BookingResource;
 use App\Models\Booking;
 use App\Models\Departure;
+use App\Models\Product;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -129,6 +130,37 @@ final class WebhookPayload
                     'uuid' => $departure->vessel->uuid,
                     'name' => $departure->vessel->name,
                 ],
+            ],
+        ];
+    }
+
+    /**
+     * `{"product": …}` — which trip, and where it stands now. Not its content.
+     *
+     * A catalogue event is a **signal**, and the body says so by being short.
+     * The content already has a contract — `GET /sync/products` for a server,
+     * `GET /products/{uuid}` for a guest — and a second copy of it here would
+     * be a third representation of a trip to keep in step with the other two.
+     * A mirror that receives this re-reads the feed, which also means an event
+     * arriving out of order cannot leave it holding the older text.
+     *
+     * `uuid` and `slug` are passed rather than read off a model, because a
+     * product that was force-deleted before the event was built has no model
+     * left to read them from, and the one thing a receiver must still be told
+     * is which page to take down.
+     *
+     * @return array<string, mixed>
+     */
+    public static function product(?Product $product, string $uuid, string $slug): array
+    {
+        return [
+            'product' => [
+                'uuid' => $uuid,
+                'slug' => $product !== null ? $product->slug : $slug,
+                'status' => $product?->status->value,
+                'title' => $product?->title,
+                'deleted' => $product === null || $product->trashed(),
+                'updated_at' => $product?->updated_at?->toIso8601ZuluString(),
             ],
         ];
     }

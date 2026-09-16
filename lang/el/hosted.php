@@ -28,6 +28,8 @@ return [
         'trips' => 'Επιλεγμένες εκδρομές',
         'no_trips' => 'Δεν υπάρχουν διαθέσιμες εκδρομές αυτή τη στιγμή.',
         'duration' => ':minutes λεπτά',
+        'duration_hours' => '{1} :hours ώρα|[2,*] :hours ώρες',
+        'duration_hours_minutes' => '{1} :hours ώρα :minutes λεπτά|[2,*] :hours ώρες :minutes λεπτά',
         'view' => 'Δείτε την εκδρομή',
         'see_all' => 'Δείτε όλες τις εκδρομές',
         'all_trips' => 'Όλες οι εκδρομές',

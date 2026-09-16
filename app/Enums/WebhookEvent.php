@@ -8,14 +8,19 @@ use App\Domain\Webhooks\EventRegistry;
 use App\Enums\Concerns\HasTranslatedLabel;
 
 /**
- * The four things Kaiki will tell somebody else's system about (spec OPS-19).
+ * The things Kaiki will tell somebody else's system about (spec OPS-19).
  *
- * ## Four, and the shortness is the design
+ * ## Short, and the shortness is the design
  *
  * `docs/api.md` §8.1 fixes the list at exactly these, and every one of them is a
- * thing an operator's accountant, spreadsheet or CRM has a reason to act on:
- * money arrived, money is going back, a boat is not sailing, a manifest is
- * ready. The events this codebase *could* emit are far more numerous — there are
+ * thing an operator's accountant, spreadsheet, CRM or website has a reason to
+ * act on: money arrived, money is going back, a boat is not sailing, a manifest
+ * is ready, a trip page is out of date.
+ *
+ * The three `product.*` events were the fifth, sixth and seventh, added so the
+ * WordPress plugin's «live updates» had something to listen to: before them,
+ * nothing Kaiki sent said the catalogue had changed, and a site's trip pages
+ * waited for the hourly sync however the operator had configured the webhook. The events this codebase *could* emit are far more numerous — there are
  * eighteen classes in `app/Events/` — and publishing them would turn an internal
  * vocabulary into a public contract that can never change again.
  *
@@ -46,6 +51,29 @@ enum WebhookEvent: string
 
     /** Every passenger has the fields this operator requires. Carries counts, never documents. */
     case GuestDetailsCompleted = 'guest_details.completed';
+
+    /** A trip became visible to guests: switched to `active`, created active, or restored. */
+    case ProductPublished = 'product.published';
+
+    /** A trip guests can already see changed — its text, badge, highlights, photos, order or price. */
+    case ProductUpdated = 'product.updated';
+
+    /** A trip stopped being visible: switched off, archived, or deleted. */
+    case ProductUnpublished = 'product.unpublished';
+
+    /**
+     * The three that say the catalogue moved, rather than that money or a boat did.
+     *
+     * A mirror of the catalogue — the WordPress plugin's trip pages — re-reads
+     * `GET /sync/products` on any of them and needs nothing else from the body.
+     */
+    public function isCatalogue(): bool
+    {
+        return match ($this) {
+            self::ProductPublished, self::ProductUpdated, self::ProductUnpublished => true,
+            default => false,
+        };
+    }
 
     /** @return list<string> */
     public static function names(): array

@@ -83,7 +83,7 @@ it('renders every section HOS-1 lists', function (): void {
         // Identity and the facts row.
         ->assertSee('Sunset cruise', escape: false)
         ->assertSee('Three hours in the Saronic.', escape: false)
-        ->assertSee(__('hosted.index.duration', ['minutes' => 480], 'en'), escape: false)
+        ->assertSee('8 hours', escape: false)
         // The operator's prose, through `BlockText` like everywhere else.
         ->assertSee('My grandfather built the boat.', escape: false)
         // The three lists.

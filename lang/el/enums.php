@@ -686,6 +686,9 @@ return [
         'booking.cancelled' => ['label' => 'Ακύρωση κράτησης'],
         'departure.cancelled' => ['label' => 'Ακύρωση αναχώρησης'],
         'guest_details.completed' => ['label' => 'Ολοκλήρωση στοιχείων επιβατών'],
+        'product.published' => ['label' => 'Δημοσίευση εκδρομής'],
+        'product.updated' => ['label' => 'Αλλαγή εκδρομής'],
+        'product.unpublished' => ['label' => 'Απόσυρση εκδρομής'],
     ],
 
     'delivery_status' => [

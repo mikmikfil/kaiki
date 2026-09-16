@@ -36,6 +36,7 @@ require_once dirname( __DIR__ ) . '/vendor/autoload.php';
 // A class rather than a function, so it lives in its own file: the WordPress
 // standard forbids one file declaring both.
 require_once __DIR__ . '/stubs/class-wp-error.php';
+require_once __DIR__ . '/stubs/class-wp-rest-response.php';
 
 /**
  * The in-memory stand-ins for `wp_options` and the transient store.
@@ -608,6 +609,38 @@ function wp_unschedule_event( int $timestamp, string $hook ): bool {
 	unset( $GLOBALS['kaiki_test_cron'][ $hook ] );
 
 	return true;
+}
+
+/**
+ * One event, once. Recorded in the same table as a recurring one.
+ *
+ * @param int    $timestamp When.
+ * @param string $hook      The hook.
+ */
+function wp_schedule_single_event( int $timestamp, string $hook ): bool {
+	$GLOBALS['kaiki_test_cron'][ $hook ] = $timestamp;
+
+	return true;
+}
+
+/**
+ * The loopback request that makes WP-Cron run now. Counted, not sent.
+ */
+function spawn_cron(): bool {
+	$GLOBALS['kaiki_test_cron_spawned'] = ( $GLOBALS['kaiki_test_cron_spawned'] ?? 0 ) + 1;
+
+	return true;
+}
+
+function wp_using_ext_object_cache(): bool {
+	return false;
+}
+
+/**
+ * @param string $value The value to unslash.
+ */
+function wp_unslash( string $value ): string {
+	return stripslashes( $value );
 }
 
 /*

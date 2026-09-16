@@ -159,17 +159,6 @@ class DemoHomePageSeeder extends Seeder
                 ],
             ] : null,
             $full ? [
-                'type' => HomeBlockType::Stats->value,
-                'eyebrow' => ['el' => 'Σε αριθμούς', 'en' => 'In numbers'],
-                'heading' => ['el' => 'Τριάντα χρόνια στη θάλασσα', 'en' => 'Thirty years at sea'],
-                'items' => [
-                    ['icon' => 'anchor', 'value' => ['el' => '30+', 'en' => '30+'], 'label' => ['el' => 'χρόνια στη θάλασσα', 'en' => 'years at sea']],
-                    ['icon' => 'boat', 'value' => ['el' => '4', 'en' => '4'], 'label' => ['el' => 'σκάφη, από καΐκι ως καταμαράν', 'en' => 'boats, from kaiki to catamaran']],
-                    ['icon' => 'users', 'value' => ['el' => '25.000+', 'en' => '25,000+'], 'label' => ['el' => 'επιβάτες κάθε χρόνο', 'en' => 'guests every year']],
-                    ['icon' => 'star', 'value' => ['el' => '4,9★', 'en' => '4.9★'], 'label' => ['el' => 'μέση βαθμολογία', 'en' => 'average rating']],
-                ],
-            ] : null,
-            $full ? [
                 'type' => HomeBlockType::Testimonials->value,
                 'eyebrow' => ['el' => 'Κριτικές', 'en' => 'Reviews'],
                 'heading' => ['el' => 'Τι λένε όσοι ταξίδεψαν μαζί μας', 'en' => 'What our guests say'],

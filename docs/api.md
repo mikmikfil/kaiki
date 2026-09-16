@@ -5525,7 +5525,7 @@ Both endpoints reject anything they cannot cryptographically attribute to the ga
 
 ### 8.1 Events
 
-Exactly four in v1, matching `webhook_endpoints.events` (`docs/data-model.md` §3.13):
+Exactly seven in v1, matching `webhook_endpoints.events` (`docs/data-model.md` §3.13):
 
 | Event | Fires when |
 |---|---|
@@ -5533,8 +5533,19 @@ Exactly four in v1, matching `webhook_endpoints.events` (`docs/data-model.md` §
 | `booking.cancelled` | A booking reaches `cancelled`, by guest, operator or a cascade from a cancelled departure |
 | `departure.cancelled` | A departure is cancelled — weather, operator, `min_pax`, or a private charter taking the vessel |
 | `guest_details.completed` | Every passenger on a booking has the fields the operator requires |
+| `product.published` | A product becomes visible to guests: switched to `active`, created active (including by an import), or restored |
+| `product.updated` | A product that was visible and still is was changed — any column but `updated_at`: title, summary, badge, description, highlights, includes, images, SEO fields, order, `price_from_cents`, … |
+| `product.unpublished` | A visible product stops being visible: switched to `draft`, `inactive` or `archived`, or deleted |
 
-Unknown event names are rejected at save time against `app/Domain/Webhooks/EventRegistry.php`, so a typo cannot silently disable a subscription.
+Unknown event names are rejected at save time against `app/Domain/Webhooks/EventRegistry.php`, so a typo cannot silently disable a subscription. An existing endpoint is **not** subscribed to an event added later; the operator ticks it.
+
+**The three `product.*` events** exist so a mirror of the catalogue — the WordPress plugin's trip pages and cache (§6.8, WPP-7) — can refresh the moment a trip changes instead of on its hourly sync. Their rules:
+
+- **Visible means `status = active` and not soft-deleted**, the same rule as a guest-facing read. Edits to a product that was hidden and is still hidden (a draft being written) send nothing; the sync carries it the day it is published.
+- **Coalesced per product.** Changes are observed on the model after the transaction commits, and the event is decided about ten seconds later by comparing where the product stood before the *first* change with where it stands then. One panel save — which writes a published trip as a draft and then back to `active` — is therefore one `product.updated`, not an `unpublished`/`published` pair.
+- **A signal, not the content.** `data.product` says which product and where it stands now; the content is read from `GET /sync/products` (server) or `GET /products/{uuid}` (guest). An event that arrives late or out of order cannot leave a consumer holding older text.
+- Always `is_test: false` — a product is not a test booking.
+- Changes that live outside the `products` row — age bands, rate plans, cancellation-policy tiers — do not fire these events, for the same reason they do not move the row's `updated_at` for `GET /sync/products`.
 
 ### 8.2 Delivery envelope
 
@@ -5589,6 +5600,31 @@ Payload rules:
 - `is_test` is present on every delivery. A sandbox tenant's events go to the same endpoint, flagged. Consumers must branch on it or they will pollute production systems with test bookings.
 - The envelope is additive-only. New top-level keys and new `data` fields may appear at any time; consumers must ignore what they do not recognise.
 
+A catalogue event carries the same envelope and a short `data.product`:
+
+```json
+{
+  "id": "5f0c2d9e-8a61-4b7e-9c3a-1e2f4d6b8a0c",
+  "event": "product.updated",
+  "api_version": "1",
+  "created_at": "2026-09-16T08:12:40Z",
+  "tenant": { "uuid": "2c4a6e80-1b3d-4f5a-8c7e-9d0b1a2f3e4c", "slug": "aegean-cruises" },
+  "is_test": false,
+  "data": {
+    "product": {
+      "uuid": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+      "slug": "aegina-agistri",
+      "status": "active",
+      "title": "Κρουαζιέρα Αίγινα & Αγκίστρι",
+      "deleted": false,
+      "updated_at": "2026-09-16T08:12:30Z"
+    }
+  }
+}
+```
+
+`status`, `title` and `updated_at` are `null`, and `deleted` is `true`, when the product was permanently deleted before the event was built; `uuid` and `slug` are always present, because they are what a mirror needs to take the page down.
+
 ### 8.3 Signature
 
 `Kaiki-Signature: v1=<hex>` where `<hex>` is `HMAC-SHA256(secret, "{Kaiki-Timestamp}.{raw request body}")`, and `secret` is `webhook_endpoints.signing_secret` — shown once at creation, thereafter write-only.
@@ -5600,7 +5636,9 @@ Consumers must:
 3. Reject deliveries whose `Kaiki-Timestamp` is more than **5 minutes** from their own clock, to bound replay.
 4. Support **multiple valid signatures** in the header, comma-separated, during a secret rotation: `v1=<new>,v1=<old>`. Rotation publishes both for 24 hours, so an operator can roll a secret without dropping a delivery.
 
-The WordPress plugin's cache-bust endpoint uses this same scheme, so there is one verification routine to review rather than two.
+The WordPress plugin's cache-bust endpoint uses this same scheme, so there is one verification routine to review rather than two (`app/Domain/Webhooks/Support/WebhookSignature.php` and the plugin's `src/Http/Webhook.php`).
+
+**Wiring the WordPress plugin («Άμεσες ενημερώσεις»).** In WordPress, *Settings → Kaiki Booking → Live updates* shows the address to give Kaiki: `https://{site}/wp-json/kaiki/v1/webhook`. In `/app → Settings → Webhooks` the operator creates a webhook with that address, ticks `product.published`, `product.updated` and `product.unpublished`, and pastes the signing secret shown once into the plugin's «Μυστικό ενημερώσεων». On a verified catalogue event the plugin flushes its cached catalogue reads and, if SEO trip pages are on, schedules one immediate WP-Cron sync against `GET /sync/products` — it answers `200` without doing the sync inside the request. Other events are acknowledged with `200` and ignored. Outbound webhooks are a plan feature (Pro), so a site on a plan without them stays on its cache TTL and the hourly sync.
 
 ### 8.4 Retries, ordering and idempotency
 

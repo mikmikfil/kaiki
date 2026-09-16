@@ -67,6 +67,7 @@ final class Uninstall {
 		// ever scheduled — and the failure of a `wp_clear_scheduled_hook` on a
 		// hook that does not exist is silence.
 		wp_clear_scheduled_hook( Sync::HOOK );
+		wp_clear_scheduled_hook( Sync::SOON_HOOK );
 	}
 
 	/**

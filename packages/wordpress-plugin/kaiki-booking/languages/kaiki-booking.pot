@@ -530,7 +530,7 @@ msgstr ""
 msgid "Kaiki refused the secret key. Check it here, or make a new one in your Kaiki panel."
 msgstr ""
 
-msgid "Kaiki tells this site the moment something changes — a new trip, a new price — so visitors never see an out-of-date catalogue. Paste the update secret from your Kaiki panel to switch it on."
+msgid "Kaiki tells this site the moment a trip changes, so visitors never see an out-of-date catalogue. In your Kaiki panel, open Settings → Webhooks, add a webhook with the address below, tick the three trip events, and paste the secret it shows you here."
 msgstr ""
 
 msgid "Kaiki trips"

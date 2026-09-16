@@ -83,7 +83,7 @@
              parsing a sentence, and the two of them together fit on one line
              where three dot-separated values wrapped. --}}
         <p class="facts">
-            <span>@include('hosted.partials.icon', ['name' => 'clock']){{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}</span>
+            <span>@include('hosted.partials.icon', ['name' => 'clock']){{ \App\Domain\Hosted\Support\TripDuration::format((int) $product->duration_minutes) }}</span>
             @if ($product->meetingPoint || $product->vessel)
                 <span>@include('hosted.partials.icon', ['name' => 'pin'])@if ($product->meetingPoint){{ $product->meetingPoint->name }}@endif@if ($product->meetingPoint && $product->vessel) · @endif@if ($product->vessel){{ $product->vessel->name }}@endif</span>
             @endif
@@ -108,6 +108,11 @@
                         <span class="from">{{ __('hosted.index.from') }}</span>
                         <strong>{{ MoneyFormatter::format($product->price_from_cents, $locale, MoneyFormatter::currency()) }}</strong>
                     </p>
+                @elseif ($product->mode === \App\Enums\BookingMode::Quote)
+                    {{-- Said in words, where the price would be (Mike,
+                         2026-09-16): a card with no price and no reason read as
+                         a trip somebody forgot to price. --}}
+                    <p class="trip-price"><span class="on-request">{{ __('hosted.search.on_request') }}</span></p>
                 @endif
             @elseif ($result->isOnRequest())
                 <p class="trip-price"><span class="on-request">{{ __('hosted.search.on_request') }}</span></p>

@@ -552,6 +552,9 @@ EN,
                 'deposit_type' => 'percent',
                 'deposit_percent' => 30,
                 'is_active' => true,
+                // A whole-boat trip is priced per boat; without this it had no
+                // price at all and looked like an enquiry (2026-09-16).
+                'vessel_price_cents' => $product->mode === BookingMode::PerVessel ? $adultCents : null,
             ],
         );
 

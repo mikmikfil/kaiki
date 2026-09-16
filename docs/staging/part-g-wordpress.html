@@ -11,51 +11,35 @@
 <h2 class="continues">Το αρχείο του προσθέτου</h2>
 
 <p>
-    Το πρόσθετο δεν έχει εκδοθεί ακόμη, οπότε το zip το φτιάχνετε από το αποθετήριο. Δεν έχει
-    εξαρτήσεις στην εκτέλεση — θέλει μόνο το autoloader του Composer, που δεν είναι στο git
-    (<code>packages/wordpress-plugin/kaiki-booking/vendor</code> στο <code>.gitignore</code>). Φτιάχνετε ένα
-    αντίγραφο, βάζετε autoloader χωρίς τα εργαλεία ανάπτυξης, και αφαιρείτε ό,τι είναι για δοκιμές.
+    Το πρόσθετο δεν έχει εκδοθεί ακόμη, οπότε το zip το φτιάχνετε από το αποθετήριο, με μία εντολή.
+    Θέλει <code>node</code>, <code>php</code> (8.1+) και <code>composer</code> στο PATH.
 </p>
 
-<pre class="copy long"><span class="file">Σε Linux ή Git Bash, από τον φάκελο του αποθετηρίου</span>rm -rf /tmp/kaiki-plugin &amp;&amp; mkdir -p /tmp/kaiki-plugin
-cp -r packages/wordpress-plugin/kaiki-booking /tmp/kaiki-plugin/
-cd /tmp/kaiki-plugin/kaiki-booking
-
-rm -rf vendor .phpunit.cache
-composer install --no-dev --optimize-autoloader --no-interaction
-rm -rf tests phpunit.xml phpcs.xml composer.lock .phpunit.cache
-
-cd .. &amp;&amp; zip -r kaiki-booking.zip kaiki-booking -x '*.DS_Store'</pre>
-
-<pre class="copy long"><span class="file">Σε PowerShell (Windows)</span>$src = "C:\Users\Mike\kaiki\packages\wordpress-plugin\kaiki-booking"
-$tmp = Join-Path $env:TEMP "kaiki-plugin"
-Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
-New-Item -ItemType Directory $tmp | Out-Null
-Copy-Item $src $tmp -Recurse
-Set-Location "$tmp\kaiki-booking"
-Remove-Item vendor, .phpunit.cache -Recurse -Force -ErrorAction SilentlyContinue
-composer install --no-dev --optimize-autoloader --no-interaction
-Remove-Item tests, phpunit.xml, phpcs.xml, composer.lock -Recurse -Force
-Set-Location $tmp
-Compress-Archive -Path kaiki-booking -DestinationPath "$env:USERPROFILE\Desktop\kaiki-booking.zip" -Force</pre>
+<pre class="copy"><span class="file">Από τον φάκελο του αποθετηρίου (Linux, Git Bash ή PowerShell)</span>npm run plugin:zip</pre>
 
 <p>
-    Μέσα στο zip πρέπει να υπάρχει ένας φάκελος <code>kaiki-booking/</code> με <code>kaiki-booking.php</code>,
-    <code>vendor/autoload.php</code>, <code>src/</code>, <code>assets/</code>, <code>templates/</code>,
-    <code>languages/</code> (με τα <code>.mo</code> και <code>.json</code> των ελληνικών, που είναι στο git),
-    <code>readme.txt</code> και <code>uninstall.php</code>. Χωρίς <code>vendor/autoload.php</code> το πρόσθετο δεν
-    σκάει — δείχνει ειδοποίηση στο διαχειριστικό ότι λείπει. Το πρόσθετο θέλει WordPress 6.4+ και
-    PHP 8.1+ στη φιλοξενία του <code>aegeancr.gr</code>.
+    Γράφει το <code>packages/wordpress-plugin/dist/kaiki-booking-0.1.0.zip</code> (ο αριθμός είναι η
+    έκδοση από την κεφαλίδα του <code>kaiki-booking.php</code>). Πριν το zip:
 </p>
 
-<div class="unsure">
-    <span class="label">Δεν υπάρχει επίσημο script build</span>
-    <p>
-        Το αποθετήριο δεν έχει <code>.distignore</code> ούτε εντολή που να φτιάχνει το zip. Η λίστα αφαιρέσεων
-        παραπάνω βγαίνει από το τι υπάρχει στον φάκελο: ό,τι είναι για phpunit και phpcs. Αν αργότερα
-        προστεθεί επίσημο build, ισχύει εκείνο.
-    </p>
-</div>
+<ul>
+    <li>ελέγχει ότι η έκδοση είναι ίδια στην κεφαλίδα, στη σταθερά <code>VERSION</code> και στο
+        <code>Stable tag</code> του <code>readme.txt</code> — αν διαφέρουν, σταματά και λέει πού·</li>
+    <li>ξαναφτιάχνει τα <code>.mo</code> και <code>.json</code> των ελληνικών από το <code>.po</code>
+        (<code>tools/build-translations.php</code>)·</li>
+    <li>αντιγράφει το πρόσθετο χωρίς ό,τι γράφει το <code>kaiki-booking/.distignore</code> (δοκιμές,
+        <code>phpunit.xml</code>, <code>phpcs.xml</code>, <code>composer.*</code>, αρχεία που αρχίζουν από τελεία)·</li>
+    <li>τρέχει <code>composer install --no-dev --optimize-autoloader</code> στο αντίγραφο. Το πρόσθετο δεν
+        έχει εξαρτήσεις στην εκτέλεση — θέλει μόνο το autoloader του Composer, που δεν είναι στο git.</li>
+</ul>
+
+<p>
+    Μέσα στο zip υπάρχει ένας φάκελος <code>kaiki-booking/</code> με <code>kaiki-booking.php</code>,
+    <code>vendor/autoload.php</code>, <code>src/</code>, <code>assets/</code>, <code>templates/</code>,
+    <code>languages/</code>, <code>readme.txt</code> και <code>uninstall.php</code>. Χωρίς
+    <code>vendor/autoload.php</code> το πρόσθετο δεν σκάει — δείχνει ειδοποίηση στο διαχειριστικό ότι
+    λείπει. Το πρόσθετο θέλει WordPress 6.4+ και PHP 8.1+ στη φιλοξενία του <code>aegeancr.gr</code>.
+</p>
 
 <h2>Τα κλειδιά στο Kaiki</h2>
 
@@ -95,7 +79,7 @@ Compress-Archive -Path kaiki-booking -DestinationPath "$env:USERPROFILE\Desktop\
 <h2>Οι ρυθμίσεις στο WordPress</h2>
 
 <ol class="steps">
-    <li><strong>Πρόσθετα → Προσθήκη νέου → Αποστολή προσθέτου</strong>, το <code>kaiki-booking.zip</code>, Ενεργοποίηση.</li>
+    <li><strong>Πρόσθετα → Προσθήκη νέου → Αποστολή προσθέτου</strong>, το <code>kaiki-booking-0.1.0.zip</code>, Ενεργοποίηση.</li>
     <li>
         <strong>Ρυθμίσεις → Kaiki Booking → Σύνδεση.</strong> Στο <strong>«Διεύθυνση του Kaiki»</strong> γράψτε
         <code>https://kaiki.testing.gr</code> — η προεπιλογή είναι το Kaiki της παραγωγής. Το πρόσθετο παίρνει
@@ -106,17 +90,27 @@ Compress-Archive -Path kaiki-booking -DestinationPath "$env:USERPROFILE\Desktop\
     <li>Μια σελίδα με <code>[kaiki_booking product="…"]</code>, <code>[kaiki_list]</code> ή <code>[kaiki_enquiry]</code> — ή το block ή το widget του Elementor.</li>
 </ol>
 
-<div class="danger">
-    <span class="label">«Άμεσες ενημερώσεις»: αφήστε τις κενές στο staging</span>
+<h2>«Άμεσες ενημερώσεις»</h2>
+
+<p>
+    Όταν αλλάζει, δημοσιεύεται ή αποσύρεται μια εκδρομή στο Kaiki, το Kaiki ειδοποιεί το WordPress και οι σελίδες
+    εκδρομών ανανεώνονται σε λίγα δευτερόλεπτα, αντί να περιμένουν την προσωρινή μνήμη. Χρειάζεται πακέτο Pro και
+    διεύθυνση <strong>https</strong> — το Kaiki αρνείται να στείλει σε <code>http://</code> ή σε ιδιωτική διεύθυνση.
+</p>
+
+<ol class="steps">
+    <li>WordPress → Ρυθμίσεις → Kaiki Booking → «Άμεσες ενημερώσεις»: αντιγράψτε τη διεύθυνση, π.χ. <code>https://aegeancr.gr/wp-json/kaiki/v1/webhook</code>.</li>
+    <li>Kaiki → Ρυθμίσεις → Webhooks → νέο webhook με αυτή τη διεύθυνση. Τσεκάρετε τα τρία γεγονότα εκδρομών: δημοσίευση, αλλαγή, απόσυρση. Ένα υπάρχον webhook δεν τα παίρνει μόνο του.</li>
+    <li>Το Kaiki δείχνει το μυστικό <strong>μία φορά</strong>: επικολλήστε το στο «Μυστικό ενημερώσεων» του πρόσθετου και αποθηκεύστε.</li>
+    <li>Αλλάξτε μια λέξη σε μια εκδρομή στο Kaiki. Σε περίπου 10–60 δευτερόλεπτα η σελίδα της στο WordPress δείχνει την αλλαγή. Το αρχείο αποστολών του webhook στο Kaiki γράφει 200.</li>
+</ol>
+
+<div class="note">
+    <span class="label">Αν δεν έρθει</span>
     <p>
-        Η καρτέλα ζητά «Μυστικό ενημερώσεων» από το Kaiki, και δίνει μια διεύθυνση
-        (<code>/wp-json/kaiki/v1/webhook</code>) για να την καλεί το Kaiki. Στον σημερινό κώδικα οι δύο πλευρές
-        <strong>δεν ταιριάζουν</strong>: το πρόσθετο διαβάζει <code>X-Kaiki-Signature</code> με σκέτο hex, ενώ το Kaiki
-        στέλνει <code>Kaiki-Signature: v1=…</code>· και το Kaiki στέλνει μόνο γεγονότα κρατήσεων (επιβεβαίωση,
-        ακύρωση, αναχώρηση, στοιχεία επιβατών) — κανένα για αλλαγή καταλόγου. Επιπλέον τα webhooks είναι
-        πακέτο Pro και οι δοκιμαστικές κρατήσεις δεν τα στέλνουν ποτέ. Χωρίς το μυστικό, ο κατάλογος στο
-        WordPress ανανεώνεται στον χρόνο της προσωρινής μνήμης του προσθέτου — δουλεύει, απλώς όχι αμέσως.
-        Για γρήγορες δοκιμές βάλτε την προσωρινή μνήμη στο ελάχιστο, 60 δευτερόλεπτα.
+        Το WordPress τρέχει την ανανέωση μέσω WP-Cron, που ξεκινά με την επόμενη επίσκεψη στο site. Σε site χωρίς
+        επισκέψεις, ή με <code>DISABLE_WP_CRON</code>, βάλτε πραγματικό cron που καλεί το <code>wp-cron.php</code>
+        κάθε λεπτό. Οι δοκιμαστικές κρατήσεις δεν στέλνουν webhooks — οι αλλαγές εκδρομών στέλνουν.
     </p>
 </div>
 
