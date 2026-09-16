@@ -356,3 +356,1078 @@ msgstr "Εμφάνιση του ονόματος του σκάφους"
 
 msgid "Hide it if the same boat does every trip, or if you would rather not name it."
 msgstr "Κρύψτε το αν όλες οι εκδρομές γίνονται με το ίδιο σκάφος ή αν προτιμάτε να μην το αναφέρετε."
+
+# The settings screen, redesigned: tabs, the connection card and the shortcode reference.
+
+msgid "Connection"
+msgstr "Σύνδεση"
+
+msgid "Shortcodes"
+msgstr "Shortcodes"
+
+msgid "Connected"
+msgstr "Συνδεδεμένο"
+
+msgid "Not connected"
+msgstr "Χωρίς σύνδεση"
+
+msgid "Settings sections"
+msgstr "Ενότητες ρυθμίσεων"
+
+msgid "Checked %s"
+msgstr "Έλεγχος: %s"
+
+msgid "Trips visible"
+msgstr "Ορατές εκδρομές"
+
+msgid "Check again"
+msgstr "Νέος έλεγχος"
+
+msgid "The check uses the saved key. Save your changes first."
+msgstr "Ο έλεγχος γίνεται με το αποθηκευμένο κλειδί. Αποθηκεύστε πρώτα τις αλλαγές σας."
+
+msgid "Switch it on and save to choose the address of the trip pages and add the secret key."
+msgstr "Ενεργοποιήστε το και αποθηκεύστε για να ορίσετε τη διεύθυνση των σελίδων εκδρομών και να προσθέσετε το μυστικό κλειδί."
+
+msgid "Address to give Kaiki"
+msgstr "Η διεύθυνση που δίνετε στο Kaiki"
+
+msgid "Without it, your trips are refreshed on the cache timer below instead."
+msgstr "Χωρίς αυτό, οι εκδρομές σας ανανεώνονται με τον χρόνο της προσωρινής μνήμης πιο κάτω."
+
+msgid "Cache"
+msgstr "Προσωρινή μνήμη"
+
+msgid "Paste any of these into a page, a post or a text widget. Click an example to copy it."
+msgstr "Επικολλήστε οποιοδήποτε από αυτά σε σελίδα, άρθρο ή widget κειμένου. Πατήστε ένα παράδειγμα για να το αντιγράψετε."
+
+msgid "On a trip page, or in a template for trip pages, leave product empty: the shortcode shows the trip being viewed. Anywhere else, put the trip id from your Kaiki panel in it."
+msgstr "Σε σελίδα εκδρομής, ή σε πρότυπο για σελίδες εκδρομών, αφήστε το product κενό: το shortcode δείχνει την εκδρομή που βλέπει ο επισκέπτης. Οπουδήποτε αλλού, βάλτε εκεί το αναγνωριστικό της εκδρομής από τον πίνακα του Kaiki."
+
+msgid "The trip id. Leave it empty on a trip page."
+msgstr "Το αναγνωριστικό της εκδρομής. Σε σελίδα εκδρομής αφήστε το κενό."
+
+msgid "yes or no: show the short summary."
+msgstr "yes ή no: εμφάνιση της σύντομης περίληψης."
+
+msgid "Booking and lists"
+msgstr "Κράτηση και λίστες"
+
+msgid "The booking form for one trip."
+msgstr "Η φόρμα κράτησης για μία εκδρομή."
+
+msgid "Your trips as a grid. Each card opens the booking on Kaiki."
+msgstr "Οι εκδρομές σας σε πλέγμα. Κάθε κάρτα ανοίγει την κράτηση στο Kaiki."
+
+msgid "Only trips in this category. Leave it empty for all of them."
+msgstr "Μόνο εκδρομές αυτής της κατηγορίας. Αφήστε το κενό για όλες."
+
+msgid "An enquiry form, for a trip with no published price or a general question."
+msgstr "Φόρμα ερωτήματος, για εκδρομή χωρίς δημοσιευμένη τιμή ή για γενική ερώτηση."
+
+msgid "Optional. The trip the enquiry is about."
+msgstr "Προαιρετικό. Η εκδρομή που αφορά το ερώτημα."
+
+msgid "Pieces of a trip page"
+msgstr "Κομμάτια σελίδας εκδρομής"
+
+msgid "The trip's title, with its summary and a link back if you want one."
+msgstr "Ο τίτλος της εκδρομής, με την περίληψή της και, αν θέλετε, σύνδεσμο επιστροφής."
+
+msgid "h1, h2, h3, h4, p or div."
+msgstr "h1, h2, h3, h4, p ή div."
+
+msgid "yes or no: show a link back."
+msgstr "yes ή no: εμφάνιση συνδέσμου επιστροφής."
+
+msgid "The text of the link back."
+msgstr "Το κείμενο του συνδέσμου επιστροφής."
+
+msgid "Where the link back goes. Your home page if empty."
+msgstr "Πού οδηγεί ο σύνδεσμος επιστροφής. Αν μείνει κενό, στην αρχική σας σελίδα."
+
+msgid "Short facts with icons: duration, departure, meeting point, boat, capacity."
+msgstr "Σύντομα στοιχεία με εικονίδια: διάρκεια, αναχώρηση, σημείο συνάντησης, σκάφος, χωρητικότητα."
+
+msgid "Which facts, in order, separated by commas: category, duration, departure, meeting_point, vessel, capacity."
+msgstr "Ποια στοιχεία, με τη σειρά, χωρισμένα με κόμμα: category, duration, departure, meeting_point, vessel, capacity."
+
+msgid "The trip's photos."
+msgstr "Οι φωτογραφίες της εκδρομής."
+
+msgid "mosaic, grid or single."
+msgstr "mosaic, grid ή single."
+
+msgid "The most photos to show."
+msgstr "Πόσες φωτογραφίες το πολύ."
+
+msgid "The trip's description from Kaiki."
+msgstr "Η περιγραφή της εκδρομής από το Kaiki."
+
+msgid "The starting price."
+msgstr "Η τιμή «από»."
+
+msgid "The word before the price."
+msgstr "Η λέξη πριν από την τιμή."
+
+msgid "yes or no: show per person or per boat."
+msgstr "yes ή no: εμφάνιση «ανά άτομο» ή «ανά σκάφος»."
+
+msgid "A list: what is included, what is not, what to bring, or the highlights."
+msgstr "Μια λίστα: τι περιλαμβάνεται, τι δεν περιλαμβάνεται, τι να φέρετε ή τα highlights."
+
+msgid "includes, excludes, bring or highlights."
+msgstr "includes, excludes, bring ή highlights."
+
+msgid "The day, stop by stop."
+msgstr "Η μέρα, στάση προς στάση."
+
+msgid "Where guests meet, with directions and a map link."
+msgstr "Πού συναντιούνται οι επισκέπτες, με οδηγίες και σύνδεσμο χάρτη."
+
+msgid "yes or no: show the directions."
+msgstr "yes ή no: εμφάνιση των οδηγιών."
+
+msgid "yes or no: show the map link."
+msgstr "yes ή no: εμφάνιση του συνδέσμου χάρτη."
+
+msgid "The text of the map link."
+msgstr "Το κείμενο του συνδέσμου χάρτη."
+
+msgid "The cancellation policy."
+msgstr "Η πολιτική ακύρωσης."
+
+msgid "yes or no: show the refund for each period."
+msgstr "yes ή no: εμφάνιση της επιστροφής χρημάτων για κάθε περίοδο."
+
+msgid "Trip cards that open each trip's page on this site."
+msgstr "Κάρτες εκδρομών που ανοίγουν τη σελίδα κάθε εκδρομής σε αυτόν τον ιστότοπο."
+
+msgid "How many cards. 0 for all."
+msgstr "Πόσες κάρτες. 0 για όλες."
+
+msgid "Only these categories, separated by commas."
+msgstr "Μόνο αυτές οι κατηγορίες, χωρισμένες με κόμμα."
+
+msgid "yes: leave out the trip being viewed."
+msgstr "yes: παράλειψη της εκδρομής που προβάλλεται."
+
+msgid "The text on each card's button."
+msgstr "Το κείμενο στο κουμπί κάθε κάρτας."
+
+msgid "yes or no: show the facts."
+msgstr "yes ή no: εμφάνιση των στοιχείων."
+
+msgid "Show"
+msgstr "Εμφάνιση"
+
+msgid "Hide"
+msgstr "Απόκρυψη"
+
+msgid "Copy"
+msgstr "Αντιγραφή"
+
+msgid "Copied"
+msgstr "Αντιγράφηκε"
+
+# Trip pieces: shortcodes, Elementor widgets and the ACF field group (2026-09-16).
+
+msgid "%d%% refund"
+msgstr "Επιστροφή %d%%"
+
+msgid "%s hours"
+msgstr "%s ώρες"
+
+msgid "/ boat"
+msgstr "/ σκάφος"
+
+msgid "/ person"
+msgstr "/ άτομο"
+
+msgid "0 shows every trip."
+msgstr "Το 0 δείχνει όλες τις εκδρομές."
+
+msgid "1 hour"
+msgstr "1 ώρα"
+
+msgid "A list about the trip (nothing entered for this trip yet)"
+msgstr "Λίστα για την εκδρομή (δεν έχει συμπληρωθεί ακόμη για αυτή την εκδρομή)"
+
+msgid "Address"
+msgstr "Διεύθυνση"
+
+msgid "Address only"
+msgstr "Μόνο η διεύθυνση"
+
+msgid "Alignment"
+msgstr "Στοίχιση"
+
+msgid "All facts, as a list"
+msgstr "Όλα τα στοιχεία, σε λίστα"
+
+msgid "Amount only"
+msgstr "Μόνο το ποσό"
+
+msgid "Any field of the trip in Kaiki's API, with dots between levels."
+msgstr "Οποιοδήποτε πεδίο της εκδρομής από το API του Kaiki, με τελείες ανάμεσα στα επίπεδα."
+
+msgid "Arrive minutes early"
+msgstr "Άφιξη λεπτά νωρίτερα"
+
+msgid "Background"
+msgstr "Φόντο"
+
+msgid "Before the price"
+msgstr "Πριν από την τιμή"
+
+msgid "Boat capacity"
+msgstr "Χωρητικότητα σκάφους"
+
+msgid "Boat description"
+msgstr "Περιγραφή σκάφους"
+
+msgid "Boat length (m)"
+msgstr "Μήκος σκάφους (μ.)"
+
+msgid "Bookable days ahead"
+msgstr "Κρατήσεις έως τόσες ημέρες μπροστά"
+
+msgid "Booking"
+msgstr "Κράτηση"
+
+msgid "Box"
+msgstr "Πλαίσιο"
+
+msgid "Cancellation"
+msgstr "Ακύρωση"
+
+msgid "Cancellation policy"
+msgstr "Πολιτική ακύρωσης"
+
+msgid "Cancellation policy name"
+msgstr "Όνομα πολιτικής ακύρωσης"
+
+msgid "Card"
+msgstr "Κάρτα"
+
+msgid "Card link text"
+msgstr "Κείμενο συνδέσμου κάρτας"
+
+msgid "Card text"
+msgstr "Κείμενο κάρτας"
+
+msgid "Centre"
+msgstr "Κέντρο"
+
+msgid "Colour"
+msgstr "Χρώμα"
+
+msgid "Columns"
+msgstr "Στήλες"
+
+msgid "Corner radius"
+msgstr "Στρογγυλάδα γωνιών"
+
+msgid "Crew"
+msgstr "Πλήρωμα"
+
+msgid "Departs %s"
+msgstr "Αναχώρηση %s"
+
+msgid "Departure time"
+msgstr "Ώρα αναχώρησης"
+
+msgid "Description"
+msgstr "Περιγραφή"
+
+msgid "Detail"
+msgstr "Στοιχείο"
+
+msgid "Direct booking"
+msgstr "Άμεση κράτηση"
+
+msgid "Dot colour"
+msgstr "Χρώμα κουκκίδας"
+
+msgid "Duration in minutes"
+msgstr "Διάρκεια σε λεπτά"
+
+msgid "Engine"
+msgstr "Μηχανές"
+
+msgid "Facts"
+msgstr "Στοιχεία"
+
+msgid "For [kaiki_booking product=\"…\"]. On a trip page the form finds it by itself."
+msgstr "Για το [kaiki_booking product=\"…\"]. Σε σελίδα εκδρομής η φόρμα το βρίσκει μόνη της."
+
+msgid "From Kaiki, or from your own fields through the kaiki_trip_list filter."
+msgstr "Από το Kaiki, ή από δικά σας πεδία μέσω του φίλτρου kaiki_trip_list."
+
+msgid "From your Kaiki panel, on the trip. Leave empty on a trip template and the page fills it in."
+msgstr "Από τον πίνακα του Kaiki, στην εκδρομή. Σε πρότυπο εκδρομής αφήστε το κενό και το συμπληρώνει η σελίδα."
+
+msgid "Full day"
+msgstr "Ολοήμερη"
+
+msgid "Gap"
+msgstr "Απόσταση"
+
+msgid "Grid"
+msgstr "Πλέγμα"
+
+msgid "HTML tag"
+msgstr "Ετικέτα HTML"
+
+msgid "Half day"
+msgstr "Μισή μέρα"
+
+msgid "Height"
+msgstr "Ύψος"
+
+msgid "Highlights"
+msgstr "Τι θα ζήσετε"
+
+msgid "Hours notice needed"
+msgstr "Ώρες προειδοποίησης"
+
+msgid "Hover colour"
+msgstr "Χρώμα στο πέρασμα"
+
+msgid "Hover shadow"
+msgstr "Σκιά στο πέρασμα"
+
+msgid "How it is booked"
+msgstr "Τρόπος κράτησης"
+
+msgid "How it is booked, as text"
+msgstr "Τρόπος κράτησης, ως κείμενο"
+
+msgid "How many"
+msgstr "Πόσες"
+
+msgid "How to find it"
+msgstr "Πώς θα το βρείτε"
+
+msgid "How to find the meeting point"
+msgstr "Πώς θα βρείτε το σημείο συνάντησης"
+
+msgid "Icon colour"
+msgstr "Χρώμα εικονιδίου"
+
+msgid "Icon size"
+msgstr "Μέγεθος εικονιδίου"
+
+msgid "Itinerary"
+msgstr "Πρόγραμμα"
+
+msgid "Itinerary (nothing entered for this trip yet)"
+msgstr "Πρόγραμμα (δεν έχει συμπληρωθεί ακόμη για αυτή την εκδρομή)"
+
+msgid "Kaiki booking page"
+msgstr "Σελίδα κράτησης στο Kaiki"
+
+msgid "Kaiki field (any trip detail)"
+msgstr "Πεδίο Kaiki (οποιοδήποτε στοιχείο)"
+
+msgid "Kaiki · Trip page"
+msgstr "Kaiki · Σελίδα εκδρομής"
+
+msgid "Label background"
+msgstr "Φόντο ετικέτας"
+
+msgid "Label colour"
+msgstr "Χρώμα ετικέτας"
+
+msgid "Layout"
+msgstr "Διάταξη"
+
+msgid "Leave empty on a trip template: each trip page fills in its own. In this editor the first trip is shown as a preview."
+msgstr "Αφήστε το κενό σε πρότυπο εκδρομής: κάθε σελίδα εκδρομής βάζει τη δική της. Σε αυτόν τον επεξεργαστή εμφανίζεται η πρώτη εκδρομή ως προεπισκόπηση."
+
+msgid "Leave out the trip being viewed"
+msgstr "Χωρίς την εκδρομή που προβάλλεται"
+
+msgid "Left"
+msgstr "Αριστερά"
+
+msgid "Line colour"
+msgstr "Χρώμα γραμμής"
+
+msgid "Link address"
+msgstr "Διεύθυνση συνδέσμου"
+
+msgid "Link back"
+msgstr "Σύνδεσμος επιστροφής"
+
+msgid "Link colour"
+msgstr "Χρώμα συνδέσμου"
+
+msgid "Link hover colour"
+msgstr "Χρώμα συνδέσμου στο πέρασμα"
+
+msgid "Link text"
+msgstr "Κείμενο συνδέσμου"
+
+msgid "List"
+msgstr "Λίστα"
+
+msgid "Main"
+msgstr "Βασικά"
+
+msgid "Main photo"
+msgstr "Κεντρική φωτογραφία"
+
+msgid "Map link"
+msgstr "Σύνδεσμος χάρτη"
+
+msgid "Map link text"
+msgstr "Κείμενο συνδέσμου χάρτη"
+
+msgid "Maximum guests"
+msgstr "Μέγιστος αριθμός ατόμων"
+
+msgid "Meeting point"
+msgstr "Σημείο συνάντησης"
+
+msgid "Meeting point address"
+msgstr "Διεύθυνση σημείου συνάντησης"
+
+msgid "Minimum guests"
+msgstr "Ελάχιστος αριθμός ατόμων"
+
+msgid "Most photos"
+msgstr "Μέγιστος αριθμός φωτογραφιών"
+
+msgid "Name"
+msgstr "Όνομα"
+
+msgid "Name colour"
+msgstr "Χρώμα ονόματος"
+
+msgid "Name typography"
+msgstr "Τυπογραφία ονόματος"
+
+msgid "No"
+msgstr "Όχι"
+
+msgid "No refund"
+msgstr "Χωρίς επιστροφή"
+
+msgid "On request"
+msgstr "Κατόπιν ζήτησης"
+
+msgid "One large, four small"
+msgstr "Μία μεγάλη, τέσσερις μικρές"
+
+msgid "Only these types"
+msgstr "Μόνο αυτοί οι τύποι"
+
+msgid "Open in maps →"
+msgstr "Άνοιγμα στον χάρτη →"
+
+msgid "Other (type the path)"
+msgstr "Άλλο (γράψτε τη διαδρομή)"
+
+msgid "Padding"
+msgstr "Εσωτερικό περιθώριο"
+
+msgid "Paragraphs"
+msgstr "Παράγραφοι"
+
+msgid "Path"
+msgstr "Διαδρομή"
+
+msgid "Photo"
+msgstr "Φωτογραφία"
+
+msgid "Photo %d"
+msgstr "Φωτογραφία %d"
+
+msgid "Photo 1 is the main photo."
+msgstr "Η φωτογραφία 1 είναι η κεντρική."
+
+msgid "Photo corner radius"
+msgstr "Στρογγυλάδα γωνιών φωτογραφίας"
+
+msgid "Photos"
+msgstr "Φωτογραφίες"
+
+msgid "Policy"
+msgstr "Πολιτική"
+
+msgid "Price"
+msgstr "Τιμή"
+
+msgid "Price colour"
+msgstr "Χρώμα τιμής"
+
+msgid "Price line"
+msgstr "Γραμμή τιμής"
+
+msgid "Price typography"
+msgstr "Τυπογραφία τιμής"
+
+msgid "Private"
+msgstr "Ιδιωτική"
+
+msgid "Private, full day"
+msgstr "Ιδιωτική, ολοήμερη"
+
+msgid "Private, half day"
+msgstr "Ιδιωτική, μισή μέρα"
+
+msgid "Refund colour"
+msgstr "Χρώμα επιστροφής"
+
+msgid "Right"
+msgstr "Δεξιά"
+
+msgid "Set by Kaiki on every sync. The booking form switches by itself; the trip page also carries the class kaiki-trip--booking or kaiki-trip--request for anything else that should differ."
+msgstr "Ορίζεται από το Kaiki σε κάθε συγχρονισμό. Η φόρμα κράτησης αλλάζει μόνη της· η σελίδα της εκδρομής έχει επίσης την κλάση kaiki-trip--booking ή kaiki-trip--request για ό,τι άλλο πρέπει να διαφέρει."
+
+msgid "Show a link back"
+msgstr "Σύνδεσμος επιστροφής"
+
+msgid "Show a map link"
+msgstr "Σύνδεσμος χάρτη"
+
+msgid "Show as"
+msgstr "Εμφάνιση ως"
+
+msgid "Show duration, time and boat"
+msgstr "Διάρκεια, ώρα και σκάφος"
+
+msgid "Show the directions"
+msgstr "Οδηγίες πρόσβασης"
+
+msgid "Show the refund steps"
+msgstr "Κλίμακα επιστροφών"
+
+msgid "Show the summary"
+msgstr "Σύντομη περιγραφή"
+
+msgid "Show «/ person»"
+msgstr "Εμφάνιση «/ άτομο»"
+
+msgid "Small text colour"
+msgstr "Χρώμα μικρού κειμένου"
+
+msgid "Small text typography"
+msgstr "Τυπογραφία μικρού κειμένου"
+
+msgid "Space below"
+msgstr "Απόσταση από κάτω"
+
+msgid "Space between items"
+msgstr "Απόσταση ανάμεσα στα στοιχεία"
+
+msgid "Space between paragraphs"
+msgstr "Απόσταση ανάμεσα στις παραγράφους"
+
+msgid "Special"
+msgstr "Ειδική"
+
+msgid "Step background"
+msgstr "Φόντο βαθμίδας"
+
+msgid "Step border colour"
+msgstr "Χρώμα περιγράμματος βαθμίδας"
+
+msgid "Step corner radius"
+msgstr "Στρογγυλάδα βαθμίδας"
+
+msgid "Step typography"
+msgstr "Τυπογραφία βαθμίδας"
+
+msgid "Summary"
+msgstr "Σύντομη περιγραφή"
+
+msgid "Summary colour"
+msgstr "Χρώμα σύντομης περιγραφής"
+
+msgid "Summary typography"
+msgstr "Τυπογραφία σύντομης περιγραφής"
+
+msgid "Sunset"
+msgstr "Ηλιοβασίλεμα"
+
+msgid "Text"
+msgstr "Κείμενο"
+
+msgid "Text after"
+msgstr "Κείμενο μετά"
+
+msgid "Text before"
+msgstr "Κείμενο πριν"
+
+msgid "Text typography"
+msgstr "Τυπογραφία κειμένου"
+
+msgid "The day"
+msgstr "Η μέρα"
+
+msgid "The main photo only"
+msgstr "Μόνο η κεντρική φωτογραφία"
+
+msgid "The whole line, e.g. «from €55.00 / person»."
+msgstr "Ολόκληρη η γραμμή, π.χ. «από 55,00 € / άτομο»."
+
+msgid "Time colour"
+msgstr "Χρώμα ώρας"
+
+msgid "Time typography"
+msgstr "Τυπογραφία ώρας"
+
+msgid "Title"
+msgstr "Τίτλος"
+
+msgid "Title colour"
+msgstr "Χρώμα τίτλου"
+
+msgid "Title typography"
+msgstr "Τυπογραφία τίτλου"
+
+msgid "Trip cards"
+msgstr "Κάρτες εκδρομών"
+
+msgid "Trip cards (no trips match)"
+msgstr "Κάρτες εκδρομών (καμία εκδρομή δεν ταιριάζει)"
+
+msgid "Trip description"
+msgstr "Περιγραφή εκδρομής"
+
+msgid "Trip facts"
+msgstr "Στοιχεία εκδρομής"
+
+msgid "Trip itinerary"
+msgstr "Πρόγραμμα εκδρομής"
+
+msgid "Trip list (included, bring…)"
+msgstr "Λίστα εκδρομής (περιλαμβάνονται, να φέρετε…)"
+
+msgid "Trip photos"
+msgstr "Φωτογραφίες εκδρομής"
+
+msgid "Trip price"
+msgstr "Τιμή εκδρομής"
+
+msgid "Trip title"
+msgstr "Τίτλος εκδρομής"
+
+msgid "Type of trip"
+msgstr "Τύπος εκδρομής"
+
+msgid "Typography"
+msgstr "Τυπογραφία"
+
+msgid "Up to %d days before"
+msgstr "Έως %d ημέρες πριν"
+
+msgid "Up to %d guests"
+msgstr "Έως %d άτομα"
+
+msgid "View & book →"
+msgstr "Δείτε & κλείστε →"
+
+msgid "What is not included"
+msgstr "Δεν περιλαμβάνονται"
+
+msgid "Year built"
+msgstr "Έτος ναυπήγησης"
+
+msgid "Yes"
+msgstr "Ναι"
+
+msgid "from"
+msgstr "από"
+
+msgid "← All trips"
+msgstr "← Όλες οι εκδρομές"
+
+# The trip template the plugin creates (2026-09-16).
+
+msgid "Trip page (Kaiki)"
+msgstr "Σελίδα εκδρομής (Kaiki)"
+
+msgid "The trip"
+msgstr "Η εκδρομή"
+
+msgid "The boat"
+msgstr "Το σκάφος"
+
+msgid "You may also like"
+msgstr "Μπορεί να σας αρέσουν επίσης"
+
+# The compact booking form (2026-09-16).
+
+msgid "Trip details in the form"
+msgstr "Στοιχεία εκδρομής μέσα στη φόρμα"
+
+msgid "Automatic"
+msgstr "Αυτόματα"
+
+msgid "Hide (compact form)"
+msgstr "Απόκρυψη (συμπαγής φόρμα)"
+
+msgid "The trip, duration, port and boat lines above the calendar. Automatic hides them on a trip page, which already shows them."
+msgstr "Οι γραμμές εκδρομή, διάρκεια, λιμάνι και σκάφος πάνω από το ημερολόγιο. Το «Αυτόματα» τις κρύβει σε σελίδα εκδρομής, που τις δείχνει ήδη."
+
+# The fleet (2026-09-16). Boat types and amenities use Kaiki's own Greek labels.
+
+msgid "Fleet"
+msgstr "Στόλος"
+
+msgid "Fleet (no boat runs a published trip yet)"
+msgstr "Στόλος (κανένα σκάφος δεν έχει ακόμη δημοσιευμένη εκδρομή)"
+
+msgid "One boat per row, photo beside"
+msgstr "Ένα σκάφος ανά σειρά, με τη φωτογραφία δίπλα"
+
+msgid "Cards in a grid"
+msgstr "Κάρτες σε πλέγμα"
+
+msgid "Show the photo"
+msgstr "Φωτογραφία"
+
+msgid "Show the numbers (guests, length, crew…)"
+msgstr "Αριθμοί (επιβάτες, μήκος, πλήρωμα…)"
+
+msgid "Show the amenities"
+msgstr "Παροχές"
+
+msgid "Show the trips it runs"
+msgstr "Εκδρομές που κάνει"
+
+msgid "Photo height"
+msgstr "Ύψος φωτογραφίας"
+
+msgid "Type colour"
+msgstr "Χρώμα τύπου"
+
+msgid "Type typography"
+msgstr "Τυπογραφία τύπου"
+
+msgid "Numbers and amenities"
+msgstr "Αριθμοί και παροχές"
+
+msgid "Number box background"
+msgstr "Φόντο κουτιού αριθμού"
+
+
+msgid "Number colour"
+msgstr "Χρώμα αριθμού"
+
+msgid "Number typography"
+msgstr "Τυπογραφία αριθμού"
+
+msgid "Amenity background"
+msgstr "Φόντο παροχής"
+
+msgid "Amenity colour"
+msgstr "Χρώμα παροχής"
+
+msgid "Trips:"
+msgstr "Εκδρομές:"
+
+msgid "Guests"
+msgstr "Επιβάτες"
+
+msgid "Length"
+msgstr "Μήκος"
+
+msgid "Cruising speed"
+msgstr "Ταχύτητα"
+
+msgid "%d kn"
+msgstr "%d κόμβοι"
+
+msgid "Catamaran"
+msgstr "Καταμαράν"
+
+msgid "Sailing yacht"
+msgstr "Ιστιοπλοϊκό"
+
+msgid "Motor boat"
+msgstr "Μηχανοκίνητο"
+
+msgid "RIB"
+msgstr "Φουσκωτό"
+
+msgid "Traditional kaiki"
+msgstr "Παραδοσιακό καΐκι"
+
+msgid "Shade canopy"
+msgstr "Τέντα σκίασης"
+
+msgid "Sun deck"
+msgstr "Ηλιακό κατάστρωμα"
+
+msgid "Air conditioning"
+msgstr "Κλιματισμός"
+
+msgid "Cabin"
+msgstr "Καμπίνα"
+
+msgid "Toilet"
+msgstr "Τουαλέτα"
+
+msgid "Swim ladder"
+msgstr "Σκάλα μπάνιου"
+
+msgid "Freshwater shower"
+msgstr "Ντους γλυκού νερού"
+
+msgid "Snorkelling gear"
+msgstr "Εξοπλισμός κατάδυσης"
+
+msgid "Paddleboard"
+msgstr "Σανίδα SUP"
+
+msgid "Fishing gear"
+msgstr "Εξοπλισμός ψαρέματος"
+
+msgid "Beach towels"
+msgstr "Πετσέτες θαλάσσης"
+
+msgid "Fridge"
+msgstr "Ψυγείο"
+
+msgid "Drinking water"
+msgstr "Πόσιμο νερό"
+
+msgid "Galley"
+msgstr "Κουζίνα"
+
+msgid "Barbecue"
+msgstr "Ψησταριά"
+
+msgid "Coffee machine"
+msgstr "Καφετιέρα"
+
+msgid "Sound system"
+msgstr "Ηχοσύστημα"
+
+msgid "USB charging"
+msgstr "Φόρτιση USB"
+
+msgid "Wi-Fi"
+msgstr "Ασύρματο ίντερνετ"
+
+msgid "Child life jackets"
+msgstr "Παιδικά σωσίβια"
+
+msgid "Wheelchair accessible"
+msgstr "Πρόσβαση ΑμεΑ"
+
+msgid "Pets welcome"
+msgstr "Δεκτά κατοικίδια"
+
+# Display options for the trip cards and the fleet (2026-09-16).
+
+msgid "Cards: photo above"
+msgstr "Κάρτες: φωτογραφία επάνω"
+
+msgid "Horizontal: photo beside"
+msgstr "Οριζόντια: φωτογραφία δίπλα"
+
+msgid "Overlay: text over the photo"
+msgstr "Επικάλυψη: κείμενο πάνω στη φωτογραφία"
+
+msgid "Minimal: no photo"
+msgstr "Λιτή: χωρίς φωτογραφία"
+
+msgid "Photo shape"
+msgstr "Σχήμα φωτογραφίας"
+
+msgid "Layout default"
+msgstr "Όπως η διάταξη"
+
+msgid "Square"
+msgstr "Τετράγωνο"
+
+msgid "Portrait 4:5"
+msgstr "Κάθετο 4:5"
+
+msgid "Show the label on the photo"
+msgstr "Ετικέτα πάνω στη φωτογραφία"
+
+msgid "Show the price"
+msgstr "Τιμή"
+
+msgid "Overlay shade"
+msgstr "Σκίαση επικάλυψης"
+
+msgid "Rows: photo beside, alternating"
+msgstr "Σειρές: φωτογραφία δίπλα, εναλλάξ"
+
+msgid "Rows: photo always on the left"
+msgstr "Σειρές: φωτογραφία πάντα αριστερά"
+
+msgid "Overlay: name over the photo"
+msgstr "Επικάλυψη: όνομα πάνω στη φωτογραφία"
+
+msgid "Compact list"
+msgstr "Συμπαγής λίστα"
+
+# Search (2026-09-16).
+
+msgid "Search"
+msgstr "Αναζήτηση"
+
+msgid "Date"
+msgstr "Ημερομηνία"
+
+msgid "Any type"
+msgstr "Όλοι οι τύποι"
+
+msgid "Any port"
+msgstr "Όλα τα λιμάνια"
+
+msgid "Departing from"
+msgstr "Αναχώρηση από"
+
+msgid "The search is not available right now. Please try again in a moment."
+msgstr "Η αναζήτηση δεν είναι διαθέσιμη αυτή τη στιγμή. Δοκιμάστε ξανά σε λίγο."
+
+msgid "%s · 1 guest"
+msgstr "%s · 1 άτομο"
+
+msgid "%1$s · %2$d guests"
+msgstr "%1$s · %2$d άτομα"
+
+msgid "No trip can take this party on that date. Try another day, or fewer guests."
+msgstr "Καμία εκδρομή δεν χωράει αυτή την παρέα εκείνη τη μέρα. Δοκιμάστε άλλη μέρα ή λιγότερα άτομα."
+
+msgid "1 trip"
+msgstr "1 εκδρομή"
+
+msgid "%d trips"
+msgstr "%d εκδρομές"
+
+msgid "for 1 guest"
+msgstr "για 1 άτομο"
+
+msgid "for %d guests"
+msgstr "για %d άτομα"
+
+msgid "1 seat left"
+msgstr "1 θέση ακόμη"
+
+msgid "%d seats left"
+msgstr "%d θέσεις ακόμη"
+
+msgid "Trip search bar"
+msgstr "Μπάρα αναζήτησης εκδρομών"
+
+msgid "Results page"
+msgstr "Σελίδα αποτελεσμάτων"
+
+msgid "The page with the «Trip search results» widget. Empty: this same page."
+msgstr "Η σελίδα με το widget «Αποτελέσματα αναζήτησης». Κενό: αυτή η ίδια σελίδα."
+
+msgid "In one row"
+msgstr "Σε μία σειρά"
+
+msgid "One field under the other"
+msgstr "Το ένα πεδίο κάτω από το άλλο"
+
+msgid "Button text"
+msgstr "Κείμενο κουμπιού"
+
+msgid "Show type and port, if switched on in Kaiki"
+msgstr "Τύπος και λιμάνι, αν είναι ενεργά στο Kaiki"
+
+msgid "Bar"
+msgstr "Μπάρα"
+
+msgid "Field background"
+msgstr "Φόντο πεδίων"
+
+msgid "Field corner radius"
+msgstr "Στρογγυλάδα πεδίων"
+
+msgid "Button"
+msgstr "Κουμπί"
+
+msgid "Hover background"
+msgstr "Φόντο στο πέρασμα"
+
+msgid "Trip search results"
+msgstr "Αποτελέσματα αναζήτησης"
+
+msgid "Before anyone searches, this shows every trip. After a search: the trips for that date and party, with the price for the party."
+msgstr "Πριν γίνει αναζήτηση δείχνει όλες τις εκδρομές. Μετά: τις εκδρομές για εκείνη τη μέρα και την παρέα, με την τιμή για την παρέα."
+
+msgid "Result count colour"
+msgstr "Χρώμα πλήθους αποτελεσμάτων"
+
+# Shortcodes tab additions (2026-09-16).
+
+msgid "cards, horizontal, overlay or minimal."
+msgstr "cards, horizontal, overlay ή minimal."
+
+msgid "yes or no: show the photo."
+msgstr "yes ή no: φωτογραφία."
+
+msgid "yes or no: show the label on the photo."
+msgstr "yes ή no: ετικέτα πάνω στη φωτογραφία."
+
+msgid "yes or no: show the price."
+msgstr "yes ή no: τιμή."
+
+msgid "Every boat that runs a published trip, with its numbers, amenities and trips."
+msgstr "Κάθε σκάφος με δημοσιευμένη εκδρομή, με τα στοιχεία, τις παροχές και τις εκδρομές του."
+
+msgid "rows, rows-left, grid, overlay or compact."
+msgstr "rows, rows-left, grid, overlay ή compact."
+
+msgid "yes or no: show the numbers."
+msgstr "yes ή no: αριθμοί (επιβάτες, μήκος…)."
+
+msgid "yes or no: show the amenities."
+msgstr "yes ή no: παροχές."
+
+msgid "yes or no: show the trips it runs."
+msgstr "yes ή no: εκδρομές που κάνει."
+
+msgid "Any detail Kaiki has about the trip, by its path."
+msgstr "Οποιοδήποτε στοιχείο έχει το Kaiki για την εκδρομή, με τη διαδρομή του."
+
+msgid "The path, e.g. vessel.name or meeting_point.instructions."
+msgstr "Η διαδρομή, π.χ. vessel.name ή meeting_point.instructions."
+
+msgid "text, list, html, url or image."
+msgstr "text, list, html, url ή image."
+
+msgid "Text before the value."
+msgstr "Κείμενο πριν από την τιμή."
+
+msgid "Text after the value."
+msgstr "Κείμενο μετά την τιμή."
+
+msgid "The search bar: date, guests, and type or port when switched on in Kaiki."
+msgstr "Η μπάρα αναζήτησης: ημερομηνία, άτομα, και τύπος ή λιμάνι όταν είναι ενεργά στο Kaiki."
+
+msgid "The address of the results page. Empty: the same page."
+msgstr "Η διεύθυνση της σελίδας αποτελεσμάτων. Κενό: η ίδια σελίδα."
+
+msgid "inline or stacked."
+msgstr "inline ή stacked."
+
+msgid "The button text."
+msgstr "Το κείμενο του κουμπιού."
+
+msgid "The trips for the searched date and party, with the price for the party. Every trip before a search."
+msgstr "Οι εκδρομές για την ημερομηνία και την παρέα, με την τιμή για την παρέα. Πριν από αναζήτηση, όλες οι εκδρομές."
+
+# Empty sections (2026-09-16).
+
+msgid "Hide when Kaiki has nothing for it"
+msgstr "Απόκρυψη όταν το Kaiki δεν έχει στοιχεία"
+
+msgid "On a trip page, this section is left out when every Kaiki widget in it is empty — for example a trip with no itinerary. The editor always shows it."
+msgstr "Σε σελίδα εκδρομής, η ενότητα δεν εμφανίζεται όταν όλα τα widgets του Kaiki μέσα της είναι άδεια — π.χ. εκδρομή χωρίς πρόγραμμα. Ο editor τη δείχνει πάντα."
+
+msgid "+%d photos"
+msgstr "+%d φωτογραφίες"

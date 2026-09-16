@@ -284,6 +284,26 @@ return [
             'label' => 'Frequently asked questions',
             'description' => 'The entries you write on the FAQ screen. Only the ones about every trip are shown here.',
         ],
+        'stats' => [
+            'label' => 'Numbers',
+            'description' => 'Up to four figures with a few words each, in a card under the hero.',
+        ],
+        'steps' => [
+            'label' => 'How it works',
+            'description' => 'The numbered steps from choosing a trip to stepping aboard.',
+        ],
+        'features' => [
+            'label' => 'Why us',
+            'description' => 'Up to four reasons to choose you, each with an icon.',
+        ],
+        'testimonials' => [
+            'label' => 'Reviews',
+            'description' => 'Up to three guest reviews, with stars.',
+        ],
+        'cta' => [
+            'label' => 'Call to action',
+            'description' => 'A photograph with a heading, a sentence and one or two buttons.',
+        ],
     ],
 
     'font_source' => [

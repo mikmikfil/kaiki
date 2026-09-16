@@ -64,3 +64,26 @@ describe('the boat line', () => {
     expect(readConfig(embed('show'))?.showVessel).toBe(true);
   });
 });
+
+describe('the compact switch', () => {
+  it('is read off the embed: details hidden only for data-details="hide"', () => {
+    const embed = (value?: string): HTMLScriptElement => {
+      const script = document.createElement('script');
+      script.src = 'https://api.kaiki.app/widget/v1/kaiki-widget.js';
+      script.setAttribute('data-key', 'pk_live_1');
+
+      if (value !== undefined) {
+        script.setAttribute('data-details', value);
+      }
+
+      document.body.appendChild(script);
+
+      return script;
+    };
+
+    expect(readConfig(embed())?.showDetails).toBe(true);
+    expect(readConfig(embed('hide'))?.showDetails).toBe(false);
+    expect(readConfig(embed(' HIDE '))?.showDetails).toBe(false);
+    expect(readConfig(embed('show'))?.showDetails).toBe(true);
+  });
+});

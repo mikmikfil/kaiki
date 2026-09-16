@@ -349,3 +349,42 @@ it('stops warning once the trip has a plan', function (): void {
 
     expect(UnsellableProducts::canView())->toBeFalse();
 })->group('fast');
+
+it('saves a trip with a badge in both languages, and one without', function (): void {
+    // The pill on the card's photograph (2026-09-16). Optional: most trips have
+    // none, and the form must not ask for one.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    productPageAs($owner, CreateProduct::class)
+        ->fillForm(productFormState(['badge' => ['el' => 'Δημοφιλές', 'en' => 'Popular']]))
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    productPageAs($owner, CreateProduct::class)
+        ->fillForm(productFormState(['slug' => 'no-label', 'title' => ['el' => 'Χωρίς ετικέτα', 'en' => 'No label']]))
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $labelled = Product::query()->where('slug', 'full-day-cruise')->firstOrFail();
+        $plain = Product::query()->where('slug', 'no-label')->firstOrFail();
+
+        expect($labelled->getTranslation('badge', 'el'))->toBe('Δημοφιλές')
+            ->and($labelled->getTranslation('badge', 'en'))->toBe('Popular')
+            ->and($plain->getTranslation('badge', 'el', false))->toBe('');
+    });
+})->group('fast');
+
+it('refuses a badge longer than twenty-four characters', function (): void {
+    // Past two words the pill covers the photograph it sits on.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    productPageAs($owner, CreateProduct::class)
+        ->fillForm(productFormState(['badge' => ['el' => str_repeat('α', 25), 'en' => 'Popular']]))
+        ->call('create')
+        ->assertHasFormErrors(['badge.el' => 'max']);
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        expect(Product::query()->count())->toBe(0);
+    });
+})->group('fast');

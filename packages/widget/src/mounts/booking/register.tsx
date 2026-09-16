@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
 
 import { registerMount, type MountProps } from '../../mounts';
+import { EnquiryMount } from '../enquiry/EnquiryMount';
 import { BookingMount, type ProductSummary } from './BookingMount';
 
 /**
@@ -16,7 +17,7 @@ import { BookingMount, type ProductSummary } from './BookingMount';
  * The read goes through the shared client, so a page with a list mount and a
  * booking mount pays for one catalogue request rather than two (WGT-8, WGT-17).
  */
-function BookingMountLoader({ productUuid, client, t, analytics, locale, date = null, showVessel = true }: MountProps) {
+export function BookingMountLoader({ productUuid, category, client, t, analytics, locale, date = null, showVessel = true, showDetails = true }: MountProps) {
   const [product, setProduct] = useState<ProductSummary | null>(null);
   const [failed, setFailed] = useState(false);
 
@@ -53,6 +54,35 @@ function BookingMountLoader({ productUuid, client, t, analytics, locale, date = 
     );
   }
 
+  if (product.mode === 'quote') {
+    /*
+     * BKG-24: a trip sold by quote is asked about, not booked.
+     *
+     * The embed said `booking` because the WordPress shortcode, the Elementor
+     * widget and a hand-written tag cannot know the trip's mode — only this
+     * read does. A calendar here would walk the guest through a date and a
+     * party to meet `product_is_quote_only` at the checkout button, so the
+     * enquiry form stands in its place, carrying the trip. It is the same
+     * component the hosted trip page mounts as `enquiry`, so the two cannot
+     * drift; and no `kaiki:booking-started` can fire for a trip that cannot be
+     * booked — what it sends is `kaiki:enquiry-submitted`.
+     */
+    return (
+      <EnquiryMount
+        productUuid={productUuid}
+        category={category}
+        client={client}
+        t={t}
+        analytics={analytics}
+        locale={locale}
+        date={date}
+        showVessel={showVessel}
+        showDetails={showDetails}
+        product={product}
+      />
+    );
+  }
+
   return (
     <BookingMount
       client={client}
@@ -63,6 +93,7 @@ function BookingMountLoader({ productUuid, client, t, analytics, locale, date = 
       locale={locale}
       initialDate={date}
       showVessel={showVessel}
+      showDetails={showDetails}
     />
   );
 }

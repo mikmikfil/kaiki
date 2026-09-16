@@ -58,6 +58,15 @@
         @endif
     </a>
 
+    {{-- The operator's own label over the photograph — «Δημοφιλές», «Για
+         δύο» — and nothing when they wrote none: not the category, which the
+         card already implies and which would put the same word on every card
+         of a catalogue of day trips (2026-09-16). Outside the hidden image
+         link, so a screen reader hears it once, before the title. --}}
+    @if (is_string($product->badge ?? null) && trim($product->badge) !== '')
+        <p class="trip-badge">{{ $product->badge }}</p>
+    @endif
+
     <div class="trip-body">
         {{-- The heading is the link rather than a "read more" underneath it: a
              row of identical "read more" links is what a screen-reader user

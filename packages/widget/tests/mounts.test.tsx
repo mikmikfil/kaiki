@@ -5,6 +5,7 @@ import { analytics } from '../src/analytics';
 import { ApiClient } from '../src/api-client';
 import { translator } from '../src/i18n';
 import { CalendarMount } from '../src/mounts/calendar/CalendarMount';
+import { BookingMountLoader } from '../src/mounts/booking/register';
 import { EnquiryMount } from '../src/mounts/enquiry/EnquiryMount';
 import { ListMount } from '../src/mounts/list/ListMount';
 import type { MountProps } from '../src/mounts';
@@ -406,5 +407,111 @@ describe('the enquiry mount', () => {
     // Replacing it with "your message failed" would swap a specific answer for
     // a vague one, and would drift the day the server's changed.
     expect(host.textContent).toContain('enquiry_rejected');
+  });
+});
+
+describe('the booking mount on a trip sold by quote', () => {
+  /*
+   * BKG-24, and the owner's words: *"for trips that are on request … a request
+   * form to appear, not a calendar"*. The WordPress shortcode and the Elementor
+   * widget always embed `booking`, so the mount itself has to notice.
+   */
+  const detail = (mode: string) => ({
+    uuid: 'product-uuid',
+    title: 'Private day on the boat',
+    mode,
+    duration_minutes: 480,
+    from_price_formatted: mode === 'quote' ? null : '45,00 €',
+    meeting_point: { name: 'Zea Marina' },
+    vessel: { name: 'Anemos' },
+    age_bands: [{ uuid: 'adult', code: 'adult', label: 'Adult', counts_toward_capacity: true }],
+    extras: [],
+  });
+
+  const api = (mode: string) =>
+    client((url) => (url.includes('/products/') ? { data: detail(mode) } : { data: [] }));
+
+  it('draws the enquiry form, carrying the trip, and no calendar', async () => {
+    const events: string[] = [];
+    const tracker = analytics(false, '0.0.0');
+    const emit = tracker.emit.bind(tracker);
+
+    tracker.emit = ((name: string, payload?: Record<string, unknown>) => {
+      events.push(name);
+
+      return emit(name as never, payload as never);
+    }) as typeof tracker.emit;
+
+    render(<BookingMountLoader {...props({ client: api('quote'), analytics: tracker, date: '2026-10-02' })} />, host);
+    await settle();
+
+    expect(host.querySelector('form')).not.toBeNull();
+    expect(host.textContent).toContain('On request');
+    expect(host.textContent).toContain('Ask us about this trip');
+    expect(host.textContent).toContain('Private day on the boat');
+    // The day the embed carried becomes the preferred date, not a calendar pick.
+    expect(host.querySelector<HTMLInputElement>('input[type="date"]')?.value).toBe('2026-10-02');
+
+    expect(host.textContent).not.toContain('Pick a date');
+    expect(host.querySelector('.kaiki-day, .kaiki-days, .kaiki-calendar-step')).toBeNull();
+    expect(host.innerHTML).not.toContain('€');
+    expect(events).not.toContain('kaiki:booking-started');
+  });
+
+  it('still walks a priced trip from the calendar', async () => {
+    render(<BookingMountLoader {...props({ client: api('per_seat') })} />, host);
+    await settle();
+
+    await vi.waitFor(() => expect(host.textContent).toContain('Pick a date'));
+    expect(host.textContent).not.toContain('Ask us about this trip');
+    expect(host.querySelector('form')).toBeNull();
+  });
+});
+
+describe('the compact form (data-details="hide")', () => {
+  /*
+   * 2026-09-16: a WordPress trip page already shows the trip, its duration,
+   * port and boat, so the form under them leaves its four lines out — on the
+   * calendar and on the enquiry form a quote trip gets instead.
+   */
+  const detail = (mode: string) => ({
+    uuid: 'product-uuid',
+    title: 'Morning swim',
+    mode,
+    duration_minutes: 240,
+    from_price_formatted: mode === 'quote' ? null : '55,00 €',
+    meeting_point: { name: 'Zea Marina' },
+    vessel: { name: 'Odysseas' },
+    age_bands: [{ uuid: 'adult', code: 'adult', label: 'Adult', counts_toward_capacity: true }],
+    extras: [],
+  });
+
+  const api = (mode: string) =>
+    client((url) => (url.includes('/products/') ? { data: detail(mode) } : { data: [] }));
+
+  it('keeps the four lines by default', async () => {
+    render(<BookingMountLoader {...props({ client: api('per_seat') })} />, host);
+    await vi.waitFor(() => expect(host.textContent).toContain('Pick a date'));
+
+    expect(host.textContent).toContain('Odysseas');
+    expect(host.textContent).toContain('Zea Marina');
+  });
+
+  it('leaves them out of the calendar walk', async () => {
+    render(<BookingMountLoader {...props({ client: api('per_seat'), showDetails: false })} />, host);
+    await vi.waitFor(() => expect(host.textContent).toContain('Pick a date'));
+
+    expect(host.textContent).not.toContain('Odysseas');
+    expect(host.textContent).not.toContain('Zea Marina');
+    expect(host.querySelector('.kaiki-four-lines, dl')).toBeNull();
+  });
+
+  it('leaves them out of the enquiry form, and keeps «On request»', async () => {
+    render(<BookingMountLoader {...props({ client: api('quote'), showDetails: false })} />, host);
+    await settle();
+
+    expect(host.querySelector('form')).not.toBeNull();
+    expect(host.textContent).toContain('On request');
+    expect(host.textContent).not.toContain('Odysseas');
   });
 });

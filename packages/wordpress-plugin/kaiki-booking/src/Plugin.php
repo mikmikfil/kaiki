@@ -10,6 +10,9 @@ declare( strict_types = 1 );
 namespace Kaiki\Booking;
 
 use Kaiki\Booking\Blocks\Blocks;
+use Kaiki\Booking\Elementor\EmptySections;
+use Kaiki\Booking\Elementor\TripTemplate;
+use Kaiki\Booking\Elementor\TripWidgets;
 use Kaiki\Booking\Elementor\Widgets;
 use Kaiki\Booking\Http\Webhook;
 use Kaiki\Booking\Rest\Trips;
@@ -17,6 +20,8 @@ use Kaiki\Booking\Seo\Sync;
 use Kaiki\Booking\Seo\TripPostType;
 use Kaiki\Booking\Shortcodes\Shortcodes;
 use Kaiki\Booking\Settings\SettingsPage;
+use Kaiki\Booking\Trip\Search;
+use Kaiki\Booking\Trip\TripShortcodes;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -49,6 +54,15 @@ final class Plugin {
 		// is the ordinary case for both.
 		Blocks::register();
 		Widgets::register();
+
+		// The pieces of a trip page — title, photos, facts, meeting point… —
+		// as shortcodes and Elementor widgets that read the trip being viewed,
+		// so one template serves every trip.
+		TripShortcodes::register();
+		Search::register();
+		TripWidgets::register();
+		TripTemplate::register();
+		EmptySections::register();
 
 		// The trip picker the block editor needs. Capability-gated, and it
 		// returns nothing a publishable key could not already read.

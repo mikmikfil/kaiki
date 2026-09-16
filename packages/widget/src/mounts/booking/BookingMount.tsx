@@ -70,9 +70,16 @@ interface BookingMountProps {
   readonly initialDate?: string | null;
   /** False when the operator chose to leave the boat's name out (`data-vessel="hide"`). */
   readonly showVessel?: boolean;
+  /** False for the compact form (`data-details="hide"`): the page already shows the four lines. */
+  readonly showDetails?: boolean;
 }
 
 export interface ProductSummary {
+  /**
+   * `per_seat`, `per_vessel` or `quote`. A `quote` trip never reaches this
+   * component: the loader in `register.tsx` gives it the enquiry form (BKG-24).
+   */
+  readonly mode?: string;
   readonly title: string;
   readonly duration_minutes: number;
   /** The cheapest adult price, already rendered by the server. Null on a quote product. */
@@ -100,6 +107,7 @@ export function BookingMount({
   locale,
   initialDate = null,
   showVessel = true,
+  showDetails = true,
 }: BookingMountProps) {
   const options: MachineOptions = { hasExtras: (product.extras ?? []).length > 0 };
   const api = useMemo(() => new BookingApi(client), [client]);
@@ -453,7 +461,7 @@ export function BookingMount({
         ) : null}
 
         <div class="kaiki-sheet-scroll">
-          <FourLines product={product} t={t} showVessel={showVessel} />
+          {showDetails ? <FourLines product={product} t={t} showVessel={showVessel} /> : null}
 
           {draft !== null ? <Hold hold={hold} t={t} /> : null}
 

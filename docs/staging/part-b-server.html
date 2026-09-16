@@ -1,0 +1,209 @@
+<section class="part">
+    <span class="num">Μέρος Β</span>
+    <h2>Ο server</h2>
+    <p>
+        Τι πρέπει να υπάρχει στον dedicated server πριν ξεκινήσετε, τι ζητάτε από την
+        Cretaforce, και ποιες εγγραφές DNS φτιάχνετε.
+    </p>
+</section>
+
+<h2 class="continues">Ό,τι χρειάζεται</h2>
+
+<p>
+    Κάθε γραμμή βγαίνει από τον κώδικα: <code>composer.json</code>, <code>package.json</code>, τα
+    <code>config/*.php</code> και το CI (<code>.github/workflows/ci.yml</code>). Σημειώστε δίπλα τι
+    έχει ήδη ο server· ό,τι λείπει μπαίνει στο email της επόμενης σελίδας.
+</p>
+
+<table class="fields">
+    <tr>
+        <th>PHP 8.4 (FPM και CLI)</th>
+        <td>
+            <strong>8.4.1 ή νεότερη</strong> — το <code>vendor/composer/platform_check.php</code> σταματά
+            οτιδήποτε παλιότερο. Η ίδια έκδοση στο FPM του subdomain <em>και</em> στη γραμμή εντολών
+            (SSH, cron, worker).
+        </td>
+    </tr>
+    <tr>
+        <th>Επεκτάσεις PHP</th>
+        <td>
+            <code>intl</code> (απαιτείται ρητά), <code>pdo_mysql</code>, <code>redis</code> (phpredis — το
+            <code>predis</code> δεν είναι εγκατεστημένο), <code>gd</code> (οι εικόνες επεξεργάζονται με GD),
+            <code>mbstring</code>, <code>curl</code>, <code>openssl</code>, <code>dom</code>, <code>xml</code>,
+            <code>xmlreader</code>, <code>xmlwriter</code>, <code>fileinfo</code>, <code>zip</code>,
+            <code>iconv</code>, <code>tokenizer</code>, <code>ctype</code>, <code>bcmath</code>, <code>opcache</code>.
+        </td>
+    </tr>
+    <tr>
+        <th>Ρυθμίσεις PHP</th>
+        <td>
+            Οι <code>proc_open</code> και <code>proc_get_status</code> <strong>να μην</strong> είναι στο
+            <code>disable_functions</code>: τα PDF βγαίνουν με εξωτερική διεργασία (Browsershot → Node →
+            Chromium), και το Composer τις χρειάζεται επίσης. <code>memory_limit</code> 256M ή παραπάνω,
+            <code>upload_max_filesize</code> και <code>post_max_size</code> 20M (εισαγωγές από WordPress).
+        </td>
+    </tr>
+    <tr>
+        <th>Composer 2</th>
+        <td>Στη γραμμή εντολών του χρήστη του site.</td>
+    </tr>
+    <tr>
+        <th>Node.js 22 και npm</th>
+        <td>
+            Η έκδοση του CI. Χρειάζεται <strong>και μετά το build</strong>: τα PDF φτιάχνονται από το
+            Puppeteer μέσα στο <code>node_modules</code> της εφαρμογής, άρα το <code>node</code> πρέπει να
+            τρέχει και για τον worker.
+        </td>
+    </tr>
+    <tr>
+        <th>MySQL 8.0</th>
+        <td>
+            Μια βάση <code>utf8mb4</code> / <code>utf8mb4_unicode_ci</code> και ένας χρήστης μόνο γι' αυτήν. Το
+            σχήμα ελέγχεται στο CI απέναντι σε MySQL 8.0· MariaDB δεν έχει δοκιμαστεί.
+        </td>
+    </tr>
+    <tr>
+        <th>Redis 6 ή 7</th>
+        <td>
+            Ουρά, cache και κλειδώματα (το <code>onOneServer</code> του scheduler). Μόνο στο
+            <code>127.0.0.1</code>. Αν το Redis το μοιράζονται κι άλλα sites, ξεχωριστός αριθμός βάσης και
+            prefix (μέρος Δ).
+        </td>
+    </tr>
+    <tr>
+        <th>Supervisor (ή systemd)</th>
+        <td>Κρατά ζωντανό τον worker της ουράς. Horizon <strong>δεν</strong> είναι εγκατεστημένο — σκέτο <code>queue:work</code>.</td>
+    </tr>
+    <tr>
+        <th>Cron</th>
+        <td>Μία γραμμή, κάθε λεπτό, ως χρήστης του site: <code>php artisan schedule:run</code>.</td>
+    </tr>
+    <tr>
+        <th>Chromium + γραμματοσειρές</th>
+        <td>
+            Headless Chromium ή Google Chrome, με τις βιβλιοθήκες του. Γραμματοσειρές με ελληνικά: τα
+            πρότυπα PDF ζητούν <strong>DejaVu Sans</strong> και Helvetica/Arial (π.χ. στο Debian
+            <code>fonts-dejavu-core</code>, <code>fonts-liberation</code>, <code>fonts-noto-core</code>). Χωρίς
+            αυτές τα ελληνικά βγαίνουν κουτάκια.
+        </td>
+    </tr>
+    <tr>
+        <th>SSH, git</th>
+        <td>Κανονικό shell για τον χρήστη του site (όχι μόνο SFTP), και πρόσβαση προς το GitHub.</td>
+    </tr>
+    <tr>
+        <th>Εξερχόμενες συνδέσεις</th>
+        <td>
+            HTTPS προς <code>demo-accounts.vivapayments.com</code>, <code>demo-api.vivapayments.com</code>,
+            <code>demo.vivapayments.com</code>, <code>api.open-meteo.com</code>, <code>github.com</code>,
+            <code>registry.npmjs.org</code>, <code>repo.packagist.org</code>· SMTP προς τον mail server.
+        </td>
+    </tr>
+</table>
+
+<div class="note">
+    <span class="label">Οι θύρες 80 και 443 μένουν στον web server του πίνακα</span>
+    <p>
+        Το Kaiki δεν ανοίγει δική του θύρα. Τρέχει ως PHP-FPM πίσω από τον web server που ήδη
+        εξυπηρετεί τις άλλες ιστοσελίδες, σαν άλλο ένα site. Redis και MySQL ακούν μόνο τοπικά.
+        Οι υπόλοιπες ιστοσελίδες δεν επηρεάζονται — εκτός αν μοιράζονται την ίδια βάση Redis χωρίς
+        prefix, γι' αυτό το μέρος Δ δίνει δικό του αριθμό.
+    </p>
+</div>
+
+<h2>Το email προς την Cretaforce</h2>
+
+<p>
+    Ο πίνακας της Cretaforce είναι δικός της, και δεν ξέρουμε ποιες από αυτές τις ρυθμίσεις
+    έχει σε οθόνη. Ό,τι δεν βρίσκετε στον πίνακα, το ζητάτε. Αντιγράψτε, σβήστε ό,τι έχετε ήδη,
+    και συμπληρώστε τα κεφαλαία.
+</p>
+
+<div class="letter">
+    <p class="subject">Θέμα: Dedicated server ΟΝΟΜΑ — ρύθμιση για νέα εφαρμογή Laravel σε subdomain</p>
+    <p>Καλησπέρα σας,</p>
+    <p>
+        στον dedicated server μας θέλουμε να στήσουμε μια εφαρμογή Laravel 12 στα subdomains
+        <strong>kaiki.testing.gr</strong> και <strong>book.kaiki.testing.gr</strong> (ίδιος φάκελος, ίδια
+        εφαρμογή), χωρίς να επηρεαστούν οι ιστοσελίδες που ήδη φιλοξενούνται. Θα θέλαμε να μας πείτε
+        τι από τα παρακάτω υπάρχει και να ενεργοποιήσετε ό,τι λείπει:
+    </p>
+    <ol>
+        <li>PHP <strong>8.4</strong> (8.4.1+) σε PHP-FPM για τα δύο subdomains, και η ίδια έκδοση στη
+            γραμμή εντολών μέσω SSH (ποια είναι η διαδρομή, π.χ. <code>/usr/bin/php8.4</code>;).</li>
+        <li>Επεκτάσεις: intl, pdo_mysql, redis (phpredis), gd, mbstring, curl, openssl, dom, xml,
+            xmlreader, xmlwriter, fileinfo, zip, iconv, tokenizer, ctype, bcmath, opcache.</li>
+        <li>Οι proc_open και proc_get_status να μην είναι απενεργοποιημένες. memory_limit 256M,
+            upload_max_filesize και post_max_size 20M.</li>
+        <li>Document root και των δύο subdomains: <code>/ΔΙΑΔΡΟΜΗ/kaiki/public</code>, και πιστοποιητικό
+            Let's Encrypt και για τα δύο.</li>
+        <li>SSH με κανονικό shell για τον χρήστη του site, με git, Composer 2 και Node.js 22 με npm.</li>
+        <li>MySQL 8.0 (όχι MariaDB): μια βάση utf8mb4 και χρήστης.</li>
+        <li>Redis στο 127.0.0.1 — υπάρχει ήδη; Αν το χρησιμοποιούν κι άλλα sites, ποιον αριθμό βάσης
+            να πάρουμε;</li>
+        <li>Supervisor (ή systemd service) για δύο διεργασίες <code>php artisan queue:work</code> ως
+            χρήστης του site, με αυτόματη επανεκκίνηση. Σας στέλνουμε το ακριβές block.</li>
+        <li>Cron κάθε λεπτό ως χρήστης του site: <code>php artisan schedule:run</code>.</li>
+        <li>Headless Chromium ή Google Chrome με τις βιβλιοθήκες του, και γραμματοσειρές με ελληνικά
+            (DejaVu, Liberation, Noto). Ποια είναι η διαδρομή του εκτελέσιμου;</li>
+        <li>Ο web server περνά τα αιτήματα απευθείας στο PHP-FPM ή μέσω reverse proxy (π.χ. nginx
+            μπροστά από Apache); Αν μέσω proxy, από ποια IP;</li>
+        <li>Προστασία με κωδικό (Basic Auth) σε όλο το subdomain <strong>εκτός</strong> από συγκεκριμένες
+            διαδρομές, και header <code>X-Robots-Tag: noindex, nofollow</code>. Επισυνάπτουμε το snippet.</li>
+        <li>Αν υπάρχει ModSecurity/WAF: να μην μπλοκάρει POST με JSON προς <code>/api/v1/</code> και
+            <code>/webhooks/</code>, ούτε τις κλήσεις της Viva Wallet προς <code>/webhooks/viva/</code>.</li>
+        <li>Εξερχόμενο HTTPS προς vivapayments.com, open-meteo.com, github.com, npmjs.org, packagist.org.</li>
+        <li>Γραμματοκιβώτιο ή SMTP relay για αποστολή από <strong>noreply@kaiki.testing.gr</strong>,
+            με DKIM — ποιες εγγραφές DNS να προσθέσουμε; Και reverse DNS (PTR) για την IP του server.</li>
+    </ol>
+    <p>Ευχαριστούμε πολύ,<br>ΟΝΟΜΑ, ΤΗΛΕΦΩΝΟ</p>
+</div>
+
+<p>
+    Το snippet για το 12 είναι στο μέρος Ε («Κωδικός και noindex»), σε δύο παραλλαγές: Apache και nginx.
+    Το block του Supervisor για το 8 είναι επίσης στο μέρος Ε.
+</p>
+
+<h2>Εγγραφές DNS στην Cretaforce</h2>
+
+<p>
+    Το DNS είναι στην Cretaforce, άρα οι εγγραφές μπαίνουν στον ίδιο πίνακα. Φτιάξτε τις
+    <strong>πριν</strong> ζητήσετε πιστοποιητικό: το Let's Encrypt ελέγχει ότι το όνομα δείχνει στον server.
+</p>
+
+<table class="fields wide">
+    <tr><th>Όνομα · τύπος</th><td><strong>Τιμή</strong></td></tr>
+    <tr><th><code>kaiki.testing.gr</code> · A</th><td>η IPv4 του server</td></tr>
+    <tr>
+        <th><code>book.kaiki.testing.gr</code> · A</th>
+        <td>η ίδια IPv4 (ή CNAME προς <code>kaiki.testing.gr</code>)</td>
+    </tr>
+    <tr>
+        <th>AAAA (και για τα δύο)</th>
+        <td>Μόνο αν ο server εξυπηρετεί το subdomain και σε IPv6. Αλλιώς <strong>καμία</strong> — ένα AAAA
+            που δεν απαντά κάνει τη Viva και το Let's Encrypt να αποτυγχάνουν σποραδικά.</td>
+    </tr>
+    <tr>
+        <th><code>kaiki.testing.gr</code> · TXT (SPF)</th>
+        <td><code>v=spf1 ip4:IP_SERVER ~all</code> — ή ό,τι σας πει η Cretaforce αν στέλνετε μέσω relay
+            (<code>include:…</code>). Μία μόνο εγγραφή SPF ανά όνομα.</td>
+    </tr>
+    <tr>
+        <th><code>ΕΠΙΛΟΓΕΑΣ._domainkey.kaiki.testing.gr</code> · TXT (DKIM)</th>
+        <td>Το δημόσιο κλειδί που δίνει ο mail server. Ο επιλογέας (selector) είναι δικός του.</td>
+    </tr>
+    <tr>
+        <th><code>_dmarc.kaiki.testing.gr</code> · TXT</th>
+        <td><code>v=DMARC1; p=none; rua=mailto:ΕΣΕΙΣ@ΤΟ-DOMAIN-ΣΑΣ</code> — <code>p=none</code> στο staging,
+            για να βλέπετε αναφορές χωρίς να χάνεται email.</td>
+    </tr>
+</table>
+
+<div class="note">
+    <span class="label">Το domain αποστολής</span>
+    <p>
+        Τα SPF/DKIM/DMARC πάνε στο domain της διεύθυνσης <code>MAIL_FROM_ADDRESS</code>. Αν στείλετε από
+        <code>noreply@testing.gr</code> αντί για <code>@kaiki.testing.gr</code>, οι εγγραφές μπαίνουν στο
+        <code>testing.gr</code> — και προσοχή να μη σβήσετε το SPF που ίσως έχει ήδη.
+    </p>
+</div>

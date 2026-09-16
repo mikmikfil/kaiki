@@ -102,6 +102,19 @@ class DemoFleetSeeder extends Seeder
      * }>
      */
     /**
+     * The labels on the cards' photographs (2026-09-16), as the WordPress demo
+     * site had them. `iliovasilema-aigina`'s is in {@see DemoBookableSeeder},
+     * which is where that trip is written.
+     *
+     * @var array<string, array{el: string, en: string}>
+     */
+    private const BADGES = [
+        'proino-kolymvitiko' => ['el' => 'Δημοφιλές', 'en' => 'Popular'],
+        'olimeri-tria-nisia' => ['el' => 'Best seller', 'en' => 'Best seller'],
+        'romantiko-dilino' => ['el' => 'Για δύο', 'en' => 'For two'],
+    ];
+
+    /**
      * The four the rail recommends.
      *
      * Something has to be, or `is_featured` is a column nothing on the demo
@@ -446,7 +459,13 @@ EN,
                     'mode' => $trip['mode'],
                     'title' => ['el' => $trip['el'], 'en' => $trip['en']],
                     'summary' => ['el' => $trip['summary_el'], 'en' => $trip['summary_en']],
+                    // Only where there is one. A null assigned to a translatable
+                    // attribute is stored as `{"el": null}`, not as a null column.
+                    ...(isset(self::BADGES[$trip['slug']]) ? ['badge' => self::BADGES[$trip['slug']]] : []),
                     'description' => ['el' => $trip['desc_el'], 'en' => $trip['desc_en']],
+                    // «Τι θα ζήσετε», the programme and the three lists
+                    // (2026-09-16), where the demo has them.
+                    ...DemoTripContent::for($trip['slug']),
                     'duration_minutes' => $trip['minutes'],
                     'default_start_time' => $trip['start'],
                     'check_in_offset_minutes' => 30,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Hosted\Actions;
 
+use App\Domain\Hosted\Support\BlockItems;
 use App\Domain\Hosted\Support\BlockSettings;
 use App\Enums\HomeBlockType;
 use App\Models\HomePageBlock;
@@ -78,7 +79,14 @@ class SaveHomePage
                     // it, rather than silently gone.
                     'video_url' => $type === HomeBlockType::Hero ? $this->url($input['video_url'] ?? null) : null,
                     'images' => $type === HomeBlockType::Gallery ? $this->images($input['images'] ?? null) : null,
-                    'settings' => BlockSettings::normalise($type, is_array($input['settings'] ?? null) ? $input['settings'] : []),
+                    // The list-shaped blocks' entries — figures, steps, reasons,
+                    // reviews, badges — and the hero's and the band's buttons,
+                    // whitelisted, cut to length and capped at the type's
+                    // maximum by `BlockItems`, so a seeder or an import cannot
+                    // store what the editor could not.
+                    'items' => BlockItems::normalise($type, $input['items'] ?? null),
+                    'buttons' => BlockItems::buttons($type, $input['buttons'] ?? null),
+                    'settings' => BlockSettings::normalise($type, $this->settings($type, $input)),
                 ]);
 
                 // Assigned only when there is something to assign. Passing null
@@ -95,11 +103,42 @@ class SaveHomePage
                     $this->translate($block, 'body', $input['body'] ?? null);
                 }
 
+                if ($type->hasEyebrow()) {
+                    $this->translate($block, 'eyebrow', $input['eyebrow'] ?? null);
+                }
+
+                if ($type->hasImage()) {
+                    $this->translate($block, 'image_alt', $input['image_alt'] ?? null);
+                }
+
                 $block->save();
             }
 
             return $order;
         });
+    }
+
+    /**
+     * The submitted settings, with the hero's old single button retired when
+     * the new buttons were sent.
+     *
+     * A hero saved from the editor since 16 September carries `buttons`, even
+     * an empty list when the operator removed them all; its `settings.cta` is
+     * set to `none` so the old lang-file button does not come back underneath.
+     * A seeder or an import that sends only `settings.cta` keeps that button.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, mixed>
+     */
+    protected function settings(HomeBlockType $type, array $input): array
+    {
+        $settings = is_array($input['settings'] ?? null) ? $input['settings'] : [];
+
+        if ($type === HomeBlockType::Hero && array_key_exists('buttons', $input)) {
+            $settings['cta'] = 'none';
+        }
+
+        return $settings;
     }
 
     /** Set a translatable attribute, or leave it alone when it is blank everywhere. */

@@ -41,6 +41,8 @@ export interface MountProps {
   readonly date?: string | null;
   /** False for `data-vessel="hide"` — only the booking walk's four lines read it. */
   readonly showVessel?: boolean;
+  /** False for `data-details="hide"` — the booking and enquiry forms leave out their four lines. */
+  readonly showDetails?: boolean;
 }
 
 export type MountComponent = ComponentType<MountProps>;

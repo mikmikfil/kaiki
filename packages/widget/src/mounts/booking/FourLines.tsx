@@ -2,6 +2,27 @@ import type { Translator } from '../../i18n';
 import type { ProductSummary } from './BookingMount';
 
 /**
+ * A trip's length the way a guest says it: «8 ώρες», «2 ώρες 30 λεπτά»,
+ * «45 λεπτά». «480 λεπτά» made a guest do the division (Mike, 2026-09-16).
+ */
+export function formatDuration(t: Translator, minutes: number): string {
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+
+  if (hours === 0) {
+    return t('booking.lines.minutes').replace(':minutes', String(minutes));
+  }
+
+  if (rest === 0) {
+    return hours === 1 ? t('booking.lines.hour_one') : t('booking.lines.hours').replace(':hours', String(hours));
+  }
+
+  return (hours === 1 ? t('booking.lines.hour_one_minutes') : t('booking.lines.hours_minutes'))
+    .replace(':hours', String(hours))
+    .replace(':minutes', String(rest));
+}
+
+/**
  * The four lines above the date picker (brand decision 3 of 2026-09-04).
  *
  * Title, duration, port, vessel. **No photograph and no summary** — the space
@@ -34,7 +55,7 @@ export function FourLines({
       </div>
       <div>
         <dt>{t('booking.lines.duration')}</dt>
-        <dd>{t('booking.lines.minutes').replace(':minutes', String(product.duration_minutes))}</dd>
+        <dd>{formatDuration(t, product.duration_minutes)}</dd>
       </div>
       <div>
         <dt>{t('booking.lines.port')}</dt>

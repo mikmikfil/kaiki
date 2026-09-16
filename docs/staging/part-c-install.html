@@ -1,0 +1,202 @@
+<section class="part">
+    <span class="num">Μέρος Γ</span>
+    <h2>Εγκατάσταση</h2>
+    <p>
+        Μία φορά, με αυτή τη σειρά. Χωρίς Docker και χωρίς Caddy: δεν υπάρχουν ακόμη στο
+        αποθετήριο (M8, #13 και #14), οπότε το Kaiki στήνεται απευθείας πίσω από τον web server
+        του πίνακα.
+    </p>
+</section>
+
+<h2 class="continues">Πριν ξεκινήσετε</h2>
+
+<p>Σε όλο τον οδηγό, τα παραδείγματα χρησιμοποιούν:</p>
+
+<table class="fields">
+    <tr><th>Χρήστης του site</th><td><code>kaikistg</code></td></tr>
+    <tr><th>Φάκελος της εφαρμογής</th><td><code>/home/kaikistg/kaiki</code></td></tr>
+    <tr><th>PHP στη γραμμή εντολών</th><td><code>php8.4</code> — βάλτε τη διαδρομή που σας έδωσε η Cretaforce</td></tr>
+    <tr><th>Αποθετήριο</th><td><code>github.com/mikmikfil/kaiki</code> (ιδιωτικό), κλάδος <code>main</code></td></tr>
+</table>
+
+<p>Αντικαταστήστε τα με τα δικά σας. Η σειρά των βημάτων δεν αλλάζει.</p>
+
+<h2>Στον πίνακα της Cretaforce</h2>
+
+<ol class="steps">
+    <li>
+        <strong>Νέο subdomain</strong> <code>kaiki.testing.gr</code> και, στο ίδιο site, δεύτερο όνομα (alias)
+        <code>book.kaiki.testing.gr</code>. Αν ο πίνακας δεν δέχεται alias, δεύτερο subdomain με
+        <strong>τον ίδιο</strong> document root.
+    </li>
+    <li>
+        <strong>Document root</strong>: <code>/home/kaikistg/kaiki/public</code>. Ποτέ ο φάκελος πάνω από
+        το <code>public/</code> — εκεί είναι το <code>.env</code> με τους κωδικούς. Αν ο πίνακας επιμένει σε
+        δικό του φάκελο (π.χ. <code>public_html</code>), ζητήστε από την υποστήριξη να τον αλλάξει, ή
+        κάντε τον symlink προς το <code>kaiki/public</code>.
+    </li>
+    <li><strong>Επιλογή PHP</strong>: 8.4, σε FPM.</li>
+    <li>
+        <strong>SSL Let's Encrypt</strong> και για τα δύο ονόματα, αφού έχουν μπει τα A records
+        (μέρος Β). Ενεργοποιήστε την ανακατεύθυνση από HTTP σε HTTPS.
+    </li>
+    <li>
+        <strong>Νέα βάση MySQL</strong>: <code>kaiki_staging</code>, χρήστης <code>kaiki_staging</code>,
+        δυνατός κωδικός, collation <code>utf8mb4_unicode_ci</code>.
+    </li>
+</ol>
+
+<h2>Στον server, με SSH</h2>
+
+<h3>1. Κλειδί για το GitHub και clone</h3>
+
+<p>
+    Το αποθετήριο είναι ιδιωτικό. Φτιάξτε ένα κλειδί μόνο για αυτόν τον server και δώστε το στο
+    GitHub ως <strong>Deploy key</strong> μόνο για ανάγνωση (Settings → Deploy keys → Add deploy key).
+</p>
+
+<pre class="copy">ssh-keygen -t ed25519 -C "kaiki-staging" -f ~/.ssh/kaiki_deploy -N ""
+cat ~/.ssh/kaiki_deploy.pub        <span class="c"># αυτό επικολλάτε στο GitHub</span>
+
+cat >> ~/.ssh/config &lt;&lt;'EOF'
+Host github-kaiki
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/kaiki_deploy
+EOF
+
+cd /home/kaikistg
+git clone git@github-kaiki:mikmikfil/kaiki.git kaiki
+cd kaiki</pre>
+
+<h3>2. Το .env</h3>
+
+<pre class="copy">cp .env.example .env
+nano .env                          <span class="c"># ολόκληρο το περιεχόμενο είναι στο μέρος Δ</span>
+chmod 600 .env</pre>
+
+<h3>3. Εξαρτήσεις PHP και κλειδί εφαρμογής</h3>
+
+<pre class="copy">php8.4 $(command -v composer) install --no-dev --optimize-autoloader
+php8.4 artisan key:generate</pre>
+
+<p>
+    Αν το Composer λέει <em>«Your Composer dependencies require a PHP version &gt;= 8.4.1»</em>, το
+    <code>php</code> της γραμμής εντολών είναι παλιότερο — γι' αυτό η εντολή καλεί ρητά το
+    <code>php8.4</code>. Το <code>key:generate</code> γράφει το <code>APP_KEY</code> στο .env· μην το αλλάξετε
+    μετά, γιατί με αυτό είναι κρυπτογραφημένα τα κλειδιά της Viva.
+</p>
+
+<h3>4. Build: η εφαρμογή και το widget</h3>
+
+<pre class="copy">export PUPPETEER_SKIP_DOWNLOAD=1   <span class="c"># χρησιμοποιούμε το Chromium του server</span>
+npm ci                             <span class="c"># όχι --omit=dev: το puppeteer χρειάζεται για τα PDF</span>
+npm run build                      <span class="c"># Vite → public/build</span>
+npm run widget:build               <span class="c"># → packages/widget/dist/kaiki-widget.js</span>
+php8.4 artisan widget:publish      <span class="c"># → public/widget/vX.Y.Z/ και το alias</span></pre>
+
+<div class="danger">
+    <span class="label">Το widget:publish δεν είναι προαιρετικό</span>
+    <p>
+        Ο φάκελος <code>public/widget</code> δεν είναι στο git. Το <code>widget:build</code> φτιάχνει το
+        αρχείο μέσα στο <code>packages/widget/dist</code>· μόνο το <code>widget:publish</code> το αντιγράφει
+        εκεί που το ζητά το WordPress (<code>/widget/kaiki-widget.js</code>) και γράφει το
+        <code>/widget/manifest.json</code>. Χωρίς αυτό η φόρμα κράτησης δεν φορτώνει πουθενά.
+    </p>
+</div>
+
+<h3>5. Αποθήκευση αρχείων, βάση</h3>
+
+<pre class="copy">php8.4 artisan storage:link        <span class="c"># public/storage → φωτογραφίες εκδρομών, σκαφών, λιμανιών</span>
+php8.4 artisan migrate --force</pre>
+
+<p>
+    Οι φωτογραφίες του καταλόγου πάνε στον δίσκο <code>public</code> (<code>storage/app/public</code>) και
+    δίνονται στο WordPress ως κανονικές διευθύνσεις. Εισιτήρια, λογότυπα, εξαγωγές και έγγραφα πελατών
+    πάνε στο <code>storage/app/private</code>, που δεν σερβίρεται ποτέ απευθείας.
+</p>
+
+<h3>6. Δεδομένα: demo ή καθαρό</h3>
+
+<h4>Με δεδομένα επίδειξης</h4>
+
+<p>
+    Το <code>DatabaseSeeder</code> φτιάχνει τρεις διοργανωτές (<code>aegean-blue</code>,
+    <code>ionian-sunset</code>, <code>actionseaze</code>) με σκάφη, εκδρομές, αναχωρήσεις, φωτογραφίες,
+    συχνές ερωτήσεις, αρχική σελίδα και μια σεζόν κρατήσεων. Οι κρατήσεις φτιάχνονται από τις
+    πραγματικές ενέργειες, άρα μπορεί να μπουν στην ουρά email και PDF προς τις ψεύτικες
+    διευθύνσεις <code>@example.com</code>. Γι' αυτό: seed με <code>MAIL_MAILER=log</code>, άδειασμα της
+    ουράς, και μετά αληθινό SMTP.
+</p>
+
+<pre class="copy"><span class="c"># στο .env, προσωρινά: MAIL_MAILER=log</span>
+php8.4 artisan config:clear
+php8.4 artisan db:seed --force
+php8.4 artisan queue:work --stop-when-empty   <span class="c"># τα email πάνε στο log, τα PDF φτιάχνονται</span>
+<span class="c"># μετά: MAIL_MAILER=smtp στο .env</span></pre>
+
+<table class="fields">
+    <tr><th>Πλατφόρμα (<code>/admin</code>)</th><td><code>admin@kaiki.example</code></td></tr>
+    <tr><th>Aegean Blue (<code>/app</code>)</th><td><code>maria@aegean-blue.example</code> (ιδιοκτήτρια), <code>giorgos@…</code> (διαχειριστής), <code>nikos@…</code> (πλήρωμα)</td></tr>
+    <tr><th>Ionian Sunset</th><td><code>elena@ionian-sunset.example</code>, <code>andreas@…</code></td></tr>
+    <tr><th>Actionseaze</th><td><code>dimitris@actionseaze.example</code></td></tr>
+    <tr><th>Κωδικός όλων</th><td><code>password</code></td></tr>
+</table>
+
+<div class="danger">
+    <span class="label">Αλλάξτε τους κωδικούς αμέσως</span>
+    <p>
+        Ο server είναι δημόσιος και οι λογαριασμοί είναι γραμμένοι στον κώδικα. Αλλάξτε τουλάχιστον
+        του <code>admin@kaiki.example</code> και της <code>maria@…</code>:
+    </p>
+<pre class="copy">php8.4 artisan tinker --execute="App\Models\User::where('email','admin@kaiki.example')->update(['password'=>Hash::make('ΝΕΟΣ-ΚΩΔΙΚΟΣ')]);"</pre>
+    <p>
+        Οι διευθύνσεις <code>.example</code> δεν λαμβάνουν email, άρα «ξέχασα τον κωδικό» δεν δουλεύει γι'
+        αυτούς. Ο κωδικός Basic Auth του μέρους Ε είναι το δεύτερο κλείδωμα.
+    </p>
+</div>
+
+<h4>Καθαρό, χωρίς demo</h4>
+
+<p>Δεν υπάρχει εντολή για διαχειριστή πλατφόρμας· τον φτιάχνετε μία φορά με το tinker:</p>
+
+<pre class="copy">php8.4 artisan tinker --execute="App\Models\User::forceCreate(['name'=>'Mike','email'=>'ΕΣΕΙΣ@ΤΟ-DOMAIN','password'=>Hash::make('ΚΩΔΙΚΟΣ'),'email_verified_at'=>now(),'locale'=>'el','tenant_id'=>null,'is_super_admin'=>true]);"</pre>
+
+<p>
+    Μετά, στο <code>/admin</code> → <strong>Έμποροι</strong> → νέος διοργανωτής. Ο ιδιοκτήτης παίρνει
+    πρόσκληση με email. Αν το email δεν έχει στηθεί ακόμη, το
+    <code>php8.4 artisan kaiki:invitation-link ΔΙΕΥΘΥΝΣΗ</code> τυπώνει τον σύνδεσμο ορισμού κωδικού —
+    αρνείται μόνο όταν <code>APP_ENV=production</code>.
+</p>
+
+<h3>7. Caches και δικαιώματα</h3>
+
+<pre class="copy">php8.4 artisan config:cache
+php8.4 artisan route:cache
+php8.4 artisan view:cache
+
+chmod -R ug+rwX storage bootstrap/cache</pre>
+
+<p>
+    Και τα τρία caches δοκιμάστηκαν στον κώδικα αυτής της έκδοσης και περνούν. Προσοχή: τα
+    <code>KAIKI_HOSTED_HOST</code> και οι διαδρομές «ψήνονται» στο route cache. Κάθε αλλαγή στο .env θέλει
+    ξανά <code>config:cache</code> <em>και</em> <code>route:cache</code>.
+</p>
+
+<p>
+    Ο PHP-FPM του site, ο worker και το cron πρέπει να τρέχουν ως <strong>ο ίδιος χρήστης</strong>
+    (<code>kaikistg</code>), αλλιώς ο ένας γράφει αρχεία στο <code>storage/</code> που ο άλλος δεν μπορεί
+    να ανοίξει.
+</p>
+
+<h3>8. Ο πρώτος έλεγχος</h3>
+
+<pre class="copy">curl -s -o /dev/null -w "%{http_code}\n" https://kaiki.testing.gr/up      <span class="c"># 200</span>
+curl -s https://kaiki.testing.gr/widget/manifest.json                      <span class="c"># η έκδοση του widget</span>
+php8.4 artisan about                                                       <span class="c"># env, drivers, caches</span></pre>
+
+<p>
+    Ανοίξτε <code>https://kaiki.testing.gr/admin</code> και <code>https://kaiki.testing.gr/app</code>.
+    Με το demo: <code>https://book.kaiki.testing.gr/aegean-blue</code>. Μετά, το μέρος Ε: worker, cron,
+    Chromium. Χωρίς αυτά η εφαρμογή ανοίγει, αλλά δεν στέλνει email και δεν ελευθερώνει θέσεις.
+</p>

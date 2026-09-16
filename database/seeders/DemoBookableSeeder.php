@@ -152,6 +152,8 @@ class DemoBookableSeeder extends Seeder
                     'el' => 'Τρίωρη κρουαζιέρα με παραδοσιακό καΐκι.',
                     'en' => 'A three-hour cruise on a traditional kaiki.',
                 ],
+                // The pill on the card's photograph (2026-09-16).
+                'badge' => ['el' => 'Ρομαντικό', 'en' => 'Romantic'],
                 'description' => [
                     'el' => <<<'EL'
                         Φεύγουμε από τη Μαρίνα Ζέας δύο ώρες πριν τη δύση, με το παραδοσιακό καΐκι μας του 1978. Η διαδρομή περνά έξω από τον Φλοίσβο και ανοίγει προς τον Σαρωνικό, εκεί που το φως αρχίζει να χαμηλώνει.
@@ -170,6 +172,8 @@ class DemoBookableSeeder extends Seeder
                 ],
                 'duration_minutes' => 180,
                 'default_start_time' => '18:30',
+                // «Τι θα ζήσετε», the programme and the three lists (2026-09-16).
+                ...DemoTripContent::for('iliovasilema-aigina'),
                 'check_in_offset_minutes' => 30,
                 'min_pax' => 4,
                 'max_pax' => min(20, $vessel->capacity_max),
@@ -220,6 +224,8 @@ class DemoBookableSeeder extends Seeder
                 ],
                 'duration_minutes' => 480,
                 'default_start_time' => '09:00',
+                // «Τι θα ζήσετε», the programme and the three lists (2026-09-16).
+                ...DemoTripContent::for('idiotiki-naulosi-imeras'),
                 'check_in_offset_minutes' => 30,
                 'min_pax' => 0,
                 'max_pax' => $vessel->capacity_max,

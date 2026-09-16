@@ -18,6 +18,8 @@ return [
     'nav' => [
         'language' => 'Language',
         'menu' => 'Menu',
+        'book' => 'Book now',
+        'call' => 'Phone: :phone',
     ],
 
     'index' => [
@@ -46,6 +48,41 @@ return [
             // title in the wrong language is the kind of detail these pages are
             // translated to get right.
             'video' => 'Background video',
+            'search_title' => 'Find your trip',
+        ],
+        // The sections of 16 September. The starting content the editor puts
+        // into a new section, for the operator to keep, change or delete — so
+        // it is written as the operator would.
+        'stats' => [
+            'heading' => 'At a glance',
+        ],
+        'steps' => [
+            'eyebrow' => 'How it works',
+            'heading' => 'From your screen to the deck',
+            'defaults' => [
+                ['title' => 'Choose a trip', 'text' => 'See the free seats for every day and the price for your group.'],
+                ['title' => 'Pay online', 'text' => 'By card, securely. Your ticket arrives by email straight away.'],
+                ['title' => 'Meet us at the boat', 'text' => 'A few minutes before departure. We bring the coffee, you bring a swimsuit.'],
+            ],
+        ],
+        'features' => [
+            'eyebrow' => 'Why us',
+            'heading' => 'Everything you need for an easy day',
+            'defaults' => [
+                ['title' => 'Small groups', 'text' => 'Never more people than the boat carries comfortably.'],
+                ['title' => 'Experienced crew', 'text' => 'Skippers who know every cove in the area.'],
+                ['title' => 'Weather guarantee', 'text' => 'If the weather keeps us in, move your day or get your money back.'],
+                ['title' => 'Secure payment', 'text' => 'Pay online and your ticket arrives straight away.'],
+            ],
+        ],
+        'testimonials' => [
+            'eyebrow' => 'Reviews',
+            'heading' => 'What our guests say',
+            // For a screen reader. The stars are drawing.
+            'rating' => '{1} One star out of five|[2,*] :count stars out of five',
+        ],
+        'cta' => [
+            'eyebrow' => 'Book your day',
         ],
         // The FAQ block renders `faqs` rows (#103); the heading is the only
         // text it carries, and this is what it says when the operator has not
@@ -77,6 +114,9 @@ return [
     'product' => [
         'breadcrumb' => 'Breadcrumb',
         'max_pax' => 'Up to :count people',
+        'all_trips' => 'All trips',
+        'departs' => 'Departs :time',
+        'all_photos' => 'All photos (:count)',
         'about' => 'About this trip',
         'gallery' => 'Photographs',
         'ask' => [
@@ -117,10 +157,11 @@ return [
             ],
         ],
         'close' => 'Close',
-        'includes' => 'What is included',
+        'highlights' => 'Highlights',
+        'includes' => 'Included',
         'excludes' => 'Not included',
         'what_to_bring' => 'What to bring',
-        'itinerary' => 'The route',
+        'itinerary' => 'The itinerary',
         'departures' => 'Upcoming departures',
         'map_title' => 'Map of :place',
         'sold_out' => 'Sold out',
@@ -209,6 +250,8 @@ return [
         'operator' => 'Operator',
         'contact' => 'Contact',
         'legal' => 'Legal',
+        'explore' => 'Explore',
+        'home' => 'Home',
         'vat_number' => 'VAT number',
         'tax_office' => 'Tax office',
         'terms' => 'Terms',

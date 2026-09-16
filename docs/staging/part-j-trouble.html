@@ -1,0 +1,159 @@
+<section class="part">
+    <span class="num">Μέρος Ι</span>
+    <h2>Όταν κάτι δεν δουλεύει</h2>
+    <p>
+        Τα συνηθισμένα, με το σύμπτωμα όπως το βλέπετε και την αιτία με τη σειρά που αξίζει να
+        την ψάξετε. Το πρώτο μέρος για κάθε πρόβλημα είναι το log.
+    </p>
+</section>
+
+<h2 class="continues">Πού κοιτάτε πρώτα</h2>
+
+<pre class="copy">tail -n 100 storage/logs/laravel-$(date +%F).log     <span class="c"># η εφαρμογή</span>
+tail -n 100 storage/logs/worker.log                  <span class="c"># ο worker</span>
+php8.4 artisan queue:failed                          <span class="c"># εργασίες που απέτυχαν οριστικά</span>
+sudo supervisorctl status kaiki-staging-worker:*</pre>
+
+<p>
+    Στο πάνελ του διοργανωτή, <strong>Τι πήγε στραβά</strong> μαζεύει αποτυχίες πληρωμών, μηνυμάτων,
+    ημερολογίων, εξαγωγών, webhooks και εισερχόμενων ειδοποιήσεων πληρωμής, με εξήγηση στα ελληνικά.
+</p>
+
+<h2>Σφάλματα σελίδας</h2>
+
+<table class="fields wide">
+    <tr>
+        <th>500 σε κάθε σελίδα</th>
+        <td>
+            Log της ημέρας. Συνήθως: δικαιώματα στο <code>storage/</code> ή <code>bootstrap/cache</code> (άλλος χρήστης
+            ο FPM, άλλος ο worker)· κενό <code>APP_KEY</code>· λάθος κωδικός βάσης. Αν αλλάξατε το .env και «δεν
+            πιάνει»: ξεχάσατε <code>config:cache</code>.
+        </td>
+    </tr>
+    <tr>
+        <th>«require a PHP version &gt;= 8.4.1»</th>
+        <td>Σε 500 του site: το FPM του subdomain δεν είναι 8.4. Στο SSH: το <code>php</code> είναι παλιότερο — καλέστε <code>php8.4</code>.</td>
+    </tr>
+    <tr>
+        <th><code>Class "Redis" not found</code></th>
+        <td>Λείπει η επέκταση phpredis από το FPM ή από το CLI. Κάθε SAPI έχει δικό του <code>php.ini</code>.</td>
+    </tr>
+    <tr>
+        <th>404 σε όλα τα <code>book.kaiki.testing.gr/…</code></th>
+        <td>Το <code>KAIKI_HOSTED_HOST</code> δεν είναι ακριβώς το hostname, ή το <code>route:cache</code> φτιάχτηκε πριν το αλλάξετε — ξανά <code>config:cache</code> και <code>route:cache</code>. Ή ο διοργανωτής έχει κλειστή τη δημόσια σελίδα του.</td>
+    </tr>
+    <tr>
+        <th>419 «Page expired» σε φόρμες</th>
+        <td><code>SESSION_SECURE_COOKIE=true</code> ενώ η εφαρμογή νομίζει ότι είναι σε <code>http://</code> — δείτε <code>TRUSTED_PROXIES</code> πιο κάτω.</td>
+    </tr>
+</table>
+
+<h2>HTTPS και proxy</h2>
+
+<table class="fields wide">
+    <tr>
+        <th>Φόρμα που στέλνει σε <code>http://</code> και ο browser την μπλοκάρει, «mixed content», βρόχος ανακατευθύνσεων</th>
+        <td>
+            Ο web server του πίνακα τερματίζει το HTTPS και περνά το αίτημα μέσω proxy, ενώ το
+            <code>TRUSTED_PROXIES</code> είναι κενό — η εφαρμογή δεν πιστεύει το <code>X-Forwarded-Proto</code>. Βάλτε
+            την IP του proxy (συνήθως <code>127.0.0.1</code>), <code>config:cache</code>. Το ίδιο σύμπτωμα εμφανίστηκε στις
+            16 Σεπτεμβρίου, και γι' αυτό η ρύθμιση ζει πλέον στο <code>config/trustedproxy.php</code>.
+            Ελέγξτε και ότι το <code>APP_URL</code> αρχίζει από <code>https://</code>.
+        </td>
+    </tr>
+    <tr>
+        <th>Λείπει το <code>Strict-Transport-Security</code> από το πάνελ</th>
+        <td>Το ίδιο πρόβλημα: μπαίνει μόνο όταν η εφαρμογή βλέπει το αίτημα ως HTTPS.</td>
+    </tr>
+</table>
+
+<h2>Παρασκήνιο</h2>
+
+<table class="fields wide">
+    <tr>
+        <th>Δεν φεύγουν email</th>
+        <td>
+            Με τη σειρά: ο worker δεν τρέχει (<code>supervisorctl status</code>)· <code>MAIL_MAILER</code> έμεινε
+            <code>log</code> από το seed· λάθος SMTP (το log του worker γράφει τον λόγο)· φεύγουν αλλά πάνε στα
+            ανεπιθύμητα (SPF/DKIM). Μετά από αλλαγή κώδικα ή .env, <code>queue:restart</code>.
+        </td>
+    </tr>
+    <tr>
+        <th>Δεν βγαίνει PDF / email χωρίς εισιτήριο</th>
+        <td>
+            Στο log: <code>Cannot find module 'puppeteer'</code> → δεν τρέξατε <code>npm ci</code> στον φάκελο της
+            εφαρμογής, ή σβήσατε το <code>node_modules</code>. <code>Could not find Chrome</code> ή <code>ENOENT</code> →
+            λάθος <code>KAIKI_CHROME_PATH</code>. <code>proc_open</code> → απενεργοποιημένη συνάρτηση. <code>node: not
+            found</code> → το PATH του Supervisor δεν έχει το Node. Κουτάκια αντί για ελληνικά → λείπουν
+            γραμματοσειρές.
+        </td>
+    </tr>
+    <tr>
+        <th>Θέσεις που μένουν πιασμένες, υπενθυμίσεις που δεν φεύγουν</th>
+        <td>Το cron δεν τρέχει ή τρέχει με άλλο PHP. <code>php8.4 artisan schedule:list</code>, και δοκιμάστε τη γραμμή του crontab με το χέρι.</td>
+    </tr>
+    <tr>
+        <th>Η ίδια εισαγωγή εκτελείται δύο φορές</th>
+        <td><code>REDIS_QUEUE_RETRY_AFTER</code> έμεινε 90 (μέρος Δ).</td>
+    </tr>
+</table>
+
+<h2>Widget και WordPress</h2>
+
+<table class="fields wide">
+    <tr>
+        <th>Η φόρμα δεν φορτώνει καθόλου</th>
+        <td>
+            <code>https://kaiki.testing.gr/widget/kaiki-widget.js</code> δίνει 404 → δεν τρέξατε
+            <code>widget:publish</code>. Δίνει 401 → ο Basic Auth καλύπτει το <code>/widget/</code>. Η «Διεύθυνση του
+            Kaiki» στο WordPress δείχνει ακόμη στην παραγωγή.
+        </td>
+    </tr>
+    <tr>
+        <th>Η φόρμα δεν αλλάζει μετά από ενημέρωση</th>
+        <td>
+            Τρέξατε <code>widget:build</code> αλλά όχι <code>widget:publish</code> — το <code>/widget/manifest.json</code> λέει
+            ποια έκδοση σερβίρεται. Αλλιώς: το alias μένει πέντε λεπτά στην cache του browser, και το cache
+            σελίδων του WordPress κρατά την παλιά σελίδα.
+        </td>
+    </tr>
+    <tr>
+        <th><code>origin_not_allowed</code>, σφάλμα CORS στην κονσόλα</th>
+        <td>
+            Το site δεν είναι στους <strong>Επιτρεπόμενους ιστότοπους</strong> του κλειδιού, ακριβώς όπως το βλέπει ο
+            browser: <code>https://aegeancr.gr</code> ≠ <code>https://www.aegeancr.gr</code> ≠
+            <code>http://aegeancr.gr</code>. Προσθέστε όλες τις μορφές που ανοίγουν.
+        </td>
+    </tr>
+    <tr>
+        <th>«Χωρίς σύνδεση» στο WordPress, «δεν μπόρεσε να επικοινωνήσει»</th>
+        <td>Ο server του WordPress δεν φτάνει το <code>kaiki.testing.gr</code>: τείχος προστασίας της φιλοξενίας, DNS που δεν έχει διαδοθεί ακόμη εκεί, ή WAF στον δικό μας server που κόβει την IP του.</td>
+    </tr>
+    <tr>
+        <th>«Άμεσες ενημερώσεις» αποτυγχάνουν με υπογραφή</th>
+        <td>Αναμενόμενο σήμερα — δείτε το μέρος Ζ. Αφήστε το μυστικό κενό.</td>
+    </tr>
+</table>
+
+<h2>Viva</h2>
+
+<table class="fields wide">
+    <tr>
+        <th>Η κράτηση δεν πληρώνεται, «δεν υπάρχει τρόπος πληρωμής»</th>
+        <td>
+            Κλειδί «Παραγωγή» (ή διοργανωτής χωρίς «Δοκιμαστικό λογαριασμό» για σελίδες <code>book.</code>) χωρίς ζωντανά
+            διαπιστευτήρια. Στο staging: κλειδί δοκιμαστικό και διαπιστευτήρια «Δοκιμαστικό».
+        </td>
+    </tr>
+    <tr>
+        <th>Πληρώθηκε στη Viva, η κράτηση μένει σε αναμονή</th>
+        <td>
+            Το webhook δεν έφτασε (μέρος Η). Επιβεβαιώνεται σε 5–10 λεπτά από το <code>payments:reconcile</code> —
+            αν όχι κι αυτό, το cron δεν τρέχει ή το Kaiki δεν φτάνει τα <code>demo-*.vivapayments.com</code>.
+        </td>
+    </tr>
+    <tr>
+        <th>Η Viva γράφει λάθος για τις διευθύνσεις επιστροφής</th>
+        <td>Το domain της πηγής πληρωμών πρέπει να είναι το <code>kaiki.testing.gr</code>, και τα Success/Failure URL ακριβώς όπως τα δείχνει η οθόνη Συνδέσεις.</td>
+    </tr>
+</table>

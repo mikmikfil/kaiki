@@ -1,0 +1,178 @@
+<section class="part">
+    <span class="num">Μέρος Ε</span>
+    <h2>Ό,τι τρέχει στο παρασκήνιο</h2>
+    <p>
+        Χωρίς worker δεν φεύγει email και δεν βγαίνει εισιτήριο. Χωρίς cron οι θέσεις
+        εγκαταλελειμμένων πληρωμών μένουν κλειδωμένες. Χωρίς Chromium δεν βγαίνει κανένα PDF.
+        Και τα τρία εδώ, μαζί με τον κωδικό που κρατά το staging μακριά από μηχανές αναζήτησης.
+    </p>
+</section>
+
+<h2 class="continues">Ο worker της ουράς</h2>
+
+<p>
+    Καμία εργασία του Kaiki δεν ορίζει δική της ουρά: όλες πάνε στην <code>default</code>. Emails
+    επιβεβαίωσης, εισιτήρια PDF, παραστατικά, επιστροφές χρημάτων, webhooks της Viva, εξαγωγές,
+    εισαγωγές, ημερολόγια iCal. Δύο διεργασίες αρκούν για staging.
+</p>
+
+<pre class="copy long"><span class="file">/etc/supervisor/conf.d/kaiki-staging.conf</span>[program:kaiki-staging-worker]
+process_name=%(program_name)s_%(process_num)02d
+numprocs=2
+directory=/home/kaikistg/kaiki
+command=/usr/bin/php8.4 artisan queue:work redis --queue=default --sleep=3 --tries=3 --timeout=120 --max-time=3600
+user=kaikistg
+environment=HOME="/home/kaikistg",PUPPETEER_SKIP_DOWNLOAD="1"
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+stopwaitsecs=960
+redirect_stderr=true
+stdout_logfile=/home/kaikistg/kaiki/storage/logs/worker.log
+stdout_logfile_maxbytes=10MB
+stdout_logfile_backups=3</pre>
+
+<pre class="copy">sudo supervisorctl reread
+sudo supervisorctl update
+sudo supervisorctl status kaiki-staging-worker:*</pre>
+
+<table class="fields">
+    <tr>
+        <th><code>--timeout=120</code></th>
+        <td>Για τις περισσότερες εργασίες. Όσες ορίζουν δικό τους <code>$timeout</code> (η εισαγωγή: 900) το κρατούν.</td>
+    </tr>
+    <tr>
+        <th><code>stopwaitsecs=960</code></th>
+        <td>Σε επανεκκίνηση, ο Supervisor περιμένει να τελειώσει μια εισαγωγή αντί να την κόψει στη μέση.</td>
+    </tr>
+    <tr>
+        <th><code>--max-time=3600</code></th>
+        <td>Ο worker ξεκινά από την αρχή κάθε ώρα, ώστε μια διαρροή μνήμης να μην κρατά για πάντα.</td>
+    </tr>
+    <tr>
+        <th><code>HOME</code></th>
+        <td>Το Chromium γράφει προφίλ και crash reports στο home του χρήστη. Χωρίς <code>HOME</code> μπορεί να μην ξεκινήσει.</td>
+    </tr>
+</table>
+
+<p>
+    Αν ο server δεν έχει Supervisor αλλά η Cretaforce προτιμά systemd, η ίδια εντολή μπαίνει σε ένα
+    <code>kaiki-staging-worker@.service</code> με <code>User=kaikistg</code>, <code>Restart=always</code> και
+    <code>KillSignal=SIGTERM</code>, <code>TimeoutStopSec=960</code>.
+</p>
+
+<h2>Το cron</h2>
+
+<pre class="copy"><span class="file">crontab -e (ως kaikistg)</span>* * * * * cd /home/kaikistg/kaiki &amp;&amp; /usr/bin/php8.4 artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</pre>
+
+<p>
+    Μία γραμμή για όλες τις προγραμματισμένες εργασίες του <code>routes/console.php</code>. Τι τρέχει, και
+    τι παθαίνετε αν σταματήσει:
+</p>
+
+<table class="fields wide">
+    <tr><th>Κάθε λεπτό</th><td>Καθάρισμα ληγμένων κρατήσεων θέσεων (<code>bookings:expire-holds</code>)· επαναλήψεις webhooks που χάθηκαν (<code>webhooks:sweep-retries</code>).</td></tr>
+    <tr><th>Κάθε 5 λεπτά</th><td><strong>Εγκαταλελειμμένες πληρωμές</strong> (<code>bookings:expire-checkouts</code>) — χωρίς αυτό οι θέσεις μένουν πουλημένες για πάντα. <strong>Συμφωνία πληρωμών με τη Viva</strong> (<code>payments:reconcile</code>) — πιάνει ό,τι δεν έφερε το webhook.</td></tr>
+    <tr><th>Κάθε 15 λεπτά</th><td>Υπενθυμίσεις σε πελάτες, λήξη προσφορών, έλεγχος custom domains, λήψη ημερολογίων iCal (:07, :22, :37, :52).</td></tr>
+    <tr><th>Κάθε ώρα</th><td>Ολοκλήρωση κρατήσεων που ταξίδεψαν (:20)· προθεσμίες επιλογής λόγω καιρού (:35)· διαγραφή ληγμένων εξαγωγών (:40).</td></tr>
+    <tr><th>Κάθε μέρα (ώρα Αθήνας)</th><td>Νέες αναχωρήσεις για τις επόμενες 400 μέρες (03:15)· καθαρισμός ιστορικού, μηνυμάτων και webhooks (04:10)· λήξη κουπονιών (04:20)· υπενθυμίσεις κουπονιών (09:30)· διαγραφή αριθμών διαβατηρίων (05:05).</td></tr>
+</table>
+
+<pre class="copy">php8.4 artisan schedule:list       <span class="c"># τι θα τρέξει και πότε</span></pre>
+
+<h2>Chromium για τα PDF</h2>
+
+<p>
+    Η αλυσίδα είναι: PHP (Browsershot) → <code>node</code> → <code>puppeteer</code> από το
+    <code>node_modules</code> της εφαρμογής → το Chromium του <code>KAIKI_CHROME_PATH</code>. Τρέχει με
+    <code>--no-sandbox</code> και χωρίς πρόσβαση στο δίκτυο από το έγγραφο (<code>app/Support/Pdf/ChromiumPdf.php</code>).
+    Ελέγξτε ολόκληρη την αλυσίδα με μία εντολή, ως ο χρήστης του site:
+</p>
+
+<pre class="copy">php8.4 artisan tinker --execute="echo strlen(App\Support\Pdf\ChromiumPdf::render('&lt;h1&gt;Καλημέρα, Αιγαίο&lt;/h1&gt;')), PHP_EOL;"</pre>
+
+<p>
+    Ένας αριθμός (μερικές δεκάδες χιλιάδες bytes) σημαίνει ότι όλα δουλεύουν. Για να δείτε ότι τα
+    ελληνικά δεν βγαίνουν κουτάκια, γράψτε το PDF σε αρχείο με <code>file_put_contents</code> και ανοίξτε το.
+</p>
+
+<div class="note">
+    <span class="label">Γιατί όχι το Chromium που κατεβάζει το Puppeteer</span>
+    <p>
+        Το <code>npm ci</code> θα κατέβαζε ένα Chrome στο <code>~/.cache/puppeteer</code>, χωρίς τις βιβλιοθήκες
+        συστήματος που χρειάζεται — και αυτές τις εγκαθιστά μόνο ο root. Το CI κάνει το ίδιο που
+        προτείνουμε: <code>PUPPETEER_SKIP_DOWNLOAD=1</code> και το Chrome του συστήματος. Σε Ubuntu,
+        προτιμήστε το πακέτο <code>google-chrome-stable</code>· το <code>chromium</code> εκεί είναι snap και
+        συχνά δεν τρέχει από υπηρεσία.
+    </p>
+</div>
+
+<h2>Κωδικός και noindex</h2>
+
+<p>
+    Το staging είναι δημόσιο και έχει γνωστούς λογαριασμούς. Η εφαρμογή δεν έχει δικό της μηχανισμό
+    για μη-παραγωγικό περιβάλλον: μόνο οι σελίδες κράτησης με token (<code>/b/</code>, <code>/c/</code>,
+    <code>/g/</code>, <code>/q/</code>, <code>/v/</code>) στέλνουν <code>X-Robots-Tag: noindex</code>, ενώ οι σελίδες
+    διοργανωτή είναι <em>σκόπιμα</em> ανοιχτές σε μηχανές αναζήτησης. Άρα στο staging χρειάζονται δύο
+    πράγματα στον web server: κωδικός (Basic Auth) και <code>noindex</code> παντού.
+</p>
+
+<p>Ο κωδικός μπαίνει <strong>παντού εκτός</strong> από όσα καλούν άλλοι χωρίς να ξέρουν τον κωδικό:</p>
+
+<table class="fields wide">
+    <tr><th><code>/api/v1/</code></th><td>Το widget από το <code>aegeancr.gr</code>, και το WordPress από τον server του. Το API έχει δικό του κλειδί στο <code>Authorization</code>.</td></tr>
+    <tr><th><code>/widget/</code></th><td>Το <code>kaiki-widget.js</code> και το <code>manifest.json</code>.</td></tr>
+    <tr><th><code>/storage/</code></th><td>Φωτογραφίες εκδρομών που δείχνει το WordPress, και τα υπογεγραμμένα λογότυπα.</td></tr>
+    <tr><th><code>/webhooks/</code></th><td>Η Viva: επιβεβαίωση διεύθυνσης (GET) και ειδοποίηση πληρωμής (POST).</td></tr>
+    <tr><th><code>/pay/viva/</code></th><td>Επιστροφή του πελάτη από τη Viva (success, failure).</td></tr>
+    <tr><th><code>/b/ /c/ /g/ /q/ /v/</code></th><td>Οι σελίδες του πελάτη: κράτηση, πληρωμή, στοιχεία επιβατών, προσφορά, κουπόνι. Ανοίγουν από το widget και από τα email.</td></tr>
+    <tr><th><code>/sandbox/checkout/</code></th><td>Η ψεύτικη πληρωμή του Kaiki, όταν ο διοργανωτής δεν έχει συνδέσει Viva.</td></tr>
+    <tr><th><code>/ical/</code>, <code>/up</code></th><td>Συνδρομές ημερολογίου και ο έλεγχος υγείας.</td></tr>
+</table>
+
+<p>
+    Πίσω από κωδικό μένουν: η αρχική <code>/</code>, τα πάνελ <code>/app</code> και <code>/admin</code> (άρα
+    δύο συνδέσεις — πρώτα ο κωδικός του server, μετά του Kaiki), και ολόκληρες οι σελίδες
+    <code>book.kaiki.testing.gr/…</code>. Όποιος δοκιμάζει σελίδα διοργανωτή δίνει τον κωδικό μία φορά· οι
+    κλήσεις του widget προς <code>/api/v1</code> στο ίδιο hostname δεν τον χρειάζονται.
+</p>
+
+<pre class="copy long"><span class="file">Apache 2.4 — στο VirtualHost (όχι στο public/.htaccess, που είναι στο git)</span>Header always set X-Robots-Tag "noindex, nofollow"
+
+&lt;Location "/"&gt;
+    AuthType Basic
+    AuthName "Kaiki staging"
+    AuthUserFile /home/kaikistg/.htpasswd-kaiki
+    &lt;RequireAny&gt;
+        <span class="c"># THE_REQUEST, όχι REQUEST_URI: μετά το rewrite προς index.php το REQUEST_URI αλλάζει</span>
+        Require expr "%{THE_REQUEST} =~ m#^[A-Z]+ /(api/v1|widget|storage|webhooks|pay/viva|b|c|g|q|v|sandbox/checkout|ical)/#"
+        Require expr "%{THE_REQUEST} =~ m#^[A-Z]+ /up[ ?]#"
+        Require valid-user
+    &lt;/RequireAny&gt;
+&lt;/Location&gt;</pre>
+
+<pre class="copy long"><span class="file">nginx — στο http{} και στο server{} των δύο subdomains</span><span class="c"># http {} — $request_uri είναι η αρχική διεύθυνση, και μετά το try_files</span>
+map $request_uri $kaiki_auth {
+    default  "Kaiki staging";
+    "~^/(api/v1|widget|storage|webhooks|pay/viva|b|c|g|q|v|sandbox/checkout|ical)/"  off;
+    "~^/up(\?|$)"  off;
+}
+
+<span class="c"># server {}</span>
+add_header X-Robots-Tag "noindex, nofollow" always;
+auth_basic           $kaiki_auth;
+auth_basic_user_file /home/kaikistg/.htpasswd-kaiki;</pre>
+
+<pre class="copy">htpasswd -c /home/kaikistg/.htpasswd-kaiki dokimes   <span class="c"># ζητά κωδικό· ή ζητήστε το από την Cretaforce</span></pre>
+
+<div class="unsure">
+    <span class="label">Δεν δοκιμάστηκε σε server της Cretaforce</span>
+    <p>
+        Τα δύο snippets είναι γραμμένα για κανονικό Apache 2.4 και nginx· δεν ξέρουμε ποιον από τους δύο
+        (ή και τους δύο, σε σειρά) τρέχει ο πίνακας, ούτε αν επιτρέπει custom οδηγίες στο vhost. Γι' αυτό
+        είναι στο email προς την υποστήριξη. Μετά την εφαρμογή, ελέγξτε: <code>curl -I
+        https://kaiki.testing.gr/app</code> πρέπει να δίνει 401, και <code>curl -I
+        https://kaiki.testing.gr/widget/manifest.json</code> 200.
+    </p>
+</div>

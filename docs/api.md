@@ -773,7 +773,7 @@ paths:
       operationId: getProduct
       summary: Get one product in full
       description: |
-        The complete product: description, includes/excludes/what-to-bring, itinerary stops
+        The complete product: description, highlights, includes/excludes/what-to-bring, itinerary stops
         with coordinates, meeting point, age bands, extras, cancellation policy summary and
         SEO fields — all translatable fields already resolved to the negotiated locale.
 
@@ -2594,6 +2594,11 @@ components:
       required: [key, name]
       properties:
         key: { type: string, maxLength: 8, example: s2 }
+        time:
+          type: [string, "null"]
+          pattern: '^([01]\d|2[0-3]):[0-5]\d$'
+          description: Tenant-local wall time the stop happens at (`HH:MM`). Optional — null for a stop with no fixed hour.
+          example: "10:30"
         name: { type: string, example: Όρμος Βλυχάδα }
         description: { type: [string, "null"], example: Κολύμπι και σνόρκελ. }
         duration_minutes: { type: [integer, "null"], example: 60 }
@@ -2731,6 +2736,14 @@ components:
         slug: { type: string, example: sunset-cruise-aegina }
         title: { type: string, example: Ηλιοβασίλεμα στην Αίγινα }
         summary: { type: [string, "null"], example: Τρίωρη κρουαζιέρα με παραδοσιακό καΐκι. }
+        badge:
+          type: [string, "null"]
+          maxLength: 24
+          description: |
+            The operator's short label for the trip card's photograph, in the negotiated locale.
+            Null when the operator set none; clients show nothing then, and never substitute the
+            category.
+          example: Δημοφιλές
         category:
           type: string
           enum: [shared_full_day, shared_half_day, private_full_day, private_half_day, sunset, custom]
@@ -2769,11 +2782,19 @@ components:
         - $ref: '#/components/schemas/ProductSummary'
         - type: object
           description: The full product. Every translatable field is already resolved to one locale.
-          required: [description, includes, excludes, what_to_bring, itinerary_stops, images, age_bands, extras, cancellation_policy, check_in_offset_minutes, guest_details_required, booking_window, seo]
+          required: [description, highlights, includes, excludes, what_to_bring, itinerary_stops, images, age_bands, extras, cancellation_policy, check_in_offset_minutes, guest_details_required, booking_window, seo]
           properties:
             description:
               type: [string, "null"]
               description: Sanitised HTML. Render with the tenant's content, never with `innerHTML` of untrusted input.
+            highlights:
+              type: [array, "null"]
+              items: { type: string }
+              description: |
+                «Τι θα ζήσετε» — short lines about what makes the trip. Optional, and the same shape
+                as `includes`: an array of strings in the negotiated locale, or `null` when the operator
+                has not filled it in (hide the section).
+              example: [Τρεις στάσεις για μπάνιο σε όρμους με κρυστάλλινα νερά, Μάσκες και αναπνευστήρες για όλους]
             includes:
               type: array
               items: { type: string }
@@ -2846,7 +2867,9 @@ components:
             properties:
               title: { type: string }
               summary: { type: [string, "null"] }
+              badge: { type: [string, "null"], maxLength: 24 }
               description: { type: [string, "null"] }
+              highlights: { type: [array, "null"], items: { type: string } }
               includes: { type: array, items: { type: string } }
               excludes: { type: array, items: { type: string } }
               what_to_bring: { type: array, items: { type: string } }
@@ -3994,6 +4017,7 @@ components:
             slug: kroyaziera-aigina-agkistri
             title: Κρουαζιέρα Αίγινα & Αγκίστρι
             summary: Ολοήμερη κρουαζιέρα με παραδοσιακό καΐκι, γεύμα και δύο στάσεις για κολύμπι.
+            badge: Δημοφιλές
             category: shared_full_day
             mode: per_seat
             duration_minutes: 480
@@ -4021,6 +4045,7 @@ components:
             slug: idiotiki-naylosi-olimeri
             title: Ιδιωτική ναύλωση — ολοήμερη
             summary: Το σκάφος αποκλειστικά για την παρέα σας, με πλήρωμα.
+            badge: null
             category: private_full_day
             mode: per_vessel
             duration_minutes: 480
@@ -4059,6 +4084,7 @@ components:
           slug: kroyaziera-aigina-agkistri
           title: Κρουαζιέρα Αίγινα & Αγκίστρι
           summary: Ολοήμερη κρουαζιέρα με παραδοσιακό καΐκι, γεύμα και δύο στάσεις για κολύμπι.
+          badge: Δημοφιλές
           description: "<p>Αναχωρούμε από τη Μαρίνα Ζέας και πλέουμε προς την Αίγινα. Μετά από ελεύθερο χρόνο στο λιμάνι, συνεχίζουμε στο Αγκίστρι για κολύμπι σε καταγάλανα νερά.</p>"
           category: shared_full_day
           mode: per_seat
@@ -4095,17 +4121,20 @@ components:
             instructions: Συνάντηση στο μπλε περίπτερο, δίπλα στην προβλήτα Δ.
             photo_url: 'https://cdn.kaiki.app/t/2c4a6e80/ports/zea.jpg'
             maps_url: 'https://maps.app.goo.gl/example'
+          highlights: [Μπάνιο στο Αγκίστρι και φαγητό στην Αίγινα, Μικρή παρέα με παραδοσιακό καΐκι]
           includes: [Γεύμα και ποτά, Εξοπλισμός κολύμβησης, Ασφάλεια επιβατών]
           excludes: [Μεταφορά από/προς ξενοδοχείο, Φιλοδωρήματα]
           what_to_bring: [Αντηλιακό, Πετσέτα, Καπέλο]
           itinerary_stops:
             - key: s1
+              time: "09:00"
               name: Αναχώρηση — Μαρίνα Ζέας
               description: Επιβίβαση 30 λεπτά πριν την αναχώρηση.
               duration_minutes: 0
               lat: 37.9339
               lng: 23.6512
             - key: s2
+              time: null
               name: Όρμος Βλυχάδα, Αγκίστρι
               description: Κολύμπι και σνόρκελ.
               duration_minutes: 60
@@ -4994,7 +5023,9 @@ components:
               el:
                 title: Κρουαζιέρα Αίγινα & Αγκίστρι
                 summary: Ολοήμερη κρουαζιέρα με παραδοσιακό καΐκι.
+                badge: Δημοφιλές
                 description: "<p>Αναχωρούμε από τη Μαρίνα Ζέας…</p>"
+                highlights: [Μπάνιο στο Αγκίστρι και φαγητό στην Αίγινα]
                 includes: [Γεύμα και ποτά, Εξοπλισμός κολύμβησης]
                 excludes: [Μεταφορά από/προς ξενοδοχείο]
                 what_to_bring: [Αντηλιακό, Πετσέτα]
@@ -5003,7 +5034,9 @@ components:
               en:
                 title: Aegina & Agistri Cruise
                 summary: Full-day cruise on a traditional kaiki.
+                badge: Popular
                 description: "<p>We depart from Zea Marina…</p>"
+                highlights: [A swim at Agistri and lunch on Aegina]
                 includes: [Lunch and drinks, Snorkelling gear]
                 excludes: [Hotel transfers]
                 what_to_bring: [Sunscreen, Towel]

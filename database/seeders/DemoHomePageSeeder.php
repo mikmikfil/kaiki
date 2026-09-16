@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Domain\Hosted\Support\BlockSettings;
+use App\Domain\Hosted\Actions\SaveHomePage;
 use App\Enums\HomeBlockType;
 use App\Models\HomePageBlock;
+use App\Models\Product;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Database\Seeder;
@@ -24,6 +25,16 @@ use Illuminate\Support\Facades\Storage;
  * data does not exercise it, which is exactly what happened to the story block:
  * it has had a template, a CSS grid, an `image_side` control and a panel form
  * since #102, and it was absent from every screen anybody actually looked at.
+ *
+ * The same applies to the sections of 16 September, so `aegean-blue` gets every
+ * one of them, written in the words of its own WordPress site: the three steps,
+ * the reasons, the numbers, the reviews and the private-charter band. The other demo operators keep the five-section page they always had.
+ *
+ * ## Through `SaveHomePage`, like the editor
+ *
+ * The rows are written by the same Action the panel calls, so the settings,
+ * the entries and the buttons are normalised exactly as an operator's save
+ * would normalise them — a seeder cannot store a shape the editor could not.
  *
  * ## The order is the page an operator writes
  *
@@ -50,74 +61,166 @@ class DemoHomePageSeeder extends Seeder
                     return;
                 }
 
-                foreach ($this->blocks($tenant) as $order => $block) {
-                    HomePageBlock::create([
-                        'type' => $block['type'],
-                        'sort_order' => $order,
-                        'is_visible' => true,
-                        'heading' => $block['heading'],
-                        'body' => $block['body'] ?? null,
-                        'image_path' => $this->imageOrNull($tenant, $block['image'] ?? null),
-                        'settings' => BlockSettings::normalise($block['type'], $block['settings'] ?? []),
-                    ]);
-                }
+                app(SaveHomePage::class)($this->blocks($tenant));
             });
         }
     }
 
     /**
-     * @return list<array{type: HomeBlockType, heading: array<string, string>, body?: array<string, string>, image?: string, settings?: array<string, mixed>}>
+     * The page, in the shape `SaveHomePage` takes.
+     *
+     * Public so a development database whose page predates a new section can
+     * be brought up to date from the same source — inside the tenant's scope.
+     *
+     * @return list<array<string, mixed>>
      */
-    private function blocks(Tenant $tenant): array
+    public function blocks(Tenant $tenant): array
     {
-        return [
+        $full = $tenant->slug === 'aegean-blue';
+
+        return array_values(array_filter([
             [
-                'type' => HomeBlockType::Hero,
+                'type' => HomeBlockType::Hero->value,
+                'eyebrow' => $full ? ['el' => 'Εκδρομές με σκάφος από τον Πειραιά', 'en' => 'Boat trips from Piraeus'] : null,
                 'heading' => ['el' => 'Το Αιγαίο, μια μέρα τη φορά', 'en' => 'The Aegean, a day at a time'],
                 'body' => [
                     'el' => 'Μικρές παρέες, έμπειροι καπετάνιοι και θάλασσα που τη γνωρίζουμε από παιδιά.',
                     'en' => 'Small groups, experienced skippers, and a sea we have known since we were children.',
                 ],
-                'image' => 'demo-hero.jpg',
-                // No button. The search form is directly beneath the
-                // standfirst and is what a visitor actually came to use —
-                // a "see our trips" button above it competes with the thing
-                // it is standing in front of.
+                'image_path' => $this->imageOrNull($tenant, 'demo-hero.jpg'),
+                // No button on the plain demo pages. The search form is directly
+                // beneath the standfirst and is what a visitor actually came to
+                // use — a "see our trips" button above it competes with the
+                // thing it is standing in front of. The full demo has the two
+                // buttons and the badges of the operator's WordPress masthead.
                 'settings' => ['cta' => 'none'],
+                ...($full ? [
+                    'buttons' => [
+                        ['label' => ['el' => 'Δείτε τις εκδρομές', 'en' => 'See our trips'], 'target' => 'trips'],
+                        ['label' => ['el' => 'Ιδιωτική ναύλωση', 'en' => 'Private charter'], 'target' => 'contact'],
+                    ],
+                    'items' => [
+                        ['icon' => 'star', 'text' => ['el' => '4,9 / 5 από 1.200+ κριτικές', 'en' => '4.9 / 5 from 1,200+ reviews']],
+                        ['icon' => 'sun', 'text' => ['el' => 'Εγγύηση καιρού', 'en' => 'Weather guarantee']],
+                        ['icon' => 'check', 'text' => ['el' => 'Άμεση επιβεβαίωση', 'en' => 'Instant confirmation']],
+                    ],
+                ] : []),
             ],
             [
-                'type' => HomeBlockType::Trips,
-                'heading' => ['el' => 'Οι πιο δημοφιλείς εκδρομές', 'en' => 'Our best sellers'],
+                'type' => HomeBlockType::Trips->value,
+                'eyebrow' => $full ? ['el' => 'Εκδρομές', 'en' => 'Trips'] : null,
+                'heading' => $full
+                    ? ['el' => 'Διαλέξτε τη δική σας μέρα στη θάλασσα', 'en' => 'Choose your own day at sea']
+                    : ['el' => 'Οι πιο δημοφιλείς εκδρομές', 'en' => 'Our best sellers'],
                 // No limit. A limit of six capped the whole block, so all six
                 // went into the featured rail and the "all trips" grid beneath
                 // it had nothing left to show — the operator's own catalogue
                 // was invisible on their own front page.
-                'settings' => ['source' => BlockSettings::SOURCE_ALL, 'limit' => 0],
+                'settings' => ['source' => 'all', 'limit' => 0],
             ],
+            $full ? [
+                'type' => HomeBlockType::Steps->value,
+                'eyebrow' => ['el' => 'Πώς λειτουργεί', 'en' => 'How it works'],
+                'heading' => ['el' => 'Από την οθόνη σας στο κατάστρωμα', 'en' => 'From your screen to the deck'],
+                'items' => [
+                    ['title' => ['el' => 'Διαλέξτε εκδρομή', 'en' => 'Choose a trip'], 'text' => ['el' => 'Δείτε τις ελεύθερες θέσεις κάθε μέρας και την τιμή για την παρέα σας.', 'en' => 'See the free seats for every day and the price for your group.']],
+                    ['title' => ['el' => 'Πληρώστε online', 'en' => 'Pay online'], 'text' => ['el' => 'Με κάρτα, με ασφάλεια. Το εισιτήριο έρχεται αμέσως στο email σας.', 'en' => 'By card, securely. Your ticket arrives by email straight away.']],
+                    ['title' => ['el' => 'Ελάτε στη Μαρίνα Ζέας', 'en' => 'Meet us at Zea Marina'], 'text' => ['el' => '15 λεπτά πριν. Εμείς φέρνουμε τον καφέ, εσείς το μαγιό.', 'en' => '15 minutes before. We bring the coffee, you bring a swimsuit.']],
+                ],
+            ] : null,
             [
                 // The "about us". Title and prose on the left, photograph on the
                 // right — `image_side` is a class on the section, because the
                 // hosted CSP has no `unsafe-inline` and a `style` attribute
                 // would be dropped by the browser.
-                'type' => HomeBlockType::Story,
-                'heading' => ['el' => 'Ποιοι είμαστε', 'en' => 'Who we are'],
+                'type' => HomeBlockType::Story->value,
+                'eyebrow' => $full ? ['el' => 'Ποιοι είμαστε', 'en' => 'Who we are'] : null,
+                'heading' => $full
+                    ? ['el' => 'Ένα ξύλινο καΐκι και δύο αδέρφια', 'en' => 'One wooden kaiki and two brothers']
+                    : ['el' => 'Ποιοι είμαστε', 'en' => 'Who we are'],
                 'body' => [
                     'el' => "Ξεκινήσαμε με ένα ξύλινο καΐκι και δύο αδέρφια που δεν ήθελαν να δουλέψουν σε γραφείο.\n\nΤριάντα χρόνια μετά, ο στόλος μεγάλωσε αλλά η μέρα έμεινε ίδια: φεύγουμε νωρίς, σταματάμε εκεί που το νερό είναι καθαρό, και γυρνάμε πριν πέσει ο ήλιος. Δεν παίρνουμε ποτέ περισσότερους από όσους χωράει άνετα το σκάφος.",
                     'en' => "We started with one wooden kaiki and two brothers who did not want to work in an office.\n\nThirty years on the fleet is bigger, but the day is the same: we leave early, we stop where the water is clear, and we are back before the sun goes down. We never take more people than the boat carries comfortably.",
                 ],
-                'image' => 'demo-story.jpg',
+                'image_path' => $this->imageOrNull($tenant, 'demo-story.jpg'),
+                'image_alt' => ['el' => 'Το καΐκι μας δεμένο στη μαρίνα', 'en' => 'Our kaiki moored in the marina'],
                 'settings' => ['image_side' => 'left'],
             ],
+            $full ? [
+                'type' => HomeBlockType::Features->value,
+                'eyebrow' => ['el' => 'Γιατί Aegean Blue', 'en' => 'Why Aegean Blue'],
+                'heading' => ['el' => 'Όλα όσα χρειάζεστε για μια ήσυχη μέρα', 'en' => 'Everything you need for an easy day'],
+                'settings' => ['dark' => true],
+                'items' => [
+                    ['icon' => 'users', 'title' => ['el' => 'Μικρές παρέες', 'en' => 'Small groups'], 'text' => ['el' => 'Ποτέ περισσότεροι απ’ όσους χωράει άνετα το σκάφος.', 'en' => 'Never more people than the boat carries comfortably.']],
+                    ['icon' => 'anchor', 'title' => ['el' => 'Τριάντα χρόνια εμπειρίας', 'en' => 'Thirty years at sea'], 'text' => ['el' => 'Καπετάνιοι που ξέρουν κάθε όρμο του Σαρωνικού.', 'en' => 'Skippers who know every cove in the Saronic.']],
+                    ['icon' => 'shield', 'title' => ['el' => 'Εγγύηση καιρού', 'en' => 'Weather guarantee'], 'text' => ['el' => 'Αν δεν βγούμε λόγω καιρού, άλλη μέρα ή τα χρήματά σας πίσω.', 'en' => 'If the weather keeps us in, another day or your money back.']],
+                    ['icon' => 'lock', 'title' => ['el' => 'Ασφαλής πληρωμή', 'en' => 'Secure payment'], 'text' => ['el' => 'Πληρώνετε online και το εισιτήριο έρχεται αμέσως στο email.', 'en' => 'Pay online and your ticket arrives by email straight away.']],
+                ],
+            ] : null,
+            $full ? [
+                'type' => HomeBlockType::Stats->value,
+                'eyebrow' => ['el' => 'Σε αριθμούς', 'en' => 'In numbers'],
+                'heading' => ['el' => 'Τριάντα χρόνια στη θάλασσα', 'en' => 'Thirty years at sea'],
+                'items' => [
+                    ['icon' => 'anchor', 'value' => ['el' => '30+', 'en' => '30+'], 'label' => ['el' => 'χρόνια στη θάλασσα', 'en' => 'years at sea']],
+                    ['icon' => 'boat', 'value' => ['el' => '4', 'en' => '4'], 'label' => ['el' => 'σκάφη, από καΐκι ως καταμαράν', 'en' => 'boats, from kaiki to catamaran']],
+                    ['icon' => 'users', 'value' => ['el' => '25.000+', 'en' => '25,000+'], 'label' => ['el' => 'επιβάτες κάθε χρόνο', 'en' => 'guests every year']],
+                    ['icon' => 'star', 'value' => ['el' => '4,9★', 'en' => '4.9★'], 'label' => ['el' => 'μέση βαθμολογία', 'en' => 'average rating']],
+                ],
+            ] : null,
+            $full ? [
+                'type' => HomeBlockType::Testimonials->value,
+                'eyebrow' => ['el' => 'Κριτικές', 'en' => 'Reviews'],
+                'heading' => ['el' => 'Τι λένε όσοι ταξίδεψαν μαζί μας', 'en' => 'What our guests say'],
+                'items' => [
+                    [
+                        'quote' => ['el' => 'Η καλύτερη μέρα των διακοπών μας. Ο καπετάνιος ήξερε όρμους που δεν θα βρίσκαμε ποτέ μόνοι μας, και τα παιδιά δεν ήθελαν να κατέβουν.', 'en' => 'The best day of our holiday. The skipper knew coves we would never have found on our own, and the children did not want to get off.'],
+                        'name' => 'Ελένη Π.',
+                        'trip' => ['el' => 'Ολοήμερη στα τρία νησιά', 'en' => 'Three islands in a day'],
+                        'rating' => 5,
+                    ],
+                    [
+                        'quote' => ['el' => 'Κλείσαμε το ηλιοβασίλεμα για την επέτειό μας. Κρασί, μεζέδες και η Αίγινα να βάφεται πορτοκαλί. Άψογη οργάνωση από την αρχή ως το τέλος.', 'en' => 'We booked the sunset trip for our anniversary. Wine, meze and Aegina turning orange. Faultless from start to finish.'],
+                        'name' => 'Νίκος & Μαρία',
+                        'trip' => ['el' => 'Ηλιοβασίλεμα στην Αίγινα', 'en' => 'Sunset at Aegina'],
+                        'rating' => 5,
+                    ],
+                    [
+                        'quote' => ['el' => 'We booked in two minutes on our phone and got the ticket straight away. Small group, friendly crew, crystal water. Highly recommended!', 'en' => 'We booked in two minutes on our phone and got the ticket straight away. Small group, friendly crew, crystal water. Highly recommended!'],
+                        'name' => 'Sarah K.',
+                        'trip' => ['el' => 'Πρωινό κολυμβητικό', 'en' => 'Morning swim'],
+                        'rating' => 5,
+                    ],
+                ],
+            ] : null,
+            $full ? [
+                'type' => HomeBlockType::Cta->value,
+                'eyebrow' => ['el' => 'Ιδιωτικές ναυλώσεις', 'en' => 'Private charters'],
+                'heading' => ['el' => 'Όλο το σκάφος, μόνο για την παρέα σας', 'en' => 'The whole boat, just for your group'],
+                'body' => [
+                    'el' => 'Γενέθλια, πρόταση γάμου, εταιρική εκδρομή ή απλώς μια μέρα χωρίς αγνώστους. Πείτε μας ημερομηνία και άτομα, και σας στέλνουμε προσφορά μέσα στη μέρα.',
+                    'en' => 'A birthday, a proposal, a company outing or simply a day without strangers. Tell us the date and how many of you, and we send a quote the same day.',
+                ],
+                'image_path' => $this->productImageOrNull('idiotiki-imera-skafos'),
+                'image_alt' => ['el' => 'Ιστιοφόρο στη θάλασσα', 'en' => 'A sailing boat at sea'],
+                'buttons' => array_values(array_filter([
+                    ['label' => ['el' => 'Ζητήστε προσφορά', 'en' => 'Ask for a quote'], 'target' => 'contact'],
+                    ($charter = Product::query()->where('slug', 'idiotiki-imera-skafos')->first()) instanceof Product
+                        ? ['label' => ['el' => 'Δείτε την ιδιωτική ημέρα', 'en' => 'See the private day'], 'target' => 'trip', 'product_id' => $charter->getKey()]
+                        : null,
+                ])),
+            ] : null,
             [
-                'type' => HomeBlockType::Faq,
+                'type' => HomeBlockType::Faq->value,
                 'heading' => ['el' => 'Συχνές ερωτήσεις', 'en' => 'Common questions'],
             ],
             [
-                'type' => HomeBlockType::Contact,
+                'type' => HomeBlockType::Contact->value,
                 'heading' => ['el' => 'Επικοινωνήστε μαζί μας', 'en' => 'Get in touch'],
-                'image' => 'demo-contact.jpg',
+                'image_path' => $this->imageOrNull($tenant, 'demo-contact.jpg'),
             ],
-        ];
+        ]));
     }
 
     /**
@@ -145,5 +248,14 @@ class DemoHomePageSeeder extends Seeder
         $path = sprintf('branding/%d/%s', $tenant->getKey(), $file);
 
         return Storage::disk('public')->exists($path) ? $path : null;
+    }
+
+    /** One of a trip's own photographs, for the call-to-action band, if it is on the disk. */
+    private function productImageOrNull(string $slug): ?string
+    {
+        $product = Product::query()->where('slug', $slug)->first();
+        $path = $product instanceof Product ? ($product->images[0]['path'] ?? null) : null;
+
+        return is_string($path) && Storage::disk('public')->exists($path) ? $path : null;
     }
 }

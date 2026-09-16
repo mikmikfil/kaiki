@@ -125,7 +125,7 @@ Plain event timestamps (`sent_at`, `issued_at`, `checked_in_at`, `last_used_at`,
 
 | Table | Translatable columns |
 |---|---|
-| `products` | `title`, `summary`, `description`, `includes`, `excludes`, `what_to_bring`, `itinerary_stops`, `meta_title`, `meta_description` |
+| `products` | `title`, `summary`, `description`, `highlights`, `includes`, `excludes`, `what_to_bring`, `itinerary_stops`, `meta_title`, `meta_description` |
 | `vessels` | `description` (the vessel **name** is a proper noun and is *not* translatable) |
 | `ports` | `name`, `instructions` |
 | `extras` | `name`, `description` |
@@ -136,7 +136,7 @@ Plain event timestamps (`sent_at`, `issued_at`, `checked_in_at`, `last_used_at`,
 | `quote_line_items` | `label` |
 | `enquiries` | *(none — free guest text, stored as written, with `locale`)* |
 
-Shape notes: `includes` / `excludes` / `what_to_bring` are **translatable arrays** — `{"el": ["…"], "en": ["…"]}`. `itinerary_stops` is a translatable array of objects; exact shape in §3.6.
+Shape notes: `highlights` / `includes` / `excludes` / `what_to_bring` are **translatable arrays** — `{"el": ["…"], "en": ["…"]}`. `itinerary_stops` is a translatable array of objects; exact shape in §3.6.
 
 Rules:
 - Translatable columns are **never indexed** and never appear in a `WHERE` that must be fast. Product listing filters on `status`, `category`, `sort_order`.
@@ -595,6 +595,7 @@ The catalog item. Mode drives everything downstream.
 | `latest_start_time` | time | yes | null | only meaningful when `flexible_start` |
 | `check_in_offset_minutes` | smallint unsigned | no | `30` | check-in = start − offset |
 | `meeting_point_id` | bigint unsigned | yes | null | FK → `ports.id` `nullOnDelete` |
+| `highlights` | json | yes | null | **translatable array** — «Τι θα ζήσετε», optional (2026-09-16); §3.5 |
 | `includes` | json | yes | null | **translatable array** |
 | `excludes` | json | yes | null | **translatable array** |
 | `what_to_bring` | json | yes | null | **translatable array** |
@@ -1970,9 +1971,9 @@ The full server-side derivation. Brief §5.7: the widget never sends prices, and
 
 Invariant: `subtotal_cents + extras_cents − discount_cents = total_cents`, and the column values on `bookings` equal these fields. Asserted in a Pest test on every booking factory.
 
-### 3.5 `products.includes` / `excludes` / `what_to_bring`
+### 3.5 `products.highlights` / `includes` / `excludes` / `what_to_bring`
 
-Translatable arrays.
+Translatable arrays. `highlights` («Τι θα ζήσετε», added 2026-09-16) has exactly this shape. All four are optional trip-page content: none is on the CAT-15 publish checklist, and the panel stores a list an operator left empty in every locale as `null`.
 
 ```json
 {
@@ -2012,6 +2013,7 @@ Translatable array of objects. The awkward one: the *labels* are translatable bu
 |---|---|---|---|
 | `el[]`, `en[]` | array of object | yes | must contain the same set of `key` values — validated on save |
 | `[].key` | string ≤ 8 | yes | joins the locale arrays to `_geo` |
+| `[].time` | string `HH:MM` | no | tenant-local wall time of the stop (added 2026-09-16); the same value in every locale; absent for a stop with no fixed hour |
 | `[].name` | string ≤ 120 | yes | |
 | `[].description` | string ≤ 500 | no | |
 | `[].duration_minutes` | integer | no | time spent at the stop; renders as a timeline |

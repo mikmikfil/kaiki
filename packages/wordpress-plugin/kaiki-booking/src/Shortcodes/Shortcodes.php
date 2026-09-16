@@ -59,11 +59,22 @@ final class Shortcodes {
 	 * what makes this usable from a template: see {@see CurrentTrip}. A page
 	 * that names no trip and is about none still gets the notice below.
 	 *
+	 * `compact="yes"` leaves out the form's trip / duration / port / boat lines
+	 * (`data-details="hide"`), for a page that already shows them. Left empty
+	 * it decides by itself: compact on a trip page, full anywhere else.
+	 *
 	 * @param  array<string, string>|string $atts The shortcode attributes.
 	 * @return string
 	 */
 	public static function booking( $atts ): string {
-		$atts = shortcode_atts( array( 'product' => '' ), self::attributes( $atts ), 'kaiki_booking' );
+		$atts = shortcode_atts(
+			array(
+				'product' => '',
+				'compact' => '',
+			),
+			self::attributes( $atts ),
+			'kaiki_booking'
+		);
 
 		$product = self::product( $atts['product'] );
 
@@ -79,7 +90,43 @@ final class Shortcodes {
 			);
 		}
 
-		return self::wrap( Bundle::embed( 'booking', array( 'product' => $product ) ) );
+		$data = array( 'product' => $product );
+
+		// A search result opened this trip for a day: the form starts on it.
+		$date = \Kaiki\Booking\Trip\Search::query()['date'];
+
+		if ( '' !== $date ) {
+			$data['date'] = $date;
+		}
+
+		if ( self::compact( (string) $atts['compact'] ) ) {
+			$data['details'] = 'hide';
+		}
+
+		return self::wrap( Bundle::embed( 'booking', $data ) );
+	}
+
+	/**
+	 * Should the booking form leave out its four lines?
+	 *
+	 * `yes` and `no` are the operator's answer. Empty means «where it makes
+	 * sense»: on a page about one trip — which already shows the trip — and in
+	 * a builder's editor, so a trip template is designed as it will look.
+	 *
+	 * @param string $attribute The `compact` attribute as typed.
+	 */
+	public static function compact( string $attribute ): bool {
+		$attribute = strtolower( trim( $attribute ) );
+
+		if ( in_array( $attribute, array( 'yes', '1', 'true', 'on' ), true ) ) {
+			return true;
+		}
+
+		if ( in_array( $attribute, array( 'no', '0', 'false', 'off' ), true ) ) {
+			return false;
+		}
+
+		return '' !== self::uuid( CurrentTrip::uuid() ) || \Kaiki\Booking\Trip\Trip::in_editor();
 	}
 
 	/**
@@ -131,7 +178,16 @@ final class Shortcodes {
 	private static function product( string $attribute ): string {
 		$product = self::uuid( $attribute );
 
-		return '' === $product ? self::uuid( CurrentTrip::uuid() ) : $product;
+		if ( '' !== $product ) {
+			return $product;
+		}
+
+		$product = self::uuid( CurrentTrip::uuid() );
+
+		// In a page builder's editor a trip template has no trip; preview the
+		// first one so the form can be designed. Never for a visitor:
+		// `in_editor()` requires someone who can edit posts, inside the editor.
+		return '' === $product && \Kaiki\Booking\Trip\Trip::in_editor() ? \Kaiki\Booking\Trip\Trip::uuid() : $product;
 	}
 
 	/**

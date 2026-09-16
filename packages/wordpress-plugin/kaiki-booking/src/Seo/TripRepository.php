@@ -83,11 +83,26 @@ final class TripRepository {
 		$fields = TripContent::fields( $row, $locale );
 		$hash   = isset( $row['content_hash'] ) ? (string) $row['content_hash'] : '';
 
-		if ( null !== $existing ) {
-			return self::update( $existing, $fields, $row, $locale, $hash );
+		$result = null !== $existing
+			? self::update( $existing, $fields, $row, $locale, $hash )
+			: self::create( $fields, $row, $locale, $hash );
+
+		$post_id = $existing ?? self::find( $uuid, $locale );
+
+		if ( null !== $post_id && 'skipped' !== $result ) {
+			/**
+			 * A trip post is written and current. Fires on `unchanged` too, so
+			 * something added after the post was first synced (how the trip is booked)
+			 * still gets filled in.
+			 *
+			 * @param int                  $post_id The trip post.
+			 * @param array<string, mixed> $row     The sync row.
+			 * @param string               $locale  The post's language.
+			 */
+			do_action( 'kaiki_trip_synced', $post_id, $row, $locale );
 		}
 
-		return self::create( $fields, $row, $locale, $hash );
+		return $result;
 	}
 
 	/**

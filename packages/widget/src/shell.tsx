@@ -32,6 +32,7 @@ interface ShellProps {
   readonly link?: 'trip' | null;
   readonly date?: string | null;
   readonly showVessel?: boolean;
+  readonly showDetails?: boolean;
 }
 
 export function Shell({
@@ -46,6 +47,7 @@ export function Shell({
   link = null,
   date = null,
   showVessel = true,
+  showDetails = true,
 }: ShellProps) {
   const Mount = resolveMount(mount);
 
@@ -64,6 +66,7 @@ export function Shell({
           link={link}
           date={date}
           showVessel={showVessel}
+          showDetails={showDetails}
         />
       )}
 

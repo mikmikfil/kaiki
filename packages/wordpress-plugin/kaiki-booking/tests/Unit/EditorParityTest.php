@@ -72,6 +72,14 @@ final class EditorParityTest extends TestCase {
 		}
 	}
 
+	public function test_every_elementor_widget_has_a_class_of_its_own(): void {
+		// Elementor re-instantiates a placed widget with `new (get_class($w))($data, $args)`,
+		// so the slug cannot be a constructor argument: one shared class taking it
+		// crashed every page holding a Kaiki widget (2026-09-16).
+		$this->assertSame( array_keys( Widgets::definitions() ), array_keys( Widgets::classes() ) );
+		$this->assertCount( 3, array_unique( Widgets::classes() ) );
+	}
+
 	public function test_the_two_editors_offer_the_same_three_things(): void {
 		// An operator who moves from Gutenberg to Elementor should not discover
 		// that one of their embeds does not exist there. And the calendar is in

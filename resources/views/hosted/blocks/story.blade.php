@@ -29,7 +29,9 @@
             company. Hidden from the accessibility tree because the
             name is already the first link in the page's header, and
             hearing it twice teaches nothing. --}}
-            <p class="eyebrow" aria-hidden="true">{{ $tenant->name }}</p>
+            {{-- Since 16 September the operator writes this line in the
+                 editor; a story saved before then keeps their name here. --}}
+            <p class="eyebrow eyebrow-line" @if (! $block->eyebrow) aria-hidden="true" @endif>{{ $block->eyebrow ?: $tenant->name }}</p>
             <h2>{{ $block->heading }}</h2>
         @endif
 
@@ -41,7 +43,7 @@
     @if ($block->image_path)
         <img class="story-image"
              src="{{ \App\Domain\Hosted\Support\HostedAsset::url($block->image_path) }}"
-             alt=""
+             alt="{{ $block->image_alt ?? '' }}"
              loading="lazy">
     @endif
 </section>

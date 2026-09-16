@@ -64,6 +64,13 @@ export interface WidgetConfig {
    */
   readonly showVessel: boolean;
   /**
+   * `data-details="hide"`: the compact form — no trip, duration, port and boat
+   * lines above the calendar or the enquiry form. For a page that already
+   * shows them, such as a WordPress trip page (2026-09-16); without it the
+   * lines are shown, as they always were.
+   */
+  readonly showDetails: boolean;
+  /**
    * `data-branding="inherit"` — the host page has already applied the brand.
    *
    * WGT-9's custom properties inherit through the shadow boundary, so a page
@@ -144,6 +151,7 @@ export function readConfig(script: HTMLScriptElement): WidgetConfig | null {
     date: isoDate(script.dataset.date),
     appearance: readAppearance(script.dataset),
     showVessel: (script.dataset.vessel ?? '').trim().toLowerCase() !== 'hide',
+    showDetails: (script.dataset.details ?? '').trim().toLowerCase() !== 'hide',
     inheritBranding:
       (script.dataset.branding ?? '').trim().toLowerCase() === 'inherit' &&
       (script.dataset.locale ?? '').trim() !== '',

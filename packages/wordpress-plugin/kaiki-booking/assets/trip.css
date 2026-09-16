@@ -1,0 +1,241 @@
+/*
+ * Kaiki trip pieces — a starting look, meant to be overridden.
+ *
+ * Every selector is `.kaiki-trip*` (WPP-2): nothing here reaches the rest of
+ * the page. Colours come from custom properties so a theme can restyle all of
+ * it in one rule, and Elementor's style controls write to the same properties
+ * or to these classes directly. Loaded only on a page that uses a piece.
+ * No uppercase anywhere: Greek capitals lose their accents.
+ */
+
+:where(.kaiki-trips, .kaiki-trip-title, .kaiki-trip-facts, .kaiki-trip-gallery, .kaiki-trip-description,
+	.kaiki-trip-price, .kaiki-trip-list, .kaiki-trip-itinerary, .kaiki-trip-meeting,
+	.kaiki-trip-cancellation, .kaiki-trip-placeholder, .kaiki-trip-section) {
+	--kaiki-trip-muted: color-mix(in srgb, currentColor 62%, transparent);
+	--kaiki-trip-line: color-mix(in srgb, currentColor 14%, transparent);
+	--kaiki-trip-soft: color-mix(in srgb, currentColor 6%, transparent);
+	--kaiki-trip-accent: currentColor;
+	--kaiki-trip-radius: 10px;
+	--kaiki-trip-card-radius: 14px;
+	box-sizing: border-box;
+}
+
+.kaiki-trip-icon { flex: none; width: 1em; height: 1em; }
+
+/* Title */
+.kaiki-trip-title__back { display: inline-block; font-size: .875rem; color: var(--kaiki-trip-muted); text-decoration: none; margin-bottom: .5rem; }
+.kaiki-trip-title__back:hover { text-decoration: none; }
+.kaiki-trip-title__heading { margin: 0 0 .5rem; line-height: 1.15; }
+.kaiki-trip-title__summary { margin: 0; font-size: 1.15em; color: var(--kaiki-trip-muted); }
+
+/* Facts */
+.kaiki-trip-facts { display: flex; flex-wrap: wrap; gap: .5rem; list-style: none; margin: 0; padding: 0; }
+.kaiki-trip-facts__item { display: inline-flex; align-items: center; gap: .45em; padding: .45em .85em; border-radius: 999px; background: var(--kaiki-trip-soft); font-size: .875rem; line-height: 1.3; margin: 0; }
+
+/* Gallery */
+.kaiki-trip-gallery { --kaiki-gallery-height: clamp(260px, 40vw, 470px); --kaiki-gallery-gap: 10px; display: grid; gap: var(--kaiki-gallery-gap); }
+.kaiki-trip-gallery__item { position: relative; margin: 0; overflow: hidden; border-radius: var(--kaiki-trip-radius); min-height: 0; background: var(--kaiki-trip-soft); }
+/* Two classes deep, so page builders' `img { height: auto }` cannot undo the crop. */
+.kaiki-trip-gallery .kaiki-trip-gallery__item img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; display: block; }
+.kaiki-trip-gallery--mosaic { height: var(--kaiki-gallery-height); grid-template-columns: 2fr 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.kaiki-trip-gallery--mosaic .kaiki-trip-gallery__item:first-child { grid-row: 1 / 3; }
+.kaiki-trip-gallery--mosaic.kaiki-trip-gallery--n1 { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+.kaiki-trip-gallery--mosaic.kaiki-trip-gallery--n2 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr; }
+.kaiki-trip-gallery--mosaic.kaiki-trip-gallery--n2 .kaiki-trip-gallery__item:first-child { grid-row: auto; }
+.kaiki-trip-gallery--mosaic.kaiki-trip-gallery--n3 { grid-template-columns: 2fr 1fr; }
+.kaiki-trip-gallery--grid { grid-template-columns: repeat(3, 1fr); }
+.kaiki-trip-gallery--grid .kaiki-trip-gallery__item { aspect-ratio: 4 / 3; }
+.kaiki-trip-gallery--single .kaiki-trip-gallery__item { height: var(--kaiki-gallery-height); }
+@media (max-width: 700px) {
+	.kaiki-trip-gallery--mosaic:not(.kaiki-trip-gallery--n1) { grid-template-columns: 1fr 1fr; grid-template-rows: 2fr 1fr; height: 340px; }
+	.kaiki-trip-gallery--mosaic .kaiki-trip-gallery__item:first-child { grid-row: auto; grid-column: 1 / 3; }
+	.kaiki-trip-gallery--mosaic .kaiki-trip-gallery__item:nth-child(n+4) { display: none; }
+	.kaiki-trip-gallery--grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* Description */
+.kaiki-trip-description { line-height: 1.75; }
+.kaiki-trip-description p { margin: 0 0 1em; }
+.kaiki-trip-description p:last-child { margin-bottom: 0; }
+
+/* Price */
+.kaiki-trip-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 .35em; line-height: 1.2; padding-block: 6px; }
+.kaiki-trip-price__prefix, .kaiki-trip-price__unit { font-size: .875rem; color: var(--kaiki-trip-muted); }
+.kaiki-trip-price__amount { font-size: 1.5rem; font-weight: 700; }
+.kaiki-trip-price--quote .kaiki-trip-price__amount { font-size: 1.1rem; }
+
+/* Lists */
+.kaiki-trip-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--kaiki-list-columns, 1), minmax(0, 1fr)); gap: .6rem 1.5rem; }
+.kaiki-trip-list__item { display: flex; align-items: flex-start; gap: .6em; margin: 0; line-height: 1.5; }
+.kaiki-trip-list__item .kaiki-trip-icon { margin-top: .22em; color: var(--kaiki-trip-accent); }
+.kaiki-trip-list--excludes .kaiki-trip-icon { color: var(--kaiki-trip-muted); }
+@media (max-width: 700px) { .kaiki-trip-list { grid-template-columns: 1fr; } }
+
+/* Itinerary */
+.kaiki-trip-itinerary { list-style: none; margin: 0; padding: 0; }
+.kaiki-trip-itinerary__step { position: relative; display: grid; grid-template-columns: 4.5rem 1fr; gap: 1rem; padding: 0 0 1.1rem; margin: 0; }
+.kaiki-trip-itinerary__step::before { content: ""; position: absolute; left: 4.9rem; top: .45em; width: 9px; height: 9px; border-radius: 50%; background: var(--kaiki-trip-accent); }
+.kaiki-trip-itinerary__step::after { content: ""; position: absolute; left: calc(4.9rem + 4px); top: 1.3em; bottom: 0; width: 1px; background: var(--kaiki-trip-line); }
+.kaiki-trip-itinerary__step:last-child::after { display: none; }
+.kaiki-trip-itinerary__time { font-weight: 600; font-variant-numeric: tabular-nums; }
+.kaiki-trip-itinerary__text { padding-left: 1rem; }
+
+/* Meeting point */
+.kaiki-trip-meeting { display: flex; gap: .85rem; padding: 1.1rem 1.25rem; border-radius: var(--kaiki-trip-card-radius); background: var(--kaiki-trip-soft); }
+.kaiki-trip-meeting > .kaiki-trip-icon { width: 1.25rem; height: 1.25rem; margin-top: .1rem; color: var(--kaiki-trip-accent); }
+.kaiki-trip-meeting__name { display: block; font-size: 1.05rem; }
+.kaiki-trip-meeting__address { display: block; color: var(--kaiki-trip-muted); }
+.kaiki-trip-meeting__instructions { margin: .6rem 0 0; line-height: 1.6; }
+.kaiki-trip-meeting__map { display: inline-block; margin-top: .6rem; font-weight: 600; text-decoration: none; }
+.kaiki-trip-meeting__map:hover { text-decoration: none; }
+
+/* Cancellation */
+.kaiki-trip-cancellation__summary { margin: 0 0 .75rem; }
+.kaiki-trip-cancellation__tiers { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.kaiki-trip-cancellation__tier { display: flex; justify-content: space-between; gap: 1rem; margin: 0; padding: .65rem .9rem; border: 1px solid var(--kaiki-trip-line); border-radius: var(--kaiki-trip-radius); }
+.kaiki-trip-cancellation__refund { font-weight: 600; }
+.kaiki-trip-cancellation__refund.is-none { color: var(--kaiki-trip-muted); font-weight: 500; }
+
+/* Any trip detail */
+.kaiki-trip-field-list { margin: 0; padding-left: 1.2em; }
+.kaiki-trip-field img { max-width: 100%; height: auto; border-radius: 10px; }
+
+/* Trip cards */
+.kaiki-trips { display: grid; grid-template-columns: repeat(var(--kaiki-trips-columns, 3), minmax(0, 1fr)); gap: var(--kaiki-trips-gap, 24px); align-items: stretch; }
+@media (max-width: 1024px) { .kaiki-trips { grid-template-columns: repeat(var(--kaiki-trips-columns-tablet, 2), minmax(0, 1fr)); } }
+@media (max-width: 767px) { .kaiki-trips { grid-template-columns: repeat(var(--kaiki-trips-columns-mobile, 1), minmax(0, 1fr)); } }
+.kaiki-trip-card { display: flex; flex-direction: column; height: 100%; overflow: hidden; border: 1px solid var(--kaiki-trip-line); border-radius: var(--kaiki-trip-card-radius); background: #fff; color: inherit; text-decoration: none; transition: box-shadow .2s, transform .2s; }
+.kaiki-trip-card:hover { text-decoration: none; transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0, 0, 0, .08); }
+/* Absolute, so a photo's natural height never sizes the grid row. */
+.kaiki-trip-card__media { position: relative; flex: none; aspect-ratio: 3 / 2; overflow: hidden; background: var(--kaiki-trip-soft); }
+.kaiki-trip-card .kaiki-trip-card__media img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; transition: transform .4s ease; }
+.kaiki-trip-card:hover .kaiki-trip-card__media img { transform: scale(1.04); }
+.kaiki-trip-card__badge { position: absolute; left: .75rem; top: .75rem; padding: .3rem .65rem; border-radius: 999px; background: rgba(255, 255, 255, .94); color: #131A22; font-size: .75rem; font-weight: 600; }
+.kaiki-trip-card__body { display: flex; flex: 1; flex-direction: column; padding: 1.1rem 1.25rem 1.25rem; }
+.kaiki-trip-card__title { margin: 0 0 .35rem; font-size: 1.125rem; line-height: 1.3; }
+.kaiki-trip-card__summary { margin: 0 0 .85rem; font-size: .95rem; line-height: 1.5; color: var(--kaiki-trip-muted); }
+.kaiki-trip-card__facts { display: flex; flex-wrap: wrap; gap: .35rem .9rem; margin-bottom: 1rem; font-size: .8125rem; color: var(--kaiki-trip-muted); }
+.kaiki-trip-card__fact { display: inline-flex; align-items: center; gap: .3em; }
+/* Pinned to the bottom, so every card's price row lines up. */
+.kaiki-trip-card__foot { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-top: auto; padding-top: .85rem; border-top: 1px solid var(--kaiki-trip-line); }
+.kaiki-trip-card__foot .kaiki-trip-price { flex-wrap: nowrap; white-space: nowrap; }
+.kaiki-trip-card__foot .kaiki-trip-price__amount { font-size: 1.2rem; }
+.kaiki-trip-card__cta { font-size: .875rem; font-weight: 600; white-space: nowrap; }
+
+/* What an editor sees where a piece has nothing to show. */
+.kaiki-trip-placeholder { padding: .9rem 1rem; border: 1px dashed var(--kaiki-trip-line); border-radius: var(--kaiki-trip-radius); color: var(--kaiki-trip-muted); font-size: .875rem; }
+
+/* The trip template the plugin creates (TripTemplate) ------------------- */
+
+.kaiki-trip-section + .kaiki-trip-section { border-top: 1px solid var(--kaiki-trip-line); }
+.kaiki-trip-aside { position: sticky; top: 96px; }
+@media (max-width: 1024px) { .kaiki-trip-aside { position: static; } }
+
+/* One template, two kinds of trip: the page carries kaiki-trip--booking or kaiki-trip--request. */
+.kaiki-trip--request .kaiki-only-booking, .kaiki-trip--booking .kaiki-only-request { display: none !important; }
+
+/* On a phone the booking form becomes Kaiki's bottom bar, which carries the price. */
+.kaiki-trip-book:has([data-kaiki-sheet]) { border: 0 !important; padding: 0 !important; }
+.kaiki-trip-book:has([data-kaiki-sheet]) > .elementor-widget:not(.elementor-widget-kaiki-booking) { display: none; }
+
+/* Fleet ---------------------------------------------------------------- */
+.kaiki-fleet { display: grid; gap: 28px; }
+.kaiki-fleet--grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1024px) { .kaiki-fleet--grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 767px) { .kaiki-fleet--grid { grid-template-columns: 1fr; } }
+.kaiki-vessel { display: grid; overflow: hidden; border: 1px solid rgba(0, 0, 0, .08); border-radius: 16px; background: #fff; }
+.kaiki-fleet--rows .kaiki-vessel { grid-template-columns: 1.05fr 1fr; }
+.kaiki-fleet--rows .kaiki-vessel:nth-child(even) .kaiki-vessel__media { order: 2; }
+.kaiki-vessel__media { position: relative; min-height: 320px; background: rgba(0, 0, 0, .04); }
+.kaiki-fleet--grid .kaiki-vessel__media { min-height: 220px; }
+/* Two classes deep, so page builders' `img { height: auto }` cannot undo the crop. */
+.kaiki-vessel .kaiki-vessel__media img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; object-fit: cover; }
+.kaiki-vessel__body { padding: 32px; }
+.kaiki-vessel__type { font-size: .8125rem; font-weight: 600; letter-spacing: .06em; opacity: .75; }
+.kaiki-vessel__name { margin: 6px 0 10px; font-size: 1.75rem; line-height: 1.2; }
+.kaiki-vessel__description { margin: 0 0 16px; line-height: 1.65; }
+.kaiki-vessel__specs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; }
+.kaiki-vessel__spec { margin: 0; padding: 10px 12px; border-radius: 10px; background: rgba(0, 0, 0, .04); }
+.kaiki-vessel__spec dt { font-size: .75rem; opacity: .7; }
+.kaiki-vessel__spec dd { margin: 0; font-size: 1rem; font-weight: 700; }
+.kaiki-vessel__amenities { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 0 16px; padding: 0; }
+.kaiki-vessel__amenities li { margin: 0; padding: 5px 11px; border-radius: 999px; background: rgba(0, 0, 0, .05); font-size: .8125rem; }
+.kaiki-vessel__trips { margin: 0; font-size: .9rem; }
+.kaiki-vessel__trips span { font-weight: 600; }
+.kaiki-vessel__trips a { text-decoration: none; }
+@media (max-width: 860px) {
+	.kaiki-fleet--rows .kaiki-vessel { grid-template-columns: 1fr; }
+	.kaiki-fleet--rows .kaiki-vessel:nth-child(even) .kaiki-vessel__media { order: 0; }
+	.kaiki-vessel__media { min-height: 220px; }
+	.kaiki-vessel__body { padding: 22px; }
+	.kaiki-vessel__specs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Trip card layouts ------------------------------------------------------ */
+/* Horizontal: photo beside the text. */
+.kaiki-trips--horizontal { grid-template-columns: 1fr; }
+.kaiki-trips--horizontal .kaiki-trip-card { flex-direction: row; }
+.kaiki-trips--horizontal .kaiki-trip-card__media { flex: 0 0 38%; aspect-ratio: auto; min-height: 220px; }
+@media (max-width: 767px) {
+	.kaiki-trips--horizontal .kaiki-trip-card { flex-direction: column; }
+	.kaiki-trips--horizontal .kaiki-trip-card__media { flex: none; aspect-ratio: 3 / 2; min-height: 0; }
+}
+/* Overlay: the text sits on the photo, over a shade. */
+.kaiki-trips--overlay .kaiki-trip-card { --kaiki-overlay: rgba(9, 20, 33, .78); position: relative; justify-content: flex-end; min-height: 380px; border: 0; color: #fff; }
+.kaiki-trips--overlay .kaiki-trip-card__media { position: absolute; inset: 0; aspect-ratio: auto; }
+.kaiki-trips--overlay .kaiki-trip-card__media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, var(--kaiki-overlay) 0%, var(--kaiki-overlay) 30%, transparent 85%); }
+.kaiki-trips--overlay .kaiki-trip-card__body { position: relative; flex: none; margin-top: auto; }
+.kaiki-trips--overlay .kaiki-trip-card__title, .kaiki-trips--overlay .kaiki-trip-card .kaiki-trip-price__amount { color: #fff; }
+.kaiki-trips--overlay .kaiki-trip-card__summary, .kaiki-trips--overlay .kaiki-trip-card__facts, .kaiki-trips--overlay .kaiki-trip-price__prefix, .kaiki-trips--overlay .kaiki-trip-price__unit { color: rgba(255, 255, 255, .82); }
+.kaiki-trips--overlay .kaiki-trip-card__foot { border-top-color: rgba(255, 255, 255, .22); }
+.kaiki-trips--overlay .kaiki-trip-card__cta { color: #fff; }
+/* Minimal: no photo at all. */
+.kaiki-trips--minimal .kaiki-trip-card__media { display: none; }
+.kaiki-trips--minimal .kaiki-trip-card__badge { position: static; display: inline-block; margin-bottom: .5rem; }
+
+/* Fleet layouts ---------------------------------------------------------- */
+.kaiki-fleet--rows-left .kaiki-vessel { grid-template-columns: 1.05fr 1fr; }
+.kaiki-fleet--overlay { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kaiki-fleet--overlay .kaiki-vessel { --kaiki-overlay: rgba(9, 20, 33, .8); position: relative; min-height: 420px; border: 0; color: #fff; align-content: end; }
+.kaiki-fleet--overlay .kaiki-vessel__media { position: absolute; inset: 0; min-height: 0; }
+.kaiki-fleet--overlay .kaiki-vessel__media::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, var(--kaiki-overlay) 0%, var(--kaiki-overlay) 35%, transparent 95%); }
+.kaiki-fleet--overlay .kaiki-vessel__body { position: relative; }
+.kaiki-fleet--overlay .kaiki-vessel__name, .kaiki-fleet--overlay .kaiki-vessel__trips a { color: #fff; }
+.kaiki-fleet--overlay .kaiki-vessel__description, .kaiki-fleet--overlay .kaiki-vessel__amenities { display: none; }
+.kaiki-fleet--overlay .kaiki-vessel__spec { background: rgba(255, 255, 255, .14); }
+.kaiki-fleet--compact .kaiki-vessel { grid-template-columns: 180px 1fr; align-items: center; }
+.kaiki-fleet--compact .kaiki-vessel__media { min-height: 100%; }
+.kaiki-fleet--compact .kaiki-vessel__body { padding: 18px 22px; }
+.kaiki-fleet--compact .kaiki-vessel__name { font-size: 1.25rem; margin: 2px 0 6px; }
+.kaiki-fleet--compact .kaiki-vessel__description, .kaiki-fleet--compact .kaiki-vessel__amenities { display: none; }
+.kaiki-fleet--compact .kaiki-vessel__specs { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 8px; }
+.kaiki-fleet--compact .kaiki-vessel__spec { display: flex; gap: 6px; align-items: baseline; padding: 0; background: none; }
+@media (max-width: 1024px) { .kaiki-fleet--overlay { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 767px) {
+	.kaiki-fleet--overlay { grid-template-columns: 1fr; }
+	.kaiki-fleet--rows-left .kaiki-vessel { grid-template-columns: 1fr; }
+	.kaiki-fleet--compact .kaiki-vessel { grid-template-columns: 110px 1fr; }
+}
+
+/* Search --------------------------------------------------------------- */
+.kaiki-search { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 16px; padding: 22px 24px 24px; border-radius: 18px; background: #fff; box-shadow: 0 12px 32px rgba(0, 0, 0, .12); color: #131A22; }
+.kaiki-search--stacked { flex-direction: column; align-items: stretch; }
+.kaiki-search__field { display: flex; flex: 1 1 160px; flex-direction: column; gap: 8px; margin: 0; }
+.kaiki-search__label { padding-left: 2px; font-size: .8125rem; font-weight: 600; opacity: .72; }
+.kaiki-search input, .kaiki-search select { width: 100%; min-height: 52px; padding: 0 16px; border: 1px solid rgba(0, 0, 0, .14); border-radius: 10px; background: #fff; font: inherit; color: inherit; }
+.kaiki-search__button { flex: 0 0 auto; min-height: 52px; padding: 0 32px; border: 0; border-radius: 10px; background: #131A22; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.kaiki-search--stacked .kaiki-search__button { width: 100%; }
+@media (max-width: 600px) { .kaiki-search { padding: 18px; gap: 12px; } .kaiki-search__field { flex-basis: 100%; } .kaiki-search__button { width: 100%; } }
+.kaiki-search-summary { margin: 0 0 16px; font-size: .95rem; opacity: .75; }
+.kaiki-search-empty { padding: 24px; border: 1px dashed rgba(0, 0, 0, .15); border-radius: 14px; text-align: center; }
+.kaiki-trip-card__departure { display: block; margin: -6px 0 12px; font-size: .8125rem; font-weight: 600; color: #1F7A4D; }
+
+/* Gallery lightbox ------------------------------------------------------- */
+.kaiki-trip-gallery__link { position: absolute; inset: 0; display: block; cursor: zoom-in; }
+.kaiki-trip-gallery__link[hidden] { display: none; }
+.kaiki-trip-gallery__more { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(9, 20, 33, .55); color: #fff; font-size: 1.05rem; font-weight: 600; transition: background .2s; }
+.kaiki-trip-gallery__link:hover .kaiki-trip-gallery__more { background: rgba(9, 20, 33, .68); }
+
+/* Itinerary: a stop's length and its description */
+.kaiki-trip-itinerary__duration { color: var(--kaiki-trip-muted); font-size: .875em; }
+.kaiki-trip-itinerary__description { display: block; margin-top: .2rem; color: var(--kaiki-trip-muted); font-size: .9375em; line-height: 1.55; }

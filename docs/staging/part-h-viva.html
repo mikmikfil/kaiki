@@ -1,0 +1,136 @@
+<section class="part">
+    <span class="num">Μέρος Η</span>
+    <h2>Πληρωμές Viva (demo)</h2>
+    <p>
+        Ο διοργανωτής συνδέει τον δικό του λογαριασμό Viva — εδώ, τον δοκιμαστικό. Πρώτα μια
+        κράτηση χωρίς Viva, για να ξέρετε ότι τα υπόλοιπα δουλεύουν. Μετά η Viva.
+    </p>
+</section>
+
+<h2 class="continues">Πρώτα χωρίς Viva</h2>
+
+<p>
+    Με κλειδί <code>pk_test_</code> και <strong>χωρίς</strong> δοκιμαστικά διαπιστευτήρια Viva, το Kaiki
+    στέλνει την πληρωμή στη δική του ψεύτικη σελίδα <code>/sandbox/checkout/…</code>, με δύο κουμπιά:
+    επιτυχία και αποτυχία. Κάντε μία κράτηση έτσι από το <code>aegeancr.gr</code>. Αν έρθει το email
+    επιβεβαίωσης με το εισιτήριο, λειτουργούν ουρά, email, Chromium και σελίδα κράτησης· ό,τι σπάσει
+    μετά τη σύνδεση της Viva, είναι της Viva.
+</p>
+
+<h2>Ο λογαριασμός demo της Viva</h2>
+
+<ol class="steps">
+    <li>
+        Λογαριασμός στο <code>https://demo.vivapayments.com</code> — ξεχωριστός από τον κανονικό, με δικά του
+        κλειδιά. Τα demo και live είναι διαφορετικοί servers της Viva
+        (<code>demo-accounts</code>, <code>demo-api</code>, <code>demo</code>).
+    </li>
+    <li>
+        <strong>Settings → API Access</strong>: σημειώστε <strong>Merchant ID</strong> και <strong>API Key</strong>, και
+        δημιουργήστε <strong>Smart Checkout credentials</strong> για <strong>Client ID</strong> και
+        <strong>Client Secret</strong>.
+    </li>
+    <li>
+        Νέα <strong>πηγή πληρωμών</strong> (payment source) για ιστότοπο, με domain
+        <code>kaiki.testing.gr</code>. Σημειώστε τον τετραψήφιο <strong>κωδικό πηγής</strong> (source code). Τα
+        Success URL και Failure URL τα παίρνετε από το Kaiki στο επόμενο βήμα.
+    </li>
+</ol>
+
+<div class="unsure">
+    <span class="label">Ονόματα μενού της Viva</span>
+    <p>
+        Τα ονόματα των οθονών της Viva δεν βγαίνουν από τον κώδικα του Kaiki και αλλάζουν με τις
+        εκδόσεις του dashboard της. Ο κώδικας επιβεβαιώνει μόνο ότι χρειάζονται αυτά τα πέντε στοιχεία, και
+        ότι Merchant ID και API Key είναι στην ίδια σελίδα με τα Smart Checkout credentials
+        (<code>app/Enums/IntegrationProvider.php</code>).
+    </p>
+</div>
+
+<h2>Στο Kaiki: Συνδέσεις</h2>
+
+<ol class="steps">
+    <li>
+        <code>https://kaiki.testing.gr/app</code>, ως <strong>ιδιοκτήτης</strong> (η οθόνη δεν φαίνεται σε
+        διαχειριστή ή πλήρωμα): <strong>Ρυθμίσεις → Συνδέσεις → Νέα σύνδεση</strong>.
+    </li>
+    <li>
+        Πάροχος <strong>Viva Wallet</strong>, Περιβάλλον <strong>Δοκιμαστικό</strong>, «Χρήση στο ταμείο» ενεργό. Πεδία:
+        Αναγνωριστικό πελάτη (Client ID), Μυστικό πελάτη (Client secret), Αναγνωριστικό εμπόρου (Merchant ID),
+        Κλειδί API, Κωδικός πηγής πληρωμής. Αποθήκευση. Τα μυστικά δεν ξαναεμφανίζονται — μόνο τα τέσσερα
+        τελευταία ψηφία.
+    </li>
+    <li>
+        Στην κάρτα της σύνδεσης εμφανίζεται <strong>«Η δική σας διεύθυνση webhook»</strong>, της μορφής
+        <code>https://kaiki.testing.gr/webhooks/viva/ΜΟΝΑΔΙΚΟ-TOKEN</code>, με κουμπί Αντιγραφή. Πιο κάτω, στο
+        <strong>«Viva: πού επιστρέφει ο πελάτης μετά την πληρωμή»</strong>, οι δύο διευθύνσεις:
+        <code>https://kaiki.testing.gr/pay/viva/success</code> και <code>…/pay/viva/failure</code>.
+    </li>
+</ol>
+
+<h2>Πίσω στη Viva</h2>
+
+<ol class="steps">
+    <li>Στην πηγή πληρωμών: <strong>Success URL</strong> και <strong>Failure URL</strong> από το Kaiki.</li>
+    <li>
+        Στα <strong>Webhooks</strong> του λογαριασμού: νέο webhook με τη διεύθυνση του Kaiki, γεγονός
+        <strong>Transaction Payment Created</strong>. Η Viva καλεί τη διεύθυνση με GET για επιβεβαίωση· το Kaiki
+        απαντά μόνο του, διαβάζοντας το κλειδί επιβεβαίωσης από τη Viva με Merchant ID και API Key. Δεν
+        αντιγράφετε κανένα κλειδί με το χέρι.
+    </li>
+</ol>
+
+<div class="danger">
+    <span class="label">Αν η Viva λέει ότι η διεύθυνση δεν επιβεβαιώθηκε</span>
+    <p>
+        Σχεδόν πάντα φταίει ο server, όχι το Kaiki: ο Basic Auth καλύπτει το <code>/webhooks/</code>, ένα WAF
+        μπλοκάρει την κλήση, υπάρχει AAAA εγγραφή χωρίς IPv6, ή το πιστοποιητικό δεν είναι έγκυρο. Δοκιμάστε
+        από οποιονδήποτε υπολογιστή: <code>curl -i https://kaiki.testing.gr/webhooks/viva/TOKEN</code> — πρέπει να
+        δώσει 200 με JSON <code>{"Key": …}</code>. Το 401 ή μια σελίδα του πίνακα είναι ο server. Το
+        <code>{"received":false}</code> με 502 σημαίνει λάθος Merchant ID ή API Key (ή λάθος περιβάλλον)· με
+        404, λάθος διεύθυνση.
+    </p>
+</div>
+
+<h2>Ο διοργανωτής ως «δοκιμαστικός λογαριασμός»</h2>
+
+<p>
+    Από το WordPress, το αν μια κράτηση είναι δοκιμαστική το αποφασίζει το κλειδί (<code>pk_test_</code>).
+    Από τις σελίδες <code>book.kaiki.testing.gr</code> δεν υπάρχει κλειδί του διοργανωτή· εκεί το αποφασίζει ο
+    διακόπτης <strong>«Δοκιμαστικός λογαριασμός»</strong> στο <code>/admin</code> → Έμποροι → Επεξεργασία. Ανοίξτε
+    τον για κάθε διοργανωτή του staging. Οι κρατήσεις του μαρκάρονται δοκιμαστικές και δεν μπαίνουν σε
+    καμία αναφορά. Χωρίς αυτόν, μια κράτηση από σελίδα <code>book.</code> ζητά <em>ζωντανά</em> διαπιστευτήρια
+    Viva — που στο staging δεν πρέπει να υπάρχουν.
+</p>
+
+<h2>Μια κράτηση από την αρχή ως το τέλος</h2>
+
+<ol class="steps">
+    <li>Στο <code>aegeancr.gr</code>, σελίδα εκδρομής: ημερομηνία, άτομα, στοιχεία, «Κράτηση».</li>
+    <li>Η σελίδα ολοκλήρωσης <code>kaiki.testing.gr/c/…</code>: σύνοψη, όροι, «Πληρωμή».</li>
+    <li>
+        Η σελίδα της Viva (<code>demo.vivapayments.com</code>): μία από τις <strong>κάρτες δοκιμής</strong> που
+        δημοσιεύει η Viva στην τεκμηρίωση για developers (developer.viva.com, «Test cards»), με οποιαδήποτε
+        μελλοντική λήξη. Αν ζητήσει 3-D Secure, ολοκληρώστε το.
+    </li>
+    <li>
+        Επιστροφή στο <code>/pay/viva/success</code> → σελίδα κράτησης <code>/b/…</code>. Μπορεί για λίγα
+        δευτερόλεπτα να γράφει ότι η πληρωμή επεξεργάζεται: την επιβεβαίωση τη φέρνει το webhook.
+    </li>
+    <li>
+        Email επιβεβαίωσης στον πελάτη με το εισιτήριο PDF (από τον worker). Στο πάνελ: η κράτηση
+        επιβεβαιωμένη, η πληρωμή πληρωμένη, το μήνυμα στο <strong>Μηνύματα</strong>.
+    </li>
+    <li>«← Επιστροφή στην ιστοσελίδα» → πίσω στο <code>aegeancr.gr</code>.</li>
+    <li>Στο dashboard της Viva demo: η συναλλαγή, και στα webhooks μια επιτυχημένη αποστολή.</li>
+</ol>
+
+<div class="note">
+    <span class="label">Αν το webhook δεν έρθει ποτέ</span>
+    <p>
+        Το <code>payments:reconcile</code> (cron, κάθε πέντε λεπτά) ρωτά τη Viva για κάθε πληρωμή που περιμένει
+        πάνω από πέντε λεπτά και επιβεβαιώνει όσες πληρώθηκαν. Άρα μια κράτηση που επιβεβαιώνεται μετά από
+        5–10 λεπτά και όχι αμέσως σημαίνει: η πληρωμή δουλεύει, το webhook όχι. Ό,τι απέτυχε φαίνεται στο
+        <strong>Τι πήγε στραβά</strong> του πάνελ.
+    </p>
+</div>

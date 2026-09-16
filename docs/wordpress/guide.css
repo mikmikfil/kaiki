@@ -76,9 +76,11 @@ table.fields tr {
 
 .danger .label {
     display: block;
-    font-size: 7.6pt;
-    letter-spacing: .08em;
-    text-transform: uppercase;
+    font-size: 8.6pt;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    /* No `text-transform: uppercase`: it strips the accents from Greek, as
+       manual.css explains. */
     color: var(--rust);
     margin-bottom: 3pt;
 }

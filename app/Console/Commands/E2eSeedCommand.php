@@ -8,6 +8,7 @@ use App\Domain\Tenancy\Actions\GenerateApiKey;
 use App\Enums\ApiKeyEnvironment;
 use App\Enums\ApiKeyType;
 use App\Enums\ApiScope;
+use App\Enums\BookingMode;
 use App\Enums\Role;
 use App\Models\Product;
 use App\Models\Tenant;
@@ -99,11 +100,17 @@ class E2eSeedCommand extends Command
 
             $product = Product::query()->sellable()->orderBy('sort_order')->firstOrFail();
 
+            // A trip sold by quote (BKG-24): a `booking` embed on it must draw
+            // the enquiry form, never a calendar. Null if the seeders ever stop
+            // producing one, so the spec skips rather than the seed failing.
+            $quote = Product::query()->sellable()->ofMode(BookingMode::Quote)->orderBy('sort_order')->first();
+
             return [
                 'key' => $key,
                 'tenant_slug' => $tenant->slug,
                 'product_uuid' => $product->uuid,
                 'product_slug' => $product->slug,
+                'quote_product_uuid' => $quote?->uuid,
                 'origins' => $origins,
                 'panel' => [
                     // Looked up by role rather than by address, so the run

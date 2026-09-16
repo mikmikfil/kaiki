@@ -33,15 +33,22 @@ if ( ! class_exists( '\Elementor\Widget_Base' ) ) {
 
 /**
  * One Kaiki embed, as an Elementor widget.
+ *
+ * ## One class per widget, and Elementor's constructor untouched
+ *
+ * Elementor builds a widget twice: once when it is registered, and again for
+ * every placed copy, with `new ( get_class( $registered ) )( $data, $args )`.
+ * A single class taking the slug and definition as constructor arguments
+ * worked for the first and was a fatal `TypeError` for the second — so every
+ * page holding a Kaiki widget crashed when saved or rendered. The slug is
+ * therefore a constant on a subclass, and the definition is looked up from it.
  */
-class Widget extends Widget_Base {
+abstract class Widget extends Widget_Base {
 
 	/**
-	 * The widget's slug.
-	 *
-	 * @var string
+	 * The widget's slug, a key of {@see Widgets::definitions()}.
 	 */
-	private string $slug;
+	protected const SLUG = '';
 
 	/**
 	 * What this widget renders and what it asks for.
@@ -51,17 +58,13 @@ class Widget extends Widget_Base {
 	private array $definition;
 
 	/**
-	 * Elementor constructs widgets itself, so the two Kaiki arguments come
-	 * first and its own two keep their defaults.
+	 * Elementor's own signature, because Elementor is the one calling it.
 	 *
-	 * @param string                                                                $slug       The widget name.
-	 * @param array{title: string, callback: string, product: bool, category: bool} $definition What it renders.
-	 * @param array<string, mixed>                                                  $data       Elementor's own data.
-	 * @param array<string, mixed>|null                                             $args       Elementor's own args.
+	 * @param array<string, mixed>      $data Elementor's own data.
+	 * @param array<string, mixed>|null $args Elementor's own args.
 	 */
-	public function __construct( string $slug, array $definition, array $data = array(), $args = null ) {
-		$this->slug       = $slug;
-		$this->definition = $definition;
+	public function __construct( $data = array(), $args = null ) {
+		$this->definition = Widgets::definitions()[ static::SLUG ];
 
 		parent::__construct( $data, $args );
 	}
@@ -70,7 +73,7 @@ class Widget extends Widget_Base {
 	 * The widget's machine name.
 	 */
 	public function get_name(): string {
-		return $this->slug;
+		return static::SLUG;
 	}
 
 	/**
@@ -133,6 +136,23 @@ class Widget extends Widget_Base {
 			);
 		}
 
+		if ( 'booking' === $this->definition['callback'] ) {
+			$this->add_control(
+				'compact',
+				array(
+					'label'       => __( 'Trip details in the form', 'kaiki-booking' ),
+					'type'        => Controls_Manager::SELECT,
+					'default'     => '',
+					'options'     => array(
+						''    => __( 'Automatic', 'kaiki-booking' ),
+						'yes' => __( 'Hide (compact form)', 'kaiki-booking' ),
+						'no'  => __( 'Show', 'kaiki-booking' ),
+					),
+					'description' => __( 'The trip, duration, port and boat lines above the calendar. Automatic hides them on a trip page, which already shows them.', 'kaiki-booking' ),
+				)
+			);
+		}
+
 		if ( $this->definition['category'] ) {
 			$this->add_control(
 				'category',
@@ -166,4 +186,27 @@ class Widget extends Widget_Base {
 		// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Escaped at the point of output inside the shortcode; escaping again would show the markup as text.
 		echo $html;
 	}
+}
+
+// phpcs:disable Generic.Files.OneObjectStructurePerFile.MultipleFound -- Same reason as above: none of these may be autoloadable.
+
+/**
+ * `[kaiki_booking]` as a widget.
+ */
+final class Booking_Widget extends Widget {
+	protected const SLUG = 'kaiki-booking';
+}
+
+/**
+ * `[kaiki_list]` as a widget.
+ */
+final class List_Widget extends Widget {
+	protected const SLUG = 'kaiki-list';
+}
+
+/**
+ * `[kaiki_enquiry]` as a widget.
+ */
+final class Enquiry_Widget extends Widget {
+	protected const SLUG = 'kaiki-enquiry';
 }

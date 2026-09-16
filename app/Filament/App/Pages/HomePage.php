@@ -6,14 +6,18 @@ namespace App\Filament\App\Pages;
 
 use App\Domain\Hosted\Actions\BuildHomePage;
 use App\Domain\Hosted\Actions\SaveHomePage;
+use App\Domain\Hosted\Support\BlockItems;
 use App\Domain\Hosted\Support\BlockSettings;
 use App\Enums\HomeBlockType;
 use App\Enums\ProductCategory;
+use App\Enums\ProductStatus;
 use App\Filament\Forms\TranslatableInput;
 use App\Models\HomePageBlock;
 use App\Models\Port;
+use App\Models\Product;
 use App\Rules\EmbeddableVideoUrl;
 use App\Support\Tenancy;
+use Closure;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
@@ -25,9 +29,11 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 
 /**
  * The home-page editor on `/app`.
@@ -140,14 +146,63 @@ class HomePage extends Page implements HasForms
         return $stored->map(fn (HomePageBlock $block): array => [
             'type' => $block->type->value,
             'is_visible' => $block->is_visible,
+            'eyebrow' => $block->getTranslations('eyebrow'),
             'heading' => $block->getTranslations('heading'),
             'body' => $block->getTranslations('body'),
             'image_path' => $block->image_path,
+            'image_alt' => $block->getTranslations('image_alt'),
             'video_path' => $block->video_path,
             'video_url' => $block->video_url,
             'images' => $block->images ?? [],
+            'buttons' => $this->buttonsFor($block),
+            // One repeater per list-shaped type, each with its own fields, and
+            // all of them written back to the one `items` column on save.
+            ...($block->type->hasItems() ? [self::itemsKey($block->type) => $block->entries()] : []),
             'settings' => $block->settings(),
         ])->all();
+    }
+
+    /**
+     * The name of the repeater that edits one type's `items`.
+     *
+     * Each list-shaped type has different fields, and a single `items` repeater
+     * whose schema switched on the type would carry a review's fields into a
+     * row of figures the moment an operator changed the type selector.
+     */
+    public static function itemsKey(HomeBlockType $type): string
+    {
+        return $type->value . '_items';
+    }
+
+    /**
+     * The hero's and the band's buttons, as the form edits them.
+     *
+     * A hero saved before 16 September has no `buttons` but does have a
+     * `settings.cta`; it opens here as the same button, with the label it was
+     * already showing in both languages, so the operator sees — and can change
+     * or delete — what their guests see.
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function buttonsFor(HomePageBlock $block): array
+    {
+        $buttons = $block->buttonEntries();
+
+        if ($buttons === [] && $block->type === HomeBlockType::Hero && in_array($block->setting('cta'), ['trips', 'contact'], true)) {
+            $cta = (string) $block->setting('cta');
+
+            return [[
+                'label' => [
+                    'el' => (string) __("hosted.blocks.hero.cta.{$cta}", [], 'el'),
+                    'en' => (string) __("hosted.blocks.hero.cta.{$cta}", [], 'en'),
+                ],
+                'target' => $cta,
+                'product_id' => null,
+                'path' => null,
+            ]];
+        }
+
+        return $buttons;
     }
 
     public function form(Form $form): Form
@@ -179,7 +234,18 @@ class HomePage extends Page implements HasForms
         $state = $this->getForm('form')?->getState() ?? [];
 
         /** @var list<array<string, mixed>> $blocks */
-        $blocks = array_values((array) ($state['blocks'] ?? []));
+        $blocks = array_map(static function (mixed $block): array {
+            $block = (array) $block;
+            $type = HomeBlockType::tryFrom((string) ($block['type'] ?? ''));
+
+            // The type's own repeater becomes `items`; the others' leftovers,
+            // from before a type was changed, are not carried.
+            $block['items'] = $type !== null && $type->hasItems()
+                ? ($block[self::itemsKey($type)] ?? [])
+                : null;
+
+            return $block;
+        }, array_values((array) ($state['blocks'] ?? [])));
 
         $count = app(SaveHomePage::class)($blocks);
 
@@ -256,12 +322,25 @@ class HomePage extends Page implements HasForms
                 ->native(false)
                 // The rest of the fields key off this, so the form has to know
                 // the moment it changes rather than on the next round trip.
-                ->live(),
+                ->live()
+                // A new section of the kinds added on 16 September starts with
+                // content in both languages rather than as a row of empty
+                // fields — the operator keeps it, changes it or deletes it, and
+                // nothing on the page falls back to it later.
+                ->afterStateUpdated(fn (?string $state, Get $get, Set $set) => $this->prefill($state, $get, $set)),
 
             Toggle::make('is_visible')
                 ->label(__('home_page.form.is_visible.label'))
                 ->helperText(__('home_page.form.is_visible.help'))
                 ->default(true),
+
+            TranslatableInput::text(
+                'eyebrow',
+                __('home_page.form.eyebrow.label'),
+                __('home_page.form.eyebrow.help'),
+                required: false,
+                maxLength: 60,
+            )->visible(fn (Get $get): bool => HomeBlockType::tryFrom((string) $get('type'))?->hasEyebrow() ?? false),
 
             TranslatableInput::text(
                 'heading',
@@ -279,7 +358,18 @@ class HomePage extends Page implements HasForms
             )->visible(fn (Get $get): bool => HomeBlockType::tryFrom((string) $get('type'))?->hasProse() ?? false),
 
             $this->image('image_path')
+                // The call-to-action band is a photograph with words on it; the
+                // others' photographs are optional.
+                ->required(fn (Get $get): bool => $get('type') === HomeBlockType::Cta->value)
                 ->visible(fn (Get $get): bool => HomeBlockType::tryFrom((string) $get('type'))?->hasImage() ?? false),
+
+            TranslatableInput::text(
+                'image_alt',
+                __('home_page.form.image_alt.label'),
+                __('home_page.form.image_alt.help'),
+                required: false,
+                maxLength: 160,
+            )->visible(fn (Get $get): bool => HomeBlockType::tryFrom((string) $get('type'))?->hasImage() ?? false),
 
             // The hero only. A video behind a story or a contact panel is
             // decoration competing with the words next to it; behind a masthead
@@ -303,19 +393,174 @@ class HomePage extends Page implements HasForms
                 ->rule(new EmbeddableVideoUrl)
                 ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Hero->value),
 
-            // --- hero ---
+            // --- hero and call-to-action band: buttons ---
 
-            Select::make('settings.cta')
-                ->label(__('home_page.form.cta.label'))
-                ->helperText(__('home_page.form.cta.help'))
-                ->options([
-                    'trips' => __('home_page.form.cta.options.trips'),
-                    'contact' => __('home_page.form.cta.options.contact'),
-                    'none' => __('home_page.form.cta.options.none'),
+            // Replaced the hero's single `settings.cta` select on 16 September:
+            // the operator writes each label, and picks where it goes from a
+            // closed list — never a typed address, for the reason
+            // `BlockSettings` gives about the hero's button.
+            Repeater::make('buttons')
+                ->label(__('home_page.form.buttons.label'))
+                ->helperText(__('home_page.form.buttons.help'))
+                ->schema([
+                    TranslatableInput::text(
+                        'label',
+                        __('home_page.form.buttons.button_label.label'),
+                        null,
+                        required: true,
+                        maxLength: 40,
+                    ),
+                    Select::make('target')
+                        ->label(__('home_page.form.buttons.target.label'))
+                        ->options(collect(BlockItems::TARGETS)->mapWithKeys(fn (string $target): array => [
+                            $target => __("home_page.form.buttons.target.options.{$target}"),
+                        ])->all())
+                        ->default('trips')
+                        ->required()
+                        ->native(false)
+                        ->live(),
+                    Select::make('product_id')
+                        ->label(__('home_page.form.buttons.product.label'))
+                        ->options(fn (): array => Product::query()
+                            ->where('status', ProductStatus::Active)
+                            ->orderBy('sort_order')
+                            ->get()
+                            ->mapWithKeys(fn (Product $product): array => [$product->id => $product->title])
+                            ->all())
+                        ->required(fn (Get $get): bool => $get('target') === 'trip')
+                        ->native(false)
+                        ->visible(fn (Get $get): bool => $get('target') === 'trip'),
+                    TextInput::make('path')
+                        ->label(__('home_page.form.buttons.path.label'))
+                        ->helperText(__('home_page.form.buttons.path.help'))
+                        ->prefix(fn (): string => $this->publicUrl() . '/')
+                        ->maxLength(200)
+                        ->required(fn (Get $get): bool => $get('target') === 'page')
+                        // The same test `BlockItems` applies on save: a path on
+                        // this site, and nothing that could name another one.
+                        ->rule(static fn (): Closure => static function (string $attribute, mixed $value, Closure $fail): void {
+                            if (filled($value) && BlockItems::path($value) === null) {
+                                $fail(__('home_page.validation.path'));
+                            }
+                        })
+                        ->visible(fn (Get $get): bool => $get('target') === 'page'),
                 ])
-                ->default('trips')
-                ->native(false)
+                ->maxItems(2)
+                ->reorderable()
+                ->collapsible()
+                ->itemLabel(fn (array $state): ?string => self::preview($state, 'label'))
+                ->addActionLabel(__('home_page.form.buttons.add'))
+                ->defaultItems(0)
+                ->visible(fn (Get $get): bool => HomeBlockType::tryFrom((string) $get('type'))?->maxButtons() > 0),
+
+            // --- hero: trust badges ---
+
+            Repeater::make(self::itemsKey(HomeBlockType::Hero))
+                ->label(__('home_page.form.badges.label'))
+                ->helperText(__('home_page.form.badges.help'))
+                ->schema([
+                    $this->iconSelect(),
+                    TranslatableInput::text('text', __('home_page.form.badges.text.label'), null, required: true, maxLength: 48),
+                ])
+                ->maxItems(HomeBlockType::Hero->maxItems())
+                ->reorderable()
+                ->collapsible()
+                ->itemLabel(fn (array $state): ?string => self::preview($state, 'text'))
+                ->addActionLabel(__('home_page.form.badges.add'))
+                ->defaultItems(0)
                 ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Hero->value),
+
+            // --- stats ---
+
+            Repeater::make(self::itemsKey(HomeBlockType::Stats))
+                ->label(__('home_page.form.stats.label'))
+                ->helperText(__('home_page.form.stats.help'))
+                ->schema([
+                    $this->iconSelect(required: false),
+                    TranslatableInput::text('value', __('home_page.form.stats.value.label'), __('home_page.form.stats.value.help'), required: true, maxLength: 16),
+                    TranslatableInput::text('label', __('home_page.form.stats.caption.label'), null, required: false, maxLength: 60),
+                ])
+                ->maxItems(HomeBlockType::Stats->maxItems())
+                ->reorderable()
+                ->collapsible()
+                ->itemLabel(fn (array $state): ?string => self::preview($state, 'value', 'label'))
+                ->addActionLabel(__('home_page.form.stats.add'))
+                ->defaultItems(0)
+                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Stats->value),
+
+            // --- steps ---
+
+            Repeater::make(self::itemsKey(HomeBlockType::Steps))
+                ->label(__('home_page.form.steps.label'))
+                ->helperText(__('home_page.form.steps.help'))
+                ->schema([
+                    TranslatableInput::text('title', __('home_page.form.item_title.label'), null, required: true, maxLength: 80),
+                    TranslatableInput::textarea('text', __('home_page.form.item_text.label'), __('home_page.form.item_text.help'), rows: 2),
+                ])
+                ->maxItems(HomeBlockType::Steps->maxItems())
+                ->reorderable()
+                ->collapsible()
+                ->itemLabel(fn (array $state): ?string => self::preview($state, 'title'))
+                ->addActionLabel(__('home_page.form.steps.add'))
+                ->defaultItems(0)
+                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Steps->value),
+
+            // --- features ---
+
+            Repeater::make(self::itemsKey(HomeBlockType::Features))
+                ->label(__('home_page.form.features.label'))
+                ->helperText(__('home_page.form.features.help'))
+                ->schema([
+                    $this->iconSelect(),
+                    TranslatableInput::text('title', __('home_page.form.item_title.label'), null, required: true, maxLength: 80),
+                    TranslatableInput::textarea('text', __('home_page.form.item_text.label'), __('home_page.form.item_text.help'), rows: 2),
+                ])
+                ->maxItems(HomeBlockType::Features->maxItems())
+                ->reorderable()
+                ->collapsible()
+                ->itemLabel(fn (array $state): ?string => self::preview($state, 'title'))
+                ->addActionLabel(__('home_page.form.features.add'))
+                ->defaultItems(0)
+                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Features->value),
+
+            Toggle::make('settings.dark')
+                ->label(__('home_page.form.dark.label'))
+                ->helperText(__('home_page.form.dark.help'))
+                ->default(false)
+                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Features->value),
+
+            // --- testimonials ---
+
+            Repeater::make(self::itemsKey(HomeBlockType::Testimonials))
+                ->label(__('home_page.form.testimonials.label'))
+                ->helperText(__('home_page.form.testimonials.help'))
+                ->schema([
+                    TranslatableInput::textarea('quote', __('home_page.form.testimonials.quote.label'), __('home_page.form.testimonials.quote.help'), required: true, rows: 3),
+                    TextInput::make('name')
+                        ->label(__('home_page.form.testimonials.name.label'))
+                        ->helperText(__('home_page.form.testimonials.name.help'))
+                        ->maxLength(60),
+                    TranslatableInput::text('trip', __('home_page.form.testimonials.trip.label'), null, required: false, maxLength: 80),
+                    Select::make('rating')
+                        ->label(__('home_page.form.testimonials.rating.label'))
+                        ->options([5 => '5', 4 => '4', 3 => '3', 2 => '2', 1 => '1'])
+                        ->default(5)
+                        ->required()
+                        ->native(false),
+                    $this->image('avatar')
+                        ->label(__('home_page.form.testimonials.avatar.label'))
+                        ->helperText(__('home_page.form.testimonials.avatar.help'))
+                        ->avatar(),
+                ])
+                ->maxItems(HomeBlockType::Testimonials->maxItems())
+                ->reorderable()
+                ->collapsible()
+                ->itemLabel(fn (array $state): ?string => is_string($state['name'] ?? null) && trim($state['name']) !== ''
+                    ? trim($state['name'])
+                    : self::preview($state, 'quote'))
+                ->addActionLabel(__('home_page.form.testimonials.add'))
+                ->defaultItems(0)
+                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Testimonials->value),
 
             // --- trips ---
 
@@ -463,6 +708,104 @@ class HomePage extends Page implements HasForms
             ->visibility('public')
             ->maxSize(20480)
             ->acceptedFileTypes(['video/mp4', 'video/webm']);
+    }
+
+    /** The icon beside a reason or a trust badge, from the fixed list. */
+    protected function iconSelect(bool $required = true): Select
+    {
+        return Select::make('icon')
+            ->label(__('home_page.form.icon.label'))
+            ->options(collect(BlockItems::ICONS)->mapWithKeys(fn (string $icon): array => [
+                $icon => __("home_page.form.icon.options.{$icon}"),
+            ])->all())
+            ->default($required ? 'check' : null)
+            ->required($required)
+            ->native(false);
+    }
+
+    /**
+     * A collapsed repeater row's title: the first translated field that has
+     * text, in the panel's language first.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    protected static function preview(array $state, string ...$keys): ?string
+    {
+        $parts = [];
+
+        foreach ($keys as $key) {
+            $value = $state[$key] ?? null;
+
+            foreach ([app()->getLocale(), 'el', 'en'] as $locale) {
+                $text = is_array($value) ? ($value[$locale] ?? null) : null;
+
+                if (is_string($text) && trim($text) !== '') {
+                    $parts[] = trim($text);
+
+                    break;
+                }
+            }
+        }
+
+        return $parts === [] ? null : mb_strimwidth(implode(' · ', $parts), 0, 70, '…');
+    }
+
+    /**
+     * Starting content for a section the operator has just added.
+     *
+     * Only into fields that are still empty, so changing the type of a block
+     * that already has words in it does not overwrite them. Read from the
+     * `hosted.blocks` lang lines in **both** languages, because a translatable
+     * field wants both and the panel is only ever in one.
+     */
+    protected function prefill(?string $state, Get $get, Set $set): void
+    {
+        $type = HomeBlockType::tryFrom((string) $state);
+
+        if ($type === null) {
+            return;
+        }
+
+        $both = static fn (string $key): array => [
+            'el' => (string) __($key, [], 'el'),
+            'en' => (string) __($key, [], 'en'),
+        ];
+
+        $blank = static fn (mixed $value): bool => ! is_array($value)
+            || collect($value)->filter(static fn (mixed $text): bool => is_string($text) && trim($text) !== '')->isEmpty();
+
+        $section = match ($type) {
+            HomeBlockType::Steps, HomeBlockType::Features, HomeBlockType::Testimonials, HomeBlockType::Cta => $type->value,
+            default => null,
+        };
+
+        if ($section === null) {
+            return;
+        }
+
+        if ($blank($get('eyebrow'))) {
+            $set('eyebrow', $both("hosted.blocks.{$section}.eyebrow"));
+        }
+
+        if ($section !== 'cta' && $blank($get('heading'))) {
+            $set('heading', $both("hosted.blocks.{$section}.heading"));
+        }
+
+        if (in_array($type, [HomeBlockType::Steps, HomeBlockType::Features], true) && blank($get(self::itemsKey($type)))) {
+            $el = (array) __("hosted.blocks.{$section}.defaults", [], 'el');
+            $en = (array) __("hosted.blocks.{$section}.defaults", [], 'en');
+            $items = [];
+
+            foreach ($el as $i => $entry) {
+                $items[(string) Str::uuid()] = [
+                    ...($type === HomeBlockType::Features ? ['icon' => BlockItems::STARTING_FEATURE_ICONS[$i] ?? 'check'] : []),
+                    'title' => ['el' => $entry['title'], 'en' => $en[$i]['title'] ?? $entry['title']],
+                    'text' => ['el' => $entry['text'], 'en' => $en[$i]['text'] ?? $entry['text']],
+                ];
+            }
+
+            $set(self::itemsKey($type), $items);
+        }
     }
 
     protected function image(string $name): FileUpload

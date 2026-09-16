@@ -74,16 +74,6 @@ return [
             ],
         ],
 
-        'cta' => [
-            'label' => 'Button',
-            'help' => 'One button under the heading.',
-            'options' => [
-                'trips' => 'Go to the trips',
-                'contact' => 'Go to the contact details',
-                'none' => 'No button',
-            ],
-        ],
-
         'source' => [
             'label' => 'Which trips',
             'options' => [
@@ -139,6 +129,135 @@ return [
             'label' => 'Meeting point',
             'help' => 'One of your saved meeting points, so this section always agrees with the trip pages.',
         ],
+
+        // The sections of 16 September. Every word a guest reads is written
+        // here, in both languages.
+
+        'eyebrow' => [
+            'label' => 'Small title',
+            'help' => 'The short line above the heading, e.g. "How it works". Optional.',
+        ],
+
+        'image_alt' => [
+            'label' => 'Photo description',
+            'help' => 'What the photo shows, in a few words. Read by visitors using a screen reader and by search engines.',
+        ],
+
+        'buttons' => [
+            'label' => 'Buttons',
+            'help' => 'Up to two. The first is the main one. Write the text and choose where it leads — always a page of your own site.',
+            'add' => 'Add a button',
+            'button_label' => [
+                'label' => 'Button text',
+            ],
+            'target' => [
+                'label' => 'Where it leads',
+                'options' => [
+                    'trips' => 'The trips on your home page',
+                    'search' => 'The trip search',
+                    'contact' => 'The contact page',
+                    'trip' => 'One trip',
+                    'page' => 'Another page of your site',
+                ],
+            ],
+            'product' => [
+                'label' => 'Trip',
+            ],
+            'path' => [
+                'label' => 'Page',
+                'help' => 'The end of the address, e.g. legal. Pages of your own site only.',
+            ],
+        ],
+
+        'badges' => [
+            'label' => 'Small badges',
+            'help' => 'Up to three short phrases under the buttons, e.g. "Weather guarantee". Optional.',
+            'add' => 'Add a badge',
+            'text' => [
+                'label' => 'Text',
+            ],
+        ],
+
+        'icon' => [
+            'label' => 'Icon',
+            'options' => [
+                'users' => 'Group',
+                'anchor' => 'Anchor',
+                'shield' => 'Shield',
+                'lock' => 'Lock',
+                'star' => 'Star',
+                'heart' => 'Heart',
+                'sun' => 'Sun',
+                'boat' => 'Boat',
+                'clock' => 'Clock',
+                'pin' => 'Map pin',
+                'check' => 'Tick',
+                'support' => 'Headset',
+            ],
+        ],
+
+        'stats' => [
+            'label' => 'Figures',
+            'help' => 'Up to four, in one white card, wherever you place the section on the page.',
+            'add' => 'Add a figure',
+            'value' => [
+                'label' => 'Figure',
+                'help' => 'Short, e.g. "30+" or "4.9★".',
+            ],
+            'caption' => [
+                'label' => 'What it counts',
+            ],
+        ],
+
+        'steps' => [
+            'label' => 'Steps',
+            'help' => 'Up to three, in the order a guest takes them. The number is added for you.',
+            'add' => 'Add a step',
+        ],
+
+        'features' => [
+            'label' => 'Reasons',
+            'help' => 'Up to four, each with its own icon.',
+            'add' => 'Add a reason',
+        ],
+
+        'item_title' => [
+            'label' => 'Title',
+        ],
+
+        'item_text' => [
+            'label' => 'Text',
+            'help' => 'One or two sentences.',
+        ],
+
+        'dark' => [
+            'label' => 'Dark background',
+            'help' => 'The section in a deep shade of your main colour, with light text.',
+        ],
+
+        'testimonials' => [
+            'label' => 'Reviews',
+            'help' => 'Up to three. Only reviews you actually received.',
+            'add' => 'Add a review',
+            'quote' => [
+                'label' => 'The review',
+                'help' => 'As the guest wrote it. You may shorten it.',
+            ],
+            'name' => [
+                'label' => 'Name',
+                'help' => 'As they want it shown, e.g. "Helen P.". The same in both languages.',
+            ],
+            'trip' => [
+                'label' => 'Trip',
+            ],
+            'rating' => [
+                'label' => 'Stars',
+            ],
+            'avatar' => [
+                'label' => 'Small photo (optional)',
+                'help' => 'Without one, the first letter of the name is shown.',
+            ],
+        ],
     ],
 
     // Read beside the field, by somebody who has pasted a link that looked
@@ -146,6 +265,7 @@ return [
     // the address is invalid — which would send them to check their typing.
     'validation' => [
         'video_url' => 'The video link must be a YouTube or Vimeo address.',
+        'path' => 'Write only the end of an address on your own site, e.g. legal — no https:// and no other site.',
     ],
 
     'actions' => [
