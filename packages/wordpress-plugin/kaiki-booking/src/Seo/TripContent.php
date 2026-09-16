@@ -120,7 +120,7 @@ final class TripContent {
 			$parts[] = self::definition_list( $facts );
 		}
 
-		foreach ( array( 'includes', 'excludes', 'what_to_bring' ) as $field ) {
+		foreach ( array( 'highlights', 'includes', 'excludes', 'what_to_bring' ) as $field ) {
 			$items = self::list_of( $row, $locale, $field );
 
 			if ( array() === $items ) {
@@ -223,6 +223,8 @@ final class TripContent {
 	 */
 	private static function heading( string $field ): string {
 		switch ( $field ) {
+			case 'highlights':
+				return __( 'Highlights', 'kaiki-booking' );
 			case 'includes':
 				return __( 'What is included', 'kaiki-booking' );
 			case 'excludes':

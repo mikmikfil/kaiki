@@ -59,6 +59,11 @@
 
         'clock' => '<circle cx="12" cy="12" r="8.6"/><path d="M12 6.9v5.4l3.6 2.1"/>',
 
+        // A sun with its rays, for the time the boat leaves — the clock already
+        // means how long the trip lasts.
+        'sun' => '<circle cx="12" cy="12" r="4"/>'
+            .'<path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4 7 7M17 17l1.6 1.6M5.4 18.6 7 17M17 7l1.6-1.6"/>',
+
         // A map marker with a point in it, so it reads as a place rather than as
         // a balloon.
         'pin' => '<path d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Z"/>'
@@ -148,6 +153,21 @@
         'social-x' => '<path d="M4 4l7.2 9.3L4.4 20"/><path d="M20 20l-7.2-9.3L19.6 4"/>',
 
         'search' => '<circle cx="10.8" cy="10.8" r="7"/><path d="m20.2 20.2-4.4-4.4"/>',
+
+        // The home page's reasons and trust badges (2026-09-16). An operator
+        // picks one of these by name; they never supply a drawing.
+        'anchor' => '<circle cx="12" cy="5.2" r="2.2"/><path d="M12 7.4v13.4"/>'
+            .'<path d="M8.4 11h7.2"/><path d="M4.4 13.6a7.6 7.6 0 0 0 15.2 0"/>',
+
+        'shield' => '<path d="M12 3.2 19.2 6v5.4c0 4.6-3 8.2-7.2 9.6-4.2-1.4-7.2-5-7.2-9.6V6L12 3.2Z"/>'
+            .'<path d="m8.8 12.2 2.2 2.2 4.2-4.4"/>',
+
+        'lock' => '<rect x="4.6" y="10.4" width="14.8" height="10.2" rx="2.4"/>'
+            .'<path d="M8 10.4V7.6a4 4 0 0 1 8 0v2.8"/><path d="M12 14.4v2.2"/>',
+
+        'star' => '<path d="m12 3.6 2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.6l-5.1 2.7 1-5.7-4.1-4 5.7-.8L12 3.6Z"/>',
+
+        'heart' => '<path d="M12 20.2s-7.6-4.6-7.6-10.2A4.4 4.4 0 0 1 12 7.4a4.4 4.4 0 0 1 7.6 2.6c0 5.6-7.6 10.2-7.6 10.2Z"/>',
     ];
     $path = $paths[$name] ?? null;
 @endphp

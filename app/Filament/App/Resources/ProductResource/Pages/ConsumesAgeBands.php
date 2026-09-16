@@ -6,6 +6,7 @@ namespace App\Filament\App\Resources\ProductResource\Pages;
 
 use App\Domain\Catalog\Actions\SaveAgeBands;
 use App\Domain\Catalog\Actions\SaveProduct;
+use App\Domain\Catalog\Support\TripPageContent;
 use App\Enums\BookingMode;
 use App\Enums\ProductStatus;
 use App\Models\AgeBand;
@@ -39,6 +40,8 @@ trait ConsumesAgeBands
         $bands = $data['age_bands'] ?? [];
         unset($data['age_bands']);
 
+        $data = $this->tripPageContentFromForm($record, $data);
+
         $wantsActive = ($data['status'] ?? null) === ProductStatus::Active->value;
 
         // Saved as a draft first when the operator asked to publish, so the
@@ -69,6 +72,70 @@ trait ConsumesAgeBands
         } catch (ValidationException $exception) {
             throw $this->attachToForm($exception);
         }
+    }
+
+    /**
+     * The optional trip-page content, from the form's lines and rows into the
+     * columns' shapes ({@see TripPageContent}).
+     *
+     * Only the fields the form actually sent: a submit that carried no
+     * itinerary rows — a caller that fills part of the form — leaves the stored
+     * itinerary alone rather than clearing it.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    private function tripPageContentFromForm(Model $record, array $data): array
+    {
+        foreach (TripPageContent::LISTS as $field) {
+            if (array_key_exists($field, $data)) {
+                $data[$field] = TripPageContent::listFromForm($data[$field]);
+            }
+        }
+
+        if (array_key_exists(TripPageContent::ITINERARY_FIELD, $data)) {
+            $geo = $record instanceof Product && $record->exists ? $record->itineraryGeo() : [];
+            $data['itinerary_stops'] = TripPageContent::itineraryFromRows($data[TripPageContent::ITINERARY_FIELD], $geo);
+        }
+
+        unset($data[TripPageContent::ITINERARY_FIELD]);
+
+        // A null passed through `fill()` to a translatable attribute is stored
+        // as `{"en": null}` — a configured-looking value that is empty. So an
+        // emptied field is taken out of the attributes and written straight
+        // onto the model as a real null, which is what hides its section.
+        $nulls = [];
+
+        foreach ([...TripPageContent::LISTS, 'itinerary_stops'] as $field) {
+            if (array_key_exists($field, $data) && $data[$field] === null) {
+                $nulls[$field] = null;
+                unset($data[$field]);
+            }
+        }
+
+        if ($nulls !== [] && $record instanceof Product) {
+            $record->setRawAttributes([...$record->getAttributes(), ...$nulls]);
+        }
+
+        return $data;
+    }
+
+    /**
+     * The form's view of the same content, for an existing trip.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function fillTripPageContent(array $data, Product $record): array
+    {
+        foreach (TripPageContent::LISTS as $field) {
+            $data[$field] = TripPageContent::listToForm($record->getTranslations($field));
+        }
+
+        $data[TripPageContent::ITINERARY_FIELD] = TripPageContent::itineraryToRows($record);
+        unset($data['itinerary_stops']);
+
+        return $data;
     }
 
     /**

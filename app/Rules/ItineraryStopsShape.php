@@ -133,6 +133,15 @@ final class ItineraryStopsShape implements ValidationRule
             return null;
         }
 
+        // Optional since 2026-09-16: the wall time the stop happens at, «09:45».
+        $time = $stop['time'] ?? null;
+
+        if ($time !== null && (! is_string($time) || preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time) !== 1)) {
+            $fail('catalog.product.validation.itinerary.time')->translate();
+
+            return null;
+        }
+
         return $key;
     }
 

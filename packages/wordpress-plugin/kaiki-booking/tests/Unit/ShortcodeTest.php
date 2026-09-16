@@ -285,4 +285,37 @@ final class ShortcodeTest extends TestCase {
 
 		return $kept;
 	}
+
+	public function test_the_booking_form_is_full_on_a_page_that_is_not_about_a_trip(): void {
+		$html = Shortcodes::booking( array( 'product' => self::UUID ) );
+
+		$this->assertStringNotContainsString( 'data-details', $html );
+	}
+
+	public function test_the_booking_form_is_compact_on_a_trip_page_by_itself(): void {
+		// 2026-09-16: the page already shows the trip, its duration, port and
+		// boat, so the form under them does not say them again.
+		$GLOBALS['kaiki_test_current_post']                = 7;
+		$GLOBALS['kaiki_test_post_meta'][7]['_kaiki_uuid'] = self::UUID;
+
+		$this->assertStringContainsString( 'data-details="hide"', Shortcodes::booking( array() ) );
+	}
+
+	public function test_compact_yes_and_no_override_the_automatic_choice(): void {
+		$this->assertStringContainsString(
+			'data-details="hide"',
+			Shortcodes::booking(
+				array(
+					'product' => self::UUID,
+					'compact' => 'yes',
+				)
+			)
+		);
+
+		Bundle::reset();
+		$GLOBALS['kaiki_test_current_post']                = 7;
+		$GLOBALS['kaiki_test_post_meta'][7]['_kaiki_uuid'] = self::UUID;
+
+		$this->assertStringNotContainsString( 'data-details', Shortcodes::booking( array( 'compact' => 'no' ) ) );
+	}
 }

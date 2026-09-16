@@ -49,6 +49,9 @@ final class TripPostType {
 
 	public const POST_TYPE = 'kaiki_trip';
 
+	/** The admin menu's anchor. */
+	private const MENU_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyMCAyMCI+PHBhdGggZmlsbD0iYmxhY2siIGQ9Ik0xMCAxLjVhMi41IDIuNSAwIDAgMC0uOSA0LjgzVjhINi41djEuN2gyLjZ2Ny4xYy0yLjYtLjM1LTQuNy0yLjItNS4yLTQuNkg1LjZMMyA5IC41IDEyLjJoMS43Yy41NSAzLjU1IDMuNyA2LjMgNy44IDYuM3M3LjI1LTIuNzUgNy44LTYuM2gxLjdMMTcgOWwtMi42IDMuMmgxLjdjLS41IDIuNC0yLjYgNC4yNS01LjIgNC42VjkuN2gyLjZWOGgtMi42VjYuMzNBMi41IDIuNSAwIDAgMCAxMCAxLjV6bTAgMS43YS44LjggMCAxIDEgMCAxLjYuOC44IDAgMCAxIDAtMS42eiIvPjwvc3ZnPg==';
+
 	/**
 	 * Where the sync stores what it needs to recognise a post again.
 	 *
@@ -63,6 +66,13 @@ final class TripPostType {
 	public const META_HASH = '_kaiki_content_hash';
 
 	public const META_CANONICAL = '_kaiki_canonical_url';
+
+	/**
+	 * `booking` or `request`, written on every sync: whether the trip is booked
+	 * directly or asked about (a `quote` trip). The page's body class is built
+	 * from it.
+	 */
+	public const META_BOOKING_TYPE = '_kaiki_mode_type';
 
 	/**
 	 * The option that remembers which base the rewrite rules were built with.
@@ -85,6 +95,53 @@ final class TripPostType {
 		add_action( 'init', array( self::class, 'flush_if_base_changed' ), 20 );
 		add_filter( 'single_template', array( self::class, 'template' ) );
 		add_action( 'wp_head', array( self::class, 'canonical' ) );
+		add_filter( 'body_class', array( self::class, 'body_class' ) );
+		add_action( 'kaiki_trip_synced', array( self::class, 'record_booking_type' ), 10, 2 );
+	}
+
+	/**
+	 * After the sync has written a trip post: how it is booked.
+	 *
+	 * On `unchanged` too — the hook fires for every current post — so a site
+	 * that had its posts before this existed gets the value on the next run.
+	 *
+	 * @param int                  $post_id The trip post.
+	 * @param array<string, mixed> $row     The sync row.
+	 */
+	public static function record_booking_type( int $post_id, array $row ): void {
+		if ( $post_id <= 0 ) {
+			return;
+		}
+
+		$product = isset( $row['product'] ) && is_array( $row['product'] ) ? $row['product'] : array();
+
+		update_post_meta( $post_id, self::META_BOOKING_TYPE, self::booking_type( $product ) );
+	}
+
+	/**
+	 * `booking` or `request`: a `quote` trip has no price and is asked about.
+	 *
+	 * @param array<string, mixed> $product The product.
+	 */
+	public static function booking_type( array $product ): string {
+		return 'quote' === ( $product['mode'] ?? '' ) ? 'request' : 'booking';
+	}
+
+	/**
+	 * `kaiki-trip--booking` or `kaiki-trip--request` on a trip page, so one
+	 * template can show different things for the two, such as a price box or
+	 * a «we reply with a quote» note. The booking form switches by itself.
+	 *
+	 * @param array<int, string> $classes The body's classes.
+	 * @return array<int, string>
+	 */
+	public static function body_class( array $classes ): array {
+		if ( is_singular( self::POST_TYPE ) ) {
+			$type      = (string) get_post_meta( (int) get_queried_object_id(), self::META_BOOKING_TYPE, true );
+			$classes[] = 'kaiki-trip--' . ( 'request' === $type ? 'request' : 'booking' );
+		}
+
+		return $classes;
 	}
 
 	/**
@@ -110,7 +167,9 @@ final class TripPostType {
 					'create_posts' => 'do_not_allow',
 				),
 				'map_meta_cap'        => true,
-				'menu_icon'           => 'dashicons-palmtree',
+				// An anchor. Dashicons has none, and WordPress recolours a data-URI
+				// SVG to match the admin colour scheme.
+				'menu_icon'           => self::MENU_ICON,
 				'exclude_from_search' => true,
 				'publicly_queryable'  => true,
 				'has_archive'         => false,
@@ -119,7 +178,11 @@ final class TripPostType {
 					'slug'       => self::base(),
 					'with_front' => false,
 				),
-				'supports'            => array( 'title', 'editor', 'excerpt', 'thumbnail', 'custom-fields' ),
+				// No `editor`: the body is Kaiki's and the next sync rewrites it,
+				// so an editor box only invites work that will be lost. The sync
+				// still writes `post_content` for crawlers and the fallback
+				// template; the trip itself is edited in Kaiki.
+				'supports'            => array( 'title', 'excerpt', 'thumbnail', 'custom-fields' ),
 				// Off. The pages are for visitors and crawlers; exposing an
 				// operator's synced catalogue over the REST API would publish
 				// the same list a second time, at a URL nobody audits.
@@ -138,18 +201,42 @@ final class TripPostType {
 	}
 
 	/**
-	 * Rebuild the rewrite rules when, and only when, the base changed.
+	 * Rebuild the rewrite rules when the base changed — or when they have lost
+	 * the trips altogether.
+	 *
+	 * The second case is somebody else's flush: another plugin being switched
+	 * off or on rebuilds the rules on a request where this post type may not be
+	 * registered, and every trip page is a 404 until permalinks are re-saved
+	 * (found 2026-09-16, after deactivating a plugin). The check is one lookup
+	 * in an option WordPress has already loaded.
 	 */
 	public static function flush_if_base_changed(): void {
-		$base = self::base();
+		$base  = self::base();
+		$rules = get_option( 'rewrite_rules' );
 
-		if ( get_option( self::BASE_OPTION ) === $base ) {
+		if ( get_option( self::BASE_OPTION ) === $base && ( ! is_array( $rules ) || array() === $rules || self::rules_have_base( $rules, $base ) ) ) {
 			return;
 		}
 
 		update_option( self::BASE_OPTION, $base );
 
 		flush_rewrite_rules( false );
+	}
+
+	/**
+	 * Do these rewrite rules route the trip base?
+	 *
+	 * @param array<string, string> $rules The stored rules.
+	 * @param string                $base  The permalink base.
+	 */
+	public static function rules_have_base( array $rules, string $base ): bool {
+		foreach ( array_keys( $rules ) as $pattern ) {
+			if ( str_starts_with( (string) $pattern, $base . '/' ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -172,6 +259,11 @@ final class TripPostType {
 
 		if ( '' !== $theme ) {
 			return $theme;
+		}
+
+		// The Elementor template the plugin created, when the site has one.
+		if ( \Kaiki\Booking\Elementor\TripTemplate::id() > 0 && class_exists( '\Elementor\Plugin' ) ) {
+			return dirname( __DIR__, 2 ) . '/templates/single-trip-elementor.php';
 		}
 
 		return dirname( __DIR__, 2 ) . '/templates/single-trip.php';

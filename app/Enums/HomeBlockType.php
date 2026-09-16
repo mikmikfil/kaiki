@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Enums;
 
 use App\Domain\Hosted\Actions\BuildFaqList;
+use App\Domain\Hosted\Support\BlockItems;
 use App\Domain\Hosted\Support\BlockText;
 use App\Enums\Concerns\HasTranslatedLabel;
 
@@ -71,6 +72,29 @@ enum HomeBlockType: string
      */
     case Faq = 'faq';
 
+    /*
+     * The five of 16 September, brought over from the design of the operator's
+     * WordPress site. Each is a short **list of structured entries** kept in
+     * `items` and shaped by {@see BlockItems} — still no free markup anywhere:
+     * a number is a string, a review is a string, and a button points at one of
+     * a fixed set of places on the operator's own site.
+     */
+
+    /** Up to four figures — «30+ / χρόνια στη θάλασσα» — in a card under the hero. */
+    case Stats = 'stats';
+
+    /** Three numbered steps, from choosing a trip to stepping aboard. */
+    case Steps = 'steps';
+
+    /** Up to four reasons to choose the operator, each behind an icon. */
+    case Features = 'features';
+
+    /** Up to three guest reviews, each with a star rating. */
+    case Testimonials = 'testimonials';
+
+    /** A photographed band with a heading, a sentence and one or two buttons. */
+    case Cta = 'cta';
+
     /**
      * Does this type render the operator's prose?
      *
@@ -79,7 +103,12 @@ enum HomeBlockType: string
      */
     public function hasProse(): bool
     {
-        return in_array($this, [self::Hero, self::Story, self::Contact], true);
+        // The four list-shaped sections take a lead paragraph under their
+        // heading; the numbers card is figures and nothing else.
+        return in_array($this, [
+            self::Hero, self::Story, self::Contact,
+            self::Steps, self::Features, self::Testimonials, self::Cta,
+        ], true);
     }
 
     /** Does this type carry a single image of its own? */
@@ -89,7 +118,50 @@ enum HomeBlockType: string
         // of the quay behind a telephone number is the last thing a guest sees
         // before they call, and an operator who cannot put one there is left
         // with a grey box at the bottom of an otherwise photographed page.
-        return in_array($this, [self::Hero, self::Story, self::Contact], true);
+        //
+        // The call-to-action band is a photograph with words on it, so its
+        // image is required by the editor. The steps and the reasons take an
+        // optional one, shown beside the section.
+        return in_array($this, [self::Hero, self::Story, self::Contact, self::Cta, self::Steps, self::Features], true);
+    }
+
+    /**
+     * Does this type show the short line above its heading (`eyebrow`)?
+     *
+     * Not the gallery, the questions or the contact panel, whose markup is
+     * shared with pages that have no such line.
+     */
+    public function hasEyebrow(): bool
+    {
+        return in_array($this, [
+            self::Hero, self::Trips, self::Story,
+            self::Stats, self::Steps, self::Features, self::Testimonials, self::Cta,
+        ], true);
+    }
+
+    /**
+     * How many entries this type keeps in `items`; zero for a type with none.
+     *
+     * The hero's entries are its row of small trust badges.
+     */
+    public function maxItems(): int
+    {
+        return match ($this) {
+            self::Hero, self::Steps, self::Testimonials => 3,
+            self::Stats, self::Features => 4,
+            default => 0,
+        };
+    }
+
+    public function hasItems(): bool
+    {
+        return $this->maxItems() > 0;
+    }
+
+    /** How many buttons this type keeps in `buttons`; zero for a type with none. */
+    public function maxButtons(): int
+    {
+        return in_array($this, [self::Hero, self::Cta], true) ? 2 : 0;
     }
 
     /**

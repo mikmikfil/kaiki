@@ -8,13 +8,61 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "X-Domain: kaiki-booking\n"
 
+msgid "%1$s · %2$d guests"
+msgstr ""
+
+msgid "%d kn"
+msgstr ""
+
 msgid "%d minutes"
 msgstr ""
 
 msgid "%d people"
 msgstr ""
 
+msgid "%d seats left"
+msgstr ""
+
+msgid "%d trips"
+msgstr ""
+
+msgid "%d%% refund"
+msgstr ""
+
+msgid "%s hours"
+msgstr ""
+
+msgid "%s · 1 guest"
+msgstr ""
+
+msgid "+%d photos"
+msgstr ""
+
+msgid "/ boat"
+msgstr ""
+
+msgid "/ person"
+msgstr ""
+
+msgid "0 shows every trip."
+msgstr ""
+
+msgid "1 hour"
+msgstr ""
+
+msgid "1 seat left"
+msgstr ""
+
+msgid "1 trip"
+msgstr ""
+
 msgid "A booking form for one trip: date, party, details, pay."
+msgstr ""
+
+msgid "A list about the trip (nothing entered for this trip yet)"
+msgstr ""
+
+msgid "A list: what is included, what is not, what to bring, or the highlights."
 msgstr ""
 
 msgid "A sketch, not the real form. Anything you leave empty is shown here in Kaiki's default colours, and your theme's font only appears on your site itself."
@@ -26,10 +74,31 @@ msgstr ""
 msgid "Address for trip pages"
 msgstr ""
 
+msgid "Address only"
+msgstr ""
+
+msgid "Address to give Kaiki"
+msgstr ""
+
+msgid "Air conditioning"
+msgstr ""
+
+msgid "Alignment"
+msgstr ""
+
 msgid "Always English"
 msgstr ""
 
 msgid "Always Greek"
+msgstr ""
+
+msgid "Amenity background"
+msgstr ""
+
+msgid "Amenity colour"
+msgstr ""
+
+msgid "An enquiry form, for a trip with no published price or a general question."
 msgstr ""
 
 msgid "An enquiry form, for trips with no published price."
@@ -38,37 +107,139 @@ msgstr ""
 msgid "Another font my theme loads"
 msgstr ""
 
+msgid "Any detail Kaiki has about the trip, by its path."
+msgstr ""
+
+msgid "Any field of the trip in Kaiki's API, with dots between levels."
+msgstr ""
+
+msgid "Any port"
+msgstr ""
+
+msgid "Any type"
+msgstr ""
+
 msgid "Anything on a page is public. If it ever appears on one, delete the key in your Kaiki panel and make a new one."
 msgstr ""
 
 msgid "Appearance"
 msgstr ""
 
+msgid "Arrive minutes early"
+msgstr ""
+
 msgid "As in Kaiki"
+msgstr ""
+
+msgid "Automatic"
+msgstr ""
+
+msgid "Background"
 msgstr ""
 
 msgid "Background colour"
 msgstr ""
 
+msgid "Bar"
+msgstr ""
+
+msgid "Barbecue"
+msgstr ""
+
+msgid "Beach towels"
+msgstr ""
+
+msgid "Before anyone searches, this shows every trip. After a search: the trips for that date and party, with the price for the party."
+msgstr ""
+
+msgid "Before the price"
+msgstr ""
+
 msgid "Boat"
+msgstr ""
+
+msgid "Boat capacity"
+msgstr ""
+
+msgid "Boat description"
+msgstr ""
+
+msgid "Boat length (m)"
 msgstr ""
 
 msgid "Book now"
 msgstr ""
 
+msgid "Bookable days ahead"
+msgstr ""
+
+msgid "Booking and lists"
+msgstr ""
+
 msgid "Bookings are briefly unavailable. Please try again in a moment, or contact us directly."
+msgstr ""
+
+msgid "Box"
+msgstr ""
+
+msgid "Button"
 msgstr ""
 
 msgid "Button colour"
 msgstr ""
 
+msgid "Button text"
+msgstr ""
+
+msgid "Cabin"
+msgstr ""
+
+msgid "Cache"
+msgstr ""
+
 msgid "Cache, in seconds"
+msgstr ""
+
+msgid "Cancellation policy"
+msgstr ""
+
+msgid "Cancellation policy name"
+msgstr ""
+
+msgid "Card"
+msgstr ""
+
+msgid "Card link text"
+msgstr ""
+
+msgid "Card text"
+msgstr ""
+
+msgid "Cards in a grid"
+msgstr ""
+
+msgid "Cards: photo above"
+msgstr ""
+
+msgid "Catamaran"
 msgstr ""
 
 msgid "Category"
 msgstr ""
 
+msgid "Centre"
+msgstr ""
+
 msgid "Change this only if something on your site already uses that word — two things cannot share one address."
+msgstr ""
+
+msgid "Check again"
+msgstr ""
+
+msgid "Checked %s"
+msgstr ""
+
+msgid "Child life jackets"
 msgstr ""
 
 msgid "Choose a trip in the sidebar."
@@ -77,10 +248,37 @@ msgstr ""
 msgid "Choose a trip…"
 msgstr ""
 
+msgid "Coffee machine"
+msgstr ""
+
+msgid "Colour"
+msgstr ""
+
+msgid "Columns"
+msgstr ""
+
+msgid "Compact list"
+msgstr ""
+
 msgid "Connect this site to your Kaiki account, then put a booking form on any page with a shortcode, a block or an Elementor widget."
 msgstr ""
 
+msgid "Connected"
+msgstr ""
+
 msgid "Connected. This site can read your trips."
+msgstr ""
+
+msgid "Connection"
+msgstr ""
+
+msgid "Copied"
+msgstr ""
+
+msgid "Copy"
+msgstr ""
+
+msgid "Corner radius"
 msgstr ""
 
 msgid "Corner roundness"
@@ -89,13 +287,70 @@ msgstr ""
 msgid "Create a page on this site for each trip"
 msgstr ""
 
+msgid "Crew"
+msgstr ""
+
+msgid "Cruising speed"
+msgstr ""
+
+msgid "Date"
+msgstr ""
+
+msgid "Departing from"
+msgstr ""
+
+msgid "Departs %s"
+msgstr ""
+
 msgid "Departs from"
+msgstr ""
+
+msgid "Departure time"
+msgstr ""
+
+msgid "Description"
+msgstr ""
+
+msgid "Detail"
+msgstr ""
+
+msgid "Dot colour"
+msgstr ""
+
+msgid "Drinking water"
 msgstr ""
 
 msgid "Duration"
 msgstr ""
 
+msgid "Duration in minutes"
+msgstr ""
+
+msgid "Engine"
+msgstr ""
+
+msgid "Every boat that runs a published trip, with its numbers, amenities and trips."
+msgstr ""
+
 msgid "Exactly as your theme names it. Latin letters, digits, spaces and hyphens only. A font your theme does not load will not appear."
+msgstr ""
+
+msgid "Facts"
+msgstr ""
+
+msgid "Field background"
+msgstr ""
+
+msgid "Field corner radius"
+msgstr ""
+
+msgid "Fishing gear"
+msgstr ""
+
+msgid "Fleet"
+msgstr ""
+
+msgid "Fleet (no boat runs a published trip yet)"
 msgstr ""
 
 msgid "Follow the page (recommended)"
@@ -110,31 +365,115 @@ msgstr ""
 msgid "Font name"
 msgstr ""
 
+msgid "Freshwater shower"
+msgstr ""
+
+msgid "Fridge"
+msgstr ""
+
 msgid "From 0 (square) to 30 (very round). Leave it empty to keep Kaiki's."
 msgstr ""
 
-msgid "From your Kaiki panel, on the trip."
+msgid "From Kaiki, or from your own fields through the kaiki_trip_list filter."
+msgstr ""
+
+msgid "From your Kaiki panel, on the trip. Leave empty on a trip template and the page fills it in."
 msgstr ""
 
 msgid "From your Kaiki panel, under API keys. This one is safe on a public page: it can read your catalogue and start a booking, and nothing else."
 msgstr ""
 
+msgid "Full day"
+msgstr ""
+
+msgid "Galley"
+msgstr ""
+
+msgid "Gap"
+msgstr ""
+
+msgid "Grid"
+msgstr ""
+
+msgid "Guests"
+msgstr ""
+
+msgid "HTML tag"
+msgstr ""
+
+msgid "Half day"
+msgstr ""
+
+msgid "Height"
+msgstr ""
+
+msgid "Hide"
+msgstr ""
+
+msgid "Hide (compact form)"
+msgstr ""
+
 msgid "Hide it if the same boat does every trip, or if you would rather not name it."
+msgstr ""
+
+msgid "Hide when Kaiki has nothing for it"
+msgstr ""
+
+msgid "Highlights"
+msgstr ""
+
+msgid "Horizontal: photo beside"
+msgstr ""
+
+msgid "Hours notice needed"
+msgstr ""
+
+msgid "Hover background"
+msgstr ""
+
+msgid "Hover colour"
+msgstr ""
+
+msgid "Hover shadow"
+msgstr ""
+
+msgid "How it is booked"
 msgstr ""
 
 msgid "How long your trips are remembered on this site. Changes you make in Kaiki appear immediately anyway — Kaiki tells this site when something changed."
 msgstr ""
 
+msgid "How many"
+msgstr ""
+
+msgid "How many cards. 0 for all."
+msgstr ""
+
 msgid "How the booking form and the trip list look on this site. «As in Kaiki» uses the colours and font from your Kaiki panel. Choose your own to match this site instead; anything you leave empty stays as in Kaiki."
 msgstr ""
 
-msgid "Is it connected?"
+msgid "How to find the meeting point"
+msgstr ""
+
+msgid "Icon colour"
+msgstr ""
+
+msgid "Icon size"
+msgstr ""
+
+msgid "In one row"
 msgstr ""
 
 msgid "It has not run yet. It runs by itself every hour, and whenever you change something in Kaiki."
 msgstr ""
 
 msgid "It is used by this site's own scheduled task to read your full catalogue, including trips you have not published. It is never sent to a visitor."
+msgstr ""
+
+msgid "Itinerary"
+msgstr ""
+
+msgid "Itinerary (nothing entered for this trip yet)"
 msgstr ""
 
 msgid "Kaiki"
@@ -170,10 +509,16 @@ msgstr ""
 msgid "Kaiki booking form"
 msgstr ""
 
+msgid "Kaiki booking page"
+msgstr ""
+
 msgid "Kaiki could not be reached."
 msgstr ""
 
 msgid "Kaiki enquiry form"
+msgstr ""
+
+msgid "Kaiki field (any trip detail)"
 msgstr ""
 
 msgid "Kaiki owns the title and the body of a trip page."
@@ -185,13 +530,22 @@ msgstr ""
 msgid "Kaiki refused the secret key. Check it here, or make a new one in your Kaiki panel."
 msgstr ""
 
-msgid "Kaiki tells this site the moment something changes — a new trip, a new price — so visitors never see an out-of-date catalogue. Paste the update secret from your Kaiki panel to switch it on."
+msgid "Kaiki tells this site the moment a trip changes, so visitors never see an out-of-date catalogue. In your Kaiki panel, open Settings → Webhooks, add a webhook with the address below, tick the three trip events, and paste the secret it shows you here."
 msgstr ""
 
 msgid "Kaiki trips"
 msgstr ""
 
+msgid "Kaiki · Trip page"
+msgstr ""
+
 msgid "Kaiki's font"
+msgstr ""
+
+msgid "Label background"
+msgstr ""
+
+msgid "Label colour"
 msgstr ""
 
 msgid "Language"
@@ -203,13 +557,82 @@ msgstr ""
 msgid "Last update"
 msgstr ""
 
+msgid "Layout"
+msgstr ""
+
+msgid "Layout default"
+msgstr ""
+
+msgid "Leave empty on a trip template: each trip page fills in its own. In this editor the first trip is shown as a preview."
+msgstr ""
+
 msgid "Leave empty to show every trip."
+msgstr ""
+
+msgid "Leave out the trip being viewed"
 msgstr ""
 
 msgid "Leave this as it is unless you were told otherwise."
 msgstr ""
 
+msgid "Left"
+msgstr ""
+
+msgid "Length"
+msgstr ""
+
+msgid "Line colour"
+msgstr ""
+
+msgid "Link address"
+msgstr ""
+
+msgid "Link back"
+msgstr ""
+
+msgid "Link colour"
+msgstr ""
+
+msgid "Link hover colour"
+msgstr ""
+
+msgid "Link text"
+msgstr ""
+
+msgid "List"
+msgstr ""
+
 msgid "Live updates"
+msgstr ""
+
+msgid "Main photo"
+msgstr ""
+
+msgid "Map link"
+msgstr ""
+
+msgid "Map link text"
+msgstr ""
+
+msgid "Maximum guests"
+msgstr ""
+
+msgid "Meeting point"
+msgstr ""
+
+msgid "Meeting point address"
+msgstr ""
+
+msgid "Minimal: no photo"
+msgstr ""
+
+msgid "Minimum guests"
+msgstr ""
+
+msgid "Most photos"
+msgstr ""
+
+msgid "Motor boat"
 msgstr ""
 
 msgid "My own"
@@ -218,52 +641,352 @@ msgstr ""
 msgid "My theme's font"
 msgstr ""
 
+msgid "Name colour"
+msgstr ""
+
+msgid "Name typography"
+msgstr ""
+
 msgid "Never paste this key into a page, a post, a widget or a theme file."
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+msgid "No refund"
+msgstr ""
+
+msgid "No trip can take this party on that date. Try another day, or fewer guests."
 msgstr ""
 
 msgid "No trips found. You can still paste a trip id."
 msgstr ""
 
+msgid "Not connected"
+msgstr ""
+
 msgid "Not included"
+msgstr ""
+
+msgid "Number box background"
+msgstr ""
+
+msgid "Number colour"
+msgstr ""
+
+msgid "Number typography"
+msgstr ""
+
+msgid "Numbers and amenities"
 msgstr ""
 
 msgid "Off by default, and the plugin is complete without it. Switched on, each of your trips also becomes a page on this site, so Google finds it here as well as on Kaiki."
 msgstr ""
 
+msgid "On a trip page, or in a template for trip pages, leave product empty: the shortcode shows the trip being viewed. Anywhere else, put the trip id from your Kaiki panel in it."
+msgstr ""
+
+msgid "On a trip page, this section is left out when every Kaiki widget in it is empty — for example a trip with no itinerary. The editor always shows it."
+msgstr ""
+
+msgid "On request"
+msgstr ""
+
 msgid "Once you change the summary on a trip page, this plugin never touches it again. The address of a page never changes after it is created, so links you have shared keep working."
+msgstr ""
+
+msgid "One field under the other"
+msgstr ""
+
+msgid "One large, four small"
 msgstr ""
 
 msgid "Only the trip pages need this, and only on this screen."
 msgstr ""
 
+msgid "Only these categories, separated by commas."
+msgstr ""
+
+msgid "Only these types"
+msgstr ""
+
+msgid "Only trips in this category. Leave it empty for all of them."
+msgstr ""
+
 msgid "Only you can see this:"
+msgstr ""
+
+msgid "Open in maps →"
+msgstr ""
+
+msgid "Optional. The trip the enquiry is about."
+msgstr ""
+
+msgid "Other (type the path)"
+msgstr ""
+
+msgid "Overlay shade"
+msgstr ""
+
+msgid "Overlay: name over the photo"
+msgstr ""
+
+msgid "Overlay: text over the photo"
+msgstr ""
+
+msgid "Padding"
+msgstr ""
+
+msgid "Paddleboard"
+msgstr ""
+
+msgid "Paragraphs"
+msgstr ""
+
+msgid "Paste any of these into a page, a post or a text widget. Click an example to copy it."
+msgstr ""
+
+msgid "Path"
+msgstr ""
+
+msgid "Pets welcome"
+msgstr ""
+
+msgid "Photo"
+msgstr ""
+
+msgid "Photo corner radius"
+msgstr ""
+
+msgid "Photo height"
+msgstr ""
+
+msgid "Photo shape"
+msgstr ""
+
+msgid "Photos"
+msgstr ""
+
+msgid "Pieces of a trip page"
+msgstr ""
+
+msgid "Policy"
+msgstr ""
+
+msgid "Portrait 4:5"
 msgstr ""
 
 msgid "Preview"
 msgstr ""
 
+msgid "Price"
+msgstr ""
+
+msgid "Price colour"
+msgstr ""
+
+msgid "Price line"
+msgstr ""
+
+msgid "Price typography"
+msgstr ""
+
+msgid "Private"
+msgstr ""
+
+msgid "Private, full day"
+msgstr ""
+
+msgid "Private, half day"
+msgstr ""
+
 msgid "Publishable key"
+msgstr ""
+
+msgid "RIB"
+msgstr ""
+
+msgid "Refund colour"
+msgstr ""
+
+msgid "Result count colour"
+msgstr ""
+
+msgid "Results page"
+msgstr ""
+
+msgid "Right"
+msgstr ""
+
+msgid "Rows: photo always on the left"
+msgstr ""
+
+msgid "Rows: photo beside, alternating"
+msgstr ""
+
+msgid "Sailing yacht"
+msgstr ""
+
+msgid "Search"
 msgstr ""
 
 msgid "Secret key"
 msgstr ""
 
+msgid "Settings sections"
+msgstr ""
+
 msgid "Settings → Kaiki Booking"
+msgstr ""
+
+msgid "Shade canopy"
+msgstr ""
+
+msgid "Short facts with icons: duration, departure, meeting point, boat, capacity."
+msgstr ""
+
+msgid "Shortcodes"
+msgstr ""
+
+msgid "Show"
+msgstr ""
+
+msgid "Show a link back"
+msgstr ""
+
+msgid "Show a map link"
+msgstr ""
+
+msgid "Show as"
+msgstr ""
+
+msgid "Show duration, time and boat"
+msgstr ""
+
+msgid "Show the amenities"
 msgstr ""
 
 msgid "Show the boat's name"
 msgstr ""
 
+msgid "Show the directions"
+msgstr ""
+
+msgid "Show the label on the photo"
+msgstr ""
+
+msgid "Show the numbers (guests, length, crew…)"
+msgstr ""
+
+msgid "Show the photo"
+msgstr ""
+
+msgid "Show the price"
+msgstr ""
+
+msgid "Show the refund steps"
+msgstr ""
+
+msgid "Show the summary"
+msgstr ""
+
+msgid "Show the trips it runs"
+msgstr ""
+
+msgid "Show type and port, if switched on in Kaiki"
+msgstr ""
+
+msgid "Show «/ person»"
+msgstr ""
+
+msgid "Small text colour"
+msgstr ""
+
+msgid "Small text typography"
+msgstr ""
+
+msgid "Snorkelling gear"
+msgstr ""
+
+msgid "Sound system"
+msgstr ""
+
+msgid "Space below"
+msgstr ""
+
+msgid "Space between items"
+msgstr ""
+
+msgid "Space between paragraphs"
+msgstr ""
+
+msgid "Special"
+msgstr ""
+
+msgid "Square"
+msgstr ""
+
+msgid "Step background"
+msgstr ""
+
+msgid "Step border colour"
+msgstr ""
+
+msgid "Step corner radius"
+msgstr ""
+
+msgid "Step typography"
+msgstr ""
+
 msgid "Style"
+msgstr ""
+
+msgid "Summary"
+msgstr ""
+
+msgid "Summary colour"
+msgstr ""
+
+msgid "Summary typography"
+msgstr ""
+
+msgid "Sun deck"
+msgstr ""
+
+msgid "Sunset"
 msgstr ""
 
 msgid "Sunset cruise"
 msgstr ""
 
+msgid "Swim ladder"
+msgstr ""
+
+msgid "Switch it on and save to choose the address of the trip pages and add the secret key."
+msgstr ""
+
 msgid "Test the connection"
 msgstr ""
 
+msgid "Text"
+msgstr ""
+
+msgid "Text after"
+msgstr ""
+
+msgid "Text after the value."
+msgstr ""
+
+msgid "Text before"
+msgstr ""
+
+msgid "Text before the value."
+msgstr ""
+
 msgid "Text colour"
+msgstr ""
+
+msgid "Text typography"
 msgstr ""
 
 msgid "That does not look like a publishable key. A publishable key starts with pk_. Never paste a secret key here — it would be sent to every visitor."
@@ -281,7 +1004,82 @@ msgstr ""
 msgid "That request is too old."
 msgstr ""
 
+msgid "The address of the results page. Empty: the same page."
+msgstr ""
+
+msgid "The boat"
+msgstr ""
+
+msgid "The booking form for one trip."
+msgstr ""
+
+msgid "The button text."
+msgstr ""
+
+msgid "The cancellation policy."
+msgstr ""
+
+msgid "The check uses the saved key. Save your changes first."
+msgstr ""
+
+msgid "The day, stop by stop."
+msgstr ""
+
+msgid "The main photo only"
+msgstr ""
+
+msgid "The most photos to show."
+msgstr ""
+
+msgid "The page with the «Trip search results» widget. Empty: this same page."
+msgstr ""
+
+msgid "The path, e.g. vessel.name or meeting_point.instructions."
+msgstr ""
+
+msgid "The search bar: date, guests, and type or port when switched on in Kaiki."
+msgstr ""
+
+msgid "The search is not available right now. Please try again in a moment."
+msgstr ""
+
+msgid "The starting price."
+msgstr ""
+
+msgid "The text of the link back."
+msgstr ""
+
+msgid "The text of the map link."
+msgstr ""
+
+msgid "The text on each card's button."
+msgstr ""
+
 msgid "The text on the buttons turns white or black by itself, whichever is easier to read."
+msgstr ""
+
+msgid "The trip"
+msgstr ""
+
+msgid "The trip id. Leave it empty on a trip page."
+msgstr ""
+
+msgid "The trip's description from Kaiki."
+msgstr ""
+
+msgid "The trip's photos."
+msgstr ""
+
+msgid "The trip's title, with its summary and a link back if you want one."
+msgstr ""
+
+msgid "The trip, duration, port and boat lines above the calendar. Automatic hides them on a trip page, which already shows them."
+msgstr ""
+
+msgid "The trips for the searched date and party, with the price for the party. Every trip before a search."
+msgstr ""
+
+msgid "The word before the price."
 msgstr ""
 
 msgid "There is no key saved yet."
@@ -305,10 +1103,58 @@ msgstr ""
 msgid "Three hours along the coast, with a stop for a swim."
 msgstr ""
 
+msgid "Time colour"
+msgstr ""
+
+msgid "Time typography"
+msgstr ""
+
+msgid "Title"
+msgstr ""
+
+msgid "Title colour"
+msgstr ""
+
+msgid "Title typography"
+msgstr ""
+
+msgid "Toilet"
+msgstr ""
+
+msgid "Traditional kaiki"
+msgstr ""
+
 msgid "Trip"
 msgstr ""
 
+msgid "Trip cards"
+msgstr ""
+
+msgid "Trip cards (no trips match)"
+msgstr ""
+
+msgid "Trip cards that open each trip's page on this site."
+msgstr ""
+
+msgid "Trip description"
+msgstr ""
+
+msgid "Trip details in the form"
+msgstr ""
+
+msgid "Trip facts"
+msgstr ""
+
 msgid "Trip id"
+msgstr ""
+
+msgid "Trip itinerary"
+msgstr ""
+
+msgid "Trip list (included, bring…)"
+msgstr ""
+
+msgid "Trip page (Kaiki)"
 msgstr ""
 
 msgid "Trip pages"
@@ -317,25 +1163,94 @@ msgstr ""
 msgid "Trip pages for search engines"
 msgstr ""
 
+msgid "Trip photos"
+msgstr ""
+
+msgid "Trip price"
+msgstr ""
+
+msgid "Trip search bar"
+msgstr ""
+
+msgid "Trip search results"
+msgstr ""
+
+msgid "Trip title"
+msgstr ""
+
 msgid "Trips"
+msgstr ""
+
+msgid "Trips visible"
+msgstr ""
+
+msgid "Trips:"
+msgstr ""
+
+msgid "Type colour"
+msgstr ""
+
+msgid "Type of trip"
+msgstr ""
+
+msgid "Type typography"
+msgstr ""
+
+msgid "Typography"
+msgstr ""
+
+msgid "USB charging"
 msgstr ""
 
 msgid "Up to"
 msgstr ""
 
+msgid "Up to %d days before"
+msgstr ""
+
+msgid "Up to %d guests"
+msgstr ""
+
 msgid "Update secret"
+msgstr ""
+
+msgid "View & book →"
 msgstr ""
 
 msgid "What is included"
 msgstr ""
 
+msgid "What is not included"
+msgstr ""
+
 msgid "What to bring"
+msgstr ""
+
+msgid "Wheelchair accessible"
+msgstr ""
+
+msgid "Where guests meet, with directions and a map link."
+msgstr ""
+
+msgid "Where the link back goes. Your home page if empty."
+msgstr ""
+
+msgid "Which facts, in order, separated by commas: category, duration, departure, meeting_point, vessel, capacity."
 msgstr ""
 
 msgid "Who owns the text"
 msgstr ""
 
-msgid "Without it, your trips are refreshed on the timer above instead. Give Kaiki this address:"
+msgid "Wi-Fi"
+msgstr ""
+
+msgid "Without it, your trips are refreshed on the cache timer below instead."
+msgstr ""
+
+msgid "Year built"
+msgstr ""
+
+msgid "Yes"
 msgstr ""
 
 msgid "You do not have permission to change these settings."
@@ -344,9 +1259,90 @@ msgstr ""
 msgid "You do not have permission to do that."
 msgstr ""
 
+msgid "You may also like"
+msgstr ""
+
 msgid "You own the short summary, the featured image and the address."
 msgstr ""
 
 msgid "Your trips as a grid, with a link to book each one."
+msgstr ""
+
+msgid "Your trips as a grid. Each card opens the booking on Kaiki."
+msgstr ""
+
+msgid "cards, horizontal, overlay or minimal."
+msgstr ""
+
+msgid "for %d guests"
+msgstr ""
+
+msgid "for 1 guest"
+msgstr ""
+
+msgid "from"
+msgstr ""
+
+msgid "h1, h2, h3, h4, p or div."
+msgstr ""
+
+msgid "includes, excludes, bring or highlights."
+msgstr ""
+
+msgid "inline or stacked."
+msgstr ""
+
+msgid "mosaic, grid or single."
+msgstr ""
+
+msgid "rows, rows-left, grid, overlay or compact."
+msgstr ""
+
+msgid "text, list, html, url or image."
+msgstr ""
+
+msgid "yes or no: show a link back."
+msgstr ""
+
+msgid "yes or no: show per person or per boat."
+msgstr ""
+
+msgid "yes or no: show the amenities."
+msgstr ""
+
+msgid "yes or no: show the directions."
+msgstr ""
+
+msgid "yes or no: show the facts."
+msgstr ""
+
+msgid "yes or no: show the label on the photo."
+msgstr ""
+
+msgid "yes or no: show the map link."
+msgstr ""
+
+msgid "yes or no: show the numbers."
+msgstr ""
+
+msgid "yes or no: show the photo."
+msgstr ""
+
+msgid "yes or no: show the price."
+msgstr ""
+
+msgid "yes or no: show the refund for each period."
+msgstr ""
+
+msgid "yes or no: show the short summary."
+msgstr ""
+
+msgid "yes or no: show the trips it runs."
+msgstr ""
+
+msgid "yes: leave out the trip being viewed."
+msgstr ""
+
+msgid "← All trips"
 msgstr ""
 

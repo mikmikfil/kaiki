@@ -34,6 +34,7 @@
             'meetingPoint' => $entry['meetingPoint'],
             'faqs' => $entry['faqs'],
             'anchor' => $entry['anchor'],
+            'links' => $entry['links'] ?? [],
         ])
     @endforeach
 @endsection

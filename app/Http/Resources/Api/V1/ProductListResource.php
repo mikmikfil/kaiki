@@ -57,6 +57,10 @@ class ProductListResource extends JsonResource
             'slug' => $product->slug,
             'title' => $product->title,
             'summary' => $product->summary,
+            // The operator's short label for a card's photograph («Δημοφιλές»),
+            // in the negotiated locale. Null — never the category — when there
+            // is none: a card with no label shows no pill.
+            'badge' => self::blankToNull($product->badge),
             'category' => $product->category->value,
             'mode' => $product->mode->value,
             'duration_minutes' => $product->duration_minutes,
@@ -131,6 +135,17 @@ class ProductListResource extends JsonResource
      * is tenant-local **wall time**, not an instant, and putting it through a
      * timezone-aware type is how it acquires one.
      */
+    /**
+     * A label that is only whitespace is no label.
+     *
+     * The panel trims what it saves, but a seeder or an import may not, and a
+     * `" "` badge would draw an empty pill on every card.
+     */
+    protected static function blankToNull(?string $value): ?string
+    {
+        return $value === null || trim($value) === '' ? null : trim($value);
+    }
+
     protected static function wallTime(?string $time): ?string
     {
         return $time !== null ? substr($time, 0, 5) : null;

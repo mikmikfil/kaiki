@@ -1,0 +1,85 @@
+<section class="part">
+    <span class="num">Μέρος ΙΑ</span>
+    <h2>Τι αλλάζει στην παραγωγή</h2>
+    <p>
+        Σύντομα, γιατί η παραγωγή θα έχει δικό της οδηγό όταν γραφτούν τα αρχεία του M8. Και στο
+        τέλος, ό,τι σε αυτόν τον οδηγό δεν μπόρεσε να επιβεβαιωθεί από τον κώδικα.
+    </p>
+</section>
+
+<h2 class="continues">Η διαφορά, σημείο προς σημείο</h2>
+
+<table class="fields wide">
+    <tr>
+        <th>Δικά τους domain διοργανωτών</th>
+        <td>
+            Ο Caddy πρέπει να κατέχει τη θύρα 443 (ή μια IP μόνο για το Kaiki), με on-demand TLS που ρωτά το
+            <code>/tls/ask</code> πριν βγάλει πιστοποιητικό. Το fragment και η εξήγηση είναι στο
+            <code>docs/deployment/caddy.md</code>· η απόφαση στο ADR-0010. Χρειάζεται μόνιμος χώρος για τα
+            πιστοποιητικά του Caddy, αλλιώς κάθε επανεκκίνηση ξαναζητά και πέφτει στα όρια του Let's Encrypt.
+            Σε server που μοιράζεται το 443 με άλλα sites αυτό <strong>δεν γίνεται</strong>.
+        </td>
+    </tr>
+    <tr>
+        <th>Dockerfile, Caddyfile, deploy</th>
+        <td>Δεν υπάρχουν ακόμη: M8, #13 και #14. Το staging αυτού του οδηγού είναι εγκατάσταση με το χέρι.</td>
+    </tr>
+    <tr>
+        <th><code>APP_ENV=production</code></th>
+        <td>Τα <code>kaiki:invitation-link</code> και <code>kaiki:e2e-prepare</code> αρνούνται να τρέξουν. Χωρίς demo seed, χωρίς Basic Auth, χωρίς <code>noindex</code> — οι σελίδες διοργανωτή πρέπει να ευρετηριάζονται.</td>
+    </tr>
+    <tr>
+        <th>Κλειδιά</th>
+        <td>Κάθε διοργανωτής βάζει τα δικά του <strong>ζωντανά</strong> διαπιστευτήρια Viva και κλειδιά <code>pk_live_</code>. Το <code>KAIKI_HOSTED_VIVA_ORIGIN</code> επιστρέφει στην προεπιλογή (live). Κανένα ζωντανό κλειδί δεν μπαίνει ποτέ στο staging.</td>
+    </tr>
+    <tr>
+        <th>myDATA</th>
+        <td>Διαπιστευτήρια ΑΑΔΕ ανά διοργανωτή· μέχρι τότε τα παραστατικά δεν καταχωρούνται.</td>
+    </tr>
+    <tr>
+        <th>Αντίγραφα ασφαλείας</th>
+        <td>Καθημερινό dump της MySQL και αντίγραφο του <code>storage/app</code> (φωτογραφίες, εισιτήρια, λογότυπα) <strong>εκτός</strong> server, με δοκιμασμένη επαναφορά. Το <code>.env</code> και το <code>APP_KEY</code> σε ασφαλές μέρος: χωρίς το ίδιο κλειδί, τα κρυπτογραφημένα διαπιστευτήρια δεν ανοίγουν.</td>
+    </tr>
+    <tr>
+        <th>Παρακολούθηση</th>
+        <td>Εξωτερικός έλεγχος του <code>/up</code>· ειδοποίηση για αποτυχημένες εργασίες, worker που έπεσε, cron που σταμάτησε, και πληρωμές σε αναμονή πάνω από δέκα λεπτά.</td>
+    </tr>
+    <tr>
+        <th>Email</th>
+        <td>Πάροχος συναλλακτικών email με DMARC <code>p=quarantine</code> ή αυστηρότερο. Αν επιλεγεί Postmark, πρέπει πρώτα να προστεθεί το πακέτο <code>symfony/postmark-mailer</code>.</td>
+    </tr>
+    <tr>
+        <th>Καιρός</th>
+        <td>Το δωρεάν endpoint του Open-Meteo είναι μη εμπορικό (ADR-0027): συνδρομή πριν φτάσει σε πληρώνοντα διοργανωτή.</td>
+    </tr>
+    <tr>
+        <th>Ουρά</th>
+        <td>Το ADR-0015 προβλέπει Horizon στην παραγωγή, αλλά δεν είναι στο <code>composer.json</code>· μέχρι να μπει, Supervisor όπως εδώ.</td>
+    </tr>
+</table>
+
+<h2>Τι δεν επιβεβαιώθηκε από τον κώδικα</h2>
+
+<p>
+    Όλα τα υπόλοιπα του οδηγού βγαίνουν από αρχεία του αποθετηρίου. Αυτά όχι, και είναι σημειωμένα
+    και στο σημείο τους:
+</p>
+
+<ul>
+    <li><strong>Οι οθόνες της Cretaforce.</strong> Περιγράφονται γενικά· ό,τι δεν υπάρχει στον πίνακα είναι στο email του μέρους Β.</li>
+    <li><strong>Τα snippets Basic Auth</strong> για Apache και nginx δεν δοκιμάστηκαν σε αυτόν τον server.</li>
+    <li><strong>Τα ονόματα μενού της Viva</strong>, το όνομα του γεγονότος webhook (Transaction Payment Created) και οι κάρτες δοκιμής — από την τεκμηρίωση της Viva, όχι από τον κώδικα.</li>
+    <li><strong>MariaDB.</strong> Το σχήμα ελέγχεται μόνο σε MySQL 8.0.</li>
+    <li><strong>Αν χρειάζεται το <code>KAIKI_HOSTED_VIVA_ORIGIN</code></strong> στο staging (μέρος Δ).</li>
+    <li><strong>Το zip του προσθέτου</strong>: φτιάχνεται με <code>npm run plugin:zip</code> και ελέγχεται ότι ανοίγει και ότι το autoloader φορτώνει τις κλάσεις, αλλά δεν έχει ανέβει ακόμη σε πραγματικό WordPress.</li>
+    <li><strong>Αν το demo seed στέλνει email</strong> προς τις ψεύτικες διευθύνσεις· γι' αυτό τρέχει με <code>MAIL_MAILER=log</code>.</li>
+</ul>
+
+<div class="note">
+    <span class="label">Πού αλλάζει αυτός ο οδηγός</span>
+    <p>
+        Ζει στο <code>docs/staging/</code> και χτίζεται σε PDF με <code>node docs/staging/build.mjs</code>, που το
+        αντιγράφει και στην επιφάνεια εργασίας. Όταν αλλάξει το <code>.env.example</code>, το
+        <code>routes/console.php</code> ή το <code>package.json</code>, αλλάζει κι εδώ.
+    </p>
+</div>

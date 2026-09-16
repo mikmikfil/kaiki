@@ -41,56 +41,64 @@
         @endpush
     @endif
 
-    <nav class="crumbs" aria-label="{{ __('hosted.product.breadcrumb') }}">
-        <a href="{{ route('hosted.index', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ $tenant->name }}</a>
-        <span aria-hidden="true">›</span>
-        <span>{{ $product->title }}</span>
-    </nav>
-
     <article class="product">
 
-        {{-- The lead photograph, full width and cropped to a letterbox. A trip
-             page whose first element is a heading over a grid of four small
-             photographs is a catalogue entry; one that opens with the view is a
-             trip. The rest of the operator's photographs follow further down. --}}
-        @if ($images !== [])
-            <div class="product-lead">
-                <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($images[0]['url']) }}"
-                     alt="{{ $images[0]['alt'] ?? $product->title }}"
-                     loading="eager">
-            </div>
-        @endif
+        {{--
+            The hero: a way back, the title, the standfirst, the facts as chips,
+            and the photographs as one mosaic directly under them — the same
+            structure the WordPress plugin's single-trip template uses, so a trip
+            reads the same on the operator's own site and on this page
+            (Mike, 2026-09-16).
 
-        {{-- The two columns begin at the **title**, not below it. A booking card
-             that starts where the prose does sits a screen lower than the thing
-             a visitor came to do — and on a wide monitor it is below the fold
-             while the space beside the heading is empty. --}}
-        <div class="product-body">
-            <div class="product-main">
+            **Full width, above the two columns.** The booking card used to start
+            beside the title; it now starts beside the first section, under the
+            photographs. Its behaviour does not change — sticky on a desktop, the
+            bottom sheet on a phone — only where its column begins.
 
-        <header class="product-head">
+            **The mosaic replaces the gallery that sat at the foot of the page.**
+            No photograph is lost: every one is still in the lightbox below, and
+            when there are more than the mosaic shows, a button over its last
+            tile opens them.
+        --}}
+        @php
+            $shots = array_values($images);
+            $shotCount = count($shots);
+            // Four photographs show three: 2fr + 1fr + 1fr with four would leave
+            // an empty cell in the corner of the grid.
+            $tiles = match (true) {
+                $shotCount >= 5 => 5,
+                $shotCount >= 3 => 3,
+                default => $shotCount,
+            };
+            $startTime = $product->default_start_time ? substr((string) $product->default_start_time, 0, 5) : null;
+        @endphp
+
+        <header class="trip-hero">
+            <nav class="crumbs" aria-label="{{ __('hosted.product.breadcrumb') }}">
+                <a href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}"><span aria-hidden="true">←</span> {{ __('hosted.product.all_trips') }}</a>
+            </nav>
+
             <h1>{{ $product->title }}</h1>
 
             @if ($product->summary)
                 <p class="standfirst">{{ $product->summary }}</p>
             @endif
 
-            {{-- Five facts, each under its own icon. They used to be one line of
-                 values with dots between them, which is a sentence a visitor has
-                 to read in order to find the one thing they came for. Stacked,
-                 the eye lands on the clock or the pin without reading anything.
-
-                 Every icon is `aria-hidden` and sits above a value that already
-                 says what it is, so nothing here is announced twice. --}}
+            {{-- The facts, as chips. Every icon is `aria-hidden` and sits beside
+                 a value that already says what it is, so nothing here is
+                 announced twice. The guest count stays off a quote trip, as it
+                 always has: a charter priced by asking is sized by asking. --}}
             <ul class="facts">
                 <li>
                     @include('hosted.partials.icon', ['name' => 'clock'])
-                    <span>{{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}</span>
+                    <span>{{ \App\Domain\Hosted\Support\TripDuration::format((int) $product->duration_minutes) }}</span>
                 </li>
-                <li>
-                    @include('hosted.partials.icon', ['name' => 'type'])
-                    <span>{{ $product->category->label() }}</span>
-                </li>
+                @if ($startTime)
+                    <li>
+                        @include('hosted.partials.icon', ['name' => 'sun'])
+                        <span>{{ __('hosted.product.departs', ['time' => $startTime]) }}</span>
+                    </li>
+                @endif
                 @if ($port)
                     <li>
                         @include('hosted.partials.icon', ['name' => 'pin'])
@@ -110,7 +118,35 @@
                     </li>
                 @endif
             </ul>
+
+            @if ($shotCount > 0)
+                <div class="mosaic mosaic-{{ $tiles }}" id="gallery">
+                    <ul>
+                        @foreach (array_slice($shots, 0, $tiles) as $i => $shot)
+                            <li>
+                                <a class="shot-open" href="#shot-{{ $i }}" aria-label="{{ $shot['alt'] ?: ($i === 0 ? $product->title : __('hosted.product.gallery')) }}">
+                                    <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($shot['url']) }}"
+                                         alt="{{ $shot['alt'] ?? ($i === 0 ? $product->title : '') }}"
+                                         @if ($i === 0) fetchpriority="high" @endif>
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                    {{-- More photographs than tiles. On a phone only three tiles
+                         show, so the button appears there from four photographs;
+                         on a desktop, from six. --}}
+                    @if ($shotCount > 3)
+                        <a class="mosaic-all{{ $shotCount <= 5 ? ' mosaic-all-narrow' : '' }}" href="#shot-0">
+                            {{ __('hosted.product.all_photos', ['count' => $shotCount]) }}
+                        </a>
+                    @endif
+                </div>
+            @endif
         </header>
+
+        <div class="product-body">
+            <div class="product-main">
 
 
         {{-- Not when it repeats the standfirst word for word.
@@ -135,51 +171,104 @@
             </section>
         @endif
 
+        {{--
+            The trip page's optional content (2026-09-16): «Τι θα ζήσετε», the
+            programme, what is and is not included, and what to bring.
+
+            **Every section only when it has something in it.** A list is its
+            non-blank lines in this locale; a list with none — null, an empty
+            array, or lines that are only spaces — renders nothing at all, the
+            heading included, because a heading over nothing reads as a page
+            that failed to load. The operator fills in what they want and the
+            rest of the page closes up around it.
+
+            The marks beside each line (a star, a tick, a cross, a bag) are
+            decoration, `aria-hidden`, and the heading above the list already
+            says which kind of list it is.
+        --}}
         @php
-            $lists = [
-                'includes' => $product->includes,
-                'excludes' => $product->excludes,
-                'what_to_bring' => $product->what_to_bring,
-            ];
+            $lines = static fn (mixed $items): array => is_array($items)
+                ? array_values(array_filter($items, static fn (mixed $item): bool => is_string($item) && trim($item) !== ''))
+                : [];
+
+            $highlights = $lines($product->highlights);
+            $includes = $lines($product->includes);
+            $excludes = $lines($product->excludes);
+            $bring = $lines($product->what_to_bring);
+
+            $timeline = array_values(array_filter(
+                $stops,
+                static fn (mixed $stop): bool => is_array($stop) && is_string($stop['name'] ?? null) && trim($stop['name']) !== '',
+            ));
         @endphp
 
-        @if (collect($lists)->filter(fn ($items) => is_array($items) && $items !== [])->isNotEmpty())
-            <section class="section lists">
-                @foreach ($lists as $key => $items)
-                    @if (is_array($items) && $items !== [])
-                        <div>
-                            <h2>{{ __('hosted.product.' . $key) }}</h2>
-                            <ul class="ticks {{ $key }}">
-                                @foreach ($items as $item)
-                                    @if (is_string($item) && trim($item) !== '')
-                                        <li>{{ $item }}</li>
-                                    @endif
-                                @endforeach
-                            </ul>
-                        </div>
-                    @endif
-                @endforeach
+        @if ($highlights !== [])
+            <section class="section trip-content">
+                <h2>{{ __('hosted.product.highlights') }}</h2>
+                <ul class="trip-list trip-list-star">
+                    @foreach ($highlights as $line)
+                        <li><span class="trip-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg></span>{{ $line }}</li>
+                    @endforeach
+                </ul>
             </section>
         @endif
 
-        @if ($stops !== [])
-            <section class="section">
+        @if ($timeline !== [])
+            <section class="section trip-content">
                 <h2>{{ __('hosted.product.itinerary') }}</h2>
-                <ol class="itinerary">
-                    @foreach ($stops as $stop)
-                        @if (is_array($stop) && is_string($stop['name'] ?? null))
-                            <li>
-                                <h3>{{ $stop['name'] }}</h3>
-                                @if (is_string($stop['description'] ?? null) && $stop['description'] !== '')
-                                    <p>{{ $stop['description'] }}</p>
-                                @endif
-                                @if (isset($stop['duration_minutes']) && is_numeric($stop['duration_minutes']))
-                                    <p class="muted">{{ __('hosted.index.duration', ['minutes' => (int) $stop['duration_minutes']]) }}</p>
-                                @endif
-                            </li>
-                        @endif
+                <ol class="itinerary trip-timeline">
+                    @foreach ($timeline as $stop)
+                        <li>
+                            @if (is_string($stop['time'] ?? null) && $stop['time'] !== '')
+                                <span class="trip-time">{{ $stop['time'] }}</span>
+                            @endif
+                            <h3>{{ $stop['name'] }}</h3>
+                            @if (is_string($stop['description'] ?? null) && $stop['description'] !== '')
+                                <p>{{ $stop['description'] }}</p>
+                            @endif
+                            @if (isset($stop['duration_minutes']) && is_numeric($stop['duration_minutes']) && (int) $stop['duration_minutes'] > 0)
+                                <p class="muted">{{ \App\Domain\Hosted\Support\TripDuration::format((int) $stop['duration_minutes']) }}</p>
+                            @endif
+                        </li>
                     @endforeach
                 </ol>
+            </section>
+        @endif
+
+        @if ($includes !== [] || $excludes !== [])
+            <section class="section trip-content lists">
+                @if ($includes !== [])
+                    <div>
+                        <h2>{{ __('hosted.product.includes') }}</h2>
+                        <ul class="trip-list trip-list-yes includes">
+                            @foreach ($includes as $line)
+                                <li><span class="trip-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>{{ $line }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                @if ($excludes !== [])
+                    <div>
+                        <h2>{{ __('hosted.product.excludes') }}</h2>
+                        <ul class="trip-list trip-list-no excludes">
+                            @foreach ($excludes as $line)
+                                <li><span class="trip-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" focusable="false"><path d="M7 7l10 10M17 7 7 17"/></svg></span>{{ $line }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+            </section>
+        @endif
+
+        @if ($bring !== [])
+            <section class="section trip-content">
+                <h2>{{ __('hosted.product.what_to_bring') }}</h2>
+                <ul class="trip-list trip-list-bag what_to_bring">
+                    @foreach ($bring as $line)
+                        <li><span class="trip-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg></span>{{ $line }}</li>
+                    @endforeach
+                </ul>
             </section>
         @endif
 
@@ -350,40 +439,12 @@
                 'policy' => $policy,
             ])
 
-            {{-- The rest of the operator's photographs, last on the page.
-
-                 This page has promised them in a comment since #104 and never
-                 rendered any: only `$images[0]` was ever used, as the lead at
-                 the top. Everything after it belongs here, at the bottom —
-                 somebody still reading at this point has already decided the
-                 trip interests them, and photographs are what they linger on
-                 rather than what they need in order to choose.
-
-                 **Masonry, in CSS columns.** No JavaScript (HOS-4) and no fixed
-                 ratio: each photograph keeps its own proportions, which is the
-                 whole reason to lay them out this way rather than in a grid of
-                 identical crops — a wall of 3:2 boxes is a contact sheet. The
-                 seeder stores these at their natural size for the same reason;
-                 the card and the lead crop them with `object-fit` where they
-                 need a fixed box. --}}
-            @if (count($images) > 1)
-                @php $shots = array_values(array_slice($images, 1)); @endphp
-
-                <section class="section" id="gallery">
-                    <h2>{{ __('hosted.product.gallery') }}</h2>
-
-                    <ul class="shots shots-masonry">
-                        @foreach ($shots as $i => $shot)
-                            <li>
-                                <a class="shot-open" href="#shot-{{ $i }}" aria-label="{{ $shot['alt'] ?: __('hosted.product.gallery') }}">
-                                    <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($shot['url']) }}"
-                                         alt="{{ $shot['alt'] ?? '' }}"
-                                         loading="lazy">
-                                </a>
-                            </li>
-                        @endforeach
-                    </ul>
-
+            {{-- The lightbox for the mosaic at the top of the page. Every
+                 photograph the operator uploaded is here, including the ones the
+                 mosaic has no tile for, so replacing the old gallery at the foot
+                 of the page lost none of them. --}}
+            @if ($shotCount > 0)
+                <div class="lightboxes">
                     {{-- The lightbox, in CSS alone.
 
                          `:target` is what opens it: each photograph links to the
@@ -438,7 +499,7 @@
                          stepping are links and `:target`, so HOS-4's promise
                          survives the file being blocked or never requested. --}}
                     <script src="{{ url('/hosted/gallery.js') }}" defer></script>
-                </section>
+                </div>
             @endif
             </div>
 
@@ -466,7 +527,7 @@
 
             <dl class="four-lines">
                 <div><dt>{{ __('hosted.product.booking.trip') }}</dt><dd>{{ $product->title }}</dd></div>
-                <div><dt>{{ __('hosted.product.booking.duration') }}</dt><dd>{{ __('hosted.index.duration', ['minutes' => $product->duration_minutes]) }}</dd></div>
+                <div><dt>{{ __('hosted.product.booking.duration') }}</dt><dd>{{ \App\Domain\Hosted\Support\TripDuration::format((int) $product->duration_minutes) }}</dd></div>
                 <div><dt>{{ __('hosted.product.booking.port') }}</dt><dd>{{ $port?->name ?? '—' }}</dd></div>
                 <div><dt>{{ __('hosted.product.booking.vessel') }}</dt><dd>{{ $product->vessel?->name ?? '—' }}</dd></div>
             </dl>
@@ -619,8 +680,10 @@
 
                 {{-- Who pays what. A guest with a five-year-old wants this before
                      they pick a date, not after — and a band that takes no seat
-                     is the one they most need told about. --}}
-                @if ($product->ageBands->isNotEmpty())
+                     is the one they most need told about. Not on a trip that
+                     is priced by enquiry: there is no ticket to pay for yet,
+                     and the operator's quote says what the party costs. --}}
+                @if (! $isQuote && $product->ageBands->isNotEmpty())
                     <details class="fold">
                         <summary>{{ __('hosted.product.age_bands') }}</summary>
                         <div class="fold-body">

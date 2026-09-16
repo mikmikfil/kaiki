@@ -51,9 +51,25 @@ final class Widgets {
 
 		require_once __DIR__ . '/widget-class.php';
 
-		foreach ( self::definitions() as $slug => $definition ) {
-			$manager->register( new Widget( $slug, $definition ) );
+		foreach ( self::classes() as $class ) {
+			$manager->register( new $class() );
 		}
+	}
+
+	/**
+	 * The widget class for each definition, by slug.
+	 *
+	 * Names rather than `::class`, because the classes exist only after
+	 * `widget-class.php` has been required, inside the hook.
+	 *
+	 * @return array<string, string>
+	 */
+	public static function classes(): array {
+		return array(
+			'kaiki-booking' => __NAMESPACE__ . '\Booking_Widget',
+			'kaiki-list'    => __NAMESPACE__ . '\List_Widget',
+			'kaiki-enquiry' => __NAMESPACE__ . '\Enquiry_Widget',
+		);
 	}
 
 	/**
@@ -106,6 +122,7 @@ final class Widgets {
 		return array(
 			'product'  => isset( $settings['product'] ) ? (string) $settings['product'] : '',
 			'category' => isset( $settings['category'] ) ? (string) $settings['category'] : '',
+			'compact'  => isset( $settings['compact'] ) ? (string) $settings['compact'] : '',
 		);
 	}
 }

@@ -214,6 +214,48 @@ return [
             'seo' => 'How it appears on Google',
             'bands' => 'Age bands',
             'checklist' => 'Before publishing',
+            'trip_page' => 'Trip page content',
+        ],
+
+        // The section of 16 September. All optional; only what is filled in
+        // is shown.
+        'trip_page' => [
+            'description' => 'Everything here is optional. What you fill in appears on the trip page and on your WordPress site; anything left empty appears nowhere. None of it affects publishing.',
+            'add_line' => 'Add a line',
+            'line' => 'Line',
+            'highlights' => [
+                'label' => 'Highlights',
+                'help' => 'Short phrases about what makes the day, e.g. "Three swimming stops in crystal-clear coves". Shown only when filled in.',
+            ],
+            'includes' => [
+                'label' => 'Included',
+                'help' => 'What the ticket pays for, e.g. "Coffee, water and fruit". Shown only when filled in.',
+            ],
+            'excludes' => [
+                'label' => 'Not included',
+                'help' => 'What is paid for separately, e.g. "Hotel transfers". Shown only when filled in.',
+            ],
+            'what_to_bring' => [
+                'label' => 'What to bring',
+                'help' => 'E.g. "Swimsuit and towel". Shown only when filled in.',
+            ],
+            'itinerary' => [
+                'label' => 'Itinerary',
+                'help' => 'The stops of the day, in order. The time is optional. Shown only when you add stops.',
+                'add' => 'Add a stop',
+                'untitled' => 'New stop',
+                'time' => [
+                    'label' => 'Time',
+                    'help' => 'Optional, e.g. 09:45.',
+                ],
+                'name' => [
+                    'label' => 'What happens',
+                ],
+                'description' => [
+                    'label' => 'Details',
+                    'help' => 'Optional.',
+                ],
+            ],
         ],
 
         'form' => [
@@ -240,6 +282,10 @@ return [
             'summary' => [
                 'label' => 'Summary',
                 'help' => 'A sentence or two for lists and search results.',
+            ],
+            'badge' => [
+                'label' => 'Label',
+                'help' => 'Optional. A word or two on the trip card\'s photograph, e.g. "Popular" or "For two". Up to 24 characters. Leave it empty and nothing is shown.',
             ],
             'description' => [
                 'label' => 'Description',
@@ -385,6 +431,7 @@ return [
                 'name' => 'Each stop needs a name of up to :max characters, in “:locale” too.',
                 'description' => 'A stop description cannot be longer than :max characters.',
                 'duration' => 'A stop duration must be a positive number of minutes.',
+                'time' => 'A stop time is written as HH:MM, e.g. 09:45.',
                 'key_mismatch' => 'The stops differ between languages: :keys. Every stop must exist in both, under the same identifier.',
                 'geo_unknown' => 'There are coordinates for stops that do not exist: :keys.',
             ],

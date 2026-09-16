@@ -138,9 +138,12 @@ export function DateStep({
           It appears only when there is a choice. A day that sails once has
           already been answered by the tap on the day, and a list of one is a
           question with no alternative. */}
-      {choices.length > 1 ? (
-        <fieldset class="kaiki-times">
-          <legend>{t('booking.date.which_departure')}</legend>
+      {/* Since 2026-09-16 a day with one sailing shows its time too, already
+          chosen: a guest asked «what time do we leave?» and the box never
+          said. Several sailings are the same chips, and one has to be picked. */}
+      {choices.length > 0 ? (
+        <fieldset class={choices.length > 1 ? 'kaiki-times' : 'kaiki-times kaiki-times-one'}>
+          <legend>{t(choices.length > 1 ? 'booking.date.which_departure' : 'booking.date.departure_time')}</legend>
 
           {choices.map((option) => (
             <label class="kaiki-time" key={option.uuid}>

@@ -31,6 +31,8 @@ export interface World {
   readonly tenant_slug: string;
   readonly product_uuid: string;
   readonly product_slug: string;
+  /** A `quote` trip (BKG-24), when the seeders produced one. */
+  readonly quote_product_uuid?: string | null;
   readonly origins: readonly string[];
   readonly panel?: PanelWorld;
 }

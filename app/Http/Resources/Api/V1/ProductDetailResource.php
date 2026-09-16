@@ -45,7 +45,9 @@ final class ProductDetailResource extends ProductListResource
             // Null means "not configured" and hides the section; an empty array
             // means "configured as empty" (§3.5). The distinction is preserved
             // rather than normalised, because they are different statements to
-            // a guest reading the page.
+            // a guest reading the page. `highlights` («Τι θα ζήσετε», 2026-09-16)
+            // is the same shape and follows the same rule.
+            'highlights' => $product->highlights,
             'includes' => $product->includes,
             'excludes' => $product->excludes,
             'what_to_bring' => $product->what_to_bring,
@@ -98,6 +100,10 @@ final class ProductDetailResource extends ProductListResource
 
             $stops[] = [
                 'key' => $stop['key'],
+                // The wall time the stop happens at («09:45»), tenant-local like
+                // every other time on this resource. Optional: a charter's
+                // «στάσεις για μπάνιο όπου θέλετε» has no hour.
+                'time' => is_string($stop['time'] ?? null) && preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $stop['time']) === 1 ? $stop['time'] : null,
                 'name' => is_string($stop['name'] ?? null) ? $stop['name'] : '',
                 'description' => is_string($stop['description'] ?? null) ? $stop['description'] : null,
                 'duration_minutes' => isset($stop['duration_minutes']) ? (int) $stop['duration_minutes'] : null,

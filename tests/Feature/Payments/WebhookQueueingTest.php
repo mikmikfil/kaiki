@@ -74,9 +74,11 @@ it('queues nothing for a duplicate delivery', function (): void {
 })->group('fast');
 
 it('queues nothing for an unverified request', function (): void {
-    Queue::fake();
-
     WebhookScenario::make();
+
+    // After the scenario: creating its trip queues a catalogue event, which is
+    // setup, not something the forged request made the platform do.
+    Queue::fake();
 
     postJson('/webhooks/viva', WebhookScenario::gatewaySuccess('evt_forged'))->assertStatus(400);
 

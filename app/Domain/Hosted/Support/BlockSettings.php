@@ -51,6 +51,11 @@ final class BlockSettings
                 // type a URL can type an off-site one, and a hero button that
                 // leaves the booking page is the most expensive mistake this
                 // editor could let somebody make.
+                //
+                // Since 16 September the hero's buttons are the `buttons`
+                // column, with labels the operator writes; this is what a hero
+                // saved before then still renders from, and the editor turns it
+                // into a button the first time the page is opened there.
                 'cta' => 'trips',
             ],
             HomeBlockType::Trips => [
@@ -87,6 +92,13 @@ final class BlockSettings
             // wrote them. A `limit` here would be a second place to hide an
             // answer from a guest.
             HomeBlockType::Faq => [],
+            // The list-shaped blocks keep their content in `items` and
+            // `buttons` ({@see BlockItems}); only the reasons block has a knob,
+            // the dark band the operator's WordPress site uses for it.
+            HomeBlockType::Features => [
+                'dark' => false,
+            ],
+            HomeBlockType::Stats, HomeBlockType::Steps, HomeBlockType::Testimonials, HomeBlockType::Cta => [],
         };
     }
 

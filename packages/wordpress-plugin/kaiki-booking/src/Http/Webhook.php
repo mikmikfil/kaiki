@@ -20,6 +20,22 @@ defined( 'ABSPATH' ) || exit;
 /**
  * The inbound webhook (WPP-7, WPP-8).
  *
+ * ## What Kaiki actually sends
+ *
+ * `docs/api.md` §8.2 and §8.3, and nothing else — this file once checked an
+ * `X-Kaiki-Signature` header holding a bare hex digest, which Kaiki has never
+ * sent, so every delivery was refused. The real shape:
+ *
+ * - `Kaiki-Timestamp: 1785312062` — unix seconds.
+ * - `Kaiki-Signature: v1=<hex>` — `HMAC-SHA256(secret, "{timestamp}.{raw body}")`.
+ *   During a secret rotation there are two, comma-separated, and **either**
+ *   matching is enough.
+ * - `Kaiki-Delivery-Id` — stable across retries; the idempotency key.
+ * - `Kaiki-Event` — also in the body as `event`.
+ *
+ * The secret is the one the Kaiki panel shows once when the operator creates
+ * the webhook (Ρυθμίσεις → Webhooks), pasted here as «Μυστικό ενημερώσεων».
+ *
  * ## Verified before parsed, and that ordering is the whole thing
  *
  * A payload parsed before it is verified is a payload an attacker chose. It is
@@ -30,18 +46,17 @@ defined( 'ABSPATH' ) || exit;
  * ## Three refusals, and all three are needed
  *
  * A **wrong signature** is the obvious one. A **stale timestamp** is what stops a
- * captured request being replayed next year — the signature stays valid for ever
- * otherwise, because it is a signature over the body and the body has not
- * changed. A **seen event id** is what stops the same delivery being processed
- * twice inside the five-minute window, which is not an attack but the ordinary
- * behaviour of a sender that retries.
+ * captured request being replayed next year. A **seen delivery id** is what stops
+ * the same delivery being processed twice, which is not an attack but the
+ * ordinary behaviour of a sender that retries.
  *
- * ## 2xx quickly, then the work
+ * ## 2xx quickly, then the work — and the heavy work is not here at all
  *
- * WPP-8. A slow endpoint manufactures the retries it then has to deduplicate,
- * and the work here is one delete query — so "quickly" costs nothing and the
- * ordering is still worth stating, because the next person to add something to
- * this method will be adding it in the wrong place.
+ * WPP-8, and §8.4 gives the sender ten seconds. A catalogue event flushes the
+ * cache (one delete query) and asks for a trip sync, which {@see \Kaiki\Booking\Seo\Sync}
+ * *schedules* rather than runs: four pages of a hundred products inside this
+ * request would be a timeout, and a timeout is a retry, and a retry is another
+ * sync.
  *
  * ## No key, no tenant, no cookie
  *
@@ -57,17 +72,32 @@ final class Webhook {
 	public const ROUTE = '/webhook';
 
 	/**
-	 * Five minutes, from WPP-8.
+	 * Fires after a verified catalogue event, for the sync to schedule itself.
+	 */
+	public const CATALOGUE_ACTION = 'kaiki_catalogue_changed';
+
+	/**
+	 * The only signature scheme Kaiki sends (§8.3).
+	 */
+	private const SCHEME = 'v1=';
+
+	/**
+	 * Five minutes, from WPP-8 and §8.3.
 	 */
 	private const TOLERANCE = 300;
 
 	/**
-	 * How long a delivered event id is remembered, so a retry is a no-op.
+	 * How long a delivered id is remembered, so a retry is a no-op.
 	 *
 	 * Longer than the tolerance, because a request that arrives at the edge of
 	 * the window and is retried immediately must still be recognised.
 	 */
 	private const SEEN_TTL = 900;
+
+	/**
+	 * The events that mean the catalogue on this site is out of date.
+	 */
+	private const CATALOGUE_EVENTS = array( 'product.published', 'product.updated', 'product.unpublished' );
 
 	/**
 	 * Register the route. On every request, not only in the admin.
@@ -94,7 +124,7 @@ final class Webhook {
 	}
 
 	/**
-	 * Verify a delivery, then bust the cache.
+	 * Verify a delivery, then act on it.
 	 *
 	 * @param  WP_REST_Request $request The delivery.
 	 * @return WP_REST_Response|WP_Error
@@ -110,22 +140,21 @@ final class Webhook {
 		}
 
 		// **The raw body, before anything parses it.** `get_json_params()` here
-		// would be the mistake this file exists to avoid.
+		// would be the mistake this file exists to avoid. WordPress normalises
+		// header names, so `kaiki-signature` finds `Kaiki-Signature`.
 		$body      = (string) $request->get_body();
-		$timestamp = (string) $request->get_header( 'x-kaiki-timestamp' );
-		$signature = (string) $request->get_header( 'x-kaiki-signature' );
+		$timestamp = (string) $request->get_header( 'kaiki-timestamp' );
+		$signature = (string) $request->get_header( 'kaiki-signature' );
 
 		if ( ! self::timestamp_is_fresh( $timestamp ) ) {
 			return new WP_Error( 'kaiki_stale', __( 'That request is too old.', 'kaiki-booking' ), array( 'status' => 400 ) );
 		}
 
-		$expected = hash_hmac( 'sha256', $timestamp . '.' . $body, $secret );
-
-		if ( ! hash_equals( $expected, $signature ) ) {
+		if ( ! self::verify( $secret, $signature, $timestamp, $body ) ) {
 			// Recorded rather than merely refused: a stream of forged calls from
 			// one address is otherwise invisible, and the address is the only
 			// thing that makes it investigable.
-			self::log_refusal( $request );
+			self::log_refusal();
 
 			return new WP_Error( 'kaiki_bad_signature', __( 'That request could not be verified.', 'kaiki-booking' ), array( 'status' => 401 ) );
 		}
@@ -136,14 +165,64 @@ final class Webhook {
 			return new WP_Error( 'kaiki_bad_payload', __( 'That request could not be read.', 'kaiki-booking' ), array( 'status' => 400 ) );
 		}
 
-		$event_id = isset( $payload['event_id'] ) ? (string) $payload['event_id'] : '';
+		return self::receive( $payload, (string) $request->get_header( 'kaiki-delivery-id' ) );
+	}
 
-		if ( '' === $event_id ) {
+	/**
+	 * Does any signature in the header match, and is the timestamp fresh?
+	 *
+	 * Both halves, because either alone is not verification: a valid signature
+	 * with an old timestamp is a replay, and a fresh timestamp with no valid
+	 * signature is anybody at all. The platform's `WebhookSignature::verify()`
+	 * is the same routine, and the two are meant to be read side by side.
+	 *
+	 * @param string   $secret    The update secret.
+	 * @param string   $header    `Kaiki-Signature`: one or more `v1=<hex>`, comma-separated.
+	 * @param string   $timestamp `Kaiki-Timestamp`.
+	 * @param string   $body      The raw body.
+	 * @param int|null $now       The clock, for a test.
+	 */
+	public static function verify( string $secret, string $header, string $timestamp, string $body, ?int $now = null ): bool {
+		if ( '' === $secret || ! self::timestamp_is_fresh( $timestamp, $now ) ) {
+			return false;
+		}
+
+		$expected = self::SCHEME . hash_hmac( 'sha256', $timestamp . '.' . $body, $secret );
+
+		foreach ( explode( ',', $header ) as $candidate ) {
+			// `hash_equals`, never `===`: an early return on the first wrong byte
+			// tells a forger how much of their guess was right.
+			if ( hash_equals( $expected, trim( $candidate ) ) ) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Act on a verified payload.
+	 *
+	 * Public so the part after verification can be tested without a request;
+	 * a delivery reaches it only through {@see self::handle()}.
+	 *
+	 * @param  array<string, mixed> $payload     The verified body.
+	 * @param  string               $delivery_id `Kaiki-Delivery-Id`, or '' to use the body's `id`.
+	 * @return WP_REST_Response|WP_Error
+	 */
+	public static function receive( array $payload, string $delivery_id = '' ) {
+		if ( '' === $delivery_id && isset( $payload['id'] ) && is_scalar( $payload['id'] ) ) {
+			$delivery_id = (string) $payload['id'];
+		}
+
+		if ( '' === $delivery_id ) {
 			return new WP_Error( 'kaiki_bad_payload', __( 'That request could not be read.', 'kaiki-booking' ), array( 'status' => 400 ) );
 		}
 
-		if ( false !== get_transient( Cache::PREFIX . 'seen_' . md5( $event_id ) ) ) {
-			// A replay of something already handled. 200, because from the
+		$seen = Cache::PREFIX . 'seen_' . md5( $delivery_id );
+
+		if ( false !== get_transient( $seen ) ) {
+			// A retry of something already handled. 200, because from the
 			// sender's side it succeeded — and answering 4xx would make it
 			// retry for ever.
 			return new WP_REST_Response(
@@ -155,44 +234,69 @@ final class Webhook {
 			);
 		}
 
-		set_transient( Cache::PREFIX . 'seen_' . md5( $event_id ), 1, self::SEEN_TTL );
+		$event     = isset( $payload['event'] ) && is_string( $payload['event'] ) ? $payload['event'] : '';
+		$catalogue = in_array( $event, self::CATALOGUE_EVENTS, true );
 
-		Cache::flush();
+		if ( $catalogue ) {
+			// The trip lists and trip pages this site has cached are now wrong.
+			// Coarse on purpose — see `Cache::flush()`.
+			Cache::flush();
+		}
+
+		// After the flush, which no longer touches this marker (`Cache::flush()`
+		// deletes cache keys only) but once did, and let every retry through.
+		set_transient( $seen, 1, self::SEEN_TTL );
+
+		if ( $catalogue ) {
+			/**
+			 * Fires after a verified catalogue event.
+			 *
+			 * The SEO sync (WPP-6) listens here and schedules a run, which keeps
+			 * the webhook path and the cron path the same code.
+			 *
+			 * @param array<string, mixed> $payload The verified payload.
+			 */
+			do_action( 'kaiki_catalogue_changed', $payload );
+		}
 
 		/**
-		 * Fires after a verified update from Kaiki.
+		 * Fires after any verified delivery from Kaiki, catalogue or not.
 		 *
-		 * The SEO sync (WPP-6) listens here, which is what keeps the webhook
-		 * path and the cron path the same code — a webhook that ran its own
-		 * version of the sync would drift from the nightly one.
+		 * A booking event is acknowledged and otherwise ignored by this plugin;
+		 * a site that wants to do something with one can do it here.
 		 *
 		 * @param array<string, mixed> $payload The verified payload.
 		 */
 		do_action( 'kaiki_webhook_received', $payload );
 
-		return new WP_REST_Response( array( 'received' => true ), 200 );
+		return new WP_REST_Response(
+			array(
+				'received' => true,
+				'handled'  => $catalogue,
+			),
+			200
+		);
 	}
 
 	/**
 	 * Is this delivery recent enough to act on?
 	 *
-	 * @param string $timestamp The unix seconds the sender signed.
+	 * @param string   $timestamp The unix seconds the sender signed.
+	 * @param int|null $now       The clock, for a test.
 	 */
-	private static function timestamp_is_fresh( string $timestamp ): bool {
+	private static function timestamp_is_fresh( string $timestamp, ?int $now = null ): bool {
 		if ( '' === $timestamp || ! ctype_digit( $timestamp ) ) {
 			return false;
 		}
 
-		return abs( time() - (int) $timestamp ) <= self::TOLERANCE;
+		return abs( ( $now ?? time() ) - (int) $timestamp ) <= self::TOLERANCE;
 	}
 
 	/**
 	 * Record that somebody sent us something we could not verify (PAY-7's rule,
 	 * applied here).
-	 *
-	 * @param WP_REST_Request $request The refused delivery.
 	 */
-	private static function log_refusal( WP_REST_Request $request ): void {
+	private static function log_refusal(): void {
 		$refusals = get_transient( Cache::PREFIX . 'refusals' );
 		$refusals = is_array( $refusals ) ? $refusals : array();
 
@@ -205,7 +309,5 @@ final class Webhook {
 		);
 
 		set_transient( Cache::PREFIX . 'refusals', array_slice( $refusals, -20 ), DAY_IN_SECONDS );
-
-		unset( $request );
 	}
 }

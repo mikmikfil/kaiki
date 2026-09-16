@@ -40,9 +40,10 @@ const PARTS = [
   'part-c-settings.html',
   'part-d-placing.html',
   'part-e-trip-pages.html',
-  'part-f-woocommerce.html',
-  'part-g-when-it-breaks.html',
-  'part-h-not-yet.html',
+  'part-f-trip-page.html',
+  'part-g-woocommerce.html',
+  'part-h-when-it-breaks.html',
+  'part-i-not-yet.html',
 ];
 
 const missing = PARTS.filter((name) => !existsSync(resolve(HERE, name)));

@@ -44,7 +44,12 @@
          sideways needs to say, somewhere, that there is more than what fits. --}}
     @if ($block->heading)
         <div class="block-head">
-            <h2>{{ $block->heading }}</h2>
+            <div>
+                @if ($block->eyebrow)
+                    <p class="eyebrow-line">{{ $block->eyebrow }}</p>
+                @endif
+                <h2>{{ $block->heading }}</h2>
+            </div>
             <a class="see-all" href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.index.see_all') }}</a>
         </div>
     @endif

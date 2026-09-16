@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources;
 
 use App\Domain\Catalog\Support\ProductPublishChecklist;
+use App\Domain\Catalog\Support\TripPageContent;
 use App\Enums\AgeBandPricing;
 use App\Enums\BookingMode;
 use App\Enums\ProductCategory;
@@ -18,12 +19,14 @@ use App\Models\Product;
 use App\Models\VatRate;
 use App\Models\Vessel;
 use App\Support\Format\MoneyFormatter;
+use App\Support\Locale\LocaleResolver;
 use App\Support\Tenancy;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
@@ -242,12 +245,76 @@ class ProductResource extends Resource
                         rows: 3,
                     ),
 
+                    // The pill on a card's photograph («Δημοφιλές»). Short on
+                    // purpose: past two words it covers the photograph it sits on.
+                    TranslatableInput::text(
+                        'badge',
+                        __('catalog.product.form.badge.label'),
+                        __('catalog.product.form.badge.help'),
+                        required: false,
+                        maxLength: 24,
+                    ),
+
                     TranslatableInput::textarea(
                         'description',
                         __('catalog.product.form.description.label'),
                         __('catalog.product.form.description.help'),
                         rows: 8,
                     ),
+                ]),
+
+            // «Περιεχόμενο σελίδας εκδρομής» (2026-09-16). Every field optional
+            // and none on the CAT-15 checklist: an empty one is stored as null
+            // and its section is simply absent from the trip page and from the
+            // operator's WordPress site. `TripPageContent` turns these lines and
+            // rows back into the columns' shapes on save.
+            Section::make(__('catalog.product.sections.trip_page'))
+                ->description(__('catalog.product.trip_page.description'))
+                ->collapsible()
+                ->schema([
+                    self::lineList('highlights'),
+
+                    Repeater::make(TripPageContent::ITINERARY_FIELD)
+                        ->label(__('catalog.product.trip_page.itinerary.label'))
+                        ->helperText(__('catalog.product.trip_page.itinerary.help'))
+                        ->schema([
+                            TextInput::make('time')
+                                ->label(__('catalog.product.trip_page.itinerary.time.label'))
+                                ->helperText(__('catalog.product.trip_page.itinerary.time.help'))
+                                ->placeholder('09:45')
+                                ->maxLength(5)
+                                ->regex('/^([01]\d|2[0-3]):[0-5]\d$/')
+                                ->columnSpan(1),
+                            TranslatableInput::text(
+                                'name',
+                                __('catalog.product.trip_page.itinerary.name.label'),
+                                null,
+                                required: false,
+                                maxLength: 120,
+                            )->columnSpan(3),
+                            TranslatableInput::textarea(
+                                'description',
+                                __('catalog.product.trip_page.itinerary.description.label'),
+                                __('catalog.product.trip_page.itinerary.description.help'),
+                                rows: 2,
+                            )->columnSpanFull(),
+                        ])
+                        ->columns(4)
+                        ->reorderable()
+                        ->collapsible()
+                        ->itemLabel(static function (array $state): string {
+                            $name = collect((array) ($state['name'] ?? []))
+                                ->first(static fn (mixed $text): bool => is_string($text) && trim($text) !== '');
+                            $time = is_string($state['time'] ?? null) ? trim($state['time']) : '';
+
+                            return trim($time . ' ' . ($name ?? __('catalog.product.trip_page.itinerary.untitled')));
+                        })
+                        ->addActionLabel(__('catalog.product.trip_page.itinerary.add'))
+                        ->defaultItems(0),
+
+                    self::lineList('includes'),
+                    self::lineList('excludes'),
+                    self::lineList('what_to_bring'),
                 ]),
 
             Section::make(__('catalog.product.sections.capacity'))
@@ -415,6 +482,39 @@ class ProductResource extends Resource
                     ),
                 ]),
         ];
+    }
+
+    /**
+     * One optional translatable list — «Τι θα ζήσετε», «Περιλαμβάνονται» — as a
+     * list of lines per language, a tab per language.
+     *
+     * A simple repeater rather than a textarea split on newlines: each line is
+     * its own item on the page and in the WordPress mirror, and a row per line is
+     * what makes that visible — and reorderable — while it is being written.
+     */
+    private static function lineList(string $field): Component
+    {
+        $tabs = [];
+
+        foreach (LocaleResolver::installed() as $locale) {
+            $tabs[] = Tabs\Tab::make($locale)
+                ->label(__("enums.locale.{$locale}.label"))
+                ->schema([
+                    Repeater::make("{$field}.{$locale}")
+                        ->label(__("catalog.product.trip_page.{$field}.label"))
+                        ->helperText(__("catalog.product.trip_page.{$field}.help"))
+                        ->simple(
+                            TextInput::make('value')
+                                ->label(__('catalog.product.trip_page.line'))
+                                ->maxLength(160),
+                        )
+                        ->reorderable()
+                        ->addActionLabel(__('catalog.product.trip_page.add_line'))
+                        ->defaultItems(0),
+                ]);
+        }
+
+        return Tabs::make($field)->tabs($tabs)->columnSpanFull();
     }
 
     /**

@@ -33,7 +33,7 @@ class EditProduct extends EditRecord
         /** @var Product $record */
         $record = $this->getRecord();
 
-        return $this->fillAgeBands($data, $record);
+        return $this->fillTripPageContent($this->fillAgeBands($data, $record), $record);
     }
 
     /** @param array<string, mixed> $data */

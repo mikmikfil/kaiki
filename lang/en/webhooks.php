@@ -46,6 +46,9 @@ return [
         'booking.cancelled' => 'A booking was cancelled, by the guest or by you.',
         'departure.cancelled' => 'A departure was cancelled — weather, too few people, or your own decision.',
         'guest_details.completed' => 'Every passenger on a booking now has their details filled in. We send the count, never document numbers.',
+        'product.published' => 'A trip is now visible to guests — switched on, or restored.',
+        'product.updated' => 'A trip guests can see was changed — its text, photos, highlights or price. Tick this for the trip pages on your website.',
+        'product.unpublished' => 'A trip is no longer visible to guests — switched off, archived or deleted.',
     ],
 
     'table' => [

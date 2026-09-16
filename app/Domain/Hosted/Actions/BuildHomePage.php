@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Hosted\Actions;
 
+use App\Domain\Hosted\Support\BlockItems;
 use App\Domain\Hosted\Support\BlockSettings;
 use App\Domain\Hosted\Support\BlockText;
 use App\Enums\HomeBlockType;
@@ -51,7 +52,7 @@ class BuildHomePage
     /**
      * The page, ready to render: one entry per block, in order.
      *
-     * @return list<array{block: HomePageBlock, products: Collection<int, Product>, meetingPoint: Port|null, faqs: Collection<int, Faq>, anchor: string|null}>
+     * @return list<array{block: HomePageBlock, products: Collection<int, Product>, meetingPoint: Port|null, faqs: Collection<int, Faq>, anchor: string|null, links: list<array{label: string, url: string}>}>
      */
     public function __invoke(Tenant $tenant): array
     {
@@ -71,6 +72,20 @@ class BuildHomePage
         $faqs = $blocks->contains(fn (HomePageBlock $block): bool => $block->type === HomeBlockType::Faq)
             ? ($this->faqs)()
             : collect();
+
+        // The trips the hero's and the call-to-action bands' buttons name, in one query for the
+        // whole page, and only the ones still on sale: a button to a trip the
+        // operator has since withdrawn would lead to a 404.
+        $linkedIds = $blocks
+            ->filter(fn (HomePageBlock $block): bool => $block->type->maxButtons() > 0)
+            ->flatMap(fn (HomePageBlock $block): array => array_column($block->buttonEntries(), 'product_id'))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $linked = $linkedIds->isEmpty()
+            ? collect()
+            : Product::query()->whereIn('id', $linkedIds->all())->where('status', ProductStatus::Active)->get()->keyBy('id');
 
         $page = [];
         $anchored = false;
@@ -99,10 +114,49 @@ class BuildHomePage
                     HomeBlockType::Faq => 'faq',
                     default => null,
                 },
+                'links' => $block->type->maxButtons() > 0 ? $this->linksFor($block, $tenant, $linked) : [],
             ];
         }
 
         return $page;
+    }
+
+    /**
+     * A hero's or a call-to-action band's buttons, each resolved to a label and a URL.
+     *
+     * Every URL is built here from a route this application names — the
+     * operator chose a *target*, never typed an address — so a button cannot
+     * leave the operator's own site. {@see BlockItems}
+     *
+     * @param  Collection<int, Product>  $linked
+     * @return list<array{label: string, url: string}>
+     */
+    public function linksFor(HomePageBlock $block, Tenant $tenant, Collection $linked): array
+    {
+        $locale = app()->getLocale();
+        $operator = ['operator' => $tenant->slug, 'lang' => $locale];
+        $links = [];
+
+        foreach ($block->buttonEntries() as $entry) {
+            $url = match ($entry['target']) {
+                'trips' => route('hosted.index', $operator) . '#trips',
+                'search' => route('hosted.search', $operator),
+                'contact' => route('hosted.contact', $operator),
+                'trip' => ($product = $linked->get($entry['product_id'])) instanceof Product
+                    ? route('hosted.product', [...$operator, 'product' => $product->slug])
+                    : null,
+                'page' => rtrim(route('hosted.index', ['operator' => $tenant->slug]), '/') . '/' . $entry['path'],
+                default => null,
+            };
+
+            $label = BlockItems::text($entry, 'label', $locale);
+
+            if ($url !== null && $label !== '') {
+                $links[] = ['label' => $label, 'url' => $url];
+            }
+        }
+
+        return $links;
     }
 
     /**

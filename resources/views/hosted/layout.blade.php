@@ -538,7 +538,6 @@
                 .block > h2,
                 .block > .block-head,
                 li.trip,
-                .shots-masonry li,
                 .story-image,
                 .story-copy,
                 .faq-item,
@@ -1356,22 +1355,96 @@
 
         .product { display: flex; flex-direction: column; gap: clamp(2rem, 4vw, 3rem); }
 
-        /* The lead photograph. Full width of the column and letterboxed, so the
-           page opens with the view rather than with a heading over a grid of
-           four thumbnails. */
-        .product-lead {
-            border-radius: 20px;
-            overflow: hidden;
+        /* --- the trip hero ---------------------------------------------
+           A way back, the title, the standfirst, the facts as chips and the
+           photographs as one mosaic, full width above the two columns. The same
+           structure as the WordPress plugin's single-trip template, so a trip
+           reads the same on both.
+
+           The gaps are the hero's own, set on the hero: see the note on
+           `.crumbs` for what a child hard-coding its container's gap costs. */
+        .trip-hero { display: flex; flex-direction: column; min-width: 0; }
+        .trip-hero .crumbs { margin-block-end: 1rem; }
+        .trip-hero h1 { font-weight: 800; letter-spacing: -.03em; margin: 0 0 .6rem; }
+        .trip-hero .standfirst { color: var(--ink-soft); font-size: var(--step-1); max-width: 44rem; margin: 0 0 1.25rem; }
+
+        /* The mosaic. One photograph large on the left across both rows, up to
+           four beside it in a two-by-two block; with three photographs, one
+           large and two stacked. Every tile is a crop (`object-fit: cover`) of a
+           photograph whose whole frame is one tap away in the lightbox. */
+        .mosaic { position: relative; margin-block-start: clamp(1.5rem, 3vw, 2rem); }
+
+        .mosaic ul {
+            list-style: none; margin: 0; padding: 0;
+            display: grid; gap: 10px;
+            block-size: clamp(300px, 44vw, 520px);
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .mosaic-5 ul { grid-template-columns: 2fr 1fr 1fr; }
+        .mosaic-3 ul { grid-template-columns: 2fr 1fr; }
+        .mosaic-2 ul { grid-template-columns: 2fr 1fr; grid-template-rows: 1fr; }
+        .mosaic-1 ul { grid-template-columns: 1fr; grid-template-rows: 1fr; }
+
+        .mosaic li { min-width: 0; min-height: 0; }
+        .mosaic li:first-child { grid-row: 1 / -1; }
+
+        .mosaic .shot-open {
+            display: block; inline-size: 100%; block-size: 100%;
+            border-radius: 14px; overflow: hidden;
             background: color-mix(in srgb, var(--kaiki-primary) 8%, var(--surface));
         }
 
-        .product-lead img {
-            display: block; width: 100%; height: 100%;
-            aspect-ratio: 21 / 9; object-fit: cover;
+        .mosaic .shot-open:focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 3px; }
+
+        .mosaic img {
+            display: block; inline-size: 100%; block-size: 100%;
+            object-fit: cover;
+            transition: scale .4s ease;
         }
 
-        .product-head h1 { margin-bottom: .7rem; }
-        .product-head .standfirst { color: var(--ink-soft); font-size: var(--step-1); max-width: 44rem; margin: 0 0 1.2rem; }
+        @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+            .mosaic .shot-open:hover img { scale: 1.03; }
+        }
+
+        /* «All photographs (N)», over the last tile. A control, so a control's
+           radius; on the photograph, so a solid white ground rather than a
+           tint the picture behind could swallow. */
+        .mosaic-all {
+            position: absolute; inset-block-end: 14px; inset-inline-end: 14px;
+            padding: .55rem .95rem; border-radius: 10px;
+            background: var(--surface); color: var(--kaiki-text);
+            font-size: .875rem; font-weight: 600; text-decoration: none;
+            box-shadow: 0 2px 12px rgba(6, 16, 20, .18);
+        }
+
+        .mosaic-all:hover { color: var(--kaiki-primary); }
+        .mosaic-all:focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 2px; }
+
+        /* Six photographs or more need the button everywhere; four or five only
+           where the phone hides the tiles they are on. */
+        @media (min-width: 47.5rem) { .mosaic-all-narrow { display: none; } }
+
+        /* A phone: the large photograph full width on top, two small ones
+           side by side under it, and the rest in the lightbox. */
+        @media (max-width: 47.49rem) {
+            .mosaic ul,
+            .mosaic-5 ul,
+            .mosaic-3 ul,
+            .mosaic-2 ul,
+            .mosaic-1 ul {
+                block-size: auto;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: none;
+                gap: 8px;
+            }
+
+            .mosaic li:first-child { grid-row: auto; grid-column: 1 / -1; aspect-ratio: 4 / 3; }
+            .mosaic li { aspect-ratio: 1 / 1; }
+            .mosaic-2 li:nth-child(2) { grid-column: 1 / -1; aspect-ratio: 16 / 9; }
+            .mosaic li:nth-child(n+4) { display: none; }
+            .mosaic .shot-open { border-radius: 12px; }
+        }
 
         /* --- the two-column body -------------------------------------
            What the trip is on the left, how to book it on the right, and the
@@ -1384,14 +1457,11 @@
            to claim the opposite and no rule ever did it: `order` is set only
            inside the media query below, which is the desktop case.
 
-           Hoisting it is not a one-line change and should not be pretended to
-           be. `.product-main` opens with the title and the standfirst, so an
-           `order: -1` on the aside puts a price and a date picker above the
-           name of the trip they belong to. Doing it properly means lifting
-           `.product-head` out of the left column so that a phone reads
-           photograph, title, card, and then the page — which is a markup change
-           to the trip page, not a rule here. Written down rather than left as a
-           comment that lies about the layout. */
+           The title, the standfirst, the facts and the photographs now sit in
+           `.trip-hero` above both columns (2026-09-16), so the columns start at
+           the first section. The card is still last in source order on a
+           phone, where the bottom sheet (ADR-0033) is what puts booking on
+           screen. */
         /* ---- when the widget becomes a bottom sheet (ADR-0033) ----------
 
            The widget decides at runtime whether it can pin itself to the
@@ -1619,93 +1689,36 @@
             }
         }
 
-        /* Normal case with letter-spacing doing the emphasis. I18N-2 forbids
-           the CSS property that would change it — Greek capitals drop their
-           accents — and two tests assert this stylesheet never names it. */
-        /* The five facts under the title, each under its own icon.
-
-           They were one row of values with dots between them — a sentence a
-           visitor has to read through to find the one thing they came for. The
-           dots are gone with the run-on line; what separates the facts now is
-           the space between them. */
-        /* The row sits **above** the title, and the title is still the first
-           thing in the markup.
-
-           `order` rather than moving the `<ul>` in the template: a page whose
-           source begins "480 minutes, day charter, Zea Marina" announces four
-           details to a screen reader and to a crawler before it says what the
-           trip is called. Nothing in the row is focusable, so the usual reason
-           to refuse a visual reorder — a tab sequence that jumps about — does
-           not apply here. */
-        .product-head { display: flex; flex-direction: column; }
-        .product-head h1 { order: 2; }
-        .product-head .standfirst { order: 3; }
-        ul.facts { order: 1; }
-
+        /* The facts under the standfirst, as chips: the icon beside its value
+           in a soft pill, wrapping onto a second row rather than squeezing.
+           Nothing in the row is a control, so the pills carry no border and
+           no hover — they are labels, and a label that looks pressable is a
+           tap that does nothing. */
         ul.facts {
-            list-style: none; margin: 0 0 1.25rem; padding: 0;
-            display: flex; flex-wrap: wrap; gap: .85rem 1.7rem;
-            font-size: .9rem; color: var(--ink-soft); letter-spacing: .01em;
+            list-style: none; margin: 0; padding: 0;
+            display: flex; flex-wrap: wrap; gap: .5rem;
+            font-size: .9rem; color: var(--kaiki-text);
         }
 
-        ul.facts li { display: grid; gap: .35rem; justify-items: start; }
-        ul.facts .icon { inline-size: 1.05rem; block-size: 1.05rem; color: var(--kaiki-primary); }
+        ul.facts li {
+            display: inline-flex; align-items: center; gap: .45rem;
+            padding: .45rem .85rem; border-radius: 999px;
+            background: color-mix(in srgb, var(--kaiki-primary) 7%, var(--surface));
+        }
 
-        /* On a phone the five facts are the last thing between the title and
-           the trip itself, so they lie down: the icon beside its value rather
-           than above it, which is the shape `li.trip .facts` already uses on
-           the cards. Stacked, with the gaps a wide column can afford, they cost
-           most of a screen before the itinerary has started. */
+        ul.facts .icon { inline-size: 1rem; block-size: 1rem; flex: none; color: var(--kaiki-primary); }
+
         @media (max-width: 48rem) {
-            ul.facts { gap: .5rem 1.1rem; margin-block-end: 1rem; font-size: .875rem; }
-            ul.facts li { display: flex; align-items: center; gap: .4rem; }
-            ul.facts .icon { inline-size: .95rem; block-size: .95rem; }
+            ul.facts { gap: .4rem; font-size: .85rem; }
+            ul.facts li { padding: .38rem .7rem; }
+            ul.facts .icon { inline-size: .9rem; block-size: .9rem; }
         }
 
-        /* --- the trip page's gallery: masonry, and a lightbox ----------
-
-           `columns` rather than a grid, because masonry is the point: each
-           photograph keeps its own proportions and the columns fill unevenly,
-           which is what makes a wall of pictures read as a wall of pictures
-           rather than as a contact sheet of identical crops. The seeder stores
-           these at their natural size for exactly this reason.
-
-           Three columns down to two, and two is where it stops. One column of
-           full-width photographs was several flicks of gallery between the FAQ
-           and the foot of the page, on the half of the traffic least willing to
-           scroll; two keeps a wall of pictures reading as a wall. */
-/* `ul.` again, and for the same reason the image rule needs it: `.shots`
-           sets `display: grid`, it sits later in this stylesheet, and it has
-           exactly the same specificity — so it won on order, `columns` was
-           ignored on a grid container, and the "masonry" was a plain
-           three-column grid with the photographs letterboxed into it. Two rules
-           in this file have now been caught by the same tie; if a third appears,
-           the `.shots` block should move below these instead. */
-        ul.shots-masonry {
-            display: block;
-            columns: 3;
-            column-gap: 1rem;
-        }
-
-        ul.shots-masonry li { break-inside: avoid; margin: 0 0 1rem; }
-
-        /* `ul.` on purpose. `.shots img` sets a 3/2 ratio and `height: 100%`,
-           it sits later in this stylesheet, and it has exactly the same
-           specificity — so it won on order and the masonry was a grid of
-           identical crops with the photographs squashed inside it. The type
-           selector breaks the tie without moving either rule. */
-        ul.shots-masonry img { aspect-ratio: auto; height: auto; }
-        .shots-masonry .shot-open { display: block; border-radius: 14px; overflow: hidden; }
-        .shots-masonry .shot-open:focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 3px; }
-
-        @media (max-width: 60rem) { ul.shots-masonry { columns: 2; } }
-
-        /* Two columns survive onto the phone; only the gutter narrows, so the
-           photographs take the width the gaps were holding. */
-        @media (max-width: 34rem) {
-            ul.shots-masonry { column-gap: .55rem; }
-            ul.shots-masonry li { margin-block-end: .55rem; }
-        }
+        /* --- the trip page's lightbox ---------------------------------
+           The mosaic at the top of the page opens it. The panels sit in a
+           wrapper that takes no box of its own, so a closed lightbox adds no
+           gap to the column it is written in. */
+        .lightboxes { display: contents; }
 
         /* The lightbox. Open when the URL names it, and nothing else.
            `display` rather than opacity, so a closed panel is out of the
@@ -2546,6 +2559,689 @@
             margin-top: 1.75rem; padding-top: 1rem; border-top: 1px solid var(--rule);
             font-size: .8rem; color: var(--ink-faint);
         }
+
+        /* --- the trip page's optional content (2026-09-16) ----------------
+           «Τι θα ζήσετε», the programme, what is and is not included, what to
+           bring — each drawn only when the operator filled it in.
+
+           Plain on purpose (Mike, 2026-09-16): no icons, no coloured marks, no
+           bold, no rules between the lines; «not included» is the same list in
+           a softer ink. */
+        ul.trip-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem; font-size: 1rem; line-height: 1.55; }
+        ul.trip-list li {
+            display: grid; grid-template-columns: 1.05rem minmax(0, 1fr); gap: .8rem; align-items: start;
+            color: var(--kaiki-text);
+        }
+        /* The marks came back very light (Mike, 2026-09-16): a thin line in a
+           faint ink, no tile, no colour — enough to tell the four lists apart
+           at a glance without the lines turning into badges. */
+        .trip-mark { display: block; line-height: 0; padding-block-start: .2rem; color: color-mix(in srgb, var(--kaiki-text) 38%, transparent); }
+        .trip-mark .icon { inline-size: 1.05rem; block-size: 1.05rem; stroke-width: 1.3; }
+        .trip-list-no li { color: var(--ink-soft); }
+
+        /* The programme: a thin line, a small quiet dot per stop, and the time
+           in the body's own soft ink beside the stop's name. `ol` still, so a
+           screen reader announces the order. */
+        ol.trip-timeline { list-style: none; margin: 0; padding: 0; display: block; }
+        ol.trip-timeline li { position: relative; padding: 0 0 1.25rem 1.6rem; }
+        ol.trip-timeline li::before {
+            content: ''; position: absolute; inset-inline-start: 0; top: .55rem;
+            inline-size: .45rem; block-size: .45rem; border-radius: 50%;
+            background: color-mix(in srgb, var(--kaiki-text) 35%, transparent);
+        }
+        ol.trip-timeline li::after {
+            content: ''; position: absolute; inset-inline-start: .2rem; top: 1.25rem; bottom: .2rem;
+            inline-size: 1px; background: var(--line);
+        }
+        ol.trip-timeline li:last-child { padding-bottom: 0; }
+        ol.trip-timeline li:last-child::after { display: none; }
+        .trip-time {
+            display: inline-block; min-inline-size: 3.2rem; margin-inline-end: .5rem;
+            font-size: .95rem; font-weight: 400; color: var(--ink-soft);
+            font-variant-numeric: tabular-nums;
+        }
+        ol.trip-timeline h3 { display: inline; margin: 0; font-size: 1rem; font-weight: 500; color: var(--kaiki-text); }
+        ol.trip-timeline p { margin: .2rem 0 0 3.7rem; color: var(--ink-soft); font-size: .94rem; }
+
+        /* ==================================================================
+           The design of 16 September, from the operator's WordPress site.
+
+           Last in the sheet on purpose: it restyles the header, the masthead,
+           the sections and the footer that the rules above lay out, and a rule
+           here wins over an earlier one of the same weight without either
+           having to be deleted and argued about again.
+
+           **In the operator's colours, not Aegean Blue's.** Every navy on the
+           WordPress site is `--kaiki-primary` here, or a deeper mix of it;
+           every terracotta is `--kaiki-accent`. The two tints — sand and mist —
+           are neutral enough to sit beside any brand.
+
+           The house rules still hold: light page (the dark footer and the dark
+           reasons band are sections on it, not a theme), no case transform,
+           no underline, 10px on controls and 14–20px on cards, no web font the
+           operator did not choose.
+           ================================================================== */
+
+        :root {
+            --sand: #F7F3EC;
+            --mist: color-mix(in srgb, var(--kaiki-primary) 6%, #FFFFFF);
+            --deep: color-mix(in srgb, var(--kaiki-primary) 78%, #000000);
+            --line: color-mix(in srgb, var(--kaiki-primary) 10%, #FFFFFF);
+            --shadow-sm: 0 1px 2px rgba(11, 39, 64, .05), 0 2px 8px rgba(11, 39, 64, .05);
+            --shadow: 0 2px 4px rgba(11, 39, 64, .04), 0 12px 32px rgba(11, 39, 64, .09);
+            --section-gap: clamp(3.5rem, 7vw, 6rem);
+            --band-pad: clamp(4rem, 8vw, 6.5rem);
+        }
+
+        body { background: #FFFFFF; }
+        main .wrap { gap: var(--section-gap); }
+
+        /* --- buttons -------------------------------------------------- */
+
+        .button { min-block-size: 3rem; padding: 0 1.4rem; justify-content: center; border-radius: 10px; }
+        .button-small { min-block-size: 2.5rem; padding: 0 1rem; }
+
+        .button-accent {
+            background: var(--kaiki-accent); border-color: var(--kaiki-accent); color: #fff;
+            box-shadow: 0 1px 0 rgba(255, 255, 255, .15) inset, 0 6px 16px color-mix(in srgb, var(--kaiki-accent) 22%, transparent);
+        }
+        .button-accent:hover, .button-accent:focus-visible {
+            background: color-mix(in srgb, var(--kaiki-accent) 82%, #000); border-color: transparent; color: #fff;
+        }
+
+        .button-light { background: #fff; border-color: #fff; color: var(--deep); }
+        .button-light:hover, .button-light:focus-visible { background: var(--sand); border-color: var(--sand); color: var(--deep); }
+
+        .button-glass { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .4); color: #fff; }
+        .button-glass:hover, .button-glass:focus-visible { background: rgba(255, 255, 255, .2); border-color: #fff; color: #fff; }
+
+        /* --- the header ------------------------------------------------
+           Sticky, and see-through enough to read as part of the page it sits
+           over: white at 92% with the page blurred behind it. */
+        header.site {
+            position: sticky; top: 0; z-index: 40;
+            background: rgba(255, 255, 255, .92);
+            -webkit-backdrop-filter: saturate(1.6) blur(14px);
+            backdrop-filter: saturate(1.6) blur(14px);
+            border-bottom: 1px solid var(--line);
+        }
+
+        header.site .wrap { gap: 1.25rem; padding-block: .85rem; min-block-size: 4.75rem; }
+
+        .brand { gap: .7rem; color: var(--deep); }
+        .brand-mark {
+            inline-size: 2.4rem; block-size: 2.4rem; flex: none; border-radius: 11px;
+            display: grid; place-items: center; color: #fff;
+            background: linear-gradient(145deg, color-mix(in srgb, var(--kaiki-primary) 70%, #fff), var(--deep));
+        }
+        .brand-mark .icon { inline-size: 1.35rem; block-size: 1.35rem; }
+        .brand-text { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+        .brand .name { font-size: 1.1rem; font-weight: 800; letter-spacing: -.02em; }
+        .brand-tag { font-size: .75rem; font-weight: 500; color: var(--ink-faint); margin-top: .2rem; }
+
+        .site-nav { gap: .15rem; font-size: .95rem; margin-right: 0; }
+        .site-nav a { padding: .55rem .8rem; border-radius: 8px; color: var(--kaiki-text); font-weight: 500; }
+        .site-nav a:hover { background: var(--mist); color: var(--kaiki-primary); }
+
+        .header-phone {
+            display: inline-flex; align-items: center; gap: .4rem; white-space: nowrap;
+            font-size: .9rem; font-weight: 600; color: var(--deep);
+        }
+        .header-phone .icon { inline-size: 1rem; block-size: 1rem; color: var(--kaiki-accent); }
+        .header-phone:hover { color: var(--kaiki-accent); }
+
+        .header-book { min-block-size: 2.6rem; padding-inline: 1.1rem; font-size: .92rem; white-space: nowrap; }
+        /* Flat in the header (Mike, 2026-09-16): the glow under it read as a
+           smudge on a white bar. */
+        .header-book, .header-book:hover, .header-book:focus-visible, .menu-book, .menu-book:hover { box-shadow: none; }
+
+        .langs a { border-radius: 8px; }
+
+        @media (max-width: 75rem) { .header-phone { display: none; } }
+
+        /* The burger takes over below 52rem rather than 40: with the phone and
+           the booking button in the row, the name and the links ran out of room
+           well before a phone's width. */
+        @media (max-width: 52rem) {
+            .site-nav, .header-book { display: none; }
+            .brand { min-width: 0; flex: 1 1 auto; }
+            .brand .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .langs { flex: 0 0 auto; margin-left: auto; }
+
+            details.menu { display: block; flex: 0 0 auto; }
+            details.menu > summary {
+                display: grid; place-items: center; inline-size: 2.75rem; block-size: 2.75rem;
+                border: 1px solid var(--line); border-radius: 10px; color: var(--deep);
+                cursor: pointer; list-style: none; background: #fff;
+            }
+            details.menu > summary::-webkit-details-marker { display: none; }
+            details.menu > summary .icon { inline-size: 1.35rem; block-size: 1.35rem; }
+            details.menu[open] > summary { background: var(--mist); border-color: var(--mist); color: var(--deep); }
+            details.menu[open] .bar.mid { opacity: 0; }
+            details.menu[open] .bar.top { transform: translateY(6px) rotate(45deg); }
+            details.menu[open] .bar.bot { transform: translateY(-6px) rotate(-45deg); }
+            details.menu .bar { transform-origin: center; }
+
+            .menu-panel {
+                position: absolute; inset-inline: 0; top: 100%;
+                display: flex; flex-direction: column; gap: .15rem;
+                background: #fff; border-bottom: 1px solid var(--line);
+                box-shadow: 0 12px 28px rgba(6, 16, 20, .12);
+                padding: .5rem clamp(1.25rem, 3vw, 2.5rem) 1.1rem;
+            }
+            .menu-panel a { padding: .8rem .75rem; border-radius: 10px; border-top: 0; font-size: 1.05rem; color: var(--deep); }
+            .menu-panel a:hover { background: var(--mist); }
+            .menu-panel .menu-phone { display: inline-flex; align-items: center; gap: .5rem; font-weight: 600; }
+            .menu-panel .menu-phone .icon { inline-size: 1.05rem; block-size: 1.05rem; color: var(--kaiki-accent); }
+            .menu-panel .menu-book { margin-top: .5rem; min-block-size: 3.1rem; justify-content: center; color: #fff; }
+            .menu-panel .menu-book:hover { background: color-mix(in srgb, var(--kaiki-accent) 82%, #000); }
+        }
+
+        @media (min-width: 52.01rem) { .menu-panel .menu-phone, .menu-panel .menu-book { display: none; } }
+        @media (max-width: 26rem) { .brand-tag { display: none; } }
+
+        /* --- the eyebrow and section heads ------------------------------ */
+
+        .eyebrow-line {
+            display: inline-flex; align-items: center; gap: .5rem;
+            margin: 0 0 .75rem;
+            font-size: .8rem; font-weight: 700; letter-spacing: .08em;
+            color: var(--kaiki-accent);
+        }
+        .eyebrow-line::before { content: ''; inline-size: 1.1rem; block-size: 2px; border-radius: 2px; background: currentColor; }
+
+        .section-head { margin-block-end: clamp(2rem, 4vw, 3rem); max-width: 46rem; }
+        .section-head.is-center { margin-inline: auto; text-align: center; }
+        .section-head h2 { font-size: clamp(1.75rem, 3.4vw, 2.6rem); font-weight: 800; letter-spacing: -.025em; margin: 0; color: var(--deep); }
+        .section-head .lead { margin-top: 1rem; font-size: 1.1rem; line-height: 1.7; color: var(--ink-soft); }
+        .section-head .lead p { margin: 0 0 .6rem; }
+        .section-head .lead p:last-child { margin: 0; }
+
+        .block-head h2, .story-copy > h2, .block.faq > h2 { font-size: clamp(1.75rem, 3.4vw, 2.6rem); font-weight: 800; letter-spacing: -.025em; color: var(--deep); }
+        .block-head h2::after, .story-copy > h2::after, .block.faq > h2::after { display: none; }
+        .block-head h2 { margin-block-end: 0; }
+        .story-copy > h2, .block.faq > h2 { margin-block-end: 1.5rem; }
+        .block-head { align-items: end; margin-block-end: 2rem; }
+        .story .eyebrow { color: var(--kaiki-accent); }
+
+        /* --- full-bleed bands ------------------------------------------
+           A section that runs edge to edge in its own colour, with its content
+           held to the page's column. Two bands in a row touch, as they do on
+           the WordPress site; a band after an ordinary section keeps the gap. */
+        .band {
+            margin-inline: calc(50% - 50vw);
+            padding-inline: calc(50vw - 50%);
+            padding-block: var(--band-pad);
+        }
+        .band + .band { margin-block-start: calc(-1 * var(--section-gap)); }
+        .band-sand { background: var(--sand); }
+        .band-mist { background: var(--mist); }
+        .band-dark { background: var(--deep); color: rgba(255, 255, 255, .78); }
+        .band-dark .section-head h2, .band-dark h3 { color: #fff; }
+        .band-dark .section-head .lead { color: rgba(255, 255, 255, .78); }
+        .band-dark .eyebrow-line { color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+
+        main:has(.wrap > .band:last-child) { padding-block-end: 0; }
+
+        .band-inner { display: grid; gap: clamp(2rem, 5vw, 4rem); align-items: center; }
+        .band-image { inline-size: 100%; aspect-ratio: 4 / 3.2; object-fit: cover; object-position: center center; border-radius: 24px; }
+        @media (min-width: 62rem) {
+            .band.has-image .band-inner { grid-template-columns: 1.1fr 1fr; }
+            .band.has-image .steps, .band.has-image .features { grid-template-columns: 1fr; }
+        }
+
+        /* --- the masthead -------------------------------------------------
+           Split (Mike chose it on 2026-09-16, option C of three): the small
+           line, the heading, the standfirst, the buttons and the badges on the
+           left, and the search as a white card with its own title on the right,
+           inside the photograph. Nothing hangs off the lower edge any more, so
+           the trips start higher. The shade is heaviest behind the words and
+           lifts towards the card, which is solid and needs none.
+
+           Below 62rem the two stack: the words first, the card under them and
+           still on the photograph. */
+        .hero-inner {
+            position: relative; z-index: 2;
+            /* The page column's own width and gutters (`.wrap`), so the words
+               and the card line up with the trips below them. */
+            inline-size: 100%; max-width: 86rem; margin: 0 auto;
+            padding: clamp(3rem, 7vw, 5.5rem) clamp(1.25rem, 3vw, 2.5rem);
+            display: grid; gap: clamp(2rem, 4vw, 3.5rem); align-items: center;
+        }
+        @media (min-width: 62rem) {
+            .hero-inner { grid-template-columns: minmax(0, 1fr) minmax(24rem, 31rem); }
+        }
+        .hero-copy { text-align: left; padding: 0; max-width: 42rem; margin: 0; }
+        .hero-copy h1 { max-width: none; margin-inline: 0; }
+        .hero-copy .standfirst { max-width: 36rem; margin-inline: 0; }
+        .hero.has-image { min-height: min(80vh, 44rem); }
+        .hero.has-image .hero-copy { padding: 0; }
+        .hero.has-image::after {
+            background:
+                linear-gradient(90deg, rgba(6, 16, 20, .7) 0%, rgba(6, 16, 20, .36) 55%, rgba(6, 16, 20, .2) 100%),
+                linear-gradient(to bottom, rgba(6, 16, 20, 0) 60%, rgba(6, 16, 20, .25) 100%);
+        }
+        .hero.has-image h1 { font-size: clamp(2.4rem, 5vw, 3.9rem); line-height: 1.05; letter-spacing: -.03em; text-wrap: balance; }
+        .hero.has-image .standfirst { font-size: clamp(1.05rem, 1.5vw, 1.25rem); max-width: 36rem; text-wrap: pretty; }
+        .hero .eyebrow-line { color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); justify-content: flex-start; }
+        .hero .cta { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .75rem; margin-top: 1.75rem; }
+        /* At the weight of the older `.hero.has-image .cta .button` rules above,
+           which turned every masthead button white on hover — white words on a
+           white button — so each state is spelled out here. */
+        .hero.has-image .cta .button-accent { background: var(--kaiki-accent); border-color: var(--kaiki-accent); color: #fff; }
+        .hero.has-image .cta .button-accent:hover,
+        .hero.has-image .cta .button-accent:focus-visible { background: color-mix(in srgb, var(--kaiki-accent) 82%, #000); border-color: transparent; color: #fff; }
+        .hero.has-image .cta .button-glass { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .4); color: #fff; }
+        .hero.has-image .cta .button-glass:hover,
+        .hero.has-image .cta .button-glass:focus-visible { background: rgba(255, 255, 255, .22); border-color: #fff; color: #fff; }
+
+        /* A focus ring that shows on what it sits on: white over a photograph
+           and on the deep bands, the operator's primary on white. The accent
+           ring the page used everywhere vanished around an accent button. */
+        .hero.has-image .hero-copy a:focus-visible,
+        .cta-band a:focus-visible,
+        .band-dark a:focus-visible,
+        footer.site a:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+        .button-accent:focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 3px; }
+        .hero.has-image .hero-copy .button-accent:focus-visible { outline-color: #fff; }
+        .hero-badges {
+            list-style: none; margin: 1.5rem 0 0; padding: 0;
+            display: flex; flex-wrap: wrap; justify-content: flex-start; gap: .6rem 1.4rem;
+            font-size: .9rem; font-weight: 500; color: rgba(255, 255, 255, .88);
+        }
+        .hero-badges li { display: inline-flex; align-items: center; gap: .5rem; }
+        .hero-badges .icon { inline-size: 1.1rem; block-size: 1.1rem; color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+        .hero:not(.has-image) .hero-badges { color: var(--ink-soft); }
+
+        /* The search card. Solid white: a date field with the sea showing
+           through it is a date field nobody can read. Two narrow fields share
+           the first row; everything else, and the button, runs full width. */
+        .hero-search {
+            inline-size: 100%; max-width: none; margin: 0;
+            padding: clamp(1.25rem, 2.5vw, 1.75rem);
+            background: #fff; border: 0; border-radius: 18px;
+            box-shadow: 0 2px 4px rgba(11, 39, 64, .06), 0 24px 56px rgba(6, 16, 20, .28);
+            color: var(--kaiki-text);
+        }
+        .hero:not(.has-image) .hero-search { border: 1px solid var(--line); box-shadow: 0 2px 4px rgba(11, 39, 64, .04), 0 18px 48px rgba(11, 39, 64, .12); }
+        .hero-search-title {
+            margin: 0 0 1.1rem; font-size: 1.3rem; line-height: 1.25; letter-spacing: -.01em;
+            color: var(--kaiki-primary); text-shadow: none; text-align: left;
+        }
+        .hero-search .search-form {
+            display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; align-items: end;
+        }
+        .hero-search .search-form > * { grid-column: 1 / -1; min-width: 0; }
+        .hero-search .search-form > .field:nth-child(1),
+        .hero-search .search-form > .field:nth-child(2) { grid-column: auto; }
+        .hero-search .search-form input,
+        .hero-search .search-form select { min-block-size: 3.1rem; border-radius: 10px; font-size: 1rem; }
+        .hero-search .search-form label { font-size: .8rem; color: var(--ink-soft); }
+        .hero-search .search-form button { inline-size: 100%; min-block-size: 3.25rem; border-radius: 10px; font-size: 1rem; }
+
+        @media (max-width: 40rem) {
+            .hero-search .search-form { grid-template-columns: minmax(0, 1fr); }
+            .hero-search .search-form > .field:nth-child(1),
+            .hero-search .search-form > .field:nth-child(2) { grid-column: 1 / -1; }
+        }
+
+        /* --- numbers ------------------------------------------------------
+           Mike's pick («S3», 2026-09-16): the small line and the heading on the
+           left, the figures two by two on the right. Each is a large number at
+           a light weight in the operator's primary, a hairline over it and a
+           few words under it — no icons and no accent colour, so the section
+           reads as calm facts rather than a row of badges. */
+        /* No band colour, so no band padding either: the gap between sections
+           is the room, as for any plain section. Doubled, it left a white
+           field under the masthead taller than the figures. */
+        .stats-block { display: grid; gap: 2rem clamp(2rem, 6vw, 5rem); align-items: start; padding-block: 0; }
+        .stats-block .section-head { margin: 0; }
+        .stats-block .section-head h2 { max-width: 14ch; }
+        @media (min-width: 62rem) {
+            .stats-block { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); }
+        }
+        .stats {
+            list-style: none; margin: 0; padding: 0;
+            display: grid; gap: clamp(1.75rem, 3vw, 2.5rem) clamp(1.5rem, 3vw, 3rem);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .stats.stats-1 { grid-template-columns: minmax(0, 1fr); }
+        .stats li { display: flex; flex-direction: column; padding-block-start: 1.25rem; border-block-start: 1px solid var(--line); }
+        .stats strong {
+            display: block; font-size: clamp(2.1rem, 3.6vw, 2.75rem); font-weight: 400; line-height: 1.05;
+            letter-spacing: -.02em; color: var(--kaiki-primary); font-variant-numeric: tabular-nums;
+        }
+        .stat-label { display: block; margin-top: .55rem; font-size: .98rem; line-height: 1.45; color: var(--ink-soft); }
+
+        /* --- contact ------------------------------------------------------
+           Mike's pick («K2», 2026-09-16): a full-width band in the operator's
+           primary. The heading, the button and the social marks on the left;
+           phone, email, address and meeting point as cards on the right, each
+           with its icon on a soft tile and a small visible label. The whole
+           card is the tap target. The operator's photograph, when there is
+           one, is a faint texture in the band rather than half of the panel.
+           Square corners, edge to edge. */
+        .block.contact,
+        .block.contact.has-image {
+            display: block; position: relative; isolation: isolate; overflow: hidden;
+            margin-inline: calc(50% - 50vw); border-radius: 0;
+            padding-block: clamp(3.5rem, 8vw, 6rem);
+            padding-inline: calc(50vw - 50%);
+            background:
+                radial-gradient(ellipse 55% 90% at 100% 0%, color-mix(in srgb, #fff 10%, transparent), transparent 70%),
+                var(--kaiki-primary);
+            color: rgba(255, 255, 255, .8);
+        }
+        .block.contact.has-image .contact-image {
+            position: absolute; inset: 0; z-index: -1;
+            inline-size: 100%; block-size: 100%; min-height: 0; border-radius: 0;
+            object-fit: cover; opacity: .05; filter: grayscale(1);
+        }
+        .block.contact > *:not(.contact-image),
+        .block.contact.has-image > *:not(.contact-image),
+        .block.contact.has-image > *:not(.contact-image):first-of-type,
+        .block.contact.has-image > *:not(.contact-image):last-child { padding: 0; }
+        .block.contact .contact-inner,
+        .block.contact.has-image .contact-inner {
+            display: grid; gap: 2.25rem clamp(2rem, 5vw, 4.5rem); align-items: center;
+        }
+        @media (min-width: 62rem) {
+            .block.contact .contact-inner,
+            .block.contact.has-image .contact-inner {
+                grid-template-columns: minmax(0, .8fr) minmax(0, 1.7fr);
+                grid-template-areas: "words cards" "social cards";
+            }
+            .block.contact .contact-inner > div:first-child { grid-area: words; align-self: end; }
+            .block.contact .contact-list { grid-area: cards; }
+            .block.contact .social { grid-area: social; align-self: start; }
+        }
+        .block.contact .eyebrow { color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); letter-spacing: .04em; margin-bottom: .6rem; }
+        .block.contact h2 { color: #fff; font-size: clamp(2rem, 3.4vw, 2.6rem); max-width: 14ch; margin-bottom: .9rem; }
+        .block.contact .prose { color: rgba(255, 255, 255, .78); }
+        .block.contact .contact-cta { margin-top: 1.5rem; }
+        .block.contact .contact-cta .button { background: var(--kaiki-accent); border-color: var(--kaiki-accent); color: #fff; }
+        .block.contact .contact-cta .button:hover,
+        .block.contact .contact-cta .button:focus-visible { background: color-mix(in srgb, var(--kaiki-accent) 82%, #000); border-color: transparent; color: #fff; }
+
+        .block.contact .contact-list {
+            margin: 0; display: grid; gap: .9rem;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+        }
+        .block.contact .contact-list li {
+            position: relative;
+            display: grid; grid-template-columns: minmax(0, 1fr); gap: .2rem; align-content: start;
+            padding: 1.35rem 1.4rem 1.45rem; border-radius: 16px;
+            background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .12);
+            transition: background-color .15s ease, border-color .15s ease;
+        }
+        .block.contact .contact-list li:hover { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .24); }
+        .block.contact .contact-list .icon {
+            box-sizing: content-box; inline-size: 1.2rem; block-size: 1.2rem; padding: .65rem; margin: 0 0 .9rem;
+            border-radius: 12px; color: #fff; background: rgba(255, 255, 255, .1);
+        }
+        .block.contact .contact-label { grid-column: 1; font-size: .8rem; font-weight: 500; letter-spacing: .02em; color: rgba(255, 255, 255, .62); }
+        .block.contact .contact-list li > a,
+        .block.contact .contact-list li > span:not(.contact-label) {
+            grid-column: 1; font-size: 1.02rem; font-weight: 600; line-height: 1.4; color: #fff; overflow-wrap: anywhere;
+        }
+        .block.contact .contact-list li > a::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+        .block.contact .contact-list li > a:hover { color: #fff; }
+        .block.contact .contact-list li > a:focus-visible { outline: none; }
+        .block.contact .contact-list li:has(> a:focus-visible) { outline: 2px solid #fff; outline-offset: 3px; }
+        .block.contact .contact-list .instructions { grid-column: 1; font-weight: 400; color: rgba(255, 255, 255, .65); }
+        .block.contact .contact-list li span a { color: #fff; }
+
+        .block.contact .social { margin: 0; }
+        .block.contact .social a { border-color: rgba(255, 255, 255, .25); color: #fff; }
+        .block.contact .social a:hover { border-color: #fff; background: rgba(255, 255, 255, .08); }
+        .block.contact .social a:focus-visible { outline-color: #fff; }
+        .block.contact .social .icon { color: #fff; }
+        @media (prefers-reduced-motion: reduce) { .block.contact .contact-list li { transition: none; } }
+        main:has(.wrap > .block.contact:last-child) { padding-block-end: 0; }
+
+        /* Straight after the masthead, the figures are the operator's WordPress
+           card (Mike, 2026-09-16): white, rounded, lifted over the masthead's
+           lower edge, four figures split by hairlines, the number bold in the
+           primary with a few words under it. No heading there — the card says
+           what it is. Anywhere else on the page the section keeps its
+           heading-beside-figures layout above. */
+        .hero:has(+ .stats-block) .hero-inner { padding-block-end: clamp(6.5rem, 10vw, 8.5rem); }
+        .hero + .stats-block {
+            display: block; position: relative; z-index: 3;
+            margin-block-start: calc(-1 * var(--section-gap) - 4rem);
+            padding: 0; margin-inline: 0; inline-size: auto;
+        }
+        .hero + .stats-block .section-head {
+            position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden;
+            clip-path: inset(50%); white-space: nowrap;
+        }
+        .hero + .stats-block .stats,
+        .hero + .stats-block .stats.stats-1 {
+            grid-template-columns: repeat(var(--stat-count, 4), minmax(0, 1fr)); gap: 0;
+            background: #fff; border-radius: 20px; overflow: hidden;
+            box-shadow: 0 2px 4px rgba(11, 39, 64, .04), 0 18px 48px rgba(11, 39, 64, .12);
+        }
+        .hero + .stats-block .stats-3 { --stat-count: 3; }
+        .hero + .stats-block .stats-2 { --stat-count: 2; }
+        .hero + .stats-block .stats-1 { --stat-count: 1; }
+        .hero + .stats-block .stats li {
+            align-items: center; text-align: center; padding: 1.75rem 1.5rem; border: 0;
+        }
+        .hero + .stats-block .stats li + li { border-inline-start: 1px solid var(--line); }
+        .hero + .stats-block .stats strong { font-size: clamp(1.75rem, 2.6vw, 2.15rem); font-weight: 800; line-height: 1; letter-spacing: -.03em; }
+        .hero + .stats-block .stat-label { margin-top: .5rem; font-size: .9rem; color: var(--ink-soft); }
+        @media (max-width: 47.5rem) {
+            .hero + .stats-block .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .hero + .stats-block .stats li:nth-child(3) { border-inline-start: 0; }
+            .hero + .stats-block .stats li:nth-child(n+3) { border-block-start: 1px solid var(--line); }
+        }
+
+        /* --- steps ------------------------------------------------------ */
+
+        .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+        .step { padding: 1.75rem; border-radius: 16px; background: #fff; box-shadow: var(--shadow-sm); }
+        .step-number {
+            display: grid; place-items: center; inline-size: 2.25rem; block-size: 2.25rem;
+            margin-bottom: 1rem; border-radius: 50%;
+            background: var(--kaiki-accent); color: #fff; font-weight: 700; font-size: .95rem;
+        }
+        .step h3, .feature h3 { font-size: 1.12rem; margin: 0 0 .4rem; letter-spacing: -.01em; color: var(--deep); }
+        .step p, .feature p { margin: 0; font-size: .95rem; line-height: 1.6; color: var(--ink-soft); }
+
+        /* --- reasons ------------------------------------------------------ */
+
+        .features { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+        .feature { padding: 1.75rem; border-radius: 16px; background: #fff; border: 1px solid var(--line); }
+        .feature-icon {
+            display: grid; place-items: center; inline-size: 3rem; block-size: 3rem; margin-bottom: 1.1rem;
+            border-radius: 13px; background: var(--mist); color: var(--kaiki-primary);
+        }
+        .feature-icon .icon { inline-size: 1.5rem; block-size: 1.5rem; }
+        .band-mist .feature-icon { background: var(--sand); }
+        .band-dark .feature { background: rgba(255, 255, 255, .05); border-color: rgba(255, 255, 255, .1); }
+        .band-dark .feature h3 { color: #fff; }
+        .band-dark .feature p { color: rgba(255, 255, 255, .7); }
+        .band-dark .feature-icon { background: rgba(255, 255, 255, .08); color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+
+        /* --- reviews ------------------------------------------------------ */
+
+        .quotes { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); }
+        .quote { display: flex; flex-direction: column; block-size: 100%; margin: 0; padding: 1.75rem; border-radius: 16px; background: #fff; border: 1px solid var(--line); }
+        .quote-stars { margin: 0 0 .75rem; color: #E0A33B; letter-spacing: 2px; font-size: .95rem; }
+        .quote blockquote { margin: 0 0 1.25rem; font-size: 1rem; line-height: 1.65; color: var(--kaiki-text); }
+        .quote figcaption { margin-top: auto; display: flex; align-items: center; gap: .75rem; font-size: .88rem; color: var(--ink-soft); }
+        .quote figcaption b { display: block; color: var(--deep); font-weight: 600; }
+        .avatar {
+            inline-size: 2.5rem; block-size: 2.5rem; flex: none; border-radius: 50%; object-fit: cover;
+            display: grid; place-items: center; background: var(--mist); color: var(--kaiki-primary); font-weight: 700;
+        }
+
+        /* --- the call-to-action band -------------------------------------- */
+
+        /* Edge to edge with square corners (Mike, 2026-09-16), the words held
+           to the page's column by the same inline padding every band uses. */
+        .cta-band {
+            position: relative; isolation: isolate; overflow: hidden;
+            border-radius: 0; background: var(--deep); color: #fff;
+            margin-inline: calc(50% - 50vw);
+            padding-block: clamp(4rem, 8vw, 6.5rem);
+            padding-inline: calc(50vw - 50%);
+        }
+        .band + .cta-band, .cta-band + .band { margin-block-start: calc(-1 * var(--section-gap)); }
+
+        /* The contact band's own rules live with the numbers above (K2). */
+        main:has(.wrap > .block.contact:last-child), main:has(.wrap > .cta-band:last-child) { padding-block-end: 0; }
+        .cta-image { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; object-position: center center; z-index: -2; }
+        .cta-band.has-image::before {
+            content: ''; position: absolute; inset: 0; z-index: -1;
+            background: linear-gradient(90deg, color-mix(in srgb, var(--deep) 94%, transparent) 0%, color-mix(in srgb, var(--deep) 78%, transparent) 50%, color-mix(in srgb, var(--deep) 30%, transparent) 100%);
+        }
+        .cta-copy { max-width: 40rem; }
+        .cta-band h2 { color: #fff; font-size: clamp(1.75rem, 3.4vw, 2.6rem); font-weight: 800; letter-spacing: -.025em; margin: 0; }
+        .cta-band .lead { margin-top: .9rem; color: rgba(255, 255, 255, .85); font-size: 1.08rem; line-height: 1.7; }
+        .cta-band .lead p { margin: 0 0 .6rem; }
+        .cta-band .lead p:last-child { margin: 0; }
+        .cta-band .eyebrow-line { color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+        .cta-band .buttons { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.75rem 0 0; }
+
+        /* --- trip cards ----------------------------------------------------
+           A lift on hover this time, as the WordPress cards have: those are the
+           cards Mike pointed at. The label over the photograph is the operator's
+           own, and white so it reads on any picture. */
+        li.trip { position: relative; border-radius: 16px; border: 1px solid var(--line); box-shadow: var(--shadow-sm); transition: box-shadow .2s ease, transform .2s ease; }
+        @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+            li.trip:hover { box-shadow: var(--shadow); transform: translateY(-3px); }
+        }
+        li.trip h3 { font-size: 1.15rem; letter-spacing: -.015em; color: var(--deep); }
+        .trip-badge {
+            position: absolute; inset-block-start: .85rem; inset-inline-start: .85rem; z-index: 1;
+            margin: 0; padding: .3rem .7rem; border-radius: 999px;
+            background: rgba(255, 255, 255, .95); color: var(--deep);
+            font-size: .78rem; font-weight: 600; line-height: 1.3;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
+            pointer-events: none;
+        }
+        .trip-price strong { color: var(--deep); font-size: 1.3rem; font-weight: 800; }
+
+        /* Three to a row, at most, everywhere a trip is a card (Mike,
+           2026-09-16): three on a desktop, two on a tablet, one on a phone —
+           the home grid, the featured rail and the search results alike. Fixed
+           tracks rather than `auto-fit`, which put four across a wide screen,
+           and a search with two answers keeps two cards of the same size rather
+           than two stretched ones. The cards are already equal in height with
+           the price row pinned to the bottom (`.trip-foot`). */
+        ul.trips, .trips.results { grid-template-columns: repeat(3, minmax(0, 1fr)); justify-content: stretch; }
+        /* `ul.` again: the rule above outweighs a bare `.trips-rail`, and a
+           rail with three explicit columns squeezed three cards and stretched
+           the fourth. */
+        ul.trips.trips-rail { grid-template-columns: none; grid-auto-columns: calc((100% - 3rem) / 3); }
+
+        @media (max-width: 62rem) {
+            ul.trips, .trips.results { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            ul.trips.trips-rail { grid-template-columns: none; grid-auto-columns: calc((100% - 1.5rem) / 2); }
+        }
+
+        @media (max-width: 40rem) {
+            ul.trips, .trips.results { grid-template-columns: minmax(0, 1fr); }
+            ul.trips.trips-rail { grid-template-columns: none; grid-auto-columns: 86%; }
+        }
+
+        /* --- FAQ, as cards that open ------------------------------------- */
+
+        .faq-list { gap: .6rem; }
+        .faq-item { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 0; transition: box-shadow .2s ease, border-color .2s ease; }
+        .faq-item[open] { border-color: transparent; box-shadow: var(--shadow); }
+        .faq-item summary { padding: 1.15rem 1.5rem; font-weight: 700; color: var(--deep); align-items: center; }
+        .faq-item summary::after {
+            content: '+'; flex: none; display: grid; place-items: center;
+            inline-size: 1.65rem; block-size: 1.65rem; border-radius: 50%;
+            background: var(--mist); color: var(--kaiki-primary); font-size: 1.1rem;
+        }
+        .faq-item[open] summary::after { content: '−'; }
+        .faq-item .prose { margin: 0; padding: 0 1.5rem 1.35rem; }
+
+        /* --- the footer --------------------------------------------------- */
+
+        footer.site {
+            background: var(--deep); border-top: 0; color: rgba(255, 255, 255, .72);
+            padding-block: clamp(3.5rem, 7vw, 5rem) 2rem; font-size: .93rem;
+        }
+        footer.site h3 { color: #fff; font-size: .95rem; font-weight: 700; letter-spacing: 0; margin: .25rem 0 1rem; }
+        footer.site a { color: rgba(255, 255, 255, .85); }
+        footer.site a:hover { color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+        footer.site li { margin-bottom: .55rem; }
+        footer.site .cols { grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr)); gap: 2.5rem; }
+        @media (min-width: 62rem) { footer.site .cols { grid-template-columns: 1.4fr 1fr 1.2fr 1.2fr; } }
+
+        .foot-brand, .foot-brand { align-items: flex-start; text-align: left; }
+        @media (min-width: 62rem) { .foot-brand { align-items: flex-start; text-align: left; } }
+        .foot-wordmark { display: flex; align-items: center; gap: .7rem; color: #fff; font-size: 1rem; }
+        .foot-wordmark .brand-mark { background: rgba(255, 255, 255, .1); }
+        .foot-wordmark .brand-tag { color: rgba(255, 255, 255, .55); }
+        .foot-brand .social a { background: rgba(255, 255, 255, .08); color: #fff; border-color: transparent; }
+        .foot-brand .social .icon { color: #fff; }
+        .foot-brand .social a:hover { background: rgba(255, 255, 255, .18); color: #fff; }
+
+        .foot-contact li { display: flex; gap: .6rem; align-items: center; }
+        .foot-contact .icon { inline-size: 1.05rem; block-size: 1.05rem; flex: none; color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+
+        .foot-bottom {
+            margin-top: clamp(2.5rem, 5vw, 4rem); padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, .12);
+            display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 2rem;
+            font-size: .82rem; color: rgba(255, 255, 255, .55);
+        }
+        .foot-bottom p { margin: 0; }
+        .foot-legal { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; }
+        footer.site .foot-legal li { margin: 0; }
+        footer.site .foot-legal a { color: rgba(255, 255, 255, .7); }
+        .foot-bottom .powered { margin: 0; padding: 0; border: 0; color: rgba(255, 255, 255, .5); font-size: .82rem; }
+
+        @media (prefers-reduced-motion: reduce) {
+            li.trip, .faq-item { transition: none; }
+        }
+
+        /* The header now stays on screen, so everything that pins itself or
+           scrolls to an anchor has to clear it: the trip page's booking column,
+           and every `#trips`, `#faq` and `#gallery` a link jumps to. */
+        html { scroll-padding-top: 6rem; }
+
+        @media (min-width: 60rem) {
+            .product-aside { top: 6.25rem; max-block-size: calc(100svh - 7.75rem); }
+        }
+
+        /* A phone's masthead is as tall as its words, not most of the screen:
+           the search card follows it and should be in reach. */
+        @media (max-width: 40rem) {
+            .hero.has-image { min-height: 0; }
+        }
+
+        /* --- the trip page's booking card ----------------------------------
+           It has to stand out from the page (Mike, 2026-09-16): the card of the
+           operator's WordPress trip page — white, a hairline border, 20px and a
+           soft two-layer shadow. The sticky column around it is unchanged.
+
+           When the widget has become the bottom sheet, the price and the four
+           lines are already hidden and the sheet carries its own look; a
+           shadowed card left around what remains would be an empty box, so the
+           card steps back to the page. */
+        .booking {
+            background: #fff;
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            box-shadow: 0 2px 4px rgba(11, 39, 64, .04), 0 12px 32px rgba(11, 39, 64, .09);
+        }
+
+        .booking:has([data-kaiki-sheet="true"]) {
+            background: transparent; border-color: transparent; box-shadow: none;
+            padding-inline: 0; padding-block: 0;
+        }
+
+        /* The aside scrolls inside itself on a desktop, which would clip the
+           card's shadow at the column's edge; the room is given back inside. */
+        @media (min-width: 60rem) {
+            .product-aside { padding: .25rem 1.5rem 2.5rem; margin-inline: -1.5rem; }
+        }
     </style>
 
     {{-- The booking bundle, fetched from the first byte of the page.
@@ -2570,11 +3266,21 @@
 
 <header class="site">
     <div class="wrap">
+        {{-- The operator's logo, or — for the operator who has not uploaded
+             one — a mark in their own colours beside their name and the town
+             they sail from, the masthead of their WordPress site (2026-09-16).
+             The mark is drawing and hidden; the name is the link text. --}}
         <a class="brand" href="{{ route('hosted.index', ['operator' => $tenant->slug, 'lang' => $locale]) }}">
             @if ($logo)
                 <img src="{{ $logo }}" alt="{{ $tenant->name }}">
             @else
-                <span class="name">{{ $tenant->name }}</span>
+                <span class="brand-mark" aria-hidden="true">@include('hosted.partials.icon', ['name' => 'boat'])</span>
+                <span class="brand-text">
+                    <span class="name">{{ $tenant->name }}</span>
+                    @if ($tenant->city)
+                        <span class="brand-tag">{{ $tenant->city }}</span>
+                    @endif
+                </span>
             @endif
         </a>
 
@@ -2585,6 +3291,17 @@
         <nav class="site-nav">
             @include('hosted.partials.nav-links')
         </nav>
+
+        {{-- A telephone number a guest can tap, and the one button the header
+             exists for. Both leave the row on a narrow screen and reappear in
+             the burger's panel. --}}
+        @if ($tenant->phone)
+            <a class="header-phone" href="tel:{{ $tenant->phone }}" aria-label="{{ __('hosted.nav.call', ['phone' => $tenant->phone]) }}">
+                @include('hosted.partials.icon', ['name' => 'phone']){{ $tenant->phone }}
+            </a>
+        @endif
+
+        <a class="button button-accent header-book" href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.nav.book') }}</a>
 
         <nav class="langs" aria-label="{{ __('hosted.nav.language') }}">
             @foreach (['el' => 'ΕΛ', 'en' => 'EN'] as $code => $label)
@@ -2626,6 +3343,10 @@
 
             <nav class="menu-panel" aria-label="{{ __('hosted.nav.menu') }}">
                 @include('hosted.partials.nav-links')
+                @if ($tenant->phone)
+                    <a class="menu-phone" href="tel:{{ $tenant->phone }}">@include('hosted.partials.icon', ['name' => 'phone']){{ $tenant->phone }}</a>
+                @endif
+                <a class="button button-accent menu-book" href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.nav.book') }}</a>
             </nav>
         </details>
 
@@ -2640,59 +3361,24 @@
 
 <footer class="site">
     <div class="wrap">
+        {{-- A deep band in the operator's own primary colour since 16 September,
+             the footer of their WordPress site: their mark and a way to follow
+             them first, then where to go, how to reach them and who they are
+             legally — and the legal links in a row of their own underneath. --}}
         <div class="cols">
-            {{-- HOS-9: the operator's legal identity, in both locales. --}}
-            <div>
-                <h3>{{ __('hosted.footer.operator') }}</h3>
-                <p><strong>{{ $tenant->legal_name ?? $tenant->name }}</strong></p>
-                @if ($tenant->address_line1)
-                    <p>{{ $tenant->address_line1 }}</p>
-                @endif
-                @if ($tenant->city || $tenant->postcode)
-                    <p>{{ trim($tenant->postcode . ' ' . $tenant->city) }}</p>
-                @endif
-                @if ($tenant->vat_number)
-                    <p>{{ __('hosted.footer.vat_number') }}: {{ $tenant->vat_number }}</p>
-                @endif
-                @if ($tenant->tax_office)
-                    {{-- No label of its own: `taxOfficeName()` already reads «ΔΟΥ Πειραιά», and the footer was printing «ΔΟΥ: ΔΟΥ Πειραιά». --}}
-                    <p>{{ $tenant->taxOfficeName() }}</p>
-                @endif
-            </div>
-
-            <div>
-                <h3>{{ __('hosted.footer.contact') }}</h3>
-                <p><a href="mailto:{{ $tenant->email }}">{{ $tenant->email }}</a></p>
-                @if ($tenant->phone)
-                    <p><a href="tel:{{ $tenant->phone }}">{{ $tenant->phone }}</a></p>
-                @endif
-                {{-- The form, under the two ways to reach a person directly. It
-                     is last because it is the slowest of the three, not because
-                     it matters least: somebody who wants an answer now rings the
-                     number printed above it. --}}
-                <p><a href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.contact.nav') }}</a></p>
-            </div>
-
-            <div>
-                <h3>{{ __('hosted.footer.legal') }}</h3>
-                <ul>
-                    <li><a href="{{ route('hosted.legal', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.footer.terms') }}</a></li>
-                    <li><a href="{{ route('hosted.legal', ['operator' => $tenant->slug, 'lang' => $locale]) }}#privacy">{{ __('hosted.footer.privacy') }}</a></li>
-                    <li><a href="{{ route('hosted.legal', ['operator' => $tenant->slug, 'lang' => $locale]) }}#cancellation">{{ __('hosted.footer.cancellation') }}</a></li>
-                </ul>
-            </div>
-
-            {{-- The operator's mark on its own, with the way to follow them
-                 underneath it. It is the last column rather than the first
-                 because the header already opens the page with the same name:
-                 down here it is a sign-off, not an introduction — and an
-                 operator with no logo uploaded gets their name set in the
-                 heading face instead of a gap. --}}
             <div class="foot-brand">
                 @if ($logo)
                     <img class="foot-logo" src="{{ $logo }}" alt="{{ $tenant->name }}">
                 @else
-                    <p class="foot-wordmark">{{ $tenant->name }}</p>
+                    <p class="foot-wordmark">
+                        <span class="brand-mark" aria-hidden="true">@include('hosted.partials.icon', ['name' => 'boat'])</span>
+                        <span class="brand-text">
+                            <span class="name">{{ $tenant->name }}</span>
+                            @if ($tenant->city)
+                                <span class="brand-tag">{{ $tenant->city }}</span>
+                            @endif
+                        </span>
+                    </p>
                 @endif
 
                 @php
@@ -2717,13 +3403,63 @@
                     </ul>
                 @endif
             </div>
+
+            <div>
+                <h3>{{ __('hosted.footer.explore') }}</h3>
+                <ul>
+                    <li><a href="{{ route('hosted.index', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.footer.home') }}</a></li>
+                    <li><a href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.search.nav') }}</a></li>
+                    <li><a href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.contact.nav') }}</a></li>
+                </ul>
+            </div>
+
+            <div>
+                <h3>{{ __('hosted.footer.contact') }}</h3>
+                <ul class="foot-contact">
+                    @if ($tenant->phone)
+                        <li>@include('hosted.partials.icon', ['name' => 'phone'])<a href="tel:{{ $tenant->phone }}">{{ $tenant->phone }}</a></li>
+                    @endif
+                    <li>@include('hosted.partials.icon', ['name' => 'mail'])<a href="mailto:{{ $tenant->email }}">{{ $tenant->email }}</a></li>
+                </ul>
+            </div>
+
+            {{-- HOS-9: the operator's legal identity, in both locales. --}}
+            <div>
+                <h3>{{ __('hosted.footer.operator') }}</h3>
+                <p><strong>{{ $tenant->legal_name ?? $tenant->name }}</strong></p>
+                @if ($tenant->address_line1)
+                    <p>{{ $tenant->address_line1 }}</p>
+                @endif
+                @if ($tenant->city || $tenant->postcode)
+                    <p>{{ trim($tenant->postcode . ' ' . $tenant->city) }}</p>
+                @endif
+                @if ($tenant->vat_number)
+                    <p>{{ __('hosted.footer.vat_number') }}: {{ $tenant->vat_number }}</p>
+                @endif
+                @if ($tenant->tax_office)
+                    {{-- No label of its own: `taxOfficeName()` already reads «ΔΟΥ Πειραιά», and the footer was printing «ΔΟΥ: ΔΟΥ Πειραιά». --}}
+                    <p>{{ $tenant->taxOfficeName() }}</p>
+                @endif
+            </div>
         </div>
 
-        @if ($poweredBy)
-            {{-- Brand decision 6: always, custom domains included. From a flag,
-                 so a white-label tier is a config change rather than an edit. --}}
-            <p class="powered">{{ __('hosted.footer.powered_by') }}</p>
-        @endif
+        <div class="foot-bottom">
+            <p>© {{ now()->year }} {{ $tenant->legal_name ?? $tenant->name }}</p>
+
+            <nav aria-label="{{ __('hosted.footer.legal') }}">
+                <ul class="foot-legal">
+                    <li><a href="{{ route('hosted.legal', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.footer.terms') }}</a></li>
+                    <li><a href="{{ route('hosted.legal', ['operator' => $tenant->slug, 'lang' => $locale]) }}#privacy">{{ __('hosted.footer.privacy') }}</a></li>
+                    <li><a href="{{ route('hosted.legal', ['operator' => $tenant->slug, 'lang' => $locale]) }}#cancellation">{{ __('hosted.footer.cancellation') }}</a></li>
+                </ul>
+            </nav>
+
+            @if ($poweredBy)
+                {{-- Brand decision 6: always, custom domains included. From a flag,
+                     so a white-label tier is a config change rather than an edit. --}}
+                <p class="powered">{{ __('hosted.footer.powered_by') }}</p>
+            @endif
+        </div>
     </div>
 </footer>
 

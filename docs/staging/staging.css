@@ -1,0 +1,228 @@
+/*
+    What a server guide needs and the manual does not.
+
+    Commands someone types, a config file someone copies, a diagram of who
+    calls whom, and a checklist. The measure, the note boxes, the part openers
+    and the `@page` margins are `docs/manual/manual.css`, on purpose — the same
+    reason `docs/wordpress/guide.css` gives: these are meant to look like
+    documents from the same people.
+
+    No `text-transform: uppercase` anywhere: it strips the accents from Greek.
+*/
+
+/* --- something you type or copy ------------------------------------- */
+
+pre.copy {
+    background: #10161f;
+    color: #e6edf6;
+    border-radius: 5px;
+    padding: 9pt 12pt;
+    margin: 8pt 0 11pt;
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 8.4pt;
+    line-height: 1.55;
+    /* Wrapped rather than scrolled: paper has no scroll bar. A long line
+       breaks where it has to, and a continuation is indented so it does not
+       read as a second command. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    break-inside: avoid;
+}
+
+/* A config file longer than a page may break, between lines. */
+pre.copy.long { break-inside: auto; }
+
+pre.copy .c { color: #8fa3bd; }
+pre.copy .k { color: #f2c38a; }
+
+pre.copy .file {
+    display: block;
+    color: #7fa8a1;
+    font-size: 7.6pt;
+    margin-bottom: 4pt;
+    border-bottom: 1px solid #26303d;
+    padding-bottom: 3pt;
+}
+
+code {
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 0.9em;
+    background: #eef3f2;
+    border-radius: 3px;
+    padding: 0.5pt 3pt;
+    overflow-wrap: anywhere;
+}
+
+/* --- definition tables ----------------------------------------------- */
+
+table.fields {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 8pt 0 12pt;
+    font-size: 9.2pt;
+}
+
+table.fields th,
+table.fields td {
+    text-align: left;
+    vertical-align: top;
+    padding: 5pt 8pt 5pt 0;
+    border-bottom: 1px solid var(--rule);
+}
+
+table.fields th {
+    width: 30%;
+    font-weight: 600;
+    color: var(--hull-deep);
+}
+
+table.fields th code { font-weight: 500; }
+
+table.fields tr { break-inside: avoid; }
+
+table.fields.wide th { width: 38%; }
+
+/* --- warnings ---------------------------------------------------------- */
+
+.danger {
+    border-left: 3px solid var(--rust);
+    background: #fdf4ef;
+    padding: 8pt 11pt;
+    margin: 10pt 0;
+    break-inside: avoid;
+    font-size: 9.8pt;
+}
+
+.danger .label {
+    display: block;
+    font-size: 8.6pt;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--rust);
+    margin-bottom: 3pt;
+}
+
+.danger p:last-child { margin-bottom: 0; }
+
+/* An item the code could not confirm. Marked, so nobody mistakes a guess
+   for something read out of the repository. */
+.unsure {
+    border-left: 3px dashed #8a6d00;
+    background: #fffaea;
+    padding: 7pt 11pt;
+    margin: 9pt 0;
+    break-inside: avoid;
+    font-size: 9.4pt;
+}
+
+.unsure .label {
+    display: block;
+    font-size: 8.6pt;
+    font-weight: 700;
+    color: #7a5f00;
+    margin-bottom: 2pt;
+}
+
+.unsure p:last-child { margin-bottom: 0; }
+
+/* --- the diagram ------------------------------------------------------- */
+
+figure.diagram {
+    margin: 4mm 0 3mm;
+    break-inside: avoid;
+}
+
+figure.diagram svg {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+/* --- the checklist ----------------------------------------------------- */
+
+ul.check {
+    list-style: none;
+    padding: 0;
+    margin: 3mm 0 5mm;
+}
+
+ul.check > li {
+    position: relative;
+    padding-inline-start: 7mm;
+    margin-bottom: 2.2mm;
+    break-inside: avoid;
+}
+
+ul.check > li::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: 0;
+    top: 1.2mm;
+    width: 3.6mm;
+    height: 3.6mm;
+    border: 1.2pt solid var(--hull);
+    border-radius: 1mm;
+}
+
+ul.check > li .how {
+    display: block;
+    color: var(--muted);
+    font-size: 9.2pt;
+}
+
+/* --- the email ---------------------------------------------------------- */
+
+.letter {
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 9pt 12pt;
+    margin: 8pt 0 12pt;
+    font-size: 9.4pt;
+    line-height: 1.55;
+    background: #fbfcfc;
+}
+
+.letter .subject {
+    font-weight: 600;
+    color: var(--hull-deep);
+    border-bottom: 1px solid var(--rule);
+    padding-bottom: 4pt;
+    margin-bottom: 6pt;
+}
+
+.letter ol, .letter ul { margin-bottom: 2mm; }
+.letter li { margin-bottom: 1mm; break-inside: avoid; }
+.letter p { margin-bottom: 2mm; }
+
+/* Links are never underlined in Kaiki documents. */
+a { text-decoration: none; }
+
+/* --- a denser rhythm than the manual ------------------------------------ */
+
+/*
+    The manual gives every part a page of its own and every heading a fresh
+    page, which suits a document read once and kept by the till. This one is
+    read at a terminal, looking things up — so a part starts a new page, its
+    opener sits at the top of that page, and headings inside it flow.
+*/
+
+.part {
+    padding-top: 6mm;
+    break-after: auto;
+    margin-bottom: 7mm;
+    border-bottom: 1pt solid var(--rule);
+    padding-bottom: 4mm;
+}
+
+.part h2 { font-size: 24pt; margin-bottom: 3mm; }
+
+h2 {
+    break-before: auto;
+    margin-top: 9mm;
+    font-size: 17pt;
+}
+
+h2.continues { margin-top: 0; }
+
+.toc { break-after: page; }

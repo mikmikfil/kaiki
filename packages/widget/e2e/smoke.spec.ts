@@ -58,6 +58,23 @@ test.describe('the four mounts', () => {
     await expect(root.getByRole('heading', { name: 'Pick a date' })).toBeVisible();
     await expect(root.locator('button.kaiki-day-pick').first()).toBeVisible();
   });
+
+  test('the booking mount on a trip sold by quote draws the enquiry form instead', async ({ page }) => {
+    // BKG-24. The WordPress shortcode and the Elementor widget always embed
+    // `booking`; only the mount can tell that this trip is asked about, not booked.
+    const quote = world().quote_product_uuid ?? null;
+
+    test.skip(quote === null, 'the seeders produced no quote trip');
+
+    await embed(page, { mount: 'booking', product: quote as string });
+
+    const root = widget(page);
+
+    await expect(root.getByText('On request', { exact: true })).toBeVisible();
+    await expect(root.getByLabel(/email/i)).toBeVisible();
+    await expect(root.getByRole('heading', { name: 'Pick a date' })).toHaveCount(0);
+    await expect(root.locator('.kaiki-day')).toHaveCount(0);
+  });
 });
 
 test('nothing the widget does reaches the host page console as an error', async ({ page }) => {

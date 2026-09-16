@@ -1,0 +1,168 @@
+<section class="part">
+    <span class="num">Μέρος Α</span>
+    <h2>Γιατί staging</h2>
+    <p>
+        Στον υπολογιστή σας το Kaiki τρέχει με SQLite, χωρίς HTTPS, χωρίς email και με
+        ψεύτικη πληρωμή. Ένα subdomain σε πραγματικό server δείχνει τι σπάει όταν όλα
+        αυτά γίνουν αληθινά — πριν το δει πελάτης.
+    </p>
+</section>
+
+<h2 class="continues">Τι δοκιμάζεται εκεί, και τι όχι</h2>
+
+<table class="fields">
+    <tr>
+        <th>Δοκιμάζεται</th>
+        <td>
+            <ul>
+                <li><strong>Πραγματικό HTTPS</strong> σε δύο hostnames: <code>kaiki.testing.gr</code> (πάνελ, API,
+                    widget, σελίδες κράτησης) και <code>book.kaiki.testing.gr</code> (σελίδες διοργανωτή).</li>
+                <li><strong>Πληρωμές Viva σε demo</strong>: ανακατεύθυνση, επιστροφή, και το webhook που
+                    επιβεβαιώνει την κράτηση — από τη Viva προς έναν δημόσιο server, που τοπικά δεν γίνεται.</li>
+                <li><strong>Email</strong> προς αληθινά γραμματοκιβώτια, με SPF και DKIM.</li>
+                <li><strong>PDF</strong> εισιτηρίων και παραστατικών, με Chromium στον server.</li>
+                <li><strong>Το πρόσθετο WordPress σε αληθινό domain</strong> (<code>aegeancr.gr</code>): κλειδί,
+                    επιτρεπόμενοι ιστότοποι (CORS), φόρμα κράτησης, σελίδες εκδρομών.</li>
+                <li>Ουρά εργασιών, προγραμματισμένες εργασίες (cron), MySQL 8 και Redis.</li>
+                <li>Κινητό: bottom sheet της φόρμας, επιβίβαση με QR (η κάμερα θέλει HTTPS).</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <th>Δεν δοκιμάζεται</th>
+        <td>
+            <ul>
+                <li><strong>Δικά τους domain διοργανωτών</strong> με αυτόματο πιστοποιητικό (on-demand TLS).
+                    Θέλει τον Caddy να κατέχει τη θύρα 443 (ADR-0010) — εδώ την έχουν οι άλλες
+                    ιστοσελίδες του server. Γίνεται στην παραγωγή.</li>
+                <li><strong>myDATA παραγωγής.</strong> Δεν υπάρχουν διαπιστευτήρια ΑΑΔΕ· τα παραστατικά
+                    εκδίδονται σε δοκιμαστικό περιβάλλον και δεν καταχωρούνται.</li>
+                <li><strong>Αληθινές χρεώσεις καρτών.</strong> Στο staging μπαίνουν μόνο demo κλειδιά Viva.</li>
+                <li><strong>SMS.</strong> Κλειστά εξ ορισμού (<code>KAIKI_SMS_ENABLED=false</code>).</li>
+                <li><strong>Webhooks προς τρίτα συστήματα</strong> (πακέτο Pro): οι δοκιμαστικές κρατήσεις
+                    δεν στέλνουν ποτέ webhook.</li>
+                <li>Επιδόσεις και φορτίο: ο server μοιράζεται με άλλες ιστοσελίδες.</li>
+            </ul>
+        </td>
+    </tr>
+</table>
+
+<h2>Ποιος καλεί ποιον σε μια κράτηση</h2>
+
+<figure class="diagram">
+<svg viewBox="0 0 680 500" xmlns="http://www.w3.org/2000/svg" font-family="Inter, 'Segoe UI', sans-serif">
+    <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#0b4f4a"/>
+        </marker>
+        <marker id="arr-rust" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#b5511f"/>
+        </marker>
+    </defs>
+
+    <!-- visitor -->
+    <rect x="245" y="8" width="190" height="50" rx="8" fill="#f4f7f6" stroke="#0b4f4a" stroke-width="1.5"/>
+    <text x="340" y="30" text-anchor="middle" font-size="14" font-weight="700" fill="#063733">Επισκέπτης</text>
+    <text x="340" y="47" text-anchor="middle" font-size="11" fill="#5c6a67">κινητό ή υπολογιστής</text>
+
+    <!-- WordPress -->
+    <rect x="12" y="112" width="250" height="70" rx="8" fill="#ffffff" stroke="#0b4f4a" stroke-width="1.5"/>
+    <text x="137" y="138" text-anchor="middle" font-size="14" font-weight="700" fill="#063733" font-family="'IBM Plex Mono', Consolas, monospace">aegeancr.gr</text>
+    <text x="137" y="156" text-anchor="middle" font-size="11" fill="#16211f">WordPress του διοργανωτή</text>
+    <text x="137" y="171" text-anchor="middle" font-size="11" fill="#5c6a67">+ πρόσθετο Kaiki Booking</text>
+
+    <!-- hosted -->
+    <rect x="418" y="112" width="250" height="70" rx="8" fill="#ffffff" stroke="#0b4f4a" stroke-width="1.5"/>
+    <text x="543" y="138" text-anchor="middle" font-size="13" font-weight="700" fill="#063733" font-family="'IBM Plex Mono', Consolas, monospace">book.kaiki.testing.gr</text>
+    <text x="543" y="156" text-anchor="middle" font-size="11" fill="#16211f">σελίδες διοργανωτή χωρίς site</text>
+    <text x="543" y="171" text-anchor="middle" font-size="11" fill="#5c6a67" font-family="'IBM Plex Mono', Consolas, monospace">/aegean-blue</text>
+
+    <!-- Kaiki -->
+    <rect x="110" y="242" width="460" height="124" rx="10" fill="#063733"/>
+    <text x="340" y="268" text-anchor="middle" font-size="15" font-weight="800" fill="#ffffff" font-family="'IBM Plex Mono', Consolas, monospace">kaiki.testing.gr</text>
+    <text x="340" y="292" text-anchor="middle" font-size="11" fill="#d7e7e4" font-family="'IBM Plex Mono', Consolas, monospace">/widget/kaiki-widget.js · /api/v1/…</text>
+    <text x="340" y="311" text-anchor="middle" font-size="11" fill="#d7e7e4" font-family="'IBM Plex Mono', Consolas, monospace">/c/… ολοκλήρωση · /b/… η κράτηση</text>
+    <text x="340" y="330" text-anchor="middle" font-size="11" fill="#d7e7e4" font-family="'IBM Plex Mono', Consolas, monospace">/pay/viva/success · /webhooks/viva/…</text>
+    <text x="340" y="352" text-anchor="middle" font-size="11" fill="#9fc3bd">πάνελ: /app (διοργανωτής) · /admin (πλατφόρμα)</text>
+
+    <!-- Viva -->
+    <rect x="418" y="426" width="250" height="62" rx="8" fill="#fdf4ef" stroke="#b5511f" stroke-width="1.5"/>
+    <text x="543" y="452" text-anchor="middle" font-size="14" font-weight="700" fill="#8a3d17">Viva (demo)</text>
+    <text x="543" y="470" text-anchor="middle" font-size="11" fill="#5c6a67">ο λογαριασμός του διοργανωτή</text>
+
+    <!-- server services -->
+    <rect x="12" y="426" width="270" height="62" rx="8" fill="#f4f7f6" stroke="#9fb3af" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="147" y="451" text-anchor="middle" font-size="12" font-weight="600" fill="#063733">στον ίδιο server</text>
+    <text x="147" y="469" text-anchor="middle" font-size="11" fill="#5c6a67">MySQL 8 · Redis · worker · cron · Chromium</text>
+
+    <!-- 1: visitor -> WP -->
+    <line x1="290" y1="58" x2="180" y2="110" stroke="#0b4f4a" stroke-width="1.6" marker-end="url(#arr)"/>
+    <circle cx="232" cy="82" r="10" fill="#0b4f4a"/><text x="232" y="86" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">1</text>
+
+    <!-- visitor -> hosted (alternative) -->
+    <line x1="390" y1="58" x2="500" y2="110" stroke="#0b4f4a" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+    <text x="462" y="80" font-size="11" fill="#5c6a67">ή</text>
+
+    <!-- 2: WP -> Kaiki -->
+    <line x1="150" y1="182" x2="230" y2="240" stroke="#0b4f4a" stroke-width="1.6" marker-end="url(#arr)"/>
+    <circle cx="186" cy="208" r="10" fill="#0b4f4a"/><text x="186" y="212" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">2</text>
+
+    <!-- hosted -> Kaiki -->
+    <line x1="530" y1="182" x2="450" y2="240" stroke="#0b4f4a" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+
+    <!-- 3: Kaiki -> Viva -->
+    <line x1="470" y1="366" x2="505" y2="424" stroke="#b5511f" stroke-width="1.6" marker-end="url(#arr-rust)"/>
+    <circle cx="478" cy="396" r="10" fill="#b5511f"/><text x="478" y="400" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">3</text>
+
+    <!-- 4: Viva -> Kaiki (webhook + return) -->
+    <line x1="600" y1="424" x2="545" y2="368" stroke="#b5511f" stroke-width="1.6" marker-end="url(#arr-rust)"/>
+    <circle cx="583" cy="396" r="10" fill="#b5511f"/><text x="583" y="400" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">4</text>
+
+    <!-- 5: Kaiki /b -> back to WP -->
+    <path d="M110,300 C40,300 30,240 60,186" fill="none" stroke="#0b4f4a" stroke-width="1.6" stroke-dasharray="2 3" marker-end="url(#arr)"/>
+    <circle cx="44" cy="256" r="10" fill="#0b4f4a"/><text x="44" y="260" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">5</text>
+
+    <!-- services link -->
+    <line x1="200" y1="366" x2="160" y2="424" stroke="#9fb3af" stroke-width="1.2" stroke-dasharray="3 3"/>
+</svg>
+</figure>
+
+<ol class="steps">
+    <li>
+        Ο επισκέπτης ανοίγει τη σελίδα μιας εκδρομής στο <code>aegeancr.gr</code>. Εναλλακτικά
+        (διακεκομμένα) ανοίγει τη σελίδα του διοργανωτή στο <code>book.kaiki.testing.gr/aegean-blue</code>
+        — ίδια εφαρμογή, άλλο hostname.
+    </li>
+    <li>
+        Η σελίδα φορτώνει το <code>/widget/kaiki-widget.js</code> από το <code>kaiki.testing.gr</code>, και το
+        widget μιλά με το <code>/api/v1</code> με το δημόσιο κλειδί (<code>pk_test_…</code>). Το Kaiki
+        δέχεται την κλήση μόνο αν το <code>https://aegeancr.gr</code> είναι στους επιτρεπόμενους
+        ιστότοπους του κλειδιού. Ο επισκέπτης πατά κράτηση και πηγαίνει στη σελίδα
+        ολοκλήρωσης <code>/c/…</code> του Kaiki — η πληρωμή δεν γίνεται πάνω στη σελίδα του WordPress.
+    </li>
+    <li>
+        Το Kaiki φτιάχνει παραγγελία στη Viva με τα διαπιστευτήρια <strong>του διοργανωτή</strong> και
+        στέλνει τον επισκέπτη στη σελίδα πληρωμής της Viva (demo). Τα χρήματα δεν περνούν από το Kaiki.
+    </li>
+    <li>
+        Η Viva καλεί το <code>/webhooks/viva/…</code> του Kaiki («πληρώθηκε») και στέλνει τον επισκέπτη
+        πίσω στο <code>/pay/viva/success</code>, που τον πηγαίνει στη σελίδα της κράτησης
+        <code>/b/…</code>. Την κράτηση την επιβεβαιώνει το webhook, όχι η επιστροφή· αν το webhook χαθεί,
+        το <code>payments:reconcile</code> ρωτά τη Viva κάθε πέντε λεπτά.
+    </li>
+    <li>
+        Στη σελίδα της κράτησης, το <strong>«← Επιστροφή στην ιστοσελίδα»</strong> γυρίζει τον επισκέπτη
+        στο <code>aegeancr.gr</code>. Στο παρασκήνιο, ο worker στέλνει το email επιβεβαίωσης και
+        φτιάχνει το PDF του εισιτηρίου.
+    </li>
+</ol>
+
+<div class="note">
+    <span class="label">Δύο hostnames, ένας φάκελος</span>
+    <p>
+        Το <code>kaiki.testing.gr</code> και το <code>book.kaiki.testing.gr</code> δείχνουν στον
+        <strong>ίδιο</strong> φάκελο <code>public/</code>. Η εφαρμογή ξεχωρίζει από το hostname ποιες
+        διαδρομές ισχύουν: στο <code>book.</code> ο πρώτος φάκελος της διεύθυνσης διαβάζεται ως
+        διοργανωτής, και μόνο εκεί (<code>KAIKI_HOSTED_HOST</code>).
+    </p>
+</div>

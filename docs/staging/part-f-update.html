@@ -1,0 +1,85 @@
+<section class="part">
+    <span class="num">Μέρος ΣΤ</span>
+    <h2>Ενημέρωση σε νέα έκδοση</h2>
+    <p>
+        Κάθε φορά που θέλετε στο staging ό,τι έχει ο κλάδος main. Η σειρά μετράει: πρώτα
+        κώδικας και εξαρτήσεις, μετά build, μετά βάση, και τελευταία επανεκκίνηση του worker.
+    </p>
+</section>
+
+<h2 class="continues">Οι εντολές</h2>
+
+<pre class="copy long">cd /home/kaikistg/kaiki
+
+php8.4 artisan down --retry=60                      <span class="c"># προαιρετικό — δείτε παρακάτω</span>
+
+git fetch origin
+git checkout main
+git pull --ff-only
+
+php8.4 $(command -v composer) install --no-dev --optimize-autoloader
+
+export PUPPETEER_SKIP_DOWNLOAD=1
+npm ci
+npm run build
+npm run widget:build
+php8.4 artisan widget:publish
+
+php8.4 artisan migrate --force
+
+php8.4 artisan config:cache
+php8.4 artisan route:cache
+php8.4 artisan view:cache
+
+php8.4 artisan queue:restart                        <span class="c"># ο Supervisor τους ξεκινά με τον νέο κώδικα</span>
+
+php8.4 artisan up</pre>
+
+<table class="fields">
+    <tr>
+        <th><code>git pull --ff-only</code></th>
+        <td>Αρνείται αν κάποιος άλλαξε αρχεία στον server. Στον server δεν αλλάζει τίποτα με το χέρι εκτός από το <code>.env</code>, που δεν είναι στο git.</td>
+    </tr>
+    <tr>
+        <th><code>widget:publish</code></th>
+        <td>
+            Κάθε φορά, ακόμη κι αν δεν αλλάξατε το widget: το <code>public/widget</code> δεν έρχεται με το git.
+            Η έκδοση διαβάζεται από το <code>packages/widget/package.json</code>· αν δεν ανέβηκε, το ίδιο
+            <code>vX.Y.Z</code> απλώς αντικαθίσταται. Το alias <code>/widget/kaiki-widget.js</code> κρατιέται
+            πέντε λεπτά σε cache στους browsers.
+        </td>
+    </tr>
+    <tr>
+        <th><code>config:cache</code> …</th>
+        <td>Γράφουν πάνω από τα παλιά, άρα δεν χρειάζεται <code>clear</code> πρώτα. Μην τρέξετε <code>optimize:clear</code> στα τυφλά: αδειάζει και το Redis cache, με τα κλειδώματα και τα <code>Idempotency-Key</code>.</td>
+    </tr>
+    <tr>
+        <th><code>queue:restart</code></th>
+        <td>Οι workers έχουν φορτώσει τον παλιό κώδικα στη μνήμη. Αυτό τους λέει να τελειώσουν την τρέχουσα εργασία και να βγουν· ο Supervisor τους ξανανοίγει.</td>
+    </tr>
+    <tr>
+        <th><code>down</code> / <code>up</code></th>
+        <td>
+            Για ενημέρωση με migration που αλλάζει πίνακες. Όσο είναι κάτω, και τα webhooks της Viva παίρνουν
+            503 — η Viva ξαναπροσπαθεί, και το <code>payments:reconcile</code> μαζεύει ό,τι έμεινε. Για μικρές
+            αλλαγές παραλείψτε το.
+        </td>
+    </tr>
+</table>
+
+<div class="note">
+    <span class="label">Αν αλλάξατε μόνο το .env</span>
+    <p>
+        <code>config:cache</code>, <code>route:cache</code> και <code>queue:restart</code>. Τίποτε άλλο.
+    </p>
+</div>
+
+<div class="note">
+    <span class="label">Αν μια migration αποτύχει</span>
+    <p>
+        Η εφαρμογή μένει στη μέση: νέος κώδικας, παλιό σχήμα. Διαβάστε το σφάλμα, διορθώστε στον
+        κώδικα, και ξανά από την αρχή. Στο staging, αν τα δεδομένα δεν σας νοιάζουν,
+        <code>php8.4 artisan migrate:fresh --seed --force</code> ξεκινά από το μηδέν — με όσα λέει το μέρος Γ
+        για το email και τους κωδικούς.
+    </p>
+</div>

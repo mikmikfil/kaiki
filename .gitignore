@@ -97,3 +97,7 @@ Thumbs.db
 # the exact name rather than the shape.
 .env.*
 !.env.example
+
+# Local build output
+docs/staging/staging.html
+packages/wordpress-plugin/kaiki-booking/.phpunit.cache/

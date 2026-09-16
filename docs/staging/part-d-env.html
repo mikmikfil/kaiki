@@ -1,0 +1,190 @@
+<section class="part">
+    <span class="num">Μέρος Δ</span>
+    <h2>Το αρχείο .env</h2>
+    <p>
+        Ολόκληρο, για staging, με σχόλια. Ξεκινά από το <code>.env.example</code> του αποθετηρίου
+        και αλλάζει μόνο ό,τι πρέπει. Μετά από κάθε αλλαγή: <code>config:cache</code> και
+        <code>route:cache</code>.
+    </p>
+</section>
+
+<h2 class="continues">Εφαρμογή</h2>
+
+<pre class="copy"><span class="file">.env — εφαρμογή και log</span>APP_NAME=Kaiki
+APP_ENV=staging
+APP_KEY=                           <span class="c"># το γράφει το key:generate — μην το αλλάξετε μετά</span>
+APP_DEBUG=false
+APP_URL=https://kaiki.testing.gr
+
+APP_TIMEZONE=UTC                   <span class="c"># πάντα UTC· η ώρα εμφάνισης είναι ανά διοργανωτή</span>
+APP_LOCALE=en
+APP_FALLBACK_LOCALE=en
+APP_FAKER_LOCALE=en_US
+
+APP_MAINTENANCE_DRIVER=file
+BCRYPT_ROUNDS=12
+
+LOG_CHANNEL=stack
+LOG_STACK=daily                    <span class="c"># ένα αρχείο τη μέρα στο storage/logs</span>
+LOG_DAILY_DAYS=14
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug</pre>
+
+<table class="fields">
+    <tr>
+        <th><code>APP_ENV=staging</code></th>
+        <td>
+            Ο κώδικας ελέγχει μόνο αν είναι <code>production</code> — και τότε αρνείται τα
+            <code>kaiki:invitation-link</code> και <code>kaiki:e2e-prepare</code>. Το <code>staging</code> συμπεριφέρεται
+            σαν παραγωγή σε όλα τα άλλα, και κρατά αυτές τις δύο εντολές διαθέσιμες. Δεν υπάρχει
+            ξεχωριστή «λειτουργία staging» στην εφαρμογή.
+        </td>
+    </tr>
+    <tr>
+        <th><code>APP_DEBUG=false</code></th>
+        <td>Ακόμη και στο staging: με <code>true</code>, μια σελίδα σφάλματος δείχνει μεταβλητές, κωδικούς βάσης και διαδρομές σε όποιον τη δει.</td>
+    </tr>
+    <tr>
+        <th><code>APP_URL</code></th>
+        <td>Με <code>https://</code> και χωρίς <code>/</code> στο τέλος. Από εδώ βγαίνουν οι σύνδεσμοι στα email (που φτιάχνει ο worker, όχι ένα αίτημα) και οι διευθύνσεις των φωτογραφιών (<code>/storage/…</code>).</td>
+    </tr>
+</table>
+
+<h2>Βάση, session, ουρά, cache</h2>
+
+<pre class="copy"><span class="file">.env — δεδομένα</span>DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=kaiki_staging
+DB_USERNAME=kaiki_staging
+DB_PASSWORD=ΔΥΝΑΤΟΣ-ΚΩΔΙΚΟΣ
+
+SESSION_DRIVER=database
+SESSION_LIFETIME=120
+SESSION_ENCRYPT=false
+SESSION_PATH=/
+SESSION_DOMAIN=null                <span class="c"># χωριστά cookies για kaiki. και book.</span>
+SESSION_SECURE_COOKIE=true         <span class="c"># cookies μόνο πάνω από HTTPS</span>
+
+BROADCAST_CONNECTION=log
+FILESYSTEM_DISK=local
+
+QUEUE_CONNECTION=redis
+REDIS_QUEUE_RETRY_AFTER=1000       <span class="c"># δείτε παρακάτω — όχι το 90 της προεπιλογής</span>
+CACHE_STORE=redis
+CACHE_PREFIX=kaiki_staging_cache_
+
+REDIS_CLIENT=phpredis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null                <span class="c"># ή ο κωδικός, αν η Cretaforce έβαλε</span>
+REDIS_PORT=6379
+REDIS_DB=4                         <span class="c"># ουρά και κλειδώματα — αριθμός που δεν έχει άλλο site</span>
+REDIS_CACHE_DB=5                   <span class="c"># cache</span>
+REDIS_PREFIX=kaiki_staging_</pre>
+
+<table class="fields">
+    <tr>
+        <th><code>DB_CONNECTION=mysql</code></th>
+        <td>Το <code>.env.example</code> έχει SQLite, που είναι μόνο για τον υπολογιστή σας (ADR-0015). Στον server πάντα MySQL 8.</td>
+    </tr>
+    <tr>
+        <th><code>QUEUE_CONNECTION</code>, <code>CACHE_STORE</code></th>
+        <td>
+            Redis, όπως στο CI και στην παραγωγή. Το cache κρατά κλειδώματα θέσεων, κλειδιά
+            <code>Idempotency-Key</code> του API και τα κλειδώματα <code>onOneServer</code> του scheduler — γι' αυτό
+            δεν είναι «απλώς cache» και δεν αδειάζεται στα τυφλά.
+        </td>
+    </tr>
+    <tr>
+        <th><code>REDIS_QUEUE_RETRY_AFTER=1000</code></th>
+        <td>
+            Η προεπιλογή είναι 90 δευτερόλεπτα, αλλά το <code>CommitImportJob</code> (εισαγωγή από WordPress)
+            επιτρέπεται να τρέξει ως 900. Με 90, ο Redis θα έδινε την ίδια εισαγωγή σε δεύτερο worker ενώ
+            τρέχει η πρώτη. Πρέπει να είναι πάνω από τον μεγαλύτερο <code>$timeout</code> εργασίας.
+        </td>
+    </tr>
+    <tr>
+        <th><code>REDIS_DB</code>, <code>REDIS_PREFIX</code></th>
+        <td>Για να μη συγκρούεται με άλλα sites του server που χρησιμοποιούν Redis. Ρωτήστε την Cretaforce ποιοι αριθμοί είναι ελεύθεροι.</td>
+    </tr>
+</table>
+
+<h2>Email</h2>
+
+<pre class="copy"><span class="file">.env — email</span>MAIL_MAILER=smtp                   <span class="c"># log μόνο την ώρα του demo seed</span>
+MAIL_SCHEME=null                   <span class="c"># 587 με STARTTLS· για 465 γράψτε smtps</span>
+MAIL_HOST=mail.ΤΟ-MAIL-SERVER
+MAIL_PORT=587
+MAIL_USERNAME=noreply@kaiki.testing.gr
+MAIL_PASSWORD=ΚΩΔΙΚΟΣ-ΓΡΑΜΜΑΤΟΚΙΒΩΤΙΟΥ
+MAIL_FROM_ADDRESS="noreply@kaiki.testing.gr"
+MAIL_FROM_NAME="${APP_NAME}"</pre>
+
+<p>
+    <strong>Μόνο SMTP.</strong> Το <code>.env.example</code> αναφέρει Postmark, αλλά το πακέτο
+    <code>symfony/postmark-mailer</code> δεν είναι εγκατεστημένο — το <code>MAIL_MAILER=postmark</code> θα
+    αποτύχει. Όλα τα email προς πελάτες φεύγουν από την ουρά, άρα χωρίς worker δεν φεύγει τίποτα.
+</p>
+
+<h2>Kaiki</h2>
+
+<pre class="copy"><span class="file">.env — Kaiki</span>KAIKI_HOSTED_HOST=book.kaiki.testing.gr
+KAIKI_CHROME_PATH=/usr/bin/chromium          <span class="c"># η διαδρομή που έδωσε η Cretaforce</span>
+KAIKI_HOSTED_VIVA_ORIGIN=https://demo.vivapayments.com
+KAIKI_UPGRADE_URL=
+KAIKI_WP_TEST_URL=
+KAIKI_AUDIT_RETENTION_DAYS=90                <span class="c"># προαιρετικό: το staging κρατά λιγότερο από 7 χρόνια</span>
+
+TRUSTED_PROXIES=                             <span class="c"># κενό, ή 127.0.0.1 — δείτε παρακάτω</span>
+
+<span class="c"># Δεν τα διαβάζει κανένα σημείο του κώδικα. Τα κλειδιά Viva μπαίνουν</span>
+<span class="c"># ανά διοργανωτή από το πάνελ (μέρος Η), κρυπτογραφημένα στη βάση.</span>
+VIVA_SANDBOX_CLIENT_ID=
+VIVA_SANDBOX_CLIENT_SECRET=
+VIVA_SANDBOX_SOURCE_CODE=
+STRIPE_SANDBOX_KEY=
+STRIPE_SANDBOX_SECRET=
+STRIPE_SANDBOX_WEBHOOK_SECRET=</pre>
+
+<table class="fields">
+    <tr>
+        <th><code>KAIKI_HOSTED_HOST</code></th>
+        <td>
+            Το hostname των σελίδων διοργανωτή, χωρίς <code>https://</code>. Μόνο σε αυτό το hostname ο πρώτος
+            φάκελος της διεύθυνσης διαβάζεται ως διοργανωτής. Αν δεν ταιριάζει με το DNS, κάθε
+            <code>book.kaiki.testing.gr/…</code> δίνει 404. Από αυτό βγαίνει και το
+            <code>KAIKI_CUSTOM_DOMAIN_TARGET</code>, που στο staging δεν χρησιμοποιείται.
+        </td>
+    </tr>
+    <tr>
+        <th><code>KAIKI_CHROME_PATH</code></th>
+        <td>Το εκτελέσιμο του Chromium για τα PDF (εισιτήρια, παραστατικά, συμφωνητικά, λίστες επιβατών). Κενό σημαίνει «ό,τι βρει το Puppeteer» — που με <code>PUPPETEER_SKIP_DOWNLOAD=1</code> είναι τίποτα.</td>
+    </tr>
+    <tr>
+        <th><code>KAIKI_HOSTED_VIVA_ORIGIN</code></th>
+        <td>
+            Μπαίνει στο <code>form-action</code> του Content-Security-Policy των σελίδων <code>book.</code>, για
+            διοργανωτές με συνδεδεμένη Viva. Η προεπιλογή είναι η <strong>live</strong> διεύθυνση της Viva· στο
+            staging όλες οι πληρωμές πάνε στο demo.
+        </td>
+    </tr>
+    <tr>
+        <th><code>TRUSTED_PROXIES</code></th>
+        <td>
+            <strong>Κενό</strong> αν ο web server του πίνακα μιλά απευθείας με το PHP-FPM. <strong><code>127.0.0.1</code></strong>
+            (ή η IP που σας είπε η Cretaforce) αν υπάρχει reverse proxy μπροστά — π.χ. nginx μπροστά από
+            Apache. Λάθος εδώ σημαίνει ότι η εφαρμογή νομίζει πως το αίτημα ήρθε με <code>http://</code>: φόρμες
+            που στέλνουν σε <code>http://</code> και μπλοκάρονται, λείπει το HSTS, λάθος IP στα όρια
+            αιτημάτων. Ποτέ <code>*</code> σε server με δημόσια πρόσβαση.
+        </td>
+    </tr>
+</table>
+
+<div class="unsure">
+    <span class="label">Δεν επιβεβαιώθηκε από τον κώδικα</span>
+    <p>
+        Αν το <code>KAIKI_HOSTED_VIVA_ORIGIN</code> χρειάζεται πράγματι: η πληρωμή από σελίδα <code>book.</code>
+        περνά από το widget και ανακατεύθυνση, όχι από φόρμα προς τη Viva, οπότε μάλλον δεν αγγίζει το
+        <code>form-action</code>. Το βάζουμε ως προφύλαξη — στο staging δεν βλάπτει.
+    </p>
+</div>

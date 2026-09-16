@@ -56,6 +56,13 @@
     use App\Domain\Hosted\Support\HostedAsset;
 
     $cta = $block->setting('cta');
+    $badges = $block->entries();
+    $locale = app()->getLocale();
+    // The operator's own buttons (2026-09-16), resolved to URLs by
+    // `BuildHomePage`; a hero saved before then has none and keeps its one
+    // `settings.cta` button with the label from the lang file.
+    $links = $links ?? [];
+
     $poster = HostedAsset::url($block->image_path);
     $video = HostedAsset::url($block->video_path ?? null);
     $embed = $block->videoEmbed();
@@ -105,26 +112,57 @@
         @endif
     @endif
 
-    <div class="hero-copy">
-        @if ($block->heading)
-            <h1>{{ $block->heading }}</h1>
-        @endif
+    {{-- Two columns inside the photograph since 16 September (Mike's pick of
+         three): the operator's words on the left, the search on the right as a
+         white card with its own title. It used to be a sibling hanging off the
+         masthead's lower edge; inside, it needs no negative margin tuned to the
+         height of the words above it, and on a phone it simply follows them. --}}
+    <div class="hero-inner">
+        {{-- Left-aligned over a left-to-right shade, the
+             masthead of the operator's WordPress site: a short line, the heading,
+             the standfirst, up to two buttons and a row of small trust badges —
+             every word of it the operator's, from the editor. --}}
+        <div class="hero-copy">
+            @if ($block->eyebrow)
+                <p class="eyebrow-line">{{ $block->eyebrow }}</p>
+            @endif
 
-        @if ($block->body)
-            <div class="standfirst">{{ $block->prose() }}</div>
-        @endif
+            @if ($block->heading)
+                <h1>{{ $block->heading }}</h1>
+            @endif
 
-        @if ($cta !== 'none')
-            <p class="cta">
-                <a class="button" href="#{{ $cta }}">{{ __('hosted.blocks.hero.cta.' . $cta) }}</a>
-            </p>
-        @endif
+            @if ($block->body)
+                <div class="standfirst">{{ $block->prose() }}</div>
+            @endif
+
+            @if ($links !== [])
+                <p class="cta">
+                    @foreach ($links as $link)
+                        <a @class(['button', 'button-accent' => $loop->first, 'button-glass' => ! $loop->first]) href="{{ $link['url'] }}">{{ $link['label'] }}</a>
+                    @endforeach
+                </p>
+            @elseif ($cta !== 'none')
+                <p class="cta">
+                    <a class="button button-accent" href="#{{ $cta }}">{{ __('hosted.blocks.hero.cta.' . $cta) }}</a>
+                </p>
+            @endif
+
+            @if ($badges !== [])
+                <ul class="hero-badges">
+                    @foreach ($badges as $badge)
+                        <li>@include('hosted.partials.icon', ['name' => $badge['icon']]){{ \App\Domain\Hosted\Support\BlockItems::text($badge, 'text', $locale) }}</li>
+                    @endforeach
+                </ul>
+            @endif
+
+        </div>
 
         {{-- The same form the search page carries, with the same fields the
              operator enabled — not a cut-down version of it, because a visitor
              who filters by port on one page and cannot on the other has learnt
              something untrue about the site. --}}
         <div class="hero-search">
+            <h2 class="hero-search-title">{{ __('hosted.blocks.hero.search_title') }}</h2>
             @include('hosted.partials.search-form', [
                 'action' => route('hosted.search', ['operator' => $tenant->slug]),
                 'idPrefix' => 'hero',

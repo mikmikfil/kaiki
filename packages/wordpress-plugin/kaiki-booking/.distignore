@@ -1,0 +1,47 @@
+# What stays out of the plugin zip.
+#
+# Read by `packages/wordpress-plugin/build-zip.mjs` (`npm run plugin:zip`), and
+# written in the gitignore-like syntax WP-CLI's `wp dist-archive` also reads:
+#
+#   /name   only at the plugin root
+#   name    any file or folder with that name, at any depth
+#   *       wildcard within one name
+#
+# `vendor/` is listed because the checkout's copy carries the dev tools
+# (phpunit, phpcs). The build does not ship nothing in its place: it runs
+# `composer install --no-dev` in the staging copy, because `kaiki-booking.php`
+# requires `vendor/autoload.php` for the plugin's own PSR-4 classes.
+#
+# `languages/` ships whole. WordPress reads the `.mo` (PHP strings) and the
+# `.json` (block editor strings); the `.po` and `.pot` are a few KB and let an
+# operator's translator open the Greek in Loco Translate or Poedit on the site
+# itself, which a `.mo` alone does not allow.
+
+# Dotfiles and dot-folders: .distignore, .gitignore, .phpunit.cache, .DS_Store
+.*
+
+# Dev dependencies; the build installs the production autoloader instead.
+/vendor
+
+# Tests and their configuration
+/tests
+/phpunit.xml
+/phpunit.xml.dist
+/phpcs.xml
+/phpcs.xml.dist
+
+# Composer's manifest; nothing on a WordPress site runs Composer.
+/composer.json
+/composer.lock
+
+# Node, should the plugin ever grow a build of its own
+node_modules
+/package.json
+/package-lock.json
+
+# Editor and OS debris
+Thumbs.db
+desktop.ini
+*.log
+*.bak
+*~

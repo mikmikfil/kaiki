@@ -144,6 +144,7 @@ function mount(config: WidgetConfig, script: HTMLScriptElement, doc: Document): 
             link={config.link}
             date={config.date}
             showVessel={config.showVessel}
+            showDetails={config.showDetails}
           />,
           shadow.slot,
         );

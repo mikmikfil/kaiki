@@ -520,7 +520,10 @@ const BASE_STYLES = `
    thing being decided, and a closed dropdown hides both the choice and the fact
    that a choice exists. The input stays a real radio for the keyboard and the
    accessibility tree; the label is what gets drawn. */
-.kaiki-times { border: 0; margin: .9rem 0 0; padding: 0; display: grid; gap: .4rem; }
+.kaiki-times {
+  border: 0; margin: 1rem 0 0; padding: 0;
+  display: grid; gap: .5rem; grid-template-columns: repeat(auto-fill, minmax(6.25rem, 1fr));
+}
 
 .kaiki-times legend {
   padding: 0;
@@ -530,10 +533,14 @@ const BASE_STYLES = `
 }
 
 .kaiki-time {
+  position: relative;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: .55rem;
-  padding: .6rem .75rem;
+  justify-content: center;
+  gap: .1rem;
+  padding: .55rem .6rem;
+  text-align: center;
   min-height: 44px;
   border: 1px solid color-mix(in srgb, var(--kaiki-text) 16%, transparent);
   border-radius: var(--kaiki-radius, 10px);
@@ -550,8 +557,15 @@ const BASE_STYLES = `
   outline-offset: 2px;
 }
 
-.kaiki-time-at { font-weight: 600; font-variant-numeric: tabular-nums; }
-.kaiki-time-left { margin-inline-start: auto; font-size: .82rem; color: var(--kaiki-secondary-text); }
+/* The radio stays for the keyboard and the accessibility tree; the chip is
+   what is drawn. */
+.kaiki-time input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.kaiki-time-at { font-size: 1.02rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kaiki-time:has(input:checked) .kaiki-time-at { color: var(--kaiki-primary); }
+.kaiki-time-left { font-size: .76rem; color: var(--kaiki-secondary-text); }
+/* One sailing: nothing to choose, so it reads as a fact, not a button. */
+.kaiki-times-one .kaiki-time { cursor: default; }
+.kaiki-times-one .kaiki-time input { cursor: default; }
 
 /* ---- the bottom sheet (ADR-0033) -------------------------------------
 

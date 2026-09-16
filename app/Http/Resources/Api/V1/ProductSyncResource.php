@@ -28,8 +28,8 @@ final class ProductSyncResource extends JsonResource
      * @var list<string>
      */
     private const TRANSLATABLE = [
-        'title', 'summary', 'description',
-        'includes', 'excludes', 'what_to_bring',
+        'title', 'summary', 'badge', 'description',
+        'highlights', 'includes', 'excludes', 'what_to_bring',
         'meta_title', 'meta_description',
     ];
 

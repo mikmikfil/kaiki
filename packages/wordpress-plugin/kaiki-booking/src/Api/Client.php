@@ -75,6 +75,28 @@ final class Client {
 	}
 
 	/**
+	 * This site's origin — `https://aegeancr.gr` — sent as `Origin` on every
+	 * publishable-key call from the server.
+	 *
+	 * A publishable key with a list of allowed sites refuses a request whose
+	 * `Origin` is missing, and a server-side `wp_remote_get` sends none: with the
+	 * operator's own site on the list, the plugin's own catalogue reads, search
+	 * and connection check were all refused (found on a real site, 2026-09-16).
+	 * Saying which site is asking is what a browser on that site would say.
+	 * Never on the secret key, which Kaiki refuses when an `Origin` is present
+	 * ({@see \Kaiki\Booking\Seo\SyncClient}).
+	 */
+	public static function site_origin(): string {
+		$parts = wp_parse_url( home_url( '/' ) );
+
+		if ( ! is_array( $parts ) || empty( $parts['scheme'] ) || empty( $parts['host'] ) ) {
+			return '';
+		}
+
+		return strtolower( $parts['scheme'] . '://' . $parts['host'] ) . ( isset( $parts['port'] ) ? ':' . (int) $parts['port'] : '' );
+	}
+
+	/**
 	 * One read, cached or not, with every failure turned into a value.
 	 *
 	 * @param string               $path      An API path, beginning with a slash.
@@ -106,6 +128,7 @@ final class Client {
 					'Authorization'   => 'Bearer ' . Settings::publishable_key(),
 					'Accept'          => 'application/json',
 					'Accept-Language' => Locale::current(),
+					'Origin'          => self::site_origin(),
 				),
 			)
 		);

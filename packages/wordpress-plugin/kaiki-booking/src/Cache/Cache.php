@@ -130,22 +130,23 @@ final class Cache {
 	public static function flush(): int {
 		global $wpdb;
 
-		$like          = $wpdb->esc_like( '_transient_' . self::PREFIX ) . '%';
-		$timeout_like  = $wpdb->esc_like( '_transient_timeout_' . self::PREFIX ) . '%';
-		$spare         = $wpdb->esc_like( '_transient_' . self::LAST_GOOD_PREFIX ) . '%';
-		$spare_timeout = $wpdb->esc_like( '_transient_timeout_' . self::LAST_GOOD_PREFIX ) . '%';
+		// **Exactly** `kaiki_` and a 32-character key from {@see self::key()} —
+		// in LIKE, `_` is one character. A plain `kaiki_%` also took the
+		// plugin's other transients with it: the last-good copies, the sync's
+		// lock (so a webhook could start a second sync beside a running one),
+		// and the webhook's own record of deliveries already handled (so a
+		// retry was processed twice).
+		$key_shape    = str_repeat( '_', 32 );
+		$like         = $wpdb->esc_like( '_transient_' . self::PREFIX ) . $key_shape;
+		$timeout_like = $wpdb->esc_like( '_transient_timeout_' . self::PREFIX ) . $key_shape;
 
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- There is no API that deletes transients by prefix, and an object cache has no enumeration either.
 		$deleted = $wpdb->query(
 			$wpdb->prepare(
 				"DELETE FROM {$wpdb->options}
-				 WHERE ( option_name LIKE %s OR option_name LIKE %s )
-				   AND option_name NOT LIKE %s
-				   AND option_name NOT LIKE %s",
+				 WHERE option_name LIKE %s OR option_name LIKE %s",
 				$like,
-				$timeout_like,
-				$spare,
-				$spare_timeout
+				$timeout_like
 			)
 		);
 

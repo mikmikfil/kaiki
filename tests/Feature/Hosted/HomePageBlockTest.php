@@ -77,6 +77,12 @@ it('renders each of the block types', function (): void {
                 'images' => $type === HomeBlockType::Gallery
                     ? [['path' => 'home/one.jpg', 'alt' => ['el' => 'Το καΐκι', 'en' => 'The kaiki']]]
                     : null,
+                // The same reasoning for the figures card of 16 September: four
+                // big numbers with none of them is not a card worth drawing, so
+                // it gets one figure.
+                'items' => $type === HomeBlockType::Stats
+                    ? [['value' => ['el' => '30+', 'en' => '30+'], 'label' => ['el' => 'χρόνια', 'en' => 'years']]]
+                    : null,
             ]);
         }
     });

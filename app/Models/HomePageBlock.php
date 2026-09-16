@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Domain\Hosted\Support\BlockItems;
 use App\Domain\Hosted\Support\BlockSettings;
 use App\Domain\Hosted\Support\BlockText;
 use App\Domain\Hosted\Support\VideoEmbed;
@@ -46,6 +47,10 @@ use Illuminate\Support\HtmlString;
  * @property string|null $video_path
  * @property string|null $video_url a YouTube or Vimeo link, as the operator typed it
  * @property array<int, array<string, mixed>>|null $images
+ * @property array<int, array<string, mixed>>|null $items the list-shaped blocks' entries, shaped by BlockItems
+ * @property array<int, array<string, mixed>>|null $buttons the hero's and the call-to-action band's buttons
+ * @property string|null $eyebrow translatable, the short line above the heading
+ * @property string|null $image_alt translatable, the description of `image_path`
  * @property array<string, mixed>|null $settings
  */
 class HomePageBlock extends Model
@@ -66,7 +71,7 @@ class HomePageBlock extends Model
      *
      * @var list<string>
      */
-    public array $translatable = ['heading', 'body'];
+    public array $translatable = ['heading', 'eyebrow', 'body', 'image_alt'];
 
     /**
      * Empty on purpose.
@@ -90,6 +95,8 @@ class HomePageBlock extends Model
             'sort_order' => 'integer',
             'is_visible' => 'boolean',
             'images' => 'array',
+            'items' => 'array',
+            'buttons' => 'array',
             'settings' => 'array',
         ];
     }
@@ -147,6 +154,30 @@ class HomePageBlock extends Model
         return $this->video_path === null || $this->video_path === ''
             ? VideoEmbed::parse($this->video_url)
             : null;
+    }
+
+    /**
+     * This block's entries, cleaned — always read through here rather than off
+     * `$this->items`, for the reason {@see settings()} gives.
+     *
+     * Not called `items()`: a method named like an attribute is taken by
+     * Eloquent for a relationship the moment the attribute is unset, and throws.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function entries(): array
+    {
+        return BlockItems::normalise($this->type, $this->items) ?? [];
+    }
+
+    /**
+     * This block's buttons, cleaned. Resolved to URLs by `BuildHomePage`.
+     *
+     * @return list<array{label: array<string, string>, target: string, product_id: int|null, path: string|null}>
+     */
+    public function buttonEntries(): array
+    {
+        return BlockItems::buttons($this->type, $this->buttons) ?? [];
     }
 
     /** The operator's prose, escaped, with paragraphs. */

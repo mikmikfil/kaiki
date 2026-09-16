@@ -48,6 +48,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property BookingMode $mode
  * @property string $title translatable
  * @property string|null $summary translatable
+ * @property string|null $badge translatable, the short label on a trip card's photograph («Δημοφιλές»)
  * @property string|null $description translatable
  * @property int $duration_minutes
  * @property string|null $default_start_time
@@ -56,6 +57,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $latest_start_time
  * @property int $check_in_offset_minutes
  * @property int|null $meeting_point_id
+ * @property array<string, list<string>>|null $highlights translatable array, «Τι θα ζήσετε»; optional, the shape of `includes`
  * @property array<string, list<string>>|null $includes
  * @property array<string, list<string>>|null $excludes
  * @property array<string, list<string>>|null $what_to_bring
@@ -88,16 +90,16 @@ class Product extends Model implements TranslatableSearchable
     protected $guarded = [];
 
     /**
-     * `includes`, `excludes`, `what_to_bring` and `itinerary_stops` are
-     * translatable **arrays** (§3.5, §3.6) rather than strings, which the
-     * package handles the same way — the value behind a locale key is simply
-     * not a scalar.
+     * `highlights`, `includes`, `excludes`, `what_to_bring` and
+     * `itinerary_stops` are translatable **arrays** (§3.5, §3.6) rather than
+     * strings, which the package handles the same way — the value behind a
+     * locale key is simply not a scalar.
      *
      * @var list<string>
      */
     public array $translatable = [
-        'title', 'summary', 'description',
-        'includes', 'excludes', 'what_to_bring', 'itinerary_stops',
+        'title', 'summary', 'badge', 'description',
+        'highlights', 'includes', 'excludes', 'what_to_bring', 'itinerary_stops',
         'meta_title', 'meta_description',
     ];
 

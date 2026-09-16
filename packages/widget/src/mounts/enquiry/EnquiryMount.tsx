@@ -2,6 +2,8 @@ import { useMemo, useRef, useState } from 'preact/hooks';
 
 import type { ApiError } from '../../api-client';
 import { registerMount, type MountProps } from '../../mounts';
+import type { ProductSummary } from '../booking/BookingMount';
+import { FourLines } from '../booking/FourLines';
 import { Peek, useSettled, useSheetMode } from '../booking/Sheet';
 
 /**
@@ -45,7 +47,30 @@ interface EnquiryFields {
   company_website: string;
 }
 
-export function EnquiryMount({ client, productUuid, t, analytics, locale }: MountProps) {
+export interface EnquiryMountProps extends MountProps {
+  /**
+   * The trip, when a **booking** embed found it was sold by quote.
+   *
+   * `data-mount="booking"` is what the WordPress shortcode, the Elementor
+   * widget and any hand-written embed put on a trip page, and none of them can
+   * know the trip's mode without asking the API. The booking mount asks, and on
+   * `mode: quote` hands the product here instead of drawing a calendar that
+   * could only end in `product_is_quote_only` (BKG-24). With it, the form
+   * says «Κατόπιν ζήτησης» and carries the four lines, because on somebody
+   * else's page nothing else says which trip is being asked about.
+   *
+   * Absent on the hosted trip page, which mounts `enquiry` directly and
+   * draws the four lines itself — so they are never on screen twice.
+   */
+  readonly product?: ProductSummary | null;
+}
+
+/** `data-date`, when it is a day and not something else. */
+function initialPreferredDate(date: string | null | undefined): string {
+  return typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : '';
+}
+
+export function EnquiryMount({ client, productUuid, t, analytics, locale, date = null, showVessel = true, showDetails = true, product = null }: EnquiryMountProps) {
   // Captured when the component first renders, which is what the field means.
   const renderedAt = useMemo(() => new Date().toISOString(), []);
 
@@ -72,7 +97,8 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale }: Moun
     name: '',
     email: '',
     phone: '',
-    preferred_date: '',
+    // The day pressed on the operator's calendar, if the embed carried one.
+    preferred_date: initialPreferredDate(date),
     pax: '',
     message: '',
     company_website: '',
@@ -112,7 +138,7 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale }: Moun
 
       setError(code === 'network_error' || message === '' ? t('widget.error.network') : message);
       setState('editing');
-      analytics.emit('kaiki:error', { error_code: code ?? 'enquiry_failed' });
+      analytics.emit('kaiki:error', { product_uuid: productUuid ?? undefined, error_code: code ?? 'enquiry_failed' });
     }
   };
 
@@ -152,6 +178,13 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale }: Moun
         ) : null}
 
         <div class="kaiki-sheet-scroll">
+      {product === null ? null : (
+        <>
+          <p class="kaiki-on-request">{t('enquiry.on_request')}</p>
+          {showDetails ? <FourLines product={product} t={t} showVessel={showVessel} /> : null}
+        </>
+      )}
+
       <h3 class="kaiki-heading">{t('enquiry.heading')}</h3>
 
       {error === null ? null : (

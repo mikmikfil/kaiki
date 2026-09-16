@@ -88,6 +88,20 @@ final class ApiResult {
 	/**
 	 * What to show a visitor: nothing about us, and nothing alarming.
 	 */
+	/**
+	 * The response's `meta`, or an empty array.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function payload_meta(): array {
+		$meta = $this->data['meta'] ?? null;
+
+		return is_array( $meta ) ? $meta : array();
+	}
+
+	/**
+	 * A sentence for a visitor, when the plugin could not reach Kaiki.
+	 */
 	public function visitor_message(): string {
 		return __( 'Bookings are briefly unavailable. Please try again in a moment, or contact us directly.', 'kaiki-booking' );
 	}

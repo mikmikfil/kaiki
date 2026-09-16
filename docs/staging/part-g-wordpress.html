@@ -1,0 +1,133 @@
+<section class="part">
+    <span class="num">Μέρος Ζ</span>
+    <h2>Σύνδεση του WordPress</h2>
+    <p>
+        Το <code>aegeancr.gr</code> παίρνει το πρόσθετο Kaiki Booking και ένα δημόσιο κλειδί, και
+        δείχνει στο <code>kaiki.testing.gr</code> αντί για το Kaiki της παραγωγής. Ο αναλυτικός
+        οδηγός του προσθέτου είναι ο «Οδηγός WordPress»· εδώ μόνο ό,τι αλλάζει για το staging.
+    </p>
+</section>
+
+<h2 class="continues">Το αρχείο του προσθέτου</h2>
+
+<p>
+    Το πρόσθετο δεν έχει εκδοθεί ακόμη, οπότε το zip το φτιάχνετε από το αποθετήριο, με μία εντολή.
+    Θέλει <code>node</code>, <code>php</code> (8.1+) και <code>composer</code> στο PATH.
+</p>
+
+<pre class="copy"><span class="file">Από τον φάκελο του αποθετηρίου (Linux, Git Bash ή PowerShell)</span>npm run plugin:zip</pre>
+
+<p>
+    Γράφει το <code>packages/wordpress-plugin/dist/kaiki-booking-0.1.0.zip</code> (ο αριθμός είναι η
+    έκδοση από την κεφαλίδα του <code>kaiki-booking.php</code>). Πριν το zip:
+</p>
+
+<ul>
+    <li>ελέγχει ότι η έκδοση είναι ίδια στην κεφαλίδα, στη σταθερά <code>VERSION</code> και στο
+        <code>Stable tag</code> του <code>readme.txt</code> — αν διαφέρουν, σταματά και λέει πού·</li>
+    <li>ξαναφτιάχνει τα <code>.mo</code> και <code>.json</code> των ελληνικών από το <code>.po</code>
+        (<code>tools/build-translations.php</code>)·</li>
+    <li>αντιγράφει το πρόσθετο χωρίς ό,τι γράφει το <code>kaiki-booking/.distignore</code> (δοκιμές,
+        <code>phpunit.xml</code>, <code>phpcs.xml</code>, <code>composer.*</code>, αρχεία που αρχίζουν από τελεία)·</li>
+    <li>τρέχει <code>composer install --no-dev --optimize-autoloader</code> στο αντίγραφο. Το πρόσθετο δεν
+        έχει εξαρτήσεις στην εκτέλεση — θέλει μόνο το autoloader του Composer, που δεν είναι στο git.</li>
+</ul>
+
+<p>
+    Μέσα στο zip υπάρχει ένας φάκελος <code>kaiki-booking/</code> με <code>kaiki-booking.php</code>,
+    <code>vendor/autoload.php</code>, <code>src/</code>, <code>assets/</code>, <code>templates/</code>,
+    <code>languages/</code>, <code>readme.txt</code> και <code>uninstall.php</code>. Χωρίς
+    <code>vendor/autoload.php</code> το πρόσθετο δεν σκάει — δείχνει ειδοποίηση στο διαχειριστικό ότι
+    λείπει. Το πρόσθετο θέλει WordPress 6.4+ και PHP 8.1+ στη φιλοξενία του <code>aegeancr.gr</code>.
+</p>
+
+<h2>Τα κλειδιά στο Kaiki</h2>
+
+<p>
+    Στο <code>https://kaiki.testing.gr/app</code>, ως ιδιοκτήτης του διοργανωτή:
+    <strong>Ρυθμίσεις → Κλειδιά API → Νέο κλειδί API</strong>.
+</p>
+
+<table class="fields">
+    <tr><th>Όνομα</th><td><code>WordPress aegeancr.gr (staging)</code></td></tr>
+    <tr><th>Τύπος</th><td><strong>Δημόσιο</strong> — βγαίνει <code>pk_test_…</code></td></tr>
+    <tr>
+        <th>Περιβάλλον</th>
+        <td>
+            <strong>Δοκιμαστικό.</strong> Αυτό αποφασίζει τη διαδρομή της πληρωμής: μια κράτηση με κλειδί
+            δοκιμαστικό είναι δοκιμαστική κράτηση και πάει στα <em>δοκιμαστικά</em> διαπιστευτήρια Viva
+            (demo). Αν δεν υπάρχουν, στη ψεύτικη πληρωμή του Kaiki (<code>/sandbox/checkout</code>). Ένα κλειδί
+            «Παραγωγή» θα έψαχνε ζωντανά διαπιστευτήρια Viva — και χωρίς αυτά η κράτηση δεν πληρώνεται.
+        </td>
+    </tr>
+    <tr>
+        <th>Επιτρεπόμενοι ιστότοποι</th>
+        <td>
+            <code>https://aegeancr.gr</code> και, αν ανοίγει και με www, <code>https://www.aegeancr.gr</code>.
+            Ακριβώς έτσι: με <code>https://</code>, χωρίς <code>/</code> στο τέλος. Από εδώ βγαίνει και το
+            «← Επιστροφή στην ιστοσελίδα».
+        </td>
+    </tr>
+</table>
+
+<p>
+    Για τις <strong>σελίδες εκδρομών</strong> του WordPress (προαιρετικό) χρειάζεται και δεύτερο κλειδί:
+    τύπος <strong>Μυστικό</strong> (<code>sk_…</code>), περιβάλλον δοκιμαστικό. Εμφανίζεται μία φορά· μπαίνει
+    μόνο στο πεδίο «Μυστικό κλειδί» της καρτέλας Σελίδες εκδρομών, και ποτέ σε σελίδα.
+</p>
+
+<h2>Οι ρυθμίσεις στο WordPress</h2>
+
+<ol class="steps">
+    <li><strong>Πρόσθετα → Προσθήκη νέου → Αποστολή προσθέτου</strong>, το <code>kaiki-booking-0.1.0.zip</code>, Ενεργοποίηση.</li>
+    <li>
+        <strong>Ρυθμίσεις → Kaiki Booking → Σύνδεση.</strong> Στο <strong>«Διεύθυνση του Kaiki»</strong> γράψτε
+        <code>https://kaiki.testing.gr</code> — η προεπιλογή είναι το Kaiki της παραγωγής. Το πρόσθετο παίρνει
+        από εδώ και το widget (<code>/widget/kaiki-widget.js</code>) και το API.
+    </li>
+    <li>Στο <strong>«Δημόσιο κλειδί»</strong> το <code>pk_test_…</code>. <strong>Αποθήκευση αλλαγών</strong>, μετά <strong>Νέος έλεγχος</strong>: πρέπει να γράψει «Συνδεδεμένο» και τον αριθμό «Ορατές εκδρομές».</li>
+    <li>Προαιρετικά, <strong>Σελίδες εκδρομών</strong>: διακόπτης, το <code>sk_…</code>, αποθήκευση. Το «Τελευταία ενημέρωση» δείχνει αν πέτυχε ο συγχρονισμός.</li>
+    <li>Μια σελίδα με <code>[kaiki_booking product="…"]</code>, <code>[kaiki_list]</code> ή <code>[kaiki_enquiry]</code> — ή το block ή το widget του Elementor.</li>
+</ol>
+
+<h2>«Άμεσες ενημερώσεις»</h2>
+
+<p>
+    Όταν αλλάζει, δημοσιεύεται ή αποσύρεται μια εκδρομή στο Kaiki, το Kaiki ειδοποιεί το WordPress και οι σελίδες
+    εκδρομών ανανεώνονται σε λίγα δευτερόλεπτα, αντί να περιμένουν την προσωρινή μνήμη. Χρειάζεται πακέτο Pro και
+    διεύθυνση <strong>https</strong> — το Kaiki αρνείται να στείλει σε <code>http://</code> ή σε ιδιωτική διεύθυνση.
+</p>
+
+<ol class="steps">
+    <li>WordPress → Ρυθμίσεις → Kaiki Booking → «Άμεσες ενημερώσεις»: αντιγράψτε τη διεύθυνση, π.χ. <code>https://aegeancr.gr/wp-json/kaiki/v1/webhook</code>.</li>
+    <li>Kaiki → Ρυθμίσεις → Webhooks → νέο webhook με αυτή τη διεύθυνση. Τσεκάρετε τα τρία γεγονότα εκδρομών: δημοσίευση, αλλαγή, απόσυρση. Ένα υπάρχον webhook δεν τα παίρνει μόνο του.</li>
+    <li>Το Kaiki δείχνει το μυστικό <strong>μία φορά</strong>: επικολλήστε το στο «Μυστικό ενημερώσεων» του πρόσθετου και αποθηκεύστε.</li>
+    <li>Αλλάξτε μια λέξη σε μια εκδρομή στο Kaiki. Σε περίπου 10–60 δευτερόλεπτα η σελίδα της στο WordPress δείχνει την αλλαγή. Το αρχείο αποστολών του webhook στο Kaiki γράφει 200.</li>
+</ol>
+
+<div class="note">
+    <span class="label">Αν δεν έρθει</span>
+    <p>
+        Το WordPress τρέχει την ανανέωση μέσω WP-Cron, που ξεκινά με την επόμενη επίσκεψη στο site. Σε site χωρίς
+        επισκέψεις, ή με <code>DISABLE_WP_CRON</code>, βάλτε πραγματικό cron που καλεί το <code>wp-cron.php</code>
+        κάθε λεπτό. Οι δοκιμαστικές κρατήσεις δεν στέλνουν webhooks — οι αλλαγές εκδρομών στέλνουν.
+    </p>
+</div>
+
+<h2>Αν το aegeancr.gr έχει δικά του φίλτρα</h2>
+
+<ul>
+    <li>
+        <strong>Πρόσθετο ασφαλείας ή Content-Security-Policy</strong> στο WordPress: να επιτρέπει script, fetch και
+        εικόνες από το <code>https://kaiki.testing.gr</code>.
+    </li>
+    <li>
+        <strong>Cache σελίδων</strong> (WP Rocket, LiteSpeed κ.λπ.): καθαρίστε το μετά από κάθε αλλαγή ρυθμίσεων
+        του προσθέτου, και εξαιρέστε τη σελίδα κράτησης από minify/συνδυασμό JavaScript.
+    </li>
+    <li>
+        <strong>Η φιλοξενία του aegeancr.gr</strong> πρέπει να επιτρέπει εξερχόμενο HTTPS προς το
+        <code>kaiki.testing.gr</code> — ο έλεγχος σύνδεσης και οι σελίδες εκδρομών καλούν από τον server του
+        WordPress, όχι από τον browser. Εκεί δεν μετρά ο Basic Auth: το <code>/api/v1</code> είναι στις εξαιρέσεις.
+    </li>
+</ul>

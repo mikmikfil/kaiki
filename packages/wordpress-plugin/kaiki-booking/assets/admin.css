@@ -1,0 +1,843 @@
+/*
+ * Kaiki Booking — the settings screen (Settings → Kaiki Booking).
+ *
+ * Loaded on that screen only, and every rule is under `.kaiki-admin` so that
+ * nothing here can reach another admin page. WordPress's own admin colours and
+ * system font; no web fonts, no CDN. Never `text-transform: uppercase`: Greek
+ * loses its accents in capitals.
+ */
+
+.kaiki-admin {
+	--kaiki-admin-accent: var(--wp-admin-theme-color, #2271b1);
+	--kaiki-admin-accent-dark: var(--wp-admin-theme-color-darker-10, #135e96);
+	--kaiki-admin-text: #1d2327;
+	--kaiki-admin-muted: #646970;
+	--kaiki-admin-border: #dcdcde;
+	--kaiki-admin-soft: #f6f7f7;
+	--kaiki-admin-ok: #00a32a;
+	--kaiki-admin-ok-soft: #edfaef;
+	--kaiki-admin-error: #d63638;
+	--kaiki-admin-error-soft: #fcf0f1;
+	--kaiki-admin-warning: #dba617;
+	--kaiki-admin-warning-soft: #fcf9e8;
+	--kaiki-admin-info-soft: #f0f6fc;
+	--kaiki-admin-radius: 8px;
+
+	max-width: 960px;
+	color: var(--kaiki-admin-text);
+}
+
+.kaiki-admin [hidden] {
+	display: none !important;
+}
+
+.kaiki-admin a,
+.kaiki-admin a:hover,
+.kaiki-admin a:focus {
+	text-decoration: none;
+}
+
+/* Header */
+
+.kaiki-admin .kaiki-admin__header {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 12px 24px;
+	margin: 8px 0 20px;
+}
+
+.kaiki-admin .kaiki-admin__title {
+	margin: 0 0 4px;
+	padding: 0;
+	font-size: 23px;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.kaiki-admin .kaiki-admin__lead {
+	max-width: 40rem;
+	margin: 0;
+	color: var(--kaiki-admin-muted);
+	font-size: 14px;
+}
+
+.kaiki-admin .kaiki-admin__pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 4px;
+	padding: 6px 14px;
+	border: 1px solid var(--kaiki-admin-border);
+	border-radius: 999px;
+	background: #fff;
+	color: var(--kaiki-admin-text);
+	font-size: 13px;
+	font-weight: 500;
+	white-space: nowrap;
+}
+
+.kaiki-admin .kaiki-admin__pill:hover {
+	border-color: var(--kaiki-admin-accent);
+	color: var(--kaiki-admin-text);
+}
+
+.kaiki-admin .kaiki-admin__dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--kaiki-admin-error);
+}
+
+.kaiki-admin .kaiki-admin__pill.is-ok .kaiki-admin__dot {
+	background: var(--kaiki-admin-ok);
+	box-shadow: 0 0 0 3px var(--kaiki-admin-ok-soft);
+}
+
+.kaiki-admin .kaiki-admin__pill.is-off .kaiki-admin__dot {
+	box-shadow: 0 0 0 3px var(--kaiki-admin-error-soft);
+}
+
+/* Tabs */
+
+.kaiki-admin .kaiki-admin__tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin: 0 0 20px;
+	border-bottom: 1px solid var(--kaiki-admin-border);
+}
+
+.kaiki-admin .kaiki-admin__tab {
+	margin-bottom: -1px;
+	padding: 10px 14px;
+	border-bottom: 2px solid transparent;
+	color: var(--kaiki-admin-muted);
+	font-size: 14px;
+	font-weight: 500;
+}
+
+.kaiki-admin .kaiki-admin__tab:hover {
+	color: var(--kaiki-admin-text);
+}
+
+.kaiki-admin .kaiki-admin__tab:focus {
+	box-shadow: none;
+	outline: 2px solid var(--kaiki-admin-accent);
+	outline-offset: -2px;
+	border-radius: 4px 4px 0 0;
+}
+
+.kaiki-admin .kaiki-admin__tab.is-active {
+	border-bottom-color: var(--kaiki-admin-accent);
+	color: var(--kaiki-admin-accent);
+	font-weight: 600;
+}
+
+/* Cards */
+
+.kaiki-admin .kaiki-admin__card {
+	margin: 0 0 20px;
+	padding: 24px;
+	border: 1px solid var(--kaiki-admin-border);
+	border-radius: var(--kaiki-admin-radius);
+	background: #fff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.kaiki-admin .kaiki-admin__card-head {
+	margin: 0 0 20px;
+}
+
+.kaiki-admin .kaiki-admin__card-title {
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 16px;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+.kaiki-admin .kaiki-admin__card-head .kaiki-admin__help {
+	margin: 0;
+}
+
+.kaiki-admin .kaiki-admin__card-foot {
+	margin: 20px -24px -24px;
+	padding: 12px 24px;
+	border-top: 1px solid var(--kaiki-admin-border);
+	border-radius: 0 0 var(--kaiki-admin-radius) var(--kaiki-admin-radius);
+	background: var(--kaiki-admin-soft);
+	color: var(--kaiki-admin-muted);
+	font-size: 13px;
+}
+
+/* The connection card */
+
+.kaiki-admin .kaiki-admin__card--connection {
+	padding: 0;
+	overflow: hidden;
+}
+
+.kaiki-admin .kaiki-admin__card--connection .kaiki-admin__card-body {
+	padding: 24px;
+}
+
+.kaiki-admin .kaiki-admin__card--connection .kaiki-admin__card-foot {
+	margin: 0;
+}
+
+.kaiki-admin .kaiki-admin__status {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 16px 20px;
+	padding: 20px 24px;
+	border-bottom: 1px solid var(--kaiki-admin-border);
+	border-left: 4px solid var(--kaiki-admin-error);
+	background: var(--kaiki-admin-error-soft);
+}
+
+.kaiki-admin .kaiki-admin__status.is-ok {
+	border-left-color: var(--kaiki-admin-ok);
+	background: var(--kaiki-admin-ok-soft);
+}
+
+.kaiki-admin .kaiki-admin__status.is-off {
+	border-left-color: var(--kaiki-admin-muted);
+	background: var(--kaiki-admin-soft);
+}
+
+.kaiki-admin .kaiki-admin__status-icon {
+	width: 32px;
+	height: 32px;
+	font-size: 32px;
+	color: var(--kaiki-admin-error);
+}
+
+.kaiki-admin .kaiki-admin__status.is-ok .kaiki-admin__status-icon {
+	color: var(--kaiki-admin-ok);
+}
+
+.kaiki-admin .kaiki-admin__status.is-off .kaiki-admin__status-icon {
+	color: var(--kaiki-admin-muted);
+}
+
+.kaiki-admin .kaiki-admin__status-text {
+	flex: 1 1 16rem;
+	min-width: 0;
+}
+
+.kaiki-admin .kaiki-admin__status-title {
+	margin: 0 0 2px;
+	padding: 0;
+	font-size: 18px;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.kaiki-admin .kaiki-admin__status-message {
+	margin: 0;
+	font-size: 14px;
+}
+
+.kaiki-admin .kaiki-admin__meta {
+	margin: 4px 0 0;
+	color: var(--kaiki-admin-muted);
+	font-size: 12px;
+}
+
+.kaiki-admin .kaiki-admin__stat {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-width: 88px;
+	padding: 8px 16px;
+	border-radius: var(--kaiki-admin-radius);
+	background: #fff;
+	text-align: center;
+}
+
+.kaiki-admin .kaiki-admin__stat-value {
+	font-size: 26px;
+	font-weight: 600;
+	line-height: 1.1;
+}
+
+.kaiki-admin .kaiki-admin__stat-label {
+	color: var(--kaiki-admin-muted);
+	font-size: 12px;
+}
+
+.kaiki-admin .kaiki-admin__status-action,
+.kaiki-admin .kaiki-admin__reveal,
+.kaiki-admin .kaiki-admin__copy {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.kaiki-admin .button .dashicons {
+	width: 16px;
+	height: 16px;
+	font-size: 16px;
+	line-height: 1;
+}
+
+/* Fields */
+
+.kaiki-admin .kaiki-admin__grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+	gap: 0 24px;
+}
+
+.kaiki-admin .kaiki-admin__field {
+	min-width: 0;
+	margin: 0 0 20px;
+	padding: 0;
+	border: 0;
+}
+
+.kaiki-admin .kaiki-admin__field:last-child,
+.kaiki-admin .kaiki-admin__grid .kaiki-admin__field {
+	margin-bottom: 0;
+}
+
+.kaiki-admin .kaiki-admin__grid .kaiki-admin__field + .kaiki-admin__field {
+	margin-top: 0;
+}
+
+@media (max-width: 782px) {
+	.kaiki-admin .kaiki-admin__grid {
+		gap: 20px;
+	}
+}
+
+.kaiki-admin .kaiki-admin__label {
+	display: block;
+	margin: 0 0 6px;
+	padding: 0;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.kaiki-admin .kaiki-admin__help {
+	max-width: 44rem;
+	margin: 6px 0 0;
+	color: var(--kaiki-admin-muted);
+	font-size: 13px;
+	line-height: 1.5;
+}
+
+.kaiki-admin .kaiki-admin__input,
+.kaiki-admin .kaiki-admin__select {
+	width: 100%;
+	max-width: 32rem;
+	min-height: 40px;
+	padding: 6px 12px;
+	border: 1px solid #8c8f94;
+	border-radius: 6px;
+	box-shadow: none;
+	font-size: 14px;
+}
+
+.kaiki-admin .kaiki-admin__select {
+	max-width: 24rem;
+	padding-right: 32px;
+}
+
+.kaiki-admin .kaiki-admin__input.code {
+	font-family: Consolas, Monaco, monospace;
+	font-size: 13px;
+}
+
+.kaiki-admin .kaiki-admin__input:focus,
+.kaiki-admin .kaiki-admin__select:focus {
+	border-color: var(--kaiki-admin-accent);
+	box-shadow: 0 0 0 1px var(--kaiki-admin-accent);
+	outline: 2px solid transparent;
+}
+
+.kaiki-admin .kaiki-admin__input[readonly] {
+	background: var(--kaiki-admin-soft);
+}
+
+.kaiki-admin .kaiki-admin__input--short {
+	width: 7rem;
+}
+
+.kaiki-admin .kaiki-admin__input--base {
+	width: 10rem;
+}
+
+.kaiki-admin .kaiki-admin__secret {
+	display: flex;
+	gap: 8px;
+	max-width: 36rem;
+}
+
+.kaiki-admin .kaiki-admin__secret .kaiki-admin__input {
+	flex: 1 1 auto;
+	max-width: none;
+}
+
+.kaiki-admin .kaiki-admin__secret .button {
+	flex: 0 0 auto;
+	min-height: 40px;
+	border-radius: 6px;
+}
+
+.kaiki-admin .kaiki-admin__affix {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+}
+
+.kaiki-admin .kaiki-admin__affix-text {
+	color: var(--kaiki-admin-muted);
+	font-size: 13px;
+}
+
+.kaiki-admin .kaiki-admin__affix-text.code {
+	font-family: Consolas, Monaco, monospace;
+}
+
+.kaiki-admin .kaiki-admin__subfield {
+	margin: 12px 0 0;
+	padding: 16px;
+	border-radius: var(--kaiki-admin-radius);
+	background: var(--kaiki-admin-soft);
+}
+
+/* Radio choices as tiles, a checkbox, a switch */
+
+.kaiki-admin .kaiki-admin__choices {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.kaiki-admin .kaiki-admin__choice {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 14px;
+	border: 1px solid var(--kaiki-admin-border);
+	border-radius: var(--kaiki-admin-radius);
+	background: #fff;
+	cursor: pointer;
+}
+
+.kaiki-admin .kaiki-admin__choice:hover {
+	border-color: #8c8f94;
+}
+
+.kaiki-admin .kaiki-admin__choice:has(input:checked) {
+	border-color: var(--kaiki-admin-accent);
+	background: var(--kaiki-admin-info-soft);
+	box-shadow: 0 0 0 1px var(--kaiki-admin-accent);
+}
+
+.kaiki-admin .kaiki-admin__choice input[type="radio"] {
+	margin: 0;
+}
+
+.kaiki-admin .kaiki-admin__check {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.kaiki-admin .kaiki-admin__check input[type="checkbox"] {
+	margin: 0;
+}
+
+.kaiki-admin .kaiki-admin__switch {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	cursor: pointer;
+}
+
+.kaiki-admin .kaiki-admin__switch input[type="checkbox"] {
+	position: absolute;
+	width: 36px;
+	height: 20px;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+}
+
+.kaiki-admin .kaiki-admin__switch-track {
+	position: relative;
+	flex: 0 0 auto;
+	width: 36px;
+	height: 20px;
+	border-radius: 999px;
+	background: #8c8f94;
+	transition: background-color 0.15s ease;
+}
+
+.kaiki-admin .kaiki-admin__switch-track::after {
+	content: "";
+	position: absolute;
+	top: 3px;
+	left: 3px;
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	background: #fff;
+	transition: transform 0.15s ease;
+}
+
+.kaiki-admin .kaiki-admin__switch input:checked + .kaiki-admin__switch-track {
+	background: var(--kaiki-admin-accent);
+}
+
+.kaiki-admin .kaiki-admin__switch input:checked + .kaiki-admin__switch-track::after {
+	transform: translateX(16px);
+}
+
+.kaiki-admin .kaiki-admin__switch input:focus-visible + .kaiki-admin__switch-track {
+	outline: 2px solid var(--kaiki-admin-accent);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.kaiki-admin .kaiki-admin__switch-track,
+	.kaiki-admin .kaiki-admin__switch-track::after {
+		transition: none;
+	}
+}
+
+/* Appearance */
+
+.kaiki-admin .kaiki-admin__custom {
+	margin-top: 24px;
+	padding-top: 24px;
+	border-top: 1px solid var(--kaiki-admin-border);
+}
+
+.kaiki-admin .kaiki-admin__split {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 20rem;
+	gap: 32px;
+}
+
+@media (max-width: 960px) {
+	.kaiki-admin .kaiki-admin__split {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.kaiki-admin .kaiki-admin__split-aside {
+	align-self: start;
+	position: sticky;
+	top: 48px;
+}
+
+.kaiki-admin .kaiki-admin__colours {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px 24px;
+}
+
+.kaiki-admin .kaiki-admin__colours .kaiki-admin__field {
+	margin: 0;
+}
+
+.kaiki-admin .kaiki-admin__colours + .kaiki-admin__help {
+	margin: 8px 0 20px;
+}
+
+.kaiki-admin .kaiki-admin__preview {
+	--kaiki-primary: #0b4f4a;
+	--kaiki-on-primary: #ffffff;
+	--kaiki-text: #16211f;
+	--kaiki-background: #ffffff;
+	--kaiki-radius: 8px;
+	--kaiki-font: Inter, system-ui, sans-serif;
+
+	padding: 20px;
+	border-radius: var(--kaiki-admin-radius);
+	background: var(--kaiki-admin-soft);
+	background-image: radial-gradient(#dcdcde 1px, transparent 1px);
+	background-size: 12px 12px;
+}
+
+.kaiki-admin .kaiki-admin__preview .kaiki-preview-card {
+	padding: 16px;
+	border: 1px solid var(--kaiki-admin-border);
+	border-radius: var(--kaiki-radius);
+	background: var(--kaiki-background);
+	color: var(--kaiki-text);
+	font-family: var(--kaiki-font);
+}
+
+.kaiki-admin .kaiki-admin__preview .kaiki-preview-card p {
+	margin: 4px 0 12px;
+	color: inherit;
+}
+
+.kaiki-admin .kaiki-admin__preview .kaiki-preview-button {
+	padding: 8px 16px;
+	border: 0;
+	border-radius: var(--kaiki-radius);
+	background: var(--kaiki-primary);
+	color: var(--kaiki-on-primary);
+	font: inherit;
+	font-weight: 600;
+	cursor: default;
+}
+
+/* Notices inside a card, and lists of points */
+
+.kaiki-admin .kaiki-admin__notice {
+	display: flex;
+	gap: 10px;
+	margin: 0 0 12px;
+	padding: 12px 16px;
+	border-left: 4px solid var(--kaiki-admin-accent);
+	border-radius: 0 var(--kaiki-admin-radius) var(--kaiki-admin-radius) 0;
+	background: var(--kaiki-admin-info-soft);
+}
+
+.kaiki-admin .kaiki-admin__notice:last-child {
+	margin-bottom: 0;
+}
+
+.kaiki-admin .kaiki-admin__notice p {
+	margin: 0;
+	font-size: 13px;
+	line-height: 1.55;
+}
+
+.kaiki-admin .kaiki-admin__notice .dashicons {
+	flex: 0 0 auto;
+	color: var(--kaiki-admin-accent);
+}
+
+.kaiki-admin .kaiki-admin__notice.is-warning {
+	border-left-color: var(--kaiki-admin-warning);
+	background: var(--kaiki-admin-warning-soft);
+}
+
+.kaiki-admin .kaiki-admin__notice.is-warning .dashicons {
+	color: #996800;
+}
+
+.kaiki-admin .kaiki-admin__points {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.kaiki-admin .kaiki-admin__points li {
+	position: relative;
+	margin: 0 0 12px;
+	padding-left: 20px;
+	font-size: 13px;
+	line-height: 1.55;
+}
+
+.kaiki-admin .kaiki-admin__points li:last-child {
+	margin-bottom: 0;
+}
+
+.kaiki-admin .kaiki-admin__points li::before {
+	content: "";
+	position: absolute;
+	top: 0.55em;
+	left: 4px;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--kaiki-admin-accent);
+}
+
+.kaiki-admin .kaiki-admin__sync p {
+	margin: 0;
+}
+
+.kaiki-admin .kaiki-admin__sync-line {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+}
+
+.kaiki-admin .kaiki-admin__sync-line.is-ok .dashicons {
+	color: var(--kaiki-admin-ok);
+}
+
+.kaiki-admin .kaiki-admin__sync-line.is-error .dashicons {
+	color: var(--kaiki-admin-error);
+}
+
+/* Copy buttons */
+
+.kaiki-admin .kaiki-admin__copy.is-copied,
+.kaiki-admin .kaiki-admin__copy.is-copied:hover {
+	border-color: var(--kaiki-admin-ok);
+	color: #007017;
+}
+
+.kaiki-admin .kaiki-admin__copy.is-copied .dashicons::before {
+	content: "\f147";
+}
+
+/* Shortcodes */
+
+.kaiki-admin .kaiki-admin__group-title {
+	margin: 28px 0 12px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.kaiki-admin .kaiki-admin__shortcodes {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(24rem, 1fr));
+	gap: 12px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+@media (max-width: 600px) {
+	.kaiki-admin .kaiki-admin__shortcodes {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.kaiki-admin .kaiki-admin__shortcode {
+	display: flex;
+	flex-direction: column;
+}
+
+.kaiki-admin .kaiki-admin__shortcode .kaiki-admin__copy--code {
+	margin-top: auto;
+}
+
+.kaiki-admin .kaiki-admin__shortcode {
+	margin: 0;
+	padding: 16px;
+	border: 1px solid var(--kaiki-admin-border);
+	border-radius: var(--kaiki-admin-radius);
+	background: #fff;
+}
+
+.kaiki-admin .kaiki-admin__shortcode-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 12px;
+}
+
+.kaiki-admin .kaiki-admin__shortcode-tag {
+	padding: 2px 8px;
+	border-radius: 4px;
+	background: var(--kaiki-admin-info-soft);
+	color: var(--kaiki-admin-accent-dark);
+	font-size: 13px;
+	font-weight: 600;
+}
+
+.kaiki-admin .kaiki-admin__shortcode-text {
+	font-size: 13px;
+}
+
+.kaiki-admin .kaiki-admin__atts {
+	display: grid;
+	grid-template-columns: max-content minmax(0, 1fr);
+	gap: 6px 12px;
+	margin: 12px 0;
+	font-size: 13px;
+}
+
+.kaiki-admin .kaiki-admin__atts dt,
+.kaiki-admin .kaiki-admin__atts dd {
+	margin: 0;
+}
+
+.kaiki-admin .kaiki-admin__atts dd {
+	color: var(--kaiki-admin-muted);
+}
+
+.kaiki-admin .kaiki-admin__atts code {
+	padding: 1px 6px;
+	border-radius: 4px;
+	font-size: 12px;
+}
+
+@media (max-width: 600px) {
+	.kaiki-admin .kaiki-admin__atts {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 2px;
+	}
+
+	.kaiki-admin .kaiki-admin__atts dd {
+		margin-bottom: 8px;
+	}
+}
+
+.kaiki-admin .kaiki-admin__copy--code {
+	justify-content: space-between;
+	width: 100%;
+	max-width: 100%;
+	min-height: 40px;
+	margin-top: 12px;
+	padding: 6px 12px;
+	border-color: var(--kaiki-admin-border);
+	border-radius: 6px;
+	background: var(--kaiki-admin-soft);
+	color: var(--kaiki-admin-text);
+	line-height: 1.5;
+	text-align: left;
+	white-space: normal;
+}
+
+.kaiki-admin .kaiki-admin__copy--code:hover,
+.kaiki-admin .kaiki-admin__copy--code:focus {
+	border-color: var(--kaiki-admin-accent);
+	background: #fff;
+	color: var(--kaiki-admin-text);
+}
+
+.kaiki-admin .kaiki-admin__copy--code code {
+	flex: 1 1 auto;
+	padding: 0;
+	background: none;
+	font-size: 13px;
+	line-height: 1.5;
+	overflow-wrap: anywhere;
+}
+
+.kaiki-admin .kaiki-admin__copy--code .kaiki-admin__copy-label {
+	color: var(--kaiki-admin-accent);
+	font-size: 12px;
+}
+
+/* Save bar */
+
+.kaiki-admin .kaiki-admin__savebar {
+	position: sticky;
+	bottom: 0;
+	z-index: 10;
+	display: flex;
+	justify-content: flex-end;
+	margin: 0 0 20px;
+	padding: 12px 24px;
+	border: 1px solid var(--kaiki-admin-border);
+	border-radius: var(--kaiki-admin-radius);
+	background: rgba(255, 255, 255, 0.96);
+	box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.kaiki-admin .kaiki-admin__savebar .button-primary {
+	min-height: 36px;
+	padding: 0 20px;
+	border-radius: 6px;
+	font-size: 14px;
+}

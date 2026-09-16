@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'preact/hooks';
 
 import { registerMount, type MountProps } from '../../mounts';
+import { formatDuration } from '../booking/FourLines';
 
 /**
  * The `list` mount (WGT-5, WGT-6): an operator's trips as a grid.
@@ -151,7 +152,7 @@ export function ListMount({ client, category, t, analytics }: MountProps) {
             {product.summary === null ? null : <p class="kaiki-muted">{product.summary}</p>}
 
             <p class="kaiki-muted kaiki-facts">
-              {t('booking.lines.minutes').replace(':minutes', String(product.duration_minutes))}
+              {formatDuration(t, product.duration_minutes)}
               {product.meeting_point?.name === undefined ? '' : ` · ${product.meeting_point.name}`}
             </p>
 
