@@ -26,4 +26,19 @@
 
     .kmw-icon { width: 1.15rem; height: 1.15rem; flex: none; margin-top: .1rem; }
     .kmw p { margin: 0; }
+
+    /* --- dark ----------------------------------------------------------------
+       This banner says the invoices being sent are going to myDATA's test
+       environment and are not real. It is the one notice on the page that must
+       not be possible to skim past, and `--warning-50` with `--warning-800` type
+       is a pale panel with dark type — on a dark page, a bright slab with type
+       the same weight as the ground behind it.
+
+       Inverted rather than dimmed: the wash carries the hue, the type carries
+       the contrast. */
+    .dark .kmw {
+        background: rgba(var(--warning-500), .16);
+        border-color: rgb(var(--warning-600));
+        color: rgb(var(--warning-200));
+    }
 </style>

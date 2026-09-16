@@ -62,7 +62,10 @@ final class IntegrationCredentialData extends Data
             }
         }
 
-        if ($this->provider->issuesWebhookSecret() && trim((string) $this->webhookSecret) === '') {
+        // Only where the operator is the only source of it. Viva's key is
+        // fetched with the credentials above, so demanding it here would refuse
+        // a complete credential set over a value we can read ourselves.
+        if ($this->provider->requiresWebhookSecretFromOperator() && trim((string) $this->webhookSecret) === '') {
             $missing[] = 'webhook_secret';
         }
 

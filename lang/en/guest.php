@@ -57,7 +57,13 @@ return [
         'when' => 'When',
         'party' => 'Party',
         'people' => '{1} one person|[2,*] :count people',
-        'hold' => 'We are holding your seats until :time.',
+        // Λεπτά **και** ώρα. Τα λεπτά απαντούν «πόσο έχω», που είναι η
+        // ερώτηση· η ώρα είναι αυτό που μένει σωστό αν η σελίδα μείνει
+        // ανοιχτή, γιατί χωρίς script τα λεπτά παγώνουν στη στιγμή της
+        // απόδοσης. Μαζί, καμία από τις δύο δεν μπορεί να παραπλανήσει μόνη της.
+        'hold_expired' => 'Your seats are no longer being held. Check availability again before you pay.',
+        'hold_minutes_one' => 'We are holding your seats for one more minute, until :time.',
+        'hold_minutes_many' => 'We are holding your seats for another :count minutes, until :time.',
         'price' => 'Your price',
         'discount' => 'Discount',
         'total' => 'Total',
@@ -74,7 +80,10 @@ return [
         'full_name' => 'Full name',
         'document' => 'ID or passport number',
         'date_of_birth' => 'Date of birth',
-        'terms' => 'I have read and accept the terms and the cancellation policy.',
+        'terms' => 'I have read and accept :link.',
+        'terms_link' => 'the terms and the cancellation policy',
+        'errors_heading' => 'Some details are missing or wrong:',
+        'policy_heading' => 'Cancellation',
         'pay' => 'Pay :amount',
         'secure' => 'Payment is taken on Viva Wallet\'s own secure checkout. Your card details never pass through us and are never stored here.',
         'refused' => 'We could not start the payment. Please try again, or contact the operator.',

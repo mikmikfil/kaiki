@@ -195,6 +195,23 @@ final class Sync {
 						++$counts[ $outcome ];
 					}
 				}
+
+				// **After** the loop, not inside it: a translation group cannot
+				// be declared one member at a time. Polylang is handed the whole
+				// map at once, and WPML needs the source to exist before the
+				// translations can point at it — on the first run the English
+				// post does not exist yet while the Greek one is being written.
+				//
+				// Outside the outcome counting because linking is not a fourth
+				// outcome. A page whose content did not change this run may
+				// still be a page nobody has linked yet — the feature was added
+				// after sites had already synced — and those are exactly the
+				// ones that need it.
+				$uuid = isset( $row['uuid'] ) ? (string) $row['uuid'] : '';
+
+				if ( '' !== $uuid ) {
+					TripTranslations::link( $uuid, $languages );
+				}
 			}
 
 			$newest = isset( $body['meta']['sync_cursor'] ) ? (string) $body['meta']['sync_cursor'] : '';

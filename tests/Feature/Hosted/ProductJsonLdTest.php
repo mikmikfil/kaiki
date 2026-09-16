@@ -196,7 +196,9 @@ it('cannot be closed early by an operator who pastes a closing script tag', func
     // and the widget bundle are the complete list of what may be here.
     expect($body)->not->toContain('<script>alert(1)')
         ->and(substr_count($body, '<script'))
-        ->toBe(substr_count($body, '<script type="application/ld+json"') + substr_count($body, 'kaiki-widget.js'));
+        // `<script src=` rather than the bundle's filename, which also appears
+        // in the head's preload hint — a `<link>`, not an element that runs.
+        ->toBe(substr_count($body, '<script type="application/ld+json"') + substr_count($body, '<script src='));
 })->group('fast');
 
 it('carries the nonce the policy requires', function (): void {

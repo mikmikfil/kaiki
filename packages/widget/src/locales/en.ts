@@ -36,7 +36,20 @@ export const en = {
   'booking.lines.vessel': 'Boat',
   'booking.date.heading': 'Pick a date',
   'booking.date.label': 'Date',
+  'booking.date.which_departure': 'Which departure?',
   'booking.party.heading': 'How many of you?',
+  'booking.peek.from': 'from :amount',
+  'booking.peek.price_unknown': 'On request',
+  'booking.peek.pick_date': 'Pick a date',
+  'booking.peek.people_one': 'one person',
+  'booking.peek.people_many': ':count people',
+  'booking.sheet.close': 'Close',
+  'enquiry.peek.summary': 'We answer with a quote',
+  // Only once the seats are running out. A departure with eleven free has no
+  // reason to say so — that is pressure without information.
+  'booking.party.seats_left_one': 'One seat left.',
+  'booking.party.seats_left_many': ':count seats left.',
+  'booking.party.seats_full': 'That is every seat left.',
   'booking.extras.heading': 'Anything else?',
   // The three contact labels the *enquiry* mount uses (BKG-24). The booking
   // walk stopped asking for these when the checkout page took them over
@@ -49,8 +62,9 @@ export const en = {
   'booking.hold.warning': 'Only :time left to finish',
   'booking.confirmed.heading': 'You are booked',
   'booking.confirmed.body': 'We have emailed your ticket and the meeting point.',
-  'booking.pending.heading': 'Payment received',
-  'booking.pending.body': 'We are waiting for your bank to confirm. You will have an email within a few minutes.',
+  'booking.pending.heading': 'Waiting for confirmation',
+  'booking.pending.body': 'If you paid, we are waiting for your bank to confirm it and an email will follow in a few minutes. If you did not finish, carry on from here.',
+  'booking.pending.resume': 'Continue payment',
   'booking.sold_out.heading': 'Those seats have just gone',
   'booking.sold_out.body': 'Somebody booked them while you were deciding. Another date may be free.',
   'booking.sold_out.retry': 'Pick another date',

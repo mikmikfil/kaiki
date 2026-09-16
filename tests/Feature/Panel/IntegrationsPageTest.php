@@ -55,7 +55,7 @@ function saveThroughPanel(User $owner, array $data = []): Testable
     return integrationsAs($owner)->callAction('saveCredentials', array_merge([
         'provider' => IntegrationProvider::Viva->value,
         'environment' => CredentialEnvironment::Test->value,
-        'credentials' => ['client_id' => 'panel-id', 'client_secret' => 'panel-secret'],
+        'credentials' => ['client_id' => 'panel-id', 'client_secret' => 'panel-secret', 'merchant_id' => 'panel-merchant', 'api_key' => 'panel-api-key'],
         'webhook_secret' => 'panel-verification-key',
         'public_config' => ['source_code' => '4321'],
         'is_default' => true,
@@ -167,6 +167,28 @@ it('refuses an incomplete credential set with the fields named, in Greek', funct
 
     expect($message)->toContain('Viva')
         ->and($message)->not->toBe('integrations.refused.incomplete');
+})->group('fast');
+
+it('saves a Viva credential set the operator never gave a webhook key for', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    // The three fields Viva's own WordPress plugin asks for, and no fourth.
+    // The verification key is not on this form any more: it is readable with
+    // the client id and secret, so asking for it was asking an operator to
+    // perform our API call by hand.
+    saveThroughPanel($owner, ['webhook_secret' => null])->assertHasNoActionErrors();
+
+    Tenancy::forTenant(integrationsTenant($owner), function (): void {
+        $credential = IntegrationCredential::query()->firstOrFail();
+
+        expect($credential->webhook_secret)->toBeNull()
+            // Complete, because nothing is missing — the key arrives on the
+            // handshake, and `isComplete()` knows the difference between a
+            // field an operator owes us and one we fetch.
+            ->and($credential->isComplete())->toBeTrue()
+            // And an address of its own to fetch it on.
+            ->and($credential->webhook_token)->toBeString();
+    });
 })->group('fast');
 
 it('writes verified_at when a verifier says the keys work', function (): void {

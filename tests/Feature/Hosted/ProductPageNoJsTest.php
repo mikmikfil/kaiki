@@ -59,9 +59,14 @@ it('carries no script but the structured data, and no Livewire anywhere', functi
     // replacing this claim" — and the claim is unchanged: nothing on this page
     // is hydrated, and there is no framework runtime, no CSRF token and no
     // second script of anybody's making.
-    $widgetTags = substr_count($body, 'kaiki-widget.js');
+    // Counted as `<script src=`, not as occurrences of the filename: the head
+    // also carries `<link rel="preload" as="script">` for the same bundle, which
+    // is a hint to fetch it earlier and executes nothing. Counting the name
+    // made a preload look like a second script.
+    $widgetTags = substr_count($body, '<script src=');
 
     expect($widgetTags)->toBe(1)
+        ->and(substr_count($body, 'rel="preload" as="script"'))->toBe(1)
         ->and(substr_count($body, '<script'))
         ->toBe(substr_count($body, '<script type="application/ld+json"') + $widgetTags)
         ->and($body)->not->toContain('livewire')

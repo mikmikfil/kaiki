@@ -120,8 +120,18 @@ class Integrations extends Page
     public function saveCredentialsAction(): Action
     {
         return Action::make('saveCredentials')
-            ->label(__('integrations.actions.save'))
+            // Adding and editing are the same operation against the same unique
+            // key, but they are not the same thing to read. A button that opens
+            // a form says what it opens: «Επεξεργασία» on a connection that
+            // exists, «Νέα σύνδεση» where there is none. «Αποθήκευση» belongs on
+            // the modal's own submit button, where something is actually being
+            // saved — on the card it asked an operator to press save to start
+            // editing, which is backwards.
+            ->label(fn (array $arguments): string => isset($arguments['credential'])
+                ? __('integrations.actions.edit')
+                : __('integrations.actions.create'))
             ->modalHeading(__('integrations.page.title'))
+            ->modalSubmitActionLabel(__('integrations.actions.save'))
             ->form($this->credentialForm())
             ->fillForm(fn (array $arguments): array => $this->prefill($arguments))
             ->action(function (array $data): void {
@@ -202,7 +212,7 @@ class Integrations extends Page
         return [
             Select::make('provider')
                 ->label(__('integrations.form.provider.label'))
-                ->options(IntegrationProvider::options())
+                ->options(IntegrationProvider::operatorOptions())
                 ->required()
                 ->native(false)
                 // The fields below depend on it, so the form has to re-render
@@ -265,7 +275,12 @@ class Integrations extends Page
                 ->maxLength(500);
         }
 
-        if ($provider->issuesWebhookSecret()) {
+        // Only where the operator is the only source of it. Viva's key is
+        // readable with the client id and secret above — which is why their own
+        // WordPress plugin asks for those two and nothing else — so the field
+        // was asking somebody to go and perform our API call by hand. It is
+        // fetched when the gateway first calls the operator's webhook address.
+        if ($provider->requiresWebhookSecretFromOperator()) {
             $fields[] = TextInput::make('webhook_secret')
                 ->label(__('integrations.fields.webhook_secret'))
                 ->password()

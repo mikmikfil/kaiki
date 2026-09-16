@@ -67,4 +67,30 @@
     .kc-summary { margin: .7rem 0 0; font-size: .82rem; color: rgb(var(--danger-600)); }
     .kc-summary.kc-ready { color: rgb(var(--success-600)); }
     .kc-unsaved { font-size: .85rem; color: rgb(var(--gray-500)); margin: 0; }
+
+    /* --- dark ----------------------------------------------------------------
+       Two chip states that have to stay told apart: what is still missing, and
+       what is done. On white that is a pale red tile against a pale grey one. A
+       `-50` tint is near-white in both themes, so on a dark page both became
+       bright tiles and the distinction went with them — the missing ones stopped
+       reading as the urgent half.
+
+       On dark the tint becomes a wash of the same hue at low alpha, which keeps
+       red reading as red and grey as grey against the panel rather than against
+       paper. */
+    .dark .kc-chip {
+        background: rgba(var(--danger-500), .14);
+        border-color: rgba(var(--danger-500), .35);
+        color: rgb(var(--danger-300));
+    }
+
+    .dark .kc-chip.is-met {
+        background: rgb(var(--gray-900));
+        border-color: rgb(var(--gray-700));
+        color: rgb(var(--gray-400));
+    }
+
+    .dark .kc-summary { color: rgb(var(--danger-400)); }
+    .dark .kc-summary.kc-ready { color: rgb(var(--success-400)); }
+    .dark .kc-unsaved { color: rgb(var(--gray-400)); }
 </style>

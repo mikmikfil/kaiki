@@ -8,8 +8,11 @@ use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\CreateBookingDraft;
 use App\Domain\Booking\Actions\MintCheckoutSession;
 use App\Domain\Booking\Support\RefundEntitlement;
+use App\Domain\Payments\Actions\ReconcilePendingPayments;
+use App\Enums\BookingStatus;
 use App\Enums\CancelledBy;
 use App\Enums\CancelReason;
+use App\Enums\PaymentStatus;
 use App\Exceptions\CapacityExceeded;
 use App\Exceptions\CheckoutRefused;
 use App\Exceptions\HoldRefused;
@@ -24,10 +27,13 @@ use App\Http\Resources\Api\V1\CancellationResultResource;
 use App\Http\Resources\Api\V1\CheckoutSessionResource;
 use App\Http\Responses\ApiErrorResponse;
 use App\Models\Booking;
+use App\Models\Payment;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
+use Throwable;
 
 /**
  * The four booking endpoints (`docs/api.md` §5).
@@ -116,9 +122,63 @@ final class BookingController
     /** `GET /api/v1/bookings/{uuid}` — the first endpoint that refuses a `pk_`. */
     public function show(Request $request): JsonResponse
     {
-        return BookingResource::make($this->booking($request)->fresh($this->relations()))
+        $booking = $this->booking($request);
+
+        $this->settlePendingPayment($booking);
+
+        return BookingResource::make($booking->fresh($this->relations()))
             ->response()
             ->header('Cache-Control', 'no-store');
+    }
+
+    /**
+     * Ask the gateway, when a guest is waiting on the answer.
+     *
+     * `pending_payment` means two opposite things — the money is on its way and
+     * the webhook has not landed, or the guest left the gateway's page without
+     * paying — and the widget has to pick one of two sentences. It cannot tell
+     * them apart and neither can this application: only the gateway knows. So it
+     * is asked here, on the read the widget is already making, rather than up to
+     * five minutes later when the scheduled sweep comes round. `docs/api.md` item
+     * 12's re-fetch, at the moment somebody needs it.
+     *
+     * Bounded on both sides. **A minute old**, so the ordinary case — a webhook
+     * arriving a second after the redirect — is never overtaken by an outbound
+     * call nobody needed. **Once a minute per booking**, through a lock, so a
+     * widget polling every few seconds does not turn into a request per poll
+     * against somebody else's API. Failure is silent by design: this is an
+     * optimisation of the answer, and a gateway that is down must not turn a
+     * booking read into an error.
+     */
+    private function settlePendingPayment(Booking $booking): void
+    {
+        if ($booking->status !== BookingStatus::PendingPayment) {
+            return;
+        }
+
+        $payment = Payment::query()
+            ->where('booking_id', $booking->getKey())
+            ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::Processing->value])
+            ->whereNotNull('gateway_ref')
+            ->where('created_at', '<=', now()->subMinute())
+            ->latest('id')
+            ->first();
+
+        if (! $payment instanceof Payment) {
+            return;
+        }
+
+        $lock = Cache::lock('kaiki:payments:settle:' . $booking->getKey(), 60);
+
+        if (! $lock->get()) {
+            return;
+        }
+
+        try {
+            app(ReconcilePendingPayments::class)->forPayment($payment);
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 
     /** `POST /api/v1/bookings/{uuid}/checkout` — a gateway session. */

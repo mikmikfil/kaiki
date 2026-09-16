@@ -86,7 +86,18 @@ enum IntegrationProvider: string
         return match ($this) {
             // Smart Checkout is OAuth2 client credentials plus the source code
             // that identifies which of the merchant's payment sources to use.
-            self::Viva => ['client_id', 'client_secret'],
+            //
+            // And the Basic-auth pair beside them, because Viva splits its APIs
+            // across two authentication schemes: orders are created with an
+            // OAuth2 token minted from the client credentials, while the webhook
+            // **verification key** is only readable from
+            // `{checkout host}/api/messages/config/token` with Merchant ID and
+            // API key. Probed on 2026-09-16: that path answers 401 to a bearer
+            // token and 404 on the api host, so the client credentials cannot
+            // reach it at any address. All four are on one dashboard page
+            // (Settings → API Access), which is the thing that matters — an
+            // operator copies, and never computes.
+            self::Viva => ['client_id', 'client_secret', 'merchant_id', 'api_key'],
             // AADE issues a user id and a subscription key, not a password.
             self::Mydata => ['user_id', 'subscription_key'],
             self::Apifon => ['token', 'secret_key'],
@@ -139,6 +150,66 @@ enum IntegrationProvider: string
             // The SMS vendors and AADE do not call back at all.
             default => false,
         };
+    }
+
+    /**
+     * The providers an operator is offered on the connections screen.
+     *
+     * Not every case here: the enum is what the *platform* can store credentials
+     * for, and the form is what one operator has any business setting up. As of
+     * 2026-09-16 that is the gateway and AADE, by the product owner's decision.
+     *
+     * The SMS vendors are out because SMS is off for the first phase (#127), and
+     * Postmark because email is sent by the platform's own account rather than
+     * per operator — offering either is offering a field that changes nothing.
+     * Their cases stay, because rows already written keep working and the
+     * credential machinery is unchanged; only the menu is shorter.
+     *
+     * @return array<string, string> value => label, for the select
+     */
+    public static function operatorOptions(): array
+    {
+        $offered = [self::Viva, self::Mydata];
+
+        $options = [];
+
+        foreach ($offered as $provider) {
+            $options[$provider->value] = $provider->label();
+        }
+
+        return $options;
+    }
+
+    /**
+     * Can we fetch this provider's webhook secret ourselves?
+     *
+     * Viva's verification key is retrievable with the OAuth2 token the client
+     * credentials already mint, which is why their own WordPress plugin asks an
+     * operator for a client id and a client secret and nothing else. Asking for
+     * it here was asking an operator to go and find a value we can read — the
+     * one field on the form nobody could locate without a support call.
+     *
+     * Postmark's is issued when the operator creates the webhook and there is
+     * no API to read it back, so that one is still a field.
+     */
+    public function fetchesWebhookSecret(): bool
+    {
+        return match ($this) {
+            self::Viva => true,
+            default => false,
+        };
+    }
+
+    /**
+     * Must the *operator* supply the webhook secret?
+     *
+     * The provider still issues one — {@see self::issuesWebhookSecret()} is
+     * unchanged and PAY-5 still refuses an unverifiable webhook. This is the
+     * narrower question the form asks.
+     */
+    public function requiresWebhookSecretFromOperator(): bool
+    {
+        return $this->issuesWebhookSecret() && ! $this->fetchesWebhookSecret();
     }
 
     /**

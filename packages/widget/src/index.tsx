@@ -86,7 +86,25 @@ function mount(config: WidgetConfig, script: HTMLScriptElement, doc: Document): 
   render(<LoadingState t={provisional} />, shadow.slot);
 
   const draw = (): void => {
-    loadBranding(client).then(
+    /*
+     * The branding is skipped entirely when the host page has already applied
+     * it (`data-branding="inherit"`, WGT-9's properties inherit through the
+     * shadow boundary).
+     *
+     * On Kaiki's own trip page that request was measured at 796 ms, and for all
+     * of it the page's own booking bar sat on screen waiting to be replaced by
+     * an identical one the widget would draw in the same colours. The page had
+     * the answer before it ever asked the question.
+     *
+     * `Promise.resolve` rather than a second code path: the render below is one
+     * function either way, so there is no branch in which the widget draws
+     * differently — only one in which it waits.
+     */
+    const branding: Promise<BrandPayload> = config.inheritBranding
+      ? Promise.resolve({})
+      : loadBranding(client);
+
+    branding.then(
       (brand: BrandPayload) => {
         // The WordPress plugin's own look goes over the branding. With a font
         // of its own, Kaiki's Google font is not asked for at all (WGT-10).

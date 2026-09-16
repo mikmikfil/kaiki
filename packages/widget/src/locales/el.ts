@@ -37,7 +37,20 @@ export const el: Record<MessageKey, string> = {
   'booking.lines.vessel': 'Σκάφος',
   'booking.date.heading': 'Διαλέξτε ημερομηνία',
   'booking.date.label': 'Ημερομηνία',
+  'booking.date.which_departure': 'Ποια αναχώρηση;',
   'booking.party.heading': 'Πόσα άτομα είστε;',
+  'booking.peek.from': 'από :amount',
+  'booking.peek.price_unknown': 'Κατόπιν ζήτησης',
+  'booking.peek.pick_date': 'Διαλέξτε ημερομηνία',
+  'booking.peek.people_one': 'ένα άτομο',
+  'booking.peek.people_many': ':count άτομα',
+  'booking.sheet.close': 'Κλείσιμο',
+  'enquiry.peek.summary': 'Απαντάμε με προσφορά',
+  // Μόνο όταν οι θέσεις σώνονται. Μια αναχώρηση με έντεκα ελεύθερες δεν έχει
+  // λόγο να το λέει — πίεση χωρίς πληροφορία.
+  'booking.party.seats_left_one': 'Μένει μία θέση.',
+  'booking.party.seats_left_many': 'Μένουν :count θέσεις.',
+  'booking.party.seats_full': 'Πήρατε όλες τις θέσεις που μένουν.',
   'booking.extras.heading': 'Θέλετε κάτι ακόμη;',
   // Οι τρεις ετικέτες στοιχείων που χρησιμοποιεί το μπλοκ *αιτήματος*
   // (BKG-24). Η διαδρομή κράτησης σταμάτησε να τις ζητά όταν τις ανέλαβε η
@@ -50,8 +63,9 @@ export const el: Record<MessageKey, string> = {
   'booking.hold.warning': 'Μένουν μόνο :time για να ολοκληρώσετε',
   'booking.confirmed.heading': 'Η κράτηση έγινε',
   'booking.confirmed.body': 'Στείλαμε με email το εισιτήριο και το σημείο συνάντησης.',
-  'booking.pending.heading': 'Η πληρωμή στάλθηκε',
-  'booking.pending.body': 'Περιμένουμε επιβεβαίωση από την τράπεζα. Θα έχετε email μέσα σε λίγα λεπτά.',
+  'booking.pending.heading': 'Εκκρεμεί η επιβεβαίωση',
+  'booking.pending.body': 'Αν πληρώσατε, περιμένουμε την επιβεβαίωση της τράπεζας και θα έχετε email μέσα σε λίγα λεπτά. Αν δεν προλάβατε να ολοκληρώσετε, συνεχίστε από εδώ.',
+  'booking.pending.resume': 'Συνεχίστε την πληρωμή',
   'booking.sold_out.heading': 'Οι θέσεις μόλις εξαντλήθηκαν',
   'booking.sold_out.body': 'Κάποιος τις έκλεισε όσο αποφασίζατε. Ίσως υπάρχει άλλη ημερομηνία.',
   'booking.sold_out.retry': 'Άλλη ημερομηνία',

@@ -12,6 +12,7 @@ use App\Domain\Payments\Support\GatewayErrorDictionary;
 use App\Enums\PaymentGatewayName;
 use App\Enums\PaymentKind;
 use App\Models\Booking;
+use App\Models\IntegrationCredential;
 use App\Models\Payment;
 use Brick\Money\Money;
 use Illuminate\Http\Request;
@@ -115,7 +116,7 @@ final class FakeGateway implements PaymentGateway
      * step for no benefit — the real verification is tested against recorded
      * fixtures in the real gateways, where it belongs.
      */
-    public function verifyWebhook(Request $request): bool
+    public function verifyWebhook(Request $request, ?IntegrationCredential $credential = null): bool
     {
         return true;
     }

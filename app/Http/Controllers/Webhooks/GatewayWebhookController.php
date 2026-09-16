@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Webhooks;
 
+use App\Contracts\ProvidesWebhookVerificationKey;
+use App\Domain\Payments\Gateways\GatewayCallFailed;
 use App\Domain\Payments\Support\GatewayResolver;
 use App\Enums\PaymentGatewayName;
 use App\Enums\WebhookEventStatus;
 use App\Jobs\ProcessGatewayWebhook;
 use App\Models\GatewayWebhookEvent;
+use App\Models\IntegrationCredential;
 use App\Support\Tenancy;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
@@ -55,6 +58,72 @@ final class GatewayWebhookController
 
     public function __invoke(Request $request, string $provider): JsonResponse
     {
+        return $this->handle($request, $provider, null);
+    }
+
+    /**
+     * The same delivery, on the address that names the operator.
+     *
+     * The credential is resolved from the path instead of from a field in the
+     * body, which is the difference that matters: the sender no longer chooses
+     * which operator their webhook is matched against.
+     */
+    public function deliver(Request $request, string $provider, string $token): JsonResponse
+    {
+        return $this->handle($request, $provider, $token);
+    }
+
+    /**
+     * Answer Viva's URL-verification call.
+     *
+     * Viva GETs the address when an operator saves it in their dashboard and
+     * expects that account's verification key printed back. The key is fetched
+     * with the operator's own credentials and cached on the row — so this
+     * endpoint hands out nothing it was not given by the account it belongs to,
+     * and an unknown token is a 404 rather than a hint.
+     *
+     * It is deliberately not authenticated: it cannot be. That is why the token
+     * is 40 random characters, and why the key it prints is useless without also
+     * knowing which operator's webhook to forge.
+     */
+    public function verify(Request $request, string $provider, string $token): JsonResponse
+    {
+        $gateway = PaymentGatewayName::tryFrom($provider);
+        $credential = $this->credentialFor($gateway, $token);
+
+        if ($gateway === null || $credential === null) {
+            return response()->json(['received' => false], 404);
+        }
+
+        $implementation = $this->gateways->named($gateway);
+
+        if (! $implementation instanceof ProvidesWebhookVerificationKey) {
+            return response()->json(['received' => false], 404);
+        }
+
+        try {
+            $key = $implementation->webhookVerificationKey($credential);
+        } catch (GatewayCallFailed $failed) {
+            // The operator's credentials are wrong, or Viva is down. Either way
+            // this endpoint has nothing true to print, and printing something
+            // false would have them chasing a verification that can never pass.
+            Log::warning('payments.webhook_key_unavailable', [
+                'gateway' => $gateway->value,
+                'credential_id' => $credential->getKey(),
+                'code' => $failed->getCode(),
+            ]);
+
+            return response()->json(['received' => false], 502);
+        }
+
+        // Both spellings, because Viva's samples show `key` and their webhook
+        // guide prints `Key`, and a verification that fails on capitalisation is
+        // a support call nobody can diagnose from the outside.
+        return response()->json(['Key' => $key, 'key' => $key]);
+    }
+
+    private function handle(Request $request, string $provider, ?string $token): JsonResponse
+    {
         $gateway = PaymentGatewayName::tryFrom($provider);
 
         if ($gateway === null || ! $gateway->isExternal()) {
@@ -64,7 +133,17 @@ final class GatewayWebhookController
             return response()->json(['received' => false], 404);
         }
 
-        $verified = $this->gateways->named($gateway)->verifyWebhook($request);
+        $credential = $token === null ? null : $this->credentialFor($gateway, $token);
+
+        if ($token !== null && $credential === null) {
+            // An address nobody owns. Recorded nowhere and answered with the
+            // same 404 as an unknown provider: there is no tenant to attach the
+            // evidence to, and a distinct status would confirm which tokens
+            // exist.
+            return response()->json(['received' => false], 404);
+        }
+
+        $verified = $this->gateways->named($gateway)->verifyWebhook($request, $credential);
 
         // **Parsed only after verification.** `->all()` on an unverified body is
         // the attacker choosing what our JSON decoder does.
@@ -99,6 +178,14 @@ final class GatewayWebhookController
         // 2xx before any money logic runs (PAY-6). The gateway stops retrying;
         // the work happens on a worker.
         return response()->json(['received' => true]);
+    }
+
+    /** The credential an operator's own webhook address names, if it names one. */
+    private function credentialFor(?PaymentGatewayName $gateway, string $token): ?IntegrationCredential
+    {
+        $provider = $gateway?->provider();
+
+        return $provider === null ? null : IntegrationCredential::findByWebhookToken($provider, $token);
     }
 
     /**

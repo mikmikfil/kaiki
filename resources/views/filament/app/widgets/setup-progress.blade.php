@@ -57,6 +57,23 @@
             .kaiki-setup-steps .tag { font-size: .7rem; color: rgb(var(--gray-400)); }
             .kaiki-setup-cta { display: flex; align-items: center; gap: .75rem; margin-left: auto; }
             .kaiki-setup-cta .count { font-size: .8rem; color: rgb(var(--gray-500)); white-space: nowrap; }
+
+            /* --- dark ----------------------------------------------------
+               The numbered marks are the widget: a `--gray-100` disc is a white
+               coin on a dark page, and every step still to do shouted louder
+               than the one already done in brand colour. The done mark keeps its
+               primary fill — that contrast is the progress — and only the
+               not-yet mark moves. */
+            .dark .kaiki-setup-steps .mark {
+                background: rgb(var(--gray-800));
+                color: rgb(var(--gray-400));
+            }
+
+            .dark .kaiki-setup-steps .is-done .label,
+            .dark .kaiki-setup-cta .count { color: rgb(var(--gray-400)); }
+
+            .dark .kaiki-setup-steps .is-skipped .label,
+            .dark .kaiki-setup-steps .tag { color: rgb(var(--gray-500)); }
         </style>
     </x-filament::section>
 </x-filament-widgets::widget>

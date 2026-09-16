@@ -87,6 +87,23 @@ return new class extends Migration
             // one lets anyone mark a booking paid.
             $table->text('webhook_secret')->nullable();
 
+            // The operator's half of their own webhook address.
+            //
+            // Viva verifies a webhook by **GET-ing the URL** and expecting the
+            // verification key printed back, and that request carries nothing
+            // that says whose webhook it is — no source code, no merchant id,
+            // no signature. One shared address therefore cannot answer it: the
+            // endpoint would have to guess which operator's key to print.
+            //
+            // Random rather than the source code, which is the other candidate
+            // and is in `external_account_id` already: a source code is four
+            // digits, so anyone could walk the range, read a verification key
+            // off each answer and then forge webhooks for every operator on the
+            // platform. Not a secret in the sense `webhook_secret` is — it is
+            // in a URL an operator pastes into a dashboard — but unguessable,
+            // which is the property that matters here.
+            $table->string('webhook_token', 64)->nullable();
+
             $table->timestamps();
 
             $table->unique(['tenant_id', 'provider', 'environment'], 'integr_creds_tenant_prov_env_uq');
@@ -94,6 +111,9 @@ return new class extends Migration
             // **Not tenant-first**, on purpose — this is the index the webhook
             // resolver reads, and it has no tenant yet.
             $table->index(['provider', 'external_account_id'], 'integr_creds_provider_account_idx');
+            // Also not tenant-first, and for the same reason: this is the index
+            // the webhook endpoint reads, before any tenant exists.
+            $table->unique('webhook_token', 'integr_creds_webhook_token_uq');
         });
     }
 

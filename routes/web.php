@@ -63,6 +63,30 @@ Route::post('/webhooks/{provider}', GatewayWebhookController::class)
     ->name('webhooks.gateway');
 
 /*
+| The same endpoint, with the operator in the address.
+|
+| Viva verifies a webhook URL by **GET-ing it** and expecting the account's
+| verification key printed back, and that request carries nothing identifying:
+| no source code, no merchant id, no signature. The shared address above cannot
+| answer it — it would have to guess whose key to print — so the operator is in
+| the path, as an unguessable token rather than as the four-digit source code
+| that anyone could walk (see the migration for why that matters).
+|
+| GET verifies, POST delivers. The POST is the route above's controller with the
+| credential already resolved, which also makes the tenant lookup exact rather
+| than inferred from a payload field the sender chose.
+*/
+Route::get('/webhooks/{provider}/{token}', [GatewayWebhookController::class, 'verify'])
+    ->middleware('throttle:webhooks')
+    ->whereAlphaNumeric('token')
+    ->name('webhooks.gateway.verify');
+
+Route::post('/webhooks/{provider}/{token}', [GatewayWebhookController::class, 'deliver'])
+    ->middleware('throttle:webhooks')
+    ->whereAlphaNumeric('token')
+    ->name('webhooks.gateway.tenant');
+
+/*
 |--------------------------------------------------------------------------
 | The four tokenised guest pages (spec TOK-1 … TOK-13)
 |--------------------------------------------------------------------------

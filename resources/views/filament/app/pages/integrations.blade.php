@@ -13,10 +13,17 @@
     @php($credentials = $this->credentials())
 
     @if ($credentials->isEmpty())
+        {{-- The empty state carries the button too. The page header has one, but
+             an operator who has never been here reads the panel, not the header
+             bar, and «Αποθήκευση» up there was the only way in. --}}
         <section class="fi-section rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
             <p class="text-sm text-gray-500 dark:text-gray-400">
                 {{ __('integrations.help.never_shown') }}
             </p>
+
+            <div class="mt-4">
+                {{ ($this->saveCredentialsAction)([]) }}
+            </div>
         </section>
     @else
         <div class="space-y-4">
@@ -65,6 +72,46 @@
                                     </div>
                                 @endforeach
                             </dl>
+
+                            {{-- The operator's own webhook address.
+
+                                 Per credential, because the token in it is per
+                                 credential: the gateway's verification call
+                                 names nobody, so the address is the only thing
+                                 that says whose webhook this is. Printed here
+                                 rather than in the Viva block below because
+                                 that block exists before any credentials do,
+                                 and this cannot. --}}
+                            @if ($credential->webhook_token)
+                                @php($webhookUrl = route('webhooks.gateway.verify', [
+                                    'provider' => $credential->provider->value,
+                                    'token' => $credential->webhook_token,
+                                ]))
+
+                                <div class="mt-3 space-y-1">
+                                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        {{ __('integrations.webhook_url.label') }}
+                                    </p>
+
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                                        {{ __('integrations.webhook_url.help') }}
+                                    </p>
+
+                                    <div class="flex flex-wrap items-center gap-2 pt-1">
+                                        <code class="select-all break-all rounded bg-gray-50 px-2 py-1 font-mono text-sm text-gray-800 ring-1 ring-gray-950/10 dark:bg-white/5 dark:text-gray-200 dark:ring-white/10">{{ $webhookUrl }}</code>
+
+                                        <x-filament::button
+                                            size="xs"
+                                            color="gray"
+                                            icon="heroicon-m-clipboard"
+                                            x-data="{}"
+                                            x-on:click="window.navigator.clipboard.writeText({{ \Illuminate\Support\Js::from($webhookUrl) }}); $tooltip({{ \Illuminate\Support\Js::from(__('integrations.viva_return.copied')) }}, { theme: $store.theme, timeout: 2000 })"
+                                        >
+                                            {{ __('integrations.viva_return.copy') }}
+                                        </x-filament::button>
+                                    </div>
+                                </div>
+                            @endif
 
                             @if ($credential->last_error !== null)
                                 <p class="mt-2 text-sm text-danger-600 dark:text-danger-400">

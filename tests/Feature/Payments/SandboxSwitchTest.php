@@ -45,7 +45,12 @@ it('keeps live and test credentials as separate rows, so switching is not a togg
             app(SaveIntegrationCredential::class)(new IntegrationCredentialData(
                 provider: IntegrationProvider::Viva,
                 environment: $environment,
-                credentials: ['client_id' => 'id-' . $environment->value, 'client_secret' => 'secret-' . $environment->value],
+                credentials: [
+                    'client_id' => 'id-' . $environment->value,
+                    'client_secret' => 'secret-' . $environment->value,
+                    'merchant_id' => 'merchant-' . $environment->value,
+                    'api_key' => 'api-key-' . $environment->value,
+                ],
                 // Required since the Stripe removal made Viva's verification key
                 // a declared field: `verifyWebhook()` has always read it and
                 // refused without it, so a saved credential that lacked one was

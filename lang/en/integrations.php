@@ -68,6 +68,7 @@ return [
         'user_id' => 'User ID',
         'subscription_key' => 'Subscription key',
         'token' => 'Token',
+        'merchant_id' => 'Merchant ID',
         'api_key' => 'API key',
         'account_sid' => 'Account SID',
         'auth_token' => 'Auth token',
@@ -96,6 +97,11 @@ return [
     ],
 
     'actions' => [
+        // Two labels for one action: the same button adds and replaces, but
+        // "Save" on an empty page never says that a new connection starts
+        // there — an operator looks for a "new" button.
+        'create' => 'New connection',
+        'edit' => 'Edit',
         'save' => 'Save',
         'deactivate' => 'Switch off',
         'deactivated' => 'Switched off. Your details are kept, so you can switch it back on without pasting them again.',
@@ -112,6 +118,11 @@ return [
      * Viva takes no return address per order, so without these a guest who
      * paid lands wherever the dashboard happened to say.
      */
+    'webhook_url' => [
+        'label' => 'Your webhook address',
+        'help' => 'Paste this into the webhooks section of your Viva account. Viva calls it once to verify it — we fetch the key with the credentials you gave us, so there is nothing for you to look up. The address is unique to you: do not publish it.',
+    ],
+
     'viva_return' => [
         'heading' => 'Viva: where guests come back to after paying',
         'help' => 'In your Viva account, open the payment source you use for Kaiki and paste these two addresses into its Success URL and Failure URL, so guests return to their booking — or to the checkout page to try again if the payment does not go through.',

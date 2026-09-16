@@ -71,6 +71,50 @@
 
         .checkout-grid { display: grid; gap: 1.25rem; }
 
+        /* ---- the order a phone reads this in ---------------------------
+
+           The summary is first in the markup so a phone sees what is being paid
+           for before the fields. True, and it took the pay button with it: the
+           price card carries «Πληρωμή 110,00 €», so a guest met the button, then
+           scrolled past name, email, telephone, a panel per passenger and the
+           consent box, and had to scroll back **up** to press it.
+
+           `display: contents` on the aside dissolves its box so its two cards
+           become items of this grid in their own right, and each can be ordered
+           separately. What a phone reads now is: which trip and when, then the
+           form, then the price and the button — the button last, where it is
+           the next thing to do rather than the first thing in the way.
+
+           Desktop is untouched: the media query below restores the aside as a
+           real sticky column. */
+        @media (max-width: 55.999rem) {
+            .checkout-side { display: contents; }
+
+            .checkout-side > .card:first-child { order: 1; }
+            .checkout-main { order: 2; }
+            .checkout-side > .card:last-child { order: 3; }
+        }
+
+        /* The cancellation sentence, under the price and above the button. Not
+           a card of its own — it is part of what the button commits to. */
+        .policy { margin-block-start: 1rem; }
+
+        .policy h3 {
+            margin: 0 0 .25rem;
+            font-size: .82rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+        }
+
+        .policy p { margin: 0; }
+
+        /* The consent link was the one underlined link left on a guest page —
+           the rule of 2026-09-11 is that nothing here is underlined, at rest or
+           on hover — and against the sentence around it that read as damage
+           rather than as a link. The operator's colour and the weight say it
+           instead, which is what every other link on these pages does. */
+        .consent a { color: var(--kaiki-primary, #0b3d91); font-weight: 600; }
+
         @media (min-width: 56rem) {
             .checkout-grid {
                 grid-template-columns: minmax(0, 1fr) 23rem;
@@ -141,7 +185,11 @@
 
         .consent label {
             display: flex; align-items: flex-start; gap: .6rem;
-            margin: 0; font-weight: 400; font-size: .92rem; line-height: 1.4;
+            margin: 0; font-weight: 400; font-size: .92rem; line-height: 1.45;
+            /* The sentence is short and the link inside it is five words long,
+               so the greedy break left «ακύρωσης.» alone on its own line under
+               a half-empty one. */
+            text-wrap: pretty;
         }
 
         .consent input[type="checkbox"] {

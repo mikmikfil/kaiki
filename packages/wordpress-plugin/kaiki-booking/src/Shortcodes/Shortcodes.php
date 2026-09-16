@@ -55,18 +55,26 @@ final class Shortcodes {
 	/**
 	 * `[kaiki_booking product="uuid"]` — the booking form itself.
 	 *
+	 * `product` may be left out **on a page that is about one trip**, which is
+	 * what makes this usable from a template: see {@see CurrentTrip}. A page
+	 * that names no trip and is about none still gets the notice below.
+	 *
 	 * @param  array<string, string>|string $atts The shortcode attributes.
 	 * @return string
 	 */
 	public static function booking( $atts ): string {
 		$atts = shortcode_atts( array( 'product' => '' ), self::attributes( $atts ), 'kaiki_booking' );
 
-		$product = self::uuid( $atts['product'] );
+		$product = self::product( $atts['product'] );
 
 		if ( '' === $product ) {
 			return self::misconfigured(
 				/* translators: %s: an example of a correct shortcode. */
 				__( 'This booking form needs to know which trip it is for. Use %s, with the trip id from your Kaiki panel.', 'kaiki-booking' ),
+				// Unchanged wording, and on purpose. The id is still what is
+				// missing; that a trip page can now supply it by itself is not
+				// something to explain to somebody who is looking at a page
+				// which evidently is not one.
 				'[kaiki_booking product="…"]'
 			);
 		}
@@ -102,7 +110,28 @@ final class Shortcodes {
 	public static function enquiry( $atts ): string {
 		$atts = shortcode_atts( array( 'product' => '' ), self::attributes( $atts ), 'kaiki_enquiry' );
 
-		return self::wrap( Bundle::embed( 'enquiry', array( 'product' => self::uuid( $atts['product'] ) ) ) );
+		return self::wrap( Bundle::embed( 'enquiry', array( 'product' => self::product( $atts['product'] ) ) ) );
+	}
+
+	/**
+	 * The trip this embed is for: the one written into the shortcode, or the one
+	 * the page is about.
+	 *
+	 * The attribute wins when it is there, always — a template that resolves a
+	 * trip must never override an id somebody typed, because the typed one is
+	 * the more specific statement and the only one an operator can see.
+	 *
+	 * The fallback is validated by {@see self::uuid()} like the attribute is.
+	 * It comes from `get_post_meta` rather than from a page editor, which is a
+	 * reason to expect it to be well formed and not a reason to trust it: the
+	 * meta is writable by anything else on the site.
+	 *
+	 * @param string $attribute The `product` attribute as typed, possibly empty.
+	 */
+	private static function product( string $attribute ): string {
+		$product = self::uuid( $attribute );
+
+		return '' === $product ? self::uuid( CurrentTrip::uuid() ) : $product;
 	}
 
 	/**

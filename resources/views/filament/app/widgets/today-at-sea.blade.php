@@ -164,5 +164,29 @@
         @media (max-width: 48rem) {
             .kt-ruler, .kt-row { grid-template-columns: 5.5rem minmax(20rem, 1fr); }
         }
+
+        /* --- dark ------------------------------------------------------------
+           The same ramp read from the other end. Filament's palette variables
+           hold one value per shade in both themes, so a light surface named here
+           stays light on a dark page; this widget is the day's timeline and had
+           a white track running across it. Same hues, same hierarchy, dark
+           ground. */
+        .dark .kt-track { background: rgb(var(--gray-900)); }
+        .dark .kt-line { background: rgba(255, 255, 255, .08); }
+        .dark .kt-empty { color: rgb(var(--gray-400)); }
+        .dark .kt-label { color: rgb(var(--gray-300)); }
+        .dark .kt-tick { color: rgb(var(--gray-400)); }
+        .dark .kt-bar.is-block { background: rgb(var(--gray-500)); }
+
+        .dark .kt-bar.is-external {
+            background: repeating-linear-gradient(45deg,
+                rgb(var(--gray-400)), rgb(var(--gray-400)) 5px,
+                rgb(var(--gray-600)) 5px, rgb(var(--gray-600)) 10px);
+        }
+
+        .dark .kt-bar.is-cancelled {
+            background: rgb(var(--gray-700));
+            color: rgb(var(--gray-400));
+        }
     </style>
 </x-filament-widgets::widget>

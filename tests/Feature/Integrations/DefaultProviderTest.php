@@ -135,6 +135,8 @@ it('re-saving the same provider is an update, not a unique-index violation', fun
         $second = saveCredential(IntegrationProvider::Viva, credentials: [
             'client_id' => 'rotated-id',
             'client_secret' => 'rotated-secret',
+            'merchant_id' => 'rotated-merchant',
+            'api_key' => 'rotated-api-key',
         ]);
 
         // Rotating a key is the single most common reason to open this screen,
@@ -156,6 +158,8 @@ it('clears verified_at on every write, so new keys inherit no credibility', func
         $rotated = saveCredential(IntegrationProvider::Viva, credentials: [
             'client_id' => 'typo',
             'client_secret' => 'typo',
+            'merchant_id' => 'typo',
+            'api_key' => 'typo',
         ]);
 
         expect($rotated->verified_at)->toBeNull();

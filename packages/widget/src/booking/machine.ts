@@ -62,6 +62,30 @@ export interface BookingState {
   departureUuid: string | null;
   localDate: string | null;
   localTime: string | null;
+  /**
+   * Seats left on the chosen departure, as `GET /availability` reported them
+   * when the day was picked.
+   *
+   * Read, not chosen — it is here because the party step needs it and the
+   * availability response is fetched a step earlier. It is **advisory**
+   * (ADR-0006): it caps the stepper so a guest cannot ask for more seats than a
+   * boat has, and it is never sent to the server, which re-checks under a lock
+   * and still answers `insufficient_capacity` if the last seat went while the
+   * guest was deciding. Null on a per-vessel window, a quote product, or a day
+   * with more than one sailing — see `DateStep`.
+   */
+  seatsAvailable: number | null;
+  /**
+   * True when the chosen day sails more than once and the guest has not said
+   * which one.
+   *
+   * A fact about how complete their answer is, not a piece of view state: a day
+   * with two departures has been half-answered, and the walk must not move on
+   * from it. It cannot be derived here — only the date step has the
+   * availability that says how many sailings a day has — so the step that knows
+   * writes it down and `canAdvance` reads it.
+   */
+  awaitingDeparture: boolean;
   pax: Record<string, number>;
   extras: Record<string, number>;
   voucherCode: string;
@@ -78,6 +102,8 @@ export function initialState(): BookingState {
     departureUuid: null,
     localDate: null,
     localTime: null,
+    seatsAvailable: null,
+    awaitingDeparture: false,
     pax: {},
     extras: {},
     voucherCode: '',
@@ -112,6 +138,12 @@ export function stepsFor(options: MachineOptions): Step[] {
 export function canAdvance(state: BookingState, options: MachineOptions): boolean {
   switch (state.step) {
     case 'date':
+      // A day that sails twice and has not been narrowed down is not an answer
+      // yet, whatever else is filled in.
+      if (state.awaitingDeparture) {
+        return false;
+      }
+
       // A date without a departure is a per-vessel window; both are answers.
       return state.departureUuid !== null || state.localDate !== null;
     case 'party':
@@ -162,9 +194,33 @@ export function goTo(state: BookingState, step: Step, options: MachineOptions): 
   return stepsFor(options).includes(step) ? { ...state, step } : state;
 }
 
-/** How many people the party has, which is what capacity is measured in. */
+/** How many people were chosen at all, infants included. Answers «is anybody coming?». */
 export function countedPax(state: BookingState): number {
   return Object.values(state.pax).reduce((total, qty) => total + Math.max(0, qty), 0);
+}
+
+/**
+ * How many **seats** the party takes, which is what capacity is measured in.
+ *
+ * Not the same number as `countedPax`, and the difference is a baby. A band
+ * with `counts_toward_capacity: false` is a person on the manifest who does not
+ * occupy a seat, so a family of two adults and an infant is three passengers
+ * and two seats. Capping the stepper on the head count would refuse that family
+ * a boat that has room for them.
+ *
+ * A band whose flag never arrived counts — the safe direction is to occupy a
+ * seat rather than to sell one twice.
+ */
+export function seatedPax(
+  state: BookingState,
+  bands: readonly { readonly uuid: string; readonly counts_toward_capacity?: boolean }[],
+): number {
+  const free = new Set(bands.filter((band) => band.counts_toward_capacity === false).map((band) => band.uuid));
+
+  return Object.entries(state.pax).reduce(
+    (total, [uuid, qty]) => (free.has(uuid) ? total : total + Math.max(0, qty)),
+    0,
+  );
 }
 
 /**

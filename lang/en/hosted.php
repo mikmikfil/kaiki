@@ -141,12 +141,26 @@ return [
         'weather_refund' => 'If we cancel for weather, you are refunded :percent%.',
         'price' => [
             'from' => 'From',
+            'on_request' => 'On request',
             // Brand decision 4 of 2026-09-04: the sentence, never the rate. The
             // rate is printed on the invoice, which is M6.
             'vat_included' => 'VAT is included in the price',
         ],
+        // ADR-0033's bar, which lives only until the widget pins its own sheet.
+        // Its own keys rather than `price` and `booking`, because these copy the
+        // widget's peek word for word: when the handover happens not a letter
+        // changes. Lowercase "from" and "Continue" because that is what the
+        // widget says; the aside keeps its own, where "From" opens the line.
+        'bar' => [
+            'from' => 'from',
+            'action' => 'Continue',
+            'enquire_action' => 'Send',
+        ],
         'booking' => [
             'heading' => 'Book this trip',
+            'enquire' => 'Ask for a quote',
+            'pick_date' => 'Pick a date',
+            'enquire_summary' => 'We answer with a quote',
             // The four lines above the date picker, brand decision 3.
             'details' => 'Trip details',
             'capacity' => 'Capacity',

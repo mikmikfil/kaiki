@@ -60,11 +60,15 @@ it('only treats a payment gateway as competing for a default', function (): void
 it('records which providers can be verified, so the gap stays visible', function (): void {
     // Deliberately an assertion about the *current* state rather than about
     // completeness. Verification clients arrive with the issues that introduce
-    // them — Viva and Stripe with the `PaymentGateway` contract, Postmark and
-    // the SMS vendors with the notification issue, myDATA in M6 — and each will
-    // change this number by one. A test that merely allowed an empty registry
-    // would never notice if the wiring broke.
-    expect(app(VerifierRegistry::class)->registered())->toBe([]);
+    // them — Postmark and the SMS vendors with the notification issue, myDATA in
+    // M6 — and each will change this list by one. A test that merely allowed an
+    // empty registry would never notice if the wiring broke.
+    //
+    // Viva joined on 2026-09-16, and the gap it left was not cosmetic: nothing
+    // could write `verified_at`, `usableForRealCall()` requires it, so every
+    // credential set was unusable and a sandbox tenant fell through to the fake
+    // checkout instead of reaching Viva.
+    expect(app(VerifierRegistry::class)->registered())->toBe([IntegrationProvider::Viva]);
 })->group('fast');
 
 it('names an external account field only where the provider puts one in a webhook', function (): void {

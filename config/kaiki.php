@@ -995,6 +995,18 @@ return [
 
         'viva' => [
             /*
+             | Where the webhook verification key is read from: the `checkout`
+             | host, with Basic auth over Merchant ID and API key. Not the `api`
+             | host, and not the OAuth2 token — neither reaches it.
+             |
+             | Configuration rather than a constant because `docs/api.md` item 12
+             | records the exact mechanism as an open question against Viva's
+             | live documentation — a wrong path here is then an `.env` line, not
+             | a release.
+             */
+            'webhook_key_path' => env('KAIKI_VIVA_WEBHOOK_KEY_PATH', '/api/messages/config/token'),
+
+            /*
              * Three hosts per environment, because Viva splits them: the OAuth2
              * token comes from `accounts`, the order from `api`, and the guest
              * is sent to `checkout`. The demo and live domains are genuinely

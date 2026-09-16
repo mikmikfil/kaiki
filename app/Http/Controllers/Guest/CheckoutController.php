@@ -8,6 +8,7 @@ use App\Domain\Booking\Actions\MintCheckoutSession;
 use App\Domain\Booking\Actions\SaveGuestDetails;
 use App\Domain\Booking\Support\GuestTokenResolver;
 use App\Domain\Branding\Actions\GetBrandPayload;
+use App\Domain\Hosted\Support\HostedUrl;
 use App\Enums\BookingStatus;
 use App\Enums\PaymentKind;
 use App\Exceptions\CheckoutRefused;
@@ -92,8 +93,57 @@ final class CheckoutController extends GuestPageController
             'booking' => $booking->load(['product', 'departure', 'guests']),
             'token' => $token,
             'needsGuestDetails' => (bool) $booking->product?->guest_details_required,
+
+            // **The operator's timezone, not the application's.** Everything is
+            // stored UTC (CLAUDE.md), and `config('app.timezone')` is therefore
+            // UTC — so the hold sentence was printing 07:32 to a guest standing
+            // on a quay at 10:52. Every other guest-facing time on the site
+            // goes through the tenant's zone; this one was the exception.
+            'timezone' => $tenant->timezone ?: (string) config('kaiki.defaults.timezone'),
             'backUrl' => $this->backToSiteUrl($booking, $tenant),
+
+            // The page the consent line points at. A guest ticking a box for
+            // terms they have no way to read is not consenting to anything,
+            // and the page has existed for every operator since ADR-0029
+            // retired the `off` tier for exactly this reason.
+            'legalUrl' => HostedUrl::legal($tenant, $locale),
+
+            /*
+             * The cancellation policy, in one sentence, at the moment it is
+             * being decided on.
+             *
+             * From `policy_snapshot`, which `CreateBookingDraft` already froze
+             * onto this draft — the same copy refunds are computed from
+             * (brief §5.9), so what the guest is shown and what they would get
+             * back cannot drift apart. Null when the product carries no policy
+             * at all, and then the block is simply absent rather than reassuring
+             * somebody with a blank.
+             */
+            'policySummary' => $this->policySummary($booking, $locale),
         ]);
+    }
+
+    /**
+     * One locale's sentence out of the frozen policy snapshot.
+     *
+     * `summary` is stored per locale (§3.3). A snapshot written before the
+     * guest's language existed on the tenant falls back to the other one rather
+     * than showing nothing — a policy in the wrong language is still a policy,
+     * and silence here is the failure this was added to fix.
+     */
+    private function policySummary(Booking $booking, string $locale): ?string
+    {
+        $summary = data_get($booking->policy_snapshot, 'summary');
+
+        if (! is_array($summary)) {
+            return null;
+        }
+
+        $text = $summary[$locale] ?? collect($summary)->first(
+            static fn (mixed $value): bool => is_string($value) && trim($value) !== '',
+        );
+
+        return is_string($text) && trim($text) !== '' ? trim($text) : null;
     }
 
     /**
@@ -135,6 +185,15 @@ final class CheckoutController extends GuestPageController
         // `$booking->product` outside it throws `TenantContextMissingException`
         // (TEN-4) — `show()` never hit that because `renderInTenant()` wraps
         // its whole closure, and this method had no such wrapper.
+        // **The guest's language, set before anything can fail.**
+        //
+        // `show()` resolves the locale and renders in it; this method never did,
+        // so every sentence it produces came out in the fallback language. A
+        // guest who filled a Greek page in Greek, pressed «Πληρωμή» and hit a
+        // refusal was answered in English on the same Greek page — which reads
+        // as a different site's error rather than as this one's.
+        app()->setLocale($this->resolveLocale($request, $booking->locale));
+
         return Tenancy::forTenant($tenant, function () use ($booking, $request, $token): RedirectResponse {
             $needsGuests = (bool) $booking->product?->guest_details_required;
 
@@ -152,7 +211,13 @@ final class CheckoutController extends GuestPageController
             if ($needsGuests) {
                 $rules['guests'] = ['required', 'array', 'min:1'];
                 $rules['guests.*.full_name'] = ['required', 'string', 'max:120'];
-                $rules['guests.*.document_number'] = ['nullable', 'string', 'max:40'];
+                // Required, not optional. `guest_details_required` is set on a
+                // trip precisely because the λιμεναρχείο asks for a passenger
+                // list, and a document number is the column on it that is not
+                // a name. It was `nullable`, so the one document the coastguard
+                // reads could be filed with the numbers missing and nobody
+                // found out until the quay.
+                $rules['guests.*.document_number'] = ['required', 'string', 'max:40'];
                 $rules['guests.*.date_of_birth'] = ['nullable', 'date', 'before:today'];
             }
 

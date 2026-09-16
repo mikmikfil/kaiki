@@ -52,7 +52,36 @@ export function DateStep({
     startOfMonth(state.localDate === null ? new Date() : new Date(`${state.localDate}T00:00:00`)),
   );
 
-  const { statuses, loading, failed } = useAvailability(client, productUuid, month);
+  const { statuses, departures, loading, failed } = useAvailability(client, productUuid, month);
+
+  /**
+   * What picking a day answers, beyond the day.
+   *
+   * A `per_seat` day with **one** sailing has already answered which sailing,
+   * and asking again would be asking a question with one possible answer. So
+   * the departure, its local time and its remaining seats are taken with the
+   * date — which is what lets the party step cap its stepper and the bar say
+   * «09:00».
+   *
+   * A day with **more than one** is only half answered. It raises
+   * `awaitingDeparture`, which stops the walk on this step, and the times
+   * appear below the grid for the guest to choose between.
+   */
+  const pick = (date: string): Partial<BookingState> => {
+    const options = departures.get(date) ?? [];
+    const only = options.length === 1 ? options[0] : undefined;
+
+    return {
+      localDate: date,
+      departureUuid: only?.uuid ?? null,
+      localTime: only?.window.local_time ?? null,
+      seatsAvailable: only?.seats_available ?? null,
+      awaitingDeparture: options.length > 1,
+    };
+  };
+
+  /** The sailings on the chosen day, when there is a choice to make. */
+  const choices = state.localDate === null ? [] : (departures.get(state.localDate) ?? []);
 
   return (
     <div class="kaiki-step">
@@ -68,7 +97,17 @@ export function DateStep({
           <input
             type="date"
             value={state.localDate ?? ''}
-            onInput={(event) => onChange({ localDate: (event.currentTarget as HTMLInputElement).value || null })}
+            onInput={(event) =>
+              // No grid means no departures were read, so the three facts the
+              // grid would have supplied are cleared rather than left stale
+              // from a day the guest has just replaced.
+              onChange({
+                localDate: (event.currentTarget as HTMLInputElement).value || null,
+                departureUuid: null,
+                localTime: null,
+                seatsAvailable: null,
+              })
+            }
           />
         </label>
       ) : (
@@ -80,13 +119,62 @@ export function DateStep({
           onMonth={setMonth}
           selected={state.localDate}
           onSelect={(date) =>
-            // The departure is cleared with the date: it belonged to the day
-            // that was chosen before, and carrying it forward would book a
+            // Everything the old day answered is replaced, never merged: the
+            // departure, its time and its seat count belonged to the day that
+            // was chosen before, and carrying any of them forward would book a
             // sailing on a date nobody picked.
-            onChange({ localDate: date, departureUuid: null })
+            onChange(pick(date))
           }
         />
       )}
+
+      {/* The sailings, when the day has more than one.
+
+          Below the grid rather than on a step of its own: it is the second half
+          of one question — «which day, and which of that day's departures» — and
+          a step between the calendar and the party would put a whole screen
+          between choosing a Tuesday and saying who is coming.
+
+          It appears only when there is a choice. A day that sails once has
+          already been answered by the tap on the day, and a list of one is a
+          question with no alternative. */}
+      {choices.length > 1 ? (
+        <fieldset class="kaiki-times">
+          <legend>{t('booking.date.which_departure')}</legend>
+
+          {choices.map((option) => (
+            <label class="kaiki-time" key={option.uuid}>
+              <input
+                type="radio"
+                name="kaiki-departure"
+                checked={state.departureUuid === option.uuid}
+                onChange={() =>
+                  onChange({
+                    departureUuid: option.uuid,
+                    localTime: option.window.local_time,
+                    seatsAvailable: option.seats_available,
+                    awaitingDeparture: false,
+                  })
+                }
+              />
+              <span class="kaiki-time-at">{option.window.local_time}</span>
+
+              {/* Only when they are running out, for the same reason the party
+                  step only says it then: a sailing with eleven free seats has
+                  nothing useful to add here. */}
+              {option.seats_available <= 3 ? (
+                <span class="kaiki-time-left">
+                  {option.seats_available <= 0
+                    ? t('booking.party.seats_full')
+                    : option.seats_available === 1
+                      ? t('booking.party.seats_left_one')
+                      : t('booking.party.seats_left_many').replace(':count', String(option.seats_available))}
+                </span>
+              ) : null}
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
     </div>
   );
 }

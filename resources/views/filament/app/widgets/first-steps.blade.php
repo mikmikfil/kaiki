@@ -43,6 +43,18 @@
             .kaiki-first-steps .body { display: grid; gap: .1rem; min-width: 0; flex: 1 1 auto; }
             .kaiki-first-steps .why { font-size: .82rem; color: rgb(var(--gray-500)); }
             .kaiki-first-steps .is-done .body strong { color: rgb(var(--gray-500)); }
+
+            /* --- dark ----------------------------------------------------
+               Same marks, same reasoning as the setup widget: the not-yet disc
+               was a white coin. The done one keeps its primary fill, which is
+               what makes the list readable at a glance. */
+            .dark .kaiki-first-steps .mark {
+                background: rgb(var(--gray-800));
+                color: rgb(var(--gray-400));
+            }
+
+            .dark .kaiki-first-steps .why,
+            .dark .kaiki-first-steps .is-done .body strong { color: rgb(var(--gray-400)); }
         </style>
     </x-filament::section>
 </x-filament-widgets::widget>

@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Domain\Payments\Gateways;
 
 use App\Contracts\PaymentGateway;
+use App\Contracts\ProvidesTransactionStatus;
+use App\Contracts\ProvidesWebhookVerificationKey;
 use App\Domain\Integrations\Support\CredentialRepository;
+use App\Domain\Payments\Data\GatewayTransaction;
 use App\Domain\Payments\Data\RedirectTarget;
 use App\Domain\Payments\Data\RefundResult;
 use App\Domain\Payments\Data\TranslatableMessage;
@@ -63,7 +66,7 @@ use Throwable;
  * keys, so an environment mix-up is a request to the wrong *server* rather than
  * a rejected credential.
  */
-final class VivaSmartCheckoutGateway implements PaymentGateway
+final class VivaSmartCheckoutGateway implements PaymentGateway, ProvidesTransactionStatus, ProvidesWebhookVerificationKey
 {
     public function __construct(
         private readonly HttpFactory $http,
@@ -136,7 +139,7 @@ final class VivaSmartCheckoutGateway implements PaymentGateway
      * deliberately not-tenant-first index exist for (#79): a webhook arrives
      * before tenancy does.
      */
-    public function verifyWebhook(Request $request): bool
+    public function verifyWebhook(Request $request, ?IntegrationCredential $credential = null): bool
     {
         $presented = (string) $request->header('X-Viva-Verification', '');
 
@@ -144,11 +147,15 @@ final class VivaSmartCheckoutGateway implements PaymentGateway
             return false;
         }
 
-        $sourceCode = (string) data_get($request->all(), 'EventData.SourceCode', '');
+        if (! $credential instanceof IntegrationCredential) {
+            // No operator in the URL: the old shared address, which has to read
+            // the payload to find out whose webhook this is.
+            $sourceCode = (string) data_get($request->all(), 'EventData.SourceCode', '');
 
-        $credential = $sourceCode === ''
-            ? $this->credentials->find(IntegrationProvider::Viva, CredentialEnvironment::Live)
-            : IntegrationCredential::findByExternalAccount(IntegrationProvider::Viva, $sourceCode);
+            $credential = $sourceCode === ''
+                ? $this->credentials->find(IntegrationProvider::Viva, CredentialEnvironment::Live)
+                : IntegrationCredential::findByExternalAccount(IntegrationProvider::Viva, $sourceCode);
+        }
 
         $secret = $credential?->webhook_secret;
 
@@ -298,6 +305,181 @@ final class VivaSmartCheckoutGateway implements PaymentGateway
      * than a rejected credential — a clearer failure, and the reason these are
      * three config values rather than one with a path.
      */
+    /**
+     * The verification key, fetched from Viva rather than asked of the operator.
+     *
+     * This is the field nobody could find, and it is still not a field: the key
+     * is read from Viva with the Merchant ID and API key the operator copies off
+     * the same dashboard page as everything else. It was briefly believed to be
+     * readable with the OAuth2 token the client credentials mint — it is not,
+     * and probing every plausible address on 2026-09-16 settled it. What the
+     * operator never has to do is make this call by hand, which was the point.
+     *
+     * Stored on the credential once fetched, because {@see self::verifyWebhook()}
+     * compares against `webhook_secret` and nothing else: the fetch is how the
+     * column gets filled, not a second mechanism beside it. A key an operator
+     * pasted by hand is left alone — if they have one, they are ahead of us.
+     *
+     * The path is configuration. `docs/api.md` records the exact verification
+     * mechanism as an open question against Viva's live documentation (item 12),
+     * and a path in a config file is a value that can be corrected without a
+     * deploy when that question is finally answered.
+     *
+     * @throws GatewayCallFailed when Viva refuses, so the caller can say so
+     */
+    public function webhookVerificationKey(IntegrationCredential $credential): string
+    {
+        $stored = $credential->webhook_secret;
+
+        if (is_string($stored) && $stored !== '') {
+            return $stored;
+        }
+
+        return $this->fetchWebhookVerificationKey($credential);
+    }
+
+    /**
+     * Prove both credential pairs, for the verify button (PAY-4).
+     *
+     * Viva takes two of them — OAuth2 client credentials for orders, Basic auth
+     * for the webhook key — and a check that exercised only one would tell an
+     * operator their keys work when half of them are wrong. Nothing is returned:
+     * the answer is whether this throws.
+     *
+     * @throws GatewayCallFailed when either pair is refused
+     */
+    public function checkCredentials(IntegrationCredential $credential): void
+    {
+        $this->accessToken($credential, $credential->environment);
+
+        // Freshly, not `webhookVerificationKey()` — that one short-circuits on a
+        // stored key, so after the first success it would stop checking the pair
+        // it is here to check.
+        $this->fetchWebhookVerificationKey($credential);
+    }
+
+    /**
+     * Ask Viva what actually happened to an order (`docs/api.md` item 12).
+     *
+     * `GET {checkout host}/api/transactions?ordercode=…` with the Basic pair —
+     * the same authentication split as the webhook key, and the reason both live
+     * on the checkout host rather than the api one. The OAuth2 equivalents 404;
+     * this was established by probing on 2026-09-16, when a real demo payment
+     * succeeded at Viva and no webhook ever arrived.
+     *
+     * Viva answers with every transaction against the order, so a card that was
+     * declined and then retried successfully has two. The successful one wins:
+     * what matters is whether the money is there now.
+     *
+     * `StatusId` is a single letter. `F` is finished, which is the only one that
+     * means paid. `E` (error), `X` (rejected) and `C` (cancelled) are over and
+     * unpaid. Anything else — `A` above all, the guest sitting on the 3-D Secure
+     * step — is not settled, and the caller must wait rather than guess.
+     */
+    public function transactionFor(IntegrationCredential $credential, string $reference): ?GatewayTransaction
+    {
+        if (trim($reference) === '') {
+            return null;
+        }
+
+        $response = $this->call(
+            fn (): Response => $this->http
+                ->withBasicAuth(
+                    (string) ($credential->credentials['merchant_id'] ?? ''),
+                    (string) ($credential->credentials['api_key'] ?? ''),
+                )
+                ->timeout((int) config('kaiki.payments.timeout_seconds'))
+                ->get($this->checkoutHost($credential->environment) . '/api/transactions', ['ordercode' => $reference]),
+        );
+
+        $body = $response->json();
+        $transactions = is_array($body) ? ($body['Transactions'] ?? null) : null;
+
+        if (! is_array($transactions) || $transactions === []) {
+            // The order exists and nothing has been attempted against it, or
+            // Viva has never heard of it. Either way there is nothing to act on,
+            // and "no answer" must never read as "unpaid".
+            return null;
+        }
+
+        $latest = null;
+
+        foreach ($transactions as $transaction) {
+            if (! is_array($transaction)) {
+                continue;
+            }
+
+            $status = strtoupper((string) ($transaction['StatusId'] ?? ''));
+            $amount = self::centsFrom($transaction['Amount'] ?? null);
+
+            if ($status === 'F') {
+                // A success ends the search: money present is the answer
+                // whatever else was attempted against this order.
+                return GatewayTransaction::paid($amount);
+            }
+
+            $latest ??= in_array($status, ['E', 'X', 'C'], true)
+                ? GatewayTransaction::failed($amount)
+                : GatewayTransaction::pending($amount);
+        }
+
+        return $latest;
+    }
+
+    /**
+     * Viva quotes money as a decimal number of euros; everything here is cents.
+     *
+     * Through a string, because `(int) (110.00 * 100)` is 10999 on a binary
+     * float often enough to matter, and this number decides whether a booking is
+     * confirmed for the right amount.
+     */
+    private static function centsFrom(mixed $amount): int
+    {
+        if (! is_numeric($amount)) {
+            return 0;
+        }
+
+        return (int) round((float) sprintf('%.2F', (float) $amount) * 100);
+    }
+
+    private function fetchWebhookVerificationKey(IntegrationCredential $credential): string
+    {
+        $environment = $credential->environment;
+
+        // **Basic auth on the checkout host**, not the bearer token on the api
+        // host that the rest of this class uses. Viva splits its APIs across two
+        // schemes and this endpoint is on the other side of the split: probing
+        // it on 2026-09-16 gave 401 for a bearer token, 401 anonymous — so the
+        // path is real and wants the Merchant ID / API key pair — and 404 for
+        // every address on `api.`, so there is no OAuth2 equivalent to reach.
+        $response = $this->call(
+            fn (): Response => $this->http
+                ->withBasicAuth(
+                    (string) ($credential->credentials['merchant_id'] ?? ''),
+                    (string) ($credential->credentials['api_key'] ?? ''),
+                )
+                ->timeout((int) config('kaiki.payments.timeout_seconds'))
+                ->get($this->checkoutHost($environment) . (string) config('kaiki.payments.viva.webhook_key_path')),
+        );
+
+        $body = $response->json();
+
+        // Viva's own samples show a lower-case `key`; their webhook guide prints
+        // `Key`. Both are read rather than guessing which generation of the API
+        // this merchant's account is on.
+        $key = is_array($body) ? ($body['Key'] ?? $body['key'] ?? null) : null;
+
+        if (! is_string($key) || $key === '') {
+            throw GatewayCallFailed::forCode(PaymentGatewayName::Viva, '404');
+        }
+
+        Tenancy::withoutTenancy(static function () use ($credential, $key): void {
+            $credential->forceFill(['webhook_secret' => $key])->save();
+        });
+
+        return $key;
+    }
+
     private function apiHost(CredentialEnvironment $environment): string
     {
         return $this->host('api', $environment);

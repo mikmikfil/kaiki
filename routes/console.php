@@ -344,6 +344,28 @@ Schedule::job(new SweepWebhookRetriesJob)
 
 /*
 |--------------------------------------------------------------------------
+| Payments the webhook never confirmed (docs/api.md item 12)
+|--------------------------------------------------------------------------
+|
+| The webhook is the fast path and it is somebody else's delivery. A guest who
+| closes the tab, a proxy that eats the call, an address registered against the
+| wrong event — each leaves money taken and a booking unconfirmed, which is the
+| worst state this system has. This asks the gateway directly and confirms what
+| it says is paid.
+|
+| Every five minutes rather than every minute: the action already leaves a
+| payment alone for its first five, so a tighter schedule would ask the same
+| question of the same rows with nothing new to learn. `withoutOverlapping`
+| because a slow gateway must not stack runs on top of each other.
+*/
+Schedule::command('payments:reconcile')
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('payments:reconcile');
+
+/*
+|--------------------------------------------------------------------------
 | Webhook deliveries, pruned (data-model.md §3.13)
 |--------------------------------------------------------------------------
 |

@@ -116,6 +116,7 @@ return Application::configure(basePath: dirname(__DIR__))
          */
         $middleware->validateCsrfTokens(except: ['webhooks/*']);
 
+
         // `SetLocale` must run *after* `ResolveTenant`, because the tenant's
         // `default_locale` is step 5 of the I18N-5 chain.
         //

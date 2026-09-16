@@ -103,10 +103,13 @@ Content-Security-Policy:
 ```
 
 - `script-src` — the bundle.
-- `connect-src` — the API. The widget calls exactly five paths under
-  `/api/v1`: `/branding`, `/products`, `/availability`, `/bookings` and
-  `/enquiries`. `WidgetCompatibilityTest` fails if that list ever grows without
-  this line growing with it.
+- `connect-src` — the API. The widget calls exactly six paths under
+  `/api/v1`: `/branding`, `/products`, `/availability`, `/price-quote`,
+  `/bookings` and `/enquiries`. `WidgetCompatibilityTest` fails if that list ever
+  grows without this line growing with it. (`/price-quote` was the sixth, and was
+  missing from both for a while — the gate was red on a fact rather than on a
+  regression. It needs `availability.read`, like `/availability`, so no
+  publishable key needs a scope it did not already have.)
 - `style-src` — `'self'` is enough. **Add `https://fonts.googleapis.com` and
   `https://fonts.gstatic.com` only if the operator chose a Google font**; with
   the default system font stack the widget makes no third-party request at all
