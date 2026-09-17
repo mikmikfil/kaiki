@@ -246,7 +246,7 @@ return [
                 'untitled' => 'New stop',
                 'time' => [
                     'label' => 'Time',
-                    'help' => 'Optional, e.g. 09:45.',
+                    'help' => 'Optional.',
                 ],
                 'name' => [
                     'label' => 'What happens',
@@ -266,6 +266,7 @@ return [
             'slug' => [
                 'label' => 'Slug',
                 'help' => 'Lowercase letters and dashes, e.g. "hydra-day-trip". Changing it breaks existing links.',
+                'taken' => 'Another trip already uses this slug. Choose a different one.',
             ],
             'category' => [
                 'label' => 'Kind of trip',
@@ -384,6 +385,39 @@ return [
             'price_from' => 'Price from',
             'price_from_value' => 'from :price',
             'featured' => 'Featured',
+            'missing' => 'Missing: :items|Missing :count: :items',
+            'tabs' => [
+                'all' => 'All',
+            ],
+        ],
+
+        // The form's two tabs (2026-09-17).
+        'tabs' => [
+            'basics' => 'Basics',
+            'page' => 'Page content',
+            'missing' => ':count missing|:count missing',
+            'schedule' => 'Schedule',
+            'no_schedule' => 'none',
+            'active_schedules' => ':count active|:count active',
+            'filled' => ':filled of :total',
+        ],
+
+        // Status changes with buttons, not a dropdown (2026-09-17).
+        'status_actions' => [
+            'save' => 'Save',
+            'save_draft' => 'Save as draft',
+            'publish' => 'Publish',
+            'unpublish' => 'Take off sale',
+            'republish' => 'Put back on sale',
+            'archive' => 'Archive',
+            'archive_confirm' => 'The trip leaves sale for good. Its bookings stay.',
+            'unarchive' => 'Restore as draft',
+            'published' => 'The trip is published.',
+            'unpublished' => 'The trip is off sale.',
+            'archived' => 'The trip is archived.',
+            'unarchived' => 'The trip is back as a draft.',
+            'not_published' => 'Not published yet',
+            'draft_hint' => 'Saved as a draft. Once everything is filled in, you will see the Publish button.',
         ],
 
         'checklist' => [
@@ -408,6 +442,10 @@ return [
             'rate_plan' => [
                 'label' => 'Rate plan',
                 'unmet' => 'Create an active rate plan for this trip, under "Rate plans".',
+            ],
+            'prices' => [
+                'label' => 'Prices for every category',
+                'unmet' => 'Some prices are missing. Fill in the red cells in the «Prices in euros» table.',
             ],
             'cancellation_policy' => [
                 'label' => 'Cancellation policy',

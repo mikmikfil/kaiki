@@ -113,6 +113,13 @@ return [
         'fixed' => ['label' => 'Its own price'],
     ],
 
+    'price_quick_fill' => [
+        'same' => ['label' => 'Same'],
+        'half' => ['label' => 'Half price'],
+        'less_thirty' => ['label' => '−30%'],
+        'free' => ['label' => 'Free'],
+    ],
+
     'booking_mode' => [
         'per_seat' => ['label' => 'Per seat'],
         'per_vessel' => ['label' => 'Whole boat'],

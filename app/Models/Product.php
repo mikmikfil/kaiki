@@ -227,6 +227,17 @@ class Product extends Model implements TranslatableSearchable
         return $this->hasMany(RatePlan::class);
     }
 
+    /**
+     * When the trip runs: the repeating rules its departures are made from.
+     * Edited on the trip itself since 2026-09-17.
+     *
+     * @return HasMany<ScheduleRule, $this>
+     */
+    public function scheduleRules(): HasMany
+    {
+        return $this->hasMany(ScheduleRule::class);
+    }
+
     /** @return BelongsTo<VatRate, $this> */
     public function vatRate(): BelongsTo
     {

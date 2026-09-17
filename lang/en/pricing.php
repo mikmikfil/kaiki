@@ -31,7 +31,7 @@ return [
         ],
         'prices' => [
             'label' => 'Price per category',
-            'help' => 'A category priced as a percentage of the base one may be left blank.',
+            'help' => 'In euros, for one person. Easier: the “Prices in euros” table above, every period at once.',
             'band' => 'Category',
             'price' => 'Price',
         ],
@@ -77,6 +77,44 @@ return [
         'empty' => [
             'heading' => 'No prices yet',
             'body' => 'Without a price the trip does not sell. Start with one for every other date, and add periods where the price changes.',
+        ],
+    ],
+
+    // The trip's price table, in euros only (2026-09-17).
+    'price_table' => [
+        'heading' => 'Prices in euros',
+        'intro' => 'Categories down, periods across. Each cell is the price for one person.',
+        'band' => 'Category',
+        'base' => 'base',
+        'no_seat' => 'takes no seat',
+        'inactive' => 'inactive',
+        'no_period' => 'No period',
+        'ages_from' => ':min and over',
+        'ages_between' => ':min to :max',
+        'derived' => 'Still worked out as a share of the adult price. Saving writes it as an amount.',
+        'fill_hint' => 'The quick buttons write euros from the base category’s price, rounded to the cent. The amount is saved, not the percentage.',
+        'stale' => 'You changed the “:base” price. Update “:band” too?',
+        'stale_action' => 'Update',
+        'save' => 'Save prices',
+        'saved' => 'Prices saved.',
+        'unsaved' => 'You have price changes that are not saved yet.',
+        'periods_below' => 'New period, deposit and booking window: in the “Prices” list further down.',
+        'save_trip_first' => 'The price table appears once the trip is saved with its age categories.',
+        'invalid' => 'Enter an amount in euros, e.g. 22.50.',
+        'missing_banner' => 'One price is missing. Without it, that category is not charged and the trip cannot be published.|:count prices are missing. Without them, those categories are not charged and the trip cannot be published.',
+        'missing_cell' => 'Missing',
+        'after_first_save' => 'Press «Save as draft» and the price table appears here straight away.',
+        'guest' => [
+            'heading' => 'What the guest pays',
+            'period' => 'Period',
+            'total' => 'Total',
+            'less' => 'One fewer',
+            'more' => 'One more',
+        ],
+        'validation' => [
+            'per_seat_only' => 'The price table is for trips sold per seat.',
+            'cell' => '“:band” in “:period”',
+            'missing' => 'Prices are missing: :cells.',
         ],
     ],
 

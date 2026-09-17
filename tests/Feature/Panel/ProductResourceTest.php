@@ -17,6 +17,7 @@ use App\Models\CancellationPolicy;
 use App\Models\Port;
 use App\Models\Product;
 use App\Models\RatePlan;
+use App\Models\RatePlanPrice;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Vessel;
@@ -167,8 +168,9 @@ it('publishes a trip once every prerequisite is met', function (): void {
             'status' => ProductStatus::Draft,
         ]);
 
-        AgeBand::factory()->create(['product_id' => $product->getKey()]);
-        RatePlan::factory()->create(['product_id' => $product->getKey()]);
+        $band = AgeBand::factory()->create(['product_id' => $product->getKey()]);
+        $plan = RatePlan::factory()->create(['product_id' => $product->getKey()]);
+        RatePlanPrice::factory()->create(['rate_plan_id' => $plan->getKey(), 'age_band_id' => $band->getKey()]);
 
         return $product;
     });

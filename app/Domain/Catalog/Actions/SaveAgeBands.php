@@ -28,12 +28,19 @@ use Illuminate\Validation\ValidationException;
  * is not hypothetical — it is what a repeater does on every submit, and it is
  * why the replace happens inside one transaction.
  *
- * ## The set is replaced, not merged
+ * ## The set is replaced, but a band that stays keeps its row
  *
  * Same reasoning as #23's refund ladder: a band the operator deleted should be
  * gone, and merging leaves an invisible category still resolving passengers.
  * `code` is stable and unique per product, so a re-import updates rather than
  * duplicates — which is what makes an importer run idempotent.
+ *
+ * **Matched by `code` and updated in place, not deleted and recreated**
+ * (2026-09-17). Recreating gave every band a new id on every save of the trip
+ * form, and `rate_plan_prices.age_band_id` cascades on delete: pressing «Save»
+ * on a trip silently wiped every price it had, and nulled the band on its
+ * booked guests. Only a band whose code left the set is deleted now, and its
+ * prices go with it, which is right.
  *
  * Bands already referenced by a booking are safe because a booking holds the
  * band **snapshot** in `pax_breakdown`, not a live join.
@@ -51,16 +58,24 @@ final class SaveAgeBands
         $this->validateSet($bands);
 
         return DB::transaction(function () use ($product, $bands): array {
-            // Deleted rather than upserted: the set the operator submitted *is*
-            // the set, and a band they removed must stop resolving passengers.
-            $product->ageBands()->forceDelete();
+            // Soft-deleted rows too: the unique index counts them, so a code
+            // coming back must reuse its row rather than collide with it.
+            $existing = AgeBand::query()
+                ->withTrashed()
+                ->where('product_id', $product->getKey())
+                ->get()
+                ->keyBy('code');
 
             $saved = [];
+            $kept = [];
 
             foreach (array_values($bands) as $index => $band) {
-                $saved[] = AgeBand::query()->create([
+                $code = (string) $band['code'];
+                $kept[] = $code;
+
+                $attributes = [
                     'product_id' => $product->getKey(),
-                    'code' => $band['code'],
+                    'code' => $code,
                     'label' => $band['label'],
                     'min_age' => (int) ($band['min_age'] ?? 0),
                     'max_age' => isset($band['max_age']) && $band['max_age'] !== ''
@@ -72,8 +87,30 @@ final class SaveAgeBands
                     'is_base' => (bool) ($band['is_base'] ?? false),
                     'requires_adult' => (bool) ($band['requires_adult'] ?? false),
                     'sort_order' => (int) ($band['sort_order'] ?? $index),
-                ]);
+                ];
+
+                /** @var AgeBand|null $row */
+                $row = $existing->get($code);
+
+                if ($row === null) {
+                    $saved[] = AgeBand::query()->create($attributes);
+
+                    continue;
+                }
+
+                if ($row->trashed()) {
+                    $row->restore();
+                }
+
+                $row->fill($attributes)->save();
+                $saved[] = $row;
             }
+
+            // The set the operator submitted *is* the set: a band they removed
+            // must stop resolving passengers, and its prices go with it.
+            $existing
+                ->reject(static fn (AgeBand $row): bool => in_array($row->code, $kept, true))
+                ->each(static fn (AgeBand $row): ?bool => $row->forceDelete());
 
             return $saved;
         });
