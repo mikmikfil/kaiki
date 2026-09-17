@@ -1,0 +1,476 @@
+<title>Πρώτη ρύθμιση Kaiki</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* One light look, like the operator panel. Tokens match the other Kaiki mockups. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57; --hover:#17396A; --active:#1C4378; --sb-text:#C4D3E8; --sb-muted:#7F98BA; --sb-line:#23497D;
+  --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA;
+  --warn:#9A5B0C; --warnbg:#FBF0DF; --good:#1F7A4D; --goodbg:#E3F2EA;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --waves:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='170' viewBox='0 0 520 170'%3E%3Cg fill='none' stroke='%23C9DAEE' stroke-width='1.3'%3E%3Cpath d='M0 150 Q65 132 130 150 T260 150 T390 150 T520 150' opacity='.9'/%3E%3Cpath d='M0 120 Q65 104 130 120 T260 120 T390 120 T520 120' opacity='.65'/%3E%3Cpath d='M-65 90 Q0 76 65 90 T195 90 T325 90 T455 90 T585 90' opacity='.45'/%3E%3Cpath d='M0 60 Q65 48 130 60 T260 60 T390 60 T520 60' opacity='.28'/%3E%3C/g%3E%3C/svg%3E");
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-inline:24px;padding-block:36px 72px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;text-align:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+a{text-decoration:none;color:var(--blue)}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{margin:0;text-wrap:balance;letter-spacing:-.01em}
+p{margin:0}
+
+.page{max-width:1180px;margin:0 auto;display:grid;gap:44px}
+.intro{display:grid;gap:12px;max-width:800px}
+.eyebrow{font-size:13px;font-weight:600;color:var(--blue)}
+.intro h1{font-size:38px;line-height:1.12;font-weight:800;color:var(--deep)}
+.intro p{font-size:17px;color:var(--muted);max-width:68ch}
+.intro strong{color:var(--ink)}
+h2.sec{font-size:24px;color:var(--deep)}
+.lede{color:var(--muted);max-width:72ch}
+.block{display:grid;gap:16px}
+
+/* ---------- shared panel chrome ---------- */
+.shot{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(15,46,87,.05),0 10px 30px rgba(15,46,87,.06)}
+.bar{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--paper);border-bottom:1px solid var(--line);font-size:12px;color:var(--faint)}
+.bar i{width:9px;height:9px;border-radius:50%;background:#D6DFEA;display:block}
+.bar .url{margin-left:8px;font-family:var(--mono);font-size:11.5px}
+.app{display:grid;grid-template-columns:210px minmax(0,1fr);min-height:520px}
+.side{background:var(--deep);color:var(--sb-text);padding:18px 12px;display:grid;align-content:start;gap:4px;font-size:14px}
+.side .brand{color:#fff;font-weight:800;font-size:18px;padding:2px 10px 14px}
+.side .grp{color:var(--sb-muted);font-size:12px;font-weight:600;padding:12px 10px 4px}
+.side .it{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px}
+.side .it.on{background:var(--active);color:#fff}
+.side .it .n{margin-left:auto;background:#F2B544;color:#3A2A05;font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px}
+.main{background:var(--ground) var(--waves) right bottom/520px auto no-repeat;padding:26px 28px;display:grid;align-content:start;gap:18px;min-width:0}
+.main h3{font-size:24px;color:var(--deep);font-weight:800}
+.sub{color:var(--muted);font-size:14px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 16px;border-radius:10px;font-weight:600;font-size:14px;white-space:nowrap}
+.btn.pri{background:var(--deep);color:#fff}
+.btn.sec{background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.btn.ghost{color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.chip.good{background:var(--goodbg);color:var(--good)}
+.chip.warn{background:var(--warnbg);color:var(--warn)}
+.chip.new{background:var(--wash);color:var(--blue)}
+.chip.mute{background:var(--paper);color:var(--muted);border:1px solid var(--line)}
+
+/* ---------- admin switch ---------- */
+.admin-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:18px;align-items:start}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;display:grid;gap:14px}
+.card h4{font-size:16px;color:var(--ink)}
+.card .d{color:var(--muted);font-size:13.5px}
+.sw{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;padding:12px 0;border-top:1px solid var(--line)}
+.sw:first-of-type{border-top:0;padding-top:4px}
+.tog{width:38px;height:22px;border-radius:999px;background:#CBD5E1;position:relative;grid-row:span 2;margin-top:1px;transition:background .15s}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s}
+.tog[aria-checked="true"]{background:var(--blue)}
+.tog[aria-checked="true"]::after{left:19px}
+.sw .t{font-weight:600;font-size:14.5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sw .h{color:var(--muted);font-size:13.5px}
+.sw.hl{background:var(--wash);margin-inline:-20px;padding-inline:20px;border-top-color:transparent;border-radius:10px}
+.field{display:grid;gap:6px}
+.field label{font-size:13.5px;font-weight:600}
+.input{border:1px solid var(--line);border-radius:9px;background:var(--card);padding:9px 12px;font-size:14px;color:var(--ink);min-height:40px}
+.input.ph{color:var(--faint)}
+.prog{display:grid;gap:10px}
+.prow{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:14px;padding:7px 0;border-top:1px solid var(--line)}
+.prow:first-child{border-top:0}
+.meter{height:6px;border-radius:999px;background:var(--line);overflow:hidden}
+.meter span{display:block;height:100%;background:var(--blue);border-radius:inherit}
+.offnote{display:grid;gap:8px;font-size:14px}
+.offnote li{color:var(--ink)}
+.offnote ul{margin:0;padding-left:18px;display:grid;gap:6px}
+
+/* ---------- direction picker ---------- */
+.picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.pick{display:grid;gap:8px;align-content:start;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:16px;transition:border-color .15s}
+.pick:hover{border-color:#C4D3E8}
+.pick[aria-pressed="true"]{border-color:var(--deep);box-shadow:0 0 0 3px rgba(15,46,87,.12)}
+.pick-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.pick h3{font-size:16px;color:var(--deep)}
+.pick p{color:var(--muted);font-size:13.5px}
+.rec{display:inline-flex;align-items:center;background:var(--deep);color:#fff;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}
+.pick .meta{font-size:12.5px;color:var(--faint)}
+
+.dir{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start}
+.phone{background:#0E1B2E;border-radius:34px;padding:10px;box-shadow:0 12px 30px rgba(15,46,87,.18);max-width:300px;width:100%;justify-self:center}
+.screen{background:var(--ground);border-radius:26px;overflow:hidden;min-height:560px;display:grid;grid-template-rows:auto 1fr auto}
+.ptop{background:var(--deep);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;font-weight:700}
+.ptop small{color:var(--sb-text);font-weight:500;font-size:12px}
+.pbody{padding:16px;display:grid;gap:12px;align-content:start}
+.pfoot{padding:12px 16px 16px;background:var(--card);border-top:1px solid var(--line);display:grid;gap:8px}
+.pfoot .btn{width:100%;height:46px}
+
+/* A: checklist on home */
+.list{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.list-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:16px 18px;flex-wrap:wrap}
+.list-head h4{font-size:17px;color:var(--deep)}
+.row{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 18px;border-top:1px solid var(--line)}
+.row .ck{width:24px;height:24px;border-radius:50%;border:1.5px solid #C7D3E3;display:grid;place-items:center}
+.row.done .ck{background:var(--good);border-color:var(--good);color:#fff}
+.row.done .ck svg{width:14px;height:14px;stroke-width:2.4}
+.row .tt{font-weight:600;font-size:14.5px}
+.row.done .tt{color:var(--muted);font-weight:500}
+.row .ds{font-size:13px;color:var(--muted)}
+.row.next{background:var(--wash)}
+.row .go{color:var(--blue);font-weight:600;font-size:14px;white-space:nowrap}
+.homebits{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.ghostbox{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;color:var(--faint);font-size:13.5px;min-height:74px}
+
+/* B: one step at a time */
+.focus{display:grid;grid-template-columns:230px minmax(0,1fr);gap:22px;align-items:start}
+.steps{display:grid;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
+.step{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;align-items:center;padding:8px;border-radius:8px;font-size:14px;color:var(--muted)}
+.step .dot{width:22px;height:22px;border-radius:50%;border:1.5px solid #C7D3E3;display:grid;place-items:center;font-size:11.5px;font-weight:700;font-family:var(--mono)}
+.step.done{color:var(--ink)}
+.step.done .dot{background:var(--good);border-color:var(--good);color:#fff}
+.step.done .dot svg{width:12px;height:12px;stroke-width:2.6}
+.step.on{background:var(--wash);color:var(--deep);font-weight:600}
+.step.on .dot{border-color:var(--deep);background:var(--deep);color:#fff}
+.stepcard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;display:grid;gap:16px}
+.stepcard .count{font-size:13px;color:var(--muted)}
+.stepcard h4{font-size:21px;color:var(--deep)}
+.presets{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.preset{border:1.5px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:6px;font-size:13px;color:var(--muted)}
+.preset b{color:var(--ink);font-size:14.5px}
+.preset.on{border-color:var(--deep);box-shadow:0 0 0 3px rgba(15,46,87,.10)}
+.ladder{display:grid;gap:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13.5px}
+.ladder div{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;border-top:1px solid var(--line)}
+.ladder div:first-child{border-top:0}
+.actions{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:4px}
+.pbar{height:5px;border-radius:999px;background:var(--line);overflow:hidden}
+.pbar span{display:block;height:100%;width:50%;background:var(--blue)}
+
+/* C: quick start */
+.quick{display:grid;gap:14px;max-width:720px}
+.qsec{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px;display:grid;gap:12px}
+.qsec h4{font-size:16px;color:var(--deep);display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.qgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.qgrid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.after{font-size:13.5px;color:var(--muted)}
+
+.notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.note{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:4px;font-size:13.5px;color:var(--muted)}
+.note b{color:var(--ink);font-size:14px}
+
+.decide{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;display:grid;gap:12px}
+.decide ol{margin:0;padding-left:20px;display:grid;gap:8px}
+.decide li{color:var(--ink)}
+.decide li span{color:var(--muted)}
+
+@media (max-width:980px){
+  .admin-grid,.dir{grid-template-columns:1fr}
+  .picker,.notes{grid-template-columns:1fr}
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  .focus{grid-template-columns:1fr}
+}
+@media (max-width:560px){
+  body{padding-inline:16px}
+  .intro h1{font-size:30px}
+  .main{padding:18px 16px}
+  .presets,.qgrid,.qgrid.three,.homebits{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ck" viewBox="0 0 24 24"><path d="M5 12.5l4.2 4.2L19 7"/></symbol>
+  <symbol id="home" viewBox="0 0 24 24"><path d="M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z"/></symbol>
+  <symbol id="rocket" viewBox="0 0 24 24"><path d="M12 15l-3-3c1.5-4 4.5-7 9-8-1 4.5-4 7.5-8 9z"/><path d="M9 12l-3 .5L4 15l4 1M12 15l-.5 3L9 20l-1-4"/></symbol>
+  <symbol id="cal" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></symbol>
+  <symbol id="boat" viewBox="0 0 24 24"><path d="M3 15h18l-2.5 4h-13z"/><path d="M12 4v11M12 5l6 8h-6"/></symbol>
+  <symbol id="cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/></symbol>
+  <symbol id="arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+</svg>
+
+<main class="page">
+
+  <header class="intro">
+    <span class="eyebrow">Mockups · 17 Σεπτεμβρίου 2026</span>
+    <h1>Πρώτη ρύθμιση λογαριασμού</h1>
+    <p>Δύο πράγματα προς απόφαση. Πρώτα <strong>ο διακόπτης στο /admin</strong>, με τον οποίο ανοίγεις ή κλείνεις τον οδηγό για κάθε διοργανωτή. Μετά <strong>πώς θα μοιάζει ο οδηγός</strong>, σε τρεις κατευθύνσεις. Όλες έχουν τα ίδια έξι βήματα, με τη νέα σειρά: η πολιτική ακύρωσης μπαίνει πριν από το σκάφος και την εκδρομή.</p>
+  </header>
+
+  <!-- ===================== 1. admin switch ===================== -->
+  <section class="block" aria-labelledby="s1">
+    <h2 class="sec" id="s1">1. Ο διακόπτης στο /admin</h2>
+    <p class="lede">Στο «Επεξεργασία διοργανωτή», στις Λειτουργίες, δίπλα στην επιβίβαση και στα SMS. Κάθε αλλαγή γράφεται στο ιστορικό του διοργανωτή με αιτιολογία, όπως οι άλλοι διακόπτες. Δίπλα φαίνεται πού έχει φτάσει ο διοργανωτής, ώστε να ξέρεις αν χρειάζεται βοήθεια.</p>
+
+    <div class="shot">
+      <div class="bar"><i></i><i></i><i></i><span class="url">127.0.0.1:8000/admin/tenants/4/edit</span></div>
+      <div class="main" style="background-image:none">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+          <div style="display:grid;gap:2px">
+            <span class="sub">Διοργανωτές › Webflow</span>
+            <h3>Επεξεργασία διοργανωτή</h3>
+          </div>
+          <span class="btn pri">Αποθήκευση</span>
+        </div>
+
+        <div class="admin-grid">
+          <div class="card">
+            <div style="display:grid;gap:4px">
+              <h4>Λειτουργίες</h4>
+              <p class="d">Ό,τι δεν χρειάζεται μια μικρή επιχείρηση. Κλείνοντας κάτι δεν σβήνεται κανένα δεδομένο.</p>
+            </div>
+
+            <div class="sw hl">
+              <button class="tog" role="switch" aria-checked="true" id="sw-onboarding" aria-label="Οδηγός πρώτης ρύθμισης"></button>
+              <span class="t">Οδηγός πρώτης ρύθμισης <span class="chip new">Νέο</span></span>
+              <span class="h" id="sw-onboarding-help">Ανοιχτό: με την πρώτη σύνδεση ο ιδιοκτήτης βλέπει τον οδηγό και η αρχική σελίδα δείχνει τι μένει. Κλειστό: κανένας οδηγός, καμία υπενθύμιση. Χρήσιμο όταν έχετε στήσει εσείς τον λογαριασμό για λογαριασμό του.</span>
+            </div>
+            <div class="sw">
+              <button class="tog" role="switch" aria-checked="true" id="sw-checkin" aria-label="Επιβίβαση"></button>
+              <span class="t">Επιβίβαση</span>
+              <span class="h">Λίστα επιβατών με πάτημα δίπλα σε κάθε όνομα.</span>
+            </div>
+            <div class="sw">
+              <button class="tog" role="switch" aria-checked="false" id="sw-sms" aria-label="SMS"></button>
+              <span class="t">SMS</span>
+              <span class="h">Επιβεβαίωση και υπενθυμίσεις με SMS, χρεώνονται στον δικό του λογαριασμό.</span>
+            </div>
+
+            <div class="field">
+              <label for="reason">Αιτιολογία</label>
+              <div class="input ph" id="reason">π.χ. «Στήσαμε μαζί τον λογαριασμό στο τηλέφωνο»</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap">
+              <h4>Πρόοδος οδηγού</h4>
+              <span class="chip warn mono">4 από 6</span>
+            </div>
+            <div class="meter" aria-hidden="true"><span style="width:66%"></span></div>
+            <div class="prog">
+              <div class="prow"><span>Η επιχείρησή σας</span><span class="chip good">Έγινε</span></div>
+              <div class="prow"><span>Η εμφάνισή σας</span><span class="chip mute">Παραλείφθηκε</span></div>
+              <div class="prow"><span>ΦΠΑ</span><span class="chip good">Έγινε</span></div>
+              <div class="prow"><span>Πολιτική ακύρωσης</span><span class="chip good">Έγινε</span></div>
+              <div class="prow"><span>Το πρώτο σκάφος</span><span class="chip good">Έγινε</span></div>
+              <div class="prow"><span>Η πρώτη εκδρομή</span><span class="chip warn">Μένει</span></div>
+            </div>
+            <span class="btn sec" style="justify-self:start">Επαναφορά οδηγού από την αρχή</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="note"><b>Κλειστό σημαίνει</b>Δεν ανοίγει με τη σύνδεση, δεν υπάρχει στο μενού και η αρχική σελίδα δεν δείχνει λίστα.</div>
+      <div class="note"><b>Τίποτα δεν χάνεται</b>Επωνυμία, ΑΦΜ, λογότυπο και ΦΠΑ αλλάζουν πάντα από τις Ρυθμίσεις.</div>
+      <div class="note"><b>Προεπιλογή</b>Ανοιχτό για κάθε νέο διοργανωτή. Αν τον στήνεις εσύ, το κλείνεις με ένα κλικ.</div>
+    </div>
+  </section>
+
+  <!-- ===================== 2. directions ===================== -->
+  <section class="block" aria-labelledby="s2">
+    <h2 class="sec" id="s2">2. Πώς θα μοιάζει ο οδηγός</h2>
+    <p class="lede">Σήμερα είναι ένας Filament wizard έξι βημάτων, με κουμπιά «Επόμενο», παράλειψη σε κάθε βήμα και δύο βήματα που στέλνουν σε άλλη οθόνη. Και οι τρεις κατευθύνσεις είναι πιο καθαρές. Διάλεξε μία για να τη δεις σε υπολογιστή και σε κινητό.</p>
+
+    <div class="picker" role="group" aria-label="Κατεύθυνση">
+      <button class="pick" id="pick-a" aria-pressed="false" data-dir="a">
+        <div class="pick-top"><h3>Α · Λίστα στην αρχική</h3></div>
+        <p>Καμία ξεχωριστή σελίδα. Η αρχική δείχνει έξι γραμμές με ✓ και κάθε γραμμή ανοίγει την κανονική οθόνη.</p>
+        <span class="meta">Περίπου 2–3 ώρες</span>
+      </button>
+      <button class="pick" id="pick-b" aria-pressed="true" data-dir="b">
+        <div class="pick-top"><h3>Β · Ένα βήμα τη φορά</h3><span class="rec">Προτείνεται</span></div>
+        <p>Μία ερώτηση ανά οθόνη, με έτοιμες επιλογές όπου γίνεται (π.χ. τρεις πολιτικές ακύρωσης). Ό,τι δεν τελειώσει μένει ως μικρή λίστα στην αρχική.</p>
+        <span class="meta">Περίπου 4–5 ώρες</span>
+      </button>
+      <button class="pick" id="pick-c" aria-pressed="false" data-dir="c">
+        <div class="pick-top"><h3>Γ · Γρήγορη εκκίνηση</h3></div>
+        <p>Μία σελίδα με τα απολύτως απαραίτητα: επιχείρηση, σκάφος, εκδρομή με τιμή. Φτιάχνει προσχέδια και τα υπόλοιπα περιμένουν.</p>
+        <span class="meta">Περίπου 4 ώρες</span>
+      </button>
+    </div>
+
+    <!-- A -->
+    <div class="dir" id="dir-a" hidden>
+      <div class="shot">
+        <div class="bar"><i></i><i></i><i></i><span class="url">127.0.0.1:8000/app</span></div>
+        <div class="app">
+          <nav class="side" aria-label="Μενού">
+            <span class="brand">Kaiki</span>
+            <span class="it on"><svg class="i"><use href="#home"/></svg>Αρχική</span>
+            <span class="it"><svg class="i"><use href="#cal"/></svg>Κρατήσεις</span>
+            <span class="grp">Κατάλογος</span>
+            <span class="it"><svg class="i"><use href="#boat"/></svg>Σκάφη</span>
+            <span class="it"><svg class="i"><use href="#rocket"/></svg>Εκδρομές</span>
+            <span class="grp">Ρυθμίσεις</span>
+            <span class="it"><svg class="i"><use href="#cog"/></svg>Λογαριασμός</span>
+          </nav>
+          <div class="main">
+            <div style="display:grid;gap:4px"><h3>Καλησπέρα, Mike</h3><p class="sub">Λίγα βήματα ακόμα και ανοίγετε για κρατήσεις.</p></div>
+            <div class="list">
+              <div class="list-head">
+                <h4>Για να ανοίξετε για κρατήσεις</h4>
+                <span class="chip warn mono">4 από 6</span>
+              </div>
+              <div class="row done"><span class="ck"><svg class="i"><use href="#ck"/></svg></span><div><div class="tt">Η επιχείρησή σας</div></div><span></span></div>
+              <div class="row done"><span class="ck"><svg class="i"><use href="#ck"/></svg></span><div><div class="tt">ΦΠΑ</div></div><span></span></div>
+              <div class="row done"><span class="ck"><svg class="i"><use href="#ck"/></svg></span><div><div class="tt">Πολιτική ακύρωσης</div></div><span></span></div>
+              <div class="row done"><span class="ck"><svg class="i"><use href="#ck"/></svg></span><div><div class="tt">Το πρώτο σκάφος</div></div><span></span></div>
+              <div class="row next"><span class="ck"></span><div><div class="tt">Η πρώτη εκδρομή</div><div class="ds">Όνομα, διάρκεια, τιμές και δρομολόγια</div></div><span class="btn pri">Συνέχεια</span></div>
+              <div class="row"><span class="ck"></span><div><div class="tt">Η εμφάνισή σας</div><div class="ds">Λογότυπο και χρώμα, προαιρετικό</div></div><span class="go">Άνοιγμα</span></div>
+            </div>
+            <div class="homebits"><div class="ghostbox">Επόμενη αναχώρηση</div><div class="ghostbox">Σκάφη</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="phone" aria-label="Κινητό, κατεύθυνση Α">
+        <div class="screen">
+          <div class="ptop">Kaiki <small>Μενού</small></div>
+          <div class="pbody">
+            <div style="display:grid;gap:2px"><b style="font-size:19px;color:var(--deep)">Καλησπέρα, Mike</b><span class="sub">4 από 6 έτοιμα</span></div>
+            <div class="meter"><span style="width:66%"></span></div>
+            <div class="list">
+              <div class="row done"><span class="ck"><svg class="i"><use href="#ck"/></svg></span><div class="tt">Η επιχείρησή σας</div><span></span></div>
+              <div class="row done"><span class="ck"><svg class="i"><use href="#ck"/></svg></span><div class="tt">ΦΠΑ</div><span></span></div>
+              <div class="row done"><span class="ck"><svg class="i"><use href="#ck"/></svg></span><div class="tt">Πολιτική ακύρωσης</div><span></span></div>
+              <div class="row done"><span class="ck"><svg class="i"><use href="#ck"/></svg></span><div class="tt">Το πρώτο σκάφος</div><span></span></div>
+              <div class="row next"><span class="ck"></span><div class="tt">Η πρώτη εκδρομή</div><svg class="i" style="color:var(--blue)"><use href="#arrow"/></svg></div>
+              <div class="row"><span class="ck"></span><div class="tt">Η εμφάνισή σας</div><svg class="i" style="color:var(--faint)"><use href="#arrow"/></svg></div>
+            </div>
+          </div>
+          <div class="pfoot"><span class="btn pri">Συνέχεια: η πρώτη εκδρομή</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B -->
+    <div class="dir" id="dir-b">
+      <div class="shot">
+        <div class="bar"><i></i><i></i><i></i><span class="url">127.0.0.1:8000/app/setup?step=cancellation</span></div>
+        <div class="main">
+          <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+            <div style="display:grid;gap:2px"><h3>Ας στήσουμε τον λογαριασμό</h3><p class="sub">Περίπου 10 λεπτά. Ό,τι αφήσετε για αργότερα θα σας περιμένει στην αρχική.</p></div>
+            <span class="btn ghost">Κλείσιμο</span>
+          </div>
+          <div class="focus">
+            <div class="steps" aria-label="Βήματα">
+              <div class="step done"><span class="dot"><svg class="i"><use href="#ck"/></svg></span>Η επιχείρησή σας</div>
+              <div class="step done"><span class="dot"><svg class="i"><use href="#ck"/></svg></span>Η εμφάνισή σας</div>
+              <div class="step done"><span class="dot"><svg class="i"><use href="#ck"/></svg></span>ΦΠΑ</div>
+              <div class="step on"><span class="dot">4</span>Πολιτική ακύρωσης</div>
+              <div class="step"><span class="dot">5</span>Το πρώτο σκάφος</div>
+              <div class="step"><span class="dot">6</span>Η πρώτη εκδρομή</div>
+            </div>
+            <div class="stepcard">
+              <div style="display:grid;gap:6px">
+                <span class="count mono">Βήμα 4 από 6</span>
+                <h4>Τι επιστρέφετε όταν ακυρώνει ο επισκέπτης;</h4>
+                <p class="sub">Διαλέξτε μία. Αλλάζει όποτε θέλετε, και οι κρατήσεις που έχουν γίνει κρατούν τους όρους με τους οποίους έκλεισαν.</p>
+              </div>
+              <div class="presets" role="radiogroup" aria-label="Πολιτική">
+                <div class="preset" role="radio" aria-checked="false"><b>Ευέλικτη</b>Πλήρης επιστροφή έως 24 ώρες πριν</div>
+                <div class="preset on" role="radio" aria-checked="true"><b>Κανονική</b>Πλήρης έως 7 ημέρες, μισή έως 2 ημέρες</div>
+                <div class="preset" role="radio" aria-checked="false"><b>Αυστηρή</b>Μισή έως 14 ημέρες, μετά τίποτα</div>
+              </div>
+              <div class="ladder" aria-label="Κλίμακα επιστροφής">
+                <div><span>7 ημέρες ή περισσότερο πριν</span><span class="mono">100%</span></div>
+                <div><span>2 έως 6 ημέρες πριν</span><span class="mono">50%</span></div>
+                <div><span>Λιγότερο από 2 ημέρες</span><span class="mono">0%</span></div>
+                <div><span>Ακύρωση λόγω καιρού</span><span class="mono">100%</span></div>
+              </div>
+              <div class="actions">
+                <span class="btn ghost">Αργότερα</span>
+                <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="btn sec">Πίσω</span><span class="btn pri">Συνέχεια<svg class="i"><use href="#arrow"/></svg></span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone" aria-label="Κινητό, κατεύθυνση Β">
+        <div class="screen">
+          <div class="ptop">Πολιτική ακύρωσης <small class="mono">4 / 6</small></div>
+          <div class="pbody">
+            <div class="pbar"><span style="width:66%"></span></div>
+            <b style="font-size:18px;color:var(--deep);line-height:1.3">Τι επιστρέφετε όταν ακυρώνει ο επισκέπτης;</b>
+            <div class="preset"><b>Ευέλικτη</b>Πλήρης έως 24 ώρες πριν</div>
+            <div class="preset on"><b>Κανονική</b>Πλήρης έως 7 ημέρες, μισή έως 2</div>
+            <div class="preset"><b>Αυστηρή</b>Μισή έως 14 ημέρες</div>
+          </div>
+          <div class="pfoot"><span class="btn pri">Συνέχεια</span><span class="btn ghost" style="height:34px">Αργότερα</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- C -->
+    <div class="dir" id="dir-c" hidden>
+      <div class="shot">
+        <div class="bar"><i></i><i></i><i></i><span class="url">127.0.0.1:8000/app/setup</span></div>
+        <div class="main">
+          <div style="display:grid;gap:4px"><h3>Γρήγορη εκκίνηση</h3><p class="sub">Τρία κουτιά. Φτιάχνουμε το σκάφος και την εκδρομή ως πρόχειρα, και τα υπόλοιπα τα συμπληρώνετε όποτε θέλετε.</p></div>
+          <div class="quick">
+            <div class="qsec">
+              <h4>Η επιχείρησή σας <span class="chip good">Έγινε</span></h4>
+              <div class="qgrid"><div class="field"><label>Επωνυμία</label><div class="input">Webflow Ι.Κ.Ε.</div></div><div class="field"><label>ΑΦΜ</label><div class="input mono">801234567</div></div></div>
+            </div>
+            <div class="qsec">
+              <h4>Το πρώτο σκάφος</h4>
+              <div class="qgrid"><div class="field"><label>Όνομα</label><div class="input">Mike Boat</div></div><div class="field"><label>Μέγιστοι επιβάτες</label><div class="input mono">42</div></div></div>
+            </div>
+            <div class="qsec">
+              <h4>Η πρώτη εκδρομή</h4>
+              <div class="qgrid three"><div class="field"><label>Όνομα</label><div class="input">Γύρος της Πάργας</div></div><div class="field"><label>Διάρκεια</label><div class="input mono">4 ώρες</div></div><div class="field"><label>Τιμή ενήλικα</label><div class="input mono">45 €</div></div></div>
+              <p class="after">Παιδί και βρέφος παίρνουν μισή τιμή και δωρεάν. Η πολιτική ακύρωσης μπαίνει «Κανονική». Όλα αλλάζουν μετά.</p>
+            </div>
+            <div class="actions"><span class="btn ghost">Αργότερα</span><span class="btn pri">Φτιάξε τα πρόχειρα</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="phone" aria-label="Κινητό, κατεύθυνση Γ">
+        <div class="screen">
+          <div class="ptop">Γρήγορη εκκίνηση <small>2 / 3</small></div>
+          <div class="pbody">
+            <b style="font-size:18px;color:var(--deep)">Το πρώτο σκάφος</b>
+            <div class="field"><label>Όνομα</label><div class="input">Mike Boat</div></div>
+            <div class="field"><label>Μέγιστοι επιβάτες</label><div class="input mono">42</div></div>
+            <p class="after">Φωτογραφίες, λιμάνι και παροχές τα βάζετε μετά, από τα Σκάφη.</p>
+          </div>
+          <div class="pfoot"><span class="btn pri">Επόμενο</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3. decisions ===================== -->
+  <section class="decide" aria-labelledby="s3">
+    <h2 class="sec" id="s3">Τι χρειάζομαι από εσένα</h2>
+    <ol>
+      <li>Κατεύθυνση Α, Β ή Γ. <span>Προτείνω τη Β: ο νέος διοργανωτής απαντά μία ερώτηση τη φορά, και η Α μένει μετά ως μικρή λίστα στην αρχική.</span></li>
+      <li>Να μπορεί και ο ίδιος ο διοργανωτής να κρύψει τον οδηγό («Δεν τον χρειάζομαι»); <span>Ή να τον ελέγχει μόνο το /admin;</span></li>
+      <li>Οι τρεις έτοιμες πολιτικές ακύρωσης (Ευέλικτη, Κανονική, Αυστηρή) με τα ποσοστά που δείχνω: σωστές για την αγορά; <span>Αλλάζουν ανά διοργανωτή μετά.</span></li>
+    </ol>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  var picks = document.querySelectorAll('.pick');
+  function show(dir) {
+    picks.forEach(function (p) { p.setAttribute('aria-pressed', String(p.dataset.dir === dir)); });
+    ['a', 'b', 'c'].forEach(function (d) { document.getElementById('dir-' + d).hidden = d !== dir; });
+    try { localStorage.setItem('kaiki-onboarding-dir', dir); } catch (e) {}
+  }
+  picks.forEach(function (p) { p.addEventListener('click', function () { show(p.dataset.dir); }); });
+  try { var saved = localStorage.getItem('kaiki-onboarding-dir'); if (saved) show(saved); } catch (e) {}
+
+  document.querySelectorAll('.tog').forEach(function (t) {
+    t.addEventListener('click', function () {
+      t.setAttribute('aria-checked', String(t.getAttribute('aria-checked') !== 'true'));
+    });
+  });
+})();
+</script>
