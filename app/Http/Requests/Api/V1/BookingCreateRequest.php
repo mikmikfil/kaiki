@@ -82,6 +82,7 @@ class BookingCreateRequest extends FormRequest
             'extras.*.qty' => ['required', 'integer', 'min:1', 'max:500'],
 
             'voucher_code' => ['nullable', 'string', 'max:24'],
+            'discount_code' => ['nullable', 'string', 'max:32'],
 
             // Optional since ADR-0030 — a draft is a hold on seats, and the
             // lead guest is typed on the checkout page. Still validated when
@@ -234,6 +235,7 @@ class BookingCreateRequest extends FormRequest
             startTime: isset($window['local_time']) ? (string) $window['local_time'] : null,
             extraHours: 0,
             voucherCode: $this->input('voucher_code') === null ? null : (string) $this->input('voucher_code'),
+            discountCode: $this->input('discount_code') === null ? null : (string) $this->input('discount_code'),
             specialRequests: $this->input('special_requests') === null ? null : (string) $this->input('special_requests'),
             // GDR-9: the moment, not the tick. See the class docblock. Null
             // when the box was not on this screen at all — the checkout page

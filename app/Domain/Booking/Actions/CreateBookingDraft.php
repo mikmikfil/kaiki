@@ -9,14 +9,17 @@ use App\Domain\Availability\Support\CountedSeats;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Booking\Support\LeadGuest;
 use App\Domain\Booking\Support\ManifestRows;
+use App\Domain\Pricing\Actions\ApplyDiscountCode;
 use App\Domain\Pricing\Actions\ComputePrice;
 use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
 use App\Enums\GuestDetailsStatus;
+use App\Exceptions\DiscountCodeRefused;
 use App\Exceptions\HoldRefused;
 use App\Models\AgeBand;
 use App\Models\Booking;
 use App\Models\Departure;
+use App\Models\DiscountCode;
 use App\Support\Booking\BookingReference;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
@@ -93,6 +96,10 @@ final class CreateBookingDraft
 
         $isQuoteMode = $product->mode === BookingMode::Quote;
 
+        // «Κουπόνι» (2026-09-17): refused before a row or a hold exists, so a
+        // mistyped code costs the guest a sentence rather than their seats.
+        $discountCode = $isQuoteMode ? null : $this->discountCode($data);
+
         $booking = $this->insertWithReference(function (string $reference) use ($data, $product, $bands, $pax, $quote, $departure, $isQuoteMode): Booking {
             $window = $this->window($data, $departure);
 
@@ -168,6 +175,10 @@ final class CreateBookingDraft
         // A row per person, so passenger details have somewhere to go.
         ManifestRows::ensure($booking);
 
+        if ($discountCode instanceof DiscountCode) {
+            app(ApplyDiscountCode::class)($booking, $discountCode->code);
+        }
+
         // Outside the reference retry, because a hold that fails must not be
         // retried with a fresh reference — the seats are gone either way, and
         // burning four more references on a full boat is noise in the one index
@@ -177,6 +188,29 @@ final class CreateBookingDraft
         }
 
         return $booking;
+    }
+
+    /**
+     * The code the guest typed, if it may be used on this trip today.
+     *
+     * @throws DiscountCodeRefused
+     */
+    private function discountCode(BookingDraftData $data): ?DiscountCode
+    {
+        if ($data->discountCode === null || trim($data->discountCode) === '') {
+            return null;
+        }
+
+        $code = ApplyDiscountCode::find($data->discountCode);
+        $refusal = $code === null
+            ? __('discount_codes.refused.unknown')
+            : ApplyDiscountCode::refusal($code, (int) $data->product->getKey());
+
+        if ($code === null || $refusal !== null) {
+            throw new DiscountCodeRefused((string) $refusal);
+        }
+
+        return $code;
     }
 
     /**

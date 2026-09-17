@@ -142,7 +142,12 @@
             @endforeach
 
             @if ((int) ($snapshot['discount_cents'] ?? 0) > 0)
-                <dt>{{ __('guest.checkout.discount') }}</dt>
+                <dt>
+                    {{ __('guest.checkout.discount') }}
+                    @if (is_array($discountCode ?? null))
+                        <span class="muted">({{ $discountCode['code'] }})</span>
+                    @endif
+                </dt>
                 <dd>−{{ $money((int) $snapshot['discount_cents']) }}</dd>
             @endif
 
@@ -151,6 +156,27 @@
         </dl>
 
         <p class="muted">{{ __('guest.checkout.vat_included') }}</p>
+
+        {{-- «Κουπόνι» (2026-09-17). Its own form, outside the payment form:
+             applying a code shows the new total, it does not pay. --}}
+        <form method="post" action="{{ route('guest.checkout.code', ['token' => $token]) }}" class="discount-form" novalidate>
+            @csrf
+            @if (is_array($discountCode ?? null))
+                <p class="muted">{{ __('discount_codes.checkout.using', ['code' => $discountCode['code']]) }}</p>
+                <button type="submit" name="remove" value="1" class="btn btn-quiet">{{ __('discount_codes.checkout.remove') }}</button>
+            @else
+                <label for="discount_code">{{ __('discount_codes.checkout.label') }}</label>
+                <div class="discount-row">
+                    <input id="discount_code" name="discount_code" type="text" maxlength="32" autocomplete="off"
+                           autocapitalize="characters" value="{{ old('discount_code') }}">
+                    <button type="submit" class="btn btn-quiet">{{ __('discount_codes.checkout.apply') }}</button>
+                </div>
+            @endif
+            @error('discount_code') <p class="field-error" role="alert">{{ $message }}</p> @enderror
+            @if (session('discount_status'))
+                <p class="muted" role="status">{{ session('discount_status') }}</p>
+            @endif
+        </form>
 
         @if ($takesDeposit)
             <p class="muted">{{ __('guest.checkout.deposit_note', [

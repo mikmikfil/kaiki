@@ -85,6 +85,7 @@ use Illuminate\Support\Carbon;
  * @property string $vat_category
  * @property int $vat_cents
  * @property int|null $voucher_id
+ * @property int|null $discount_code_id «Κουπόνι», no foreign key (2026-09-17)
  * @property GuestDetailsStatus $guest_details_status
  * @property Carbon|null $balance_due_at
  * @property WeatherChoice|null $weather_choice
@@ -211,6 +212,12 @@ class Booking extends Model
     public function voucher(): BelongsTo
     {
         return $this->belongsTo(Voucher::class);
+    }
+
+    /** @return BelongsTo<DiscountCode, $this> */
+    public function discountCode(): BelongsTo
+    {
+        return $this->belongsTo(DiscountCode::class)->withTrashed();
     }
 
     /** @return HasMany<BookingGuest, $this> */

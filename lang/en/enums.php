@@ -102,6 +102,11 @@ return [
         'webhooks.receive' => ['label' => 'Receive webhooks'],
     ],
 
+    'discount_kind' => [
+        'percent' => ['label' => 'Percentage'],
+        'fixed' => ['label' => 'Fixed amount'],
+    ],
+
     'trip_question_type' => [
         'yes_no' => ['label' => 'Yes or no'],
         'choice' => ['label' => 'Choice'],

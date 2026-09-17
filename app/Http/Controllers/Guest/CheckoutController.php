@@ -12,10 +12,12 @@ use App\Domain\Booking\Support\PolicyExplanation;
 use App\Domain\Booking\Support\TripQuestionForm;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Hosted\Support\HostedUrl;
+use App\Domain\Pricing\Actions\ApplyDiscountCode;
 use App\Enums\BookingStatus;
 use App\Enums\PaymentKind;
 use App\Enums\TripQuestionScope;
 use App\Exceptions\CheckoutRefused;
+use App\Exceptions\DiscountCodeRefused;
 use App\Exceptions\IllegalStateTransition;
 use App\Models\Booking;
 use App\Models\Tenant;
@@ -77,6 +79,7 @@ final class CheckoutController extends GuestPageController
         GetBrandPayload $brand,
         private readonly MintCheckoutSession $mintSession,
         private readonly SaveGuestDetails $saveGuests,
+        private readonly ApplyDiscountCode $applyCode,
     ) {
         parent::__construct($brand);
     }
@@ -112,6 +115,8 @@ final class CheckoutController extends GuestPageController
             'bookingQuestions' => TripQuestionForm::scoped(TripQuestionForm::questionsFor($booking), TripQuestionScope::PerBooking),
             'personQuestions' => TripQuestionForm::scoped(TripQuestionForm::questionsFor($booking), TripQuestionScope::PerPerson),
             'givenAnswers' => TripQuestionForm::answersOf($booking),
+            // «Κουπόνι» (2026-09-17): what the snapshot says was applied.
+            'discountCode' => data_get($booking->price_snapshot, 'discount_code'),
 
             // **The operator's timezone, not the application's.** Everything is
             // stored UTC (CLAUDE.md), and `config('app.timezone')` is therefore
@@ -283,6 +288,16 @@ final class CheckoutController extends GuestPageController
                 TripQuestionForm::save($booking, (array) $request->input('answers', []), (array) $request->input('guests', []));
             }
 
+            // «Κουπόνι» (2026-09-17): a code that ran out or expired while the
+            // guest was filling this in comes off, and they are shown the new
+            // total before the gateway rather than charged it.
+            if (! $this->applyCode->recheck($booking)) {
+                return redirect()
+                    ->route('guest.checkout', ['token' => $token])
+                    ->withInput()
+                    ->withErrors(['discount_code' => __('discount_codes.refused.no_longer')]);
+            }
+
             try {
                 // Whatever the page said it would charge. A deposit product
                 // shows «πληρώνετε X τώρα και Y πριν την αναχώρηση» beside the
@@ -307,6 +322,41 @@ final class CheckoutController extends GuestPageController
             }
 
             return redirect()->away($target->url);
+        });
+    }
+
+    /**
+     * `POST /c/{token}/code` — put a discount code on the draft, or take it off.
+     *
+     * Its own small form beside the price rather than part of the payment
+     * form: a guest applies a code to see the new total, and pressing «Εφαρμογή»
+     * must not be taken as pressing «Πληρωμή».
+     */
+    public function code(Request $request, string $token): RedirectResponse
+    {
+        [$booking, $tenant] = $this->resolve($token);
+
+        if ($booking === null || ! $tenant instanceof Tenant || ! self::isPayable($booking)) {
+            return redirect()->route('guest.booking', ['token' => $token]);
+        }
+
+        app()->setLocale($this->resolveLocale($request, $booking->locale));
+
+        $typed = $request->boolean('remove') ? null : (string) $request->input('discount_code', '');
+
+        return Tenancy::forTenant($tenant, function () use ($booking, $typed, $token): RedirectResponse {
+            try {
+                $applied = ($this->applyCode)($booking, $typed);
+            } catch (DiscountCodeRefused $refused) {
+                return redirect()
+                    ->route('guest.checkout', ['token' => $token])
+                    ->withInput(['discount_code' => $typed])
+                    ->withErrors(['discount_code' => $refused->getMessage()]);
+            }
+
+            return redirect()
+                ->route('guest.checkout', ['token' => $token])
+                ->with('discount_status', __($applied === null ? 'discount_codes.checkout.removed' : 'discount_codes.checkout.applied'));
         });
     }
 

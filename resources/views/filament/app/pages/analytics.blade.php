@@ -423,6 +423,44 @@
         @endif
     </x-filament::section>
 
+    {{-- «Κουπόνια» (2026-09-17): which codes brought bookings, and what those
+         bookings came to. --}}
+    <x-filament::section>
+        <x-slot name="heading">{{ __('analytics.discount_codes.heading') }}</x-slot>
+        <x-slot name="description">{{ __('analytics.discount_codes.help') }}</x-slot>
+
+        @if ($report['discount_codes'] === [])
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('analytics.discount_codes.none') }}</p>
+        @else
+            <table class="w-full text-sm">
+                <thead class="text-left text-xs text-gray-500 dark:text-gray-400">
+                    <tr>
+                        <th class="py-2">{{ __('discount_codes.fields.name') }}</th>
+                        <th class="py-2">{{ __('discount_codes.fields.code') }}</th>
+                        <th class="py-2 text-right">{{ __('discount_codes.columns.uses') }}</th>
+                        @if ($this->showsMoney())
+                            <th class="py-2 text-right">{{ __('discount_codes.columns.revenue') }}</th>
+                            <th class="py-2 text-right">{{ __('analytics.discount_codes.discount') }}</th>
+                        @endif
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                    @foreach ($report['discount_codes'] as $row)
+                        <tr>
+                            <td class="py-2">{{ $row['name'] }}</td>
+                            <td class="py-2 font-mono">{{ $row['code'] }}</td>
+                            <td class="py-2 text-right tabular-nums">{{ $row['uses'] }}</td>
+                            @if ($this->showsMoney())
+                                <td class="py-2 text-right tabular-nums">{{ $money($row['revenue']) }}</td>
+                                <td class="py-2 text-right tabular-nums">{{ $money($row['discount']) }}</td>
+                            @endif
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endif
+    </x-filament::section>
+
     {{-- The funnel (ADR-0032). Counts per step, and the ratio between two of
          them — never called a conversion rate, because cookieless means nobody
          is followed from one step to the next and a number named something it

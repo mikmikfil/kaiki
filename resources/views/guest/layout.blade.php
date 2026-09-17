@@ -276,6 +276,11 @@
         }
 
         .passenger-body { padding: 0 .9rem 1rem; }
+        /* «Κουπόνι» beside the price (2026-09-17). */
+        .discount-form { margin-top: 1rem; }
+        .discount-row { display: flex; gap: .5rem; }
+        .discount-row input { flex: 1; text-transform: uppercase; }
+        .btn-quiet { background: transparent; color: inherit; border: 1px solid rgba(0, 0, 0, .2); width: auto; }
         /* The operator's checkout questions (2026-09-17). */
         .trip-question .question-label { margin: .9rem 0 .35rem; font-weight: 600; }
         .trip-question .choice-row { display: flex; gap: 1.25rem; }
