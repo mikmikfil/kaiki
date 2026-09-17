@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Guest;
 use App\Domain\Booking\Actions\MintCheckoutSession;
 use App\Domain\Booking\Actions\SaveGuestDetails;
 use App\Domain\Booking\Support\GuestTokenResolver;
+use App\Domain\Booking\Support\PolicyExplanation;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Hosted\Support\HostedUrl;
 use App\Enums\BookingStatus;
@@ -120,6 +121,9 @@ final class CheckoutController extends GuestPageController
              * somebody with a blank.
              */
             'policySummary' => $this->policySummary($booking, $locale),
+            // The whole ladder, for the «Πολιτική ακύρωσης» window beside the
+            // summary (2026-09-17). From the same frozen snapshot.
+            'policyLines' => PolicyExplanation::lines($booking->policy_snapshot, $locale),
         ]);
     }
 

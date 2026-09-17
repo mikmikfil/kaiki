@@ -108,6 +108,40 @@
 
         .policy p { margin: 0; }
 
+        /* «Πολιτική ακύρωσης»: the whole ladder in a window over the page,
+           opened by a link to its id (`:target`), closed by a link away. */
+        .policy-link { font-weight: 600; text-decoration: none; }
+
+        .policy-window {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(15, 23, 42, .45);
+        }
+
+        .policy-window:target { display: flex; }
+
+        .policy-window-box {
+            width: 100%;
+            max-width: 32rem;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 1.25rem 1.4rem;
+            border-radius: .75rem;
+            background: #fff;
+            box-shadow: 0 20px 40px -20px rgba(15, 23, 42, .5);
+        }
+
+        .policy-window-box h2 { margin: 0 0 .75rem; font-size: 1.1rem; }
+
+        .policy-lines { margin: 0 0 1rem; padding-inline-start: 1.1rem; display: grid; gap: .45rem; }
+
+        .policy-close { font-weight: 600; text-decoration: none; }
+
         /* The consent link was the one underlined link left on a guest page —
            the rule of 2026-09-11 is that nothing here is underlined, at rest or
            on hover — and against the sentence around it that read as damage

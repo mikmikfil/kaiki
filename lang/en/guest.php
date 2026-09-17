@@ -203,4 +203,18 @@ return [
         'products' => 'Trips you can use it on',
     ],
 
+    // The full cancellation policy at checkout (2026-09-17).
+    'policy' => [
+        'link' => 'Full cancellation policy',
+        'heading' => 'Cancellation policy',
+        'close' => 'Close',
+        'free_hours' => 'Cancel at least :hours hours before departure: 100% refund.',
+        'tier' => 'Cancel at least :days days before: :percent% refund.',
+        'later' => 'Cancel less than :days days before: no refund.',
+        'no_refund' => 'Cancelled by you: no refund.',
+        'weather' => 'If the trip is cancelled because of the weather: :percent% refund.',
+        'voucher' => 'In case of force majeure a voucher for the amount paid may be issued, valid for :months months.',
+        'no_show' => 'If you do not show up: :percent% refund.',
+    ],
+
 ];

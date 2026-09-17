@@ -168,10 +168,34 @@
              cancel, it is the question a guest actually has at this button, and
              the page answered it nowhere: the consent line named a policy and
              did not show it. --}}
-        @if ($policySummary !== null)
+        @if ($policySummary !== null || ($policyLines ?? []) !== [])
             <div class="policy">
                 <h3>{{ __('guest.checkout.policy_heading') }}</h3>
-                <p class="muted">{{ $policySummary }}</p>
+                @if ($policySummary !== null)
+                    <p class="muted">{{ $policySummary }}</p>
+                @endif
+
+                {{-- The full policy, a press away and without leaving the page
+                     (2026-09-17). A `:target` window rather than a script: the
+                     guest page's policy allows no inline script, and a link to
+                     `#policy-full` opens it with none. --}}
+                @if (($policyLines ?? []) !== [])
+                    <p><a class="policy-link" href="#policy-full">{{ __('guest.policy.link') }}</a></p>
+                @endif
+            </div>
+        @endif
+
+        @if (($policyLines ?? []) !== [])
+            <div id="policy-full" class="policy-window" role="dialog" aria-modal="true" aria-labelledby="policy-full-heading">
+                <div class="policy-window-box">
+                    <h2 id="policy-full-heading">{{ __('guest.policy.heading') }}</h2>
+                    <ul class="policy-lines">
+                        @foreach ($policyLines as $line)
+                            <li>{{ $line }}</li>
+                        @endforeach
+                    </ul>
+                    <a class="policy-close" href="#">{{ __('guest.policy.close') }}</a>
+                </div>
             </div>
         @endif
 
