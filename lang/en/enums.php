@@ -102,6 +102,17 @@ return [
         'webhooks.receive' => ['label' => 'Receive webhooks'],
     ],
 
+    'trip_question_type' => [
+        'yes_no' => ['label' => 'Yes or no'],
+        'choice' => ['label' => 'Choice'],
+        'text' => ['label' => 'Short text'],
+    ],
+
+    'trip_question_scope' => [
+        'per_person' => ['label' => 'Per person'],
+        'per_booking' => ['label' => 'Per booking'],
+    ],
+
     'extra_pricing' => [
         'per_booking' => ['label' => 'Per booking'],
         'per_person' => ['label' => 'Per person'],
@@ -227,6 +238,7 @@ return [
         'reference' => ['label' => 'Booking'],
         'age_band' => ['label' => 'Passenger type'],
         'checked_in' => ['label' => 'Checked in'],
+        'answers' => ['label' => 'Answers'],
     ],
 
     'audit_action' => [

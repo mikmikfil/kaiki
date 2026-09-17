@@ -276,6 +276,11 @@
         }
 
         .passenger-body { padding: 0 .9rem 1rem; }
+        /* The operator's checkout questions (2026-09-17). */
+        .trip-question .question-label { margin: .9rem 0 .35rem; font-weight: 600; }
+        .trip-question .choice-row { display: flex; gap: 1.25rem; }
+        .trip-question label.inline { display: inline-flex; align-items: center; gap: .4rem; margin: 0; font-weight: 400; }
+        .trip-question label.inline input { width: auto; }
         .passenger-body label:first-of-type { margin-top: 0; }
         /* A passport has an expiry date; an identity card does not (2026-09-17). */
         .passenger-body:has(select option[value="id_card"]:checked) .passport-expiry { display: none; }

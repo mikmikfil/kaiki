@@ -219,6 +219,12 @@ class Booking extends Model
         return $this->hasMany(BookingGuest::class);
     }
 
+    /** @return HasMany<BookingAnswer, $this> */
+    public function answers(): HasMany
+    {
+        return $this->hasMany(BookingAnswer::class);
+    }
+
     /** @return HasMany<BookingExtra, $this> */
     public function extras(): HasMany
     {

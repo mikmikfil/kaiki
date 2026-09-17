@@ -196,6 +196,16 @@ class Product extends Model implements TranslatableSearchable
     }
 
     /**
+     * The operator's own checkout questions (2026-09-17).
+     *
+     * @return HasMany<TripQuestion, $this>
+     */
+    public function questions(): HasMany
+    {
+        return $this->hasMany(TripQuestion::class);
+    }
+
+    /**
      * The extras this product names explicitly.
      *
      * Not the same as "the extras it offers" — a tenant-wide extra applies

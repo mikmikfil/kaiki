@@ -9,10 +9,12 @@ use App\Domain\Booking\Actions\SaveGuestDetails;
 use App\Domain\Booking\Support\GuestTokenResolver;
 use App\Domain\Booking\Support\PassengerForm;
 use App\Domain\Booking\Support\PolicyExplanation;
+use App\Domain\Booking\Support\TripQuestionForm;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Hosted\Support\HostedUrl;
 use App\Enums\BookingStatus;
 use App\Enums\PaymentKind;
+use App\Enums\TripQuestionScope;
 use App\Exceptions\CheckoutRefused;
 use App\Exceptions\IllegalStateTransition;
 use App\Models\Booking;
@@ -101,10 +103,15 @@ final class CheckoutController extends GuestPageController
             'token' => $token,
             'needsGuestDetails' => (bool) $booking->product?->guest_details_required,
             // One row per person, created if the booking has none yet, each
-            // knowing its band and whether that band carries a document.
-            'passengers' => $booking->product?->guest_details_required
+            // knowing its band and whether that band carries a document. Also
+            // when the trip asks a per-person question and no documents: the
+            // panel then holds a name and the questions (2026-09-17).
+            'passengers' => self::asksPassengers($booking)
                 ? PassengerForm::rows($booking, $locale)
                 : [],
+            'bookingQuestions' => TripQuestionForm::scoped(TripQuestionForm::questionsFor($booking), TripQuestionScope::PerBooking),
+            'personQuestions' => TripQuestionForm::scoped(TripQuestionForm::questionsFor($booking), TripQuestionScope::PerPerson),
+            'givenAnswers' => TripQuestionForm::answersOf($booking),
 
             // **The operator's timezone, not the application's.** Everything is
             // stored UTC (CLAUDE.md), and `config('app.timezone')` is therefore
@@ -211,6 +218,8 @@ final class CheckoutController extends GuestPageController
 
         return Tenancy::forTenant($tenant, function () use ($booking, $request, $token): RedirectResponse {
             $needsGuests = (bool) $booking->product?->guest_details_required;
+            $asksPassengers = self::asksPassengers($booking);
+            $questions = TripQuestionForm::questionsFor($booking);
 
             $rules = [
                 'guest_name' => ['required', 'string', 'max:120'],
@@ -229,13 +238,24 @@ final class CheckoutController extends GuestPageController
                 // list; what depends on the passenger's band and document is
                 // checked after the shape, in `PassengerForm::check()`.
                 $rules = [...$rules, ...PassengerForm::rules()];
+            } elseif ($asksPassengers) {
+                // Per-person questions on a trip that asks for no documents:
+                // a name for each panel, and the answers.
+                $rules['guests'] = ['required', 'array', 'min:1'];
+                $rules['guests.*.position'] = ['required', 'integer', 'min:1'];
+                $rules['guests.*.full_name'] = ['required', 'string', 'max:120'];
             }
+
+            [$questionRules, $questionNames] = TripQuestionForm::rules(
+                $questions,
+                array_keys((array) $request->input('guests', [])),
+            );
 
             $validator = ValidatorFactory::make(
                 $request->all(),
-                $rules,
+                [...$rules, ...$questionRules],
                 [],
-                $needsGuests ? PassengerForm::attributes($request->all()) : [],
+                [...($needsGuests ? PassengerForm::attributes($request->all()) : []), ...$questionNames],
             );
 
             if ($needsGuests) {
@@ -253,10 +273,14 @@ final class CheckoutController extends GuestPageController
                 'ip_address' => $request->ip(),
             ])->save();
 
-            if ($needsGuests) {
+            if ($asksPassengers) {
                 // The same Action `/g/{token}` uses, so the manifest is written
                 // one way whether it is filled in here or afterwards.
                 ($this->saveGuests)($booking, $data['guests']);
+            }
+
+            if ($questions->isNotEmpty()) {
+                TripQuestionForm::save($booking, (array) $request->input('answers', []), (array) $request->input('guests', []));
             }
 
             try {
@@ -284,6 +308,13 @@ final class CheckoutController extends GuestPageController
 
             return redirect()->away($target->url);
         });
+    }
+
+    /** Does checkout show a panel per passenger? */
+    private static function asksPassengers(Booking $booking): bool
+    {
+        return (bool) $booking->product?->guest_details_required
+            || TripQuestionForm::scoped(TripQuestionForm::questionsFor($booking), TripQuestionScope::PerPerson)->isNotEmpty();
     }
 
     /**

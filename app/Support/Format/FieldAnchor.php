@@ -39,6 +39,15 @@ final class FieldAnchor
             return $suffix === null ? $key : sprintf('g%d_%s', (int) $m[1], $suffix);
         }
 
+        // The operator's checkout questions (2026-09-17).
+        if (preg_match('/^answers\.booking\.([\w-]+)$/', $key, $m) === 1) {
+            return 'q_' . $m[1];
+        }
+
+        if (preg_match('/^answers\.guests\.(\d+)\.([\w-]+)$/', $key, $m) === 1) {
+            return sprintf('g%d_q_%s', (int) $m[1], $m[2]);
+        }
+
         // The lead booker's fields, the note and the consent box all carry their
         // own name as their id, so there is nothing to translate.
         return $key;

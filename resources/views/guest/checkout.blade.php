@@ -305,13 +305,29 @@
         <label for="special_requests">{{ __('guest.checkout.special_requests') }}</label>
         <textarea id="special_requests" name="special_requests" rows="3">{{ old('special_requests', $booking->special_requests) }}</textarea>
 
-        @if ($needsGuestDetails)
+        {{-- The operator's own questions, once for the booking (2026-09-17). --}}
+        @if ($bookingQuestions->isNotEmpty())
+            <h2>{{ __('questions.heading') }}</h2>
+            @foreach ($bookingQuestions as $question)
+                @include('guest.partials.trip-question', [
+                    'question' => $question,
+                    'name' => "answers[booking][{$question->uuid}]",
+                    'key' => "answers.booking.{$question->uuid}",
+                    'id' => 'q_' . $question->uuid,
+                    'given' => $givenAnswers['booking']->firstWhere('trip_question_id', $question->getKey())?->answer,
+                ])
+            @endforeach
+        @endif
+
+        @if ($passengers !== [])
             {{-- Only for trips whose `guest_details_required` is set. The
                  explanation comes before the fields for the same reason `/g/`
                  gives it: a guest asked for a document number with no reason
                  given closes the tab. --}}
             <h2>{{ __('guest.checkout.passengers') }}</h2>
-            <p class="muted">{{ __('guest.checkout.passengers_why') }}</p>
+            @if ($needsGuestDetails)
+                <p class="muted">{{ __('guest.checkout.passengers_why') }}</p>
+            @endif
 
             {{-- One `<details>` per passenger, the first open.
 
@@ -345,7 +361,8 @@
                 @php
                     $guest = $row['guest'];
                     $hasError = collect(['full_name', 'nationality', 'date_of_birth', 'document_type', 'document_number', 'document_expires_on'])
-                        ->contains(static fn (string $field): bool => $errors->has("guests.$i.$field"));
+                        ->contains(static fn (string $field): bool => $errors->has("guests.$i.$field"))
+                        || $errors->has("answers.guests.$i.*");
                     $typed = old("guests.$i.full_name", $guest->full_name);
                 @endphp
 
@@ -368,6 +385,7 @@
                                value="{{ old("guests.$i.full_name", $guest->full_name) }}">
                         @error("guests.$i.full_name") <p class="field-error">{{ $message }}</p> @enderror
 
+                        @if ($needsGuestDetails)
                         <label for="g{{ $i }}_nat">{{ __('guest.checkout.nationality') }}</label>
                         <input id="g{{ $i }}_nat" name="guests[{{ $i }}][nationality]" type="text" required
                                autocomplete="country-name" value="{{ old("guests.$i.nationality", $guest->nationality) }}">
@@ -377,8 +395,11 @@
                         <input id="g{{ $i }}_dob" name="guests[{{ $i }}][date_of_birth]" type="date" required
                                value="{{ old("guests.$i.date_of_birth", $guest->date_of_birth?->toDateString()) }}">
                         @error("guests.$i.date_of_birth") <p class="field-error">{{ $message }}</p> @enderror
+                        @endif
 
-                        @if ($row['no_document'])
+                        @if (! $needsGuestDetails)
+                            {{-- Only a name: the panel is here for the questions. --}}
+                        @elseif ($row['no_document'])
                             <p class="muted">{{ __('guest.checkout.no_document') }}</p>
                         @else
                             @php $chosen = old("guests.$i.document_type", $guest->document_type?->value); @endphp
@@ -407,6 +428,16 @@
                                 @error("guests.$i.document_expires_on") <p class="field-error">{{ $message }}</p> @enderror
                             </div>
                         @endif
+
+                        @foreach ($personQuestions as $question)
+                            @include('guest.partials.trip-question', [
+                                'question' => $question,
+                                'name' => "answers[guests][{$i}][{$question->uuid}]",
+                                'key' => "answers.guests.{$i}.{$question->uuid}",
+                                'id' => "g{$i}_q_" . $question->uuid,
+                                'given' => ($givenAnswers['guests'][$guest->getKey()] ?? collect())->firstWhere('trip_question_id', $question->getKey())?->answer,
+                            ])
+                        @endforeach
                     </div>
                 </details>
             @endforeach

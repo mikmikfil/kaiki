@@ -38,6 +38,12 @@ enum ManifestColumn: string
     case CheckedIn = 'checked_in';
 
     /**
+     * The trip's own checkout questions (2026-09-17): the passenger's answers,
+     * and on the lead passenger's row the booking's.
+     */
+    case Answers = 'answers';
+
+    /**
      * What OPS-8 asks for by default.
      *
      * `document_type` is here beside the number because a passport number and

@@ -91,6 +91,17 @@ return [
     | βλέπει αγγλικά και ψάχνει τα ελληνικά πρέπει να αναγνωρίσει τη λέξη
     | «Ελληνικά», όχι τη λέξη «Greek».
     */
+    'trip_question_type' => [
+        'yes_no' => ['label' => 'Ναι ή όχι'],
+        'choice' => ['label' => 'Επιλογή'],
+        'text' => ['label' => 'Σύντομο κείμενο'],
+    ],
+
+    'trip_question_scope' => [
+        'per_person' => ['label' => 'Ανά άτομο'],
+        'per_booking' => ['label' => 'Ανά κράτηση'],
+    ],
+
     'extra_pricing' => [
         'per_booking' => ['label' => 'Ανά κράτηση'],
         'per_person' => ['label' => 'Ανά άτομο'],
@@ -216,6 +227,7 @@ return [
         'reference' => ['label' => 'Κράτηση'],
         'age_band' => ['label' => 'Κατηγορία επιβάτη'],
         'checked_in' => ['label' => 'Επιβιβάστηκε'],
+        'answers' => ['label' => 'Απαντήσεις'],
     ],
 
     'audit_action' => [

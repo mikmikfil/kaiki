@@ -104,6 +104,7 @@ return [
             'source' => 'Προέλευση',
             'cancelled_at' => 'Ημ. ακύρωσης',
             'cancel_reason' => 'Λόγος ακύρωσης',
+            'answers' => 'Απαντήσεις',
         ],
 
         'guests' => [
@@ -119,6 +120,7 @@ return [
             'counts_toward_capacity' => 'Πιάνει θέση',
             'checked_in_at' => 'Επιβίβαση',
             'no_show' => 'Δεν εμφανίστηκε',
+            'answers' => 'Απαντήσεις',
         ],
 
     ],

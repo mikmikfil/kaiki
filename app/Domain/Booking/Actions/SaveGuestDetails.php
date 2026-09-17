@@ -73,7 +73,16 @@ final class SaveGuestDetails
                     continue;
                 }
 
-                $guest->forceFill($this->attributesFrom($row))->save();
+                // Only the fields the form posted: a checkout that asks a name
+                // and a question must not blank a nationality typed on `/g/`.
+                $attributes = $this->attributesFrom($row);
+                $posted = array_intersect_key($attributes, $row);
+
+                if (array_key_exists('document_type', $row)) {
+                    $posted['document_expires_on'] = $attributes['document_expires_on'];
+                }
+
+                $guest->forceFill($posted)->save();
 
                 $written++;
             }

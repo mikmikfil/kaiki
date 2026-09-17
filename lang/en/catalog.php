@@ -498,6 +498,23 @@ return [
         ],
     ],
 
+    'question' => [
+        'title' => 'Questions',
+        'help' => 'Questions the guest answers at checkout, for each passenger or once for the booking.',
+        'empty' => 'No questions',
+        'add' => 'New question',
+        'label' => ['label' => 'Question', 'help' => 'As the guest will see it.'],
+        'type' => 'Type of answer',
+        'scope' => 'Who answers',
+        'options_el' => 'Choices in Greek',
+        'options_en' => 'Choices in English',
+        'options_help' => 'One choice per line, in the same order in both languages.',
+        'options_mismatch' => 'The Greek and English choices must have the same number of lines.',
+        'is_required' => 'Required',
+        'is_active' => 'Active',
+        'sort_order' => 'Order',
+    ],
+
     'extra' => [
         'nav' => 'Extras',
 

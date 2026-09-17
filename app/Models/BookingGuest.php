@@ -11,6 +11,7 @@ use Database\Factories\BookingGuestFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -90,6 +91,16 @@ class BookingGuest extends Model
     public function booking(): BelongsTo
     {
         return $this->belongsTo(Booking::class);
+    }
+
+    /**
+     * Answers to the trip's per-person questions (2026-09-17).
+     *
+     * @return HasMany<BookingAnswer, $this>
+     */
+    public function answers(): HasMany
+    {
+        return $this->hasMany(BookingAnswer::class);
     }
 
     /** @return BelongsTo<AgeBand, $this> */

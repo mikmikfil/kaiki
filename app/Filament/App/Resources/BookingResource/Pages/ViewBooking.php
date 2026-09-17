@@ -72,6 +72,17 @@ class ViewBooking extends ViewRecord
                 ])
                 ->columns(3),
 
+            // The trip's checkout questions (2026-09-17), as they were asked:
+            // the booking's first, then each passenger's with their name.
+            Section::make(__('questions.answers'))
+                ->schema([
+                    TextEntry::make('answer_lines')
+                        ->hiddenLabel()
+                        ->state(static fn (Booking $record): array => self::answerLines($record))
+                        ->listWithLineBreaks(),
+                ])
+                ->visible(static fn (Booking $record): bool => $record->answers()->exists()),
+
             Section::make(__('bookings.view.money'))
                 ->schema([
                     TextEntry::make('total_cents')->label(__('bookings.table.total'))->formatStateUsing($money),
@@ -222,5 +233,23 @@ class ViewBooking extends ViewRecord
         $booking = $this->getRecord();
 
         return $booking;
+    }
+
+    /**
+     * One line per answer, a passenger's prefixed with their name.
+     *
+     * @return list<string>
+     */
+    private static function answerLines(Booking $booking): array
+    {
+        $lines = [];
+
+        foreach ($booking->answers()->with('guest')->orderBy('booking_guest_id')->orderBy('id')->get() as $answer) {
+            $guest = $answer->guest;
+            $who = $guest === null ? null : ($guest->full_name ?? __('questions.passenger', ['n' => $guest->position]));
+            $lines[] = ($who !== null ? $who . ' · ' : '') . $answer->line();
+        }
+
+        return $lines;
     }
 }

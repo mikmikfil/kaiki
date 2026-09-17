@@ -12,6 +12,7 @@ use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource\Pages;
 use App\Filament\App\Resources\ProductResource\RelationManagers\ExtrasRelationManager;
+use App\Filament\App\Resources\ProductResource\RelationManagers\QuestionsRelationManager;
 use App\Filament\App\Resources\ProductResource\RelationManagers\RatePlansRelationManager;
 use App\Filament\App\Resources\ProductResource\RelationManagers\ScheduleRulesRelationManager;
 use App\Filament\Forms\TranslatableInput;
@@ -973,6 +974,7 @@ class ProductResource extends Resource
             RatePlansRelationManager::class,
             // «Πρόσθετα», free or paid (2026-09-17).
             ExtrasRelationManager::class,
+            QuestionsRelationManager::class,
         ];
     }
 

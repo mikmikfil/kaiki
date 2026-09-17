@@ -9,6 +9,7 @@ use App\Enums\BookingStatus;
 use App\Exceptions\CheckInRefused;
 use App\Filament\App\Pages\CheckIn;
 use App\Models\Booking;
+use App\Models\BookingAnswer;
 use App\Models\BookingGuest;
 use App\Models\User;
 use App\Support\Authorization\Capability;
@@ -189,7 +190,7 @@ class BoardingController
                 $now->copy()->subHours(self::HOURS_BACK),
                 $now->copy()->addHours(self::HOURS_FORWARD),
             ])
-            ->with(['product', 'guests'])
+            ->with(['product', 'guests.answers', 'answers'])
             ->get();
 
         $rows = [];
@@ -210,6 +211,12 @@ class BoardingController
                         ? $booking->local_date->toDateString()
                         : (string) $booking->local_date,
                     'checked_in' => $guest->checked_in_at !== null,
+                    // The checkout questions (2026-09-17): this passenger's
+                    // answers, and the booking's on the lead passenger.
+                    'answers' => BookingAnswer::joined([
+                        ...($guest->is_lead ? $booking->answers->whereNull('booking_guest_id')->all() : []),
+                        ...$guest->answers->all(),
+                    ]),
                 ];
             }
         }
