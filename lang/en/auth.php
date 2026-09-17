@@ -24,4 +24,14 @@ return [
         'line' => 'The booking system for boat trips.',
     ],
 
+    // The password reset email, for both panels (2026-09-17).
+    'reset_mail' => [
+        'subject' => 'Reset your password · :operator',
+        'heading' => 'Reset your password',
+        'body' => 'Hello :name, we received a request to change the password of your :operator account. Use the button to choose a new one.',
+        'action' => 'Choose a new password',
+        'expiry' => 'The link works for :minutes minutes.',
+        'ignore' => 'If you did not ask for this, ignore this email. Your password stays the same.',
+    ],
+
 ];

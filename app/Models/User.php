@@ -10,6 +10,7 @@ use App\Support\Authorization\Capability;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Contracts\Translation\HasLocalePreference;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -39,7 +40,7 @@ use Illuminate\Notifications\Notifiable;
  * @property string|null $locale
  * @property bool $is_super_admin
  */
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasLocalePreference
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory;
@@ -70,6 +71,15 @@ class User extends Authenticatable implements FilamentUser
             'two_factor_recovery_codes' => 'encrypted',
             'is_super_admin' => 'boolean',
         ];
+    }
+
+    /**
+     * The language notifications to this person are sent in — the password
+     * reset above all (2026-09-17). Falls back to the app's.
+     */
+    public function preferredLocale(): string
+    {
+        return $this->locale ?? (string) config('app.locale');
     }
 
     /** @return BelongsTo<Tenant, $this> */
