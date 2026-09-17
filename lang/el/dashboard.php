@@ -96,7 +96,7 @@ return [
             'calendar' => 'Ημερολόγιο',
             'calendar_week' => 'Η εβδομάδα',
             'attention' => 'Προσοχή',
-            'attention_count' => ':count απόφαση|:count αποφάσεις',
+            'attention_count' => ':count εκκρεμότητα|:count εκκρεμότητες',
             'attention_none' => 'Όλα εντάξει',
         ],
         'boats' => [

@@ -23,7 +23,7 @@ return [
     ],
 
     'heading' => 'Needs attention',
-    'subheading' => 'Decisions waiting on you. Nothing here can be fixed by trying again.',
+    'subheading' => 'Things waiting on you. Where there is a decision, you can take it from here.',
 
     'no_deadline' => 'no deadline',
 
@@ -83,6 +83,23 @@ return [
         'call' => 'Call',
         'all' => 'All (:count)',
         'fewer' => 'Fewer',
+    ],
+
+    // The decisions are taken here, confirmed first (2026-09-17).
+    'decide' => [
+        'sail' => 'Sail anyway',
+        'sail_heading' => 'Does this departure sail anyway?',
+        'sail_body' => 'It has :sold of the :minimum people it needs. If you press «Yes, it sails», the departure becomes guaranteed, keeps selling, and you will not be asked again.',
+        'sail_confirm' => 'Yes, it sails',
+        'sailed' => 'Done: the departure sails as planned.',
+        'cancel' => 'Cancel departure',
+        'cancel_heading' => 'Cancel: :trip',
+        'cancel_body' => '{0} There are no bookings on this departure. It is cancelled and stops selling.|{1} :count booking on this departure is cancelled. The refund starts straight away, as much as the booking cancellation policy allows. The guest is not notified automatically: let them know yourself.|[2,*] :count bookings on this departure are cancelled. Refunds start straight away, as much as each booking cancellation policy allows. Guests are not notified automatically: let them know yourself.',
+        'cancel_confirm' => 'Yes, cancel',
+        'cancelled' => '{0} The departure is cancelled.|{1} The departure is cancelled, with :count booking.|[2,*] The departure is cancelled, with :count bookings.',
+        'paid' => 'Paid',
+        'paid_heading' => 'Payment for booking :reference',
+        'paid_confirm' => 'Record',
     ],
 
 ];

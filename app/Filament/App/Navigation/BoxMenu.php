@@ -65,6 +65,30 @@ final class BoxMenu
             }
         }
 
+        // «Αρχική» has no group in the sidebar, which on a phone left it alone
+        // on its own row looking like a banner (product owner, 2026-09-17:
+        // «είναι μόνο του και είναι τεράστιο»). An unlabelled group joins the
+        // front of the group after it, so every box sits in a full row.
+        $merged = [];
+        $carry = [];
+
+        foreach ($groups as $group) {
+            if ($group['label'] === null) {
+                $carry = [...$carry, ...$group['items']];
+
+                continue;
+            }
+
+            $merged[] = ['label' => $group['label'], 'items' => [...$carry, ...$group['items']]];
+            $carry = [];
+        }
+
+        if ($carry !== []) {
+            $merged[] = ['label' => null, 'items' => $carry];
+        }
+
+        $groups = $merged;
+
         $foot = [];
 
         if (Analytics::canAccess()) {

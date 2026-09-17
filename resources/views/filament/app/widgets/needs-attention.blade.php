@@ -3,7 +3,9 @@
 
     Decisions, not failures. Since 17 September every row is a box that opens
     the screen where it is dealt with, with its button saying what that is,
-    and a call button where a phone call is the fix. Five first, «Όλα (N)» for
+    and a call button where a phone call is the fix. The two yes-or-no rows —
+    a sailing short of its minimum, a balance past due — carry their answers
+    as buttons instead, each confirmed in a dialog. Five first, «Όλα (N)» for
     the rest. See `NeedsAttention` for which item leads where.
 
     Ordered by deadline and never by severity: a red badge above a boat leaving
@@ -51,10 +53,18 @@
                         </a>
 
                         <div class="ka-actions">
-                            <a class="ka-btn is-primary" href="{{ $row['url'] }}">
-                                <span>{{ $row['action'] }}</span>
-                                <x-filament::icon icon="heroicon-m-arrow-right" class="ka-btn-ic" />
-                            </a>
+                            @if ($row['decide'] === 'departure')
+                                {{-- The two answers to «short: run it or cancel it?» --}}
+                                {{ ($this->sailAnywayAction)(['departure' => $row['id']]) }}
+                                {{ ($this->cancelDepartureAction)(['departure' => $row['id']]) }}
+                            @elseif ($row['decide'] === 'balance')
+                                {{ ($this->markPaidAction)(['booking' => $row['id']]) }}
+                            @else
+                                <a class="ka-btn is-primary" href="{{ $row['url'] }}">
+                                    <span>{{ $row['action'] }}</span>
+                                    <x-filament::icon icon="heroicon-m-arrow-right" class="ka-btn-ic" />
+                                </a>
+                            @endif
 
                             @if ($row['phone'])
                                 <a class="ka-btn" href="tel:{{ preg_replace('/[^0-9+]/', '', $row['phone']) }}">
@@ -74,6 +84,8 @@
             @endif
         </x-filament::section>
     @endif
+
+    <x-filament-actions::modals />
 
     <style>
         #ka-attention a { text-decoration: none; }
@@ -97,6 +109,14 @@
         .ka-when .is-undated { color: rgb(var(--gray-400)); }
 
         .ka-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+        /* Filament's own buttons for the answers, the same height as ours. */
+        .ka-actions .fi-btn { min-height: 2.75rem; border-radius: .7rem; }
+        @media (max-width: 767.98px) {
+            /* Side by side and equal on a phone, never one per line. */
+            .ka-actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+            .ka-actions > * { justify-content: center; }
+            .ka-actions .fi-btn { padding-inline: .5rem; font-size: .85rem; white-space: normal; line-height: 1.15; }
+        }
         .ka-btn {
             display: inline-flex; align-items: center; gap: .4rem;
             min-height: 2.75rem; padding: 0 .9rem; border-radius: .7rem;

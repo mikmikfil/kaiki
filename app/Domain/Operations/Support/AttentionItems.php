@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Operations\Support;
 
+use App\Domain\Availability\Actions\SailBelowMinimum;
 use App\Enums\BookingStatus;
 use App\Enums\DepartureStatus;
 use App\Enums\GuestDetailsStatus;
@@ -119,7 +120,13 @@ final class AttentionItems
      *
      * The operator's real question is *"do I run it short or cancel it"*, and
      * both answers cost money — which is exactly why the product must not pick
-     * one. The row states the gap and links to the departure.
+     * one. The row states the gap, and since 2026-09-17 takes either answer
+     * in place: cancel, or «Φεύγει κανονικά».
+     *
+     * **`scheduled` only.** A guaranteed departure is one the operator has
+     * already committed to — by seats (AVL-48) or by answering this very row
+     * ({@see SailBelowMinimum}) — so it is no longer a question, and asking it
+     * again every morning would make the answer meaningless.
      *
      * @return list<AttentionItem>
      */
@@ -127,7 +134,7 @@ final class AttentionItems
     {
         $departures = Departure::query()
             ->with(['product', 'vessel'])
-            ->whereIn('status', [DepartureStatus::Scheduled->value, DepartureStatus::Guaranteed->value])
+            ->where('status', DepartureStatus::Scheduled->value)
             ->where('min_pax', '>', 0)
             ->whereColumn('seats_sold', '<', 'min_pax')
             ->where('starts_at_utc', '>=', $now)

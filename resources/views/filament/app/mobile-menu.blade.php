@@ -98,13 +98,27 @@
         }
         .ka-menu-ic { width: 1.5rem; height: 1.5rem; }
         .ka-menu-group { margin: 1.1rem 0 .5rem; font-size: .85rem; font-weight: 600; color: #8FAAD0; }
+        /* Every box the same size in every group (2026-09-17): a fixed grid of
+           equal columns, a lone box keeps one column's width, one fixed height,
+           and a long word wraps to two lines at most. The foot row too — two
+           boxes there used to stretch to half the screen each. */
         .ka-menu-boxes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
-        .ka-menu-boxes.is-foot { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 1.1rem; }
+        .ka-menu-boxes.is-foot { margin-top: 1.1rem; }
         .ka-menu-box {
-            position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .45rem;
-            min-height: 5.5rem; padding: .6rem .35rem; border-radius: .9rem;
+            position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .4rem;
+            height: 5.75rem; padding: .5rem .35rem; border-radius: .9rem;
             background: #17396A; color: #E4ECF7; text-decoration: none;
             font-size: .85rem; font-weight: 600; text-align: center; line-height: 1.2;
+            overflow: hidden;
+        }
+        .ka-menu-box > span:last-child {
+            display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+            overflow: hidden; overflow-wrap: anywhere; max-width: 100%;
+        }
+        .ka-menu-box .ka-menu-ic { flex: none; }
+
+        @media (max-width: 359.98px) {
+            .ka-menu-boxes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         .ka-menu-box.is-active { background: #fff; color: #0F2E57; }
         .ka-menu-badge {

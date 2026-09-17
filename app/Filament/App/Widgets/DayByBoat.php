@@ -25,7 +25,7 @@ use Illuminate\Support\Carbon;
  *    boat and quay, how many are aboard, and the boarding button under the
  *    thumb.
  * 2. **Four boxes**, one question each: Αναχωρήσεις today, new Κρατήσεις,
- *    the Ημερολόγιο, and Προσοχή — the decisions listed further down the page.
+ *    the Ημερολόγιο, and Προσοχή — the to-do items listed further down the page.
  *    Each box says its one number in words.
  * 3. **Today by boat.** On a phone, one box per boat: a small bar of when it
  *    is out, and its sailings underneath, each opening that departure. From a
@@ -166,17 +166,17 @@ class DayByBoat extends Widget
             ];
         }
 
-        $decisions = count((new AttentionItems($this->timezone()))->all());
+        $pending = count((new AttentionItems($this->timezone()))->all());
 
         $boxes[] = [
             'label' => __('dashboard.home.boxes.attention'),
-            'detail' => $decisions > 0
-                ? trans_choice('dashboard.home.boxes.attention_count', $decisions, ['count' => $decisions])
+            'detail' => $pending > 0
+                ? trans_choice('dashboard.home.boxes.attention_count', $pending, ['count' => $pending])
                 : __('dashboard.home.boxes.attention_none'),
             'url' => '#ka-attention',
             'icon' => 'heroicon-o-exclamation-triangle',
-            'count' => $decisions > 0 ? $decisions : null,
-            'alert' => $decisions > 0,
+            'count' => $pending > 0 ? $pending : null,
+            'alert' => $pending > 0,
         ];
 
         return $boxes;

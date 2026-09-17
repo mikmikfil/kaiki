@@ -100,7 +100,7 @@ return [
             'calendar' => 'Calendar',
             'calendar_week' => 'This week',
             'attention' => 'Attention',
-            'attention_count' => ':count decision|:count decisions',
+            'attention_count' => ':count to do|:count to do',
             'attention_none' => 'All clear',
         ],
         'boats' => [

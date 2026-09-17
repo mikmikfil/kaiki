@@ -129,7 +129,8 @@ it('sends a sailing short of its minimum to that departure', function (): void {
     Livewire::actingAs($owner)
         ->test(NeedsAttention::class)
         ->assertOk()
-        ->assertSee(__('attention.actions.departure'));
+        ->assertSee(__('attention.decide.sail'))
+        ->assertSee(__('attention.decide.cancel'));
 })->group('fast');
 
 it('takes scanning, boarding and aboard counts off the home page when boarding is switched off', function (): void {
@@ -175,3 +176,18 @@ it('greets the operator by their first name, or without one when it is blank', f
     'blank' => ['   ', 'Καλημέρα'],
     'none' => [null, 'Καλημέρα'],
 ])->group('fast');
+
+it('puts «Αρχική» in the first group of the phone menu, never alone on its own row', function (): void {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+
+    $html = (string) actingAs(homeOwner())->get('/app')->assertSuccessful()->getContent();
+
+    $menu = substr($html, (int) strpos($html, 'class="ka-menu-body"'));
+    $firstGroup = (int) strpos($menu, 'ka-menu-group');
+    $firstBoxes = (int) strpos($menu, 'ka-menu-boxes');
+
+    // The first thing in the menu is a group heading, not a row of boxes, so
+    // there is no heading-less row with «Αρχική» by itself.
+    expect($firstGroup)->toBeGreaterThan(0)
+        ->and($firstGroup)->toBeLessThan($firstBoxes);
+})->group('fast');
