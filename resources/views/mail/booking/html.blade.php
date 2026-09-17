@@ -167,6 +167,27 @@
                             <div style="height:18px;line-height:18px;font-size:1px;">&nbsp;</div>
                         @endif
 
+                        {{-- «Προσθήκη στο ημερολόγιο» (2026-09-18). Two links and
+                             not one, because they serve two different guests: the
+                             `.ics` is what a phone hands to iOS or Android with no
+                             account in the way, and the Google link is one click
+                             for somebody reading in a browser tab. Text links
+                             rather than a second button — the card already has one
+                             main action and this is not it. --}}
+                        @if ($d->calendarUrl !== null)
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                   style="border:1px solid #dbe3e9;margin:0 0 18px;">
+                                <tr>
+                                    <td style="padding:12px 20px;{{ $font }}font-size:14px;">
+                                        <span style="{{ $muted }}">{{ __('mail.common.add_to_calendar') }}</span><br>
+                                        <a href="{{ $d->calendarUrl }}" style="{{ $link }}">{{ __('mail.common.calendar_ics') }}</a>
+                                        <span style="{{ $muted }}"> · </span>
+                                        <a href="{{ $d->calendarGoogleUrl }}" style="{{ $link }}">{{ __('mail.common.calendar_google') }}</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        @endif
+
                         @if (! $d->full && $d->showParty)
                             @include('mail.booking.partials.party-html')
                         @endif

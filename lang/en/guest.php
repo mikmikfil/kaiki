@@ -116,6 +116,15 @@ return [
         'when' => 'When',
         'meeting_point' => 'Meeting point',
         'map' => 'Open in maps',
+
+        // Add to calendar (2026-09-18). The sentence says check-in rather than
+        // departure, because that is the time somebody has to be at the quay.
+        'calendar' => [
+            'heading' => 'Add to calendar',
+            'body' => 'It goes in your calendar with the check-in time, the meeting point and a reminder the day before.',
+            'ics' => 'Apple, Outlook and phone',
+            'google' => 'Google Calendar',
+        ],
         'check_in' => 'Check-in',
         'party' => 'Party',
         'people' => ':count people',

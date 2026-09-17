@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Guest;
 use App\Domain\Booking\Actions\ApplyGuestChoice;
 use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\MintBalanceSession;
+use App\Domain\Booking\Support\BookingCalendarInvite;
 use App\Domain\Booking\Support\GuestTokenResolver;
 use App\Domain\Booking\Support\RefundEntitlement;
 use App\Enums\BookingStatus;
@@ -79,6 +80,9 @@ final class ManageBookingController extends GuestPageController
             // `CancelBooking`, against the same frozen snapshot, so the two
             // cannot disagree — see the class docblock.
             'entitlement' => RefundEntitlement::forCancellation($booking),
+            // The same two links as the email (2026-09-18), for the guest who
+            // deleted the email and kept the page.
+            'calendar' => self::calendarFor($booking, $locale),
             'canCancel' => self::canCancel($booking),
             'weatherChoiceDue' => self::weatherChoiceIsOpen($booking),
             'backUrl' => $this->backToSiteUrl($booking, $tenant),
@@ -129,6 +133,80 @@ final class ManageBookingController extends GuestPageController
                 'Content-Disposition' => 'inline; filename="' . $booking->reference . '.pdf"',
             ],
         );
+    }
+
+    /**
+     * The trip as a calendar entry (product owner, 2026-09-18).
+     *
+     * Served from a route and not only attached to the email, for three
+     * reasons. A guest who deleted the email still has the page. A guest whose
+     * trip moved needs *today's* times, and a file attached in March carries
+     * the March times for ever. And an attachment is stripped by some corporate
+     * mail filters, where a link survives.
+     *
+     * Rendered inside the tenant, so the meeting point and the labels come out
+     * in the operator's own data and the guest's own language — the same reason
+     * {@see self::show()} does it.
+     *
+     * `attachment`, not `inline`: on iOS and Android it is the download handler
+     * that offers "add to calendar", while an inline `text/calendar` is shown
+     * to some guests as a screenful of raw text.
+     */
+    public function calendar(Request $request, string $token): Response
+    {
+        [$booking, $tenant] = $this->resolve($token);
+
+        if ($booking === null || ! $tenant instanceof Tenant) {
+            return $this->linkNotValid($request);
+        }
+
+        $locale = $this->resolveLocale($request, $booking->locale);
+
+        /** @var array{0: string, 1: string}|null $file */
+        $file = Tenancy::forTenant($tenant, static function () use ($booking, $locale): ?array {
+            $invite = BookingCalendarInvite::for($booking, $locale);
+
+            // A draft that never got a departure has nothing to put in a
+            // calendar. The same "link not valid" page as a ticket that was
+            // never generated: at that point the difference is not actionable.
+            return $invite->isAvailable() ? [$invite->ics(), $invite->filename()] : null;
+        });
+
+        if ($file === null) {
+            return $this->linkNotValid($request);
+        }
+
+        return response($file[0], Response::HTTP_OK, [
+            'Content-Type' => 'text/calendar; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $file[1] . '"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    /**
+     * The page's two calendar links, or null when there is nothing to add.
+     *
+     * Already inside the tenant: {@see self::show()} calls this from within
+     * `renderInTenant`, which is what makes the meeting point readable.
+     *
+     * Nothing is offered for a trip that has already sailed or a booking that
+     * was cancelled. The route still serves both — an old email is a link
+     * somebody may tap, and a cancelled booking's file is what *removes* the
+     * entry — but a page offering to diary last Tuesday is a page that looks
+     * broken.
+     *
+     * @return array{ics: string, google: string}|null
+     */
+    private static function calendarFor(Booking $booking, string $locale): ?array
+    {
+        if ($booking->status === BookingStatus::Cancelled || $booking->starts_at_utc?->isPast() !== false) {
+            return null;
+        }
+
+        $invite = BookingCalendarInvite::for($booking, $locale);
+        $ics = $invite->isAvailable() ? $invite->downloadUrl() : null;
+
+        return $ics === null ? null : ['ics' => $ics, 'google' => $invite->googleUrl()];
     }
 
     /** TOK-6's cancel, per policy. */

@@ -111,6 +111,31 @@ enum NotificationTemplate: string
             && $this !== self::ReviewRequest;
     }
 
+    /**
+     * Does this message carry the whole trip, or only the few facts it is about?
+     *
+     * The confirmation, a change and the day-before reminder are the full
+     * ticket — card, meeting point, party, what to bring, the cancellation
+     * terms — and they are also the three that carry the calendar entry
+     * (2026-09-18), because a calendar entry is a statement about when and
+     * where a guest must be, and those are the only three messages that make
+     * one. A balance reminder that added a trip to somebody's calendar would be
+     * adding it for the second time.
+     *
+     * On the enum rather than in the mail templates, so the HTML half, the
+     * plain-text half and {@see \App\Mail\GuestMail}'s attachment cannot reach
+     * three different conclusions about the same message.
+     */
+    public function carriesWholeTrip(): bool
+    {
+        return match ($this) {
+            self::BookingConfirmed,
+            self::BookingChanged,
+            self::PreDeparture24h => true,
+            default => false,
+        };
+    }
+
     /** Does this message go by SMS as well as email (BKG-16's channel column)? */
     public function usesSms(): bool
     {

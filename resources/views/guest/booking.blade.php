@@ -43,6 +43,28 @@
         </dl>
     </div>
 
+    {{--
+        «Προσθήκη στο ημερολόγιο» (2026-09-18), directly under the summary,
+        because a guest who is going to do it does it while the times are still
+        on the screen.
+
+        The Google link opens in a new tab with `no-referrer`, for the same
+        reason the map link below does: without it the whole URL — token and all
+        — travels to Google in the `Referer` header. The token is not inside the
+        link's own query string either; see `BookingCalendarInvite::googleUrl()`.
+    --}}
+    @if ($calendar)
+        <div class="card">
+            <h2>{{ __('guest.booking.calendar.heading') }}</h2>
+            <p class="muted">{{ __('guest.booking.calendar.body') }}</p>
+            <p>
+                <a class="btn secondary" href="{{ $calendar['ics'] }}">{{ __('guest.booking.calendar.ics') }}</a>
+                <a class="btn secondary" href="{{ $calendar['google'] }}"
+                   rel="noreferrer noopener" target="_blank">{{ __('guest.booking.calendar.google') }}</a>
+            </p>
+        </div>
+    @endif
+
     @if ($booking->product?->meetingPoint)
         <div class="card">
             <h2>{{ __('guest.booking.meeting_point') }}</h2>
