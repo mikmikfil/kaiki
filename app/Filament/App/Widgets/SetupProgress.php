@@ -61,7 +61,8 @@ class SetupProgress extends Widget
     /** @return array<string, bool> */
     public function getSteps(): array
     {
-        return SetupChecklist::state();
+        // The six questions, without the closing «Έτοιμοι» screen.
+        return array_intersect_key(SetupChecklist::state(), array_flip(SetupChecklist::questions()));
     }
 
     /** @return list<string> */

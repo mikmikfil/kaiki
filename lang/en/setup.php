@@ -20,7 +20,15 @@ declare(strict_types=1);
 return [
     'nav' => 'Setup guide',
     'title' => 'Let us set your account up',
-    'subtitle' => 'Six steps. Skip any of them and come back later — nothing here locks you out of the panel.',
+    'subtitle' => 'About ten minutes. Anything you leave for later waits for you on the home page.',
+
+    'steps_label' => 'Steps',
+    'step_of' => 'Step :n of :total',
+    'continue' => 'Continue',
+    'back' => 'Back',
+    'later' => 'Later',
+    'later_tag' => 'later',
+    'come_back' => 'When you are done there, open «Setup guide» from the menu again and you will carry on from here.',
 
     'skip' => 'Skip for now',
     'unskip' => 'Put it back on the list',
@@ -36,32 +44,50 @@ return [
         'business' => [
             'label' => 'Your business',
             'description' => 'What you are called on paper',
+            'question' => 'What is your business called on paper?',
             'why' => 'These are printed on your receipts and invoices and sent to the tax authority. Without a legal name and a VAT number no document can be issued — everything else here can wait.',
         ],
         'branding' => [
             'label' => 'How you look',
             'description' => 'Logo and colours',
+            'question' => 'How should your pages look?',
+            'why' => 'Your logo and colours go on your booking pages and on the emails guests receive. Optional: the pages work without them.',
+            'done' => 'You have already added a logo or colours.',
             'action' => 'Open Branding',
         ],
         'vat' => [
             'label' => 'VAT',
             'description' => 'The rate you sell at',
+            'question' => 'Which VAT rate do you sell at?',
             'why' => 'Choose the rate that applies to most of your trips. It will be pre-filled on every new trip, and you can change it on the ones that need a different one.',
             'caveat' => 'If you do not know which rate applies, skip this step and ask your accountant. We do not suggest one: it is their answer, and a mistake here becomes a mistake on a tax document.',
+        ],
+        'cancellation' => [
+            'label' => 'Cancellation policy',
+            'description' => 'What you refund',
+            'question' => 'What do you refund when a guest cancels?',
+            'why' => 'Pick one. You can change it whenever you like, and bookings already made keep the terms they were made under. A trip cannot be published without a cancellation policy.',
         ],
         'vessel' => [
             'label' => 'Your first boat',
             'description' => 'What your guests board',
+            'question' => 'What is your first boat?',
+            'why' => 'Name, type and how many passengers it carries. Photos and a home port can come later.',
+            'done' => 'You have already added a boat.',
             'action' => 'Add a boat',
         ],
         'product' => [
             'label' => 'Your first trip',
             'description' => 'What you sell on it',
+            'question' => 'What do you sell on the boat?',
+            'why' => 'Your trip: name, duration, prices and when it leaves. It stays a draft until you publish it.',
+            'done' => 'You have already made a trip.',
             'action' => 'Add a trip',
         ],
         'ready' => [
             'label' => 'Ready',
             'description' => 'Where your pages are',
+            'question' => 'You are ready',
             'body' => 'Your website is already live, and it updates itself every time you change something here. Its address, and the embed code that puts booking inside a site of your own, are under Settings → Domains and API keys.',
             'outstanding' => 'Still open: :steps. You will find them under Settings whenever you want them.',
         ],
@@ -95,6 +121,39 @@ return [
             'label' => 'Default rate',
             'help' => 'Pre-filled on new trips. Can be changed per trip.',
         ],
+    ],
+
+    // The three ready policies on the «Cancellation policy» step (2026-09-17).
+    'policy' => [
+        'flexible' => [
+            'name' => 'Flexible',
+            'summary' => 'Full refund up to 24 hours before',
+            'ladder' => [
+                ['when' => '24 hours or more before', 'refund' => '100%'],
+                ['when' => 'Less than 24 hours', 'refund' => '0%'],
+            ],
+        ],
+        'standard' => [
+            'name' => 'Standard',
+            'summary' => 'Full up to 7 days, half up to 2 days',
+            'ladder' => [
+                ['when' => '7 days or more before', 'refund' => '100%'],
+                ['when' => '2 to 6 days before', 'refund' => '50%'],
+                ['when' => 'Less than 2 days', 'refund' => '0%'],
+            ],
+        ],
+        'strict' => [
+            'name' => 'Strict',
+            'summary' => 'Half up to 14 days, nothing after',
+            'ladder' => [
+                ['when' => '14 days or more before', 'refund' => '50%'],
+                ['when' => 'Less than 14 days', 'refund' => '0%'],
+            ],
+        ],
+        'weather' => 'Cancelled for weather',
+        'weather_refund' => '100%',
+        'later' => 'The percentages can be changed later, under Cancellation policies.',
+        'existing' => 'You already have a cancellation policy: «:name».',
     ],
 
     'widget' => [

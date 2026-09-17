@@ -4,20 +4,18 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Pages;
 
+use App\Domain\Catalog\Actions\SaveCancellationPolicy;
 use App\Domain\Tenancy\Support\SetupChecklist;
 use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Resources\VesselResource;
-use App\Filament\App\Widgets\SetupProgress;
+use App\Models\CancellationPolicy;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Authorization\Capability;
 use App\Support\Tenancy;
-use Filament\Forms\Components\Actions;
-use Filament\Forms\Components\Actions\Action as FormAction;
-use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Wizard;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
@@ -26,73 +24,80 @@ use Filament\Pages\Dashboard;
 use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
+use Livewire\Attributes\Url;
 
 /**
- * The first-run setup guide (#51, SAA-9, SAA-10).
+ * The first-run setup guide (#51, SAA-9, SAA-10), one question at a time.
+ *
+ * ## One step on screen, the list beside it (product owner, 2026-09-17)
+ *
+ * Direction B of the onboarding mockups: a short list of the six steps on the
+ * left, and on the right the one step being answered, with «Αργότερα», «Πίσω»
+ * and «Συνέχεια». It replaced a Filament wizard whose step bar, per-step skip
+ * links and hand-off buttons read as a lot to take in on a first afternoon.
  *
  * ## Two kinds of step, and why they are not the same kind
  *
- * SAA-9 lists six things, and three of them already have a screen that does the
- * job properly. Branding has {@see Branding} — logo processing, the sanitisers,
- * the contrast check from #17. A boat has {@see VesselResource} and a trip has
- * {@see ProductResource}, with CAT-5's validation and the publish checklist
- * inside them. Reimplementing any of those three inside a wizard step would
- * produce a second, worse version of a form that already exists, and the day
- * one of them gains a field is the day the wizard starts writing an incomplete
- * record.
+ * Three steps already have a screen that does the job properly. Branding has
+ * {@see Branding} — logo processing, the sanitisers, the contrast check from
+ * #17. A boat has {@see VesselResource} and a trip has {@see ProductResource},
+ * with CAT-5's validation and the publish checklist inside them. Reimplementing
+ * them here would produce a second, worse version of a form that already
+ * exists. So those steps **send the operator to the screen that owns the job**
+ * and tick themselves from the data when they come back.
  *
- * So those three steps **send the operator to the screen that owns the job**
- * and tick themselves from the data when it comes back. The two steps with no
- * screen anywhere — the business details and the VAT default — are asked here,
- * because here is the only place they are asked at all.
+ * The business details, the VAT default and the cancellation policy are asked
+ * here. The policy is offered as three ready ladders because a new operator
+ * does not yet think in tiers; it is saved through {@see SaveCancellationPolicy}
+ * like any other, becomes the default, and is edited later on its own screen.
  *
  * ## Every step writes as it goes
  *
- * #51 says so outright: *"nothing is held in session until a final submit"*.
- * An operator who fills in their ΑΦΜ and then closes the tab has filled in their
- * ΑΦΜ. `afterValidation` on each step is where that happens — it runs when the
- * operator moves forward, which is the moment they have said the step is
- * answered.
+ * #51: *"nothing is held in session until a final submit"*. «Συνέχεια» saves the
+ * step it is on. An operator who fills in their ΑΦΜ and closes the tab has
+ * filled in their ΑΦΜ.
  *
  * ## Skipping is a requirement, not a courtesy
  *
- * SAA-10, and the reason is concrete: an operator whose accountant has not
- * answered the VAT question must still reach the panel and add their boats.
- * Every step carries a «Παράλειψη» that records the skip and moves on. Nothing
- * on this page blocks the panel — there is no modal, and the URL is reachable or
- * ignorable at will.
+ * SAA-10: an operator whose accountant has not answered the VAT question must
+ * still reach the panel and add their boats. «Αργότερα» records the skip and
+ * moves on. Nothing on this page blocks the panel.
  *
- * ## Owner only
+ * ## Owner only, and off when /admin says so
  *
- * TEN-8, and #51's last acceptance criterion says it in as many words: *crew
- * never see the wizard*. The legal identity of the business, its VAT rate and
- * its branding are an owner's to set. `canAccess()` keeps the item out of the
+ * TEN-8: *crew never see the wizard*. `canAccess()` keeps the item out of the
  * navigation, `mount()` closes a link that was open when a role changed, and
- * each write re-checks — a Livewire action is a POST somebody can craft without
- * ever loading the page.
+ * each write re-checks. The platform can switch the guide off per operator
+ * (`Tenant::usesSetupGuide()`), which {@see SetupChecklist::applies()} reads.
  */
 class Setup extends Page implements HasForms
 {
     use InteractsWithForms;
+
+    /** The three ready ladders, in the order they are offered. */
+    public const PRESETS = ['flexible', 'standard', 'strict'];
 
     protected static ?string $navigationIcon = 'heroicon-o-rocket-launch';
 
     protected static string $view = 'filament.app.pages.setup';
 
     /**
-     * First in the menu, above every group.
+     * First in the menu, above every group, while there is setting up left.
      *
      * Filament renders ungrouped items before grouped ones, so having no group
-     * is what puts this at the top — and the top is where it belongs while it
-     * is there at all. It was inside the collapsed Ρυθμίσεις group first, which
-     * is the one place a new operator will not look: that group is closed by
-     * default precisely because it holds the screens somebody goes looking for,
-     * and this is the one screen that has to find *them*.
+     * is what puts this at the top.
      */
     protected static ?int $navigationSort = -100;
 
     /** @var array<string, mixed> */
     public array $data = [];
+
+    /** The step on screen; empty means "where the operator left off". */
+    #[Url(as: 'step')]
+    public ?string $step = null;
+
+    /** The ladder chosen on the cancellation step. */
+    public string $policyPreset = 'standard';
 
     /** None, so it sits above the three groups rather than inside one. */
     public static function getNavigationGroup(): ?string
@@ -101,19 +106,11 @@ class Setup extends Page implements HasForms
     }
 
     /**
-     * Gone from the menu the moment the guide is finished.
+     * Gone from the menu the moment the guide is finished or switched off.
      *
-     * A first-run guide that stays in the navigation for the rest of an
-     * operator's life is a permanent reminder of something already done. The
-     * badge going quiet is not enough — the row itself goes, along with
-     * {@see SetupProgress} on the dashboard.
-     *
-     * **The URL keeps working**, and that is deliberate rather than an
-     * oversight. This is the only screen that asks for the business details, so
-     * one that refused after completion would strand them: what disappears is
-     * the invitation, not the page. Everything an operator changes routinely
-     * has a permanent home in Ρυθμίσεις — the VAT default is on
-     * {@see PaymentSettings}, beside the other tax decision.
+     * **The URL keeps working**: this is the only screen that asks for the
+     * business details in one place, so what disappears is the invitation, not
+     * the page.
      */
     public static function shouldRegisterNavigation(): bool
     {
@@ -125,12 +122,7 @@ class Setup extends Page implements HasForms
         return __('setup.nav');
     }
 
-    /**
-     * How many steps are still outstanding, on the navigation item itself.
-     *
-     * Null once the wizard is finished, so an operator who has done this is not
-     * left with a permanent badge on a screen they never need again.
-     */
+    /** How many steps are still outstanding, on the navigation item itself. */
     public static function getNavigationBadge(): ?string
     {
         if (! SetupChecklist::applies()) {
@@ -156,17 +148,9 @@ class Setup extends Page implements HasForms
     /**
      * Owner only, and deliberately not through a policy.
      *
-     * Every other screen in this panel gates on a model's policy, and this one
-     * cannot: the record here **is** the tenant, and `TenantPolicy::update`
-     * answers `isSuperAdmin()`. That policy guards `/admin` changing somebody
-     * else's operator, which is a different question from an owner filling in
-     * their own ΑΦΜ — going through it would refuse the one person this page
-     * exists for.
-     *
-     * So the capability is asked directly, and `ManageBilling` is the right
-     * one. TEN-8 puts it with the owner alone, and what this page writes — the
-     * legal identity every invoice carries and the VAT rate they are issued at
-     * — is the same kind of thing as the money settings it sits beside.
+     * The record here **is** the tenant, and `TenantPolicy::update` answers
+     * `isSuperAdmin()`. `ManageBilling` is the owner's capability (TEN-8), and
+     * what this page writes is the same kind of thing as the money settings.
      */
     public static function canAccess(): bool
     {
@@ -197,280 +181,171 @@ class Setup extends Page implements HasForms
         ]);
     }
 
+    /**
+     * Every field of every step, each shown only on its own step.
+     *
+     * One form rather than one per step, so `data.*` keeps the whole account's
+     * answers and «Πίσω» shows what was typed.
+     */
     public function form(Form $form): Form
     {
         return $form
             ->schema([
-                Wizard::make([
-                    $this->businessStep(),
-                    $this->brandingStep(),
-                    $this->vatStep(),
-                    $this->vesselStep(),
-                    $this->productStep(),
-                    $this->readyStep(),
-                ])
-                    // Where the operator left off, rather than always at step
-                    // one. This is the whole of SAA-10's "resumable", and it
-                    // costs one call because the answer is derived rather than
-                    // stored.
-                    ->startOnStep($this->startStep())
-                    ->persistStepInQueryString('step')
-                    ->submitAction($this->finishAction()),
-            ])
-            ->statePath('data');
-    }
+                Grid::make(2)
+                    ->visible(fn (): bool => $this->currentStep() === SetupChecklist::BUSINESS)
+                    ->schema([
+                        TextInput::make('legal_name')
+                            ->label(__('setup.fields.legal_name.label'))
+                            ->helperText(__('setup.fields.legal_name.help'))
+                            ->maxLength(180)
+                            ->columnSpanFull(),
 
-    /* -----------------------------------------------------------------
-     | The steps
-     ----------------------------------------------------------------- */
+                        TextInput::make('vat_number')
+                            ->label(__('setup.fields.vat_number.label'))
+                            ->helperText(__('setup.fields.vat_number.help'))
+                            ->maxLength(20),
 
-    private function businessStep(): Wizard\Step
-    {
-        return Wizard\Step::make(SetupChecklist::BUSINESS)
-            ->label(__('setup.steps.business.label'))
-            ->description(__('setup.steps.business.description'))
-            ->icon('heroicon-o-identification')
-            ->completedIcon('heroicon-o-check-circle')
-            ->schema([
-                Placeholder::make('business_why')
-                    ->hiddenLabel()
-                    ->content(__('setup.steps.business.why')),
+                        TextInput::make('tax_office')
+                            ->label(__('setup.fields.tax_office.label'))
+                            ->maxLength(60),
 
-                TextInput::make('legal_name')
-                    ->label(__('setup.fields.legal_name.label'))
-                    ->helperText(__('setup.fields.legal_name.help'))
-                    ->maxLength(180),
+                        TextInput::make('address_line1')
+                            ->label(__('setup.fields.address_line1.label'))
+                            ->maxLength(180)
+                            ->columnSpanFull(),
 
-                TextInput::make('vat_number')
-                    ->label(__('setup.fields.vat_number.label'))
-                    ->helperText(__('setup.fields.vat_number.help'))
-                    ->maxLength(20),
+                        TextInput::make('city')
+                            ->label(__('setup.fields.city.label'))
+                            ->maxLength(80),
 
-                TextInput::make('tax_office')
-                    ->label(__('setup.fields.tax_office.label'))
-                    ->maxLength(60),
+                        TextInput::make('postcode')
+                            ->label(__('setup.fields.postcode.label'))
+                            ->maxLength(16),
 
-                TextInput::make('address_line1')
-                    ->label(__('setup.fields.address_line1.label'))
-                    ->maxLength(180),
+                        TextInput::make('phone')
+                            ->label(__('setup.fields.phone.label'))
+                            ->tel()
+                            ->maxLength(32),
+                    ]),
 
-                TextInput::make('city')
-                    ->label(__('setup.fields.city.label'))
-                    ->maxLength(80),
-
-                TextInput::make('postcode')
-                    ->label(__('setup.fields.postcode.label'))
-                    ->maxLength(16),
-
-                TextInput::make('phone')
-                    ->label(__('setup.fields.phone.label'))
-                    ->tel()
-                    ->maxLength(32),
-
-                $this->skipAction(SetupChecklist::BUSINESS),
-            ])
-            // Nothing is `required()`, on purpose. A required field in a
-            // skippable wizard is a contradiction the operator meets as an
-            // error message they cannot clear, and every one of these columns
-            // is nullable because M1 made it so.
-            ->afterValidation(function (): void {
-                $this->persistBusiness();
-            });
-    }
-
-    private function brandingStep(): Wizard\Step
-    {
-        return Wizard\Step::make(SetupChecklist::BRANDING)
-            ->label(__('setup.steps.branding.label'))
-            ->description(__('setup.steps.branding.description'))
-            ->icon('heroicon-o-swatch')
-            ->completedIcon('heroicon-o-check-circle')
-            ->schema([
-                $this->handOff(
-                    step: SetupChecklist::BRANDING,
-                    url: Branding::getUrl(),
-                    label: __('setup.steps.branding.action'),
-                ),
-            ]);
-    }
-
-    private function vatStep(): Wizard\Step
-    {
-        return Wizard\Step::make(SetupChecklist::VAT)
-            ->label(__('setup.steps.vat.label'))
-            ->description(__('setup.steps.vat.description'))
-            ->icon('heroicon-o-receipt-percent')
-            ->completedIcon('heroicon-o-check-circle')
-            ->schema([
-                Placeholder::make('vat_why')
-                    ->hiddenLabel()
-                    ->content(__('setup.steps.vat.why')),
-
+                // Nothing is `required()`, on purpose: a required field in a
+                // skippable guide is an error the operator cannot clear.
                 Select::make('default_vat_rate_id')
                     ->label(__('setup.fields.default_vat_rate.label'))
                     ->helperText(__('setup.fields.default_vat_rate.help'))
                     ->options(fn (): array => $this->vatOptions())
                     ->searchable()
-                    ->native(false),
-
-                Placeholder::make('vat_caveat')
-                    ->hiddenLabel()
-                    ->content(__('setup.steps.vat.caveat')),
-
-                $this->skipAction(SetupChecklist::VAT),
+                    ->native(false)
+                    ->visible(fn (): bool => $this->currentStep() === SetupChecklist::VAT),
             ])
-            ->afterValidation(function (): void {
-                $this->persistVat();
-            });
-    }
-
-    private function vesselStep(): Wizard\Step
-    {
-        return Wizard\Step::make(SetupChecklist::VESSEL)
-            ->label(__('setup.steps.vessel.label'))
-            ->description(__('setup.steps.vessel.description'))
-            ->icon('heroicon-o-lifebuoy')
-            ->completedIcon('heroicon-o-check-circle')
-            ->schema([
-                $this->handOff(
-                    step: SetupChecklist::VESSEL,
-                    url: VesselResource::getUrl('create'),
-                    label: __('setup.steps.vessel.action'),
-                ),
-            ]);
-    }
-
-    private function productStep(): Wizard\Step
-    {
-        return Wizard\Step::make(SetupChecklist::PRODUCT)
-            ->label(__('setup.steps.product.label'))
-            ->description(__('setup.steps.product.description'))
-            ->icon('heroicon-o-ticket')
-            ->completedIcon('heroicon-o-check-circle')
-            ->schema([
-                $this->handOff(
-                    step: SetupChecklist::PRODUCT,
-                    url: ProductResource::getUrl('create'),
-                    label: __('setup.steps.product.action'),
-                ),
-            ]);
-    }
-
-    /**
-     * The hand-over: where the operator's pages are, and how to embed them.
-     *
-     * The only step with nothing to fill in. It is also the one that finishes
-     * the wizard — see {@see finishAction()}.
-     */
-    private function readyStep(): Wizard\Step
-    {
-        return Wizard\Step::make(SetupChecklist::READY)
-            ->label(__('setup.steps.ready.label'))
-            ->description(__('setup.steps.ready.description'))
-            ->icon('heroicon-o-flag')
-            ->completedIcon('heroicon-o-check-circle')
-            ->schema([
-                Placeholder::make('ready_body')
-                    ->hiddenLabel()
-                    ->content(__('setup.steps.ready.body')),
-
-                Placeholder::make('ready_outstanding')
-                    ->hiddenLabel()
-                    ->content(fn (): string => $this->outstandingSummary())
-                    ->visible(fn (): bool => $this->outstandingSummary() !== ''),
-            ]);
+            ->statePath('data');
     }
 
     /* -----------------------------------------------------------------
-     | Shared pieces
+     | Moving between steps
      ----------------------------------------------------------------- */
 
     /**
-     * A step whose work belongs to another screen.
-     *
-     * Two states and no third: it is done, or here is the button that does it.
-     * The tick is read from the data every render, so an operator who adds a
-     * boat in another tab and comes back finds this step green without the
-     * wizard having been told.
+     * The step on screen: the one asked for, or where the operator left off,
+     * or the closing screen once nothing is left.
      */
-    private function handOff(string $step, string $url, string $label): Actions
+    public function currentStep(): string
     {
-        return Actions::make([
-            FormAction::make('go_' . $step)
-                ->label($label)
-                ->icon('heroicon-o-arrow-top-right-on-square')
-                ->url($url)
-                ->visible(fn (): bool => ! $this->isDone($step)),
+        if (is_string($this->step) && in_array($this->step, SetupChecklist::steps(), true)) {
+            return $this->step;
+        }
 
-            FormAction::make('done_' . $step)
-                ->label(__('setup.done'))
-                ->icon('heroicon-o-check-circle')
-                ->color('success')
-                ->disabled()
-                ->visible(fn (): bool => $this->isDone($step)),
-
-            FormAction::make('skip_' . $step)
-                ->label(__('setup.skip'))
-                ->color('gray')
-                ->link()
-                ->visible(fn (): bool => ! $this->isDone($step) && ! $this->isSkipped($step))
-                ->action(fn () => $this->skip($step)),
-
-            FormAction::make('unskip_' . $step)
-                ->label(__('setup.unskip'))
-                ->color('gray')
-                ->link()
-                ->visible(fn (): bool => $this->isSkipped($step))
-                ->action(fn () => $this->unskip($step)),
-        ]);
+        return SetupChecklist::next() ?? SetupChecklist::READY;
     }
 
-    /** The «Παράλειψη» link on a step that is filled in here rather than elsewhere. */
-    private function skipAction(string $step): Actions
+    /** Save the step on screen and move to the next one still open. */
+    public function continue(): void
     {
-        return Actions::make([
-            FormAction::make('skip_' . $step)
-                ->label(__('setup.skip'))
-                ->color('gray')
-                ->link()
-                ->visible(fn (): bool => ! $this->isSkipped($step))
-                ->action(fn () => $this->skip($step)),
+        $current = $this->currentStep();
 
-            FormAction::make('unskip_' . $step)
-                ->label(__('setup.unskip'))
-                ->color('gray')
-                ->link()
-                ->visible(fn (): bool => $this->isSkipped($step))
-                ->action(fn () => $this->unskip($step)),
-        ]);
+        match ($current) {
+            SetupChecklist::BUSINESS => $this->persistBusiness(),
+            SetupChecklist::VAT => $this->persistVat(),
+            SetupChecklist::CANCELLATION => $this->persistCancellation(),
+            default => $this->guardedTenant(),
+        };
+
+        // Answered now, so no longer set aside.
+        if ($this->isDone($current) && $this->isSkipped($current)) {
+            $this->unskip($current);
+        }
+
+        $this->step = $this->stepAfter($current);
+    }
+
+    /** «Αργότερα»: set this step aside and move on. */
+    public function later(): void
+    {
+        $current = $this->currentStep();
+
+        if ($current !== SetupChecklist::READY && ! $this->isDone($current)) {
+            $this->skip($current);
+        }
+
+        $this->step = $this->stepAfter($current);
+    }
+
+    public function back(): void
+    {
+        $steps = SetupChecklist::steps();
+        $index = array_search($this->currentStep(), $steps, true);
+
+        $this->step = $steps[max(0, (int) $index - 1)];
+    }
+
+    public function goTo(string $step): void
+    {
+        if (in_array($step, SetupChecklist::steps(), true)) {
+            $this->step = $step;
+        }
+    }
+
+    public function choosePreset(string $preset): void
+    {
+        if (in_array($preset, self::PRESETS, true)) {
+            $this->policyPreset = $preset;
+        }
     }
 
     /**
-     * The last button.
-     *
-     * It writes `onboarding_completed_at`, which is the one thing on this page
-     * that cannot be derived, and is what stops the dashboard checklist.
+     * The next step after `$step` that is neither done nor set aside, or the
+     * closing screen. Forward only: «Συνέχεια» never sends somebody back up
+     * the list to a step they skipped a minute ago.
      */
-    private function finishAction(): FormAction
+    private function stepAfter(string $step): string
     {
-        return FormAction::make('finish')
-            ->label(__('setup.finish'))
-            ->icon('heroicon-o-check')
-            ->submit('finish');
+        $steps = SetupChecklist::questions();
+        $index = array_search($step, $steps, true);
+        $state = SetupChecklist::state();
+        $skipped = SetupChecklist::skipped();
+
+        foreach (array_slice($steps, $index === false ? count($steps) : $index + 1) as $candidate) {
+            if (! ($state[$candidate] ?? false) && ! in_array($candidate, $skipped, true)) {
+                return $candidate;
+            }
+        }
+
+        return SetupChecklist::READY;
     }
 
     /* -----------------------------------------------------------------
      | Writes
      ----------------------------------------------------------------- */
 
+    /**
+     * «Τέλος». Writes `onboarding_completed_at`, the one thing on this page that
+     * cannot be derived, and what stops the home-page checklist.
+     */
     public function finish(): void
     {
         $tenant = $this->guardedTenant();
 
-        // Whatever is on the last screen the operator filled in, rather than
-        // only the step they happen to be standing on. Moving forward already
-        // wrote each one; this catches the case where they edited a field and
-        // pressed the final button without stepping through again.
+        // Whatever is filled in, rather than only the step on screen.
         $this->persistBusiness();
         $this->persistVat();
 
@@ -488,12 +363,11 @@ class Setup extends Page implements HasForms
     private function persistBusiness(): void
     {
         $tenant = $this->guardedTenant();
-        $state = (array) $this->getForm('form')?->getRawState();
+        $state = $this->data;
 
         $tenant->forceFill([
-            // Trimmed to null rather than left as `''`. An empty string is a
-            // legal name as far as `filled()` is concerned, and the checklist
-            // would tick a step nobody answered.
+            // Trimmed to null rather than left as `''`: an empty string is a
+            // legal name as far as `filled()` is concerned.
             'legal_name' => $this->normalise($state['legal_name'] ?? null),
             'vat_number' => $this->normalise($state['vat_number'] ?? null),
             'tax_office' => $this->normalise($state['tax_office'] ?? null),
@@ -507,19 +381,65 @@ class Setup extends Page implements HasForms
     private function persistVat(): void
     {
         $tenant = $this->guardedTenant();
-        $state = (array) $this->getForm('form')?->getRawState();
 
-        $chosen = $state['default_vat_rate_id'] ?? null;
+        $chosen = $this->data['default_vat_rate_id'] ?? null;
 
-        // Checked against the same list the select was built from rather than
-        // saved as sent. This is a Livewire payload, and an id from a withdrawn
-        // or platform-wide-invalid row would otherwise pre-fill every product
-        // this operator creates.
-        $valid = $chosen !== null && array_key_exists((int) $chosen, $this->vatOptions());
+        // Checked against the list the select was built from: this is a
+        // Livewire payload, and a withdrawn rate would otherwise pre-fill
+        // every product this operator creates.
+        $valid = $chosen !== null && $chosen !== '' && array_key_exists((int) $chosen, $this->vatOptions());
 
         $tenant->forceFill([
             'default_vat_rate_id' => $valid ? (int) $chosen : null,
         ])->save();
+    }
+
+    /**
+     * The chosen ladder, once. An operator who already has a policy keeps it:
+     * this step only ever adds the first one.
+     */
+    private function persistCancellation(): void
+    {
+        $this->guardedTenant();
+
+        if (CancellationPolicy::query()->exists()) {
+            return;
+        }
+
+        $preset = in_array($this->policyPreset, self::PRESETS, true) ? $this->policyPreset : 'standard';
+        $ladder = self::presetLadder($preset);
+
+        app(SaveCancellationPolicy::class)(
+            new CancellationPolicy,
+            [
+                'name' => [
+                    'el' => __('setup.policy.' . $preset . '.name', locale: 'el'),
+                    'en' => __('setup.policy.' . $preset . '.name', locale: 'en'),
+                ],
+                'free_cancellation_hours' => $ladder['free_cancellation_hours'],
+                'is_default' => true,
+            ],
+            $ladder['tiers'],
+        );
+    }
+
+    /**
+     * What each ready ladder means, as the policy columns store it.
+     *
+     * @return array{free_cancellation_hours: int|null, tiers: list<array{days_before: int, refund_percent: int}>}
+     */
+    public static function presetLadder(string $preset): array
+    {
+        return match ($preset) {
+            'flexible' => ['free_cancellation_hours' => 24, 'tiers' => []],
+            'strict' => ['free_cancellation_hours' => null, 'tiers' => [
+                ['days_before' => 14, 'refund_percent' => 50],
+            ]],
+            default => ['free_cancellation_hours' => null, 'tiers' => [
+                ['days_before' => 7, 'refund_percent' => 100],
+                ['days_before' => 2, 'refund_percent' => 50],
+            ]],
+        };
     }
 
     public function skip(string $step): void
@@ -550,74 +470,58 @@ class Setup extends Page implements HasForms
     }
 
     /* -----------------------------------------------------------------
-     | Reading
+     | Reading, for the view
      ----------------------------------------------------------------- */
 
-    /**
-     * The rates an operator may pick, from the one place that decides.
-     *
-     * {@see ProductResource::vatRateOptions()} rather than a query of its own.
-     * This is the same question the product form asks — *which rates may this
-     * operator choose from* — and two implementations of it would eventually be
-     * two answers: the day a withdrawn rate stops appearing in one list is the
-     * day it is still pre-filling every new product from the other.
-     *
-     * The label is that method's, code plus percentage, and carries no opinion
-     * about which rate applies. CAT-11b makes that an accountant's answer and
-     * forbids any code, seeder or fixture presenting a percentage as
-     * authoritative.
-     *
-     * @return array<int, string>
-     */
-    private function vatOptions(): array
+    /** @return array<string, bool> */
+    public function stepStates(): array
     {
-        return ProductResource::vatRateOptions();
+        return SetupChecklist::state();
     }
 
-    private function isDone(string $step): bool
+    /** @return list<string> */
+    public function questions(): array
+    {
+        return SetupChecklist::questions();
+    }
+
+    /** Where a step whose work lives on another screen sends the operator. */
+    public function handOffUrl(string $step): ?string
+    {
+        return match ($step) {
+            SetupChecklist::BRANDING => Branding::getUrl(),
+            SetupChecklist::VESSEL => VesselResource::getUrl('create'),
+            SetupChecklist::PRODUCT => ProductResource::getUrl('create'),
+            default => null,
+        };
+    }
+
+    public function isDone(string $step): bool
     {
         return SetupChecklist::state()[$step] ?? false;
     }
 
-    private function isSkipped(string $step): bool
+    public function isSkipped(string $step): bool
     {
         return in_array($step, SetupChecklist::skipped(), true);
     }
 
-    /**
-     * Which step to open on.
-     *
-     * `Wizard::startOnStep()` counts from one, and `next()` answers a key. A
-     * finished checklist opens on the last step, which is the hand-over — the
-     * right screen for somebody who came back to copy the embed snippet again.
-     */
-    private function startStep(): int
+    /** The operator's existing policy name, when the step is already answered. */
+    public function existingPolicyName(): ?string
     {
-        $next = SetupChecklist::next();
-        $steps = SetupChecklist::steps();
+        $policy = CancellationPolicy::query()->where('is_default', true)->first()
+            ?? CancellationPolicy::query()->first();
 
-        if ($next === null) {
-            return count($steps);
-        }
-
-        $index = array_search($next, $steps, true);
-
-        return $index === false ? 1 : $index + 1;
+        return $policy instanceof CancellationPolicy ? (string) $policy->name : null;
     }
 
-    /**
-     * What is still open, named, on the last screen.
-     *
-     * An operator finishing with two steps skipped should be told which two
-     * rather than be congratulated as if they were done. Empty when nothing is
-     * outstanding, and the placeholder hides itself.
-     */
-    private function outstandingSummary(): string
+    /** The steps still open, named, for the closing screen. */
+    public function outstanding(): string
     {
         $open = [];
 
-        foreach (SetupChecklist::state() as $step => $done) {
-            if (! $done && $step !== SetupChecklist::READY) {
+        foreach (SetupChecklist::questions() as $step) {
+            if (! $this->isDone($step)) {
                 $open[] = __('setup.steps.' . $step . '.label');
             }
         }
@@ -627,9 +531,20 @@ class Setup extends Page implements HasForms
             : __('setup.steps.ready.outstanding', ['steps' => implode(', ', $open)]);
     }
 
+    /**
+     * The rates an operator may pick, from the one place that decides
+     * ({@see ProductResource::vatRateOptions()}).
+     *
+     * @return array<int, string>
+     */
+    private function vatOptions(): array
+    {
+        return ProductResource::vatRateOptions();
+    }
+
     private function normalise(mixed $value): ?string
     {
-        $trimmed = trim((string) ($value ?? ''));
+        $trimmed = trim(is_scalar($value) ? (string) $value : '');
 
         return $trimmed === '' ? null : $trimmed;
     }
@@ -644,11 +559,8 @@ class Setup extends Page implements HasForms
     }
 
     /**
-     * The tenant, with the write re-checked.
-     *
-     * Every write on this page goes through here. `canAccess()` guards the
-     * render and TEN-9 guards the subscription, and neither has run when a
-     * Livewire action arrives as its own request.
+     * The tenant, with the write re-checked: a Livewire action arrives as its
+     * own request, after `canAccess()` and TEN-9 have run for the page.
      */
     private function guardedTenant(): Tenant
     {

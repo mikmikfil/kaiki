@@ -6,6 +6,7 @@ namespace App\Domain\Tenancy\Support;
 
 use App\Domain\Operations\Support\FirstSteps;
 use App\Models\BrandProfile;
+use App\Models\CancellationPolicy;
 use App\Models\Product;
 use App\Models\Tenant;
 use App\Models\Vessel;
@@ -60,6 +61,14 @@ final class SetupChecklist
     /** The rate this account sells at, pre-filling every new product. */
     public const VAT = 'vat';
 
+    /**
+     * What a guest gets back when they cancel (product owner, 2026-09-17).
+     *
+     * Before the boat and the trip, because a trip cannot be published without
+     * one and a new operator has none.
+     */
+    public const CANCELLATION = 'cancellation';
+
     /** A boat to sail on. Delegated to {@see FirstSteps}. */
     public const VESSEL = 'vessel';
 
@@ -85,10 +94,24 @@ final class SetupChecklist
             self::BUSINESS,
             self::BRANDING,
             self::VAT,
+            self::CANCELLATION,
             self::VESSEL,
             self::PRODUCT,
             self::READY,
         ];
+    }
+
+    /**
+     * The steps the operator is asked, without the closing screen.
+     *
+     * `READY` is the hand-over at the end, not a question, so it is not a row
+     * in the step list and not part of «4 από 6».
+     *
+     * @return list<string>
+     */
+    public static function questions(): array
+    {
+        return array_values(array_diff(self::steps(), [self::READY]));
     }
 
     /**
@@ -113,6 +136,7 @@ final class SetupChecklist
             self::BUSINESS => self::businessAnswered($tenant),
             self::BRANDING => self::brandingTouched($tenant),
             self::VAT => $tenant->default_vat_rate_id !== null,
+            self::CANCELLATION => CancellationPolicy::query()->exists(),
             self::VESSEL => $catalogue[FirstSteps::VESSEL] ?? Vessel::query()->exists(),
             self::PRODUCT => $catalogue[FirstSteps::PRODUCT] ?? Product::query()->exists(),
             self::READY => $tenant->onboarding_completed_at !== null,
@@ -178,14 +202,15 @@ final class SetupChecklist
     {
         $skipped = self::skipped();
         $done = 0;
+        $state = self::state();
 
-        foreach (self::state() as $step => $isDone) {
-            if ($isDone || in_array($step, $skipped, true)) {
+        foreach (self::questions() as $step) {
+            if (($state[$step] ?? false) || in_array($step, $skipped, true)) {
                 $done++;
             }
         }
 
-        return ['done' => $done, 'total' => count(self::steps())];
+        return ['done' => $done, 'total' => count(self::questions())];
     }
 
     /**
@@ -198,11 +223,13 @@ final class SetupChecklist
      */
     public static function applies(): bool
     {
-        if (! Tenancy::check()) {
-            return false;
-        }
+        $tenant = Tenancy::check() ? Tenancy::current() : null;
 
-        return Tenancy::current()?->onboarding_completed_at === null;
+        // Switched off on /admin for an operator the platform set up itself:
+        // no guide, no menu item, no checklist (2026-09-17).
+        return $tenant instanceof Tenant
+            && $tenant->usesSetupGuide()
+            && $tenant->onboarding_completed_at === null;
     }
 
     /**

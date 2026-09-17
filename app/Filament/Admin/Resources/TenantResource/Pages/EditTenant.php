@@ -6,6 +6,7 @@ namespace App\Filament\Admin\Resources\TenantResource\Pages;
 
 use App\Domain\Audit\Actions\RecordAuditEntry;
 use App\Domain\Audit\Data\AuditEntryData;
+use App\Domain\Tenancy\Support\SetupChecklist;
 use App\Enums\AuditAction;
 use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
@@ -13,10 +14,12 @@ use App\Enums\TenantStatus;
 use App\Enums\TenantVertical;
 use App\Filament\Admin\Resources\TenantResource;
 use App\Models\Tenant;
+use App\Support\Tenancy;
 use BackedEnum;
 use DateTimeInterface;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -24,7 +27,9 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\HtmlString;
 
 /**
  * The five things the platform owner may change about an operator (SAA-1, SEC-16).
@@ -82,7 +87,7 @@ class EditTenant extends EditRecord
      * Named once, so the snapshot and the diff cannot drift apart — which is
      * how an audit trail quietly stops recording one of them.
      */
-    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'check_in_enabled', 'qr_check_in_enabled', 'hosted_site_mode', 'extra_person_pricing_enabled', 'sms_enabled'];
+    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'check_in_enabled', 'qr_check_in_enabled', 'hosted_site_mode', 'extra_person_pricing_enabled', 'sms_enabled', 'setup_guide_enabled'];
 
     /** The operator's own words, captured by the confirmation and not by the form. */
     public ?string $auditReason = null;
@@ -190,6 +195,22 @@ class EditTenant extends EditRecord
                         ->label(__('tenants.columns.sms'))
                         ->helperText(__('tenants.edit.sms_help'))
                         ->formatStateUsing(fn (?bool $state): bool => $state === true),
+
+                    // The first-time setup guide (2026-09-17). On for everybody;
+                    // off for an operator the platform set up itself. Null is on
+                    // (`Tenant::usesSetupGuide()`), so the toggle must not show a
+                    // null as off and switch it off on save.
+                    Toggle::make('setup_guide_enabled')
+                        ->label(__('tenants.columns.setup_guide'))
+                        ->helperText(__('tenants.edit.setup_guide_help'))
+                        ->formatStateUsing(fn (?bool $state): bool => $state !== false),
+
+                    // Where the operator has got to, so the platform knows
+                    // whether to call them. Read in their tenant, because every
+                    // step is a tenant-scoped question.
+                    Placeholder::make('setup_progress')
+                        ->label(__('tenants.edit.setup_progress'))
+                        ->content(fn (?Tenant $record): HtmlString => self::setupProgress($record)),
                 ]),
         ]);
     }
@@ -343,13 +364,90 @@ class EditTenant extends EditRecord
         return static::getResource()::getUrl('index');
     }
 
-    /** @return array<int, never> */
+    /**
+     * «Επαναφορά οδηγού»: the guide starts over for this operator.
+     *
+     * Clears the finish mark and the skipped steps; what the operator has filled
+     * in stays, because every step is read from the data. Audited with a reason,
+     * like the switches. No delete: seven years of invoices and audit rows hang
+     * off this row — see `TenantPolicy`.
+     *
+     * @return array<int, Action>
+     */
     protected function getHeaderActions(): array
     {
-        // No delete. Seven years of invoices and audit rows hang off this row,
-        // and removing an operator is a retention decision rather than a button
-        // — see `TenantPolicy`.
-        return [];
+        return [
+            Action::make('resetSetupGuide')
+                ->label(__('tenants.edit.setup_reset'))
+                ->color('gray')
+                ->requiresConfirmation()
+                ->modalHeading(__('tenants.edit.setup_reset'))
+                ->modalDescription(__('tenants.edit.setup_reset_body'))
+                ->form([
+                    Textarea::make('reason')
+                        ->label(__('tenants.edit.reason'))
+                        ->helperText(__('tenants.edit.reason_help'))
+                        ->required()
+                        ->minLength(3)
+                        ->maxLength(500),
+                ])
+                ->action(function (array $data): void {
+                    /** @var Tenant $tenant */
+                    $tenant = $this->getRecord();
+
+                    $tenant->forceFill([
+                        'onboarding_completed_at' => null,
+                        'onboarding_skipped_steps' => null,
+                    ])->save();
+
+                    app(RecordAuditEntry::class)(
+                        new AuditEntryData(
+                            action: AuditAction::TenantUpdated,
+                            subjectType: 'Tenant',
+                            subjectId: (int) $tenant->getKey(),
+                            subjectLabel: $tenant->name,
+                            reason: (string) ($data['reason'] ?? ''),
+                            context: ['setup_guide_reset' => true],
+                        ),
+                        $tenant,
+                        userId: auth()->id(),
+                        ipAddress: request()->ip(),
+                    );
+
+                    Notification::make()->success()->title(__('tenants.edit.setup_reset_done'))->send();
+                }),
+        ];
+    }
+
+    /** «4 από 6» and one line per step, as the operator's own guide sees it. */
+    private static function setupProgress(?Tenant $tenant): HtmlString
+    {
+        if (! $tenant instanceof Tenant || ! $tenant->exists) {
+            return new HtmlString('');
+        }
+
+        return Tenancy::forTenant($tenant, static function () use ($tenant): HtmlString {
+            $state = SetupChecklist::state();
+            $skipped = SetupChecklist::skipped($tenant);
+            $progress = SetupChecklist::progress();
+            $lines = [];
+
+            foreach (SetupChecklist::questions() as $step) {
+                $status = match (true) {
+                    $state[$step] ?? false => __('tenants.edit.setup_step_done'),
+                    in_array($step, $skipped, true) => __('tenants.edit.setup_step_later'),
+                    default => __('tenants.edit.setup_step_open'),
+                };
+
+                $lines[] = e(__('setup.steps.' . $step . '.label')) . ': ' . e($status);
+            }
+
+            $head = $tenant->onboarding_completed_at !== null
+                ? __('tenants.edit.setup_finished')
+                : __('setup.widget.progress', ['done' => $progress['done'], 'total' => $progress['total']]);
+
+            return new HtmlString('<strong>' . e($head) . '</strong><br>' . implode('<br>', $lines));
+        });
     }
 
     /**
