@@ -7,7 +7,7 @@
 {{ __('staff.invitation.body', ['name' => $invitee->name, 'inviter' => $invitedBy->name, 'operator' => $operator]) }}
 
 {{ __('staff.invitation.action') }}:
-{{ $resetUrl }}
+{!! $resetUrl !!}
 
 {{ __('staff.invitation.expiry') }}
 

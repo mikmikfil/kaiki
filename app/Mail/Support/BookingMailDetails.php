@@ -4,15 +4,24 @@ declare(strict_types=1);
 
 namespace App\Mail\Support;
 
+use App\Domain\Booking\Support\RefundEntitlement;
 use App\Domain\Notifications\Support\ReviewRequestSettings;
 use App\Enums\GuestDetailsStatus;
 use App\Enums\NotificationTemplate;
+use App\Enums\QuoteLineKind;
+use App\Enums\QuoteStatus;
+use App\Enums\WeatherChoice;
 use App\Models\Booking;
 use App\Models\Port;
 use App\Models\Product;
+use App\Models\Quote;
+use App\Models\QuoteLineItem;
 use App\Models\Tenant;
+use App\Models\Voucher;
 use App\Support\Tenancy;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
+use Throwable;
 
 /**
  * Everything the booking email says about a booking, worked out once
@@ -25,6 +34,29 @@ use Illuminate\Support\Carbon;
  * cancellation terms, how to reach the operator, the ticket and — while it is
  * still missing — the passenger details.
  *
+ * ## Every message on the card, each with its own facts
+ *
+ * The confirmation, a change and the day-before reminder are the full ticket.
+ * Every other message is the same card with a short box of **the facts that
+ * message is about** under it, and one button that does the thing it asks for
+ * (the email gallery review, 2026-09-17):
+ *
+ * | Message | Facts | Button |
+ * |---|---|---|
+ * | cancellation | refund amount and where it goes | booking page |
+ * | passenger details | the deadline | the details form |
+ * | balance due / overdue | total, paid, what is left, by when | pay (the booking page) |
+ * | ναυλοσύμφωνο | the real acceptance deadline | the acceptance form |
+ * | weather choice | what is owed, choose by when | choose (the booking page) |
+ * | weather applied | what was done, how much | booking page |
+ * | voucher expiry | a voucher card: code, amount left, expiry | the voucher page |
+ * | quote | the items, total, validity, deposit | the quote page |
+ * | review | the trip it asks about | the Google review page |
+ *
+ * «Υπόλοιπο» appears only where it is news: the confirmation, a change and the
+ * balance messages. On a cancellation, a quote or a review request it was a
+ * figure about money nobody is going to ask for.
+ *
  * ## Arithmetic here, markup in the views
  *
  * Both halves of the email (NTF-6's HTML and plain text) render from this, so
@@ -32,6 +64,14 @@ use Illuminate\Support\Carbon;
  * string in the booking's own locale, or null when there is nothing to say —
  * the views print what exists and leave out what does not, rather than a label
  * beside an empty value.
+ *
+ * ## Extras first, the booking second
+ *
+ * The sender knows things the booking row does not: the refund a cancellation
+ * put in motion, the voucher a reminder is about, the quote just sent, the
+ * weather deadline. They arrive in `$extra`. Each also falls back to what can be
+ * read off the booking, so the branding preview and the template tests, which
+ * pass no extras, still render a sensible message.
  *
  * ## Frozen where the booking froze it
  *
@@ -50,9 +90,19 @@ final class BookingMailDetails
         NotificationTemplate::PreDeparture24h,
     ];
 
+    /** The messages where what is left to pay is news. */
+    private const SHOWS_BALANCE = [
+        NotificationTemplate::BookingConfirmed,
+        NotificationTemplate::BookingChanged,
+        NotificationTemplate::BalanceDueReminder,
+        NotificationTemplate::BalanceOverdue,
+    ];
+
     /**
      * @param  list<array{label: string, amount: string}>  $party
      * @param  list<string>  $bring
+     * @param  list<array{label: string, value: string}>  $cardRows
+     * @param  list<array{label: string, value: string}>  $facts
      */
     public function __construct(
         public readonly bool $full,
@@ -82,7 +132,17 @@ final class BookingMailDetails
         public readonly ?string $ticketUrl,
         public readonly ?string $detailsUrl,
         public readonly ?string $detailsBy,
-        public readonly ?string $reviewUrl = null,
+        public readonly ?string $reviewUrl,
+        public readonly string $operator,
+        public readonly ?string $cardEyebrow,
+        public readonly string $cardTitle,
+        public readonly array $cardRows,
+        public readonly array $facts,
+        public readonly ?string $factsNote,
+        public readonly bool $showParty,
+        public readonly string $actionLabel,
+        public readonly string $actionUrl,
+        public readonly ?string $deadline,
     ) {}
 
     /** @param array<string, mixed> $extra */
@@ -98,59 +158,335 @@ final class BookingMailDetails
             ? Tenancy::current()
             : Tenancy::withoutTenancy(static fn (): ?Tenant => Tenant::query()->find($booking->tenant_id));
 
+        $operator = $tenant instanceof Tenant ? $tenant->name : (string) config('app.name');
+        $zone = $tenant instanceof Tenant && $tenant->timezone !== '' ? $tenant->timezone : (string) config('app.timezone');
+
         $starts = Carbon::parse($booking->local_date->toDateString() . ' ' . substr((string) $booking->local_time, 0, 5))
             ->locale($locale);
 
         $euros = static fn (int $cents): string => number_format($cents / 100, 2, ',', '.') . ' €';
+        $at = static fn (CarbonInterface $moment, string $format): string => Carbon::instance($moment)->copy()
+            ->setTimezone($zone)
+            ->locale($locale)
+            ->isoFormat($format);
+
+        $manageUrl = route('guest.booking', ['token' => $booking->manage_token]);
+        $formUrl = self::blank($booking->guest_details_token)
+            ? null
+            : route('guest.details', ['token' => $booking->guest_details_token]);
+        $detailsPending = $booking->guest_details_status === GuestDetailsStatus::Pending;
+
+        $checkIn = $product instanceof Product && $product->check_in_offset_minutes > 0
+            ? $starts->copy()->subMinutes($product->check_in_offset_minutes)->format('H:i')
+            : null;
+        $return = $product instanceof Product && $product->duration_minutes > 0
+            ? $starts->copy()->addMinutes($product->duration_minutes)->format('H:i')
+            : null;
+
+        $trip = $product instanceof Product ? self::text($product->getTranslation('title', $locale, true)) : null;
+        $boat = self::text($booking->vessel?->name);
+        $showsBalance = in_array($template, self::SHOWS_BALANCE, true);
+        $balanceCents = (int) $booking->balance_cents;
+        $paidCents = (int) $booking->paid_cents;
+
+        // The card, the facts and the button, per message. Defaults first: the
+        // booking card, the reference, the guest's own page.
+        $eyebrow = collect([$trip, $boat])->filter()->implode(' · ');
+        $cardEyebrow = $eyebrow === '' ? null : $eyebrow;
+        $cardTitle = $starts->isoFormat('dddd D MMMM YYYY');
+        $cardRows = array_values(array_filter([
+            $checkIn === null ? null : ['label' => __('mail.common.check_in', [], $locale), 'value' => $checkIn],
+            ['label' => __('mail.common.departure', [], $locale), 'value' => $starts->format('H:i')],
+            $return === null ? null : ['label' => __('mail.common.return', [], $locale), 'value' => $return],
+        ]));
+
+        $facts = [['label' => __('mail.common.reference', [], $locale), 'value' => (string) $booking->reference]];
+        $note = null;
+        $action = [__('mail.common.manage_booking', [], $locale), $manageUrl];
+        $party = self::party($booking, $locale, $euros);
+        $total = (int) $booking->total_cents > 0 ? $euros((int) $booking->total_cents) : null;
+        $showParty = in_array($template, self::FULL, true);
+        $deadline = null;
+        $reviewUrl = null;
+        $refund = null;
+
+        switch ($template) {
+            case NotificationTemplate::BookingCancelled:
+                $refundCents = array_key_exists('refunded_cents', $extra)
+                    ? (int) $extra['refunded_cents']
+                    : (int) $booking->refunded_cents;
+
+                if ($refundCents > 0) {
+                    $refund = $euros($refundCents);
+                    $voucher = self::voucherIssuedFor($booking);
+
+                    $facts[] = ['label' => __('mail.common.refunded', [], $locale), 'value' => $refund];
+                    $facts[] = [
+                        'label' => __('mail.common.refund_method', [], $locale),
+                        'value' => $voucher instanceof Voucher
+                            ? __('mail.common.refund_to_voucher', ['code' => $voucher->code], $locale)
+                            : __('mail.common.refund_to_card', [], $locale),
+                    ];
+                }
+                break;
+
+            case NotificationTemplate::GuestDetailsRequested:
+            case NotificationTemplate::GuestDetailsReminder48h:
+            case NotificationTemplate::GuestDetailsReminder24h:
+                $deadline = $at($booking->guest_details_deadline_at ?? self::detailsDeadline($booking, $starts), 'dddd D MMMM YYYY, HH:mm');
+                $facts[] = ['label' => __('mail.common.details_by_label', [], $locale), 'value' => $deadline];
+
+                if ($formUrl !== null) {
+                    $action = [__('mail.common.details_button', [], $locale), $formUrl];
+                }
+                break;
+
+            case NotificationTemplate::BalanceDueReminder:
+            case NotificationTemplate::BalanceOverdue:
+                if ($total !== null) {
+                    $facts[] = ['label' => __('mail.common.total', [], $locale), 'value' => $total];
+                }
+                if ($paidCents > 0) {
+                    $facts[] = ['label' => __('mail.common.paid', [], $locale), 'value' => $euros($paidCents)];
+                }
+                if ($balanceCents > 0) {
+                    $facts[] = ['label' => __('mail.common.balance_to_pay', [], $locale), 'value' => $euros($balanceCents)];
+                }
+                if ($booking->balance_due_at !== null) {
+                    $deadline = $at($booking->balance_due_at, 'dddd D MMMM YYYY');
+                    $facts[] = [
+                        'label' => __($template === NotificationTemplate::BalanceOverdue ? 'mail.common.balance_was_due' : 'mail.common.balance_due_by', [], $locale),
+                        'value' => $deadline,
+                    ];
+                }
+                // The booking page is where the balance is paid
+                // (`guest.booking.pay-balance`), so the button says what it does.
+                $action = [__('mail.common.pay_balance', [], $locale), $manageUrl];
+                break;
+
+            case NotificationTemplate::CharterAgreement72h:
+            case NotificationTemplate::CharterAgreement24h:
+                // The acceptance is a box on the passenger details form (TOK-8),
+                // due with the details — not on the day of the charter, which
+                // is what this message used to say.
+                $by = self::detailsDeadline($booking, $starts);
+                $deadline = $at($by, 'dddd D MMMM YYYY, HH:mm');
+
+                // The 24-hour reminder can fall after that deadline; a date in
+                // the past is not a deadline, so it is left out.
+                if (Carbon::instance($by)->isFuture()) {
+                    $facts[] = ['label' => __('mail.common.charter_by', [], $locale), 'value' => $deadline];
+                }
+
+                if ($formUrl !== null) {
+                    $action = [__('mail.common.charter_button', [], $locale), $formUrl];
+                }
+                break;
+
+            case NotificationTemplate::WeatherChoiceRequested:
+            case NotificationTemplate::WeatherChoiceReminder:
+                $owed = isset($extra['entitlement_cents'])
+                    ? (int) $extra['entitlement_cents']
+                    : self::weatherEntitlement($booking);
+                $due = $extra['due_at'] ?? $booking->weather_choice_due_at;
+
+                if ($owed > 0) {
+                    $facts[] = ['label' => __('mail.common.weather_amount', [], $locale), 'value' => $euros($owed)];
+                }
+                if ($due instanceof CarbonInterface) {
+                    $deadline = $at($due, 'dddd D MMMM YYYY, HH:mm');
+                    $facts[] = ['label' => __('mail.common.weather_by', [], $locale), 'value' => $deadline];
+                }
+                // The choice is made on the booking page
+                // (`guest.booking.weather-choice`).
+                $action = [__('mail.common.weather_button', [], $locale), $manageUrl];
+                break;
+
+            case NotificationTemplate::WeatherChoiceApplied:
+                $choice = $extra['choice'] ?? $booking->weather_choice;
+                $choice = $choice instanceof WeatherChoice ? $choice : WeatherChoice::tryFrom((string) $choice);
+                $amount = isset($extra['amount_cents']) ? (int) $extra['amount_cents'] : (int) $booking->refunded_cents;
+
+                if ($choice instanceof WeatherChoice) {
+                    $facts[] = ['label' => __('mail.common.weather_done', [], $locale), 'value' => __("mail.common.weather_{$choice->value}", [], $locale)];
+                }
+                if ($amount > 0) {
+                    $facts[] = ['label' => __('mail.common.amount', [], $locale), 'value' => $euros($amount)];
+                }
+                if ($choice instanceof WeatherChoice && $choice->issuesVoucher()) {
+                    $voucher = self::voucherIssuedFor($booking);
+
+                    if ($voucher instanceof Voucher) {
+                        $facts[] = ['label' => __('mail.common.voucher_code', [], $locale), 'value' => $voucher->code];
+                    }
+                }
+                break;
+
+            case NotificationTemplate::VoucherExpiry30d:
+            case NotificationTemplate::VoucherExpiry7d:
+                $voucher = ($extra['voucher'] ?? null) instanceof Voucher
+                    ? $extra['voucher']
+                    : self::voucherIssuedFor($booking);
+
+                // A voucher is not a booking: no trip, no day, no reference and
+                // no balance from the sailing it replaced. Its own card instead.
+                if ($voucher instanceof Voucher) {
+                    $cardEyebrow = __('mail.common.voucher', [], $locale);
+                    $cardTitle = $voucher->code;
+                    $cardRows = [['label' => __('mail.common.voucher_remaining', [], $locale), 'value' => $euros((int) $voucher->remaining_cents)]];
+
+                    if ($voucher->expires_at !== null) {
+                        $deadline = $at($voucher->expires_at, 'D MMMM YYYY');
+                        $cardRows[] = ['label' => __('mail.common.voucher_expires', [], $locale), 'value' => $deadline];
+                    }
+
+                    $facts = [];
+                    $note = __('mail.common.voucher_how', [], $locale);
+                    $action = [__('mail.common.use_voucher', [], $locale), route('guest.voucher', ['code' => $voucher->code])];
+                }
+                break;
+
+            case NotificationTemplate::QuoteSent:
+                $quote = ($extra['quote'] ?? null) instanceof Quote ? $extra['quote'] : self::latestQuoteOf($booking);
+
+                if ($quote instanceof Quote) {
+                    $party = $quote->lineItems()
+                        ->orderBy('sort_order')
+                        ->get()
+                        ->map(static fn (QuoteLineItem $line): array => [
+                            'label' => ($line->qty > 1 ? $line->qty . ' × ' : '') . self::label($line->getTranslations('label'), $locale),
+                            'amount' => ($line->kind === QuoteLineKind::Discount ? '− ' : '') . $euros((int) $line->total_cents),
+                        ])
+                        ->values()
+                        ->all();
+                    $total = $euros((int) $quote->total_cents);
+                    $deadline = $at($quote->valid_until, 'dddd D MMMM YYYY');
+
+                    $facts = [['label' => __('mail.common.quote_valid_until', [], $locale), 'value' => $deadline]];
+
+                    if ((int) $quote->deposit_cents > 0) {
+                        $facts[] = ['label' => __('mail.common.quote_deposit', [], $locale), 'value' => $euros((int) $quote->deposit_cents)];
+                    }
+
+                    $showParty = true;
+                    $action = [__('mail.common.view_quote', [], $locale), route('guest.quote', ['token' => $quote->quote_token])];
+                }
+                break;
+
+            case NotificationTemplate::ReviewRequest:
+                // Only to the operator's own review page. Without one the request
+                // is never sent (ReviewRequestSettings::active()); a preview
+                // falls back to the booking page rather than a dead button.
+                $reviewUrl = $tenant instanceof Tenant ? ReviewRequestSettings::for($tenant)->googleUrl : null;
+
+                if ($reviewUrl !== null) {
+                    $action = [__('mail.common.leave_review', [], $locale), $reviewUrl];
+                }
+                break;
+
+            default:
+                break;
+        }
 
         return new self(
             full: in_array($template, self::FULL, true),
             locale: $locale,
             greeting: self::blank($booking->guest_name) ? null : __('mail.common.greeting', ['name' => self::firstName((string) $booking->guest_name)], $locale),
-            trip: $product instanceof Product ? self::text($product->getTranslation('title', $locale, true)) : null,
-            boat: self::text($booking->vessel?->name),
+            trip: $trip,
+            boat: $boat,
             day: $starts->isoFormat('dddd D MMMM YYYY'),
-            checkIn: $product instanceof Product && $product->check_in_offset_minutes > 0
-                ? $starts->copy()->subMinutes($product->check_in_offset_minutes)->format('H:i')
-                : null,
+            checkIn: $checkIn,
             departure: $starts->format('H:i'),
-            return: $product instanceof Product && $product->duration_minutes > 0
-                ? $starts->copy()->addMinutes($product->duration_minutes)->format('H:i')
-                : null,
+            return: $return,
             meetingName: $port instanceof Port ? self::text($port->getTranslation('name', $locale, true)) : null,
             meetingAddress: $port instanceof Port ? self::text($port->address) : null,
             meetingInstructions: $port instanceof Port ? self::text($port->getTranslation('instructions', $locale, true)) : null,
             mapUrl: $port instanceof Port ? $port->mapsUrl() : null,
-            party: self::party($booking, $locale, $euros),
-            total: (int) $booking->total_cents > 0 ? $euros((int) $booking->total_cents) : null,
-            paid: (int) $booking->paid_cents > 0 ? $euros((int) $booking->paid_cents) : null,
-            balance: (int) $booking->balance_cents > 0 ? $euros((int) $booking->balance_cents) : null,
-            balanceDue: (int) $booking->balance_cents > 0 && $booking->balance_due_at !== null
+            party: $party,
+            total: $total,
+            paid: $template !== NotificationTemplate::QuoteSent && $paidCents > 0 ? $euros($paidCents) : null,
+            balance: $showsBalance && $balanceCents > 0 ? $euros($balanceCents) : null,
+            balanceDue: $showsBalance && $balanceCents > 0 && $booking->balance_due_at !== null
                 ? $booking->balance_due_at->copy()->locale($locale)->isoFormat('dddd D/M')
                 : null,
-            refund: isset($extra['refunded_cents']) && (int) $extra['refunded_cents'] > 0
-                ? $euros((int) $extra['refunded_cents'])
-                : null,
+            refund: $refund,
             bring: $product instanceof Product ? self::lines($product->getTranslation('what_to_bring', $locale, true)) : [],
             policy: self::policy($booking, $locale),
             phone: $tenant instanceof Tenant ? self::text($tenant->phone ?? null) : null,
             email: $tenant instanceof Tenant ? self::text($tenant->email) : null,
-            manageUrl: route('guest.booking', ['token' => $booking->manage_token]),
+            manageUrl: $manageUrl,
             ticketUrl: $tenant instanceof Tenant && $tenant->usesCheckIn()
                 ? route('guest.ticket', ['token' => $booking->manage_token])
                 : null,
-            detailsUrl: $booking->guest_details_status === GuestDetailsStatus::Pending && ! self::blank($booking->guest_details_token)
-                ? route('guest.details', ['token' => $booking->guest_details_token])
-                : null,
-            detailsBy: $booking->guest_details_status === GuestDetailsStatus::Pending && $booking->guest_details_deadline_at !== null
+            detailsUrl: $detailsPending ? $formUrl : null,
+            detailsBy: $detailsPending && $booking->guest_details_deadline_at !== null
                 ? $booking->guest_details_deadline_at->copy()->locale($locale)->isoFormat('D/M')
                 : null,
-            // Only the review request links out, and only to the operator's own
-            // review page.
-            reviewUrl: $template === NotificationTemplate::ReviewRequest && $tenant instanceof Tenant
-                ? ReviewRequestSettings::for($tenant)->googleUrl
-                : null,
+            reviewUrl: $reviewUrl,
+            operator: $operator,
+            cardEyebrow: $cardEyebrow,
+            cardTitle: $cardTitle,
+            cardRows: $cardRows,
+            facts: $facts,
+            factsNote: $note,
+            showParty: $showParty,
+            actionLabel: $action[0],
+            actionUrl: $action[1],
+            deadline: $deadline,
         );
+    }
+
+    /**
+     * BKG-15: departure minus the product's `guest_details_deadline_hours`.
+     *
+     * The same arithmetic `SendDueReminders` schedules the reminders by, so the
+     * date a message names is the date the form actually closes. A preview
+     * booking that was never saved has no UTC instant, so the local start
+     * stands in.
+     */
+    public static function detailsDeadline(Booking $booking, ?CarbonInterface $localStart = null): CarbonInterface
+    {
+        $hours = $booking->product instanceof Product ? (int) $booking->product->guest_details_deadline_hours : 48;
+        $departure = $booking->starts_at_utc ?? $localStart ?? now();
+
+        return Carbon::instance($departure)->copy()->subHours(max(0, $hours));
+    }
+
+    /** The newest voucher issued in place of this booking's money. */
+    private static function voucherIssuedFor(Booking $booking): ?Voucher
+    {
+        if ($booking->getKey() === null) {
+            return null;
+        }
+
+        return Voucher::query()
+            ->where('issued_for_booking_id', $booking->getKey())
+            ->latest('id')
+            ->first();
+    }
+
+    private static function latestQuoteOf(Booking $booking): ?Quote
+    {
+        if ($booking->getKey() === null) {
+            return null;
+        }
+
+        return Quote::query()
+            ->where('booking_id', $booking->getKey())
+            ->where('status', QuoteStatus::Sent)
+            ->latest('version')
+            ->first();
+    }
+
+    private static function weatherEntitlement(Booking $booking): int
+    {
+        try {
+            return RefundEntitlement::forWeather($booking)->totalCents;
+        } catch (Throwable) {
+            // A preview booking with no policy snapshot: say nothing rather
+            // than a wrong figure.
+            return 0;
+        }
     }
 
     /**

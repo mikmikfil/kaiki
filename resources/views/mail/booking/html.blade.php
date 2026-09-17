@@ -10,8 +10,10 @@
     link; the passenger-details notice while they are missing; the party and
     what was paid; what to bring; the cancellation terms; how to reach the
     operator. Every other message keeps the short form — a heading, a sentence,
-    the card, one button — because a balance reminder that repeats the packing
-    list is a reminder nobody finishes reading.
+    the card with the few facts that message is about under it (a refund, a
+    deadline, what is left to pay, a voucher's code, a quote's items), and one
+    button that does what it asks — because a balance reminder that repeats the
+    packing list is a reminder nobody finishes reading.
 
     Every value comes from {@see \App\Mail\Support\BookingMailDetails}, shared
     with the plain-text half, and a section with nothing to say is left out
@@ -98,47 +100,38 @@
                                 'reference' => $booking->reference,
                                 'date' => $booking->local_date->format('d/m/Y'),
                                 'time' => $d->departure,
+                                'operator' => $d->operator,
+                                'deadline' => $d->deadline ?? $booking->local_date->format('d/m/Y'),
                             ]) }}
                         </p>
 
-                        {{-- The card: what, when, and the three times. --}}
+                        {{-- The card, in the operator's colour: what and when for a
+                             booking, the code and what is left for a voucher. --}}
                         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                               style="background:{{ $accent }};margin:0 0 {{ $showTicket ? '0' : '8px' }};">
+                               style="background:{{ $accent }};margin:0;">
                             <tr>
                                 <td style="padding:18px 20px;{{ $font }}color:#ffffff;">
-                                    @if ($d->trip !== null || $d->boat !== null)
-                                        <p style="margin:0 0 4px;font-size:14px;color:#ffffff;">
-                                            {{ collect([$d->trip, $d->boat])->filter()->implode(' · ') }}
-                                        </p>
+                                    @if ($d->cardEyebrow !== null)
+                                        <p style="margin:0 0 4px;font-size:14px;color:#ffffff;">{{ $d->cardEyebrow }}</p>
                                     @endif
-                                    <p style="margin:0 0 12px;font-size:22px;font-weight:bold;color:#ffffff;">{{ $d->day }}</p>
+                                    <p style="margin:0 0 12px;font-size:22px;font-weight:bold;color:#ffffff;">{{ $d->cardTitle }}</p>
                                     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                                         <tr>
-                                            @if ($d->checkIn !== null)
+                                            @foreach ($d->cardRows as $row)
                                                 <td style="{{ $font }}color:#ffffff;font-size:13px;padding-right:24px;">
-                                                    {{ __('mail.common.check_in') }}<br>
-                                                    <span style="font-size:18px;font-weight:bold;">{{ $d->checkIn }}</span>
+                                                    {{ $row['label'] }}<br>
+                                                    <span style="font-size:18px;font-weight:bold;">{{ $row['value'] }}</span>
                                                 </td>
-                                            @endif
-                                            <td style="{{ $font }}color:#ffffff;font-size:13px;padding-right:24px;">
-                                                {{ __('mail.common.departure') }}<br>
-                                                <span style="font-size:18px;font-weight:bold;">{{ $d->departure }}</span>
-                                            </td>
-                                            @if ($d->return !== null)
-                                                <td style="{{ $font }}color:#ffffff;font-size:13px;">
-                                                    {{ __('mail.common.return') }}<br>
-                                                    <span style="font-size:18px;font-weight:bold;">{{ $d->return }}</span>
-                                                </td>
-                                            @endif
+                                            @endforeach
                                         </tr>
                                     </table>
                                 </td>
                             </tr>
                         </table>
 
-                        {{-- The ticket, under the card: the code, and a link to
-                             the PDF that carries the QR. No QR image here — see
-                             the file docblock. --}}
+                        {{-- Under the card, the stub: the ticket on the full messages,
+                             and on every other one the few facts that message is
+                             about. No QR image here — see the file docblock. --}}
                         @if ($showTicket)
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
                                    style="border:1px solid #dbe3e9;border-top:0;margin:0 0 18px;">
@@ -151,34 +144,44 @@
                                     </td>
                                 </tr>
                             </table>
+                        @elseif ($d->facts !== [] || $d->factsNote !== null)
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                   style="border:1px solid #dbe3e9;border-top:0;margin:0 0 18px;">
+                                <tr>
+                                    <td style="padding:10px 20px 12px;{{ $font }}">
+                                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                                            @foreach ($d->facts as $fact)
+                                                <tr>
+                                                    <td style="padding:6px 12px 6px 0;{{ $font }}font-size:14px;{{ $muted }}">{{ $fact['label'] }}</td>
+                                                    <td style="padding:6px 0;text-align:right;{{ $font }}font-size:15px;font-weight:bold;color:#14202b;">{{ $fact['value'] }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </table>
+                                        @if ($d->factsNote !== null)
+                                            <p style="margin:6px 0 0;font-size:14px;color:#14202b;">{{ $d->factsNote }}</p>
+                                        @endif
+                                    </td>
+                                </tr>
+                            </table>
                         @else
-                            <p style="margin:0 0 18px;font-size:13px;{{ $muted }}">
-                                {{ __('mail.common.reference') }}: <strong style="color:#14202b;">{{ $booking->reference }}</strong>
-                            </p>
+                            <div style="height:18px;line-height:18px;font-size:1px;">&nbsp;</div>
                         @endif
 
-                        @if ($d->refund !== null)
-                            <p style="margin:0 0 18px;">
-                                {{ __('mail.common.refunded') }}: <strong>{{ $d->refund }}</strong>
-                            </p>
+                        @if (! $d->full && $d->showParty)
+                            @include('mail.booking.partials.party-html')
                         @endif
 
-                        @if (! $d->full && $d->balance !== null)
-                            <p style="margin:0 0 18px;">
-                                {{ __('mail.common.balance') }}: <strong>{{ $d->balance }}</strong>
-                            </p>
-                        @endif
-
-                        {{-- One main action, and it is the guest's own page — except in the
-                             review request, where it is the operator's review link.
+                        {{-- One main action, and it does what the message asks: the
+                             guest's own page, the details form, the quote, the
+                             voucher, the operator's review page.
                              ADR-0004: a gateway URL emailed today is dead by the
                              time a guest opens it in three weeks. --}}
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
                             <tr>
                                 <td style="background:{{ $accent }};">
-                                    <a href="{{ $d->reviewUrl ?? $d->manageUrl }}"
+                                    <a href="{{ $d->actionUrl }}"
                                        style="display:inline-block;padding:12px 20px;color:#ffffff;{{ $font }}text-decoration:none;font-weight:bold;font-size:15px;">
-                                        {{ $d->reviewUrl !== null ? __('mail.common.leave_review') : __('mail.common.manage_booking') }}
+                                        {{ $d->actionLabel }}
                                     </a>
                                 </td>
                             </tr>
@@ -221,36 +224,7 @@
                                 </table>
                             @endif
 
-                            <p style="{{ $section }}">{{ __('mail.common.party') }}</p>
-                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-                                   style="border-top:1px solid #e4ecf1;margin:0 0 24px;">
-                                @foreach ($d->party as $line)
-                                    <tr>
-                                        <td style="padding:8px 0;border-bottom:1px solid #e4ecf1;{{ $font }}">{{ $line['label'] }}</td>
-                                        <td style="padding:8px 0;border-bottom:1px solid #e4ecf1;text-align:right;{{ $font }}">{{ $line['amount'] }}</td>
-                                    </tr>
-                                @endforeach
-                                @if ($d->total !== null)
-                                    <tr>
-                                        <td style="padding:8px 0 4px;{{ $font }}font-weight:bold;">{{ __('mail.common.total') }}</td>
-                                        <td style="padding:8px 0 4px;text-align:right;{{ $font }}font-weight:bold;">{{ $d->total }}</td>
-                                    </tr>
-                                @endif
-                                @if ($d->paid !== null)
-                                    <tr>
-                                        <td style="padding:4px 0;{{ $font }}{{ $muted }}">{{ __('mail.common.paid') }}</td>
-                                        <td style="padding:4px 0;text-align:right;{{ $font }}{{ $muted }}">{{ $d->paid }}</td>
-                                    </tr>
-                                @endif
-                                @if ($d->balance !== null)
-                                    <tr>
-                                        <td style="padding:4px 0;{{ $font }}font-weight:bold;">
-                                            {{ $d->balanceDue !== null ? __('mail.common.balance_due', ['date' => $d->balanceDue]) : __('mail.common.balance') }}
-                                        </td>
-                                        <td style="padding:4px 0;text-align:right;{{ $font }}font-weight:bold;">{{ $d->balance }}</td>
-                                    </tr>
-                                @endif
-                            </table>
+                            @include('mail.booking.partials.party-html')
 
                             @if ($d->bring !== [])
                                 <p style="{{ $section }}">{{ __('mail.common.bring') }}</p>

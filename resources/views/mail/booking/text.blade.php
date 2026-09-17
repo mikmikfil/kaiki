@@ -10,11 +10,19 @@
     the order somebody actually needs them, with each link on its own line where
     a mail client will make it tappable. The facts come from the same
     {@see \App\Mail\Support\BookingMailDetails} as the HTML, so the two halves
-    cannot disagree about a time (design A, 2026-09-17).
+    cannot disagree about a time, a refund or a deadline (design A, 2026-09-17).
 --}}
 @php
     $operator = $brand['tenant']['name'] ?? config('app.name');
     $d = \App\Mail\Support\BookingMailDetails::for($booking, $template, app()->getLocale(), $extra ?? []);
+    // The booking page as a second link, where the main button goes somewhere
+    // else about this booking (the details form, the review page). A voucher
+    // and a quote are not about a booking the guest can manage.
+    $alsoManage = $d->actionUrl !== $d->manageUrl && ! in_array($template, [
+        \App\Enums\NotificationTemplate::VoucherExpiry30d,
+        \App\Enums\NotificationTemplate::VoucherExpiry7d,
+        \App\Enums\NotificationTemplate::QuoteSent,
+    ], true);
 @endphp
 @if ($d->greeting !== null)
 {{ $d->greeting }}
@@ -27,34 +35,35 @@
     'reference' => $booking->reference,
     'date' => $booking->local_date->format('d/m/Y'),
     'time' => $d->departure,
+    'operator' => $d->operator,
+    'deadline' => $d->deadline ?? $booking->local_date->format('d/m/Y'),
 ]) }}
 
-@if ($d->trip !== null || $d->boat !== null)
-{{ collect([$d->trip, $d->boat])->filter()->implode(' · ') }}
+@if ($d->cardEyebrow !== null)
+{{ $d->cardEyebrow }}
 @endif
-{{ $d->day }}
-@if ($d->checkIn !== null)
-{{ __('mail.common.check_in') }}: {{ $d->checkIn }}
+{{ $d->cardTitle }}
+@foreach ($d->cardRows as $row)
+{{ $row['label'] }}: {{ $row['value'] }}
+@endforeach
+@foreach ($d->facts as $fact)
+{{ $fact['label'] }}: {{ $fact['value'] }}
+@endforeach
+@if ($d->factsNote !== null)
+{{ $d->factsNote }}
 @endif
-{{ __('mail.common.departure') }}: {{ $d->departure }}
-@if ($d->return !== null)
-{{ __('mail.common.return') }}: {{ $d->return }}
-@endif
-{{ __('mail.common.reference') }}: {{ $booking->reference }}
-@if ($d->refund !== null)
-{{ __('mail.common.refunded') }}: {{ $d->refund }}
-@endif
-@if (! $d->full && $d->balance !== null)
-{{ __('mail.common.balance') }}: {{ $d->balance }}
+@if (! $d->full && $d->showParty)
+
+@include('mail.booking.partials.party-text')
 @endif
 
-@if ($d->reviewUrl !== null)
-{{ __('mail.common.leave_review') }}:
-{!! $d->reviewUrl !!}
+{{ $d->actionLabel }}:
+{!! $d->actionUrl !!}
+@if ($alsoManage)
 
-@endif
 {{ __('mail.common.manage_booking') }}:
 {!! $d->manageUrl !!}
+@endif
 @if ($d->full && $d->ticketUrl !== null)
 
 {{ __('mail.common.ticket') }} — {{ __('mail.common.ticket_help') }}
@@ -83,19 +92,7 @@
 {!! $d->detailsUrl !!}
 @endif
 
-{{ __('mail.common.party') }}
-@foreach ($d->party as $line)
-{{ $line['label'] }}@if ($line['amount'] !== ''): {{ $line['amount'] }}@endif
-@endforeach
-@if ($d->total !== null)
-{{ __('mail.common.total') }}: {{ $d->total }}
-@endif
-@if ($d->paid !== null)
-{{ __('mail.common.paid') }}: {{ $d->paid }}
-@endif
-@if ($d->balance !== null)
-{{ $d->balanceDue !== null ? __('mail.common.balance_due', ['date' => $d->balanceDue]) : __('mail.common.balance') }}: {{ $d->balance }}
-@endif
+@include('mail.booking.partials.party-text')
 @if ($d->bring !== [])
 
 {{ __('mail.common.bring') }}

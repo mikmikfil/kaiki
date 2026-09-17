@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Enums\DepartureStatus;
+use App\Events\Auditable;
 use App\Events\DepartureCancelled;
 use App\Events\RecordSoftDeleted;
+use App\Listeners\RecordAuditLog;
 use App\Models\AuditLog;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Departure;
@@ -39,19 +41,17 @@ final class AuditServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // 1. `RecordAuditLog` is **not registered here**, and that is a fix
-        //    rather than an omission.
+        // 1. `RecordAuditLog`, on the interface every audited event carries.
         //
-        //    Laravel 11+ discovers listeners in `app/Listeners` from their
-        //    type hints, so `handle(Auditable $event)` is already bound to the
-        //    interface — and adding an explicit `Event::listen()` on top of
-        //    that registered it twice and wrote **two identical rows for one
-        //    delete**. In an audit trail that is worse than a missing row: a
-        //    trail that double-counts cannot be counted at all.
-        //
-        //    `AuditListenerRegistrationTest` asserts the binding exists, so
-        //    discovery being turned off is a red test rather than a trail that
-        //    silently stops.
+        //    This used to be left to Laravel's listener discovery, because an
+        //    explicit line on top of discovery registered it twice and wrote
+        //    two identical rows for one delete. Every other listener in the
+        //    product is registered by hand, though, and discovery doubled each
+        //    of them the same way — two confirmation runs, two e-tickets, two
+        //    «your booking changed» emails (found in the email review,
+        //    2026-09-17). Discovery is now off (`AppServiceProvider`), so this
+        //    one is registered by hand like the rest, exactly once.
+        Event::listen(Auditable::class, RecordAuditLog::class);
 
         // 2. Every soft delete, from every path.
         //
