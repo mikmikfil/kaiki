@@ -688,6 +688,7 @@ return [
     'notification_template' => [
         'booking_confirmed' => ['label' => 'Booking confirmed'],
         'booking_cancelled' => ['label' => 'Booking cancelled'],
+        'booking_changed' => ['label' => 'Booking changed'],
         'guest_details_requested' => ['label' => 'Passenger details requested'],
         'guest_details_reminder_48h' => ['label' => 'Passenger details, 48 hours'],
         'guest_details_reminder_24h' => ['label' => 'Passenger details, 24 hours'],

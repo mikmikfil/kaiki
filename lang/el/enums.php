@@ -673,6 +673,7 @@ return [
     'notification_template' => [
         'booking_confirmed' => ['label' => 'Επιβεβαίωση κράτησης'],
         'booking_cancelled' => ['label' => 'Ακύρωση κράτησης'],
+        'booking_changed' => ['label' => 'Αλλαγή κράτησης'],
         'guest_details_requested' => ['label' => 'Αίτημα στοιχείων επιβατών'],
         'guest_details_reminder_48h' => ['label' => 'Στοιχεία επιβατών, 48 ώρες'],
         'guest_details_reminder_24h' => ['label' => 'Στοιχεία επιβατών, 24 ώρες'],

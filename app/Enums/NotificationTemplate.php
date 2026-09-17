@@ -38,6 +38,8 @@ enum NotificationTemplate: string
     // BKG-13: the moment a booking becomes real to a guest.
     case BookingConfirmed = 'booking_confirmed';
     case BookingCancelled = 'booking_cancelled';
+    // An operator took people off the booking (2026-09-17).
+    case BookingChanged = 'booking_changed';
     case GuestDetailsRequested = 'guest_details_requested';
 
     // BKG-16's five families.
@@ -87,6 +89,7 @@ enum NotificationTemplate: string
     {
         return $this !== self::BookingConfirmed
             && $this !== self::BookingCancelled
+            && $this !== self::BookingChanged
             && $this !== self::WeatherChoiceApplied;
     }
 

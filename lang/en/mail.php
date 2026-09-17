@@ -45,6 +45,13 @@ return [
         'sms' => 'Booking cancelled.',
     ],
 
+    'booking_changed' => [
+        'subject' => 'Your booking has changed — :reference',
+        'heading' => 'Your booking has changed',
+        'body' => 'Booking :reference for :date at :time has been updated. The new party, the new total and your tickets are on your booking page.',
+        'sms' => 'Booking changed.',
+    ],
+
     'guest_details_requested' => [
         'subject' => 'We need the passenger details — :reference',
         'heading' => 'A few details for each passenger',
