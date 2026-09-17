@@ -108,6 +108,40 @@
 
         .policy p { margin: 0; }
 
+        /* «Πολιτική ακύρωσης»: the whole ladder in a window over the page,
+           opened by a link to its id (`:target`), closed by a link away. */
+        .policy-link { font-weight: 600; text-decoration: none; }
+
+        .policy-window {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            background: rgba(15, 23, 42, .45);
+        }
+
+        .policy-window:target { display: flex; }
+
+        .policy-window-box {
+            width: 100%;
+            max-width: 32rem;
+            max-height: 85vh;
+            overflow-y: auto;
+            padding: 1.25rem 1.4rem;
+            border-radius: .75rem;
+            background: #fff;
+            box-shadow: 0 20px 40px -20px rgba(15, 23, 42, .5);
+        }
+
+        .policy-window-box h2 { margin: 0 0 .75rem; font-size: 1.1rem; }
+
+        .policy-lines { margin: 0 0 1rem; padding-inline-start: 1.1rem; display: grid; gap: .45rem; }
+
+        .policy-close { font-weight: 600; text-decoration: none; }
+
         /* The consent link was the one underlined link left on a guest page —
            the rule of 2026-09-11 is that nothing here is underlined, at rest or
            on hover — and against the sentence around it that read as damage
@@ -242,7 +276,19 @@
         }
 
         .passenger-body { padding: 0 .9rem 1rem; }
-        .passenger-body label:first-child { margin-top: 0; }
+        /* «Κουπόνι» beside the price (2026-09-17). */
+        .discount-form { margin-top: 1rem; }
+        .discount-row { display: flex; gap: .5rem; }
+        .discount-row input { flex: 1; text-transform: uppercase; }
+        .btn-quiet { background: transparent; color: inherit; border: 1px solid rgba(0, 0, 0, .2); width: auto; }
+        /* The operator's checkout questions (2026-09-17). */
+        .trip-question .question-label { margin: .9rem 0 .35rem; font-weight: 600; }
+        .trip-question .choice-row { display: flex; gap: 1.25rem; }
+        .trip-question label.inline { display: inline-flex; align-items: center; gap: .4rem; margin: 0; font-weight: 400; }
+        .trip-question label.inline input { width: auto; }
+        .passenger-body label:first-of-type { margin-top: 0; }
+        /* A passport has an expiry date; an identity card does not (2026-09-17). */
+        .passenger-body:has(select option[value="id_card"]:checked) .passport-expiry { display: none; }
 
         /* The pay button sits in the summary column and submits the form in the
            other one, so it needs its own top margin rather than the form's. */

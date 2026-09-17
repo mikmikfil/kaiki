@@ -13,6 +13,7 @@ use App\Enums\PaymentStatus;
 use App\Models\AnalyticsDaily;
 use App\Models\Booking;
 use App\Models\Departure;
+use App\Models\DiscountCode;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Vessel;
@@ -412,6 +413,45 @@ final class AnalyticsFigures
                 'value' => (int) $row->getAttribute('value'),
             ];
         })->all();
+    }
+
+    /**
+     * «Κουπόνια»: each discount code's uses and what its bookings came to, for
+     * bookings made in the period (2026-09-17).
+     *
+     * By the operator's «Εσωτερικό όνομα» first, because that is the question —
+     * which campaign — and the code second. Codes with no use in the period are
+     * left out: a list of zeroes answers nothing.
+     *
+     * @return list<array{name: string, code: string, uses: int, revenue: int, discount: int}>
+     */
+    public function byDiscountCode(LocalRange $range): array
+    {
+        $rows = $this->committedBookings()
+            ->where('created_at', '>=', $range->startUtc)
+            ->where('created_at', '<', $range->endUtcExclusive)
+            ->whereNotNull('discount_code_id')
+            ->selectRaw('discount_code_id as code_id, COUNT(*) as uses, COALESCE(SUM(total_cents), 0) as revenue, COALESCE(SUM(discount_cents), 0) as discount')
+            ->groupBy('code_id')
+            ->orderByDesc('revenue')
+            ->get();
+
+        $codes = DiscountCode::query()->withTrashed()
+            ->whereIn('id', $rows->map(static fn (Booking $row): int => (int) $row->getAttribute('code_id'))->all())
+            ->get()
+            ->keyBy('id');
+
+        return $rows->map(static function (Booking $row) use ($codes): array {
+            $code = $codes->get((int) $row->getAttribute('code_id'));
+
+            return [
+                'name' => $code instanceof DiscountCode ? $code->name : '—',
+                'code' => $code instanceof DiscountCode ? $code->code : '—',
+                'uses' => (int) $row->getAttribute('uses'),
+                'revenue' => (int) $row->getAttribute('revenue'),
+                'discount' => (int) $row->getAttribute('discount'),
+            ];
+        })->values()->all();
     }
 
     /**

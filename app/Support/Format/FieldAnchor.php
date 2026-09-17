@@ -24,8 +24,11 @@ final class FieldAnchor
     /** `guests.{n}.{field}` — the per-passenger rows, which are the only indexed ones. */
     private const GUEST_FIELDS = [
         'full_name' => 'name',
-        'document_number' => 'doc',
+        'nationality' => 'nat',
         'date_of_birth' => 'dob',
+        'document_type' => 'dtype',
+        'document_number' => 'doc',
+        'document_expires_on' => 'dexp',
     ];
 
     public static function for(string $key): string
@@ -34,6 +37,15 @@ final class FieldAnchor
             $suffix = self::GUEST_FIELDS[$m[2]] ?? null;
 
             return $suffix === null ? $key : sprintf('g%d_%s', (int) $m[1], $suffix);
+        }
+
+        // The operator's checkout questions (2026-09-17).
+        if (preg_match('/^answers\.booking\.([\w-]+)$/', $key, $m) === 1) {
+            return 'q_' . $m[1];
+        }
+
+        if (preg_match('/^answers\.guests\.(\d+)\.([\w-]+)$/', $key, $m) === 1) {
+            return sprintf('g%d_q_%s', (int) $m[1], $m[2]);
         }
 
         // The lead booker's fields, the note and the consent box all carry their

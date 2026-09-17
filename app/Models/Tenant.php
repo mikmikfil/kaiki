@@ -66,6 +66,7 @@ use Stancl\Tenancy\Database\Concerns\TenantRun;
  * @property bool $deposits_enabled
  * @property bool|null $qr_check_in_enabled
  * @property bool|null $check_in_enabled
+ * @property bool|null $extra_person_pricing_enabled
  * @property array<string, mixed> $settings
  * @property int|null $balance_due_days_before_departure
  * @property string|null $weather_choice_default
@@ -104,6 +105,7 @@ class Tenant extends Model implements TenantContract
             'deposits_enabled' => 'boolean',
             'qr_check_in_enabled' => 'boolean',
             'check_in_enabled' => 'boolean',
+            'extra_person_pricing_enabled' => 'boolean',
             'onboarding_completed_at' => 'datetime',
             'onboarding_skipped_steps' => 'array',
         ];
@@ -220,6 +222,18 @@ class Tenant extends Model implements TenantContract
     public function usesCheckIn(): bool
     {
         return $this->check_in_enabled !== false;
+    }
+
+    /**
+     * Whether whole-boat prices may say «up to N people, +Y € per extra person».
+     *
+     * Switched on per operator by the platform, never by default (2026-09-17).
+     * Null reads as **off**: unlike boarding, this adds fields to every price
+     * list, and an operator who never asked for it should never see them.
+     */
+    public function usesExtraPersonPricing(): bool
+    {
+        return $this->extra_person_pricing_enabled === true;
     }
 
     /** Operators in `read_only` or `suspended` cannot write (see #7). */

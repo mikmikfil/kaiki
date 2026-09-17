@@ -48,7 +48,7 @@ trait ConsumesBandPrices
             $bandPrices[(int) $row['age_band_id']] = (int) $price;
         }
 
-        foreach (['season_id', 'name', 'deposit_percent', 'deposit_fixed_cents', 'max_advance_days', 'min_pax_override'] as $key) {
+        foreach (['season_id', 'name', 'deposit_percent', 'deposit_fixed_cents', 'max_advance_days', 'min_pax_override', 'included_pax', 'extra_pax_price_cents'] as $key) {
             if (($data[$key] ?? null) === '') {
                 $data[$key] = null;
             }

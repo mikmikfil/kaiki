@@ -92,6 +92,12 @@ return [
         'none' => 'Nothing sailed half empty.',
     ],
 
+    'discount_codes' => [
+        'heading' => 'Discount codes',
+        'help' => 'Bookings in the period that used a discount code, by code.',
+        'none' => 'No bookings used a discount code in this period.',
+        'discount' => 'Discount given',
+    ],
     'sources' => [
         'heading' => 'Where they came from',
         'help' => 'Which screen the booking was made through. Recorded on the booking itself — nobody is tracked.',

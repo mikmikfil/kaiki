@@ -373,6 +373,7 @@ return [
                 'price_multiplier_bp' => ['label' => 'Share of the base', 'help' => '10000 = 100%, 5000 = 50%.'],
                 'is_base' => ['label' => 'Base band'],
                 'requires_adult' => ['label' => 'Needs an adult'],
+                'no_document' => ['label' => 'No document', 'help' => 'Checkout asks these passengers for no document number, e.g. infants.'],
             ],
         ],
 
@@ -497,6 +498,23 @@ return [
         ],
     ],
 
+    'question' => [
+        'title' => 'Questions',
+        'help' => 'Questions the guest answers at checkout, for each passenger or once for the booking.',
+        'empty' => 'No questions',
+        'add' => 'New question',
+        'label' => ['label' => 'Question', 'help' => 'As the guest will see it.'],
+        'type' => 'Type of answer',
+        'scope' => 'Who answers',
+        'options_el' => 'Choices in Greek',
+        'options_en' => 'Choices in English',
+        'options_help' => 'One choice per line, in the same order in both languages.',
+        'options_mismatch' => 'The Greek and English choices must have the same number of lines.',
+        'is_required' => 'Required',
+        'is_active' => 'Active',
+        'sort_order' => 'Order',
+    ],
+
     'extra' => [
         'nav' => 'Extras',
 
@@ -506,6 +524,38 @@ return [
         ],
 
         'on_request' => 'On request',
+
+        // On the trip (2026-09-17).
+        'on_product' => [
+            'title' => 'Extras',
+            'help' => 'What you offer with the trip. Free ones are listed under «Included»; the paid ones a guest chooses when booking.',
+            'add' => 'New extra',
+            'empty' => 'No extras',
+            'empty_help' => 'E.g. «Masks and fins» for free, or «Lunch on board» at 25 € per person.',
+            'name' => [
+                'label' => 'Name',
+                'help' => 'As the guest will see it.',
+            ],
+            'kind' => [
+                'label' => 'Charge',
+                'free' => 'Free',
+                'paid' => 'Paid',
+            ],
+            'pricing_type' => [
+                'label' => 'How it is charged',
+            ],
+            'price' => [
+                'label' => 'Price',
+                'help' => 'In euros, VAT included.',
+            ],
+            'is_required' => [
+                'label' => 'Required',
+                'help' => 'Added to every booking without the guest choosing it.',
+            ],
+            'is_active' => [
+                'label' => 'Active',
+            ],
+        ],
 
         'validation' => [
             'on_request_has_price' => 'On-request extras carry no price — you agree it with the guest. Either clear the price or change how it is charged.',

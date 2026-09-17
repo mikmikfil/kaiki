@@ -172,7 +172,7 @@ class CheckIn extends Page
         $now = Carbon::now();
 
         return Booking::query()
-            ->with(['guests', 'product'])
+            ->with(['guests.answers', 'answers', 'product'])
             ->whereIn('status', [BookingStatus::Confirmed->value, BookingStatus::CheckedIn->value])
             ->whereBetween('starts_at_utc', [$now->copy()->subHours(12), $now->copy()->addHours(24)])
             ->orderBy('starts_at_utc')

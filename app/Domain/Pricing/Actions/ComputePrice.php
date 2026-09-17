@@ -82,12 +82,12 @@ final class ComputePrice
         $plan = $resolved->planOrFail();
         $bands = $product->ageBands()->get();
 
-        $paxLines = $product->mode === BookingMode::PerVessel
-            ? $this->vesselLines($product, $plan, $extraHours)
-            : PaxLineBuilder::build($plan, $bands, $paxByCode);
-
         $countedPax = AgeBandResolver::countedSeats($bands, $paxByCode);
         $totalPax = AgeBandResolver::totalPersons($paxByCode);
+
+        $paxLines = $product->mode === BookingMode::PerVessel
+            ? $this->vesselLines($product, $plan, $extraHours, $bands->isEmpty() ? $totalPax : $countedPax)
+            : PaxLineBuilder::build($plan, $bands, $paxByCode);
 
         $extraLines = ExtraLineBuilder::build(
             OfferedExtrasResolver::forProduct($product),
@@ -169,7 +169,7 @@ final class ComputePrice
      *
      * @return list<PriceLineData>
      */
-    private function vesselLines(Product $product, RatePlan $plan, int $extraHours): array
+    private function vesselLines(Product $product, RatePlan $plan, int $extraHours, int $people): array
     {
         $lines = [new PriceLineData(
             kind: 'pax',
@@ -196,7 +196,47 @@ final class ComputePrice
             );
         }
 
+        $extraPeople = $this->extraPeople($plan, $people);
+
+        if ($extraPeople > 0) {
+            $lines[] = new PriceLineData(
+                kind: 'fee',
+                ref: 'extra_pax',
+                label: [
+                    'el' => trans('pricing.quote.extra_pax', ['included' => $plan->included_pax], 'el'),
+                    'en' => trans('pricing.quote.extra_pax', ['included' => $plan->included_pax], 'en'),
+                ],
+                qty: $extraPeople,
+                unitPriceCents: (int) $plan->extra_pax_price_cents,
+                totalCents: (int) $plan->extra_pax_price_cents * $extraPeople,
+            );
+        }
+
         return $lines;
+    }
+
+    /**
+     * People past what the boat price includes (2026-09-17).
+     *
+     * «2.500 € for up to ten, 50 € for each one more»: its own fee line, so the
+     * receipt shows «3 × 50 €» rather than a boat price that changed for no
+     * visible reason. Counted from the bands that take a seat, or from
+     * everybody when the trip has no bands, which is how a charter without
+     * passenger categories is booked.
+     *
+     * Zero unless the platform switched the model on for this operator: a
+     * plan that kept its numbers after the switch went off charges nothing
+     * extra.
+     */
+    private function extraPeople(RatePlan $plan, int $people): int
+    {
+        if (Tenancy::current()?->usesExtraPersonPricing() !== true
+            || $plan->included_pax === null
+            || $plan->extra_pax_price_cents === null) {
+            return 0;
+        }
+
+        return max(0, $people - $plan->included_pax);
     }
 
     /**

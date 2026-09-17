@@ -128,6 +128,7 @@ Route::middleware(['guest.token', 'guest.throttle'])->group(function (): void {
     // booking are different jobs, exactly as `/g/` and `/q/` are.
     Route::get('/c/{token}', [CheckoutController::class, 'show'])->name('guest.checkout');
     Route::post('/c/{token}', [CheckoutController::class, 'pay'])->name('guest.checkout.pay');
+    Route::post('/c/{token}/code', [CheckoutController::class, 'code'])->name('guest.checkout.code');
 
     Route::get('/g/{token}', [GuestDetailsController::class, 'show'])->name('guest.details');
     Route::post('/g/{token}', [GuestDetailsController::class, 'save'])->name('guest.details.save');

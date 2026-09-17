@@ -142,7 +142,12 @@
             @endforeach
 
             @if ((int) ($snapshot['discount_cents'] ?? 0) > 0)
-                <dt>{{ __('guest.checkout.discount') }}</dt>
+                <dt>
+                    {{ __('guest.checkout.discount') }}
+                    @if (is_array($discountCode ?? null))
+                        <span class="muted">({{ $discountCode['code'] }})</span>
+                    @endif
+                </dt>
                 <dd>−{{ $money((int) $snapshot['discount_cents']) }}</dd>
             @endif
 
@@ -151,6 +156,27 @@
         </dl>
 
         <p class="muted">{{ __('guest.checkout.vat_included') }}</p>
+
+        {{-- «Κουπόνι» (2026-09-17). Its own form, outside the payment form:
+             applying a code shows the new total, it does not pay. --}}
+        <form method="post" action="{{ route('guest.checkout.code', ['token' => $token]) }}" class="discount-form" novalidate>
+            @csrf
+            @if (is_array($discountCode ?? null))
+                <p class="muted">{{ __('discount_codes.checkout.using', ['code' => $discountCode['code']]) }}</p>
+                <button type="submit" name="remove" value="1" class="btn btn-quiet">{{ __('discount_codes.checkout.remove') }}</button>
+            @else
+                <label for="discount_code">{{ __('discount_codes.checkout.label') }}</label>
+                <div class="discount-row">
+                    <input id="discount_code" name="discount_code" type="text" maxlength="32" autocomplete="off"
+                           autocapitalize="characters" value="{{ old('discount_code') }}">
+                    <button type="submit" class="btn btn-quiet">{{ __('discount_codes.checkout.apply') }}</button>
+                </div>
+            @endif
+            @error('discount_code') <p class="field-error" role="alert">{{ $message }}</p> @enderror
+            @if (session('discount_status'))
+                <p class="muted" role="status">{{ session('discount_status') }}</p>
+            @endif
+        </form>
 
         @if ($takesDeposit)
             <p class="muted">{{ __('guest.checkout.deposit_note', [
@@ -168,10 +194,34 @@
              cancel, it is the question a guest actually has at this button, and
              the page answered it nowhere: the consent line named a policy and
              did not show it. --}}
-        @if ($policySummary !== null)
+        @if ($policySummary !== null || ($policyLines ?? []) !== [])
             <div class="policy">
                 <h3>{{ __('guest.checkout.policy_heading') }}</h3>
-                <p class="muted">{{ $policySummary }}</p>
+                @if ($policySummary !== null)
+                    <p class="muted">{{ $policySummary }}</p>
+                @endif
+
+                {{-- The full policy, a press away and without leaving the page
+                     (2026-09-17). A `:target` window rather than a script: the
+                     guest page's policy allows no inline script, and a link to
+                     `#policy-full` opens it with none. --}}
+                @if (($policyLines ?? []) !== [])
+                    <p><a class="policy-link" href="#policy-full">{{ __('guest.policy.link') }}</a></p>
+                @endif
+            </div>
+        @endif
+
+        @if (($policyLines ?? []) !== [])
+            <div id="policy-full" class="policy-window" role="dialog" aria-modal="true" aria-labelledby="policy-full-heading">
+                <div class="policy-window-box">
+                    <h2 id="policy-full-heading">{{ __('guest.policy.heading') }}</h2>
+                    <ul class="policy-lines">
+                        @foreach ($policyLines as $line)
+                            <li>{{ $line }}</li>
+                        @endforeach
+                    </ul>
+                    <a class="policy-close" href="#">{{ __('guest.policy.close') }}</a>
+                </div>
             </div>
         @endif
 
@@ -281,13 +331,29 @@
         <label for="special_requests">{{ __('guest.checkout.special_requests') }}</label>
         <textarea id="special_requests" name="special_requests" rows="3">{{ old('special_requests', $booking->special_requests) }}</textarea>
 
-        @if ($needsGuestDetails)
+        {{-- The operator's own questions, once for the booking (2026-09-17). --}}
+        @if ($bookingQuestions->isNotEmpty())
+            <h2>{{ __('questions.heading') }}</h2>
+            @foreach ($bookingQuestions as $question)
+                @include('guest.partials.trip-question', [
+                    'question' => $question,
+                    'name' => "answers[booking][{$question->uuid}]",
+                    'key' => "answers.booking.{$question->uuid}",
+                    'id' => 'q_' . $question->uuid,
+                    'given' => $givenAnswers['booking']->firstWhere('trip_question_id', $question->getKey())?->answer,
+                ])
+            @endforeach
+        @endif
+
+        @if ($passengers !== [])
             {{-- Only for trips whose `guest_details_required` is set. The
                  explanation comes before the fields for the same reason `/g/`
                  gives it: a guest asked for a document number with no reason
                  given closes the tab. --}}
             <h2>{{ __('guest.checkout.passengers') }}</h2>
-            <p class="muted">{{ __('guest.checkout.passengers_why') }}</p>
+            @if ($needsGuestDetails)
+                <p class="muted">{{ __('guest.checkout.passengers_why') }}</p>
+            @endif
 
             {{-- One `<details>` per passenger, the first open.
 
@@ -301,69 +367,103 @@
 
                  A row whose fields failed validation is forced open, or the
                  error is announced on a panel nobody can see. --}}
-            {{-- One row per **person**, from `pax_breakdown` — which is where the
-                 party is written down, band by band, with the label frozen at
-                 booking (§3.1).
+            {{-- One row per **person**, from `PassengerForm::rows()` — the
+                 booking's own `booking_guests` rows, created from
+                 `pax_breakdown` band by band, so the row says «Επιβάτης 2 ·
+                 Παιδί» and a parent filling in three of these knows which child
+                 they are on. Every person, infants included: the manifest counts
+                 people on the boat, not seats.
 
-                 Two things fall out of reading it rather than counting seats.
-                 The row says «Επιβάτης 2 · Παιδί», so a parent filling in three
-                 of these knows which child they are on. And the list is as long
-                 as the **party**, not as long as the seats: it iterated
-                 `pax_capacity_total` before, and an infant does not occupy a
-                 seat — so a family of two adults and a baby filed a manifest
-                 with the baby missing from it, which is the one document the
-                 coastguard reads. `pax_total` counts every person, and BKG-A1
-                 says that is what the manifest is for. --}}
-            @php
-                $people = collect((array) $booking->pax_breakdown)
-                    ->flatMap(static fn (array $band): array => array_fill(
-                        0,
-                        max(0, (int) ($band['qty'] ?? 0)),
-                        (string) (data_get($band, 'label.' . app()->getLocale()) ?? data_get($band, 'label.el') ?? ''),
-                    ))
-                    ->values();
+                 Each row posts its `position`, which is the key the manifest is
+                 written by. It posted none before, and every passenger typed
+                 here was dropped on the floor.
 
-                // A booking made before the breakdown existed, or one whose
-                // bands were written oddly: fall back to counting people rather
-                // than rendering no form at all.
-                if ($people->isEmpty()) {
-                    $people = collect(array_fill(0, max(1, (int) $booking->pax_total), ''));
-                }
-            @endphp
-
-            @foreach ($people as $i => $bandLabel)
-                @php $hasError = $errors->has("guests.$i.full_name") || $errors->has("guests.$i.document_number"); @endphp
+                 Passport or identity card, and nothing else (2026-09-17). The
+                 expiry date belongs to a passport only; it hides itself when
+                 «Ταυτότητα» is chosen, with CSS `:has()` and no script, and a
+                 browser without `:has()` simply shows it. A «Χωρίς έγγραφο»
+                 band gets no document fields at all. --}}
+            @foreach ($passengers as $i => $row)
+                @php
+                    $guest = $row['guest'];
+                    $hasError = collect(['full_name', 'nationality', 'date_of_birth', 'document_type', 'document_number', 'document_expires_on'])
+                        ->contains(static fn (string $field): bool => $errors->has("guests.$i.$field"))
+                        || $errors->has("answers.guests.$i.*");
+                    $typed = old("guests.$i.full_name", $guest->full_name);
+                @endphp
 
                 <details class="passenger" @if ($i === 0 || $hasError) open @endif>
                     <summary>
                         {{ __('guest.checkout.passenger_n', ['n' => $i + 1]) }}
-                        @if ($bandLabel !== '')
-                            <span class="passenger-band">{{ $bandLabel }}</span>
+                        @if ($row['label'] !== '')
+                            <span class="passenger-band">{{ $row['label'] }}</span>
                         @endif
-                        @if (old("guests.$i.full_name"))
-                            <span class="passenger-name">{{ old("guests.$i.full_name") }}</span>
+                        @if ($typed)
+                            <span class="passenger-name">{{ $typed }}</span>
                         @endif
                     </summary>
 
                     <div class="passenger-body">
+                        <input type="hidden" name="guests[{{ $i }}][position]" value="{{ $row['position'] }}">
+
                         <label for="g{{ $i }}_name">{{ __('guest.checkout.full_name') }}</label>
                         <input id="g{{ $i }}_name" name="guests[{{ $i }}][full_name]" type="text" required
-                               value="{{ old("guests.$i.full_name") }}">
+                               value="{{ old("guests.$i.full_name", $guest->full_name) }}">
                         @error("guests.$i.full_name") <p class="field-error">{{ $message }}</p> @enderror
 
-                        {{-- Required, like the name beside it. The manifest is
-                             the reason this whole section exists, and a
-                             document number is the half of it that is not a
-                             name — optional here meant a list could be filed
-                             with the numbers missing. --}}
-                        <label for="g{{ $i }}_doc">{{ __('guest.checkout.document') }}</label>
-                        <input id="g{{ $i }}_doc" name="guests[{{ $i }}][document_number]" type="text" required
-                               value="{{ old("guests.$i.document_number") }}">
-                        @error("guests.$i.document_number") <p class="field-error">{{ $message }}</p> @enderror
+                        @if ($needsGuestDetails)
+                        <label for="g{{ $i }}_nat">{{ __('guest.checkout.nationality') }}</label>
+                        <input id="g{{ $i }}_nat" name="guests[{{ $i }}][nationality]" type="text" required
+                               autocomplete="country-name" value="{{ old("guests.$i.nationality", $guest->nationality) }}">
+                        @error("guests.$i.nationality") <p class="field-error">{{ $message }}</p> @enderror
 
                         <label for="g{{ $i }}_dob">{{ __('guest.checkout.date_of_birth') }}</label>
-                        <input id="g{{ $i }}_dob" name="guests[{{ $i }}][date_of_birth]" type="date"
-                               value="{{ old("guests.$i.date_of_birth") }}">
+                        <input id="g{{ $i }}_dob" name="guests[{{ $i }}][date_of_birth]" type="date" required
+                               value="{{ old("guests.$i.date_of_birth", $guest->date_of_birth?->toDateString()) }}">
+                        @error("guests.$i.date_of_birth") <p class="field-error">{{ $message }}</p> @enderror
+                        @endif
+
+                        @if (! $needsGuestDetails)
+                            {{-- Only a name: the panel is here for the questions. --}}
+                        @elseif ($row['no_document'])
+                            <p class="muted">{{ __('guest.checkout.no_document') }}</p>
+                        @else
+                            @php $chosen = old("guests.$i.document_type", $guest->document_type?->value); @endphp
+
+                            <label for="g{{ $i }}_dtype">{{ __('guest.checkout.document_type') }}</label>
+                            <select id="g{{ $i }}_dtype" name="guests[{{ $i }}][document_type]" required>
+                                <option value=""></option>
+                                @foreach (\App\Enums\GuestDocumentType::cases() as $type)
+                                    <option value="{{ $type->value }}" @selected($chosen === $type->value)>{{ $type->label() }}</option>
+                                @endforeach
+                            </select>
+                            @error("guests.$i.document_type") <p class="field-error">{{ $message }}</p> @enderror
+
+                            {{-- `autocomplete="off"`: a browser that remembered a
+                                 passport number would keep it long after the
+                                 retention window the page promises. --}}
+                            <label for="g{{ $i }}_doc">{{ __('guest.checkout.document') }}</label>
+                            <input id="g{{ $i }}_doc" name="guests[{{ $i }}][document_number]" type="text" required
+                                   autocomplete="off" value="{{ old("guests.$i.document_number") }}">
+                            @error("guests.$i.document_number") <p class="field-error">{{ $message }}</p> @enderror
+
+                            <div class="passport-expiry">
+                                <label for="g{{ $i }}_dexp">{{ __('guest.checkout.document_expires_on') }}</label>
+                                <input id="g{{ $i }}_dexp" name="guests[{{ $i }}][document_expires_on]" type="date"
+                                       value="{{ old("guests.$i.document_expires_on", $guest->document_expires_on?->toDateString()) }}">
+                                @error("guests.$i.document_expires_on") <p class="field-error">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
+
+                        @foreach ($personQuestions as $question)
+                            @include('guest.partials.trip-question', [
+                                'question' => $question,
+                                'name' => "answers[guests][{$i}][{$question->uuid}]",
+                                'key' => "answers.guests.{$i}.{$question->uuid}",
+                                'id' => "g{$i}_q_" . $question->uuid,
+                                'given' => ($givenAnswers['guests'][$guest->getKey()] ?? collect())->firstWhere('trip_question_id', $question->getKey())?->answer,
+                            ])
+                        @endforeach
                     </div>
                 </details>
             @endforeach

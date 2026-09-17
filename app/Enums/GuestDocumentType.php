@@ -16,6 +16,13 @@ use App\Enums\Concerns\HasTranslatedLabel;
  * Named `GuestDocumentType` rather than `DocumentType` because M6 brings
  * ναυλοσύμφωνα and invoices, and "document" there means something else
  * entirely.
+ *
+ * ## Two kinds, and nothing else (2026-09-17)
+ *
+ * A passport or an identity card: those are the documents the port authority
+ * accepts on a passenger list, so «Άλλο» went. The rows that had said `other`
+ * became `id_card` in the migration that added «Χωρίς έγγραφο» to age bands.
+ * An identity card is its number alone; a passport also has an expiry date.
  */
 enum GuestDocumentType: string
 {
@@ -23,5 +30,10 @@ enum GuestDocumentType: string
 
     case Passport = 'passport';
     case IdCard = 'id_card';
-    case Other = 'other';
+
+    /** Does the manifest need this document's expiry date? */
+    public function needsExpiry(): bool
+    {
+        return $this === self::Passport;
+    }
 }

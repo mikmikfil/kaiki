@@ -11,6 +11,8 @@ use App\Enums\BookingMode;
 use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource\Pages;
+use App\Filament\App\Resources\ProductResource\RelationManagers\ExtrasRelationManager;
+use App\Filament\App\Resources\ProductResource\RelationManagers\QuestionsRelationManager;
 use App\Filament\App\Resources\ProductResource\RelationManagers\RatePlansRelationManager;
 use App\Filament\App\Resources\ProductResource\RelationManagers\ScheduleRulesRelationManager;
 use App\Filament\Forms\TranslatableInput;
@@ -410,6 +412,13 @@ class ProductResource extends Resource
 
                             Toggle::make('requires_adult')
                                 ->label(__('catalog.product.form.bands.requires_adult.label')),
+
+                            // «Χωρίς έγγραφο» (2026-09-17): checkout asks these
+                            // passengers for a name, nationality and date of
+                            // birth, and no document.
+                            Toggle::make('no_document')
+                                ->label(__('catalog.product.form.bands.no_document.label'))
+                                ->helperText(__('catalog.product.form.bands.no_document.help')),
                         ])
                         ->itemLabel(fn (array $state): ?string => is_string($state['code'] ?? null) ? $state['code'] : null)
                         ->defaultItems(1)
@@ -963,6 +972,9 @@ class ProductResource extends Resource
     {
         return [
             RatePlansRelationManager::class,
+            // «Πρόσθετα», free or paid (2026-09-17).
+            ExtrasRelationManager::class,
+            QuestionsRelationManager::class,
         ];
     }
 

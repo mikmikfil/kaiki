@@ -132,6 +132,10 @@
                                 <li class="flex items-center justify-between gap-2">
                                     <span class="text-sm">
                                         {{ $guest->full_name ?? __('checkin.guest.unnamed') }}
+                                        @php($answerLine = \App\Models\BookingAnswer::joined([...($guest->is_lead ? $booking->answers->whereNull('booking_guest_id')->all() : []), ...$guest->answers->all()]))
+                                        @if ($answerLine !== '')
+                                            <span class="block text-xs text-gray-500">{{ $answerLine }}</span>
+                                        @endif
                                         @if ($guest->no_show)
                                             <span class="text-xs text-danger-600">· {{ __('checkin.guest.no_show') }}</span>
                                         @endif

@@ -8,6 +8,7 @@ use App\Domain\Operations\Actions\GenerateManifest;
 use App\Enums\BookingStatus;
 use App\Enums\ManifestColumn;
 use App\Models\Booking;
+use App\Models\BookingAnswer;
 use App\Models\BookingGuest;
 use App\Models\Departure;
 use App\Models\Port;
@@ -112,6 +113,7 @@ final class Manifest
 
         foreach ($bookings as $booking) {
             $guests = BookingGuest::query()
+                ->with('answers')
                 ->where('booking_id', $booking->getKey())
                 ->orderBy('position')
                 ->get();
@@ -175,10 +177,35 @@ final class Manifest
                 ManifestColumn::Reference => $booking->reference,
                 ManifestColumn::AgeBand => $guest->age_band_code,
                 ManifestColumn::CheckedIn => $guest->checked_in_at !== null ? trans('manifest.yes') : '',
+                ManifestColumn::Answers => self::answers($booking, $guest),
             };
         }
 
         return $row;
+    }
+
+    /**
+     * The passenger's answers, and the booking's on the lead row, so a
+     * per-booking «Μεταφορά: Ναι» appears once per party rather than on
+     * every name in it.
+     */
+    private static function answers(Booking $booking, BookingGuest $guest): string
+    {
+        $answers = $guest->answers->all();
+
+        if ($guest->is_lead) {
+            $answers = [
+                ...BookingAnswer::query()
+                    ->where('booking_id', $booking->getKey())
+                    ->whereNull('booking_guest_id')
+                    ->orderBy('id')
+                    ->get()
+                    ->all(),
+                ...$answers,
+            ];
+        }
+
+        return BookingAnswer::joined($answers);
     }
 
     /**

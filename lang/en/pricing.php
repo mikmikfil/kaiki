@@ -43,6 +43,15 @@ return [
             'label' => 'Extra hour',
             'help' => 'Charged per hour beyond the duration.',
         ],
+        'included_pax' => [
+            'label' => 'Includes up to',
+            'help' => 'People the boat price covers. Everyone who takes a seat counts.',
+        ],
+        'extra_pax_price' => [
+            'label' => 'Per extra person',
+            'help' => 'Charged for each person above that number.',
+        ],
+        'extra_pax_headline' => ':price · up to :included people, +:extra per extra',
         'name' => [
             'label' => 'Name',
             'help' => 'For you only. The period shows when this is empty.',
@@ -340,6 +349,9 @@ return [
             'deposit_fixed' => 'The deposit amount must be greater than zero.',
             'deposit_none_has_value' => 'You chose payment in full but filled in a deposit. Clear the amount or change the deposit type.',
             'vessel_price_required' => 'This trip is chartered as a whole boat, so it needs a whole boat price.',
+            'extra_pax_per_vessel_only' => 'The «up to N people» price applies to whole-boat trips only.',
+            'included_pax_required' => 'Enter how many people the boat price includes.',
+            'extra_pax_price_required' => 'Enter the price for each extra person.',
             'no_band_prices_per_vessel' => 'This trip is chartered as a whole boat: it has one price, not per-person prices.',
             'no_vessel_price_per_seat' => 'This trip is sold per seat, so it has no whole boat price.',
             'missing_band_prices' => 'A price is missing for: :bands.',
@@ -364,6 +376,7 @@ return [
 
     'quote' => [
         'extra_hours' => 'Extra hours',
+        'extra_pax' => 'Extra people (over :included)',
         'on_request' => 'On request',
 
         'validation' => [

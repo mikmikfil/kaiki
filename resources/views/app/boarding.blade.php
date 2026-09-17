@@ -280,6 +280,11 @@
             sub.textContent = row.local_time + ' · ' + row.trip + ' · ' + row.reference;
             who.appendChild(name);
             who.appendChild(sub);
+            if (row.answers) {
+                var answers = document.createElement('span');
+                answers.textContent = row.answers;
+                who.appendChild(answers);
+            }
 
             li.appendChild(who);
 

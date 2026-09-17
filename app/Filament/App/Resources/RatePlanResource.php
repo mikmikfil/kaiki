@@ -15,6 +15,7 @@ use App\Models\AgeBand;
 use App\Models\Product;
 use App\Models\RatePlan;
 use App\Models\Season;
+use App\Support\Tenancy;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
@@ -158,6 +159,24 @@ class RatePlanResource extends Resource
                         __('pricing.rate_plan.form.extra_hour_price_cents.label'),
                         __('pricing.rate_plan.form.extra_hour_price_cents.help'),
                     )->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerVessel),
+
+                    // «Up to N people, +Y € for each extra» (2026-09-17), only
+                    // where the platform switched it on.
+                    TextInput::make('included_pax')
+                        ->label(__('pricing.on_product.included_pax.label'))
+                        ->helperText(__('pricing.on_product.included_pax.help'))
+                        ->integer()
+                        ->minValue(1)
+                        ->maxValue(999)
+                        ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerVessel
+                            && Tenancy::current()?->usesExtraPersonPricing() === true),
+
+                    MoneyInput::make(
+                        'extra_pax_price_cents',
+                        __('pricing.on_product.extra_pax_price.label'),
+                        __('pricing.on_product.extra_pax_price.help'),
+                    )->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerVessel
+                        && Tenancy::current()?->usesExtraPersonPricing() === true),
 
                     Repeater::make('band_prices')
                         ->label(__('pricing.rate_plan.form.prices.label'))

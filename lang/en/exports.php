@@ -128,6 +128,7 @@ return [
             'source' => 'Source',
             'cancelled_at' => 'Cancelled at',
             'cancel_reason' => 'Cancellation reason',
+            'answers' => 'Answers',
         ],
 
         'guests' => [
@@ -143,6 +144,7 @@ return [
             'counts_toward_capacity' => 'Takes a seat',
             'checked_in_at' => 'Checked in',
             'no_show' => 'No show',
+            'answers' => 'Answers',
         ],
 
     ],

@@ -268,7 +268,9 @@ export function draftPayload(state: BookingState, productUuid: string, locale: s
         : null,
     pax: paxSelections(state),
     extras: extraSelections(state),
-    voucher_code: state.voucherCode.trim() === '' ? null : state.voucherCode.trim(),
+    // The «κουπόνι» field (2026-09-17). `voucherCode` is the state's older
+    // name for it; operator vouchers were never typed into the widget.
+    discount_code: state.voucherCode.trim() === '' ? null : state.voucherCode.trim(),
     locale,
   };
 }

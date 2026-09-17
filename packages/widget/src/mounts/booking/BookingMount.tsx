@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'p
 
 import type { Analytics } from '../../analytics';
 import type { Api } from '../../api-client';
-import { BookingApi, isSoldOut, type DraftResult } from '../../booking/api';
+import { BookingApi, isSoldOut, type DraftResult, isInvalidDiscountCode } from '../../booking/api';
 import { holdState } from '../../booking/countdown';
 import { pollForConfirmation, readBookingStatus } from '../../booking/confirmation';
 import {
@@ -93,7 +93,12 @@ export interface ProductSummary {
     /** `false` for a band that rides without a seat — an infant on a lap. */
     readonly counts_toward_capacity?: boolean;
   }[];
-  readonly extras?: readonly { readonly uuid: string; readonly name: string; readonly price_formatted?: string }[];
+  readonly extras?: readonly {
+    readonly uuid: string;
+    readonly name: string;
+    readonly price_formatted?: string;
+    readonly is_required?: boolean;
+  }[];
 }
 
 type Phase = 'walking' | 'submitting' | 'redirecting' | 'confirmed' | 'pending' | 'sold_out' | 'expired' | 'failed';
@@ -118,6 +123,7 @@ export function BookingMount({
   const [phase, setPhase] = useState<Phase>('walking');
   const [draft, setDraft] = useState<DraftResult | null>(null);
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
+  const [codeRefused, setCodeRefused] = useState(false);
   const [tick, setTick] = useState(0);
 
   const hold = holdState(draft?.holdExpiresAt ?? null);
@@ -196,6 +202,15 @@ export function BookingMount({
       setPhase('redirecting');
       window.location.assign(created.checkoutUrl);
     } catch (error) {
+      if (isInvalidDiscountCode(error)) {
+        // Nothing was created, so the guest simply stays where they are with
+        // a sentence under the code field.
+        setCodeRefused(true);
+        setPhase('walking');
+
+        return;
+      }
+
       if (isSoldOut(error)) {
         // AVL-39: the last seats went while this guest was deciding. A
         // sentence in their language with fresh availability behind it, not an
@@ -481,6 +496,27 @@ export function BookingMount({
             onChange={(patch) => dispatch({ type: 'patch', patch })}
           />
         </div>
+
+        {last ? (
+          <label class="kaiki-field kaiki-discount">
+            <span>{t('booking.discount.label')}</span>
+            <input
+              type="text"
+              maxLength={32}
+              autoComplete="off"
+              value={state.voucherCode}
+              onInput={(event) => {
+                setCodeRefused(false);
+                dispatch({ type: 'patch', patch: { voucherCode: (event.currentTarget as HTMLInputElement).value } });
+              }}
+            />
+            {codeRefused ? (
+              <span class="kaiki-error" role="alert">
+                {t('booking.discount.refused')}
+              </span>
+            ) : null}
+          </label>
+        ) : null}
 
         <div class="kaiki-actions">
           {state.step !== 'date' ? (

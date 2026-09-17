@@ -66,6 +66,8 @@ final class BookingDraftData extends Data
         public readonly int $extraHours = 0,
         /** Stored now, applied at confirmation — the arithmetic is PRC-18 to PRC-22. */
         public readonly ?string $voucherCode = null,
+        /** «Κουπόνι», checked before anything is written (2026-09-17). */
+        public readonly ?string $discountCode = null,
         public readonly ?string $specialRequests = null,
         public readonly ?Carbon $termsAcceptedAt = null,
         public readonly ?string $ipAddress = null,

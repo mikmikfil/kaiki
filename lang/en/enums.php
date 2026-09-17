@@ -102,10 +102,27 @@ return [
         'webhooks.receive' => ['label' => 'Receive webhooks'],
     ],
 
+    'discount_kind' => [
+        'percent' => ['label' => 'Percentage'],
+        'fixed' => ['label' => 'Fixed amount'],
+    ],
+
+    'trip_question_type' => [
+        'yes_no' => ['label' => 'Yes or no'],
+        'choice' => ['label' => 'Choice'],
+        'text' => ['label' => 'Short text'],
+    ],
+
+    'trip_question_scope' => [
+        'per_person' => ['label' => 'Per person'],
+        'per_booking' => ['label' => 'Per booking'],
+    ],
+
     'extra_pricing' => [
         'per_booking' => ['label' => 'Per booking'],
         'per_person' => ['label' => 'Per person'],
         'on_request' => ['label' => 'On request'],
+        'free' => ['label' => 'Free'],
     ],
 
     'age_band_pricing' => [
@@ -226,6 +243,7 @@ return [
         'reference' => ['label' => 'Booking'],
         'age_band' => ['label' => 'Passenger type'],
         'checked_in' => ['label' => 'Checked in'],
+        'answers' => ['label' => 'Answers'],
     ],
 
     'audit_action' => [
@@ -391,7 +409,6 @@ return [
     'guest_document_type' => [
         'passport' => ['label' => 'Passport'],
         'id_card' => ['label' => 'ID card'],
-        'other' => ['label' => 'Other document'],
     ],
 
     /*

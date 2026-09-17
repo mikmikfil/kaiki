@@ -92,6 +92,8 @@ it('turns complete only when every required field is there for every guest', fun
         'nationality' => 'GR',
         'document_type' => 'passport',
         'document_number' => 'AB1234567',
+        // A passport is complete with its expiry date (2026-09-17).
+        'document_expires_on' => '2031-04-12',
     ];
 
     // One of two. Still pending — completeness is a question asked of *all* the

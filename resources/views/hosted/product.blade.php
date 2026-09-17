@@ -192,7 +192,9 @@
                 : [];
 
             $highlights = $lines($product->highlights);
-            $includes = $lines($product->includes);
+            // The operator's «Περιλαμβάνονται» lines, then the extras they
+            // marked free (2026-09-17), without repeating a line said twice.
+            $includes = array_values(array_unique([...$lines($product->includes), ...($includedExtras ?? [])]));
             $excludes = $lines($product->excludes);
             $bring = $lines($product->what_to_bring);
 
@@ -523,6 +525,11 @@
                          accountant therefore does not block this page. --}}
                     <span class="vat">{{ __('hosted.product.price.vat_included') }}</span>
                 </p>
+                {{-- «Up to N people, +Y € each extra» (2026-09-17): said beside
+                     the boat price, so the total at checkout is no surprise. --}}
+                @if (! empty($extraPersonNote))
+                    <p class="price-note muted">{{ $extraPersonNote }}</p>
+                @endif
             @endif
 
             <dl class="four-lines">
@@ -628,9 +635,12 @@
                  from the policy and this needs no exception to it. --}}
             <div class="booking-more">
                 @php
-                    $includes = is_array($product->includes)
-                        ? array_values(array_filter($product->includes, fn ($item) => is_string($item) && trim($item) !== ''))
-                        : [];
+                    $includes = array_values(array_unique([
+                        ...(is_array($product->includes)
+                            ? array_values(array_filter($product->includes, fn ($item) => is_string($item) && trim($item) !== ''))
+                            : []),
+                        ...($includedExtras ?? []),
+                    ]));
                 @endphp
 
                 @if (! $isQuote || $product->vessel || $includes !== [])

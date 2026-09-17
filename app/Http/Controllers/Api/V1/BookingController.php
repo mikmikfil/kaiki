@@ -15,6 +15,7 @@ use App\Enums\CancelReason;
 use App\Enums\PaymentStatus;
 use App\Exceptions\CapacityExceeded;
 use App\Exceptions\CheckoutRefused;
+use App\Exceptions\DiscountCodeRefused;
 use App\Exceptions\HoldRefused;
 use App\Exceptions\IllegalStateTransition;
 use App\Http\Middleware\AuthenticateGuestToken;
@@ -106,6 +107,16 @@ final class BookingController
                 message: $refused->getMessage(),
                 messageEl: $refused->getMessage(),
                 status: SymfonyResponse::HTTP_CONFLICT,
+            );
+        } catch (DiscountCodeRefused $refused) {
+            // «Κουπόνι» (2026-09-17). The sentence is already in the booking's
+            // language; the widget shows it under the code field.
+            return ApiErrorResponse::make(
+                code: 'invalid_discount_code',
+                message: $refused->getMessage(),
+                messageEl: $refused->getMessage(),
+                status: SymfonyResponse::HTTP_UNPROCESSABLE_ENTITY,
+                details: ['fields' => ['discount_code' => [$refused->getMessage()]]],
             );
         }
 

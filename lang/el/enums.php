@@ -91,10 +91,27 @@ return [
     | βλέπει αγγλικά και ψάχνει τα ελληνικά πρέπει να αναγνωρίσει τη λέξη
     | «Ελληνικά», όχι τη λέξη «Greek».
     */
+    'discount_kind' => [
+        'percent' => ['label' => 'Ποσοστό'],
+        'fixed' => ['label' => 'Σταθερό ποσό'],
+    ],
+
+    'trip_question_type' => [
+        'yes_no' => ['label' => 'Ναι ή όχι'],
+        'choice' => ['label' => 'Επιλογή'],
+        'text' => ['label' => 'Σύντομο κείμενο'],
+    ],
+
+    'trip_question_scope' => [
+        'per_person' => ['label' => 'Ανά άτομο'],
+        'per_booking' => ['label' => 'Ανά κράτηση'],
+    ],
+
     'extra_pricing' => [
         'per_booking' => ['label' => 'Ανά κράτηση'],
         'per_person' => ['label' => 'Ανά άτομο'],
         'on_request' => ['label' => 'Κατόπιν αιτήματος'],
+        'free' => ['label' => 'Δωρεάν'],
     ],
 
     'age_band_pricing' => [
@@ -215,6 +232,7 @@ return [
         'reference' => ['label' => 'Κράτηση'],
         'age_band' => ['label' => 'Κατηγορία επιβάτη'],
         'checked_in' => ['label' => 'Επιβιβάστηκε'],
+        'answers' => ['label' => 'Απαντήσεις'],
     ],
 
     'audit_action' => [
@@ -380,7 +398,6 @@ return [
     'guest_document_type' => [
         'passport' => ['label' => 'Διαβατήριο'],
         'id_card' => ['label' => 'Ταυτότητα'],
-        'other' => ['label' => 'Άλλο έγγραφο'],
     ],
 
     /*
