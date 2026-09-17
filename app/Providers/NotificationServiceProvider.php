@@ -7,11 +7,19 @@ namespace App\Providers;
 use App\Events\BookingCancelled;
 use App\Events\BookingConfirmed;
 use App\Events\BookingGuestsRemoved;
+use App\Events\QuoteSent;
+use App\Events\WeatherChoiceApplied;
+use App\Events\WeatherChoiceReminderDue;
+use App\Events\WeatherChoiceRequested;
 use App\Listeners\Booking\GenerateETicketOnConfirmation;
 use App\Listeners\Booking\RegenerateETicketOnChange;
 use App\Listeners\Booking\SendBookingCancellation;
 use App\Listeners\Booking\SendBookingChange;
 use App\Listeners\Booking\SendBookingConfirmation;
+use App\Listeners\Booking\SendQuoteEmail;
+use App\Listeners\Booking\SendWeatherChoiceApplied;
+use App\Listeners\Booking\SendWeatherChoiceReminder;
+use App\Listeners\Booking\SendWeatherChoiceRequest;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
@@ -35,7 +43,7 @@ use Illuminate\Support\ServiceProvider;
  * | 3 | confirmation SMS | **here**, same listener |
  * | 4 | myDATA invoice | M6 |
  * | 5 | ναυλοσύμφωνο generation | M6 |
- * | 6 | guest-details email | **here**, in the reminder sweep's first pass |
+ * | 6 | guest-details email | **here**, in the reminder sweep: a day after confirmation, if still missing |
  * | 7 | schedule the reminders | **here**, as a sweep rather than delayed jobs |
  * | 8 | `booking.confirmed` webhook | M5 |
  * | 9 | departure `guaranteed` state | already wired, since #81 |
@@ -69,5 +77,13 @@ class NotificationServiceProvider extends ServiceProvider
         // independently, like the confirmation's pair.
         Event::listen(BookingGuestsRemoved::class, SendBookingChange::class);
         Event::listen(BookingGuestsRemoved::class, RegenerateETicketOnChange::class);
+
+        // The weather conversation (CXL-7) and the quote (BKG-26): events that
+        // fired from M2 and M3 with templates beside them and no sender until
+        // the email review of 2026-09-17.
+        Event::listen(WeatherChoiceRequested::class, SendWeatherChoiceRequest::class);
+        Event::listen(WeatherChoiceReminderDue::class, SendWeatherChoiceReminder::class);
+        Event::listen(WeatherChoiceApplied::class, SendWeatherChoiceApplied::class);
+        Event::listen(QuoteSent::class, SendQuoteEmail::class);
     }
 }

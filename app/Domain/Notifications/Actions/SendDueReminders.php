@@ -229,6 +229,20 @@ final class SendDueReminders
         if ($booking->guest_details_status === GuestDetailsStatus::Pending) {
             $deadline = $departure->copy()->subHours($this->guestDetailsDeadlineHours($booking));
 
+            // BKG-13.6's own request, a day after confirmation, if the details
+            // are still missing (email review, 2026-09-17). Not at the moment of
+            // confirmation: the confirmation already carries the details link,
+            // most guests now fill them in at checkout, and two emails in the
+            // same minute would bury the one that matters. Not at all once the
+            // 48-hour reminder is due, which says the same with a closer date.
+            $requestAt = $booking->confirmed_at?->copy()->addDay();
+
+            if ($requestAt !== null
+                && $requestAt->lessThanOrEqualTo($now)
+                && $deadline->copy()->subHours(48)->greaterThan($now)) {
+                $due[] = [NotificationTemplate::GuestDetailsRequested, $requestAt];
+            }
+
             foreach ([48 => NotificationTemplate::GuestDetailsReminder48h, 24 => NotificationTemplate::GuestDetailsReminder24h] as $hours => $template) {
                 $at = $deadline->copy()->subHours($hours);
 
