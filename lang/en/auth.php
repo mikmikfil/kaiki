@@ -19,4 +19,9 @@ return [
     'password' => 'The provided password is incorrect.',
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
 
+    // The blue left side of the sign-in screen (2026-09-17).
+    'intro' => [
+        'line' => 'The booking system for boat trips.',
+    ],
+
 ];

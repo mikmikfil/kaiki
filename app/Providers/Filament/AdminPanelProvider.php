@@ -79,7 +79,7 @@ class AdminPanelProvider extends PanelProvider
              */
             ->brandLogo(fn (): ?string => PlatformBrand::logoUrl())
             ->darkModeBrandLogo(fn (): ?string => PlatformBrand::logoUrl(dark: true))
-            ->favicon(fn (): ?string => PlatformBrand::faviconUrl())
+            ->favicon(fn (): string => PlatformBrand::faviconUrl() ?? asset('favicon.svg'))
             ->brandName(fn (): string => __('panel.admin.brand'))
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')

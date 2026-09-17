@@ -1,6 +1,8 @@
 {{--
-    The sign-in screens, split in half: a photograph on the left, the form on
-    the right. Asked for on 14 September.
+    The sign-in screens, split in half: the panel's blue with moving waves on
+    the left, the form on a plain light ground on the right (direction C,
+    product owner, 2026-09-17). It replaced a photograph with a blue scrim,
+    which read as too plain; the photograph file was deleted.
 
     ## Which screens this is
 
@@ -16,37 +18,28 @@
     upgrade of the package then needs somebody to diff our copy against theirs
     and merge by hand, forever, for a layout we want to change in one dimension.
 
-    Everything below is layout on the layout's own outermost element, so it needs
-    no new markup at all — `::before` is the photograph and the existing
-    `fi-simple-main-ctn` is the other half. It is the same reasoning, and the
-    same mechanism, as `touch-targets.blade.php`.
+    Everything below is layout on Filament's own elements plus one view of
+    ours, `auth-brandmark.blade.php`, which carries the mark and the line. `::before` of the layout is the blue column; the brandmark is
+    laid over it. It is the same reasoning, and the same mechanism, as
+    `touch-targets.blade.php`.
 
-    ## The photograph
+    ## The waves move, and only on the blue
 
-    `public/images/auth-cockpit.jpg`, served from our own origin because SEC-10's
-    `img-src 'self' data: blob:` refuses anything else — no CDN, and no operator's
-    IP leaving for a background. It is decoration and carries no information, so
-    it is a background rather than an `<img>`: nothing for a screen reader to
-    announce, and nothing to caption.
-
-    **It is hidden below `lg`.** A photograph above a sign-in form on a phone is
-    a screenful of scrolling between an operator and the password field, which is
-    the opposite of the point. The brand colour fills the space instead, which
-    also means the form never lands on a white page with nothing on it.
+    Two layers of `public/images/waves-light.svg` drifting slowly, rising and
+    leaning towards the pointer. How, and why this version, is at the rules
+    below. Nothing moves for anyone who has asked their device for less motion.
+    The form's side has no waves at all.
 
     ## These screens are light, whatever the operator's laptop is set to
 
-    Everything below paints a light ground — `#f7f9fc`, the dot grid, the scrim
-    over the photograph. Filament, meanwhile, still puts `dark` on `<html>`
+    The form's side paints a light ground, `#F7FAFD`. Filament, meanwhile, still puts `dark` on `<html>`
     whenever the operating system asks for it, and its own utilities then set
     `dark:text-white` on the heading, the labels, the inputs and the hints. The
     result on a laptop in dark mode was **white type on that near-white ground**:
     the labels were invisible and the heading was a ghost.
 
     The fix is to take `dark` off, not to answer it. A dark variant of this
-    screen is a second design — a second photograph treatment, a second scrim, a
-    second dot grid — and this screen is one composition built around a bright
-    photograph. Overriding the colours one utility at a time was the other
+    screen is a second design, and this screen is one composition. Overriding the colours one utility at a time was the other
     option and it is a losing game: the live page carries `dark:` classes on the
     heading, the logo, the required marker, the input wrapper, the input itself,
     the error message, the hint and the card, and the next Filament release adds
@@ -96,248 +89,222 @@
 <style>
     /* The other half of the same decision. `color-scheme` is what the *browser*
        paints — the form controls' own chrome, the scrollbar, the caret — and it
-       reads the OS, not the class above. Without this the fields keep a dark
-       browser chrome on a light page. */
-    .fi-simple-layout { color-scheme: light; }
-    /* The scrim over the photograph's lower half, so «Powered by Kaiki» and the
-       locale switcher stay legible on a bright sky. Declared once, used twice. */
-    :root {
-        --kaiki-auth-scrim: linear-gradient(
-            to bottom,
-            rgba(11, 39, 64, .10) 0%,
-            rgba(11, 39, 64, .40) 60%,
-            rgba(11, 39, 64, .74) 100%
-        );
+       reads the OS, not the class above. */
+    .fi-simple-layout {
+        color-scheme: light;
+        /* The containing block for the blue side at every width. */
+        position: relative;
+        background-color: #F7FAFD;
     }
 
-    /* Both layouts hang a wordmark off this, so it is the containing block at
-       every width. */
-    .fi-simple-layout { position: relative; }
+    /* Exactly one mark on screen: ours, in the blue. */
+    .fi-simple-layout .fi-logo { display: none; }
 
+    /* Not a card: the form sits straight on the light ground. */
+    .fi-simple-layout .fi-simple-main {
+        background: transparent;
+        box-shadow: none;
+        --tw-ring-color: transparent;
+    }
+
+    .fi-simple-layout .fi-simple-header { align-items: flex-start; }
+    .fi-simple-layout .fi-simple-header-heading { text-align: start; }
+
+    /* The language switch starts where the heading starts. Its inline
+       `justify-content: flex-end` is why this needs `!important`. */
+    .fi-simple-page > div:has(> .kaiki-locale-switcher) {
+        justify-content: flex-start !important;
+    }
+
+    /* --- the blue side ------------------------------------------------ */
+    .kaiki-auth-brandmark {
+        position: absolute;
+        inset-block-start: 0;
+        inset-inline-start: 0;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: hidden;
+        background-color: #0F2E57;
+        color: #fff;
+    }
+
+    .kaiki-auth-brandmark > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    .kaiki-auth-brandmark-name {
+        display: block;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -.03em;
+    }
+
+    .kaiki-auth-brandmark img {
+        inline-size: auto;
+        max-inline-size: 70%;
+    }
+
+    .kaiki-auth-brandmark p {
+        margin: .75rem 0 0;
+        color: #C4D3E8;
+        max-inline-size: 36ch;
+    }
+
+    /* The waves: two layers of `waves-light.svg` along the bottom of the blue,
+       crossing in opposite directions and swelling gently, and rising and
+       leaning towards the pointer (product owner, 2026-09-17).
+
+       Four versions were tried that day — a canvas of spring lines and a
+       silver-fibre ribbon among them — and this is the one he kept. A slower
+       copy was tried and was too slow; these are the original speeds.
+
+       **On the compositor, three motions that never fight.** Each layer is a
+       strip one tile wider than the blue:
+       - `transform` drifts it sideways at a constant, slow speed, exactly one
+         tile per loop so there is no seam;
+       - `translate` swells it up and down on an ease-in-out curve;
+       - `scale` and a margin answer the pointer (`--ka-wave-lift`,
+         `--ka-wave-shift`, set by `auth-brandmark.blade.php`), eased so the
+         water follows the hand rather than jumping to it.
+       None of them repaints. */
+    .kaiki-auth-brandmark::before,
+    .kaiki-auth-brandmark::after {
+        content: '';
+        position: absolute;
+        inset-block-end: -24px;
+        z-index: 0;
+        pointer-events: none;
+        background-image: url('/images/waves-light.svg');
+        background-repeat: repeat-x;
+        background-position: 0 100%;
+        transform-origin: 50% 100%;
+        will-change: transform, translate, scale;
+        scale: 1 var(--ka-wave-lift, 1);
+        transition:
+            scale .9s cubic-bezier(.22, .61, .36, 1),
+            margin-inline-start .9s cubic-bezier(.22, .61, .36, 1);
+    }
+
+    .kaiki-auth-brandmark::after {
+        inset-inline-start: 0;
+        margin-inline-start: calc(var(--ka-wave-shift, 0) * 1px);
+        inline-size: calc(100% + 520px);
+        block-size: calc(55% + 24px);
+        background-size: 520px 220px;
+        /* Quieter, asked for twice (product owner, 2026-09-17). */
+        opacity: .6;
+        animation:
+            kaiki-auth-drift-left 22s linear infinite,
+            kaiki-auth-swell 7s ease-in-out infinite alternate;
+    }
+
+    .kaiki-auth-brandmark::before {
+        inset-inline-start: -780px;
+        /* The back layer answers less, and the other way: depth. */
+        margin-inline-start: calc(var(--ka-wave-shift, 0) * -.5px);
+        scale: 1 calc(1 + (var(--ka-wave-lift, 1) - 1) * .5);
+        inline-size: calc(100% + 780px);
+        block-size: calc(80% + 24px);
+        background-size: 780px 330px;
+        opacity: .3;
+        animation:
+            kaiki-auth-drift-right 38s linear infinite,
+            kaiki-auth-swell 9s ease-in-out -4s infinite alternate-reverse;
+    }
+
+    @keyframes kaiki-auth-drift-left {
+        from { transform: translate3d(0, 0, 0); }
+        to { transform: translate3d(-520px, 0, 0); }
+    }
+
+    @keyframes kaiki-auth-drift-right {
+        from { transform: translate3d(0, 0, 0); }
+        to { transform: translate3d(780px, 0, 0); }
+    }
+
+    @keyframes kaiki-auth-swell {
+        from { translate: 0 0; }
+        to { translate: 0 -14px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .kaiki-auth-brandmark::before,
+        .kaiki-auth-brandmark::after {
+            animation: none;
+            transition: none;
+        }
+    }
+
+    /* --- a wide screen: the blue is the left column ------------------- */
     @media (min-width: 1024px) {
         .fi-simple-layout {
-            /* Two columns. `min-h-screen` is Filament's and stays; the flex
-               column it sets is replaced.
-
-               42/58, arrived at by going too far first: 40/60 turned the
-               photograph into a stripe down the edge and was taken back to
-               halves, then trimmed twice. The form is capped at 28rem whatever
-               the column does, so this is about how much picture there is, not
-               about room for fields.
-
-               The containing block for the wordmark is set once, outside this
-               query, because the phone puts a wordmark on a banner too. */
             display: grid;
             grid-template-columns: 42% 58%;
             align-items: stretch;
         }
 
-        /* The wordmark, moved onto the photograph's bottom-left corner.
-
-           The element is Filament's own `.fi-logo` — the panel's `brandName()`
-           or `brandLogo()`, whichever is configured — taken out of the flow and
-           placed against the layout rather than copied into a `content:`
-           string. A copy would be a second place to change the product's name,
-           and it would be the place nobody remembers.
-
-           It had a rust rule above it for an afternoon and lost it: on a
-           photograph a short bar over a word reads as a stray graphic rather
-           than as the accent it is on a white page. */
-        /* Above `lg` the mark on the photograph is Filament's own `.fi-logo`,
-           so the phone's copy is not rendered at all. */
-        .kaiki-auth-brandmark { display: none; }
-
-        .fi-simple-layout .fi-logo {
-            position: absolute;
-            inset-block-end: 3.25rem;
-            inset-inline-start: 3.5rem;
-            z-index: 2;
-            margin: 0;
-            color: #fff;
-            font-size: 2.9rem;
-            font-weight: 800;
-            line-height: 1;
-            letter-spacing: -.025em;
-            /* The photograph is a photograph: no gradient is dark everywhere a
-               bright sky might be, so the type carries its own shadow too. */
-            text-shadow: 0 2px 20px rgba(6, 16, 20, .55);
-        }
-
+        /* The first grid item keeps the left column; the brandmark is laid
+           over it, since it lives deep inside the form's markup. */
         .fi-simple-layout::before {
             content: '';
-            /* First grid item, so it takes the left column without the markup
-               knowing anything about it. */
-            background-image: var(--kaiki-auth-scrim), url('/images/auth-cockpit.jpg');
-            background-size: cover, cover;
-            /* The helm is left of centre in the frame and the horizon sits above
-               the middle; holding the crop at 40% keeps the wheel in shot at
-               every window height instead of sliding it off the edge. */
-            background-position: center, 40% center;
-            background-repeat: no-repeat;
-            /* The colour behind it is what shows while the photograph loads, and
-               on a connection where it never does. */
-            background-color: var(--kaiki-navy, #123a5e);
+            background-color: #0F2E57;
         }
 
-        /* The form's half. `items-center` and `justify-center` are Filament's
-           and do the right thing inside the grid cell already; this only stops
-           the card growing to the full width of the half.
-
-           ## The pattern behind it
-
-           A dot grid in the brand navy at seven per cent — enough that the half
-           is a surface rather than a blank, not enough to be a thing anybody
-           looks at. Two gradients rather than an image: a `radial-gradient`
-           needs no file, no request and no `img-src` allowance, and it stays
-           sharp at any pixel ratio.
-
-           The wash on top is what keeps it honest. Dots running straight under
-           a password field make the field harder to read, so a soft ellipse of
-           the page's own colour sits over the middle and fades them out exactly
-           where the form is. The pattern survives at the edges, which is where
-           it was wanted. */
-        .fi-simple-layout > .fi-simple-main-ctn {
-            padding-inline: 2rem;
-            background-color: #f7f9fc;
-            background-image:
-                radial-gradient(ellipse 34rem 30rem at 50% 48%,
-                                rgba(247, 249, 252, .97) 38%,
-                                rgba(247, 249, 252, 0) 78%),
-                radial-gradient(circle at center,
-                                rgba(18, 58, 94, .07) 1.1px, transparent 1.1px);
-            background-size: 100% 100%, 22px 22px;
-        }
-
-        .fi-simple-layout .fi-simple-main {
-            /* Filament's `max-w-lg` measured against the whole viewport. Against
-               one column of it the card wanted to be the whole column. 28rem is
-               the widest the fields read well at — past that the label and the
-               far edge of the input stop looking like one object. */
-            max-inline-size: 28rem;
-            /* The card is the page's only object on its own half now, so the
-               ring and shadow that separated it from a grey page are separating
-               it from nothing. */
-            box-shadow: none;
-            --tw-ring-color: transparent;
-            background: transparent;
-            padding-inline: 0;
-        }
-
-        /* Anything the panel renders outside the form — the locale switcher, the
-           "powered by" line — belongs on the form's half, not spread across
-           both. */
         .fi-simple-layout > *:not(.fi-simple-main-ctn) {
             grid-column: 2;
         }
 
-        /* Left, not centred. A centred heading over left-aligned fields is two
-           alignments in a column four inches wide. */
-        .fi-simple-layout .fi-simple-header { align-items: flex-start; }
-
-        /* And the language switch with it. The switcher carries an inline
-           `justify-content: flex-end` for the case where it is the only thing
-           at the top of a page and has nothing to line up with; here it has the
-           heading directly below it, so it starts where the heading starts.
-           Inline styles are why this needs `!important`. */
-        .fi-simple-page > div:has(> .kaiki-locale-switcher) {
-            justify-content: flex-start !important;
+        .fi-simple-layout > .fi-simple-main-ctn {
+            padding-inline: 2rem;
         }
 
-        .fi-simple-layout .fi-simple-header-heading {
-            text-align: start;
-        }
-    }
-
-    /* Past this width the picture does not need to keep growing with the
-       window; two points back gives the form the difference. */
-    @media (min-width: 1536px) {
-        .fi-simple-layout { grid-template-columns: 44% 56%; }
-    }
-
-    /* --- below `lg` ------------------------------------------------
-       No photograph: one above a sign-in form on a phone is a screenful of
-       scrolling between an operator and the password field.
-
-       What was left was not Filament's layout working, though — it was
-       Filament's layout with nothing to sit on. `fi-simple-main` is a white
-       card with a ring, and its corners only round from 640px up, so at 390px
-       it rendered as a full-width white band with a hairline across the screen
-       at each end, floating in grey. Three bands, and none of them meant
-       anything.
-
-       So on a phone it stops pretending to be a card: the page is one surface,
-       the same patterned off-white as the form's half on a wide screen, and the
-       form sits on it. The alignment matches too — heading and wordmark to the
-       left, where the fields already were. */
-    @media (max-width: 1023.98px) {
-        .fi-simple-layout {
-            background-color: #f7f9fc;
-            background-image:
-                radial-gradient(ellipse 22rem 26rem at 50% 45%,
-                                rgba(247, 249, 252, .97) 40%,
-                                rgba(247, 249, 252, 0) 80%),
-                radial-gradient(circle at center,
-                                rgba(18, 58, 94, .07) 1.1px, transparent 1.1px);
-            background-size: 100% 100%, 22px 22px;
-        }
-
-        /* Not a card any more: no ground of its own, no ring, no shadow. */
         .fi-simple-layout .fi-simple-main {
-            background: transparent;
-            box-shadow: none;
-            --tw-ring-color: transparent;
-        }
-
-        .fi-simple-layout .fi-simple-header { align-items: flex-start; }
-        .fi-simple-layout .fi-simple-header-heading { text-align: start; }
-
-        /* Under the banner, not floating in the middle of what is left of the
-           screen. Filament centres this vertically, which is right for a card
-           on an empty page and wrong once there is a masthead above it — it
-           left a hand's width of dotted nothing between the two. */
-        .fi-simple-layout > .fi-simple-main-ctn { align-items: flex-start; }
-        .fi-simple-layout .fi-simple-main { margin-block: 2.25rem; }
-
-        /* The mark on top, centred, and no photograph.
-
-           A band of the picture was tried here first and taken out: on a phone
-           the sign-in screen is one job, and a masthead is the part of it that
-           can be a name rather than a scene.
-
-           This is `auth-brandmark.blade.php`, not Filament's `.fi-logo` —
-           Filament renders that one below the language switcher, and the order
-           wanted is mark, language, form. Filament's copy is hidden here so
-           there is exactly one on screen. */
-        .fi-simple-layout .fi-logo { display: none; }
-
-        /* The language switch to the left, under the mark and over the form,
-           where the heading and the fields already start. Its inline
-           `justify-content: flex-end` is for a page where it is the only thing
-           at the top; here it has a column to line up with. */
-        .fi-simple-page > div:has(> .kaiki-locale-switcher) {
-            justify-content: flex-start !important;
+            max-inline-size: 28rem;
+            padding-inline: 0;
         }
 
         .kaiki-auth-brandmark {
-            display: flex;
-            justify-content: center;
-            margin-block-end: 1.1rem;
+            inline-size: 42%;
+            block-size: 100%;
+            padding: 3.25rem 3.5rem;
         }
 
-        .kaiki-auth-brandmark span {
-            font-size: 2rem;
-            font-weight: 800;
-            line-height: 1;
-            letter-spacing: -.02em;
-            color: var(--kaiki-navy, #123a5e);
+        .kaiki-auth-brandmark-name { font-size: 3.25rem; }
+        .kaiki-auth-brandmark img { max-block-size: 4rem; }
+        .kaiki-auth-brandmark p { font-size: 1.125rem; }
+    }
+
+    @media (min-width: 1536px) {
+        .fi-simple-layout { grid-template-columns: 44% 56%; }
+        .kaiki-auth-brandmark { inline-size: 44%; }
+    }
+
+    /* --- a phone: the blue is a band across the top -------------------
+       Short enough that the password field is still on the first screen. */
+    @media (max-width: 1023.98px) {
+        .kaiki-auth-brandmark {
+            inset-inline-end: 0;
+            block-size: 10.5rem;
+            padding: 1.75rem 1.5rem;
+            justify-content: flex-start;
         }
 
-        /* A logo is whatever shape it is; this only stops a wide one running
-           off a 390px screen. */
-        .kaiki-auth-brandmark img {
-            max-block-size: 3rem;
-            max-inline-size: 70%;
-            inline-size: auto;
+        .kaiki-auth-brandmark-name { font-size: 2.25rem; }
+        .kaiki-auth-brandmark img { max-block-size: 3rem; }
+        .kaiki-auth-brandmark p { font-size: .95rem; margin-top: .5rem; }
+
+        .kaiki-auth-brandmark::after { block-size: calc(70% + 24px); background-size: 520px 150px; }
+        .kaiki-auth-brandmark::before { block-size: calc(90% + 24px); background-size: 780px 220px; }
+
+        .fi-simple-layout > .fi-simple-main-ctn {
+            align-items: flex-start;
+            padding-block-start: 10.5rem;
         }
+
+        .fi-simple-layout .fi-simple-main { margin-block: .75rem 1.75rem; }
     }
 </style>
+

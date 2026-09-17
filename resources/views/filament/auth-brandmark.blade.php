@@ -1,19 +1,14 @@
 {{--
-    The brand mark at the top of a sign-in screen, on a phone.
+    The blue side of a sign-in screen: the mark, one line, and
+    the moving waves (product owner, 2026-09-17, direction C).
 
-    ## Why this exists rather than a CSS rule
+    ## One element, two places
 
-    Filament renders its own `.fi-logo` inside `fi-simple-header`, which sits
-    *below* the locale switcher and *above* the heading — and the order asked
-    for is mark, switcher, form. The two are at different depths in the markup,
-    so no amount of `order` or `flex-direction` puts one before the other:
-    `order` only sorts siblings, and these are not siblings.
-
-    So the mark is rendered again here, from `SIMPLE_PAGE_START`, registered
-    before the switcher's hook so it comes out first. Filament's own copy is
-    hidden below `lg` in `auth-split.blade.php`; above `lg` this one is hidden
-    instead and Filament's is the one placed on the photograph. Exactly one is
-    ever visible.
+    On a wide screen it is laid over the left column; on a phone it is the
+    blue band across the top. Filament's
+    own `.fi-logo` is hidden at every width, so exactly one mark is ever on
+    screen. Rendered from `SIMPLE_PAGE_START`, registered before the language
+    switch, so on a phone the order is band, language, form.
 
     ## Nothing here is a name
 
@@ -30,9 +25,52 @@
 @endphp
 
 <div class="kaiki-auth-brandmark">
-    @if ($logo)
-        <img src="{{ $logo }}" alt="{{ $brandName }}">
-    @else
-        <span>{{ $brandName }}</span>
-    @endif
+    <div class="kaiki-auth-brandmark-head">
+        @if ($logo)
+            <img src="{{ $logo }}" alt="{{ $brandName }}">
+        @else
+            <span class="kaiki-auth-brandmark-name">{{ $brandName }}</span>
+        @endif
+
+        <p>{{ __('auth.intro.line') }}</p>
+    </div>
 </div>
+
+<script>
+    /* The waves answer the pointer: they rise as it comes down towards them
+       and lean after it sideways. Only two CSS variables change here, once per
+       frame at most; the easing is in the stylesheet's transition. Nothing for
+       touch, which has no hover, or for anyone who asked their device for
+       less motion. */
+    (function () {
+        const panel = document.querySelector('.kaiki-auth-brandmark');
+
+        if (! panel || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            return;
+        }
+
+        let frame = 0;
+
+        panel.addEventListener('pointermove', (event) => {
+            if (event.pointerType === 'touch' || frame) {
+                return;
+            }
+
+            frame = requestAnimationFrame(() => {
+                frame = 0;
+
+                const box = panel.getBoundingClientRect();
+                const x = (event.clientX - box.left) / box.width - 0.5;
+                const y = Math.min(Math.max((event.clientY - box.top) / box.height, 0), 1);
+
+                panel.style.setProperty('--ka-wave-shift', (x * 60).toFixed(1));
+                panel.style.setProperty('--ka-wave-lift', (1 + Math.pow(y, 2) * 0.45).toFixed(3));
+            });
+        }, { passive: true });
+
+        panel.addEventListener('pointerleave', () => {
+            panel.style.setProperty('--ka-wave-shift', '0');
+            panel.style.setProperty('--ka-wave-lift', '1');
+        });
+    })();
+</script>

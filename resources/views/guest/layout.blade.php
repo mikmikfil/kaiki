@@ -39,9 +39,9 @@
         <link rel="stylesheet" href="{{ $brand['font']['css_url'] }}">
     @endif
 
-    @if (! empty($brand['logo']['favicon_url']))
-        <link rel="icon" href="{{ $brand['logo']['favicon_url'] }}">
-    @endif
+    {{-- The operator's own icon, else Kaiki's rather than none (2026-09-17). --}}
+    <link rel="icon" href="{{ $brand['logo']['favicon_url'] ?? null ?: asset('favicon.svg') }}">
+
 
     <style>
         :root {
