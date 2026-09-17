@@ -17,6 +17,7 @@ use App\Http\Middleware\SetLocale;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Providers\Filament\PanelRenderHooks;
 use Filament\Notifications\Auth\ResetPassword as FilamentResetPassword;
+use Illuminate\Foundation\Support\Providers\EventServiceProvider;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Intervention\Image\Drivers\Gd\Driver;
@@ -41,6 +42,12 @@ class AppServiceProvider extends ServiceProvider
         // language, rather than Laravel's English default (2026-09-17).
         // Filament resolves this class and sets the per-panel URL on it.
         $this->app->bind(FilamentResetPassword::class, ResetPasswordNotification::class);
+
+        // No listener discovery. Every listener is registered by hand in its
+        // domain's provider, so that the list can be read; discovery on top of
+        // that ran each of them twice (2026-09-17). Set here, in `register()`,
+        // because the framework's event provider reads it while booting.
+        EventServiceProvider::disableEventDiscovery();
 
         // Everything that can already have promised seats on a vessel, so
         // GuardVesselCapacity can ask before `capacity_max` is lowered.
