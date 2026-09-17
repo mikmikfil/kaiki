@@ -92,15 +92,27 @@ final class SendNotification
      * only place that warning can survive the send is the log row.
      */
     /**
-     * Is the product sending text messages at all?
+     * Does this operator send text messages?
      *
-     * False for the first phase. SMS costs the operator money per message and
-     * needs a gateway account per operator; email covers every one of BKG-16's
-     * reminders and none of them is worse for arriving by email alone.
+     * Two switches, both of which must be on (product owner, 2026-09-17):
+     *
+     * - `kaiki.notifications.sms_enabled`, the platform's kill switch above
+     *   everyone, off in the first phase;
+     * - the operator's own `sms_enabled`, set by the platform on /admin → Edit
+     *   Merchant for the operator who asked, off for everyone else.
+     *
+     * SMS costs the operator money per message and needs a gateway account of
+     * their own; email covers every one of BKG-16's reminders, and none of them
+     * is worse for arriving by email alone. With no operator to ask there is no
+     * text.
      */
-    public static function smsEnabled(): bool
+    public static function smsEnabled(?Tenant $tenant = null): bool
     {
-        return (bool) config('kaiki.notifications.sms_enabled', false);
+        if (! (bool) config('kaiki.notifications.sms_enabled', false)) {
+            return false;
+        }
+
+        return $tenant instanceof Tenant && $tenant->usesSms();
     }
 
     public function sms(
@@ -109,7 +121,7 @@ final class SendNotification
         string $body,
         bool $once = true,
     ): ?NotificationLog {
-        if (! self::smsEnabled()) {
+        if (! self::smsEnabled(self::tenantOf($booking))) {
             // Not in the first phase (product owner, 2026-09-08). Nothing is
             // logged and nothing is attempted, for the same reason a missing
             // telephone number is not logged below: a row per booking saying we

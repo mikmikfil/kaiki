@@ -182,6 +182,8 @@ it('composes the message even for a tenant with no SMS account', function (): vo
     config(['kaiki.notifications.sms_enabled' => true]);
 
     [$tenant, $booking] = GuestPageScenario::booking();
+    // And this operator's own switch, set on /admin since 2026-09-17.
+    $tenant->forceFill(['sms_enabled' => true])->save();
 
     Tenancy::forTenant($tenant, function () use ($booking): void {
         $booking->forceFill(['guest_phone' => '+306912345678'])->save();
@@ -243,6 +245,8 @@ it('sends no text message at all in the first phase', function (): void {
     Mail::fake();
 
     [$tenant, $booking] = GuestPageScenario::booking();
+    // And this operator's own switch, set on /admin since 2026-09-17.
+    $tenant->forceFill(['sms_enabled' => true])->save();
 
     Tenancy::forTenant($tenant, function () use ($booking): void {
         $booking->forceFill(['guest_phone' => '+306912345678'])->save();

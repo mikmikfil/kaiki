@@ -67,6 +67,7 @@ use Stancl\Tenancy\Database\Concerns\TenantRun;
  * @property bool|null $qr_check_in_enabled
  * @property bool|null $check_in_enabled
  * @property bool|null $extra_person_pricing_enabled
+ * @property bool|null $sms_enabled
  * @property array<string, mixed> $settings
  * @property int|null $balance_due_days_before_departure
  * @property string|null $weather_choice_default
@@ -106,6 +107,7 @@ class Tenant extends Model implements TenantContract
             'qr_check_in_enabled' => 'boolean',
             'check_in_enabled' => 'boolean',
             'extra_person_pricing_enabled' => 'boolean',
+            'sms_enabled' => 'boolean',
             'onboarding_completed_at' => 'datetime',
             'onboarding_skipped_steps' => 'array',
         ];
@@ -234,6 +236,19 @@ class Tenant extends Model implements TenantContract
     public function usesExtraPersonPricing(): bool
     {
         return $this->extra_person_pricing_enabled === true;
+    }
+
+    /**
+     * Whether this operator sends text messages (product owner, 2026-09-17).
+     *
+     * Switched on per operator by the platform, never by default: a text costs
+     * the operator money and needs their own gateway account. Null reads as
+     * **off**. The platform-wide `kaiki.notifications.sms_enabled` still sits
+     * above this as a kill switch; see `SendNotification::smsEnabled()`.
+     */
+    public function usesSms(): bool
+    {
+        return $this->sms_enabled === true;
     }
 
     /** Operators in `read_only` or `suspended` cannot write (see #7). */

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Enums;
 
 use App\Enums\Concerns\HasTranslatedLabel;
+use App\Models\Tenant;
 
 /**
  * A third party an operator holds credentials for (data-model §2.7).
@@ -159,17 +160,22 @@ enum IntegrationProvider: string
      * for, and the form is what one operator has any business setting up. As of
      * 2026-09-16 that is the gateway and AADE, by the product owner's decision.
      *
-     * The SMS vendors are out because SMS is off for the first phase (#127), and
-     * Postmark because email is sent by the platform's own account rather than
-     * per operator — offering either is offering a field that changes nothing.
-     * Their cases stay, because rows already written keep working and the
-     * credential machinery is unchanged; only the menu is shorter.
+     * The SMS vendors are offered only to an operator the platform has switched
+     * SMS on for (2026-09-17, `Tenant::usesSms()`): to anyone else a text
+     * gateway is a field that changes nothing. Postmark is never offered,
+     * because email is sent by the platform's own account rather than per
+     * operator. The cases stay, because rows already written keep working and
+     * the credential machinery is unchanged; only the menu is shorter.
      *
      * @return array<string, string> value => label, for the select
      */
-    public static function operatorOptions(): array
+    public static function operatorOptions(?Tenant $tenant = null): array
     {
         $offered = [self::Viva, self::Mydata];
+
+        if ($tenant instanceof Tenant && $tenant->usesSms()) {
+            array_push($offered, self::Apifon, self::Yuboto, self::Twilio);
+        }
 
         $options = [];
 
