@@ -56,6 +56,37 @@ return [
         'full_policy' => 'Full policy',
         'contact' => 'Contact',
         'leave_review' => 'Write a Google review',
+
+        // The facts under the card, per message (email review, 2026-09-17).
+        'refund_method' => 'Refunded to',
+        'refund_to_card' => 'The payment method you used',
+        'refund_to_voucher' => 'A voucher, code :code',
+        'details_by_label' => 'Details due by',
+        'charter_by' => 'Accept by',
+        'charter_button' => 'Accept the charter agreement',
+        'balance_to_pay' => 'Left to pay',
+        'balance_due_by' => 'Due by',
+        'balance_was_due' => 'Was due',
+        'pay_balance' => 'Pay the balance',
+        'weather_amount' => 'Owed to you',
+        'weather_by' => 'Choose by',
+        'weather_button' => 'Make your choice',
+        'weather_done' => 'What we did',
+        'weather_refund' => 'Money back',
+        'weather_voucher' => 'A voucher for a new booking',
+        'weather_rebook' => 'Credit for a new date',
+        'amount' => 'Amount',
+        'voucher' => 'Voucher',
+        'voucher_code' => 'Voucher code',
+        'voucher_remaining' => 'Available',
+        'voucher_expires' => 'Expires',
+        'voucher_how' => 'Pick a trip and type the code in the «Code» field when you complete the booking. The amount comes off automatically.',
+        'use_voucher' => 'Book a trip with the voucher',
+        'quote_items' => 'What the quote includes',
+        'quote_valid_until' => 'Valid until',
+        'quote_deposit' => 'Deposit to confirm',
+        'discount' => 'Discount',
+        'view_quote' => 'View the quote',
     ],
 
     'booking_confirmed' => [
@@ -68,7 +99,7 @@ return [
     'booking_cancelled' => [
         'subject' => 'Your booking has been cancelled — :reference',
         'heading' => 'Your booking has been cancelled',
-        'body' => 'Booking :reference for :date has been cancelled. If a refund is due it is on its way; your booking page shows the details.',
+        'body' => 'Booking :reference for :date has been cancelled. If a refund applies, it is shown below.',
         'sms' => 'Booking cancelled.',
     ],
 
@@ -89,28 +120,28 @@ return [
     'guest_details_reminder_48h' => [
         'subject' => 'Passenger details still needed — :reference',
         'heading' => 'We still need the passenger details',
-        'body' => 'Your trip on :date is coming up and we do not yet have the details for every passenger. The operator cannot file the passenger list without them.',
+        'body' => 'Your trip on :date is getting close and we still do not have every passenger’s details. Without them :operator cannot file the passenger list.',
         'sms' => 'Passenger details still needed.',
     ],
 
     'guest_details_reminder_24h' => [
         'subject' => 'Last call for the passenger details — :reference',
         'heading' => 'Tomorrow, and we still need the details',
-        'body' => 'Your trip is on :date at :time. Please add the remaining passenger details today so the operator can file the passenger list.',
+        'body' => 'Your trip is on :date at :time. Please fill in the missing details today so :operator can file the passenger list.',
         'sms' => 'Last call: passenger details.',
     ],
 
     'balance_due_reminder' => [
         'subject' => 'Your balance is due — :reference',
         'heading' => 'Time to settle the balance',
-        'body' => 'The balance for booking :reference is due before your trip on :date. You can pay it from your booking page.',
+        'body' => 'The balance of booking :reference is due by :deadline, before your trip on :date. You can pay it by card from your booking page.',
         'sms' => 'Balance due.',
     ],
 
     'balance_overdue' => [
         'subject' => 'Your balance is overdue — :reference',
         'heading' => 'Your balance is overdue',
-        'body' => 'The balance for booking :reference has not been paid. Please settle it from your booking page, or contact the operator if something has gone wrong.',
+        'body' => 'The balance of booking :reference has not been paid. Please pay it from your booking page, or contact :operator if something went wrong.',
         'sms' => 'Balance overdue.',
     ],
 
@@ -124,56 +155,56 @@ return [
     'charter_agreement_72h' => [
         'subject' => 'Please accept the charter agreement — :reference',
         'heading' => 'One document to accept',
-        'body' => 'Greek law requires a charter agreement for a private charter. Please read and accept it from your booking page before :date.',
+        'body' => 'A private charter needs a signed charter agreement by law. Please read and accept it, together with the passenger details, by :deadline.',
         'sms' => 'Charter agreement to accept.',
     ],
 
     'charter_agreement_24h' => [
         'subject' => 'Charter agreement still outstanding — :reference',
         'heading' => 'The charter agreement is still outstanding',
-        'body' => 'Your charter is on :date and the agreement has not been accepted yet. It takes one click from your booking page.',
+        'body' => 'Your charter is on :date and the agreement has not been accepted yet. It takes one click, on the passenger details form.',
         'sms' => 'Charter agreement outstanding.',
     ],
 
     'voucher_expiry_30d' => [
         'subject' => 'Your voucher expires in a month',
         'heading' => 'Your voucher expires soon',
-        'body' => 'You still have credit with us and it expires in about a month. Enter the code at checkout to use it.',
+        'body' => 'You still have credit with :operator, and it expires in about a month.',
         'sms' => 'Voucher expires in a month.',
     ],
 
     'voucher_expiry_7d' => [
         'subject' => 'Your voucher expires next week',
         'heading' => 'Your voucher expires next week',
-        'body' => 'You still have credit with us and it expires in about a week. Enter the code at checkout to use it.',
+        'body' => 'You still have credit with :operator, and it expires in about a week.',
         'sms' => 'Voucher expires next week.',
     ],
 
     'weather_choice_requested' => [
         'subject' => 'Your trip was cancelled because of the weather — :reference',
         'heading' => 'The weather has cancelled your trip',
-        'body' => 'The operator has called off your trip on :date. You are owed money and it is yours to decide what happens to it — refund, voucher, or another date. Please choose from your booking page.',
+        'body' => ':operator cancelled your trip on :date because of the weather. You are owed money and you decide what happens to it — a refund, a voucher, or another date.',
         'sms' => 'Trip cancelled: weather.',
     ],
 
     'weather_choice_reminder' => [
         'subject' => 'Please tell us what you would like — :reference',
         'heading' => 'We still need your answer',
-        'body' => 'Your trip on :date was cancelled because of the weather and we have not heard back. Please choose a refund, a voucher, or another date from your booking page.',
+        'body' => 'Your trip on :date was cancelled because of the weather and :operator has not heard from you yet. Choose a refund, a voucher, or another date.',
         'sms' => 'Please choose: refund, voucher or new date.',
     ],
 
     'weather_choice_applied' => [
         'subject' => 'We have settled your cancelled trip — :reference',
         'heading' => 'Your cancelled trip is settled',
-        'body' => 'Because we did not hear back about your cancelled trip on :date, we have applied the operator’s usual choice. Your booking page shows what happened.',
+        'body' => 'We did not hear back about your cancelled trip on :date, so we applied :operator’s usual choice.',
         'sms' => 'Cancelled trip settled.',
     ],
 
     'quote_sent' => [
         'subject' => 'Your quote is ready — :reference',
         'heading' => 'Your quote is ready',
-        'body' => 'The operator has prepared a quote for you. It is on your quote page, along with what is included and how long it is valid for.',
+        'body' => ':operator has prepared a quote for you. See what it includes and accept it on the quote page.',
         'sms' => 'Your quote is ready.',
     ],
 
