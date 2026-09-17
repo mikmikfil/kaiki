@@ -523,6 +523,11 @@
                          accountant therefore does not block this page. --}}
                     <span class="vat">{{ __('hosted.product.price.vat_included') }}</span>
                 </p>
+                {{-- «Up to N people, +Y € each extra» (2026-09-17): said beside
+                     the boat price, so the total at checkout is no surprise. --}}
+                @if (! empty($extraPersonNote))
+                    <p class="price-note muted">{{ $extraPersonNote }}</p>
+                @endif
             @endif
 
             <dl class="four-lines">

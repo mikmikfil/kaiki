@@ -8,7 +8,9 @@ use App\Enums\BookingMode;
 use App\Models\Departure;
 use App\Models\Faq;
 use App\Models\Product;
+use App\Models\RatePlan;
 use App\Support\Format\MoneyFormatter;
+use App\Support\Tenancy;
 use Illuminate\Support\Collection;
 
 /**
@@ -58,6 +60,7 @@ class BuildProductPage
      *     faqs: Collection<int, Faq>,
      *     fromPriceCents: int|null,
      *     fromPriceFormatted: string|null,
+     *     extraPersonNote: string|null,
      * }
      */
     public function __invoke(Product $product, ?string $locale = null): array
@@ -75,7 +78,39 @@ class BuildProductPage
             'fromPriceFormatted' => $fromPrice !== null
                 ? MoneyFormatter::format($fromPrice, $locale, MoneyFormatter::currency())
                 : null,
+            'extraPersonNote' => $this->extraPersonNote($product, $locale),
         ];
+    }
+
+    /**
+     * «Includes up to 10 people · +50 € for each extra» under a whole-boat price.
+     *
+     * Read from the default plan (the one with no period): the note is about
+     * how the boat is priced, and the period plans follow the same shape.
+     * Nothing unless the platform switched the model on for this operator.
+     */
+    private function extraPersonNote(Product $product, string $locale): ?string
+    {
+        if ($product->mode !== BookingMode::PerVessel || Tenancy::current()?->usesExtraPersonPricing() !== true) {
+            return null;
+        }
+
+        $plan = RatePlan::query()
+            ->where('product_id', $product->getKey())
+            ->active()
+            ->whereNotNull('included_pax')
+            ->whereNotNull('extra_pax_price_cents')
+            ->orderByRaw('season_id is not null')
+            ->first();
+
+        if (! $plan instanceof RatePlan) {
+            return null;
+        }
+
+        return __('hosted.product.price.extra_pax', [
+            'included' => $plan->included_pax,
+            'extra' => MoneyFormatter::format((int) $plan->extra_pax_price_cents, $locale, MoneyFormatter::currency()),
+        ], $locale);
     }
 
     /**

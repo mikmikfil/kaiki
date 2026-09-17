@@ -34,6 +34,7 @@ return [
         'sandbox' => 'Sandbox account',
         'check_in' => 'Boarding check-in',
         'qr_check_in' => 'QR boarding',
+        'extra_person_pricing' => 'Price «up to N people + per extra person»',
         'hosted_site_mode' => 'Pages we publish',
     ],
 
@@ -76,6 +77,7 @@ return [
         'features_help' => 'What a small business does not need. Switching something off deletes no data.',
         'check_in_help' => 'Off: there is no boarding screen at all — no scanning, and no passenger list with a tap beside each name. The manifest still prints, the departure still completes, and bookings still finish on the day. For an operator who can see everybody they are expecting standing in front of them.',
         'qr_check_in_help' => 'Off: tickets are issued without a QR and no screen has a scan box. Boarding is done from the passenger list, one tap beside each name — including on the page that works without a signal. Tickets already sent with a QR will no longer scan.',
+        'extra_person_pricing_help' => 'On: on whole-boat trips, each price list can say «the price includes up to N people» and «this many euros for each extra person». Off for everyone unless the operator asks for it.',
         'hosted_site_mode_help' => 'The booking pages — a page per trip, search and the legal pages — are published in both. The full website adds the home page. The operator sees this but cannot change it. Takes effect at once; bookings already made are never affected.',
         'confirm_heading' => 'Change this operator’s account',
         'confirm_body' => 'The change is recorded in the operator’s own audit trail, with your name and your reason.',

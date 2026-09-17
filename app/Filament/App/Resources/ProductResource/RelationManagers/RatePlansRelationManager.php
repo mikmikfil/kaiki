@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\RatePlan;
 use App\Models\Season;
 use App\Support\Format\MoneyFormatter;
+use App\Support\Tenancy;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
@@ -92,6 +93,12 @@ class RatePlansRelationManager extends RelationManager
         $product = $this->getOwnerRecord();
 
         return $product;
+    }
+
+    /** Has the platform switched «up to N people + per extra person» on for this operator? */
+    private function extraPersonPricing(): bool
+    {
+        return Tenancy::current()?->usesExtraPersonPricing() === true;
     }
 
     private function mode(): BookingMode
@@ -175,6 +182,22 @@ class RatePlansRelationManager extends RelationManager
                 __('pricing.on_product.extra_hour.label'),
                 __('pricing.on_product.extra_hour.help'),
             )->visible($perVessel),
+
+            // «Up to N people, +Y € for each extra» (2026-09-17), only for an
+            // operator the platform switched it on for.
+            TextInput::make('included_pax')
+                ->label(__('pricing.on_product.included_pax.label'))
+                ->helperText(__('pricing.on_product.included_pax.help'))
+                ->integer()
+                ->minValue(1)
+                ->maxValue(999)
+                ->visible($perVessel && $this->extraPersonPricing()),
+
+            MoneyInput::make(
+                'extra_pax_price_cents',
+                __('pricing.on_product.extra_pax_price.label'),
+                __('pricing.on_product.extra_pax_price.help'),
+            )->visible($perVessel && $this->extraPersonPricing()),
 
             /*
              * Everything an operator does not answer on a normal day.
@@ -341,7 +364,7 @@ class RatePlansRelationManager extends RelationManager
             $bandPrices[(int) $row['age_band_id']] = (int) $price;
         }
 
-        foreach (['season_id', 'name', 'deposit_percent', 'deposit_fixed_cents', 'max_advance_days'] as $key) {
+        foreach (['season_id', 'name', 'deposit_percent', 'deposit_fixed_cents', 'max_advance_days', 'included_pax', 'extra_pax_price_cents'] as $key) {
             if (($data[$key] ?? null) === '') {
                 $data[$key] = null;
             }
@@ -452,9 +475,19 @@ class RatePlansRelationManager extends RelationManager
     private function headlinePrice(RatePlan $plan): string
     {
         if ($this->mode() === BookingMode::PerVessel) {
-            return $plan->vessel_price_cents === null
-                ? '—'
-                : self::money((int) $plan->vessel_price_cents);
+            if ($plan->vessel_price_cents === null) {
+                return '—';
+            }
+
+            $boat = self::money((int) $plan->vessel_price_cents);
+
+            return $this->extraPersonPricing() && $plan->included_pax !== null && $plan->extra_pax_price_cents !== null
+                ? __('pricing.on_product.extra_pax_headline', [
+                    'price' => $boat,
+                    'included' => $plan->included_pax,
+                    'extra' => self::money((int) $plan->extra_pax_price_cents),
+                ])
+                : $boat;
         }
 
         $baseBandId = AgeBand::query()

@@ -11,6 +11,7 @@ use App\Models\AgeBand;
 use App\Models\Product;
 use App\Models\RatePlan;
 use App\Models\RatePlanPrice;
+use App\Models\Tenant;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -70,9 +71,16 @@ final class SaveRatePlan
         $this->guardDepositFields($attributes, $plan);
         $this->guardModeConsistency($product, $attributes, $bandPrices);
         $this->guardBandCoverage($product, $bandPrices);
+        $this->guardExtraPersonPrice($product, $attributes);
 
         return DB::transaction(function () use ($plan, $attributes, $bandPrices): RatePlan {
             $plan->fill($attributes);
+
+            // Both or neither: blanking one of the two clears the rule.
+            if ($plan->included_pax === null || $plan->extra_pax_price_cents === null) {
+                $plan->included_pax = null;
+                $plan->extra_pax_price_cents = null;
+            }
 
             // A new plan that was never sent a deposit type has none of the
             // three, and `match` on null throws rather than defaulting.
@@ -227,6 +235,47 @@ final class SaveRatePlan
                 'prices' => [trans('pricing.rate_plan.validation.missing_band_prices', [
                     'bands' => $missing->implode(', '),
                 ])],
+            ]);
+        }
+    }
+
+    /**
+     * «Up to N people, +Y € per extra person» (2026-09-17): whole boat only,
+     * and a whole number of people from one.
+     *
+     * One of the two without the other is refused rather than guessed: an
+     * extra-person price with no «up to» cannot be applied, and «up to ten»
+     * with nothing charged past ten is no rule at all.
+     *
+     * Whether the operator may use it is the platform switch's to say
+     * ({@see Tenant::usesExtraPersonPricing()}). The fields are only
+     * offered while it is on and the price engine ignores them while it is
+     * off, so a plan saved under the switch keeps its numbers if the switch
+     * moves.
+     *
+     * @param  array<string, mixed>  $attributes
+     *
+     * @throws ValidationException
+     */
+    private function guardExtraPersonPrice(Product $product, array $attributes): void
+    {
+        $included = $this->value($attributes, 'included_pax');
+        $price = $this->value($attributes, 'extra_pax_price_cents');
+
+        if ($included === null && $price === null) {
+            return;
+        }
+
+        $error = match (true) {
+            $product->mode !== BookingMode::PerVessel => ['included_pax', 'extra_pax_per_vessel_only'],
+            $included === null || (int) $included < 1 => ['included_pax', 'included_pax_required'],
+            $price === null || (int) $price < 0 => ['extra_pax_price_cents', 'extra_pax_price_required'],
+            default => null,
+        };
+
+        if ($error !== null) {
+            throw ValidationException::withMessages([
+                $error[0] => [trans('pricing.rate_plan.validation.' . $error[1])],
             ]);
         }
     }
