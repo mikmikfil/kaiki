@@ -196,6 +196,28 @@ it('refuses to take the owner role off the last owner, and says so', function ()
         ->toBe(['crew']);
 })->group('fast');
 
+it('saves what the platform calls a colleague', function (): void {
+    [$owner, $tenant] = staffOwner();
+
+    $colleague = Tenancy::forTenant($tenant, fn (): User => app(InviteStaffMember::class)(
+        name: 'Γιώργος Παπαδάκης',
+        email: 'giorgos@example.test',
+        roles: [Role::Crew],
+        invitedBy: $owner,
+    ));
+
+    staffScreen($owner)
+        ->callTableAction('edit', $colleague, [
+            'name' => 'Γιώργος Παπαδάκης',
+            'salutation' => 'Καπετάν Γιώργη',
+            'locale' => 'el',
+            'roles' => ['crew'],
+        ])
+        ->assertHasNoTableActionErrors();
+
+    expect($colleague->refresh()->salutation)->toBe('Καπετάν Γιώργη');
+})->group('fast');
+
 it('removes a colleague who is not the last owner', function (): void {
     [$owner, $tenant] = staffOwner();
 

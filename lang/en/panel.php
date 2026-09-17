@@ -32,8 +32,8 @@ return [
     // «My profile» (2026-09-17).
     'profile' => [
         'salutation' => [
-            'label' => 'How to greet you',
-            'help' => 'Optional. The home page greets you with it, e.g. «Good morning, Maria». Left empty, your name is used as it is.',
+            'label' => 'What the platform calls you',
+            'help' => 'Optional. The home page greets you with it, e.g. «Good morning, Maria». Left empty, only your first name is used.',
         ],
     ],
 

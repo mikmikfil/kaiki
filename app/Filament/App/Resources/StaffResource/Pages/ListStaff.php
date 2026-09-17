@@ -55,6 +55,10 @@ class ListStaff extends ListRecords
                         locale: $data['locale'],
                     );
 
+                    if (($data['salutation'] ?? null) !== null) {
+                        $user->forceFill(['salutation' => $data['salutation']])->save();
+                    }
+
                     Notification::make()
                         ->success()
                         ->title(__('staff.actions.invite.done', ['email' => $user->email]))

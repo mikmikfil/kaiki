@@ -23,6 +23,10 @@ return [
 
     'form' => [
         'name' => ['label' => 'Full name'],
+        'salutation' => [
+            'label' => 'What the platform calls them',
+            'help' => 'Optional, e.g. «Maria» or «Captain George». Left empty, only the first name is used.',
+        ],
         'email' => [
             'label' => 'Email',
             'help' => 'Where the invitation goes, and what they sign in with. It cannot be changed later.',

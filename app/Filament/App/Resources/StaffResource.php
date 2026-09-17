@@ -120,6 +120,14 @@ class StaffResource extends Resource
                 ->required()
                 ->maxLength(120),
 
+            // How the platform addresses the person (2026-09-17). Also on «Το
+            // προφίλ μου»; here so an owner setting up the team sees it.
+            TextInput::make('salutation')
+                ->label(__('staff.form.salutation.label'))
+                ->helperText(__('staff.form.salutation.help'))
+                ->maxLength(60)
+                ->dehydrateStateUsing(static fn (?string $state): ?string => trim((string) $state) === '' ? null : trim((string) $state)),
+
             TextInput::make('email')
                 ->label(__('staff.form.email.label'))
                 ->helperText(__('staff.form.email.help'))
@@ -233,6 +241,7 @@ class StaffResource extends Resource
                     ->form(static::formSchema(inviting: false))
                     ->fillForm(fn (User $record): array => [
                         'name' => $record->name,
+                        'salutation' => $record->salutation,
                         'email' => $record->email,
                         'locale' => $record->locale,
                         'roles' => array_map(
@@ -251,6 +260,7 @@ class StaffResource extends Resource
                             DB::transaction(function () use ($record, $data, $actor): void {
                                 $record->update([
                                     'name' => $data['name'],
+                                    'salutation' => $data['salutation'] ?? null,
                                     'locale' => $data['locale'],
                                 ]);
 
