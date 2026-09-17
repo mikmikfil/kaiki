@@ -75,6 +75,11 @@ final class CancelBooking
      * @param  Carbon|null  $at  the instant the tier is measured from; now by default
      * @param  bool  $settle  false leaves the entitlement unpaid — CXL-7's weather
      *                        path, where the guest has a choice to make first
+     * @param  bool  $refundInFull  the operator called the trip off, so the guest's
+     *                              own policy does not apply: everything paid comes
+     *                              back (product owner, 2026-09-17). Not an
+     *                              override — nobody is overruling a policy that
+     *                              was never the guest's choice to invoke.
      *
      * @throws RuntimeException when the booking cannot be cancelled from where it is
      */
@@ -85,6 +90,7 @@ final class CancelBooking
         ?RefundOverride $override = null,
         ?Carbon $at = null,
         bool $settle = true,
+        bool $refundInFull = false,
     ): Booking {
         $at ??= now();
 
@@ -103,9 +109,11 @@ final class CancelBooking
 
         $policy = RefundEntitlement::forCancellation($booking, $at);
 
-        $entitlement = $override === null
-            ? $policy
-            : RefundEntitlement::atPercent($booking, $override->percentAgainst($policy->percent));
+        $entitlement = match (true) {
+            $override !== null => RefundEntitlement::atPercent($booking, $override->percentAgainst($policy->percent)),
+            $refundInFull => RefundEntitlement::atPercent($booking, 100),
+            default => $policy,
+        };
 
         $method = $override === null ? RefundMethod::Cash : $override->method;
 

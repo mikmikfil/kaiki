@@ -48,13 +48,18 @@ use Illuminate\Support\Facades\DB;
  * That is the difference between this and an operator cancellation, where the
  * refund is immediate because there is nothing to ask.
  *
- * ## An operator cancellation refunds straight away
+ * ## An operator cancellation refunds straight away, and in full
  *
  * Every other `DepartureCancelReason` — `operator`, `min_pax`,
  * `vessel_booked_privately` — leaves the guest no choice to make, so
  * {@see CancelBooking} runs the ordinary path and the refund is queued
  * immediately. Asking somebody whether they would like their money back for a
  * trip that was never going to sail is a question with one answer.
+ *
+ * **All of it** (product owner, 2026-09-17). Until then the refund followed
+ * each booking's own cancellation policy, which is written for a guest who
+ * changes their mind: an operator cancelling three days out could refund 0%.
+ * Each guest is emailed by `SendBookingCancellation`.
  */
 final class CancelDeparture
 {
@@ -116,6 +121,9 @@ final class CancelDeparture
                     reason: self::bookingReasonFor($reason),
                     by: CancelledBy::Operator,
                     at: $at,
+                    // The guest did not cancel; the operator did. Their
+                    // cancellation policy is about *them* changing their mind.
+                    refundInFull: true,
                 );
             }
 

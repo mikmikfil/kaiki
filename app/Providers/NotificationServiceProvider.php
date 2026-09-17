@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Events\BookingCancelled;
 use App\Events\BookingConfirmed;
 use App\Listeners\Booking\GenerateETicketOnConfirmation;
+use App\Listeners\Booking\SendBookingCancellation;
 use App\Listeners\Booking\SendBookingConfirmation;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
@@ -55,5 +57,9 @@ class NotificationServiceProvider extends ServiceProvider
         // one most likely to fail for reasons that have nothing to do with the
         // booking. The email must not wait for it and must not be lost with it.
         Event::listen(BookingConfirmed::class, GenerateETicketOnConfirmation::class);
+
+        // The cancellation email, which had a template and no sender until
+        // 2026-09-17. Weather cancellations are skipped inside the listener.
+        Event::listen(BookingCancelled::class, SendBookingCancellation::class);
     }
 }
