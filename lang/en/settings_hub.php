@@ -33,6 +33,7 @@ return [
         'home_page' => 'The first page a guest sees',
         'faq' => 'Answers to what you are asked most',
         'search' => 'How guests can filter your trips',
+        'reviews' => 'An email after the trip asking for a Google review',
         'domains' => 'Which pages are published, and where',
         'failures' => 'Anything the system could not do',
         'notifications' => 'The emails and texts that were sent',

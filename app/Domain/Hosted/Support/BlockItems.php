@@ -183,7 +183,10 @@ final class BlockItems
         return $path;
     }
 
-    /** @param array<string, mixed> $entry */
+    /**
+     * @param  array<string, mixed>  $entry
+     * @return array{icon: string, text: array<string, string>}|null
+     */
     private static function badge(array $entry): ?array
     {
         $text = self::translations($entry['text'] ?? null, 48);
@@ -191,7 +194,10 @@ final class BlockItems
         return $text === null ? null : ['icon' => self::icon($entry['icon'] ?? null), 'text' => $text];
     }
 
-    /** @param array<string, mixed> $entry */
+    /**
+     * @param  array<string, mixed>  $entry
+     * @return array{icon: string|null, value: array<string, string>, label: array<string, string>}|null
+     */
     private static function stat(array $entry): ?array
     {
         $value = self::translations($entry['value'] ?? null, 16);
@@ -204,7 +210,10 @@ final class BlockItems
         ];
     }
 
-    /** @param array<string, mixed> $entry */
+    /**
+     * @param  array<string, mixed>  $entry
+     * @return array{title: array<string, string>, text: array<string, string>}|null
+     */
     private static function step(array $entry): ?array
     {
         $title = self::translations($entry['title'] ?? null, 80);
@@ -215,7 +224,10 @@ final class BlockItems
         ];
     }
 
-    /** @param array<string, mixed> $entry */
+    /**
+     * @param  array<string, mixed>  $entry
+     * @return array{icon: string, title: array<string, string>, text: array<string, string>}|null
+     */
     private static function feature(array $entry): ?array
     {
         $title = self::translations($entry['title'] ?? null, 80);
@@ -227,7 +239,10 @@ final class BlockItems
         ];
     }
 
-    /** @param array<string, mixed> $entry */
+    /**
+     * @param  array<string, mixed>  $entry
+     * @return array{quote: array<string, string>, name: string, trip: array<string, string>, rating: int, avatar: string|null}|null
+     */
     private static function review(array $entry): ?array
     {
         $quote = self::translations($entry['quote'] ?? null, 600);

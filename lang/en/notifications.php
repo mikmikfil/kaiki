@@ -36,6 +36,13 @@ return [
     ],
 
     'actions' => [
+        'preview' => [
+            'label' => 'Preview',
+            'help' => 'This is the email as it would arrive if sent now, with the booking as it stands today.',
+            'to' => 'To',
+            'subject' => 'Subject',
+            'close' => 'Close',
+        ],
         'retry' => [
             'label' => 'Send again',
             'help' => 'The message is rebuilt from the booking as it stands now, so any corrections you have made are included.',

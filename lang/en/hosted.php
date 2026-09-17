@@ -188,6 +188,7 @@ return [
             // Brand decision 4 of 2026-09-04: the sentence, never the rate. The
             // rate is printed on the invoice, which is M6.
             'vat_included' => 'VAT is included in the price',
+            'extra_pax' => 'Includes up to :included people · +:extra for each extra person',
         ],
         // ADR-0033's bar, which lives only until the widget pins its own sheet.
         // Its own keys rather than `price` and `booking`, because these copy the

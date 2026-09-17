@@ -145,11 +145,33 @@ it('saves every trip-page field, both languages, blank lines dropped', function 
             ->and($product->getTranslation('includes', 'en'))->toBe(['Coffee and water'])
             ->and($product->getTranslations('excludes'))->toBe(['el' => ['Μεταφορά'], 'en' => []])
             ->and($product->what_to_bring)->toBeNull()
-            ->and($product->itineraryStopsFor('el'))->toBe([
+            // `toEqual`, not `toBe`: a MySQL JSON column hands keys back in its
+            // own order (shortest first), and the order of a stop's keys means nothing.
+            ->and($product->itineraryStopsFor('el'))->toEqual([
                 ['key' => 's1', 'name' => 'Επιβίβαση', 'description' => null, 'duration_minutes' => null, 'time' => '09:00'],
                 ['key' => 's2', 'name' => 'Μπάνιο', 'description' => 'Όπου θέλετε', 'duration_minutes' => null],
             ])
             ->and($product->itineraryStopsFor('en')[1]['name'])->toBe('Μπάνιο');
+    });
+})->group('fast');
+
+it('takes a stop time from the picker as the browser sends it, and stores the boat clock', function (): void {
+    // In the browser the time picker holds a full date-time until save. An
+    // «ΩΩ:ΛΛ»-only pattern refused every time an operator picked (2026-09-17),
+    // and the panel's own timezone must not shift a clock time by three hours.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    tripContentPage($owner, CreateProduct::class)
+        ->fillForm(tripContentForm([
+            'itinerary_rows' => [
+                ['key' => null, 'time' => '2026-09-17 09:45:00', 'name' => ['el' => 'Επιβίβαση', 'en' => 'Boarding'], 'description' => ['el' => '', 'en' => '']],
+            ],
+        ]))
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    Tenancy::forTenant(tripContentTenant($owner), function (): void {
+        expect(Product::query()->firstOrFail()->itineraryStopsFor('el')[0]['time'])->toBe('09:45');
     });
 })->group('fast');
 

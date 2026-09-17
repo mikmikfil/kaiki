@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Booking\Support\ManifestRows;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Models\Booking;
 use App\Models\CharterAgreement;
@@ -58,6 +59,10 @@ final class GenerateETicket
     /** @return string the stored path */
     public function __invoke(Booking $booking): string
     {
+        // One ticket per person needs one row per person (2026-09-17).
+        ManifestRows::ensure($booking);
+        $booking->unsetRelation('guests');
+
         $booking->loadMissing(['guests', 'product.meetingPoint', 'vessel']);
 
         $tenant = Tenant::query()->find($booking->tenant_id);

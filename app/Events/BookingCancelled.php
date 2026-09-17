@@ -27,7 +27,7 @@ use Illuminate\Foundation\Events\Dispatchable;
  * figure the guest was told is the figure at cancellation, not the one a later
  * query happens to produce.
  *
- * **Nothing listens yet.** The guest email is #87.
+ * The guest email is `SendBookingCancellation` (2026-09-17).
  */
 final class BookingCancelled
 {

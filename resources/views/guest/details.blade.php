@@ -77,11 +77,16 @@
                         </div>
                         <div>
                             <label for="nat-{{ $index }}">{{ __('guest.details.nationality') }}</label>
-                            <input id="nat-{{ $index }}" name="guests[{{ $index }}][nationality]"
-                                   value="{{ $guest->nationality }}" @disabled($readOnly)>
+                            <select id="nat-{{ $index }}" name="guests[{{ $index }}][nationality]" autocomplete="country" @disabled($readOnly)>
+                                <option value=""></option>
+                                @foreach (\App\Support\Countries::options(app()->getLocale()) as $code => $country)
+                                    <option value="{{ $code }}" @selected($guest->nationality === $code)>{{ $country }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
 
+                    @if (! $guest->isDocumentFree())
                     <div class="field-pair">
                         <div>
                             <label for="dtype-{{ $index }}">{{ __('guest.details.document_type') }}</label>
@@ -107,6 +112,7 @@
                     <label for="dexp-{{ $index }}">{{ __('guest.details.document_expires_on') }}</label>
                     <input id="dexp-{{ $index }}" type="date" name="guests[{{ $index }}][document_expires_on]"
                            value="{{ $guest->document_expires_on?->toDateString() }}" @disabled($readOnly)>
+                    @endif
                 @endif
             </div>
         @endforeach

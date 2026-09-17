@@ -82,7 +82,7 @@ class EditTenant extends EditRecord
      * Named once, so the snapshot and the diff cannot drift apart — which is
      * how an audit trail quietly stops recording one of them.
      */
-    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'check_in_enabled', 'qr_check_in_enabled', 'hosted_site_mode'];
+    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'check_in_enabled', 'qr_check_in_enabled', 'hosted_site_mode', 'extra_person_pricing_enabled', 'sms_enabled'];
 
     /** The operator's own words, captured by the confirmation and not by the form. */
     public ?string $auditReason = null;
@@ -172,6 +172,24 @@ class EditTenant extends EditRecord
                             ),
                         ))
                         ->required(),
+
+                    // «Up to N people, +Y € for each extra» on whole-boat prices
+                    // (2026-09-17). Off for everybody: switched on for the
+                    // operator who prices that way, with the same trail as the
+                    // switches above. Null is off (`Tenant::usesExtraPersonPricing()`).
+                    Toggle::make('extra_person_pricing_enabled')
+                        ->label(__('tenants.columns.extra_person_pricing'))
+                        ->helperText(__('tenants.edit.extra_person_pricing_help'))
+                        ->formatStateUsing(fn (?bool $state): bool => $state === true),
+
+                    // Text messages (2026-09-17). Off for everybody: a text
+                    // costs the operator money and needs their own gateway
+                    // account. Null is off (`Tenant::usesSms()`), and the
+                    // platform config still overrides every operator.
+                    Toggle::make('sms_enabled')
+                        ->label(__('tenants.columns.sms'))
+                        ->helperText(__('tenants.edit.sms_help'))
+                        ->formatStateUsing(fn (?bool $state): bool => $state === true),
                 ]),
         ]);
     }

@@ -196,6 +196,16 @@ class Product extends Model implements TranslatableSearchable
     }
 
     /**
+     * The operator's own checkout questions (2026-09-17).
+     *
+     * @return HasMany<TripQuestion, $this>
+     */
+    public function questions(): HasMany
+    {
+        return $this->hasMany(TripQuestion::class);
+    }
+
+    /**
      * The extras this product names explicitly.
      *
      * Not the same as "the extras it offers" — a tenant-wide extra applies
@@ -225,6 +235,17 @@ class Product extends Model implements TranslatableSearchable
     public function ratePlans(): HasMany
     {
         return $this->hasMany(RatePlan::class);
+    }
+
+    /**
+     * When the trip runs: the repeating rules its departures are made from.
+     * Edited on the trip itself since 2026-09-17.
+     *
+     * @return HasMany<ScheduleRule, $this>
+     */
+    public function scheduleRules(): HasMany
+    {
+        return $this->hasMany(ScheduleRule::class);
     }
 
     /** @return BelongsTo<VatRate, $this> */

@@ -68,4 +68,44 @@ return [
             'action' => 'Άνοιγμα ημερολογίου',
         ],
     ],
+
+    // Η αρχική: η μέρα ανά σκάφος («έκδοση 3», 2026-09-17).
+    'home' => [
+        'greeting' => [
+            'morning' => 'Καλημέρα',
+            'hello' => 'Γεια σου',
+            'evening' => 'Καλησπέρα',
+            'morning_named' => 'Καλημέρα, :name',
+            'hello_named' => 'Γεια σου, :name',
+            'evening_named' => 'Καλησπέρα, :name',
+        ],
+        'next' => [
+            'label' => 'Επόμενη αναχώρηση',
+            'underway' => 'εν πλω τώρα',
+            'in_minutes' => 'σε :count λεπτό|σε :count λεπτά',
+            'in_hours' => 'σε :count ώρα|σε :count ώρες',
+            'aboard' => 'επιβιβάστηκαν',
+            'booked' => 'κλεισμένες θέσεις',
+            'none' => 'Καμία αναχώρηση τις επόμενες επτά μέρες.',
+            'scan' => 'Σάρωση εισιτηρίων',
+            'board' => 'Λίστα επιβίβασης',
+        ],
+        'boxes' => [
+            'departures' => 'Αναχωρήσεις',
+            'departures_today' => ':count σήμερα|:count σήμερα',
+            'bookings' => 'Κρατήσεις',
+            'bookings_new' => ':count νέα από χθες|:count νέες από χθες',
+            'calendar' => 'Ημερολόγιο',
+            'calendar_week' => 'Η εβδομάδα',
+            'attention' => 'Προσοχή',
+            'attention_count' => ':count εκκρεμότητα|:count εκκρεμότητες',
+            'attention_none' => 'Όλα εντάξει',
+        ],
+        'boats' => [
+            'heading' => 'Σήμερα ανά σκάφος',
+            'calendar' => 'Ημερολόγιο',
+            'seats' => ':count θέση|:count θέσεις',
+            'free' => 'Ελεύθερο σήμερα',
+        ],
+    ],
 ];

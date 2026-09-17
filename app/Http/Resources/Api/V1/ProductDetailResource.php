@@ -128,7 +128,11 @@ final class ProductDetailResource extends ProductListResource
      */
     private function extras(Request $request): array
     {
-        $offered = OfferedExtrasResolver::forProduct($this->resource);
+        // Amenities («δωρεάν») are listed with what the trip includes, not
+        // offered as something to choose (2026-09-17).
+        $offered = OfferedExtrasResolver::forProduct($this->resource)
+            ->filter(static fn (OfferedExtra $extra): bool => $extra->pricingType->isBookable())
+            ->values();
 
         /** @var Collection<int, Extra> $models */
         $models = Extra::query()

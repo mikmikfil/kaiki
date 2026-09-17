@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Booking\Support\ManifestRows;
 use App\Enums\GuestDetailsStatus;
 use App\Enums\GuestDocumentType;
 use App\Events\GuestDetailsCompleted;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Models\Product;
+use App\Support\Countries;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -51,6 +53,9 @@ final class SaveGuestDetails
      */
     public function __invoke(Booking $booking, array $rows): int
     {
+        // A booking made before rows were created for it still gets them.
+        ManifestRows::ensure($booking);
+
         $guests = BookingGuest::query()
             ->where('booking_id', $booking->getKey())
             ->get()
@@ -69,7 +74,16 @@ final class SaveGuestDetails
                     continue;
                 }
 
-                $guest->forceFill($this->attributesFrom($row))->save();
+                // Only the fields the form posted: a checkout that asks a name
+                // and a question must not blank a nationality typed on `/g/`.
+                $attributes = $this->attributesFrom($row);
+                $posted = array_intersect_key($attributes, $row);
+
+                if (array_key_exists('document_type', $row)) {
+                    $posted['document_expires_on'] = $attributes['document_expires_on'];
+                }
+
+                $guest->forceFill($posted)->save();
 
                 $written++;
             }
@@ -92,13 +106,22 @@ final class SaveGuestDetails
      */
     private function attributesFrom(array $row): array
     {
+        $type = GuestDocumentType::tryFrom((string) ($row['document_type'] ?? ''));
+
         return [
             'full_name' => self::nullIfBlank($row['full_name'] ?? null),
             'date_of_birth' => self::dateOrNull($row['date_of_birth'] ?? null),
-            'nationality' => self::nullIfBlank($row['nationality'] ?? null),
-            'document_type' => GuestDocumentType::tryFrom((string) ($row['document_type'] ?? '')),
+            // A two-letter country code or nothing: `/g/` posts without the
+            // checkout's validation, and anything longer is refused by MySQL.
+            'nationality' => Countries::normalise($row['nationality'] ?? null),
+            'document_type' => $type,
             'document_number' => self::nullIfBlank($row['document_number'] ?? null),
-            'document_expires_on' => self::dateOrNull($row['document_expires_on'] ?? null),
+            // Only a passport keeps an expiry (2026-09-17). An identity card is
+            // asked for its number alone, and a date left over from switching
+            // the type would put a stray value on the manifest.
+            'document_expires_on' => $type?->needsExpiry() === true
+                ? self::dateOrNull($row['document_expires_on'] ?? null)
+                : null,
         ];
     }
 
@@ -169,10 +192,21 @@ final class SaveGuestDetails
             return true;
         }
 
-        return $guest->document_type !== null
-            && self::nullIfBlank($guest->document_number) !== null
-            && $guest->date_of_birth !== null
+        $person = $guest->date_of_birth !== null
             && self::nullIfBlank($guest->nationality) !== null;
+
+        // «Χωρίς έγγραφο» bands (2026-09-17): a baby is complete with a name,
+        // a nationality and a date of birth.
+        if ($guest->isDocumentFree()) {
+            return $person;
+        }
+
+        return $person
+            && $guest->document_type !== null
+            && self::nullIfBlank($guest->document_number) !== null
+            // A passport carries an expiry date on the manifest; an identity
+            // card is its number alone.
+            && (! $guest->document_type->needsExpiry() || $guest->document_expires_on !== null);
     }
 
     /** Did the operator ask for documents on this product? */

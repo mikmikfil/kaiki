@@ -47,6 +47,9 @@ class SeasonResource extends Resource
 
     protected static ?int $navigationSort = 30;
 
+    // Reached from a tab on its sibling screen, not from the sidebar (Menu 1, 2026-09-16).
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function getNavigationGroup(): ?string
     {
         return __('panel.groups.catalogue');

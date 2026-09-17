@@ -48,8 +48,12 @@ trait ConsumesAgeBands
         // checklist is judged after the bands land rather than before.
         $firstPass = $data;
 
+        // A trip off sale that cannot be put back stays off sale, rather than
+        // turning into a draft on the way (2026-09-17).
         if ($wantsActive) {
-            $firstPass['status'] = ProductStatus::Draft->value;
+            $firstPass['status'] = $record instanceof Product && $record->exists && $record->status === ProductStatus::Inactive
+                ? ProductStatus::Inactive->value
+                : ProductStatus::Draft->value;
         }
 
         /** @var Product $record */
@@ -181,6 +185,7 @@ trait ConsumesAgeBands
                 'price_multiplier_bp' => $band->price_multiplier_bp,
                 'is_base' => $band->is_base,
                 'requires_adult' => $band->requires_adult,
+                'no_document' => $band->isDocumentFree(),
             ])
             ->values()
             ->all();

@@ -19,7 +19,12 @@ export function ExtrasStep({
   onChange,
 }: {
   readonly state: BookingState;
-  readonly extras: readonly { readonly uuid: string; readonly name: string; readonly price_formatted?: string }[];
+  readonly extras: readonly {
+    readonly uuid: string;
+    readonly name: string;
+    readonly price_formatted?: string;
+    readonly is_required?: boolean;
+  }[];
   readonly t: Translator;
   readonly onChange: (patch: Partial<BookingState>) => void;
 }) {
@@ -27,29 +32,36 @@ export function ExtrasStep({
     <div class="kaiki-step">
       <h3 class="kaiki-heading">{t('booking.extras.heading')}</h3>
 
-      {extras.map((extra) => (
-        <label class="kaiki-field kaiki-inline" key={extra.uuid}>
-          <span>
-            {extra.name}
-            {extra.price_formatted === undefined ? null : <span class="kaiki-muted"> · {extra.price_formatted}</span>}
-          </span>
-          <input
-            type="number"
-            min="0"
-            max="99"
-            inputMode="numeric"
-            value={String(state.extras[extra.uuid] ?? 0)}
-            onInput={(event) =>
-              onChange({
-                extras: {
-                  ...state.extras,
-                  [extra.uuid]: Math.max(0, Number((event.currentTarget as HTMLInputElement).value) || 0),
-                },
-              })
-            }
-          />
-        </label>
-      ))}
+      {extras.map((extra) => {
+        // A required extra is on every booking; the server adds it whatever
+        // is sent, so the widget shows it as at least one and says why.
+        const floor = extra.is_required === true ? 1 : 0;
+
+        return (
+          <label class="kaiki-field kaiki-inline" key={extra.uuid}>
+            <span>
+              {extra.name}
+              {extra.price_formatted === undefined ? null : <span class="kaiki-muted"> · {extra.price_formatted}</span>}
+              {floor === 1 ? <span class="kaiki-muted"> · {t('booking.extras.required')}</span> : null}
+            </span>
+            <input
+              type="number"
+              min={String(floor)}
+              max="99"
+              inputMode="numeric"
+              value={String(Math.max(floor, state.extras[extra.uuid] ?? 0))}
+              onInput={(event) =>
+                onChange({
+                  extras: {
+                    ...state.extras,
+                    [extra.uuid]: Math.max(floor, Number((event.currentTarget as HTMLInputElement).value) || 0),
+                  },
+                })
+              }
+            />
+          </label>
+        );
+      })}
     </div>
   );
 }

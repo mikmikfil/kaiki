@@ -59,7 +59,7 @@ class Calendar extends Page
 
     protected static string $view = 'filament.app.pages.calendar';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     /** The local date being shown, as `Y-m-d`. */
     public string $date = '';
@@ -76,7 +76,7 @@ class Calendar extends Page
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.operations');
+        return __('panel.groups.today');
     }
 
     /**

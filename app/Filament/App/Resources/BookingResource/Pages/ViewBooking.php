@@ -5,10 +5,20 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources\BookingResource\Pages;
 
 use App\Domain\Booking\Actions\BuildQuote;
+use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\CreateManualBooking;
 use App\Domain\Booking\Actions\RecordManualPayment;
+use App\Domain\Booking\Actions\RemoveGuestsFromBooking;
+use App\Domain\Booking\Data\RefundOverride;
+use App\Domain\Booking\Support\RefundEntitlement;
+use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
+use App\Enums\CancelledBy;
+use App\Enums\CancelReason;
 use App\Enums\PaymentGatewayName;
+use App\Enums\RefundMethod;
+use App\Events\BookingCancelledByOperator;
+use App\Events\BookingGuestsRemoved;
 use App\Filament\App\Resources\BookingResource;
 use App\Filament\App\Resources\QuoteResource;
 use App\Models\Booking;
@@ -16,14 +26,20 @@ use App\Models\Quote;
 use App\Support\Authorization\Capability;
 use App\Support\Format\MoneyFormatter;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 /**
  * One booking, read-only.
@@ -31,8 +47,9 @@ use Illuminate\Support\Facades\Auth;
  * A confirmed booking is not an editable record. Changing its party size, its
  * date or its total in a form would move seats, invalidate a price snapshot and
  * contradict a policy snapshot the guest was shown — each of which has an
- * Action that does it properly. Until those Actions have panel surfaces the
- * honest thing is a view rather than a form that half works.
+ * Action that does it properly. So the page stays a view, and the changes an
+ * operator does make are header actions that call those Actions: record a
+ * payment, remove people, cancel.
  *
  * The **money section is absent for crew** rather than empty (TEN-8): a section
  * of blanks still tells somebody the numbers exist and that they are the person
@@ -71,6 +88,17 @@ class ViewBooking extends ViewRecord
                     TextEntry::make('special_requests')->label(__('bookings.view.special_requests'))->columnSpanFull(),
                 ])
                 ->columns(3),
+
+            // The trip's checkout questions (2026-09-17), as they were asked:
+            // the booking's first, then each passenger's with their name.
+            Section::make(__('questions.answers'))
+                ->schema([
+                    TextEntry::make('answer_lines')
+                        ->hiddenLabel()
+                        ->state(static fn (Booking $record): array => self::answerLines($record))
+                        ->listWithLineBreaks(),
+                ])
+                ->visible(static fn (Booking $record): bool => $record->answers()->exists()),
 
             Section::make(__('bookings.view.money'))
                 ->schema([
@@ -187,6 +215,10 @@ class ViewBooking extends ViewRecord
                     $this->redirect(QuoteResource::getUrl('edit', ['record' => $quote]));
                 }),
 
+            $this->removeGuestsAction(),
+
+            $this->cancelAction(),
+
             /* The offer that already exists, rather than a second one. */
             Action::make('open_quote')
                 ->label(__('bookings.quote.open'))
@@ -195,6 +227,325 @@ class ViewBooking extends ViewRecord
                 ->visible(fn (): bool => $this->latestQuote() !== null)
                 ->url(fn (): string => QuoteResource::getUrl('edit', ['record' => $this->latestQuote()])),
         ];
+    }
+
+    /**
+     * «Ακύρωση κράτησης» — the phone call that ends a booking (2026-09-17).
+     *
+     * Until now only the guest's own link, the API or cancelling the whole
+     * departure could end a booking, so an operator told "we can't come" on
+     * the phone had no button. The rules did not move: {@see CancelBooking}
+     * releases the seats and settles, and the email goes out from its event.
+     *
+     * The form asks the two questions the refund depends on, in that order:
+     *
+     * 1. **Who asked.** A guest changing their mind is what the cancellation
+     *    policy is for. When the operator is the reason, the default is
+     *    everything back, the same answer a cancelled departure now gives.
+     * 2. **How much back.** The policy's figure, everything, another percentage,
+     *    or a voucher. Anything other than the policy — or «everything» when
+     *    the guest asked — is an override (CXL-5) and needs a reason, which
+     *    {@see RefundOverride} refuses to be built without.
+     */
+    private function cancelAction(): Action
+    {
+        return Action::make('cancel_booking')
+            ->label(__('bookings.cancel.action'))
+            ->icon('heroicon-o-x-circle')
+            ->color('danger')
+            ->visible(fn (): bool => $this->booking()->status->isLive()
+                && $this->booking()->status->canTransitionTo(BookingStatus::Cancelled)
+                && (Auth::user()?->hasCapability(Capability::ManageBookings) ?? false))
+            ->modalHeading(fn (): string => __('bookings.cancel.heading', ['reference' => $this->booking()->reference]))
+            ->modalDescription(function (): string {
+                $policy = RefundEntitlement::forCancellation($this->booking());
+
+                return __('bookings.cancel.paid', [
+                    'amount' => $this->euros($this->booking()->paid_cents),
+                    'percent' => $policy->percent,
+                    'refund' => $this->euros($policy->totalCents),
+                ]) . ' ' . __('bookings.cancel.effects');
+            })
+            ->modalSubmitActionLabel(__('bookings.cancel.confirm'))
+            ->form([
+                Radio::make('who')
+                    ->label(__('bookings.cancel.who.label'))
+                    ->options([
+                        'guest' => __('bookings.cancel.who.guest'),
+                        'operator' => __('bookings.cancel.who.operator'),
+                    ])
+                    ->default('guest')
+                    ->live()
+                    ->afterStateUpdated(static fn (Set $set, ?string $state) => $set('refund', $state === 'operator' ? 'full' : 'policy'))
+                    ->required(),
+                Radio::make('refund')
+                    ->label(__('bookings.cancel.refund.label'))
+                    ->options(fn (): array => [
+                        'policy' => __('bookings.cancel.refund.policy', [
+                            'percent' => RefundEntitlement::forCancellation($this->booking())->percent,
+                            'amount' => $this->euros(RefundEntitlement::forCancellation($this->booking())->totalCents),
+                        ]),
+                        'full' => __('bookings.cancel.refund.full', [
+                            'amount' => $this->euros(RefundEntitlement::atPercent($this->booking(), 100)->totalCents),
+                        ]),
+                        'percent' => __('bookings.cancel.refund.percent'),
+                        'voucher' => __('bookings.cancel.refund.voucher'),
+                    ])
+                    ->default('policy')
+                    ->live()
+                    ->required(),
+                TextInput::make('percent')
+                    ->label(__('bookings.cancel.percent'))
+                    ->numeric()
+                    ->integer()
+                    ->minValue(0)
+                    ->maxValue(100)
+                    ->suffix('%')
+                    ->default(100)
+                    ->visible(static fn (Get $get): bool => in_array($get('refund'), ['percent', 'voucher'], true))
+                    ->required(static fn (Get $get): bool => in_array($get('refund'), ['percent', 'voucher'], true)),
+                Textarea::make('reason')
+                    ->label(__('bookings.cancel.reason'))
+                    ->helperText(__('bookings.cancel.reason_help'))
+                    ->rows(2)
+                    ->maxLength(500)
+                    ->required(static fn (Get $get): bool => self::isOverride((string) $get('who'), (string) $get('refund'))),
+            ])
+            ->action(function (array $data): void {
+                $this->cancelWith(
+                    (string) $data['who'],
+                    (string) $data['refund'],
+                    (int) ($data['percent'] ?? 100),
+                    trim((string) ($data['reason'] ?? '')),
+                );
+            });
+    }
+
+    /**
+     * «Αφαίρεση ατόμων» — four booked, three coming (2026-09-17).
+     *
+     * One counter per age band on the booking, with the booked number beside
+     * it, and a live line underneath saying what the change does to the total
+     * and the money — the same {@see RemoveGuestsFromBooking::preview()} the
+     * removal itself runs, so the sentence cannot promise a different figure.
+     * The rules (a minimum party, a child never left without an adult) are the
+     * Action's and come back as the form's error.
+     */
+    private function removeGuestsAction(): Action
+    {
+        return Action::make('remove_guests')
+            ->label(__('bookings.remove_guests.action'))
+            ->icon('heroicon-o-user-minus')
+            ->color('gray')
+            ->visible(fn (): bool => $this->booking()->mode === BookingMode::PerSeat
+                && in_array($this->booking()->status, [BookingStatus::Confirmed, BookingStatus::PendingPayment], true)
+                && $this->booking()->pax_total > 1
+                && (Auth::user()?->hasCapability(Capability::ManageBookings) ?? false))
+            ->modalHeading(fn (): string => __('bookings.remove_guests.heading', ['reference' => $this->booking()->reference]))
+            ->modalDescription(__('bookings.remove_guests.description'))
+            ->modalSubmitActionLabel(__('bookings.remove_guests.confirm'))
+            ->form(fn (): array => [
+                ...array_map(
+                    fn (array $line): TextInput => TextInput::make('remove.' . $line['code'])
+                        ->label(__('bookings.remove_guests.band', [
+                            'label' => $this->bandLabel($line),
+                            'qty' => (int) $line['qty'],
+                        ]))
+                        ->numeric()
+                        ->integer()
+                        ->minValue(0)
+                        ->maxValue((int) $line['qty'])
+                        ->default(0)
+                        ->live(debounce: 300),
+                    array_values($this->booking()->pax_breakdown),
+                ),
+                Placeholder::make('remove_preview')
+                    ->hiddenLabel()
+                    ->content(fn (Get $get): string => $this->removalSentence((array) ($get('remove') ?? []))),
+                Textarea::make('reason')
+                    ->label(__('bookings.remove_guests.reason'))
+                    ->rows(2)
+                    ->maxLength(500),
+            ])
+            ->action(function (array $data): void {
+                $this->removeGuests(
+                    array_map('intval', (array) ($data['remove'] ?? [])),
+                    trim((string) ($data['reason'] ?? '')),
+                );
+            });
+    }
+
+    /**
+     * Take the people off, then say what happened to the money.
+     *
+     * Public so a test drives the same path the form does.
+     *
+     * @param  array<string, int>  $removeByCode
+     */
+    public function removeGuests(array $removeByCode, string $reason = ''): void
+    {
+        $booking = $this->booking();
+
+        try {
+            $result = app(RemoveGuestsFromBooking::class)($booking, $removeByCode, $reason !== '' ? $reason : null);
+        } catch (ValidationException $exception) {
+            Notification::make()
+                ->danger()
+                ->title(implode(' ', $exception->errors()['remove'] ?? []))
+                ->send();
+
+            return;
+        }
+
+        $booking->refresh();
+
+        BookingCancelledByOperator::dispatch(
+            $booking,
+            'guests_removed',
+            RefundMethod::Cash,
+            0,
+            0,
+            $result['refund_cents'],
+            $result['removed'],
+            $reason !== '' ? $reason : null,
+        );
+
+        BookingGuestsRemoved::dispatch($booking->getKey(), $booking->tenant_id, $result['removed']);
+
+        $body = match (true) {
+            $result['refund_started_cents'] > 0 => __('bookings.remove_guests.done_refund', ['refund' => $this->euros($result['refund_started_cents'])]),
+            $result['refund_cents'] > 0 => __('bookings.remove_guests.done_manual', ['refund' => $this->euros($result['refund_cents'])]),
+            default => null,
+        };
+
+        $notification = Notification::make()
+            ->success()
+            ->title(trans_choice('bookings.remove_guests.done', $result['removed'], [
+                'count' => $result['removed'],
+                'total' => $this->euros($result['new_total_cents']),
+            ]))
+            ->body($body);
+
+        // Money the operator has to hand back themselves stays on screen.
+        if ($result['refund_cents'] > $result['refund_started_cents']) {
+            $notification->persistent();
+        }
+
+        $notification->send();
+
+        $this->record = $booking;
+    }
+
+    /** @param array<string, mixed> $remove */
+    private function removalSentence(array $remove): string
+    {
+        $preview = RemoveGuestsFromBooking::preview(
+            $this->booking(),
+            array_map(static fn (mixed $value): int => (int) $value, $remove),
+        );
+
+        if ($preview['removed'] < 1) {
+            return __('bookings.remove_guests.preview_none');
+        }
+
+        $sentence = trans_choice('bookings.remove_guests.preview', $preview['removed'], [
+            'count' => $preview['removed'],
+            'removed' => $this->euros($preview['removed_cents']),
+            'total' => $this->euros($preview['new_total_cents']),
+        ]);
+
+        if ($preview['refund_cents'] > 0) {
+            $sentence .= ' ' . __('bookings.remove_guests.preview_refund', ['refund' => $this->euros($preview['refund_cents'])]);
+        } elseif ($preview['new_balance_cents'] > 0) {
+            $sentence .= ' ' . __('bookings.remove_guests.preview_balance', ['balance' => $this->euros($preview['new_balance_cents'])]);
+        }
+
+        return $sentence;
+    }
+
+    /**
+     * The band's name as the guest was shown it, frozen on the booking.
+     *
+     * @param  array<string, mixed>  $line
+     */
+    private function bandLabel(array $line): string
+    {
+        $label = $line['label'] ?? $line['code'] ?? '';
+
+        if (is_array($label)) {
+            return (string) ($label[app()->getLocale()] ?? reset($label) ?: ($line['code'] ?? ''));
+        }
+
+        return (string) $label;
+    }
+
+    /** Does this choice overrule the policy, and so need a reason (CXL-5)? */
+    public static function isOverride(string $who, string $refund): bool
+    {
+        return match ($refund) {
+            'policy' => false,
+            'full' => $who !== 'operator',
+            default => true,
+        };
+    }
+
+    /**
+     * Run the cancellation the operator chose, and say what it moved.
+     *
+     * Public so a test drives the same arithmetic the form does.
+     */
+    public function cancelWith(string $who, string $refund, int $percent, string $reason): void
+    {
+        $booking = $this->booking();
+        $policy = RefundEntitlement::forCancellation($booking);
+        $byOperator = $who === 'operator';
+
+        $override = match (true) {
+            $refund === 'voucher' => new RefundOverride(RefundMethod::Voucher, $reason, $percent),
+            $refund === 'percent' => new RefundOverride(RefundMethod::Cash, $reason, $percent),
+            $refund === 'full' && ! $byOperator => new RefundOverride(RefundMethod::Cash, $reason, 100),
+            default => null,
+        };
+
+        $applied = match (true) {
+            $override !== null => $override->percentAgainst($policy->percent),
+            $refund === 'full' => 100,
+            default => $policy->percent,
+        };
+        $moved = RefundEntitlement::atPercent($booking, $applied)->totalCents;
+
+        $cancelled = app(CancelBooking::class)(
+            booking: $booking,
+            reason: $byOperator ? CancelReason::Operator : CancelReason::GuestRequest,
+            by: CancelledBy::Operator,
+            override: $override,
+            refundInFull: $refund === 'full' && $byOperator,
+        );
+
+        BookingCancelledByOperator::dispatch(
+            $cancelled,
+            'booking',
+            $override !== null ? $override->method : RefundMethod::Cash,
+            $policy->percent,
+            $applied,
+            $moved,
+            (int) $cancelled->pax_total,
+            $reason !== '' ? $reason : null,
+        );
+
+        Notification::make()
+            ->success()
+            ->title($moved > 0
+                ? __('bookings.cancel.done', ['amount' => $this->euros($moved)])
+                : __('bookings.cancel.done_nothing'))
+            ->send();
+
+        $this->record = $cancelled;
+    }
+
+    private function euros(int $cents): string
+    {
+        return MoneyFormatter::format($cents, app()->getLocale(), MoneyFormatter::currency());
     }
 
     /** §4.4: only a booking in quote mode may be quoted. */
@@ -222,5 +573,23 @@ class ViewBooking extends ViewRecord
         $booking = $this->getRecord();
 
         return $booking;
+    }
+
+    /**
+     * One line per answer, a passenger's prefixed with their name.
+     *
+     * @return list<string>
+     */
+    private static function answerLines(Booking $booking): array
+    {
+        $lines = [];
+
+        foreach ($booking->answers()->with('guest')->orderBy('booking_guest_id')->orderBy('id')->get() as $answer) {
+            $guest = $answer->guest;
+            $who = $guest === null ? null : ($guest->full_name ?? __('questions.passenger', ['n' => $guest->position]));
+            $lines[] = ($who !== null ? $who . ' · ' : '') . $answer->line();
+        }
+
+        return $lines;
     }
 }

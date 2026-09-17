@@ -23,7 +23,7 @@ return [
     ],
 
     'heading' => 'Needs attention',
-    'subheading' => 'Decisions waiting on you. Nothing here can be fixed by trying again.',
+    'subheading' => 'Things waiting on you. Where there is a decision, you can take it from here.',
 
     'no_deadline' => 'no deadline',
 
@@ -42,7 +42,7 @@ return [
      * boat that has to move anyway, a forecast for next week.
      */
     'under_minimum' => [
-        'title' => ':trip · :time',
+        'title' => 'Below its minimum · :trip, :time',
         'detail' => ':sold booked, minimum :minimum · :vessel',
     ],
 
@@ -71,6 +71,35 @@ return [
     'calendar' => [
         'title' => 'Calendar not syncing · :name',
         'detail' => ':vessel may look free while it is booked elsewhere. Failed :count times in a row.',
+    ],
+
+    // Every row leads to where it is fixed (2026-09-17).
+    'actions' => [
+        'departure' => 'Open departure',
+        'details' => 'Open booking',
+        'balance' => 'Record payment',
+        'quote' => 'Open quote',
+        'calendar' => 'Fix calendar sync',
+        'call' => 'Call',
+        'all' => 'All (:count)',
+        'fewer' => 'Fewer',
+    ],
+
+    // The decisions are taken here, confirmed first (2026-09-17).
+    'decide' => [
+        'sail' => 'Sail anyway',
+        'sail_heading' => 'Does this departure sail anyway?',
+        'sail_body' => 'It has :sold of the :minimum people it needs. If you press «Yes, it sails», the departure becomes guaranteed, keeps selling, and you will not be asked again.',
+        'sail_confirm' => 'Yes, it sails',
+        'sailed' => 'Done: the departure sails as planned.',
+        'cancel' => 'Cancel and notify guests',
+        'cancel_heading' => 'Cancel: :trip',
+        'cancel_body' => '{0} There are no bookings on this departure. It is cancelled and stops selling.|{1} :count booking on this departure is cancelled. The guest gets back everything they paid and is emailed.|[2,*] :count bookings on this departure are cancelled. Every guest gets back everything they paid and is emailed.',
+        'cancel_confirm' => 'Yes, cancel',
+        'cancelled' => '{0} The departure is cancelled.|{1} The departure is cancelled, with :count booking.|[2,*] The departure is cancelled, with :count bookings.',
+        'paid' => 'Paid',
+        'paid_heading' => 'Payment for booking :reference',
+        'paid_confirm' => 'Record',
     ],
 
 ];

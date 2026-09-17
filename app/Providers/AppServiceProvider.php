@@ -14,7 +14,9 @@ use App\Domain\Media\Actions\StoreUploadedImage;
 use App\Domain\Tenancy\Support\DnsLookup;
 use App\Domain\Tenancy\Support\SystemDnsLookup;
 use App\Http\Middleware\SetLocale;
+use App\Notifications\Auth\ResetPasswordNotification;
 use App\Providers\Filament\PanelRenderHooks;
+use Filament\Notifications\Auth\ResetPassword as FilamentResetPassword;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Intervention\Image\Drivers\Gd\Driver;
@@ -34,6 +36,11 @@ class AppServiceProvider extends ServiceProvider
         // middleware so it also exists for console commands and jobs, which
         // never pass through the HTTP stack.
         $this->app->singleton('kaiki.request_id', static fn (): string => (string) Str::uuid());
+
+        // Both panels' password reset as a Kaiki email in the person's own
+        // language, rather than Laravel's English default (2026-09-17).
+        // Filament resolves this class and sets the per-panel URL on it.
+        $this->app->bind(FilamentResetPassword::class, ResetPasswordNotification::class);
 
         // Everything that can already have promised seats on a vessel, so
         // GuardVesselCapacity can ask before `capacity_max` is lowered.

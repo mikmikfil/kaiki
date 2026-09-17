@@ -108,14 +108,15 @@ final class DashboardFigures
      * departure with no minimum cannot be short of it, and counting those would
      * make every private charter permanently "at risk".
      *
-     * Already-guaranteed departures are excluded by the same arithmetic —
-     * `seats_sold >= min_pax` is what guaranteed means — so the two cannot
-     * disagree.
+     * `scheduled` only, like the attention list. A guaranteed departure is one
+     * the operator has committed to — by seats, or since 2026-09-17 by choosing
+     * «Φεύγει κανονικά» while it was short — so it is no longer at risk even
+     * when `seats_sold` is below `min_pax`.
      */
     public function atRiskDepartures(): int
     {
         return Departure::query()
-            ->whereIn('status', [DepartureStatus::Scheduled->value, DepartureStatus::Guaranteed->value])
+            ->where('status', DepartureStatus::Scheduled->value)
             ->where('min_pax', '>', 0)
             ->whereColumn('seats_sold', '<', 'min_pax')
             ->where('starts_at_utc', '>=', Carbon::now('UTC'))

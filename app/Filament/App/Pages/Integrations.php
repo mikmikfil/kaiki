@@ -12,6 +12,8 @@ use App\Enums\CredentialEnvironment;
 use App\Enums\IntegrationProvider;
 use App\Exceptions\IntegrationCredentialIncomplete;
 use App\Models\IntegrationCredential;
+use App\Models\Tenant;
+use App\Support\Tenancy;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Group;
@@ -102,10 +104,19 @@ class Integrations extends Page
      */
     public function credentials(): Collection
     {
+        $tenant = Tenancy::current();
+        $sms = [IntegrationProvider::Apifon, IntegrationProvider::Yuboto, IntegrationProvider::Twilio];
+
         return IntegrationCredential::query()
             ->orderBy('provider')
             ->orderBy('environment')
-            ->get();
+            ->get()
+            // A text-message gateway is shown only to an operator the platform
+            // has switched SMS on for (2026-09-17): to anyone else it is a card
+            // for something that never sends.
+            ->reject(static fn (IntegrationCredential $credential): bool => in_array($credential->provider, $sms, true)
+                && ! ($tenant instanceof Tenant && $tenant->usesSms()))
+            ->values();
     }
 
     /**
@@ -212,7 +223,7 @@ class Integrations extends Page
         return [
             Select::make('provider')
                 ->label(__('integrations.form.provider.label'))
-                ->options(IntegrationProvider::operatorOptions())
+                ->options(IntegrationProvider::operatorOptions(Tenancy::current()))
                 ->required()
                 ->native(false)
                 // The fields below depend on it, so the form has to re-render

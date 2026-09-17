@@ -12,16 +12,20 @@ use App\Enums\NotificationStatus;
 use App\Enums\NotificationTemplate;
 use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\NotificationLogResource\Pages;
+use App\Mail\GuestMail;
+use App\Models\Booking;
 use App\Models\NotificationLog;
 use App\Support\Tenancy;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Tables\Actions\Action;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
@@ -178,8 +182,45 @@ class NotificationLogResource extends Resource
                     ->label(__('notifications.table.channel'))
                     ->options(NotificationChannel::options()),
             ])
-            ->actions([static::retryAction()]);
+            ->actions([static::previewAction(), static::retryAction()]);
         // No delete action anywhere — see the class docblock.
+    }
+
+    /**
+     * What the guest's email looks like (product owner, 2026-09-17).
+     *
+     * **Rebuilt, not replayed.** The log keeps who, when and which template,
+     * never the body: a copy of every email would be a copy of every guest's
+     * personal data for a year. So the preview renders the same mailable the
+     * retry would send, from the booking as it stands now, and says so.
+     *
+     * Shown in a sandboxed frame, so the email's own styles cannot reach the
+     * panel and nothing in it can run or navigate.
+     */
+    public static function previewAction(): Action
+    {
+        return Action::make('previewEmail')
+            ->label(__('notifications.actions.preview.label'))
+            ->icon('heroicon-o-eye')
+            ->color('gray')
+            ->visible(static fn (NotificationLog $record): bool => $record->channel === NotificationChannel::Mail
+                && $record->booking instanceof Booking)
+            ->modalHeading(static fn (NotificationLog $record): string => $record->template->label())
+            ->modalDescription(__('notifications.actions.preview.help'))
+            ->modalContent(static function (NotificationLog $record): View {
+                /** @var Booking $booking */
+                $booking = $record->booking;
+                $mail = new GuestMail($booking, $record->template);
+
+                return view('filament.app.email-preview', [
+                    'subject' => (string) $mail->envelope()->subject,
+                    'to' => $record->to,
+                    'html' => $mail->render(),
+                ]);
+            })
+            ->modalWidth(MaxWidth::FourExtraLarge)
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel(__('notifications.actions.preview.close'));
     }
 
     /** BKG-14's retry button. */

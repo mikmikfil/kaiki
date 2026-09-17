@@ -71,7 +71,7 @@ class BookingResource extends Resource
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.operations');
+        return __('panel.groups.sales');
     }
 
     public static function getNavigationLabel(): string

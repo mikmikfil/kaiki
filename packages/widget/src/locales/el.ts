@@ -44,6 +44,8 @@ export const el: Record<MessageKey, string> = {
   'booking.date.which_departure': 'Διαλέξτε ώρα αναχώρησης',
   'booking.date.departure_time': 'Ώρα αναχώρησης',
   'booking.party.heading': 'Πόσα άτομα είστε;',
+  'booking.discount.label': 'Κωδικός έκπτωσης (αν έχετε)',
+  'booking.discount.refused': 'Αυτός ο κωδικός δεν ισχύει για αυτή την κράτηση.',
   'booking.peek.from': 'από :amount',
   'booking.peek.price_unknown': 'Κατόπιν ζήτησης',
   'booking.peek.pick_date': 'Διαλέξτε ημερομηνία',
@@ -57,6 +59,7 @@ export const el: Record<MessageKey, string> = {
   'booking.party.seats_left_many': 'Μένουν :count θέσεις.',
   'booking.party.seats_full': 'Πήρατε όλες τις θέσεις που μένουν.',
   'booking.extras.heading': 'Θέλετε κάτι ακόμη;',
+  'booking.extras.required': 'περιλαμβάνεται υποχρεωτικά',
   // Οι τρεις ετικέτες στοιχείων που χρησιμοποιεί το μπλοκ *αιτήματος*
   // (BKG-24). Η διαδρομή κράτησης σταμάτησε να τις ζητά όταν τις ανέλαβε η
   // σελίδα checkout (ADR-0030)· ένα αίτημα προσφοράς δεν έχει checkout να

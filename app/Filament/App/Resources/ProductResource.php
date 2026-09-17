@@ -11,7 +11,10 @@ use App\Enums\BookingMode;
 use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource\Pages;
+use App\Filament\App\Resources\ProductResource\RelationManagers\ExtrasRelationManager;
+use App\Filament\App\Resources\ProductResource\RelationManagers\QuestionsRelationManager;
 use App\Filament\App\Resources\ProductResource\RelationManagers\RatePlansRelationManager;
+use App\Filament\App\Resources\ProductResource\RelationManagers\ScheduleRulesRelationManager;
 use App\Filament\Forms\TranslatableInput;
 use App\Models\CancellationPolicy;
 use App\Models\Port;
@@ -22,6 +25,8 @@ use App\Support\Format\MoneyFormatter;
 use App\Support\Locale\LocaleResolver;
 use App\Support\Tenancy;
 use Filament\Forms\Components\Component;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Livewire;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -30,6 +35,7 @@ use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\View as ViewField;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -40,13 +46,13 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\RestoreAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Unique;
 
 /**
  * The trip, on `/app` (spec CAT-4, CAT-5, CAT-7, CAT-15, SEC-3, TEN-8, I18N-1).
@@ -78,7 +84,7 @@ class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-ticket';
+    protected static ?string $navigationIcon = 'heroicon-o-map';
 
     protected static ?int $navigationSort = 10;
 
@@ -111,6 +117,69 @@ class ProductResource extends Resource
     public static function formSchema(): array
     {
         return [
+            // Two tabs, the form otherwise unchanged (product owner, 2026-09-17,
+            // round 2 option 1): what the trip is and how it sells, and what the
+            // guest reads about it. Plain words with a thin bar under the open
+            // one, styled in `filament.app.sea`. A save error in the tab not on
+            // screen opens that tab by itself, which is Filament's behaviour.
+            Tabs::make('trip')
+                ->contained(false)
+                ->persistTabInQueryString('tab')
+                ->extraAttributes(['class' => 'ka-line-tabs'])
+                ->tabs([
+                    Tabs\Tab::make(__('catalog.product.tabs.basics'))
+                        ->badge(static::basicsBadge(...))
+                        ->badgeColor('warning')
+                        ->schema(static::basicsSections()),
+                    Tabs\Tab::make(__('catalog.product.tabs.page'))
+                        ->badge(static::pageBadge(...))
+                        ->badgeColor('gray')
+                        ->schema(static::pageSections()),
+                    // When it runs (2026-09-17): the trip's own timetable, which
+                    // used to be a separate screen in the menu. On a saved trip
+                    // sold per seat only; see `ScheduleRulesRelationManager`.
+                    Tabs\Tab::make(__('catalog.product.tabs.schedule'))
+                        ->badge(static::scheduleBadge(...))
+                        ->badgeColor(static fn (?Product $record): string => static::scheduleBadge($record) === __('catalog.product.tabs.no_schedule') ? 'warning' : 'gray')
+                        ->visible(static fn (?Product $record, Get $get): bool => $record instanceof Product
+                            && $record->exists
+                            && static::modeOf($get) === BookingMode::PerSeat)
+                        ->schema([
+                            Livewire::make(
+                                ScheduleRulesRelationManager::class,
+                                static fn (?Product $record): array => [
+                                    'ownerRecord' => $record,
+                                    'pageClass' => Pages\EditProduct::class,
+                                ],
+                            )->key('trip-schedule-rules'),
+                        ]),
+                ])
+                ->columnSpanFull(),
+        ];
+    }
+
+    /** «2 ενεργά», or «κανένα» in amber: a trip nobody can book on any day. */
+    public static function scheduleBadge(?Product $record): ?string
+    {
+        if (! $record instanceof Product || ! $record->exists) {
+            return null;
+        }
+
+        $active = $record->scheduleRules()->where('is_active', true)->count();
+
+        return $active === 0
+            ? __('catalog.product.tabs.no_schedule')
+            : trans_choice('catalog.product.tabs.active_schedules', $active, ['count' => $active]);
+    }
+
+    /**
+     * Everything the publish checklist asks about, and the prices.
+     *
+     * @return array<int, Component>
+     */
+    public static function basicsSections(): array
+    {
+        return [
             Section::make(__('catalog.product.sections.basics'))
                 ->schema([
                     TranslatableInput::text(
@@ -132,7 +201,18 @@ class ProductResource extends Resource
                         ->helperText(__('catalog.product.form.slug.help'))
                         ->required()
                         ->maxLength(120)
-                        ->alphaDash(),
+                        ->alphaDash()
+                        // Per operator, like a vessel's name: the rule's raw
+                        // query skips the tenant scope, so it is added here.
+                        // Without it a taken slug reached the database and the
+                        // operator got a crash page instead of this message.
+                        ->unique(
+                            ignoreRecord: true,
+                            modifyRuleUsing: fn (Unique $rule): Unique => $rule->where('tenant_id', Tenancy::id()),
+                        )
+                        ->validationMessages([
+                            'unique' => __('catalog.product.form.slug.taken'),
+                        ]),
 
                     Select::make('vessel_id')
                         ->label(__('catalog.product.form.vessel.label'))
@@ -154,10 +234,11 @@ class ProductResource extends Resource
                         ->required()
                         ->live(),
 
-                    Select::make('status')
-                        ->label(__('catalog.product.form.status.label'))
-                        ->helperText(__('catalog.product.form.status.help'))
-                        ->options(ProductStatus::options())
+                    // Not a dropdown any more (product owner, 2026-09-17): the
+                    // buttons under the form set it — «Αποθήκευση ως πρόχειρη»,
+                    // «Δημοσίευση», «Εκτός πώλησης» — and `SaveProduct` still
+                    // refuses `active` while the checklist is incomplete.
+                    Hidden::make('status')
                         ->default(ProductStatus::Draft->value)
                         ->required(),
 
@@ -193,6 +274,10 @@ class ProductResource extends Resource
                     TimePicker::make('default_start_time')
                         ->label(__('catalog.product.form.default_start_time.label'))
                         ->helperText(__('catalog.product.form.default_start_time.help'))
+                        // A clock time on the quay, not an instant: the panel's
+                        // tenant-timezone conversion stored 09:00 as 06:00
+                        // (2026-09-17). Same as a departure's `local_time`.
+                        ->timezone('UTC')
                         ->seconds(false)
                         ->native(false),
 
@@ -224,98 +309,19 @@ class ProductResource extends Resource
 
                     TimePicker::make('earliest_start_time')
                         ->label(__('catalog.product.form.earliest_start_time.label'))
+                        ->timezone('UTC')
                         ->seconds(false)
                         ->native(false)
                         ->visible(static fn (Get $get): bool => (bool) $get('flexible_start')),
 
                     TimePicker::make('latest_start_time')
                         ->label(__('catalog.product.form.latest_start_time.label'))
+                        ->timezone('UTC')
                         ->seconds(false)
                         ->native(false)
                         ->visible(static fn (Get $get): bool => (bool) $get('flexible_start')),
                 ])
                 ->columns(2),
-
-            Section::make(__('catalog.product.sections.content'))
-                ->schema([
-                    TranslatableInput::textarea(
-                        'summary',
-                        __('catalog.product.form.summary.label'),
-                        __('catalog.product.form.summary.help'),
-                        rows: 3,
-                    ),
-
-                    // The pill on a card's photograph («Δημοφιλές»). Short on
-                    // purpose: past two words it covers the photograph it sits on.
-                    TranslatableInput::text(
-                        'badge',
-                        __('catalog.product.form.badge.label'),
-                        __('catalog.product.form.badge.help'),
-                        required: false,
-                        maxLength: 24,
-                    ),
-
-                    TranslatableInput::textarea(
-                        'description',
-                        __('catalog.product.form.description.label'),
-                        __('catalog.product.form.description.help'),
-                        rows: 8,
-                    ),
-                ]),
-
-            // «Περιεχόμενο σελίδας εκδρομής» (2026-09-16). Every field optional
-            // and none on the CAT-15 checklist: an empty one is stored as null
-            // and its section is simply absent from the trip page and from the
-            // operator's WordPress site. `TripPageContent` turns these lines and
-            // rows back into the columns' shapes on save.
-            Section::make(__('catalog.product.sections.trip_page'))
-                ->description(__('catalog.product.trip_page.description'))
-                ->collapsible()
-                ->schema([
-                    self::lineList('highlights'),
-
-                    Repeater::make(TripPageContent::ITINERARY_FIELD)
-                        ->label(__('catalog.product.trip_page.itinerary.label'))
-                        ->helperText(__('catalog.product.trip_page.itinerary.help'))
-                        ->schema([
-                            TextInput::make('time')
-                                ->label(__('catalog.product.trip_page.itinerary.time.label'))
-                                ->helperText(__('catalog.product.trip_page.itinerary.time.help'))
-                                ->placeholder('09:45')
-                                ->maxLength(5)
-                                ->regex('/^([01]\d|2[0-3]):[0-5]\d$/')
-                                ->columnSpan(1),
-                            TranslatableInput::text(
-                                'name',
-                                __('catalog.product.trip_page.itinerary.name.label'),
-                                null,
-                                required: false,
-                                maxLength: 120,
-                            )->columnSpan(3),
-                            TranslatableInput::textarea(
-                                'description',
-                                __('catalog.product.trip_page.itinerary.description.label'),
-                                __('catalog.product.trip_page.itinerary.description.help'),
-                                rows: 2,
-                            )->columnSpanFull(),
-                        ])
-                        ->columns(4)
-                        ->reorderable()
-                        ->collapsible()
-                        ->itemLabel(static function (array $state): string {
-                            $name = collect((array) ($state['name'] ?? []))
-                                ->first(static fn (mixed $text): bool => is_string($text) && trim($text) !== '');
-                            $time = is_string($state['time'] ?? null) ? trim($state['time']) : '';
-
-                            return trim($time . ' ' . ($name ?? __('catalog.product.trip_page.itinerary.untitled')));
-                        })
-                        ->addActionLabel(__('catalog.product.trip_page.itinerary.add'))
-                        ->defaultItems(0),
-
-                    self::lineList('includes'),
-                    self::lineList('excludes'),
-                    self::lineList('what_to_bring'),
-                ]),
 
             Section::make(__('catalog.product.sections.capacity'))
                 ->schema([
@@ -386,20 +392,15 @@ class ProductResource extends Resource
                                 ->minValue(0)
                                 ->maxValue(120),
 
-                            Select::make('pricing_mode')
-                                ->label(__('catalog.product.form.bands.pricing_mode.label'))
-                                ->options(AgeBandPricing::options())
-                                ->default(AgeBandPricing::Multiplier->value)
-                                ->required()
-                                ->live(),
+                            // No «ποσοστό της βασικής» any more (product owner,
+                            // 2026-09-17): every band's price is euros, typed in
+                            // the price table below. A new band is `fixed`; an
+                            // existing percentage band keeps its mode untouched
+                            // until the table is saved and writes it as euros.
+                            Hidden::make('pricing_mode')
+                                ->default(AgeBandPricing::Fixed->value),
 
-                            TextInput::make('price_multiplier_bp')
-                                ->label(__('catalog.product.form.bands.price_multiplier_bp.label'))
-                                ->helperText(__('catalog.product.form.bands.price_multiplier_bp.help'))
-                                ->integer()
-                                ->minValue(0)
-                                ->maxValue(65535)
-                                ->visible(static fn (Get $get): bool => $get('pricing_mode') === AgeBandPricing::Multiplier->value),
+                            Hidden::make('price_multiplier_bp'),
 
                             Toggle::make('is_base')
                                 ->label(__('catalog.product.form.bands.is_base.label')),
@@ -411,11 +412,34 @@ class ProductResource extends Resource
 
                             Toggle::make('requires_adult')
                                 ->label(__('catalog.product.form.bands.requires_adult.label')),
+
+                            // «Χωρίς έγγραφο» (2026-09-17): checkout asks these
+                            // passengers for a name, nationality and date of
+                            // birth, and no document.
+                            Toggle::make('no_document')
+                                ->label(__('catalog.product.form.bands.no_document.label'))
+                                ->helperText(__('catalog.product.form.bands.no_document.help')),
                         ])
                         ->itemLabel(fn (array $state): ?string => is_string($state['code'] ?? null) ? $state['code'] : null)
                         ->defaultItems(1)
                         ->columns(2)
                         ->columnSpanFull(),
+                ]),
+
+            // Every band, every period, in euros (product owner, 2026-09-17).
+            // The table prices saved bands, so on a trip being created the
+            // section is there but says, in one line, that it appears after
+            // the first save: a missing section reads as "no prices here".
+            Section::make(__('pricing.price_table.heading'))
+                ->description(__('pricing.price_table.intro'))
+                ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat)
+                ->schema([
+                    Placeholder::make('price_table_after_save')
+                        ->hiddenLabel()
+                        ->content(__('pricing.price_table.after_first_save'))
+                        ->visible(static fn (mixed $livewire): bool => ! $livewire instanceof Pages\EditProduct),
+                    ViewField::make('filament.app.product-price-table')
+                        ->visible(static fn (mixed $livewire): bool => $livewire instanceof Pages\EditProduct),
                 ]),
 
             Section::make(__('catalog.product.sections.policy'))
@@ -462,6 +486,114 @@ class ProductResource extends Resource
                         ->visible(static fn (Get $get): bool => (bool) $get('guest_details_required')),
                 ])
                 ->columns(2),
+        ];
+    }
+
+    /**
+     * What the guest reads: all of it optional.
+     *
+     * @return array<int, Component>
+     */
+    public static function pageSections(): array
+    {
+        return [
+            Section::make(__('catalog.product.sections.content'))
+                ->schema([
+                    TranslatableInput::textarea(
+                        'summary',
+                        __('catalog.product.form.summary.label'),
+                        __('catalog.product.form.summary.help'),
+                        rows: 3,
+                    ),
+
+                    // The pill on a card's photograph («Δημοφιλές»). Short on
+                    // purpose: past two words it covers the photograph it sits on.
+                    TranslatableInput::text(
+                        'badge',
+                        __('catalog.product.form.badge.label'),
+                        __('catalog.product.form.badge.help'),
+                        required: false,
+                        maxLength: 24,
+                    ),
+
+                    TranslatableInput::textarea(
+                        'description',
+                        __('catalog.product.form.description.label'),
+                        __('catalog.product.form.description.help'),
+                        rows: 8,
+                    ),
+                ]),
+
+            // «Περιεχόμενο σελίδας εκδρομής» (2026-09-16). Every field optional
+            // and none on the CAT-15 checklist: an empty one is stored as null
+            // and its section is simply absent from the trip page and from the
+            // operator's WordPress site. `TripPageContent` turns these lines and
+            // rows back into the columns' shapes on save.
+            Section::make(__('catalog.product.sections.trip_page'))
+                ->description(__('catalog.product.trip_page.description'))
+                ->collapsible()
+                ->schema([
+                    self::lineList('highlights'),
+
+                    Repeater::make(TripPageContent::ITINERARY_FIELD)
+                        ->label(__('catalog.product.trip_page.itinerary.label'))
+                        ->helperText(__('catalog.product.trip_page.itinerary.help'))
+                        ->schema([
+                            // A picker rather than typed text (product owner,
+                            // 2026-09-17). `H:i` keeps the stored «09:45» the
+                            // page and the API already read.
+                            TimePicker::make('time')
+                                ->label(__('catalog.product.trip_page.itinerary.time.label'))
+                                ->helperText(__('catalog.product.trip_page.itinerary.time.help'))
+                                ->seconds(false)
+                                ->native(false)
+                                ->format('H:i')
+                                ->displayFormat('H:i')
+                                // A stop time is the boat's own clock, not an
+                                // instant: no shift from the operator's
+                                // timezone, which the panel gives every picker.
+                                ->timezone('UTC')
+                                // Not only «ΩΩ:ΛΛ»: in the browser the picker
+                                // holds a full date-time («2026-09-17 09:45:00»)
+                                // until save turns it into «09:45», and
+                                // validation sees that first (2026-09-17).
+                                ->regex('/^(\d{4}-\d{2}-\d{2} )?([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/')
+                                ->columnSpan(1),
+                            TranslatableInput::text(
+                                'name',
+                                __('catalog.product.trip_page.itinerary.name.label'),
+                                null,
+                                required: false,
+                                maxLength: 120,
+                            )->columnSpan(3),
+                            TranslatableInput::textarea(
+                                'description',
+                                __('catalog.product.trip_page.itinerary.description.label'),
+                                __('catalog.product.trip_page.itinerary.description.help'),
+                                rows: 2,
+                            )->columnSpanFull(),
+                        ])
+                        ->columns(4)
+                        ->reorderable()
+                        ->collapsible()
+                        ->itemLabel(static function (array $state): string {
+                            $name = collect((array) ($state['name'] ?? []))
+                                ->first(static fn (mixed $text): bool => is_string($text) && trim($text) !== '');
+                            // «09:45» out of whatever the picker holds.
+                            $time = is_string($state['time'] ?? null)
+                                && preg_match('/([01]\d|2[0-3]):[0-5]\d/', $state['time'], $match) === 1
+                                ? $match[0]
+                                : '';
+
+                            return trim($time . ' ' . ($name ?? __('catalog.product.trip_page.itinerary.untitled')));
+                        })
+                        ->addActionLabel(__('catalog.product.trip_page.itinerary.add'))
+                        ->defaultItems(0),
+
+                    self::lineList('includes'),
+                    self::lineList('excludes'),
+                    self::lineList('what_to_bring'),
+                ]),
 
             Section::make(__('catalog.product.sections.seo'))
                 ->collapsed()
@@ -482,6 +614,40 @@ class ProductResource extends Resource
                     ),
                 ]),
         ];
+    }
+
+    /** «λείπει 2» on a saved trip that cannot be published yet; nothing otherwise. */
+    public static function basicsBadge(?Product $record): ?string
+    {
+        if (! $record instanceof Product || ! $record->exists) {
+            return null;
+        }
+
+        $missing = count(ProductPublishChecklist::unmet($record));
+
+        return $missing === 0 ? null : trans_choice('catalog.product.tabs.missing', $missing, ['count' => $missing]);
+    }
+
+    /** «5 από 8»: how much of the guest's page is written, on a saved trip. */
+    public static function pageBadge(?Product $record): ?string
+    {
+        if (! $record instanceof Product || ! $record->exists) {
+            return null;
+        }
+
+        $fields = ['summary', 'description', 'highlights', 'itinerary_stops', 'includes', 'excludes', 'what_to_bring', 'meta_description'];
+
+        $filled = count(array_filter($fields, static function (string $field) use ($record): bool {
+            foreach ((array) $record->getTranslations($field) as $value) {
+                if (is_string($value) ? trim($value) !== '' : ! empty($value)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }));
+
+        return __('catalog.product.tabs.filled', ['filled' => $filled, 'total' => count($fields)]);
     }
 
     /**
@@ -621,7 +787,10 @@ class ProductResource extends Resource
                 TextColumn::make('title')
                     ->label(__('catalog.product.table.title'))
                     ->sortable(query: self::sortByTitle(...))
-                    ->searchable(query: self::searchByTitle(...)),
+                    ->searchable(query: self::searchByTitle(...))
+                    // A draft says why it is still a draft, from the same
+                    // checklist the form shows (2026-09-17).
+                    ->description(self::missingForDraft(...)),
 
                 TextColumn::make('vessel.name')
                     ->label(__('catalog.product.table.vessel'))
@@ -632,10 +801,17 @@ class ProductResource extends Resource
                     ->badge()
                     ->formatStateUsing(static fn (BookingMode $state): string => $state->label()),
 
+                // Coloured, so a draft does not look like the grey mode badge
+                // beside it.
                 TextColumn::make('status')
                     ->label(__('catalog.product.table.status'))
                     ->badge()
-                    ->formatStateUsing(static fn (ProductStatus $state): string => $state->label()),
+                    ->formatStateUsing(static fn (ProductStatus $state): string => $state->label())
+                    ->color(static fn (ProductStatus $state): string => match ($state) {
+                        ProductStatus::Draft => 'warning',
+                        ProductStatus::Active => 'success',
+                        ProductStatus::Inactive, ProductStatus::Archived => 'gray',
+                    }),
 
                 TextColumn::make('max_pax')
                     ->label(__('catalog.product.table.max_pax')),
@@ -660,13 +836,35 @@ class ProductResource extends Resource
                     ->toggleable(),
             ])
             ->defaultSort('sort_order')
+            // Status is a row of tabs above the list (`ListProducts::getTabs`),
+            // with the number of drafts on its tab, rather than a filter
+            // hidden behind a button.
             ->filters([
-                SelectFilter::make('status')
-                    ->label(__('catalog.product.table.status'))
-                    ->options(ProductStatus::options()),
                 TrashedFilter::make(),
             ])
             ->actions([EditAction::make(), DeleteAction::make(), RestoreAction::make()]);
+    }
+
+    /** «Λείπουν 2: Σκάφος, Τιμοκατάλογος» under a draft's title; nothing otherwise. */
+    public static function missingForDraft(Product $record): ?string
+    {
+        if ($record->status !== ProductStatus::Draft) {
+            return null;
+        }
+
+        $unmet = ProductPublishChecklist::unmet($record);
+
+        if ($unmet === []) {
+            return null;
+        }
+
+        return trans_choice('catalog.product.table.missing', count($unmet), [
+            'count' => count($unmet),
+            'items' => implode(', ', array_map(
+                static fn (string $key): string => __("catalog.product.checklist.{$key}.label"),
+                $unmet,
+            )),
+        ]);
     }
 
     /**
@@ -774,6 +972,9 @@ class ProductResource extends Resource
     {
         return [
             RatePlansRelationManager::class,
+            // «Πρόσθετα», free or paid (2026-09-17).
+            ExtrasRelationManager::class,
+            QuestionsRelationManager::class,
         ];
     }
 

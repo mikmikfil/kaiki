@@ -31,6 +31,7 @@ function heroPhotographs(int $count): array
     ], range(1, $count));
 }
 
+/** @param array<string, mixed> $attributes */
 function heroPage(string $slug, int $photographs, array $attributes = []): string
 {
     $tenant = OperatorPage::operator($slug);

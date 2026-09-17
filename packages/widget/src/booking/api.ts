@@ -114,6 +114,11 @@ export function isSoldOut(error: unknown): boolean {
   return (error as ApiError | null)?.code === 'insufficient_capacity';
 }
 
+/** `422 invalid_discount_code` — the «κουπόνι» cannot be used; the walk goes on. */
+export function isInvalidDiscountCode(error: unknown): boolean {
+  return (error as ApiError | null)?.code === 'invalid_discount_code';
+}
+
 /** `409 price_changed` — the guest was shown a price that no longer holds. */
 export function isPriceChanged(error: unknown): boolean {
   return (error as ApiError | null)?.code === 'price_changed';

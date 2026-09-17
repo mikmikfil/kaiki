@@ -36,6 +36,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $name operator label, not guest-facing
  * @property int|null $vessel_price_cents `per_vessel` only
  * @property int|null $extra_hour_price_cents
+ * @property int|null $included_pax `per_vessel`: people the boat price includes
+ * @property int|null $extra_pax_price_cents `per_vessel`: charged for each person past `included_pax`
  * @property DepositType $deposit_type
  * @property int|null $deposit_percent
  * @property int|null $deposit_fixed_cents
@@ -64,6 +66,8 @@ class RatePlan extends Model
             'deposit_type' => DepositType::class,
             'vessel_price_cents' => 'integer',
             'extra_hour_price_cents' => 'integer',
+            'included_pax' => 'integer',
+            'extra_pax_price_cents' => 'integer',
             'deposit_percent' => 'integer',
             'deposit_fixed_cents' => 'integer',
             'min_lead_time_hours' => 'integer',

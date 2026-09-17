@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Catalog\Support;
 
+use App\Domain\Pricing\Support\PriceTable;
 use App\Enums\BookingMode;
 use App\Models\Product;
 use App\Models\RatePlan;
@@ -46,6 +47,8 @@ final class ProductPublishChecklist
 
     public const RATE_PLAN = 'rate_plan';
 
+    public const PRICES = 'prices';
+
     public const CANCELLATION_POLICY = 'cancellation_policy';
 
     public const TITLE_LOCALES = 'title_locales';
@@ -62,6 +65,7 @@ final class ProductPublishChecklist
             self::MEETING_POINT,
             self::AGE_BANDS,
             self::RATE_PLAN,
+            self::PRICES,
             self::CANCELLATION_POLICY,
             self::TITLE_LOCALES,
         ];
@@ -96,6 +100,7 @@ final class ProductPublishChecklist
             self::MEETING_POINT => $product->meeting_point_id !== null,
             self::AGE_BANDS => self::hasAgeBands($product),
             self::RATE_PLAN => self::hasRatePlan($product),
+            self::PRICES => self::hasEveryPrice($product),
             self::CANCELLATION_POLICY => self::hasCancellationPolicy($product),
             self::TITLE_LOCALES => self::hasTitleInEveryLocale($product),
             default => true,
@@ -117,6 +122,38 @@ final class ProductPublishChecklist
         }
 
         return $product->exists && $product->ageBands()->exists();
+    }
+
+    /**
+     * Every age band priced on every active plan (product owner, 2026-09-17).
+     *
+     * A band added after the prices were set has an empty cell until someone
+     * fills it, and the price engine then leaves that passenger off the bill
+     * rather than charging zero. «Τιμοκατάλογος» alone could not catch that:
+     * the plan exists, it is only incomplete. Per-seat only, like the bands;
+     * a trip with no plan at all is `rate_plan`'s to report, not this one's.
+     */
+    private static function hasEveryPrice(Product $product): bool
+    {
+        if ($product->mode !== BookingMode::PerSeat || ! $product->exists) {
+            return true;
+        }
+
+        $table = PriceTable::for($product);
+
+        foreach ($table->columns as $column) {
+            if ($column['plan_id'] === null || ! $column['active']) {
+                continue;
+            }
+
+            foreach ($table->rows as $row) {
+                if (($table->cents[$row['key']][$column['key']] ?? null) === null) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
     private static function hasRatePlan(Product $product): bool

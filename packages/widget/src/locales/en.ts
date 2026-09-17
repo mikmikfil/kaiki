@@ -43,6 +43,8 @@ export const en = {
   'booking.date.which_departure': 'Which departure?',
   'booking.date.departure_time': 'Departure time',
   'booking.party.heading': 'How many of you?',
+  'booking.discount.label': 'Discount code (if you have one)',
+  'booking.discount.refused': 'That code is not valid for this booking.',
   'booking.peek.from': 'from :amount',
   'booking.peek.price_unknown': 'On request',
   'booking.peek.pick_date': 'Pick a date',
@@ -56,6 +58,7 @@ export const en = {
   'booking.party.seats_left_many': ':count seats left.',
   'booking.party.seats_full': 'That is every seat left.',
   'booking.extras.heading': 'Anything else?',
+  'booking.extras.required': 'always included',
   // The three contact labels the *enquiry* mount uses (BKG-24). The booking
   // walk stopped asking for these when the checkout page took them over
   // (ADR-0030); a quote request has no checkout page to hand off to, so it

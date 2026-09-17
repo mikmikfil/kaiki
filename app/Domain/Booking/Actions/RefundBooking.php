@@ -56,6 +56,13 @@ use Illuminate\Support\Str;
  */
 final class RefundBooking
 {
+    /**
+     * Marks a refund for people taken off a booking that went ahead, on the
+     * row's own idempotency key (still a fresh uuid behind it, so PAY-9 holds).
+     * It is how a later cancellation tells those apart from its own.
+     */
+    public const PARTIAL_KEY_PREFIX = 'p-';
+
     public function __construct(
         private readonly RestoreVoucher $restoreVoucher,
         private readonly IssueVoucher $issueVoucher,
@@ -71,6 +78,40 @@ final class RefundBooking
         RefundEntitlement $entitlement,
         RefundMethod $method = RefundMethod::Cash,
         ?string $reason = null,
+    ): int {
+        return $this->settle($booking, $entitlement, $method, $reason, partial: false);
+    }
+
+    /**
+     * Give back part of what a booking that is **still going ahead** paid —
+     * people taken off it (2026-09-17).
+     *
+     * Different from a cancellation's refund in exactly one guard. A
+     * cancellation refunds once, and a second settled refund is refused because
+     * it would take the money out twice. A booking that shrinks can shrink
+     * twice, and each time owes a real, separate amount back; what must not
+     * happen is giving back more than is still held. So: never while another
+     * refund is still open, and never more than {@see Payment::paidCentsFor()}.
+     *
+     * Cash only. The voucher-share restoration is a cancellation's arithmetic,
+     * and splitting a small partial refund across a voucher and a card is a
+     * statement nobody could reconcile.
+     */
+    public function partial(Booking $booking, int $cents, ?string $reason = null): int
+    {
+        if ($cents < 1) {
+            return 0;
+        }
+
+        return $this->asCash($booking, $cents, $reason, partial: true);
+    }
+
+    private function settle(
+        Booking $booking,
+        RefundEntitlement $entitlement,
+        RefundMethod $method,
+        ?string $reason,
+        bool $partial,
     ): int {
         if ($method === RefundMethod::Waived) {
             // Nothing moves. The record is the point — see the class docblock.
@@ -92,7 +133,7 @@ final class RefundBooking
         // return. Only the remainder is a gateway refund.
         $restored = ($this->restoreVoucher)($booking, $entitlement->totalCents, $reason);
 
-        $cash = $this->asCash($booking, $entitlement->cashCents, $reason);
+        $cash = $this->asCash($booking, $entitlement->cashCents, $reason, $partial);
 
         return $restored + $cash;
     }
@@ -132,7 +173,7 @@ final class RefundBooking
      * {@see BookingRefunded} all wait for {@see ExecuteGatewayRefund} to come
      * back with a settlement.
      */
-    private function asCash(Booking $booking, int $cents, ?string $reason): int
+    private function asCash(Booking $booking, int $cents, ?string $reason, bool $partial = false): int
     {
         if ($cents < 1) {
             return 0;
@@ -148,11 +189,31 @@ final class RefundBooking
             return 0;
         }
 
-        $refund = DB::transaction(function () use ($booking, $source, $cents): ?Payment {
+        $refund = DB::transaction(function () use ($booking, $source, $cents, $partial): ?Payment {
+            if ($partial) {
+                // See `partial()`: one refund in flight at a time, and never more
+                // than the booking still holds.
+                $open = Payment::query()
+                    ->where('booking_id', $booking->getKey())
+                    ->where('kind', PaymentKind::Refund->value)
+                    ->open()
+                    ->exists();
+
+                if ($open || $cents > Payment::paidCentsFor($booking->getKey())) {
+                    return null;
+                }
+
+                return $this->newRefundRow($booking, $source, $cents, self::PARTIAL_KEY_PREFIX);
+            }
+
             $settled = Payment::query()
                 ->where('booking_id', $booking->getKey())
                 ->where('kind', PaymentKind::Refund->value)
                 ->where('status', PaymentStatus::Succeeded->value)
+                // Not the refunds for people taken off the booking earlier,
+                // while it was still going ahead (`partial()`): those must not
+                // stop the cancellation's own refund of what is left.
+                ->where('idempotency_key', 'not like', self::PARTIAL_KEY_PREFIX . '%')
                 ->exists();
 
             if ($settled) {
@@ -174,24 +235,7 @@ final class RefundBooking
                 return $existing;
             }
 
-            $payment = new Payment;
-
-            $payment->forceFill([
-                'uuid' => (string) Str::uuid(),
-                'booking_id' => $booking->getKey(),
-                'gateway' => $source->gateway,
-                'kind' => PaymentKind::Refund,
-                'amount_cents' => $cents,
-                'currency' => $source->currency,
-                'status' => PaymentStatus::Pending,
-                // §2.5: which charge this reverses. The gateway needs it, and so
-                // does an operator reconciling two rows against one statement.
-                'refunds_payment_id' => $source->getKey(),
-                // PAY-9. Minted before the call, never derived from a response.
-                'idempotency_key' => (string) Str::uuid(),
-            ])->save();
-
-            return $payment;
+            return $this->newRefundRow($booking, $source, $cents);
         });
 
         if (! $refund instanceof Payment) {
@@ -201,6 +245,29 @@ final class RefundBooking
         ExecuteGatewayRefund::dispatch($refund->getKey(), $reason);
 
         return $cents;
+    }
+
+    /** A pending refund row against `$source`, keyed before the call (PAY-9). */
+    private function newRefundRow(Booking $booking, Payment $source, int $cents, string $keyPrefix = ''): Payment
+    {
+        $payment = new Payment;
+
+        $payment->forceFill([
+            'uuid' => (string) Str::uuid(),
+            'booking_id' => $booking->getKey(),
+            'gateway' => $source->gateway,
+            'kind' => PaymentKind::Refund,
+            'amount_cents' => $cents,
+            'currency' => $source->currency,
+            'status' => PaymentStatus::Pending,
+            // §2.5: which charge this reverses. The gateway needs it, and so
+            // does an operator reconciling two rows against one statement.
+            'refunds_payment_id' => $source->getKey(),
+            // PAY-9. Minted before the call, never derived from a response.
+            'idempotency_key' => $keyPrefix . Str::uuid(),
+        ])->save();
+
+        return $payment;
     }
 
     /**

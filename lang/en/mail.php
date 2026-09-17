@@ -29,6 +29,33 @@ return [
         'balance' => 'Still to pay',
         'open_booking' => 'Open my booking',
         'transactional' => 'You are receiving this because you have a booking with us. We never send marketing email.',
+
+        // The whole trip, design A «Κάρτα εισιτηρίου» (2026-09-17).
+        'greeting' => 'Hello :name,',
+        'check_in' => 'Check-in',
+        'departure' => 'Departure',
+        'return' => 'Back',
+        'ticket' => 'Your ticket',
+        'ticket_help' => 'Show it on your phone when boarding.',
+        'open_ticket' => 'Open ticket',
+        'manage_booking' => 'Manage booking',
+        'how_to_find' => 'How to find us',
+        'open_map' => 'Open in maps',
+        'details_title' => 'We still need the passenger details',
+        'details_body' => 'The port authority asks for every passenger\'s details before departure.',
+        'details_by' => 'Please send them by :date.',
+        'details_button' => 'Fill in the details',
+        'party' => 'People and payment',
+        'total' => 'Total',
+        'paid' => 'Paid',
+        'balance_due' => 'Balance, due :date',
+        'refunded' => 'Refunded',
+        'on_request' => 'On request',
+        'bring' => 'What to bring',
+        'cancellation' => 'Cancellation',
+        'full_policy' => 'Full policy',
+        'contact' => 'Contact',
+        'leave_review' => 'Write a Google review',
     ],
 
     'booking_confirmed' => [
@@ -43,6 +70,13 @@ return [
         'heading' => 'Your booking has been cancelled',
         'body' => 'Booking :reference for :date has been cancelled. If a refund is due it is on its way; your booking page shows the details.',
         'sms' => 'Booking cancelled.',
+    ],
+
+    'booking_changed' => [
+        'subject' => 'Your booking has changed — :reference',
+        'heading' => 'Your booking has changed',
+        'body' => 'Booking :reference for :date at :time has been updated. The new party, the new total and your tickets are on your booking page.',
+        'sms' => 'Booking changed.',
     ],
 
     'guest_details_requested' => [
@@ -141,6 +175,13 @@ return [
         'heading' => 'Your quote is ready',
         'body' => 'The operator has prepared a quote for you. It is on your quote page, along with what is included and how long it is valid for.',
         'sms' => 'Your quote is ready.',
+    ],
+
+    'review_request' => [
+        'subject' => 'How was your trip?',
+        'heading' => 'How was your trip?',
+        'body' => 'We hope you had a lovely day on :date. If you enjoyed it, a short Google review helps other travellers find us.',
+        'sms' => 'How was your trip?',
     ],
 
 ];

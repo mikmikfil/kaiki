@@ -95,6 +95,16 @@ return [
             'unsaved' => 'Choose days and dates to see the next departures.',
         ],
 
+        // On the trip, in its «Schedule» tab (2026-09-17).
+        'on_product' => [
+            'title' => 'When it runs',
+            'help' => 'Each row repeats: days, time, and from when until when. The departures guests book are made from these.',
+            'add' => 'New schedule',
+            'other' => 'Boat, seats and on/off',
+            'empty' => 'No schedule yet',
+            'empty_help' => 'Without a schedule the trip has no departures and nobody can book it. Press «New schedule».',
+        ],
+
         'validation' => [
             'not_per_seat' => 'Schedules only apply to trips sold per seat. This trip is ":mode" and is booked as a whole boat, so it has no scheduled departures.',
             'empty_mask' => 'Choose at least one day. To stop the schedule, switch off "Active" instead.',

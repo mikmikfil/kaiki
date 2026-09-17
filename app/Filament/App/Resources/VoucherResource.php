@@ -60,11 +60,11 @@ class VoucherResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-gift';
 
     /** Beside the bookings and the quotes: it is money owed to a guest. */
-    protected static ?int $navigationSort = 23;
+    protected static ?int $navigationSort = 30;
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.operations');
+        return __('panel.groups.sales');
     }
 
     public static function getNavigationLabel(): string

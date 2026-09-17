@@ -58,9 +58,16 @@ class ScheduleRuleResource extends Resource
 {
     protected static ?string $model = ScheduleRule::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-calendar';
+    protected static ?string $navigationIcon = 'heroicon-o-clock';
 
-    protected static ?int $navigationSort = 10;
+    /**
+     * Out of the menu (product owner, 2026-09-17): a trip's timetable is edited
+     * on the trip, in its «Δρομολόγια» tab. This screen stays at its address
+     * for bookmarks and for anyone wanting every rule of the fleet on one page.
+     */
+    protected static bool $shouldRegisterNavigation = false;
+
+    protected static ?int $navigationSort = 20;
 
     public static function getNavigationGroup(): ?string
     {
@@ -132,6 +139,10 @@ class ScheduleRuleResource extends Resource
                     TimePicker::make('start_time')
                         ->label(__('availability.schedule_rule.form.start_time.label'))
                         ->helperText(__('availability.schedule_rule.form.start_time.help'))
+                        // Tenant-local by definition (the rule's own column), so
+                        // no conversion: without this, 09:00 was stored as 06:00
+                        // and every generated departure left three hours early.
+                        ->timezone('UTC')
                         ->seconds(false)
                         ->native(false)
                         ->required(),

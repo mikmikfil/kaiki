@@ -53,6 +53,57 @@ return [
         'not_live' => 'This booking is cancelled, so no payment can be recorded against it.',
     ],
 
+    // An operator cancelling a booking (2026-09-17).
+    'cancel' => [
+        'action' => 'Cancel booking',
+        'heading' => 'Cancel booking :reference',
+        'paid' => 'They have paid :amount. The cancellation policy gives :percent% today (:refund).',
+        'who' => [
+            'label' => 'Who asked for the cancellation?',
+            'guest' => 'The guest',
+            'operator' => 'We did (e.g. a problem with the boat)',
+        ],
+        'refund' => [
+            'label' => 'Refund',
+            'policy' => 'As the policy says: :percent% · :amount',
+            'full' => 'Everything: 100% · :amount',
+            'percent' => 'Another percentage',
+            'voucher' => 'A voucher instead of money',
+        ],
+        'percent' => 'Refund percentage',
+        'reason' => 'Reason',
+        'reason_help' => 'Kept in the booking history. Required when you do not follow the policy.',
+        'effects' => 'The seats are released straight away and the guest is emailed.',
+        'confirm' => 'Cancel booking',
+        'done' => 'The booking is cancelled. :amount is being refunded.',
+        'done_nothing' => 'The booking is cancelled with no refund.',
+    ],
+
+    // Taking people off a booking (2026-09-17).
+    'remove_guests' => [
+        'action' => 'Remove people',
+        'heading' => 'Remove people from booking :reference',
+        'description' => 'Each person comes off at the price they paid. The seats are released, the guest is emailed and gets new tickets.',
+        'band' => ':label (booked: :qty)',
+        'preview' => ':count person comes off · :removed. New total :total.|:count people come off · :removed. New total :total.',
+        'preview_refund' => ':refund of what they paid comes back.',
+        'preview_balance' => 'A balance of :balance remains.',
+        'preview_none' => 'Choose how many people come off.',
+        'reason' => 'Note (optional)',
+        'confirm' => 'Remove',
+        'done' => ':count person removed. New total :total.|:count people removed. New total :total.',
+        'done_refund' => 'The :refund refund has started.',
+        'done_manual' => 'Give :refund back to the guest yourself: the payment was not made by card.',
+        'validation' => [
+            'per_seat_only' => 'People can only be removed from trips sold per seat.',
+            'not_changeable' => 'This booking cannot change any more: it is cancelled or the trip has already happened.',
+            'nobody' => 'Choose at least one person.',
+            'everyone' => 'To remove everyone, cancel the booking.',
+            'below_minimum' => 'This trip needs at least :minimum people per booking.',
+            'needs_adult' => 'Children cannot be left without an adult.',
+        ],
+    ],
+
     'view' => [
         'trip' => 'The trip',
         'guest' => 'The guest',

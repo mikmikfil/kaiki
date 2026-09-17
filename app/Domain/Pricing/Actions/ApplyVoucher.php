@@ -109,10 +109,13 @@ final class ApplyVoucher
         // PRC-18: applied against the total *after* extras and *before* the
         // deposit, which PRC-25 settles — a voucher reduces both, so a guest
         // does not pay a deposit on money they already hold.
-        $gross = $booking->subtotal_cents + $booking->extras_cents;
+        // A discount code comes off first (2026-09-17); the voucher is spent
+        // against what is left, and `discount_cents` carries both.
+        $codeCents = self::codeCents($booking);
+        $gross = max(0, $booking->subtotal_cents + $booking->extras_cents - $codeCents);
         $applied = min($availableNow, $gross);
 
-        DB::transaction(function () use ($booking, $voucher, $existing, $applied): void {
+        DB::transaction(function () use ($booking, $voucher, $existing, $applied, $codeCents, $gross): void {
             if ($existing instanceof VoucherRedemption) {
                 $existing->forceFill([
                     'amount_cents' => $applied,
@@ -130,11 +133,11 @@ final class ApplyVoucher
             }
 
             $booking->forceFill([
-                'discount_cents' => $applied,
+                'discount_cents' => $codeCents + $applied,
                 // Never below zero (PRC-19.1), and `max` rather than an
                 // assertion because a voucher larger than the total is the
                 // ordinary case rather than an error.
-                'total_cents' => max(0, $booking->subtotal_cents + $booking->extras_cents - $applied),
+                'total_cents' => max(0, $gross - $applied),
             ]);
 
             $booking->forceFill([
@@ -150,18 +153,28 @@ final class ApplyVoucher
     /** The voucher went, or cannot be spent. The sale continues at full price. */
     private function clearDiscount(Booking $booking): void
     {
-        if ($booking->discount_cents === 0) {
+        $codeCents = self::codeCents($booking);
+
+        if ($booking->discount_cents === $codeCents) {
             return;
         }
 
         $booking->forceFill([
-            'discount_cents' => 0,
-            'total_cents' => $booking->subtotal_cents + $booking->extras_cents,
+            'discount_cents' => $codeCents,
+            'total_cents' => max(0, $booking->subtotal_cents + $booking->extras_cents - $codeCents),
         ]);
 
         $booking->forceFill([
             'balance_cents' => max(0, $booking->total_cents - $booking->paid_cents),
         ])->save();
+    }
+
+    /** What a discount code already took off this booking (ApplyDiscountCode). */
+    private static function codeCents(Booking $booking): int
+    {
+        return $booking->discount_code_id === null
+            ? 0
+            : (int) data_get($booking->price_snapshot, 'discount_code.amount_cents', 0);
     }
 
     /**

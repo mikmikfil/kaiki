@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Notifications\Actions;
 
 use App\Domain\Notifications\Support\QuietHours;
+use App\Domain\Notifications\Support\ReviewRequestSettings;
 use App\Domain\Notifications\Support\SmsComposer;
 use App\Enums\BookingStatus;
 use App\Enums\GuestDetailsStatus;
@@ -59,6 +60,9 @@ use Throwable;
  */
 final class SendDueReminders
 {
+    /** How late a review request may still go before it is not worth sending. */
+    public const REVIEW_GRACE_HOURS = 48;
+
     public function __construct(private readonly SendNotification $notifications) {}
 
     /** @return int how many messages were put in motion */
@@ -82,6 +86,91 @@ final class SendDueReminders
 
         foreach ($bookings as $booking) {
             $sent += $this->forBooking($booking, $now);
+        }
+
+        return $sent + $this->reviewRequests($now);
+    }
+
+    /**
+     * The Google review request, the one message on this sweep that follows a
+     * trip instead of preceding it (product owner, 2026-09-17).
+     *
+     * Its own pass because every rule above is the wrong way round for it: the
+     * boat has gone, and that is the point. Due `delay_hours` after the trip
+     * ends ({@see ReviewRequestSettings}), for a guest who sailed — checked in,
+     * or completed by the departure sweep without being marked a no-show.
+     * Cancelled and refunded bookings never match the status filter.
+     *
+     * ## A grace window, so switching it on does not mail last season
+     *
+     * A request more than {@see REVIEW_GRACE_HOURS} past its due time is not
+     * sent at all. Without that, the first sweep after an operator ticks the
+     * box would ask every guest of the past year how yesterday went. The query
+     * is bounded by the same window, so the pass reads a few days of bookings
+     * rather than all of them.
+     *
+     * BKG-18 still applies: a request due at 23:00 goes at 08:00. It warns about
+     * nothing, so it is deferred and never dropped. NTF-7's note is on
+     * {@see NotificationTemplate::ReviewRequest}.
+     */
+    private function reviewRequests(Carbon $now): int
+    {
+        $bookings = Tenancy::withoutTenancy(static fn () => Booking::query()
+            ->whereIn('status', [
+                BookingStatus::CheckedIn->value,
+                BookingStatus::Completed->value,
+            ])
+            ->where('no_show', false)
+            ->where('is_test', false)
+            ->where('ends_at_utc', '<=', $now->copy()->subHours(ReviewRequestSettings::MIN_DELAY_HOURS))
+            ->where('ends_at_utc', '>=', $now->copy()->subHours(ReviewRequestSettings::MAX_DELAY_HOURS + self::REVIEW_GRACE_HOURS))
+            ->get());
+
+        $sent = 0;
+
+        foreach ($bookings as $booking) {
+            $tenant = Tenancy::withoutTenancy(
+                static fn (): ?Tenant => Tenant::query()->find($booking->tenant_id),
+            );
+
+            if (! $tenant instanceof Tenant) {
+                continue;
+            }
+
+            $settings = ReviewRequestSettings::for($tenant);
+            $dueAt = $booking->ends_at_utc->copy()->addHours($settings->delayHours);
+
+            if (! $settings->active()
+                || $dueAt->greaterThan($now)
+                || $dueAt->lessThan($now->copy()->subHours(self::REVIEW_GRACE_HOURS))) {
+                continue;
+            }
+
+            try {
+                $sent += (int) Tenancy::forTenant($tenant, function () use ($booking, $tenant, $now): int {
+                    $template = NotificationTemplate::ReviewRequest;
+
+                    if (NotificationLog::alreadySent($booking->getKey(), $template, NotificationChannel::Mail)) {
+                        return 0;
+                    }
+
+                    // Nothing to be late for, so never dropped — only deferred
+                    // to the morning, when the next pass sends it.
+                    if (QuietHours::decide($tenant, $now)->wasDeferred($now)) {
+                        return 0;
+                    }
+
+                    $this->notifications->mail($booking, $template, new GuestMail($booking, $template));
+
+                    return 1;
+                });
+            } catch (Throwable $exception) {
+                Log::warning('notifications.review_request_failed', [
+                    'booking_id' => $booking->getKey(),
+                    'tenant_id' => $booking->tenant_id,
+                    'exception' => $exception::class,
+                ]);
+            }
         }
 
         return $sent;

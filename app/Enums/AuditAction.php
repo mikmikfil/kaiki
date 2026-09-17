@@ -96,6 +96,17 @@ enum AuditAction: string
     case PaymentRecorded = 'payment.recorded';
 
     /**
+     * An operator cancelled one booking, or took people off it, from the panel
+     * (2026-09-17).
+     *
+     * Its own case: the guest did not ask through their link, a person at the
+     * operator decided, and the refund they chose — the policy's figure, another
+     * percentage, a voucher — is what somebody will want to read a year later.
+     * The refund rows carry the money; this carries the decision.
+     */
+    case BookingCancelled = 'booking.cancelled';
+
+    /**
      * A passenger list carrying document numbers left the building
      * (OPS-10, GDR-6).
      *

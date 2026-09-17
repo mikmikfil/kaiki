@@ -50,6 +50,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    {{-- The operator's own icon from «Εμφάνιση», else Kaiki's. The page had
+         none, so browsers showed whatever `/favicon.ico` held (2026-09-17). --}}
+    <link rel="icon" href="{{ $brand['logo']['favicon_url'] ?? null ?: asset('favicon.svg') }}">
+
     <title>@yield('title', $tenant->name)</title>
     <meta name="description" content="@yield('description', $tenant->name)">
 

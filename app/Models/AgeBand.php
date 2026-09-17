@@ -52,11 +52,15 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int|null $price_multiplier_bp
  * @property bool $is_base
  * @property bool $requires_adult
+ * @property bool|null $no_document «Χωρίς έγγραφο»; null decides from the ages
  * @property int $sort_order
  */
 #[ObservedBy(AgeBandObserver::class)]
 class AgeBand extends Model
 {
+    /** A band ending at this age or younger asks for no document unless told otherwise. */
+    public const DOCUMENT_FREE_MAX_AGE = 2;
+
     use BelongsToTenant;
 
     /** @use HasFactory<AgeBandFactory> */
@@ -82,6 +86,7 @@ class AgeBand extends Model
             'price_multiplier_bp' => 'integer',
             'is_base' => 'boolean',
             'requires_adult' => 'boolean',
+            'no_document' => 'boolean',
             'sort_order' => 'integer',
         ];
     }
@@ -107,6 +112,22 @@ class AgeBand extends Model
         }
 
         return $this->max_age === null || $age <= $this->max_age;
+    }
+
+    /**
+     * Are this band's passengers exempt from the document fields?
+     *
+     * The operator's «Χωρίς έγγραφο» when they set it; otherwise decided from
+     * the ages, so an infant band that nobody opened since the switch existed
+     * still spares a parent from typing a baby's passport number.
+     */
+    public function isDocumentFree(): bool
+    {
+        if ($this->no_document !== null) {
+            return $this->no_document;
+        }
+
+        return $this->max_age !== null && $this->max_age <= self::DOCUMENT_FREE_MAX_AGE;
     }
 
     /** Does this band's range overlap another's (CAT-8)? */

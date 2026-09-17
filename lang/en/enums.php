@@ -102,15 +102,39 @@ return [
         'webhooks.receive' => ['label' => 'Receive webhooks'],
     ],
 
+    'discount_kind' => [
+        'percent' => ['label' => 'Percentage'],
+        'fixed' => ['label' => 'Fixed amount'],
+    ],
+
+    'trip_question_type' => [
+        'yes_no' => ['label' => 'Yes or no'],
+        'choice' => ['label' => 'Choice'],
+        'text' => ['label' => 'Short text'],
+    ],
+
+    'trip_question_scope' => [
+        'per_person' => ['label' => 'Per person'],
+        'per_booking' => ['label' => 'Per booking'],
+    ],
+
     'extra_pricing' => [
         'per_booking' => ['label' => 'Per booking'],
         'per_person' => ['label' => 'Per person'],
         'on_request' => ['label' => 'On request'],
+        'free' => ['label' => 'Free'],
     ],
 
     'age_band_pricing' => [
         'multiplier' => ['label' => 'Share of the base price'],
         'fixed' => ['label' => 'Its own price'],
+    ],
+
+    'price_quick_fill' => [
+        'same' => ['label' => 'Same'],
+        'half' => ['label' => 'Half price'],
+        'less_thirty' => ['label' => '−30%'],
+        'free' => ['label' => 'Free'],
     ],
 
     'booking_mode' => [
@@ -219,6 +243,7 @@ return [
         'reference' => ['label' => 'Booking'],
         'age_band' => ['label' => 'Passenger type'],
         'checked_in' => ['label' => 'Checked in'],
+        'answers' => ['label' => 'Answers'],
     ],
 
     'audit_action' => [
@@ -232,6 +257,7 @@ return [
         'record.deleted' => ['label' => 'Record deleted'],
         'override.applied' => ['label' => 'Override applied'],
         'payment.recorded' => ['label' => 'Payment recorded by hand'],
+        'booking.cancelled' => ['label' => 'Booking cancelled by the operator'],
         'manifest.generated' => ['label' => 'Passenger list with document numbers generated'],
     ],
 
@@ -383,7 +409,6 @@ return [
     'guest_document_type' => [
         'passport' => ['label' => 'Passport'],
         'id_card' => ['label' => 'ID card'],
-        'other' => ['label' => 'Other document'],
     ],
 
     /*
@@ -680,6 +705,7 @@ return [
     'notification_template' => [
         'booking_confirmed' => ['label' => 'Booking confirmed'],
         'booking_cancelled' => ['label' => 'Booking cancelled'],
+        'booking_changed' => ['label' => 'Booking changed'],
         'guest_details_requested' => ['label' => 'Passenger details requested'],
         'guest_details_reminder_48h' => ['label' => 'Passenger details, 48 hours'],
         'guest_details_reminder_24h' => ['label' => 'Passenger details, 24 hours'],
@@ -694,6 +720,7 @@ return [
         'weather_choice_reminder' => ['label' => 'Weather cancellation, reminder'],
         'weather_choice_applied' => ['label' => 'Weather cancellation, settled'],
         'quote_sent' => ['label' => 'Quote sent'],
+        'review_request' => ['label' => 'Google review request'],
     ],
 
     'webhook_event' => [

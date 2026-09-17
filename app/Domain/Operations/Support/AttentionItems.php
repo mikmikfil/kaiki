@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Operations\Support;
 
+use App\Domain\Availability\Actions\SailBelowMinimum;
 use App\Enums\BookingStatus;
 use App\Enums\DepartureStatus;
 use App\Enums\GuestDetailsStatus;
@@ -83,6 +84,19 @@ final class AttentionItems
      */
     public function all(?Carbon $now = null): array
     {
+        return array_slice($this->everything($now), 0, self::LIMIT);
+    }
+
+    /**
+     * Every item, not only the first page of them: what «Όλα (N)» counts.
+     *
+     * Each source still stops at {@see self::LIMIT}, so the count is "at least
+     * this many" on a very bad morning — which is still the right thing to say.
+     *
+     * @return list<AttentionItem>
+     */
+    public function everything(?Carbon $now = null): array
+    {
         $now ??= Carbon::now('UTC');
 
         $items = [
@@ -98,7 +112,7 @@ final class AttentionItems
             static fn (AttentionItem $a, AttentionItem $b): int => $a->deadlineSortKey() <=> $b->deadlineSortKey(),
         );
 
-        return array_slice($items, 0, self::LIMIT);
+        return $items;
     }
 
     /**
@@ -106,7 +120,13 @@ final class AttentionItems
      *
      * The operator's real question is *"do I run it short or cancel it"*, and
      * both answers cost money — which is exactly why the product must not pick
-     * one. The row states the gap and links to the departure.
+     * one. The row states the gap, and since 2026-09-17 takes either answer
+     * in place: cancel, or «Φεύγει κανονικά».
+     *
+     * **`scheduled` only.** A guaranteed departure is one the operator has
+     * already committed to — by seats (AVL-48) or by answering this very row
+     * ({@see SailBelowMinimum}) — so it is no longer a question, and asking it
+     * again every morning would make the answer meaningless.
      *
      * @return list<AttentionItem>
      */
@@ -114,7 +134,7 @@ final class AttentionItems
     {
         $departures = Departure::query()
             ->with(['product', 'vessel'])
-            ->whereIn('status', [DepartureStatus::Scheduled->value, DepartureStatus::Guaranteed->value])
+            ->where('status', DepartureStatus::Scheduled->value)
             ->where('min_pax', '>', 0)
             ->whereColumn('seats_sold', '<', 'min_pax')
             ->where('starts_at_utc', '>=', $now)
@@ -136,6 +156,7 @@ final class AttentionItems
                 'vessel' => (string) $departure->vessel?->name,
             ]),
             deadline: $this->local($departure->starts_at_utc),
+            subject: $departure,
         ))->all();
     }
 
@@ -173,6 +194,7 @@ final class AttentionItems
                 'trip' => (string) $booking->product?->title,
             ]),
             deadline: $this->local($booking->starts_at_utc),
+            subject: $booking,
         ))->all();
     }
 
@@ -214,6 +236,7 @@ final class AttentionItems
                 ),
             ]),
             deadline: $this->local($booking->balance_due_at),
+            subject: $booking,
         ))->all();
     }
 
@@ -252,6 +275,7 @@ final class AttentionItems
             ]),
             detail: (string) __('attention.quote.detail'),
             deadline: $this->local($quote->valid_until),
+            subject: $quote,
         ))->all();
     }
 
@@ -283,6 +307,7 @@ final class AttentionItems
                 'count' => $source->consecutive_failures,
             ]),
             deadline: null,
+            subject: $source,
         ))->all();
     }
 

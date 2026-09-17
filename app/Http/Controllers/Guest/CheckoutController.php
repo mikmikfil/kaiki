@@ -7,17 +7,25 @@ namespace App\Http\Controllers\Guest;
 use App\Domain\Booking\Actions\MintCheckoutSession;
 use App\Domain\Booking\Actions\SaveGuestDetails;
 use App\Domain\Booking\Support\GuestTokenResolver;
+use App\Domain\Booking\Support\PassengerForm;
+use App\Domain\Booking\Support\PolicyExplanation;
+use App\Domain\Booking\Support\TripQuestionForm;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Hosted\Support\HostedUrl;
+use App\Domain\Pricing\Actions\ApplyDiscountCode;
 use App\Enums\BookingStatus;
 use App\Enums\PaymentKind;
+use App\Enums\TripQuestionScope;
 use App\Exceptions\CheckoutRefused;
+use App\Exceptions\DiscountCodeRefused;
 use App\Exceptions\IllegalStateTransition;
 use App\Models\Booking;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator as ValidatorFactory;
+use Illuminate\Validation\Validator;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -56,11 +64,14 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * ## What it asks for
  *
- * The lead booker always. Per-passenger names and document numbers **only when
- * the trip requires them** (`products.guest_details_required`), which is the
- * flag the catalogue already carries for exactly this and which nothing read
- * until now. A three-hour sunset cruise stays four fields; the manifest is
- * asked for where the coastguard actually wants one.
+ * The lead booker always. The passengers **only when the trip requires them**
+ * (`products.guest_details_required`), which is the flag the catalogue already
+ * carries for exactly this. A three-hour sunset cruise stays four fields; the
+ * manifest is asked for where the coastguard actually wants one.
+ *
+ * What each passenger is asked for — name, nationality, date of birth, and a
+ * passport or identity card unless their band is «Χωρίς έγγραφο» — is
+ * {@see PassengerForm}'s (2026-09-17).
  */
 final class CheckoutController extends GuestPageController
 {
@@ -68,6 +79,7 @@ final class CheckoutController extends GuestPageController
         GetBrandPayload $brand,
         private readonly MintCheckoutSession $mintSession,
         private readonly SaveGuestDetails $saveGuests,
+        private readonly ApplyDiscountCode $applyCode,
     ) {
         parent::__construct($brand);
     }
@@ -90,9 +102,21 @@ final class CheckoutController extends GuestPageController
 
         return $this->renderInTenant($tenant, 'guest.checkout', fn (): array => [
             'brand' => $this->brandFor($tenant, $locale),
-            'booking' => $booking->load(['product', 'departure', 'guests']),
+            'booking' => $booking->load(['product', 'departure']),
             'token' => $token,
             'needsGuestDetails' => (bool) $booking->product?->guest_details_required,
+            // One row per person, created if the booking has none yet, each
+            // knowing its band and whether that band carries a document. Also
+            // when the trip asks a per-person question and no documents: the
+            // panel then holds a name and the questions (2026-09-17).
+            'passengers' => self::asksPassengers($booking)
+                ? PassengerForm::rows($booking, $locale)
+                : [],
+            'bookingQuestions' => TripQuestionForm::scoped(TripQuestionForm::questionsFor($booking), TripQuestionScope::PerBooking),
+            'personQuestions' => TripQuestionForm::scoped(TripQuestionForm::questionsFor($booking), TripQuestionScope::PerPerson),
+            'givenAnswers' => TripQuestionForm::answersOf($booking),
+            // «Κουπόνι» (2026-09-17): what the snapshot says was applied.
+            'discountCode' => data_get($booking->price_snapshot, 'discount_code'),
 
             // **The operator's timezone, not the application's.** Everything is
             // stored UTC (CLAUDE.md), and `config('app.timezone')` is therefore
@@ -120,6 +144,9 @@ final class CheckoutController extends GuestPageController
              * somebody with a blank.
              */
             'policySummary' => $this->policySummary($booking, $locale),
+            // The whole ladder, for the «Πολιτική ακύρωσης» window beside the
+            // summary (2026-09-17). From the same frozen snapshot.
+            'policyLines' => PolicyExplanation::lines($booking->policy_snapshot, $locale),
         ]);
     }
 
@@ -196,6 +223,8 @@ final class CheckoutController extends GuestPageController
 
         return Tenancy::forTenant($tenant, function () use ($booking, $request, $token): RedirectResponse {
             $needsGuests = (bool) $booking->product?->guest_details_required;
+            $asksPassengers = self::asksPassengers($booking);
+            $questions = TripQuestionForm::questionsFor($booking);
 
             $rules = [
                 'guest_name' => ['required', 'string', 'max:120'],
@@ -209,19 +238,36 @@ final class CheckoutController extends GuestPageController
             ];
 
             if ($needsGuests) {
-                $rules['guests'] = ['required', 'array', 'min:1'];
-                $rules['guests.*.full_name'] = ['required', 'string', 'max:120'];
                 // Required, not optional. `guest_details_required` is set on a
                 // trip precisely because the λιμεναρχείο asks for a passenger
-                // list, and a document number is the column on it that is not
-                // a name. It was `nullable`, so the one document the coastguard
-                // reads could be filed with the numbers missing and nobody
-                // found out until the quay.
-                $rules['guests.*.document_number'] = ['required', 'string', 'max:40'];
-                $rules['guests.*.date_of_birth'] = ['nullable', 'date', 'before:today'];
+                // list; what depends on the passenger's band and document is
+                // checked after the shape, in `PassengerForm::check()`.
+                $rules = [...$rules, ...PassengerForm::rules()];
+            } elseif ($asksPassengers) {
+                // Per-person questions on a trip that asks for no documents:
+                // a name for each panel, and the answers.
+                $rules['guests'] = ['required', 'array', 'min:1'];
+                $rules['guests.*.position'] = ['required', 'integer', 'min:1'];
+                $rules['guests.*.full_name'] = ['required', 'string', 'max:120'];
             }
 
-            $data = $request->validate($rules);
+            [$questionRules, $questionNames] = TripQuestionForm::rules(
+                $questions,
+                array_keys((array) $request->input('guests', [])),
+            );
+
+            $validator = ValidatorFactory::make(
+                $request->all(),
+                [...$rules, ...$questionRules],
+                [],
+                [...($needsGuests ? PassengerForm::attributes($request->all()) : []), ...$questionNames],
+            );
+
+            if ($needsGuests) {
+                $validator->after(static fn (Validator $v) => PassengerForm::check($v, $booking));
+            }
+
+            $data = $validator->validate();
 
             $booking->forceFill([
                 'guest_name' => $data['guest_name'],
@@ -232,10 +278,24 @@ final class CheckoutController extends GuestPageController
                 'ip_address' => $request->ip(),
             ])->save();
 
-            if ($needsGuests) {
+            if ($asksPassengers) {
                 // The same Action `/g/{token}` uses, so the manifest is written
                 // one way whether it is filled in here or afterwards.
                 ($this->saveGuests)($booking, $data['guests']);
+            }
+
+            if ($questions->isNotEmpty()) {
+                TripQuestionForm::save($booking, (array) $request->input('answers', []), (array) $request->input('guests', []));
+            }
+
+            // «Κουπόνι» (2026-09-17): a code that ran out or expired while the
+            // guest was filling this in comes off, and they are shown the new
+            // total before the gateway rather than charged it.
+            if (! $this->applyCode->recheck($booking)) {
+                return redirect()
+                    ->route('guest.checkout', ['token' => $token])
+                    ->withInput()
+                    ->withErrors(['discount_code' => __('discount_codes.refused.no_longer')]);
             }
 
             try {
@@ -263,6 +323,48 @@ final class CheckoutController extends GuestPageController
 
             return redirect()->away($target->url);
         });
+    }
+
+    /**
+     * `POST /c/{token}/code` — put a discount code on the draft, or take it off.
+     *
+     * Its own small form beside the price rather than part of the payment
+     * form: a guest applies a code to see the new total, and pressing «Εφαρμογή»
+     * must not be taken as pressing «Πληρωμή».
+     */
+    public function code(Request $request, string $token): RedirectResponse
+    {
+        [$booking, $tenant] = $this->resolve($token);
+
+        if ($booking === null || ! $tenant instanceof Tenant || ! self::isPayable($booking)) {
+            return redirect()->route('guest.booking', ['token' => $token]);
+        }
+
+        app()->setLocale($this->resolveLocale($request, $booking->locale));
+
+        $typed = $request->boolean('remove') ? null : (string) $request->input('discount_code', '');
+
+        return Tenancy::forTenant($tenant, function () use ($booking, $typed, $token): RedirectResponse {
+            try {
+                $applied = ($this->applyCode)($booking, $typed);
+            } catch (DiscountCodeRefused $refused) {
+                return redirect()
+                    ->route('guest.checkout', ['token' => $token])
+                    ->withInput(['discount_code' => $typed])
+                    ->withErrors(['discount_code' => $refused->getMessage()]);
+            }
+
+            return redirect()
+                ->route('guest.checkout', ['token' => $token])
+                ->with('discount_status', __($applied === null ? 'discount_codes.checkout.removed' : 'discount_codes.checkout.applied'));
+        });
+    }
+
+    /** Does checkout show a panel per passenger? */
+    private static function asksPassengers(Booking $booking): bool
+    {
+        return (bool) $booking->product?->guest_details_required
+            || TripQuestionForm::scoped(TripQuestionForm::questionsFor($booking), TripQuestionScope::PerPerson)->isNotEmpty();
     }
 
     /**

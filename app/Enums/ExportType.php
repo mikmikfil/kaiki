@@ -89,6 +89,8 @@ enum ExportType: string
                 'source',
                 'cancelled_at',
                 'cancel_reason',
+                // The per-booking checkout questions (2026-09-17).
+                'answers',
             ],
 
             // `document_number` and `document_type` are absent, not filtered.
@@ -106,6 +108,8 @@ enum ExportType: string
                 'counts_toward_capacity',
                 'checked_in_at',
                 'no_show',
+                // The per-person checkout questions (2026-09-17).
+                'answers',
             ],
         };
     }

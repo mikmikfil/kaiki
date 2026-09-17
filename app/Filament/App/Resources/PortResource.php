@@ -46,7 +46,7 @@ class PortResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-map-pin';
 
-    protected static ?int $navigationSort = 40;
+    protected static ?int $navigationSort = 30;
 
     public static function getNavigationGroup(): ?string
     {
@@ -55,7 +55,7 @@ class PortResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('catalog.port.nav');
+        return __('panel.nav.ports');
     }
 
     public static function getModelLabel(): string

@@ -11,6 +11,7 @@ use Database\Factories\BookingGuestFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -92,10 +93,31 @@ class BookingGuest extends Model
         return $this->belongsTo(Booking::class);
     }
 
+    /**
+     * Answers to the trip's per-person questions (2026-09-17).
+     *
+     * @return HasMany<BookingAnswer, $this>
+     */
+    public function answers(): HasMany
+    {
+        return $this->hasMany(BookingAnswer::class);
+    }
+
     /** @return BelongsTo<AgeBand, $this> */
     public function ageBand(): BelongsTo
     {
         return $this->belongsTo(AgeBand::class);
+    }
+
+    /**
+     * Is this passenger in a «Χωρίς έγγραφο» band (2026-09-17)?
+     *
+     * A row with no band, or whose band has since been removed, is asked for a
+     * document: when in doubt the manifest keeps the column the coastguard reads.
+     */
+    public function isDocumentFree(): bool
+    {
+        return $this->ageBand?->isDocumentFree() ?? false;
     }
 
     /**

@@ -54,6 +54,7 @@ final class UploadBrandAsset
 
         $profile->setAttribute($asset->column(), $stored->path);
         $profile->save();
+        GetBrandPayload::forgetTenantId((int) $profile->tenant_id);
 
         if (is_string($previous) && $previous !== '') {
             $this->forget($previous, $asset);
@@ -75,6 +76,7 @@ final class UploadBrandAsset
 
         $profile->setAttribute($asset->column(), null);
         $profile->save();
+        GetBrandPayload::forgetTenantId((int) $profile->tenant_id);
 
         if (is_string($path) && $path !== '') {
             $this->forget($path, $asset);

@@ -64,11 +64,11 @@ class InvoiceResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?int $navigationSort = 25;
+    protected static ?int $navigationSort = 40;
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.operations');
+        return __('panel.groups.sales');
     }
 
     public static function getNavigationLabel(): string

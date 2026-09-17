@@ -4,11 +4,16 @@ declare(strict_types=1);
 
 namespace App\Domain\Hosted\Actions;
 
+use App\Domain\Catalog\Data\OfferedExtra;
+use App\Domain\Catalog\Support\OfferedExtrasResolver;
 use App\Enums\BookingMode;
 use App\Models\Departure;
+use App\Models\Extra;
 use App\Models\Faq;
 use App\Models\Product;
+use App\Models\RatePlan;
 use App\Support\Format\MoneyFormatter;
+use App\Support\Tenancy;
 use Illuminate\Support\Collection;
 
 /**
@@ -58,6 +63,8 @@ class BuildProductPage
      *     faqs: Collection<int, Faq>,
      *     fromPriceCents: int|null,
      *     fromPriceFormatted: string|null,
+     *     extraPersonNote: string|null,
+     *     includedExtras: list<string>,
      * }
      */
     public function __invoke(Product $product, ?string $locale = null): array
@@ -75,7 +82,68 @@ class BuildProductPage
             'fromPriceFormatted' => $fromPrice !== null
                 ? MoneyFormatter::format($fromPrice, $locale, MoneyFormatter::currency())
                 : null,
+            'extraPersonNote' => $this->extraPersonNote($product, $locale),
+            'includedExtras' => $this->includedExtras($product, $locale),
         ];
+    }
+
+    /**
+     * The trip's free extras, by name, for the «Περιλαμβάνονται» list
+     * (2026-09-17). An amenity the operator added as «Δωρεάν» is something the
+     * trip includes, so it is said there rather than offered for sale.
+     *
+     * @return list<string>
+     */
+    private function includedExtras(Product $product, string $locale): array
+    {
+        $ids = OfferedExtrasResolver::forProduct($product)
+            ->filter(static fn (OfferedExtra $extra): bool => ! $extra->pricingType->isBookable())
+            ->pluck('extraId')
+            ->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return Extra::query()
+            ->whereIn('id', $ids)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(static fn (Extra $extra): string => trim((string) $extra->getTranslation('name', $locale)))
+            ->filter(static fn (string $name): bool => $name !== '')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * «Includes up to 10 people · +50 € for each extra» under a whole-boat price.
+     *
+     * Read from the default plan (the one with no period): the note is about
+     * how the boat is priced, and the period plans follow the same shape.
+     * Nothing unless the platform switched the model on for this operator.
+     */
+    private function extraPersonNote(Product $product, string $locale): ?string
+    {
+        if ($product->mode !== BookingMode::PerVessel || Tenancy::current()?->usesExtraPersonPricing() !== true) {
+            return null;
+        }
+
+        $plan = RatePlan::query()
+            ->where('product_id', $product->getKey())
+            ->active()
+            ->whereNotNull('included_pax')
+            ->whereNotNull('extra_pax_price_cents')
+            ->orderByRaw('season_id is not null')
+            ->first();
+
+        if (! $plan instanceof RatePlan) {
+            return null;
+        }
+
+        return __('hosted.product.price.extra_pax', [
+            'included' => $plan->included_pax,
+            'extra' => MoneyFormatter::format((int) $plan->extra_pax_price_cents, $locale, MoneyFormatter::currency()),
+        ], $locale);
     }
 
     /**

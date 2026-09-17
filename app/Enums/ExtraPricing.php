@@ -33,10 +33,24 @@ enum ExtraPricing: string
     /** No price. Recorded on the booking as a to-do for the operator. */
     case OnRequest = 'on_request';
 
+    /**
+     * Included, at no charge (product owner, 2026-09-17): «SUP, μάσκες,
+     * αναψυκτικά». Nothing to choose and nothing to bill, so it never reaches
+     * the booking widget or a price; it is listed on the trip page with what
+     * the trip includes.
+     */
+    case Free = 'free';
+
     /** Does this extra carry a price at all (CAT-12)? */
     public function hasPrice(): bool
     {
-        return $this !== self::OnRequest;
+        return $this !== self::OnRequest && $this !== self::Free;
+    }
+
+    /** Something a guest chooses and the booking records, as opposed to an amenity. */
+    public function isBookable(): bool
+    {
+        return $this !== self::Free;
     }
 
     /** Does the charge scale with the passenger count (PRC-9)? */

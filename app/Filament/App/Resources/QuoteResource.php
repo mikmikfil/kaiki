@@ -8,6 +8,7 @@ use App\Domain\Booking\Actions\BuildQuote;
 use App\Domain\Booking\Actions\SendQuote;
 use App\Enums\QuoteLineKind;
 use App\Enums\QuoteStatus;
+use App\Filament\App\Navigation\SiblingScreens;
 use App\Filament\App\Resources\QuoteResource\Pages;
 use App\Models\Quote;
 use Filament\Forms\Components\Component;
@@ -70,11 +71,26 @@ class QuoteResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-currency-euro';
 
-    protected static ?int $navigationSort = 22;
+    protected static ?int $navigationSort = 20;
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.operations');
+        return __('panel.groups.sales');
+    }
+
+    /** Stays highlighted on the screens it shares a tab bar with (Menu 1). */
+    public static function getNavigationItems(): array
+    {
+        return SiblingScreens::highlight(static::class, parent::getNavigationItems());
+    }
+
+    /**
+     * Open ερωτήματα, since they left the sidebar for a tab next to προσφορές
+     * (Menu 1). Delegated, so the count and its no-tenant guard stay in one place.
+     */
+    public static function getNavigationBadge(): ?string
+    {
+        return EnquiryResource::getNavigationBadge();
     }
 
     public static function getNavigationLabel(): string

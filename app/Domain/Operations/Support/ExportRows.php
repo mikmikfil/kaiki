@@ -10,6 +10,7 @@ use App\Enums\ExportType;
 use App\Enums\PaymentStatus;
 use App\Models\AgeBand;
 use App\Models\Booking;
+use App\Models\BookingAnswer;
 use App\Models\BookingGuest;
 use App\Models\ExportJob;
 use App\Support\Format\MoneyFormatter;
@@ -109,7 +110,7 @@ final class ExportRows
     {
         $count = 0;
 
-        foreach ($this->bookings()->with(['product', 'vessel'])->lazyById(self::CHUNK) as $booking) {
+        foreach ($this->bookings()->with(['product', 'vessel', 'answers'])->lazyById(self::CHUNK) as $booking) {
             $write($this->bookingRow($booking));
             $count++;
         }
@@ -130,7 +131,7 @@ final class ExportRows
             // vessel — and it is also where every filter lives. A guest whose
             // booking is out of the window is out of the export.
             ->whereIn('booking_id', $this->bookings()->select('bookings.id'))
-            ->with(['booking.product', 'booking.vessel', 'ageBand'])
+            ->with(['booking.product', 'booking.vessel', 'ageBand', 'answers'])
             ->orderBy('booking_guests.id');
 
         foreach ($query->lazyById(self::CHUNK, 'booking_guests.id') as $guest) {
@@ -366,6 +367,7 @@ final class ExportRows
             $booking->source->label(),
             $booking->cancelled_at?->toDateTimeString() ?? '',
             $booking->cancel_reason?->label() ?? '',
+            BookingAnswer::joined($booking->answers->whereNull('booking_guest_id')),
         ];
     }
 
@@ -395,6 +397,7 @@ final class ExportRows
             $this->boolean($ageBand instanceof AgeBand ? $ageBand->counts_toward_capacity : true),
             $guest->checked_in_at?->toDateTimeString() ?? '',
             $this->boolean($guest->no_show),
+            BookingAnswer::joined($guest->answers),
         ];
     }
 

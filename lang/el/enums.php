@@ -91,15 +91,39 @@ return [
     | βλέπει αγγλικά και ψάχνει τα ελληνικά πρέπει να αναγνωρίσει τη λέξη
     | «Ελληνικά», όχι τη λέξη «Greek».
     */
+    'discount_kind' => [
+        'percent' => ['label' => 'Ποσοστό'],
+        'fixed' => ['label' => 'Σταθερό ποσό'],
+    ],
+
+    'trip_question_type' => [
+        'yes_no' => ['label' => 'Ναι ή όχι'],
+        'choice' => ['label' => 'Επιλογή'],
+        'text' => ['label' => 'Σύντομο κείμενο'],
+    ],
+
+    'trip_question_scope' => [
+        'per_person' => ['label' => 'Ανά άτομο'],
+        'per_booking' => ['label' => 'Ανά κράτηση'],
+    ],
+
     'extra_pricing' => [
         'per_booking' => ['label' => 'Ανά κράτηση'],
         'per_person' => ['label' => 'Ανά άτομο'],
         'on_request' => ['label' => 'Κατόπιν αιτήματος'],
+        'free' => ['label' => 'Δωρεάν'],
     ],
 
     'age_band_pricing' => [
         'multiplier' => ['label' => 'Ποσοστό της βασικής τιμής'],
         'fixed' => ['label' => 'Δική της τιμή'],
+    ],
+
+    'price_quick_fill' => [
+        'same' => ['label' => 'Ίδια'],
+        'half' => ['label' => 'Μισή τιμή'],
+        'less_thirty' => ['label' => '−30%'],
+        'free' => ['label' => 'Δωρεάν'],
     ],
 
     'booking_mode' => [
@@ -208,6 +232,7 @@ return [
         'reference' => ['label' => 'Κράτηση'],
         'age_band' => ['label' => 'Κατηγορία επιβάτη'],
         'checked_in' => ['label' => 'Επιβιβάστηκε'],
+        'answers' => ['label' => 'Απαντήσεις'],
     ],
 
     'audit_action' => [
@@ -221,6 +246,7 @@ return [
         'record.deleted' => ['label' => 'Διαγραφή εγγραφής'],
         'override.applied' => ['label' => 'Εφαρμογή παράκαμψης'],
         'payment.recorded' => ['label' => 'Καταχώριση πληρωμής με το χέρι'],
+        'booking.cancelled' => ['label' => 'Ακύρωση κράτησης από τον διοργανωτή'],
         'manifest.generated' => ['label' => 'Έκδοση κατάστασης επιβατών με αριθμούς εγγράφων'],
     ],
 
@@ -372,7 +398,6 @@ return [
     'guest_document_type' => [
         'passport' => ['label' => 'Διαβατήριο'],
         'id_card' => ['label' => 'Ταυτότητα'],
-        'other' => ['label' => 'Άλλο έγγραφο'],
     ],
 
     /*
@@ -665,6 +690,7 @@ return [
     'notification_template' => [
         'booking_confirmed' => ['label' => 'Επιβεβαίωση κράτησης'],
         'booking_cancelled' => ['label' => 'Ακύρωση κράτησης'],
+        'booking_changed' => ['label' => 'Αλλαγή κράτησης'],
         'guest_details_requested' => ['label' => 'Αίτημα στοιχείων επιβατών'],
         'guest_details_reminder_48h' => ['label' => 'Στοιχεία επιβατών, 48 ώρες'],
         'guest_details_reminder_24h' => ['label' => 'Στοιχεία επιβατών, 24 ώρες'],
@@ -679,6 +705,7 @@ return [
         'weather_choice_reminder' => ['label' => 'Ακύρωση λόγω καιρού, υπενθύμιση'],
         'weather_choice_applied' => ['label' => 'Ακύρωση λόγω καιρού, τακτοποιήθηκε'],
         'quote_sent' => ['label' => 'Αποστολή προσφοράς'],
+        'review_request' => ['label' => 'Αίτημα αξιολόγησης στην Google'],
     ],
 
     'webhook_event' => [

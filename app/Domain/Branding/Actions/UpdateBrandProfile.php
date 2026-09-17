@@ -50,6 +50,9 @@ final class UpdateBrandProfile
 
         $profile->save();
 
+        // BRD-8: the hosted pages and the widget read a cached copy.
+        GetBrandPayload::forgetTenantId((int) $profile->tenant_id);
+
         return $profile;
     }
 }

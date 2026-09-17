@@ -38,6 +38,8 @@ enum NotificationTemplate: string
     // BKG-13: the moment a booking becomes real to a guest.
     case BookingConfirmed = 'booking_confirmed';
     case BookingCancelled = 'booking_cancelled';
+    // An operator took people off the booking (2026-09-17).
+    case BookingChanged = 'booking_changed';
     case GuestDetailsRequested = 'guest_details_requested';
 
     // BKG-16's five families.
@@ -59,6 +61,20 @@ enum NotificationTemplate: string
     // BKG-26: the operator's offer, and its answer.
     case QuoteSent = 'quote_sent';
 
+    /*
+     * After the trip, a request for a Google review (product owner, 2026-09-17).
+     *
+     * NTF-7 and this case. The rule is "no marketing email", and a review
+     * request sits next to that line, so the line is drawn on purpose: it goes
+     * only when the operator has switched it on and given a review link
+     * (App\Domain\Notifications\Support\ReviewRequestSettings), once per
+     * booking, only to a guest who actually sailed — checked in or completed,
+     * never cancelled or a no-show — and it is about that trip alone: no offer,
+     * no discount, no other trip, no newsletter. A message that grew any of
+     * those would be marketing and would not belong in this enum.
+     */
+    case ReviewRequest = 'review_request';
+
     /**
      * Is this one of BKG-16's reminders, rather than something that fires on an
      * event?
@@ -73,7 +89,9 @@ enum NotificationTemplate: string
             || str_contains($this->value, 'overdue')
             || str_contains($this->value, 'pre_departure')
             || str_contains($this->value, 'charter_agreement_')
-            || str_contains($this->value, 'voucher_expiry_');
+            || str_contains($this->value, 'voucher_expiry_')
+            // Swept like the reminders, so the log is what keeps it to one.
+            || $this === self::ReviewRequest;
     }
 
     /**
@@ -87,7 +105,10 @@ enum NotificationTemplate: string
     {
         return $this !== self::BookingConfirmed
             && $this !== self::BookingCancelled
-            && $this !== self::WeatherChoiceApplied;
+            && $this !== self::BookingChanged
+            && $this !== self::WeatherChoiceApplied
+            // Follows the trip rather than warning about it: nothing to be late for.
+            && $this !== self::ReviewRequest;
     }
 
     /** Does this message go by SMS as well as email (BKG-16's channel column)? */

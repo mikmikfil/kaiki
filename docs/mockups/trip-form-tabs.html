@@ -1,0 +1,513 @@
+<title>Εκδρομή με καρτέλες</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* One light look, like the operator panel. Tokens match the other Kaiki mockups. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57; --hover:#17396A; --active:#1C4378; --sb-text:#C4D3E8; --sb-muted:#7F98BA; --sb-line:#23497D;
+  --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA;
+  --warn:#9A5B0C; --warnbg:#FBF0DF; --good:#1F7A4D; --goodbg:#E3F2EA;
+  --sand:#F6F1E6; --sandline:#E7DCC4; --sandink:#6B5423;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --waves:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='170' viewBox='0 0 520 170'%3E%3Cg fill='none' stroke='%23C9DAEE' stroke-width='1.3'%3E%3Cpath d='M0 150 Q65 132 130 150 T260 150 T390 150 T520 150' opacity='.9'/%3E%3Cpath d='M0 120 Q65 104 130 120 T260 120 T390 120 T520 120' opacity='.65'/%3E%3Cpath d='M-65 90 Q0 76 65 90 T195 90 T325 90 T455 90 T585 90' opacity='.45'/%3E%3Cpath d='M0 60 Q65 48 130 60 T260 60 T390 60 T520 60' opacity='.28'/%3E%3C/g%3E%3C/svg%3E");
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-inline:24px;padding-block:36px 72px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;text-align:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+a{text-decoration:none;color:var(--blue)}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{margin:0;text-wrap:balance;letter-spacing:-.01em}
+p{margin:0}
+
+.page{max-width:1180px;margin:0 auto;display:grid;gap:40px}
+.intro{display:grid;gap:12px;max-width:780px}
+.eyebrow{font-size:13px;font-weight:600;color:var(--blue)}
+.intro h1{font-size:38px;line-height:1.12;font-weight:800;color:var(--deep)}
+.intro p{font-size:17px;color:var(--muted);max-width:68ch}
+.intro strong{color:var(--ink)}
+
+h2.sec{font-size:24px;color:var(--deep)}
+.lede{color:var(--muted);max-width:72ch}
+.block{display:grid;gap:16px}
+
+/* ---------- treatment picker ---------- */
+.picker{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.pick{display:grid;gap:12px;align-content:start;background:var(--card);border:1.5px solid var(--line);border-radius:14px;padding:16px;transition:border-color .15s}
+.pick:hover{border-color:#C4D3E8}
+.pick[aria-pressed="true"]{border-color:var(--deep);box-shadow:0 0 0 3px rgba(15,46,87,.12)}
+.pick-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.pick h3{font-size:16px;color:var(--deep)}
+.rec{display:inline-flex;align-items:center;gap:5px;background:var(--deep);color:#fff;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px}
+.pick .mini{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 14px 12px;min-height:84px;display:flex;align-items:center;overflow:hidden;min-width:0}
+.pick .mini .t1{gap:18px}
+.pick .mini .t1 .tb{font-size:14px}
+.pick .mini .t2 .tb,.pick .mini .t2 .dot{font-size:17px}
+.pick .mini .t3{display:grid;border-left:1px solid var(--line)}
+.pick .mini .t3 .tb{font-size:13.5px;padding:4px 0 4px 12px}
+.pick{min-width:0}
+.pick dl{margin:0;display:grid;gap:6px;font-size:13.5px}
+.pick dt{font-weight:600;color:var(--ink)}
+.pick dd{margin:0;color:var(--muted)}
+.cost{display:flex;align-items:baseline;gap:8px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.cost b{font-family:var(--mono);color:var(--deep);font-size:15px}
+.choose{font-size:13px;font-weight:600;color:var(--blue)}
+.pick[aria-pressed="true"] .choose{color:var(--good)}
+
+/* ---------- the two mocks ---------- */
+.mocks{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:24px;align-items:start}
+.cap{font-size:13px;font-weight:600;color:var(--muted);margin-bottom:8px}
+.scroller{overflow-x:auto;border-radius:14px;box-shadow:0 1px 0 var(--line),0 18px 40px -24px rgba(15,46,87,.35)}
+.desk{min-width:780px;display:grid;grid-template-columns:200px minmax(0,1fr);background:var(--paper);height:760px;overflow:hidden}
+.sb{background:var(--deep);color:var(--sb-text);display:flex;flex-direction:column;padding:14px 10px;gap:10px;font-size:13.5px}
+.sb .brand{color:#fff;font-weight:800;font-size:19px;padding:2px 8px 6px}
+.sb .grp{display:grid;gap:1px}
+.sb .gl{font-size:12px;color:var(--sb-muted);padding:4px 8px}
+.sb .it{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:7px}
+.sb .it svg{width:16px;height:16px;color:var(--sb-muted)}
+.sb .it.on{background:var(--active);color:#fff}
+.sb .it.on svg{color:#fff}
+.sb .foot{margin-top:auto;border-top:1px solid var(--sb-line);padding-top:8px;display:grid;gap:1px}
+.main{position:relative;overflow:auto;padding:18px 26px 40px}
+.main::after{content:"";position:sticky;display:block;bottom:0;height:0}
+.wavebg{position:absolute;inset:auto 0 0 0;height:170px;background:var(--waves) repeat-x;background-size:520px 170px;pointer-events:none;opacity:.8}
+.crumb{font-size:12.5px;color:var(--faint)}
+.phead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 16px}
+.phead h3{font-size:24px;font-weight:700;color:var(--ink)}
+.btns{display:flex;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:7px 13px;font-size:13.5px;font-weight:600}
+.btn.p{background:var(--deep);color:#fff}
+.btn.s{background:var(--card);border:1px solid var(--line);color:var(--ink)}
+
+/* the sections, as Filament draws them today */
+.fsec{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:14px;position:relative}
+.fsec h4{font-size:14.5px;font-weight:600;padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;gap:8px}
+.fsec h4 .opt{font-size:12px;font-weight:500;color:var(--faint)}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;padding:14px 16px}
+.fld{display:grid;gap:4px;min-width:0}
+.fld.full{grid-column:1/-1}
+.fld label{font-size:12.5px;font-weight:500;color:var(--ink)}
+.inp{border:1px solid var(--line);border-radius:7px;padding:6px 10px;font-size:13.5px;background:#fff;min-height:33px;display:flex;align-items:center;justify-content:space-between;gap:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.inp.area{white-space:normal;align-items:flex-start;min-height:58px;color:var(--ink)}
+.inp .ph{color:var(--faint)}
+.tog{display:flex;align-items:center;gap:8px;font-size:13px}
+.sw{width:30px;height:17px;border-radius:9px;background:#CBD5E1;position:relative;flex:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:13px;height:13px;border-radius:50%;background:#fff}
+.sw.on{background:var(--blue)}
+.sw.on::after{left:15px}
+.lang{display:inline-flex;gap:2px;background:var(--ground);border-radius:6px;padding:2px;font-size:11.5px;font-weight:600;margin-left:6px}
+.lang span{padding:1px 7px;border-radius:4px;color:var(--muted)}
+.lang span.on{background:#fff;color:var(--ink)}
+.check{display:grid;gap:6px;padding:12px 16px;font-size:13.5px}
+.check div{display:flex;align-items:center;gap:8px}
+.ok{color:var(--good)} .no{color:var(--warn);font-weight:600}
+.rows{display:grid;gap:6px;padding:12px 16px}
+.row{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13px}
+.row .mono{color:var(--deep);font-weight:600}
+.row .tag{font-size:11.5px;color:var(--muted)}
+.rm{margin-top:22px}
+.rm h4{font-size:16px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.rm .note{font-size:12px;font-weight:500;color:var(--warn);background:var(--warnbg);padding:2px 8px;border-radius:999px}
+table.t{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13px}
+.t th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;padding:8px 12px;background:var(--paper);border-bottom:1px solid var(--line)}
+.t td{padding:8px 12px;border-bottom:1px solid var(--line)}
+.t tr:last-child td{border-bottom:0}
+
+/* Round 2: no fills, no boxes, no colour bands. Type and one thin line do the work. */
+.count{font-size:12.5px;font-weight:500;color:var(--faint);white-space:nowrap}
+.count.w{color:var(--warn)}
+
+/* ---------- 1: text tabs with a bar under the open one ---------- */
+.t1{display:flex;gap:28px;border-bottom:1px solid var(--line);margin-top:2px}
+.t1 .tb{display:flex;align-items:baseline;gap:8px;padding:10px 0 11px;margin-bottom:-1px;border-bottom:2px solid transparent;font-size:16.5px;font-weight:600;color:var(--faint)}
+.t1 .tb:hover{color:var(--muted)}
+.t1 .tb[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--deep)}
+
+/* ---------- 2: the tab names are the page heading ---------- */
+.t2{display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 14px;margin:2px 0 4px}
+.t2 .tb{display:flex;align-items:baseline;gap:8px;font-size:22px;font-weight:700;letter-spacing:-.015em;color:#B4C0D0;line-height:1.25}
+.t2 .tb:hover{color:var(--muted)}
+.t2 .tb[aria-selected="true"]{color:var(--ink)}
+.t2 .dot{color:#CBD5E1;font-size:22px;font-weight:400}
+.t2 .count{font-size:12.5px;letter-spacing:0}
+.subtitle{font-size:13px;color:var(--faint);margin-top:-2px}
+
+/* ---------- 3: a quiet list beside the form ---------- */
+.t3layout{display:grid;grid-template-columns:168px minmax(0,1fr);gap:24px;align-items:start;margin-top:4px}
+.t3{display:grid;gap:2px;position:sticky;top:0;border-left:1px solid var(--line)}
+.t3 .tb{display:grid;gap:1px;padding:7px 0 7px 14px;margin-left:-1px;border-left:2px solid transparent;font-size:14.5px;font-weight:600;color:var(--muted)}
+.t3 .tb:hover{color:var(--ink)}
+.t3 .tb[aria-selected="true"]{color:var(--ink);border-left-color:var(--deep)}
+.t3 .count{font-size:12px}
+.t3layout .fsec:first-child{margin-top:0}
+
+/* ---------- phone (direction A) ---------- */
+.phone{width:340px;max-width:100%;height:760px;border-radius:38px;border:10px solid #13233B;background:var(--paper);overflow:hidden;display:flex;flex-direction:column;box-shadow:0 18px 40px -24px rgba(15,46,87,.45);position:relative}
+.ph-top{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px;background:var(--paper)}
+.ph-top .back{display:flex;align-items:center;gap:4px;font-size:13.5px;color:var(--blue);font-weight:500}
+.menu{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 11px;font-size:13.5px;font-weight:600;color:var(--deep)}
+.ph-body{flex:1;overflow:auto;padding:0 12px 90px;position:relative}
+.ph-body h3{font-size:21px;font-weight:700;padding:2px 2px 10px}
+.phone .t1{gap:22px;padding:0 2px}
+.phone .t1 .tb{font-size:15px}
+.phone .t2 .tb{font-size:19px}
+.phone .t2 .dot{font-size:19px}
+/* On a phone the side list becomes the same two words across the top. */
+.phone .t3layout{grid-template-columns:minmax(0,1fr);gap:6px}
+.phone .t3{display:flex;gap:22px;border-left:0;border-bottom:1px solid var(--line);position:static;padding:0 2px}
+.phone .t3 .tb{display:flex;align-items:baseline;gap:6px;padding:9px 0 10px;margin:0 0 -1px;border-left:0;border-bottom:2px solid transparent;font-size:15px}
+.phone .t3 .tb[aria-selected="true"]{border-bottom-color:var(--deep)}
+.phone .fields{grid-template-columns:1fr}
+.phone .fsec{margin-top:10px}
+.ph-save{position:absolute;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px 12px 14px;background:rgba(247,250,253,.94);border-top:1px solid var(--line)}
+.ph-save .btn{flex:1;justify-content:center;padding:10px}
+
+/* ---------- mapping + notes ---------- */
+.map{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.col{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:10px;align-content:start}
+.col h3{display:flex;align-items:center;gap:8px;font-size:17px;color:var(--deep)}
+.col ol{margin:0;padding-left:20px;display:grid;gap:5px}
+.col li span{color:var(--muted);font-size:13px}
+.col .foot{font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px}
+.below{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:8px}
+.below h3{font-size:16px;color:var(--deep)}
+.below p,.below li{color:var(--muted);font-size:14px}
+.below ul{margin:0;padding-left:20px;display:grid;gap:6px}
+.below b{color:var(--ink)}
+pre.code{margin:0;background:#0F2E57;color:#DCE8F7;border-radius:10px;padding:14px 16px;font-family:var(--mono);font-size:12.5px;line-height:1.6;overflow-x:auto}
+pre.code .c{color:#8FA9CC}
+.foot-note{font-size:13px;color:var(--muted)}
+
+@media (max-width:1000px){
+  .mocks{grid-template-columns:minmax(0,1fr)}
+  .phone{margin:0 auto}
+}
+@media (max-width:760px){
+  body{padding-inline:16px}
+  .picker,.map{grid-template-columns:minmax(0,1fr)}
+  .intro h1{font-size:30px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<main class="page">
+
+  <header class="intro">
+    <div class="eyebrow">Kaiki · φόρμα εκδρομής · mockup · γύρος 2</div>
+    <h1>Η ίδια φόρμα, σε δύο καρτέλες, πιο καθαρά</h1>
+    <p>Ο πρώτος γύρος ήταν βαρύς: γεμάτο μπλε, χρωματιστές ζώνες, μεγάλα κουτιά. Εδώ <strong>δεν υπάρχει γέμισμα ούτε πλαίσιο</strong>. Το χωρίσμα το κάνουν τα γράμματα και μία λεπτή γραμμή. Τα πεδία, οι ενότητες και η σειρά τους μένουν ίδια. Διάλεξε έναν τρόπο και πάτα τις καρτέλες στον υπολογιστή και στο κινητό.</p>
+  </header>
+
+  <section class="block" aria-labelledby="h-pick">
+    <h2 class="sec" id="h-pick">Γύρος 2: τρεις ελαφριοί τρόποι</h2>
+    <div class="picker" id="picker"></div>
+  </section>
+
+  <section class="block" aria-labelledby="h-see">
+    <h2 class="sec" id="h-see">Πώς φαίνεται</h2>
+    <p class="lede">Πάτα τις καρτέλες. Υπολογιστής και κινητό αλλάζουν μαζί. Η εκδρομή είναι παράδειγμα.</p>
+    <div class="mocks">
+      <div>
+        <div class="cap">Υπολογιστής · Εκδρομές › Γύρος της Μήλου › Επεξεργασία</div>
+        <div class="scroller">
+          <div class="desk">
+            <nav class="sb" aria-label="Μενού (παράδειγμα)">
+              <div class="brand">Kaiki</div>
+              <div class="grp"><div class="it"><svg class="i" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Αρχική</div></div>
+              <div class="grp"><div class="gl">Σήμερα</div>
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M8 12h8"/></svg>Επιβίβαση</div>
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg>Αναχωρήσεις</div>
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>Ημερολόγιο</div>
+              </div>
+              <div class="grp"><div class="gl">Πωλήσεις</div>
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><path d="M4 8h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/></svg>Κρατήσεις</div>
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><path d="M7 4h7l5 5v11H7z"/><path d="M14 4v5h5"/></svg>Προσφορές</div>
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><path d="M20 12l-8 8-8-8V4h8z"/><circle cx="8.5" cy="8.5" r="1.3"/></svg>Κουπόνια</div>
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Παραστατικά</div>
+              </div>
+              <div class="grp"><div class="gl">Κατάλογος</div>
+                <div class="it on"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M15 9l-2 4-4 2 2-4z"/></svg>Εκδρομές</div>
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><path d="M12 3v18M16 7H10a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6H8"/></svg>Τιμές</div>
+              </div>
+              <div class="grp"><div class="gl">Στόλος</div>
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><path d="M3 16l2 4h14l2-4zM6 16V9h8l3 7M10 9V5"/></svg>Σκάφη</div>
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><path d="M4 12h4l3-7 2 14 3-7h4"/></svg>Δρομολόγια</div>
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><path d="M12 21s7-6 7-12a7 7 0 0 0-14 0c0 6 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Λιμάνια</div>
+              </div>
+              <div class="foot">
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Στατιστικά</div>
+                <div class="it"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>Ρυθμίσεις</div>
+              </div>
+            </nav>
+            <div class="main" id="desk-main"></div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="cap">Κινητό · κατεύθυνση A</div>
+        <div class="phone">
+          <div class="ph-top">
+            <span class="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>Εκδρομές</span>
+            <span class="menu"><svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Μενού</span>
+          </div>
+          <div class="ph-body" id="phone-body"></div>
+          <div class="ph-save"><span class="btn s">Ως πρόχειρη</span><span class="btn p">Δημοσίευση</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="h-map">
+    <h2 class="sec" id="h-map">Ποια ενότητα πάει πού</h2>
+    <p class="lede">Οι ενότητες είναι ακριβώς αυτές που υπάρχουν σήμερα, με τους ίδιους τίτλους. Σε κάθε καρτέλα κρατούν τη σειρά που έχουν τώρα στη φόρμα.</p>
+    <div class="map">
+      <div class="col">
+        <h3><svg class="i" viewBox="0 0 24 24"><path d="M9 4h6v3H9z"/><path d="M9 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-3"/><path d="M9 14l2 2 4-4"/></svg>Βασικά</h3>
+        <ol>
+          <li>Τα βασικά <span>τίτλος, slug, σκάφος, είδος, τρόπος πώλησης</span></li>
+          <li>Πριν τη δημοσίευση <span>η λίστα ελέγχου</span></li>
+          <li>Ώρες και διάρκεια</li>
+          <li>Πόσα άτομα</li>
+          <li>Ηλικιακές κατηγορίες</li>
+          <li>Όροι και ακύρωση <span>πολιτική ακύρωσης, ΦΠΑ, στοιχεία επιβατών</span></li>
+        </ol>
+        <div class="foot">Ό,τι χρειάζεται η εκδρομή για να πουληθεί. Ό,τι ζητά η λίστα «Πριν τη δημοσίευση» είναι εδώ, οπότε ο αριθμός στην καρτέλα λέει πόσα λείπουν.</div>
+      </div>
+      <div class="col">
+        <h3><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 15l4-4 5 5M13 13l2-2 5 5"/><circle cx="15" cy="8.5" r="1.3"/></svg>Περιεχόμενο σελίδας</h3>
+        <ol>
+          <li>Τι θα δει ο επισκέπτης <span>περίληψη, ετικέτα, περιγραφή</span></li>
+          <li>Περιεχόμενο σελίδας εκδρομής <span>τι θα ζήσετε, πρόγραμμα, περιλαμβάνονται, δεν περιλαμβάνονται, τι να φέρετε</span></li>
+          <li>Εμφάνιση στο Google</li>
+        </ol>
+        <div class="foot">Ό,τι διαβάζει ο επισκέπτης. Όλα προαιρετικά και δεν εμποδίζουν τη δημοσίευση, γι' αυτό ο αριθμός εδώ είναι απλώς «συμπληρωμένα».</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="h-notes">
+    <h2 class="sec" id="h-notes">Τι πρέπει να ξέρεις πριν πεις ναι</h2>
+    <div class="below">
+      <ul>
+        <li><b>Οι τιμοκατάλογοι μένουν κάτω από τη φόρμα.</b> Το Filament τους δείχνει κάτω από τη φόρμα όποια καρτέλα κι αν είναι ανοιχτή, όπως και σήμερα. Θα μπορούσαν να γίνουν τρίτη καρτέλα, αλλά τότε θα βγαίναν δύο σειρές καρτελών στην ίδια σελίδα. Όταν γίνει ο πίνακας τιμών που συμφωνήσαμε, οι τιμές μπαίνουν μέσα στα «Βασικά» και το θέμα λύνεται.</li>
+        <li><b>Λάθος σε κρυμμένη καρτέλα.</b> Αν πατήσεις αποθήκευση ενώ βλέπεις το «Περιεχόμενο» και λείπει κάτι από τα «Βασικά», το Filament ανοίγει μόνο του την καρτέλα με το λάθος. Δεν χρειάζεται να το ψάξεις.</li>
+        <li><b>Η καρτέλα θυμάται πού ήσουν.</b> Μπαίνει στη διεύθυνση (<span class="mono">?tab=…</span>), άρα μετά την αποθήκευση ή με ανανέωση μένεις στην ίδια καρτέλα.</li>
+        <li><b>Ίδιες καρτέλες στη δημιουργία.</b> Η νέα εκδρομή ανοίγει στα «Βασικά».</li>
+        <li><b>Οι μικρές καρτέλες ΕΛ | EN μένουν.</b> Είναι μέσα στα πεδία. Οι καρτέλες της φόρμας είναι μεγαλύτερες και χωρίς φόντο, άρα δεν μπερδεύονται με αυτά τα μικρά γκρι κουμπάκια.</li>
+        <li><b>Η γραμμή κάτω από την ανοιχτή καρτέλα</b> δεν είναι υπογράμμιση συνδέσμου. Είναι ο δείκτης «εδώ είσαι», και οι σύνδεσμοι μένουν χωρίς υπογράμμιση όπως συμφωνήσαμε.</li>
+        <li><b>Ο αριθμός δίπλα στην καρτέλα</b> («λείπει 1») ενημερώνεται στην αποθήκευση, όχι σε κάθε πλήκτρο. Αν τον θέλουμε ζωντανό, είναι λίγη ακόμα δουλειά.</li>
+      </ul>
+    </div>
+    <div class="below">
+      <h3 id="code-h">Στον κώδικα</h3>
+      <p id="code-p"></p>
+      <pre class="code" id="code"></pre>
+    </div>
+    <p class="foot-note">Ο γύρος 1 (μπλε γεμάτες καρτέλες, χρωματιστή ζώνη, μεγάλα κουτιά) απορρίφθηκε και αφαιρέθηκε από τη σελίδα. Mockup μόνο. Στο Kaiki δεν έχει αλλάξει τίποτα. Οι ώρες είναι εκτίμηση σε ώρες δουλειάς, μαζί με tests.</p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var I = {
+    basics: '<svg class="i" viewBox="0 0 24 24"><path d="M9 4h6v3H9z"/><path d="M9 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-3"/><path d="M9 14l2 2 4-4"/></svg>',
+    page: '<svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 15l4-4 5 5M13 13l2-2 5 5"/><circle cx="15" cy="8.5" r="1.3"/></svg>'
+  };
+
+  var TREAT = [
+    { id: 1, rec: true, name: 'Λέξεις με γραμμή από κάτω',
+      good: 'Το πιο οικείο: δύο λέξεις, η ανοιχτή σκούρα με λεπτή μπλε γραμμή από κάτω, η άλλη γκρι. Δεν πιάνει ύψος, χωράει ίδια στο κινητό.',
+      bad: 'Ήσυχο, οπότε κάποιος που βιάζεται μπορεί να μη δει αμέσως τη δεύτερη καρτέλα. Το «λείπει 1» σε πορτοκαλί βοηθάει σε αυτό.',
+      hours: '≈ 1 ώρα',
+      how: 'Οι καρτέλες του Filament χωρίς πλαίσιο (contained(false)) και λίγο CSS: χωρίς φόντο στην ενεργή, γραμμή 2px από κάτω, μεγαλύτερα γράμματα. Η γραμμή κάτω από την καρτέλα δεν είναι υπογράμμιση συνδέσμου· είναι ο δείκτης της ανοιχτής καρτέλας.',
+      code: '<span class="c">// ProductResource::form()</span>\nTabs::make(\'trip\')\n    -&gt;contained(false)\n    -&gt;persistTabInQueryString(\'tab\')\n    -&gt;extraAttributes([\'class\' =&gt; \'ka-line-tabs\'])\n    -&gt;tabs([\n        Tab::make(__(\'catalog.product.tabs.basics\'))\n            -&gt;badge(fn (?Product $record) =&gt; self::missingLabel($record))\n            -&gt;schema([/* basics, checklist, schedule, capacity, bands, policy */]),\n        Tab::make(__(\'catalog.product.tabs.page\'))\n            -&gt;schema([/* content, trip_page, seo */]),\n    ])\n    -&gt;columnSpanFull()\n\n<span class="c">/* filament/app/sea.blade.php */</span>\n.ka-line-tabs .fi-tabs { gap: 1.75rem; border-bottom: 1px solid #E1E8F2; }\n.ka-line-tabs .fi-tabs-item { background: none; padding-inline: 0; font-size: 1.03rem; border-bottom: 2px solid transparent; border-radius: 0; }\n.ka-line-tabs .fi-tabs-item-active { color: #15233A; border-bottom-color: var(--ka-sea-deep); }\n.ka-line-tabs .fi-badge { background: none; --tw-ring-color: transparent; }'
+    },
+    { id: 2, name: 'Οι καρτέλες είναι ο τίτλος',
+      good: 'Καμία γραμμή, κανένα κουτί: ο τίτλος της σελίδας γράφει «Βασικά · Περιεχόμενο σελίδας» και πατάς τη λέξη. Το πιο καθαρό από τα τρία.',
+      bad: 'Το όνομα της εκδρομής κατεβαίνει σε μικρή γραμμή πάνω από τον τίτλο. Και μια γκρι λέξη σε μέγεθος τίτλου δεν μοιάζει αμέσως με κουμπί.',
+      hours: '≈ 1,5 ώρα',
+      how: 'Ίδιες καρτέλες του Filament χωρίς πλαίσιο, με CSS που τις μεγαλώνει σε μέγεθος τίτλου. Ο τίτλος της σελίδας γίνεται το όνομα της εκδρομής σε μικρό μέγεθος (getHeading/getSubheading).',
+      code: '<span class="c">// EditProduct</span>\npublic function getHeading(): string { return \'\'; }\npublic function getSubheading(): ?string { return $this-&gt;record-&gt;title; }\n\n<span class="c">// ProductResource::form(): same Tabs as option 1, class ka-title-tabs</span>\n\n<span class="c">/* filament/app/sea.blade.php */</span>\n.ka-title-tabs .fi-tabs { gap: .9rem; border: 0; }\n.ka-title-tabs .fi-tabs-item { background: none; padding: 0; font-size: 1.4rem; font-weight: 700; color: #B4C0D0; }\n.ka-title-tabs .fi-tabs-item + .fi-tabs-item::before { content: "·"; margin-right: .9rem; color: #CBD5E1; }\n.ka-title-tabs .fi-tabs-item-active { color: #15233A; }'
+    },
+    { id: 3, name: 'Λίστα στο πλάι',
+      good: 'Όπως οι σελίδες ρυθμίσεων: δύο λέξεις σε στενή στήλη αριστερά, με λεπτή κάθετη γραμμή στην ανοιχτή. Μένει ορατή όσο κατεβαίνεις.',
+      bad: 'Τρώει πλάτος από τη φόρμα, που έχει ήδη δύο στήλες πεδίων. Το Filament 3 δεν έχει κάθετες καρτέλες, άρα θέλει CSS grid πάνω στις καρτέλες του. Στο κινητό γίνεται ίδιο με το 1.',
+      hours: '≈ 2,5 ώρες',
+      how: 'Οι καρτέλες του Filament μένουν, αλλά με CSS grid η σειρά τους γίνεται στήλη αριστερά και το περιεχόμενο δεξιά, από 1024px και πάνω. Κάτω από 1024px πέφτει στο 1. Θέλει προσοχή στο sticky και στις αναβαθμίσεις του Filament.',
+      code: '<span class="c">// ProductResource::form(): same Tabs, class ka-side-tabs</span>\n\n<span class="c">/* filament/app/sea.blade.php */</span>\n@media (min-width: 1024px) {\n  .ka-side-tabs { display: grid; grid-template-columns: 11rem minmax(0,1fr); gap: 1.5rem; }\n  .ka-side-tabs .fi-tabs { flex-direction: column; position: sticky; top: 5rem;\n      align-self: start; border-left: 1px solid #E1E8F2; }\n  .ka-side-tabs .fi-tabs-item { justify-content: flex-start; background: none;\n      border-left: 2px solid transparent; border-radius: 0; margin-left: -1px; }\n  .ka-side-tabs .fi-tabs-item-active { border-left-color: var(--ka-sea-deep); }\n}'
+    }
+  ];
+
+  var state = { t: 1, tab: 'basics' };
+  try { var s = JSON.parse(localStorage.getItem('ka-trip-tabs-r2') || 'null'); if (s && s.t) state = s; } catch (e) {}
+  function save() { try { localStorage.setItem('ka-trip-tabs-r2', JSON.stringify(state)); } catch (e) {} }
+
+  function sw(on) { return '<span class="sw' + (on ? ' on' : '') + '"></span>'; }
+  function fld(label, val, opts) {
+    opts = opts || {};
+    var cls = 'fld' + (opts.full ? ' full' : '');
+    var lang = opts.lang ? '<span class="lang"><span class="on">ΕΛ</span><span>EN</span></span>' : '';
+    if (opts.toggle !== undefined) return '<div class="' + cls + '"><div class="tog">' + sw(opts.toggle) + label + '</div></div>';
+    return '<div class="' + cls + '"><label>' + label + lang + '</label><div class="inp' + (opts.area ? ' area' : '') + '">' + val + '</div></div>';
+  }
+  function sec(title, body, note) {
+    return '<div class="fsec"><h4>' + title + (note ? '<span class="opt">' + note + '</span>' : '') + '</h4>' + body + '</div>';
+  }
+
+  function basics(phone) {
+    return sec('Τα βασικά', '<div class="fields">' +
+        fld('Τίτλος', 'Γύρος της Μήλου', { full: true, lang: true }) +
+        fld('Slug', '<span class="mono">gyros-tis-milou</span>') +
+        fld('Σκάφος', 'Αύρα') +
+        fld('Είδος', 'Ολοήμερη') +
+        fld('Τρόπος πώλησης', 'Ανά θέση') +
+        fld('Προβεβλημένη', '', { toggle: false }) +
+      '</div>') +
+      sec('Πριν τη δημοσίευση', '<div class="check">' +
+        '<div><span class="ok">✓</span>Σκάφος</div>' +
+        '<div><span class="ok">✓</span>Σημείο συνάντησης</div>' +
+        '<div><span class="ok">✓</span>Ηλικιακές κατηγορίες</div>' +
+        '<div><span class="no">!</span>Τιμοκατάλογος <span class="no">· λείπει</span></div>' +
+      '</div>') +
+      sec('Ώρες και διάρκεια', '<div class="fields">' +
+        fld('Διάρκεια', '<span class="mono">480</span><span class="ph">λεπτά</span>') +
+        fld('Ώρα αναχώρησης', '<span class="mono">09:30</span>') +
+        fld('Προσέλευση πριν', '<span class="mono">30</span><span class="ph">λεπτά</span>') +
+        fld('Σημείο συνάντησης', 'Αδάμαντας, προβλήτα 2') +
+      '</div>') +
+      (phone ? '' :
+      sec('Πόσα άτομα', '<div class="fields">' +
+        fld('Μέγιστα άτομα', '<span class="mono">45</span>') +
+        fld('Ελάχιστα άτομα για να φύγει', '<span class="mono">10</span>') +
+      '</div>') +
+      sec('Ηλικιακές κατηγορίες', '<div class="rows">' +
+        '<div class="row"><span class="mono">18+</span>Ενήλικας<span class="tag">βασική</span></div>' +
+        '<div class="row"><span class="mono">4–17</span>Παιδί<span class="tag">22,50 €</span></div>' +
+        '<div class="row"><span class="mono">0–3</span>Βρέφος<span class="tag">δεν πιάνει θέση</span></div>' +
+      '</div>') +
+      sec('Όροι και ακύρωση', '<div class="fields">' +
+        fld('Πολιτική ακύρωσης', 'Ευέλικτη, 24 ώρες') +
+        fld('Συντελεστής ΦΠΑ', '13%') +
+        fld('Ζητάτε στοιχεία επιβατών', '', { toggle: true }) +
+      '</div>'));
+  }
+
+  function page(phone) {
+    return sec('Τι θα δει ο επισκέπτης', '<div class="fields">' +
+        fld('Περίληψη', 'Κλέφτικο, Σαρακήνικο και Πολύαιγος σε μια μέρα, με φαγητό στο σκάφος.', { full: true, area: true, lang: true }) +
+        fld('Ετικέτα', 'Δημοφιλές', { lang: true }) +
+      '</div>') +
+      sec('Περιεχόμενο σελίδας εκδρομής', '<div class="rows">' +
+        '<div class="row"><span class="mono">09:30</span>Αναχώρηση από τον Αδάμαντα<span class="tag">⋮</span></div>' +
+        '<div class="row"><span class="mono">11:00</span>Κλέφτικο, μπάνιο<span class="tag">⋮</span></div>' +
+        '<div class="row"><span class="mono">14:00</span>Φαγητό στο σκάφος<span class="tag">⋮</span></div>' +
+      '</div><div class="fields">' +
+        fld('Περιλαμβάνονται', 'Φαγητό, νερό, μάσκες', { lang: true }) +
+        fld('Τι να φέρετε', '<span class="ph">κενό</span>', { lang: true }) +
+      '</div>', 'προαιρετικά') +
+      (phone ? '' :
+      sec('Εμφάνιση στο Google', '<div class="fields">' +
+        fld('Τίτλος στο Google', '<span class="ph">κενό, παίρνει τον τίτλο</span>', { lang: true }) +
+        fld('Περιγραφή στο Google', '<span class="ph">κενό</span>', { lang: true }) +
+      '</div>', 'προαιρετικά'));
+  }
+
+  // Quiet counts: the one that needs action is amber, the other is just grey.
+  function countB() { return '<span class="count w">λείπει 1</span>'; }
+  function countP() { return '<span class="count">5 από 8</span>'; }
+
+  function tabs(phone) {
+    var sel = function (k) { return 'role="tab" aria-selected="' + (state.tab === k) + '" data-tab="' + k + '"'; };
+    var pageName = phone ? 'Περιεχόμενο' : 'Περιεχόμενο σελίδας';
+    if (state.t === 1) {
+      return '<div class="t1" role="tablist">' +
+        '<button class="tb" ' + sel('basics') + '>Βασικά' + countB() + '</button>' +
+        '<button class="tb" ' + sel('page') + '>' + pageName + (phone ? '' : countP()) + '</button></div>';
+    }
+    if (state.t === 2) {
+      return '<div class="t2" role="tablist">' +
+        '<button class="tb" ' + sel('basics') + '>Βασικά' + (phone ? '' : countB()) + '</button>' +
+        '<span class="dot" aria-hidden="true">·</span>' +
+        '<button class="tb" ' + sel('page') + '>' + pageName + '</button></div>';
+    }
+    return '<div class="t3" role="tablist">' +
+      '<button class="tb" ' + sel('basics') + '>Βασικά' + countB() + '</button>' +
+      '<button class="tb" ' + sel('page') + '>' + pageName + (phone ? '' : countP()) + '</button></div>';
+  }
+
+  function body(phone) {
+    var content = state.tab === 'basics' ? basics(phone) : page(phone);
+    if (state.t === 3) return '<div class="t3layout">' + tabs(phone) + '<div>' + content + '</div></div>';
+    return tabs(phone) + content;
+  }
+
+  // Option 2 makes the tabs the heading, so the trip's name steps down to a small line.
+  function heading(phone) {
+    if (state.t === 2) return '<div class="subtitle">Γύρος της Μήλου</div>';
+    return '<h3>Γύρος της Μήλου</h3>';
+  }
+
+  function render() {
+    document.getElementById('desk-main').innerHTML =
+      '<div class="wavebg"></div>' +
+      '<div class="crumb">Εκδρομές › Γύρος της Μήλου › Επεξεργασία</div>' +
+      '<div class="phead">' + heading(false) + '<div class="btns"><span class="btn s">Αποθήκευση ως πρόχειρη</span><span class="btn p">Δημοσίευση</span></div></div>' +
+      body(false) +
+      '<div class="rm"><h4>Τιμοκατάλογοι <span class="note">φαίνεται κάτω από όποια καρτέλα</span></h4>' +
+      '<table class="t"><thead><tr><th>Όνομα</th><th>Περίοδος</th><th>Ενήλικας</th></tr></thead><tbody>' +
+      '<tr><td>Καλοκαίρι</td><td>Υψηλή</td><td class="mono">45,00 €</td></tr>' +
+      '<tr><td>Άνοιξη</td><td>Χαμηλή</td><td class="mono">38,00 €</td></tr></tbody></table></div>';
+
+    document.getElementById('phone-body').innerHTML = (state.t === 2 ? '<div class="subtitle" style="padding:2px 2px 6px">Γύρος της Μήλου</div>' : '<h3>Γύρος της Μήλου</h3>') + body(true);
+
+    var t = TREAT[state.t - 1];
+    document.getElementById('code-p').textContent = t.name + ': ' + t.how;
+    document.getElementById('code').innerHTML = t.code;
+
+    var picks = document.querySelectorAll('.pick');
+    for (var i = 0; i < picks.length; i++) {
+      var on = Number(picks[i].getAttribute('data-t')) === state.t;
+      picks[i].setAttribute('aria-pressed', String(on));
+      picks[i].querySelector('.choose').textContent = on ? '✓ Αυτό βλέπεις παρακάτω' : 'Δες το παρακάτω';
+    }
+  }
+
+  function miniTabs(t) {
+    var save = state;
+    state = { t: t, tab: 'basics' };
+    var html = tabs(true);
+    state = save;
+    if (t === 3) html = html.replace('class="t3"', 'class="t3" style="display:grid"');
+    // A preview inside a button: no nested buttons, or the parser splits the card.
+    html = html.replace(/<button/g, '<div').replace(/<\/button>/g, '</div>');
+    return '<div style="width:100%;pointer-events:none" aria-hidden="true">' + html + '</div>';
+  }
+
+  var picker = document.getElementById('picker');
+  picker.innerHTML = TREAT.map(function (t) {
+    return '<button class="pick" data-t="' + t.id + '" aria-pressed="false">' +
+      '<div class="pick-top"><h3>' + t.id + '. ' + t.name + '</h3>' + (t.rec ? '<span class="rec">✓ Προτείνεται</span>' : '') + '</div>' +
+      '<div class="mini">' + miniTabs(t.id) + '</div>' +
+      '<dl><div><dt>Υπέρ</dt><dd>' + t.good + '</dd></div><div><dt>Κατά</dt><dd>' + t.bad + '</dd></div></dl>' +
+      '<div class="cost">Δουλειά <b>' + t.hours + '</b></div>' +
+      '<span class="choose"></span></button>';
+  }).join('');
+
+  picker.addEventListener('click', function (e) {
+    var b = e.target.closest('.pick'); if (!b) return;
+    state.t = Number(b.getAttribute('data-t')); save(); render();
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-tab]'); if (!b || b.closest('.pick')) return;
+    state.tab = b.getAttribute('data-tab'); save(); render();
+  });
+
+  render();
+})();
+</script>

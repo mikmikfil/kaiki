@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources;
 use App\Enums\VesselAmenity;
 use App\Enums\VesselStatus;
 use App\Enums\VesselType;
+use App\Filament\App\Navigation\SiblingScreens;
 use App\Filament\App\Resources\VesselResource\Pages;
 use App\Filament\Forms\TranslatableInput;
 use App\Models\Port;
@@ -54,7 +55,7 @@ class VesselResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-lifebuoy';
 
-    protected static ?int $navigationSort = 20;
+    protected static ?int $navigationSort = 10;
 
     /**
      * The `specs` keys this form renders (`docs/data-model.md` §3.9).
@@ -72,6 +73,12 @@ class VesselResource extends Resource
     public static function getNavigationGroup(): ?string
     {
         return __('panel.groups.fleet');
+    }
+
+    /** Stays highlighted on the screens it shares a tab bar with (Menu 1). */
+    public static function getNavigationItems(): array
+    {
+        return SiblingScreens::highlight(static::class, parent::getNavigationItems());
     }
 
     public static function getNavigationLabel(): string
