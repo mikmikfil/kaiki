@@ -112,7 +112,7 @@ return [
         'invalid' => 'Enter an amount in euros, e.g. 22.50.',
         'missing_banner' => 'One price is missing. Without it, that category is not charged and the trip cannot be published.|:count prices are missing. Without them, those categories are not charged and the trip cannot be published.',
         'missing_cell' => 'Missing',
-        'after_first_save' => 'Press «Save as draft» and the price table appears here straight away.',
+        'after_first_save' => 'Press «Continue to prices» at the bottom of the page and the price table opens straight away. The trip stays a draft until you publish it.',
         'guest' => [
             'heading' => 'What the guest pays',
             'period' => 'Period',

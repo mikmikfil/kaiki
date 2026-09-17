@@ -114,6 +114,25 @@ it('creates a vessel through the form, in metres', function (): void {
         ->and($vessel?->search_index)->toContain('οδυσσεασ');
 })->group('fast');
 
+it('creates a home port from the vessel form when the operator has none', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    vesselPageAs($owner, CreateVessel::class)
+        ->callFormComponentAction('home_port_id', 'createOption', [
+            'name' => ['el' => 'Λιμάνι Πάργας', 'en' => 'Parga port'],
+            'address' => 'Πάργα 480 60',
+        ])
+        ->assertHasNoFormComponentActionErrors()
+        ->fillForm(vesselFormData())
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    $vessel = Tenancy::forTenant(vesselTenantOf($owner), fn (): ?Vessel => Vessel::query()->with('homePort')->first());
+
+    expect($vessel?->homePort?->getTranslation('name', 'el'))->toBe('Λιμάνι Πάργας')
+        ->and($vessel?->homePort?->tenant_id)->toBe($owner->tenant_id);
+})->group('fast');
+
 it('round-trips the length through the edit form without losing a centimetre', function (): void {
     // Written twice by two code paths — fill and save — so a boat that lost a
     // centimetre on every edit would eventually lose a metre, quietly.

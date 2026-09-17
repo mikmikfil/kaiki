@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Support\Locale\LocaleResolver;
 use App\Support\Locale\TranslationValue;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -17,8 +18,7 @@ use Illuminate\Validation\ValidationException;
  *
  * ## Why the whole set, and never one band
  *
- * Every CAT-8 rule is set-level. *"Bands must not overlap"* needs the others to
- * compare against. *"Exactly one base band"* cannot be judged from the row
+ * Every CAT-8 rule is set-level. *"Exactly one base band"* cannot be judged from the row
  * being saved — a row with `is_base = false` is only wrong if no *other* row
  * has it. *"At least one counted band"* is the same shape.
  *
@@ -55,6 +55,8 @@ final class SaveAgeBands
      */
     public function __invoke(Product $product, array $bands): array
     {
+        $bands = self::withCodes($bands);
+
         $this->validateSet($bands);
 
         return DB::transaction(function () use ($product, $bands): array {
@@ -144,9 +146,12 @@ final class SaveAgeBands
             throw ValidationException::withMessages(['age_bands' => $errors]);
         }
 
+        // No overlap rule any more (product owner, 2026-09-17): a category such
+        // as ΑΜΕΑ covers the same ages as «Ενήλικας». Nothing resolves a band
+        // from an age alone: the guest picks the category, and the date of
+        // birth is checked against that category's own range.
         $errors = array_merge(
             $errors,
-            $this->overlapErrors($bands),
             $this->baseBandErrors($bands),
             $this->countedBandErrors($bands),
             $this->pricingErrors($bands),
@@ -160,49 +165,42 @@ final class SaveAgeBands
     }
 
     /**
-     * CAT-8: ranges must not overlap.
+     * A code for every band that arrived without one.
      *
-     * Named pair by pair, because "your bands overlap" on a set of five leaves
-     * the operator to find which two.
+     * The trip form no longer asks for «Κωδικός» (2026-09-17): the operator
+     * names the category and the code is made from the name, English first
+     * because it transliterates cleanly. A band that already has a code keeps
+     * it, which is what keeps its prices attached across saves.
      *
      * @param  list<array<string, mixed>>  $bands
-     * @return list<string>
+     * @return list<array<string, mixed>>
      */
-    private function overlapErrors(array $bands): array
+    public static function withCodes(array $bands): array
     {
-        $errors = [];
-        $count = count($bands);
+        $taken = array_filter(array_map(static fn (array $b): string => trim((string) ($b['code'] ?? '')), $bands));
 
-        for ($i = 0; $i < $count; $i++) {
-            for ($j = $i + 1; $j < $count; $j++) {
-                if ($this->rangesOverlap($bands[$i], $bands[$j])) {
-                    $errors[] = trans('catalog.age_band.validation.overlap', [
-                        'first' => $this->describe($bands[$i]),
-                        'second' => $this->describe($bands[$j]),
-                    ]);
-                }
+        foreach ($bands as $i => $band) {
+            if (trim((string) ($band['code'] ?? '')) !== '') {
+                continue;
             }
+
+            $label = is_array($band['label'] ?? null) ? $band['label'] : [];
+            $stem = Str::slug((string) ($label['en'] ?? ''), '_')
+                ?: Str::slug((string) ($label['el'] ?? ''), '_', 'el')
+                ?: 'band';
+            $stem = substr($stem, 0, 28);
+
+            $code = $stem;
+
+            for ($n = 2; in_array($code, $taken, true); $n++) {
+                $code = $stem . '_' . $n;
+            }
+
+            $bands[$i]['code'] = $code;
+            $taken[] = $code;
         }
 
-        return $errors;
-    }
-
-    /**
-     * @param  array<string, mixed>  $a
-     * @param  array<string, mixed>  $b
-     */
-    private function rangesOverlap(array $a, array $b): bool
-    {
-        $aMin = (int) ($a['min_age'] ?? 0);
-        $bMin = (int) ($b['min_age'] ?? 0);
-
-        // A null upper bound is "no upper bound", so it overlaps anything above
-        // its minimum — which is exactly the adult band's relationship with a
-        // senior band somebody adds later without thinking.
-        $aMax = isset($a['max_age']) && $a['max_age'] !== '' ? (int) $a['max_age'] : PHP_INT_MAX;
-        $bMax = isset($b['max_age']) && $b['max_age'] !== '' ? (int) $b['max_age'] : PHP_INT_MAX;
-
-        return $aMin <= $bMax && $bMin <= $aMax;
+        return array_values($bands);
     }
 
     /**

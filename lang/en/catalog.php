@@ -208,6 +208,7 @@ return [
         'sections' => [
             'basics' => 'The basics',
             'schedule' => 'Times and duration',
+            'schedule_per_seat' => 'Duration and check-in',
             'content' => 'What the guest sees',
             'capacity' => 'How many people',
             'policy' => 'Terms and cancellation',
@@ -292,6 +293,7 @@ return [
                 'label' => 'Description',
                 'help' => 'The whole story of the trip.',
             ],
+            'schedule_where' => 'Departure days and times are set on the «Schedule» tab, once the trip is saved.',
             'duration_minutes' => [
                 'label' => 'Duration',
                 'help' => 'In minutes, from departure to return.',
@@ -362,7 +364,7 @@ return [
                 'help' => 'About 155 characters.',
             ],
             'bands' => [
-                'help' => 'Every age belongs to exactly one band. One of them is the base — the others are priced as a share of it.',
+                'help' => 'The usual three are filled in. Change the ages, delete any you do not need or add your own, e.g. disabled passengers. The base one, usually the adult, gives the «from» price.',
                 'add' => 'Add a band',
                 'code' => ['label' => 'Code', 'help' => 'Your own, e.g. "adult".'],
                 'label' => ['label' => 'Name', 'help' => 'The guest reads this when choosing passengers.'],
@@ -407,6 +409,7 @@ return [
         'status_actions' => [
             'save' => 'Save',
             'save_draft' => 'Save as draft',
+            'continue_to_prices' => 'Continue to prices',
             'publish' => 'Publish',
             'unpublish' => 'Take off sale',
             'republish' => 'Put back on sale',

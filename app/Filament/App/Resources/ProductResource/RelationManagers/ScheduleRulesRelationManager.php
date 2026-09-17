@@ -10,10 +10,13 @@ use App\Enums\BookingMode;
 use App\Filament\App\Resources\ScheduleRuleResource;
 use App\Models\Product;
 use App\Models\ScheduleRule;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Actions\CreateAction;
@@ -23,6 +26,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -37,6 +41,13 @@ use Illuminate\Validation\ValidationException;
  * with the trip select swapped for the owner record, and {@see SaveScheduleRule}
  * is still the only writer. The old screen stays reachable at its address for
  * bookmarks and the manual; it simply left the menu.
+ *
+ * ## Several times a day
+ *
+ * A trip can leave at 09:00, 13:00 and 17:00. A new schedule therefore takes a
+ * list of times and becomes one rule per time, sharing days and dates (product
+ * owner, 2026-09-17). Editing stays one rule, so 13:00 can be moved or paused on
+ * its own, and the rule table and the generator are untouched.
  *
  * Shown for trips sold per seat only — a whole-boat charter has no timetable,
  * and a tab that could only ever say "not for this trip" is a tab to hide.
@@ -74,6 +85,32 @@ class ScheduleRulesRelationManager extends RelationManager
             $window->getChildComponents(),
             static fn ($component): bool => ! ($component instanceof Field && $component->getName() === 'generate_days_ahead'),
         )));
+
+        $when->schema([
+            ...array_map(
+                static fn (Component $component): Component => $component instanceof Field && $component->getName() === 'start_time'
+                    ? $component->visibleOn('edit')
+                    : $component,
+                $when->getChildComponents(),
+            ),
+            Repeater::make('start_times')
+                ->label(__('availability.schedule_rule.form.start_times.label'))
+                ->helperText(__('availability.schedule_rule.form.start_times.help'))
+                ->simple(
+                    TimePicker::make('time')
+                        // Tenant-local, like `start_time`; see the resource.
+                        ->timezone('UTC')
+                        ->seconds(false)
+                        ->native(false)
+                        ->required()
+                        ->distinct(),
+                )
+                ->addActionLabel(__('availability.schedule_rule.form.start_times.add'))
+                ->defaultItems(1)
+                ->minItems(1)
+                ->reorderable(false)
+                ->visibleOn('create'),
+        ]);
 
         $other = Section::make(__('availability.schedule_rule.on_product.other'))
             ->schema([
@@ -133,7 +170,7 @@ class ScheduleRulesRelationManager extends RelationManager
                 CreateAction::make()
                     ->label(__('availability.schedule_rule.on_product.add'))
                     ->modalHeading(__('availability.schedule_rule.on_product.add'))
-                    ->using(fn (array $data): ScheduleRule => $this->save(new ScheduleRule, $data)),
+                    ->using(fn (array $data): ScheduleRule => $this->createForEachTime($data)),
             ])
             ->actions([
                 EditAction::make()
@@ -148,13 +185,43 @@ class ScheduleRulesRelationManager extends RelationManager
     }
 
     /**
+     * One rule per chosen time, all or none: a refusal on the third time must
+     * not leave the first two behind.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    private function createForEachTime(array $data): ScheduleRule
+    {
+        $times = array_values(array_filter(
+            array_map(static fn (mixed $time): string => is_scalar($time) ? (string) $time : '', (array) ($data['start_times'] ?? [])),
+            static fn (string $time): bool => $time !== '',
+        ));
+        unset($data['start_times']);
+
+        if ($times === []) {
+            throw ValidationException::withMessages([
+                'mountedTableActionsData.0.start_times' => __('availability.schedule_rule.form.start_times.help'),
+            ]);
+        }
+
+        return DB::transaction(function () use ($times, $data): ScheduleRule {
+            $rules = array_map(
+                fn (string $time): ScheduleRule => $this->save(new ScheduleRule, [...$data, 'start_time' => $time], errorKey: 'start_times'),
+                $times,
+            );
+
+            return $rules[0];
+        });
+    }
+
+    /**
      * The same translation `ConsumesWeekdays` does for the old screen: seven
      * checkboxes to the bitmask, blanks to nulls, and the Action's refusal
      * re-keyed onto the field the operator can see.
      *
      * @param  array<string, mixed>  $data
      */
-    private function save(ScheduleRule $record, array $data): ScheduleRule
+    private function save(ScheduleRule $record, array $data, string $errorKey = 'start_time'): ScheduleRule
     {
         /** @var Product $product */
         $product = $this->getOwnerRecord();
@@ -178,7 +245,13 @@ class ScheduleRulesRelationManager extends RelationManager
             $messages = [];
 
             foreach ($exception->errors() as $key => $bag) {
-                $messages['mountedTableActionsData.0.' . ($key === 'weekday_mask' ? 'weekdays' : $key)] = $bag;
+                $field = match ($key) {
+                    'weekday_mask' => 'weekdays',
+                    'start_time' => $errorKey,
+                    default => $key,
+                };
+
+                $messages['mountedTableActionsData.0.' . $field] = $bag;
             }
 
             throw ValidationException::withMessages($messages);

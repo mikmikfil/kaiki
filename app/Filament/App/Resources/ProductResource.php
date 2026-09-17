@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources;
 
+use App\Domain\Catalog\Actions\SaveCancellationPolicy;
 use App\Domain\Catalog\Support\ProductPublishChecklist;
 use App\Domain\Catalog\Support\TripPageContent;
 use App\Enums\AgeBandPricing;
@@ -260,8 +261,19 @@ class ProductResource extends Resource
                 ->description(__('catalog.product.checklist.intro'))
                 ->schema(static::checklistSchema()),
 
-            Section::make(__('catalog.product.sections.schedule'))
+            // A trip sold per seat takes its days and times from the «Δρομολόγια»
+            // tab, so here it only has duration, check-in and meeting point. The
+            // single departure time is a whole-boat charter's (2026-09-17).
+            Section::make(static fn (Get $get): string => static::modeOf($get) === BookingMode::PerSeat
+                ? __('catalog.product.sections.schedule_per_seat')
+                : __('catalog.product.sections.schedule'))
                 ->schema([
+                    Placeholder::make('schedule_where')
+                        ->hiddenLabel()
+                        ->content(__('catalog.product.form.schedule_where'))
+                        ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat)
+                        ->columnSpanFull(),
+
                     TextInput::make('duration_minutes')
                         ->label(__('catalog.product.form.duration_minutes.label'))
                         ->helperText(__('catalog.product.form.duration_minutes.help'))
@@ -279,7 +291,8 @@ class ProductResource extends Resource
                         // (2026-09-17). Same as a departure's `local_time`.
                         ->timezone('UTC')
                         ->seconds(false)
-                        ->native(false),
+                        ->native(false)
+                        ->visible(static fn (Get $get): bool => static::modeOf($get) !== BookingMode::PerSeat),
 
                     TextInput::make('check_in_offset_minutes')
                         ->label(__('catalog.product.form.check_in_offset_minutes.label'))
@@ -364,11 +377,10 @@ class ProductResource extends Resource
                         ->label(__('catalog.product.sections.bands'))
                         ->addActionLabel(__('catalog.product.form.bands.add'))
                         ->schema([
-                            TextInput::make('code')
-                                ->label(__('catalog.product.form.bands.code.label'))
-                                ->helperText(__('catalog.product.form.bands.code.help'))
-                                ->required()
-                                ->maxLength(32),
+                            // Not asked any more (2026-09-17): made from the
+                            // name on first save (SaveAgeBands::withCodes) and
+                            // carried here unchanged, so prices stay attached.
+                            Hidden::make('code'),
 
                             TranslatableInput::text(
                                 'label',
@@ -420,8 +432,16 @@ class ProductResource extends Resource
                                 ->label(__('catalog.product.form.bands.no_document.label'))
                                 ->helperText(__('catalog.product.form.bands.no_document.help')),
                         ])
-                        ->itemLabel(fn (array $state): ?string => is_string($state['code'] ?? null) ? $state['code'] : null)
-                        ->defaultItems(1)
+                        ->itemLabel(static function (array $state): ?string {
+                            $label = $state['label'] ?? null;
+                            $name = is_array($label) ? (string) ($label[app()->getLocale()] ?? $label['el'] ?? '') : '';
+
+                            return $name !== '' ? $name : null;
+                        })
+                        // A new trip starts with the usual three, which the
+                        // operator edits, removes or adds to — e.g. ΑΜΕΑ, which
+                        // may share ages with «Ενήλικας» (2026-09-17).
+                        ->default(static::defaultAgeBands(...))
                         ->columns(2)
                         ->columnSpanFull(),
                 ]),
@@ -431,6 +451,8 @@ class ProductResource extends Resource
             // section is there but says, in one line, that it appears after
             // the first save: a missing section reads as "no prices here".
             Section::make(__('pricing.price_table.heading'))
+                // The create page lands here after «Συνέχεια στις τιμές».
+                ->id('prices')
                 ->description(__('pricing.price_table.intro'))
                 ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat)
                 ->schema([
@@ -449,7 +471,56 @@ class ProductResource extends Resource
                         ->helperText(__('catalog.product.form.cancellation_policy.help'))
                         ->options(static::cancellationPolicyOptions(...))
                         ->searchable()
-                        ->preload(),
+                        ->preload()
+                        // A new operator has no policy, and a trip cannot be
+                        // published without one, so the trip form can make it.
+                        // Name, free-cancellation window and the refund ladder;
+                        // weather, no-show and voucher keep their column
+                        // defaults and are edited on the policy screen.
+                        ->createOptionForm([
+                            TranslatableInput::text(
+                                'name',
+                                __('pricing.cancellation.form.name.label'),
+                                __('pricing.cancellation.form.name.help'),
+                                maxLength: 80,
+                            ),
+                            TextInput::make('free_cancellation_hours')
+                                ->label(__('pricing.cancellation.form.free_cancellation_hours.label'))
+                                ->helperText(__('pricing.cancellation.form.free_cancellation_hours.help'))
+                                ->integer()
+                                ->minValue(0)
+                                ->maxValue(65535)
+                                ->suffix(__('pricing.cancellation.form.free_cancellation_hours.suffix')),
+                            Repeater::make('tiers')
+                                ->label(__('pricing.cancellation.form.tiers.label'))
+                                ->helperText(__('pricing.cancellation.form.tiers.help'))
+                                ->addActionLabel(__('pricing.cancellation.form.tiers.add'))
+                                ->schema([
+                                    TextInput::make('days_before')
+                                        ->label(__('pricing.cancellation.form.tiers.days_before'))
+                                        ->integer()
+                                        ->required()
+                                        ->minValue(0)
+                                        ->maxValue(65535),
+                                    TextInput::make('refund_percent')
+                                        ->label(__('pricing.cancellation.form.tiers.refund_percent'))
+                                        ->integer()
+                                        ->required()
+                                        ->minValue(0)
+                                        ->maxValue(100)
+                                        ->suffix('%'),
+                                ])
+                                ->reorderable(false)
+                                ->defaultItems(0)
+                                ->columns(2),
+                        ])
+                        ->createOptionUsing(static function (array $data): int {
+                            /** @var list<array{days_before: int|string, refund_percent: int|string}> $tiers */
+                            $tiers = array_values($data['tiers'] ?? []);
+                            unset($data['tiers']);
+
+                            return (int) app(SaveCancellationPolicy::class)(new CancellationPolicy, $data, $tiers)->getKey();
+                        }),
 
                     Select::make('vat_rate_id')
                         ->label(__('catalog.product.form.vat_rate.label'))
@@ -901,6 +972,40 @@ class ProductResource extends Resource
             ->get()
             ->mapWithKeys(static fn (Port $port): array => [$port->getKey() => (string) $port->name])
             ->all();
+    }
+
+    /**
+     * Ενήλικας, Παιδί, Βρέφος: the set almost every trip starts from.
+     *
+     * No codes: they are made from the names on save. Prices are not here —
+     * they go in the euro table like any other band's.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function defaultAgeBands(): array
+    {
+        $band = static fn (string $el, string $en, int $min, ?int $max, array $flags = []): array => [
+            'code' => null,
+            'label' => ['el' => $el, 'en' => $en],
+            'min_age' => $min,
+            'max_age' => $max,
+            'pricing_mode' => AgeBandPricing::Fixed->value,
+            'is_base' => false,
+            'counts_toward_capacity' => true,
+            'requires_adult' => false,
+            'no_document' => false,
+            ...$flags,
+        ];
+
+        return [
+            $band('Ενήλικας', 'Adult', 12, null, ['is_base' => true]),
+            $band('Παιδί', 'Child', 3, 11),
+            $band('Βρέφος', 'Infant', 0, 2, [
+                'counts_toward_capacity' => false,
+                'requires_adult' => true,
+                'no_document' => true,
+            ]),
+        ];
     }
 
     /** @return array<int, string> */

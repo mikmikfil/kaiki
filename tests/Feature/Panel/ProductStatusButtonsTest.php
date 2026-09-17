@@ -61,11 +61,11 @@ function completeTripWithStatus(ProductStatus $status): Product
     return $product;
 }
 
-it('names the create button «save as draft» and offers no «create another»', function (): void {
+it('names the create button «continue to prices» and offers no «create another»', function (): void {
     $owner = OperatorUser::withRole(Role::Owner);
 
     statusPageAs($owner, CreateProduct::class)
-        ->assertSee(__('catalog.product.status_actions.save_draft'))
+        ->assertSee(__('catalog.product.status_actions.continue_to_prices'))
         ->assertDontSee(__('filament-panels::resources/pages/create-record.form.actions.create_another.label'));
 })->group('fast');
 

@@ -48,6 +48,11 @@ return [
                 'label' => 'Departure time',
                 'help' => 'Local time.',
             ],
+            'start_times' => [
+                'label' => 'Departure times',
+                'help' => 'Local time. Add every time it leaves during the day. Each time becomes its own row, with the same days and dates.',
+                'add' => 'Add a time',
+            ],
             'valid_from' => ['label' => 'Valid from'],
             'valid_until' => [
                 'label' => 'Valid until',

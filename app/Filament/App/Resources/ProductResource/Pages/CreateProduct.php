@@ -16,9 +16,11 @@ class CreateProduct extends CreateRecord
     protected static string $resource = ProductResource::class;
 
     /**
-     * A new trip is always saved as a draft first (2026-09-17): it cannot be
-     * published before it has a price list, and those are added on the edit
-     * page this one leads to. «Δημοσίευση» waits there.
+     * A new trip is always saved as a draft first (2026-09-17): the price table
+     * prices saved categories and periods, so it lives on the edit page. The
+     * operator does not have to think of that as "saving a draft": the button
+     * says «Συνέχεια στις τιμές» and lands on the table. «Δημοσίευση» waits
+     * there too.
      *
      * No «create another»: it made a second click on a slow connection look
      * like the first one had not worked.
@@ -28,7 +30,12 @@ class CreateProduct extends CreateRecord
     protected function getCreateFormAction(): Action
     {
         return parent::getCreateFormAction()
-            ->label(__('catalog.product.status_actions.save_draft'));
+            ->label(__('catalog.product.status_actions.continue_to_prices'));
+    }
+
+    protected function getRedirectUrl(): string
+    {
+        return ProductResource::getUrl('edit', ['record' => $this->getRecord()]) . '#prices';
     }
 
     /** @param array<string, mixed> $data */
