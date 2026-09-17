@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Domain\Hosted\Support\HostedAsset;
 use App\Filament\App\Auth\EditProfile;
 use App\Filament\App\Pages\Settings;
 use App\Filament\Avatars\InitialsAvatarProvider;
@@ -20,8 +21,10 @@ use App\Models\PlatformBrand;
 use App\Policies\TenantOwnedPolicy;
 use App\Support\Tenancy;
 use Filament\FontProviders\LocalFontProvider;
+use Filament\Forms\Components\BaseFileUpload;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -32,11 +35,14 @@ use Filament\PanelProvider;
 use Filament\Tables\Columns\TextColumn;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Support\Facades\Route;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use League\Flysystem\UnableToCheckFileExistence;
+use Throwable;
 
 /**
  * The operator back-office at `/app` (spec SCP-1, ARC-4).
@@ -93,6 +99,56 @@ class AppPanelProvider extends PanelProvider
 
         TextColumn::configureUsing(
             static fn (TextColumn $column): TextColumn => $column->timezone($timezone),
+        );
+
+        /*
+         * A saved file is handed to FilePond as a root-relative URL.
+         *
+         * Filament's own callback returns `Storage::url()`, which is absolute
+         * on `APP_URL`. When the panel is opened on any other host (127.0.0.1
+         * while APP_URL is the LAN address, or a second domain) FilePond's
+         * fetch is cross-origin, the panel CSP's `connect-src 'self'` refuses
+         * it, and the field shows «Φόρτωση σε εξέλιξη» for ever. Same body as
+         * Filament's default otherwise; see HostedAsset::relative for the rule.
+         */
+        FileUpload::configureUsing(
+            static fn (FileUpload $component): FileUpload => $component->getUploadedFileUsing(
+                static function (BaseFileUpload $component, string $file, string|array|null $storedFileNames): ?array {
+                    /** @var FilesystemAdapter $storage */
+                    $storage = $component->getDisk();
+                    $fetchInfo = $component->shouldFetchFileInformation();
+
+                    try {
+                        if ($fetchInfo && ! $storage->exists($file)) {
+                            return null;
+                        }
+                    } catch (UnableToCheckFileExistence) {
+                        return null;
+                    }
+
+                    $url = null;
+
+                    if ($component->getVisibility() === 'private') {
+                        try {
+                            $url = $storage->temporaryUrl($file, now()->addMinutes(5));
+                        } catch (Throwable) {
+                            // The driver cannot sign URLs; fall back to a plain one.
+                        }
+                    }
+
+                    $name = is_array($storedFileNames) ? ($storedFileNames[$file] ?? null) : $storedFileNames;
+
+                    return [
+                        'name' => $name ?? basename($file),
+                        'size' => $fetchInfo ? $storage->size($file) : 0,
+                        'type' => $fetchInfo ? $storage->mimeType($file) : null,
+                        'url' => HostedAsset::relative($url ?? $storage->url($file)),
+                    ];
+                },
+            ),
+            // Important: plain configurations run before setUp(), which would
+            // put Filament's absolute-URL callback straight back.
+            isImportant: true,
         );
     }
 
