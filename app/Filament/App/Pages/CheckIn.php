@@ -88,7 +88,7 @@ class CheckIn extends Page
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.operations');
+        return __('panel.groups.today');
     }
 
     /** A QR in the menu of an operator who has none would be a promise the page does not keep. */

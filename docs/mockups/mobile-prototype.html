@@ -1,0 +1,1257 @@
+<title>Kaiki Phone Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* One committed light look: the operator panel is light only. Tokens match the round 4 directions page. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57; --active:#1C4378; --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA;
+  --warn:#B26A12; --warnbg:#FBF0DF; --bad:#B42318; --badbg:#FBE7E5; --good:#1F7A4D; --goodbg:#E3F2EA;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --waves:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='170' viewBox='0 0 520 170'%3E%3Cg fill='none' stroke='%23C9DAEE' stroke-width='1.3'%3E%3Cpath d='M0 150 Q65 132 130 150 T260 150 T390 150 T520 150' opacity='.9'/%3E%3Cpath d='M0 120 Q65 104 130 120 T260 120 T390 120 T520 120' opacity='.65'/%3E%3Cpath d='M-65 90 Q0 76 65 90 T195 90 T325 90 T455 90 T585 90' opacity='.45'/%3E%3Cpath d='M0 60 Q65 48 130 60 T260 60 T390 60 T520 60' opacity='.28'/%3E%3Cpath d='M-65 30 Q0 20 65 30 T195 30 T325 30 T455 30 T585 30' opacity='.15'/%3E%3C/g%3E%3C/svg%3E");
+  --waves-dark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='170' viewBox='0 0 520 170'%3E%3Cg fill='none' stroke='%233B6399' stroke-width='1.3'%3E%3Cpath d='M0 150 Q65 132 130 150 T260 150 T390 150 T520 150' opacity='.8'/%3E%3Cpath d='M0 120 Q65 104 130 120 T260 120 T390 120 T520 120' opacity='.55'/%3E%3Cpath d='M-65 90 Q0 76 65 90 T195 90 T325 90 T455 90 T585 90' opacity='.35'/%3E%3Cpath d='M0 60 Q65 48 130 60 T260 60 T390 60 T520 60' opacity='.2'/%3E%3C/g%3E%3C/svg%3E");
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.5;padding-inline:24px;padding-block:32px 56px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;text-align:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+a{text-decoration:none}
+svg.i{width:20px;height:20px;flex:none}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* ---------- page around the phone ---------- */
+.shell{max-width:1080px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"intro device" "notes device";column-gap:56px;row-gap:22px;align-items:start}
+.intro{grid-area:intro;display:grid;gap:14px;padding-top:8px}
+.notes{grid-area:notes;display:grid;gap:14px}
+.devicecol{grid-area:device;grid-row:1 / span 2}
+.kick{color:var(--blue);font-weight:700;font-size:14px}
+h1.t{font-size:clamp(28px,3.6vw,40px);font-weight:800;letter-spacing:-.025em;line-height:1.08;margin:0;text-wrap:balance}
+.lead{color:var(--muted);font-size:16.5px;max-width:54ch;margin:0}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.seg button{min-height:44px;padding:0 14px;border-radius:10px;font-weight:600;font-size:14px;color:var(--muted);display:flex;align-items:center;gap:8px;transition:background-color .18s,color .18s}
+.seg button b{font-family:var(--mono);font-size:15px;color:var(--blue)}
+.seg button[aria-checked="true"]{background:var(--deep);color:#fff}
+.seg button[aria-checked="true"] b{color:#9CC0F0}
+.reset{min-height:44px;padding:0 14px;border-radius:12px;font-weight:600;font-size:14px;color:var(--blue)}
+.reset:hover{background:var(--wash)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.card h2{font-size:15px;font-weight:700;margin:0 0 10px}
+.tries{margin:0;padding:0;list-style:none;display:grid;gap:9px;counter-reset:t}
+.tries li{position:relative;padding-left:32px;font-size:14.5px}
+.tries li::before{counter-increment:t;content:counter(t);position:absolute;left:0;top:1px;width:21px;height:21px;border-radius:7px;background:var(--wash);color:var(--blue);font:600 12px/21px var(--mono);text-align:center}
+.tries b{font-weight:600;color:var(--deep)}
+.verdict{display:grid;grid-template-columns:1fr 1fr 110px;gap:10px}
+.verdict div{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13.5px;color:var(--muted)}
+.verdict b{display:block;color:var(--ink);font-size:12px;font-weight:600;margin-bottom:2px}
+.verdict .est{font-family:var(--mono);font-size:21px;font-weight:600;color:var(--blue)}
+.foot{font-size:13px;color:var(--muted);margin:0}
+
+/* ---------- device ---------- */
+.device{width:414px;height:868px;border-radius:54px;background:#0B1B33;padding:12px;box-shadow:0 40px 80px -40px rgba(15,46,87,.6);position:sticky;top:24px}
+@media (min-width:901px) and (max-height:940px){.device{zoom:.84}}
+.screen{position:relative;height:100%;border-radius:42px;overflow:hidden;background:var(--paper);display:flex;flex-direction:column;font-size:14px;line-height:1.35;isolation:isolate}
+.status{height:44px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:6px 32px 0;font-size:13px;font-weight:600;background:var(--paper);color:var(--ink);transition:background-color .22s,color .22s;position:relative;z-index:30}
+.screen.darkstatus .status,.screen.darkpage .status{background:var(--deep);color:#fff}
+.viewport{flex:1;position:relative;overflow:hidden}
+
+.page{position:absolute;inset:0;background:var(--paper);overflow:hidden}
+.page::after{content:"";position:absolute;left:0;bottom:0;width:calc(100% + 520px);height:170px;background:var(--waves) repeat-x;background-size:520px 170px;pointer-events:none;animation:drift 90s linear infinite;z-index:0}
+.page.dark{background:var(--deep);color:#fff}
+.page.dark::after{background-image:var(--waves-dark)}
+@keyframes drift{to{transform:translateX(-520px)}}
+.pscroll{position:absolute;inset:0;overflow-y:auto;overscroll-behavior:contain;padding:4px 16px 32px;display:flex;flex-direction:column;gap:12px;z-index:1;scrollbar-width:none}
+.pscroll::-webkit-scrollbar{display:none}
+.pscroll>*{flex:none}
+
+.a-in-push{animation:inPush .34s cubic-bezier(.2,.8,.2,1) both;box-shadow:-14px 0 30px -20px rgba(15,46,87,.4)}
+.a-under-out{animation:underOut .34s cubic-bezier(.2,.8,.2,1) both}
+.a-under-in{animation:underIn .34s cubic-bezier(.2,.8,.2,1) both}
+.a-out-right{animation:outRight .3s cubic-bezier(.4,0,.6,1) both;box-shadow:-14px 0 30px -20px rgba(15,46,87,.4)}
+.a-in-fade{animation:inFade .24s ease-out both}
+.a-in-up{animation:inUp .36s cubic-bezier(.2,.8,.2,1) both}
+.a-out-down{animation:outDown .3s cubic-bezier(.4,0,.6,1) both}
+@keyframes inPush{from{transform:translateX(100%)}}
+@keyframes underOut{to{transform:translateX(-22%);opacity:.7}}
+@keyframes underIn{from{transform:translateX(-22%);opacity:.7}}
+@keyframes outRight{to{transform:translateX(100%)}}
+@keyframes inFade{from{opacity:0;transform:translateY(8px)}}
+@keyframes inUp{from{transform:translateY(100%)}}
+@keyframes outDown{to{transform:translateY(100%)}}
+
+/* ---------- in-app components ---------- */
+.tap{transition:transform .14s ease,background-color .18s,border-color .18s,opacity .25s}
+.tap:active{transform:scale(.97)}
+.box.tap:active,.tile.tap:active{transform:scale(.985);background-color:#F1F6FC}
+@media (hover:hover){.box.tap:hover,.tile.tap:hover{border-color:#C3D5EA}}
+
+.apptop{display:flex;align-items:center;gap:10px;padding:10px 0 2px}
+.apptop.pushed{padding-top:0}
+.apptop .at{flex:1;min-width:0}
+.apptop h1{margin:0;font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+.apptop .sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.page.dark .apptop .sub{color:#9DB6D8}
+.acts{display:flex;gap:6px;flex:none}
+.pill{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px 0 12px;border-radius:14px;background:var(--card);border:1px solid var(--line);font-weight:600;font-size:13.5px;color:var(--deep);white-space:nowrap}
+.pill .i{width:18px;height:18px;color:var(--blue)}
+.pill .cnt{min-width:20px;height:20px;border-radius:10px;background:var(--bad);color:#fff;font:600 11px/20px var(--mono);text-align:center;padding:0 5px}
+.pill.dark{background:var(--active);border-color:var(--active);color:#fff}
+.pill.dark .i{color:#9CC0F0}
+.navbar{display:flex;align-items:center;padding-top:4px;margin-left:-8px}
+.back{display:inline-flex;align-items:center;gap:2px;min-height:44px;padding:0 12px 0 4px;border-radius:12px;font-weight:600;font-size:15px;color:var(--blue)}
+.back .i{width:22px;height:22px}
+.page.dark .back{color:#9CC0F0}
+.flip{transform:scaleX(-1)}
+
+.box{display:block;width:100%;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;color:var(--ink)}
+.box.dark{background:var(--deep);border-color:var(--deep);color:#fff}
+.page.dark .box.dark{background:#17396A;border-color:#17396A}
+.lbl{display:block;font-size:12px;font-weight:600;color:var(--muted)}
+.box.dark .lbl,.page.dark .lbl{color:#9DB6D8}
+.bigtime{display:block;font-family:var(--mono);font-size:34px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.tripname{display:block;font-size:17px;font-weight:700;margin-top:4px}
+.meta{font-size:12.5px;color:var(--muted)}
+.box.dark .meta,.page.dark .meta{color:#AFC4E0}
+.big{font-size:20px;font-weight:600;display:block}
+.nd,.dtop{display:flex;width:100%;justify-content:space-between;align-items:flex-end;gap:10px;margin-top:6px;text-align:left}
+.ndr{text-align:right;flex:none}
+.prog{display:block;height:8px;border-radius:5px;background:var(--active);overflow:hidden;margin:10px 0 4px}
+.prog i{display:block;height:100%;border-radius:5px;background:#9CC0F0;transition:width .35s cubic-bezier(.2,.8,.2,1)}
+.box:not(.dark) .prog{background:#E3ECF7}
+.box:not(.dark) .prog i{background:var(--blue)}
+.bigbtn{display:flex;width:100%;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:14px;background:#fff;color:var(--deep);font-weight:700;font-size:15px;text-align:center;padding:0 12px}
+.bigbtn.blue{background:var(--blue);color:#fff}
+.bigbtn.ghost{background:transparent;border:1px solid #3B6399;color:#fff}
+.bigbtn.line{background:#fff;border:1px solid var(--line);color:var(--deep)}
+.box.dark>.bigbtn{margin-top:12px}
+.twobtn{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.box.dark>.twobtn{margin-top:12px}
+
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:12px;min-height:92px;display:flex;flex-direction:column;justify-content:space-between;gap:8px;position:relative;text-align:left;color:var(--ink)}
+.tile .ic{width:36px;height:36px;border-radius:11px;background:var(--wash);color:var(--blue);display:grid;place-items:center}
+.tile .ic.alert{background:var(--badbg);color:var(--bad)}
+.tile .ic.ok{background:var(--goodbg);color:var(--good)}
+.tile b{display:block;font-size:15px;font-weight:700}
+.tile small{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.tile .n{position:absolute;top:12px;right:12px;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--blue);background:var(--wash);border-radius:8px;padding:1px 7px}
+.tile .n.alert{background:var(--badbg);color:var(--bad)}
+.sectitle{display:flex;justify-content:space-between;align-items:center;padding:2px 2px 0}
+.sectitle h2{margin:0;font-size:15px;font-weight:700}
+.link{display:inline-flex;align-items:center;gap:2px;min-height:40px;font-size:13.5px;color:var(--blue);font-weight:600;padding:0 2px}
+.link .i{width:16px;height:16px}
+
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;border-radius:999px;padding:3px 9px;white-space:nowrap;line-height:1.3}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.sea{background:var(--wash);color:var(--blue)} .chip.port{background:#EEF2F7;color:var(--muted)} .chip.bad{background:var(--badbg);color:var(--bad)} .chip.warn{background:var(--warnbg);color:var(--warn)} .chip.ok{background:var(--goodbg);color:var(--good)}
+.box.dark .chip.ok{background:rgba(127,209,165,.16);color:#9BE0BA}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chiprow{display:flex;flex-wrap:wrap;gap:6px}
+
+.boat .bh{display:flex;align-items:center;gap:8px}
+.boat .bh b{font-size:16px}
+.boat .bh .cap2{font-size:12px;color:var(--muted)}
+.boat .bh .chip{margin-left:auto}
+.mini{display:block;position:relative;height:22px;border-radius:7px;background:#F1F5FA;margin:10px 0 2px}
+.mini i{position:absolute;top:4px;bottom:4px;border-radius:4px;background:#B9D1EE}
+.mini i.risk{background:#F2B8B1}
+.mini i.off{background:repeating-linear-gradient(135deg,#F2C9C4 0 4px,#FBE7E5 4px 8px)}
+.mini i.block{background:repeating-linear-gradient(135deg,#D5DEEA 0 4px,#EEF2F7 4px 8px)}
+.mini .now{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--blue);border-radius:2px}
+.hrs{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.deps{display:grid;margin-top:8px}
+.drow{display:grid;grid-template-columns:46px 1fr auto 16px;gap:8px;align-items:center;width:100%;min-height:48px;padding:6px 0;border-top:1px solid #EEF2F7;text-align:left;color:var(--ink);border-radius:0}
+.drow .t{font-family:var(--mono);font-weight:600}
+.drow .dn{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+.drow .p{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.drow .i.chev{width:16px;height:16px;color:var(--faint)}
+.drow.past{opacity:.5}
+.drow.block{grid-template-columns:46px 1fr auto 16px;color:var(--muted)}
+.empty-row{padding:12px 0 2px;border-top:1px solid #EEF2F7;color:var(--muted);font-size:13px}
+.bline{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:8px}
+.bt{font-family:var(--mono);font-size:22px;font-weight:600}
+.flat{display:flex;gap:12px;align-items:center;text-align:left}
+.flat>span:nth-child(2){flex:1;min-width:0}
+.flat b{display:block;font-size:14.5px}
+.alertbox{background:var(--badbg);border-color:#F1D2CE;padding:12px 14px}
+.alertbox .i{color:var(--bad)}
+.linkbox .ic{width:38px;height:38px;border-radius:12px;background:var(--wash);color:var(--blue);display:grid;place-items:center;flex:none}
+.i.chev{color:var(--faint)}
+
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.day{min-height:62px;border-radius:14px;background:var(--card);border:1px solid var(--line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;position:relative;font-size:11.5px;color:var(--muted);font-weight:600;text-align:center}
+.day b{font-family:var(--mono);font-size:18px;color:var(--ink);font-weight:600;line-height:1.1}
+.day.on{background:var(--deep);border-color:var(--deep);color:#AFC4E0}
+.day.on b{color:#fff}
+.day .today{position:absolute;bottom:7px;width:14px;height:3px;border-radius:2px;background:var(--blue)}
+.day.on .today{background:#9CC0F0}
+.day .dot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--bad)}
+.daybody{display:flex;flex-direction:column;gap:12px;animation:inFade .22s ease-out both}
+
+.field{display:flex;align-items:center;gap:8px;min-height:48px;padding:0 14px;border-radius:14px;background:var(--card);border:1px solid var(--line);transition:border-color .18s,box-shadow .18s}
+.field .i{color:var(--faint);width:18px;height:18px}
+.field input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;font-size:16px;color:var(--ink)}
+.field input::placeholder{color:var(--faint)}
+.field:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,90,168,.14)}
+.filters{display:flex;gap:6px;overflow-x:auto;margin-inline:-16px;padding-inline:16px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.filters::after{content:"";flex:none;width:10px}
+.fp{flex:none;min-height:40px;padding:0 15px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:13.5px;font-weight:600;color:var(--muted)}
+.fp.on{background:var(--deep);border-color:var(--deep);color:#fff}
+.rmeta{padding:0 2px}
+.stack{display:flex;flex-direction:column;gap:10px}
+
+.bk{display:grid;gap:6px;text-align:left}
+.bk .l1{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 8px}
+.bk .l1 b{font-size:15px}
+.bk .l2{display:block;font-size:13px;color:var(--muted)}
+.bk .l3{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.bk .l3 .i{width:18px;height:18px}
+.empty{display:grid;gap:8px;text-align:left}
+
+.prow{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:46px;border-top:1px solid #EEF2F7;font-size:14.5px;font-weight:600}
+.prow:first-of-type{border-top:0}
+.prow small,.pn small{display:block;font-size:12px;color:var(--muted);font-weight:500}
+.plist{margin-top:4px}
+.payline{display:flex;justify-content:space-between;align-items:center;margin:6px 0 2px}
+.amt{font-size:24px;font-weight:600}
+.box>.bigbtn.blue{margin-top:12px}
+.tline{display:flex;gap:12px;align-items:center;margin-top:6px}
+.tline>span:nth-child(2){flex:1}
+.tline b{display:block;font-size:15.5px}
+.tline .meta{display:block}
+
+.pgroup{padding:4px 14px}
+.ph{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:50px}
+.ph b{font-size:15px}
+.ph .meta{display:block}
+.minibtn{min-height:38px;padding:0 12px;border-radius:10px;background:var(--wash);color:var(--blue);font-weight:600;font-size:13px;white-space:nowrap;flex:none}
+.pxr{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;width:100%;min-height:56px;border-top:1px solid #EEF2F7;text-align:left;transition:opacity .25s,transform .25s}
+.tick{width:30px;height:30px;border-radius:50%;border:2px solid #C9D6E6;display:grid;place-items:center;color:transparent;background:#fff;transition:background-color .18s,border-color .18s,color .18s,transform .18s}
+.tick .i{width:16px;height:16px}
+.on>.tick{background:var(--good);border-color:var(--good);color:#fff}
+.pxr:active .tick,.chk:active .tick{transform:scale(.88)}
+.pn{font-size:15px;font-weight:600;display:flex;flex-direction:column}
+.pw{font-size:13px;font-weight:600;color:var(--muted)}
+.pxr.on .pw{color:var(--good)}
+.leaving{opacity:0;transform:translateX(28px)}
+.box.leaving{transform:scale(.96)}
+.okbox{background:var(--goodbg);border-color:#CBE6D6}
+.okbox .i{color:var(--good)}
+
+.capbox .bigtime{font-size:32px;margin-top:6px}
+.paxn{display:flex;align-items:baseline;gap:6px;margin-top:10px}
+.paxn b{font-family:var(--mono);font-size:28px}
+.chk{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center;width:100%;min-height:52px;border-top:1px solid #EEF2F7;font-size:14px;text-align:left}
+.chk:first-of-type{border-top:0}
+.chk .cw{font-size:12.5px;color:var(--warn);font-weight:600}
+.chk.on .cw{color:var(--good)}
+.checks{margin-top:4px}
+
+.att{display:grid;gap:10px}
+.att .ah{display:flex;gap:10px;align-items:flex-start}
+.att .ah .i{color:var(--bad);margin-top:1px}
+.att .ah b{display:block;font-size:15px}
+.att .link{justify-self:start;min-height:36px}
+.abtns{display:grid;gap:8px}
+
+.scanhead{display:grid;gap:2px;padding:4px 2px}
+.scanhead .st{font-size:17px;font-weight:700}
+.finder{position:relative;height:260px;border-radius:24px;background:#081A33;display:grid;place-items:center;overflow:hidden}
+.frame{position:relative;width:172px;height:172px;margin-bottom:26px}
+.frame .c{position:absolute;width:36px;height:36px;border:3px solid #9CC0F0}
+.c.tl{top:0;left:0;border-right:0;border-bottom:0;border-radius:14px 0 0 0}
+.c.tr{top:0;right:0;border-left:0;border-bottom:0;border-radius:0 14px 0 0}
+.c.bl{bottom:0;left:0;border-right:0;border-top:0;border-radius:0 0 0 14px}
+.c.br{bottom:0;right:0;border-left:0;border-top:0;border-radius:0 0 14px 0}
+.frame .line{position:absolute;left:12px;right:12px;height:2px;background:#9CC0F0;box-shadow:0 0 12px #9CC0F0;top:12px;animation:sweep 2.2s ease-in-out infinite alternate}
+@keyframes sweep{to{top:158px}}
+.finder p{position:absolute;bottom:16px;left:12px;right:12px;text-align:center;font-size:13px;color:#AFC4E0;margin:0}
+.finder.flash{animation:flash .6s ease-out}
+@keyframes flash{from{box-shadow:inset 0 0 0 4px #7FD1A5}to{box-shadow:inset 0 0 0 0 rgba(127,209,165,0)}}
+.scres:empty{display:none}
+.scard{display:flex;gap:12px;align-items:flex-start;border-radius:18px;padding:14px;animation:inFade .25s ease-out both}
+.scard b{display:block;font-size:16px}
+.scard.ok{background:var(--goodbg);color:#123D28}
+.scard.ok .i{color:var(--good)}
+.scard.warn{background:var(--warnbg);color:#4A2E08}
+.scard.warn .i{color:var(--warn)}
+.scard .small{font-size:12.5px;opacity:.8}
+.scard .bigbtn{margin-top:10px}
+
+.stub p{margin:0 0 12px;color:var(--muted);font-size:14px}
+
+/* ---------- overlays, bar, toast ---------- */
+.overlay{position:absolute;left:0;right:0;bottom:0;top:44px;z-index:20}
+.overlay.menu{background:var(--deep);color:#fff;opacity:0;transition:opacity .22s}
+.overlay.menu.open{opacity:1}
+.ovin{position:absolute;inset:0;overflow-y:auto;padding:4px 16px 28px;display:flex;flex-direction:column;gap:12px;scrollbar-width:none}
+.ovin::-webkit-scrollbar{display:none}
+.overlay.open .ovin>*{animation:inFade .3s ease-out both}
+.overlay.open .ovin>*:nth-child(2){animation-delay:.02s}.overlay.open .ovin>*:nth-child(3){animation-delay:.04s}.overlay.open .ovin>*:nth-child(4){animation-delay:.06s}.overlay.open .ovin>*:nth-child(5){animation-delay:.08s}.overlay.open .ovin>*:nth-child(6){animation-delay:.1s}.overlay.open .ovin>*:nth-child(7){animation-delay:.12s}.overlay.open .ovin>*:nth-child(8){animation-delay:.14s}.overlay.open .ovin>*:nth-child(9){animation-delay:.16s}
+.overlay.menu .apptop h1{color:#fff}
+.overlay.menu .apptop .sub{color:#8FAAD0}
+.mg{font-size:12.5px;font-weight:600;color:#8FAAD0;padding:4px 2px 0}
+.mboxes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mboxes.four{grid-template-columns:repeat(4,1fr)}
+.mb{background:#17396A;border-radius:16px;min-height:80px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:12.5px;font-weight:600;color:#DCE7F5;text-align:center;padding:8px 4px;position:relative;width:100%}
+.mboxes.four .mb{font-size:12px}
+.mb svg{width:24px;height:24px;color:#9CC0F0}
+.mb.on{background:#fff;color:var(--deep)}
+.mb.on svg{color:var(--blue)}
+.mb .n{position:absolute;top:6px;right:8px;font:600 11px/16px var(--mono);background:var(--bad);color:#fff;border-radius:8px;padding:0 5px}
+.mboxes.one{grid-template-columns:1fr}
+.mboxes.one .mb{min-height:52px;flex-direction:row}
+.menu .mb:active{background:var(--active)}
+
+.backdrop{position:absolute;inset:0;width:100%;background:rgba(11,27,51,.42);opacity:0;transition:opacity .25s}
+.overlay.open .backdrop{opacity:1}
+.sheetin{position:absolute;left:0;right:0;bottom:0;max-height:90%;overflow-y:auto;background:var(--paper);border-radius:28px 28px 0 0;padding:8px 16px 28px;display:flex;flex-direction:column;gap:12px;transform:translateY(100%);transition:transform .34s cubic-bezier(.2,.8,.2,1);scrollbar-width:none;box-shadow:0 -20px 40px -24px rgba(11,27,51,.5)}
+.sheetin::-webkit-scrollbar{display:none}
+.overlay.open .sheetin{transform:none}
+.grip{display:block;width:40px;height:5px;border-radius:3px;background:#C9D6E6;margin:2px auto 0;flex:none}
+.sheethead{display:flex;align-items:center;justify-content:space-between}
+.sheethead h2{margin:0;font-size:20px;font-weight:800;letter-spacing:-.02em}
+.sheet .mg{color:var(--muted)}
+.sheet .mb{background:var(--card);border:1px solid var(--line);color:var(--deep)}
+.sheet .mb svg{color:var(--blue)}
+.sheet .mb.on{background:var(--deep);border-color:var(--deep);color:#fff}
+.sheet .mb.on svg{color:#9CC0F0}
+.sheet .mb:active{background:var(--wash)}
+
+.bar{flex:none;position:relative;z-index:10;background:rgba(255,255,255,.97);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px 8px 22px}
+.bar.three{grid-template-columns:repeat(3,1fr)}
+.bar button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;border-radius:14px;font-size:11.5px;font-weight:600;color:var(--muted);text-align:center}
+.bar button svg{width:23px;height:23px}
+.bar button.on{color:var(--deep)}
+.bar button.on svg{color:var(--blue)}
+.bar button.scan{background:var(--deep);color:#fff;margin:0 4px}
+.bar button.scan svg{color:#fff}
+
+.toast{position:absolute;left:16px;right:16px;bottom:24px;z-index:40;background:var(--ink);color:#fff;border-radius:16px;padding:12px 14px;display:flex;gap:10px;align-items:center;font-size:14px;font-weight:500;box-shadow:0 16px 30px -16px rgba(0,0,0,.5);transform:translateY(12px);opacity:0;transition:transform .22s,opacity .22s;pointer-events:none}
+.toast.show{transform:none;opacity:1}
+.toast .i{color:#7FD1A5}
+.screen.hasbar .toast{bottom:96px}
+
+@media (prefers-reduced-motion:reduce){
+  .page,.page::after,.frame .line,.daybody,.scard,.overlay.open .ovin>*{animation:none!important}
+  .tap,.sheetin,.overlay.menu,.backdrop,.toast,.pxr,.prog i{transition:none!important}
+}
+
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr;grid-template-areas:"intro" "device" "notes"}
+  .devicecol{grid-row:auto;display:flex;justify-content:center}
+  .device{position:relative;top:0}
+  .verdict{grid-template-columns:1fr 1fr}
+  .verdict div:last-child{grid-column:1 / -1}
+}
+@media (max-width:520px){
+  body{padding-inline:0;padding-block:0 40px}
+  .intro{padding:14px 16px 12px;gap:10px}
+  .intro .kick,.intro .lead{display:none}
+  h1.t{font-size:22px}
+  .notes{padding-inline:16px}
+  .device{width:100%;height:calc(100svh - 124px);min-height:600px;border-radius:0;padding:0;box-shadow:none;background:none;border-block:1px solid var(--line)}
+  .screen{border-radius:0}
+  .status{display:none}
+  .overlay{top:0}
+  .bar{padding-bottom:calc(8px + env(safe-area-inset-bottom, 0px))}
+  .seg button{padding:0 11px;font-size:13.5px}
+  .verdict{grid-template-columns:1fr}
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></g></symbol>
+    <symbol id="x" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></g></symbol>
+    <symbol id="bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></g></symbol>
+    <symbol id="search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></g></symbol>
+    <symbol id="home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></g></symbol>
+    <symbol id="qr" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2M20 14v6h-4M14 18v2"/></g></symbol>
+    <symbol id="flag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></g></symbol>
+    <symbol id="cal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></g></symbol>
+    <symbol id="ticket" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/></g></symbol>
+    <symbol id="doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14H7z"/><path d="M10 12h5M10 16h5"/></g></symbol>
+    <symbol id="chat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></g></symbol>
+    <symbol id="gift" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 9v11M4 13h16"/></g></symbol>
+    <symbol id="map" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></g></symbol>
+    <symbol id="euro" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6a7 7 0 1 0 0 12M4 10h9M4 14h9"/></g></symbol>
+    <symbol id="boat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h18l-3 5H6z"/><path d="M12 15V3l6 9h-6"/></g></symbol>
+    <symbol id="clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></g></symbol>
+    <symbol id="pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></g></symbol>
+    <symbol id="chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="M8 16l4-5 3 3 5-7"/></g></symbol>
+    <symbol id="cog" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></g></symbol>
+    <symbol id="list" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></g></symbol>
+    <symbol id="check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></g></symbol>
+    <symbol id="alert" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/></g></symbol>
+    <symbol id="plus" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></g></symbol>
+    <symbol id="chev" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></g></symbol>
+    <symbol id="phone" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1"/></g></symbol>
+  </defs>
+</svg>
+
+<div class="shell">
+  <header class="intro">
+    <div class="kick">Kaiki · operator panel · round 4, now clickable</div>
+    <h1 class="t">Try A and B on a phone</h1>
+    <p class="lead">The same example day in both directions: Thursday 17 September at 09:20, three boats out of Milos. Everything inside the phone works. Bookings, departures, boarding and scanning all share one set of data, so what you change on one screen shows on the others.</p>
+    <div class="controls">
+      <div class="seg" role="radiogroup" aria-label="Direction">
+        <button type="button" role="radio" data-dir="A" aria-checked="true"><b>A</b>Menu button</button>
+        <button type="button" role="radio" data-dir="B" aria-checked="false"><b>B</b>Bottom bar</button>
+      </div>
+      <div class="seg" id="roleSeg" role="radiogroup" aria-label="Signed in as" hidden>
+        <button type="button" role="radio" data-role="owner" aria-checked="true">Operator</button>
+        <button type="button" role="radio" data-role="captain" aria-checked="false">Captain</button>
+      </div>
+      <button type="button" class="reset" id="reset">Start over</button>
+    </div>
+  </header>
+
+  <div class="devicecol">
+    <div class="device">
+      <div class="screen" id="screen">
+        <div class="status" aria-hidden="true"><span>09:20</span><span>5G ▮▮▮</span></div>
+        <div class="viewport" id="viewport"></div>
+        <nav class="bar" id="bar" hidden></nav>
+        <div class="overlay" id="overlay" hidden></div>
+        <div class="toast" id="toast" role="status" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="notes">
+    <div class="card"><h2 id="triesTitle">Things to try</h2><ol class="tries" id="tries"></ol></div>
+    <div class="verdict" id="verdict"></div>
+    <p class="foot">Example data. Nothing is saved, and <b>Start over</b> resets the day. Lists as boxes come with either direction (about 5 h more). Nothing in the Kaiki code has changed.</p>
+  </section>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const $ = s => document.querySelector(s);
+const screen = $('#screen');
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const NOW = 9 * 60 + 20;
+
+/* ---------------- example data ---------------- */
+const DAYS = [
+  {short:'Πέμ', n:17, long:'Πέμπτη 17 Σεπτεμβρίου'},
+  {short:'Παρ', n:18, long:'Παρασκευή 18 Σεπτεμβρίου'},
+  {short:'Σάβ', n:19, long:'Σάββατο 19 Σεπτεμβρίου'},
+  {short:'Κυρ', n:20, long:'Κυριακή 20 Σεπτεμβρίου'},
+  {short:'Δευ', n:21, long:'Δευτέρα 21 Σεπτεμβρίου'},
+  {short:'Τρί', n:22, long:'Τρίτη 22 Σεπτεμβρίου'},
+  {short:'Τετ', n:23, long:'Τετάρτη 23 Σεπτεμβρίου'}
+];
+const BOATS = {
+  avra:{name:'Αύρα', seats:45, captain:'Νίκος'},
+  thal:{name:'Θαλασσινή', seats:60, captain:'Μανώλης'},
+  erm:{name:'Ερμής', seats:12, captain:'Στέλιος'}
+};
+const BOAT_IDS = ['avra','thal','erm'];
+const CAPTAIN_BOAT = 'avra';
+const TRIPS = {
+  gyros:{name:'Γύρος της Μήλου', port:'Αδάμαντας, προβλήτα 2', dur:300, price:90, min:15},
+  sunset:{name:'Ηλιοβασίλεμα', port:'Αδάμαντας, προβλήτα 2', dur:210, price:65, min:10},
+  klef:{name:'Κλέφτικο', port:'Αδάμαντας, προβλήτα 1', dur:420, price:105, min:20},
+  poly:{name:'Πολύαιγος', port:'Πολλώνια, λιμάνι', dur:300, price:75, min:10}
+};
+const FIXED = {'0-gyros':38, '0-sunset':22, '0-klef':51, '0-poly':9, '1-gyros':30, '1-sunset':18, '1-klef':44, '1-poly':4};
+const LEADS = [
+  ['Γιώργος','Παπαδόπουλος','gr'],['Anna','Müller','int'],['Marco','Rossi','int'],['Ελένη','Γεωργίου','gr'],['Claire','Dubois','int'],
+  ['James','Smith','int'],['Κατερίνα','Καραγιάννη','gr'],['Mette','Nielsen','int'],['Δημήτρης','Βλάχος','gr'],['Lucía','García','int'],
+  ['Σοφία','Οικονόμου','gr'],['Pieter','Jansen','int'],['Νίκος','Αντωνίου','gr'],['Ewa','Kowalska','int'],['Μαρία','Λαμπράκη','gr'],
+  ['Julien','Bernard','int'],['Αγγελική','Σταθοπούλου','gr'],['Jonas','Weber','int'],['Giulia','Ricci','int'],['Κώστας','Δημητρίου','gr'],
+  ['Emma','Johansson','int'],['Παναγιώτης','Μαυρίδης','gr'],['Léa','Moreau','int'],['Lukas','Fischer','int'],['Βασίλης','Κωνσταντίνου','gr'],
+  ['Oliver','Brown','int'],['Χριστίνα','Ζαχαρίου','gr'],['Tomáš','Novák','int'],['Ιωάννα','Πετρίδου','gr'],['Inês','Costa','int'],
+  ['Άλκης','Σιδέρης','gr'],['Sarah','Cohen','int'],['Θοδωρής','Μακρής','gr'],['Hanna','Virtanen','int'],['Στέλλα','Ρήγα','gr'],
+  ['Paul','Schneider','int'],['Αντώνης','Χατζής','gr'],['Chloé','Laurent','int'],['Μιχάλης','Φραγκιαδάκης','gr'],['Emily','Wilson','int']
+];
+const FIRST = {
+  gr:['Μαρία','Γιάννης','Ελένη','Νίκος','Άννα','Κώστας','Δέσποινα','Άρης','Φωτεινή','Σταύρος','Λυδία','Πέτρος'],
+  int:['Sophie','Tom','Laura','Max','Nina','Ben','Clara','Leo','Mia','Felix','Ella','Noah']
+};
+
+function rng(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function build(){
+  const R = rng(20260917);
+  const deps = [];
+  const plan = [['erm','poly',480],['avra','gyros',570],['thal','klef',600],['avra','sunset',1050]];
+  for (let d = 0; d < 7; d++){
+    for (const [boat, trip, start] of plan){
+      if (trip === 'poly' && ![0,1,3,5].includes(d)) continue;
+      if (trip === 'klef' && d === 4) continue;
+      const T = TRIPS[trip], cap = BOATS[boat].seats;
+      let target = FIXED[d + '-' + trip];
+      if (target == null){
+        target = trip === 'poly' ? 10 + Math.floor(R() * 3) : Math.round(cap * (0.66 - d * 0.05 + R() * 0.2));
+        target = Math.min(cap, Math.max(target, T.min + 2));
+      }
+      deps.push({id:d + '-' + trip, day:d, boat, trip, start, end:start + T.dur, cap, target, cancelled:false,
+        weather: d === 0 && trip === 'sunset' ? '5 μποφόρ μετά τις 15:00' : null, bookings:[]});
+    }
+  }
+  const bookings = [];
+  let k = 0;
+  for (const dep of deps){
+    let left = dep.target;
+    const T = TRIPS[dep.trip];
+    while (left > 0){
+      const size = Math.min(left, [2,2,1,3,2,4,2,5,3,2][Math.floor(R() * 10)]);
+      const L = LEADS[(k * 11 + 3) % LEADS.length];
+      const pool = FIRST[L[2]];
+      const pax = [{name:L[0], kid:null, on:false}];
+      for (let i = 1; i < size; i++){
+        const kid = i >= 2 && R() < 0.5 ? 3 + Math.floor(R() * 10) : null;
+        let nm = pool[Math.floor(R() * pool.length)];
+        let guard = 0;
+        while (pax.some(p => p.name === nm) && guard++ < 12) nm = pool[(pool.indexOf(nm) + 1) % pool.length];
+        pax.push({name:nm, kid, on:false});
+      }
+      const amount = pax.reduce((s, p) => s + (p.kid != null ? T.price / 2 : T.price), 0);
+      const paid = R() < (dep.day === 0 ? 0.82 : dep.day === 1 ? 0.7 : 0.58);
+      const b = {code:'K-' + (2201 + k), first:L[0], last:L[1], dep:dep.id, pax, amount, paid, isNew:false,
+        created:(9 + Math.floor(R() * 7)) + '/09', phone:'+30 69' + (4 + Math.floor(R() * 5)) + ' ' + (100 + Math.floor(R() * 900)) + ' ' + (1000 + Math.floor(R() * 9000))};
+      dep.bookings.push(b); bookings.push(b);
+      left -= size; k++;
+    }
+  }
+  const byId = Object.fromEntries(deps.map(d => [d.id, d]));
+  const newOnes = [['1-poly','σήμερα 07:52'],['1-klef','σήμερα 08:31'],['2-gyros','σήμερα 09:04']];
+  for (const [id, when] of newOnes){
+    const b = byId[id].bookings[byId[id].bookings.length - 1];
+    b.isNew = true; b.created = when;
+    if (id === '1-poly') b.paid = false;
+  }
+  byId['0-poly'].bookings.forEach(b => b.pax.forEach(p => p.on = true));
+  let boarded = 0;
+  byId['0-gyros'].bookings.forEach(b => b.pax.forEach(p => { if (boarded < 33){ p.on = true; boarded++; } }));
+  return {deps, byId, bookings, byCode:Object.fromEntries(bookings.map(b => [b.code, b])),
+    blocks:[{day:0, boat:'erm', start:900, end:1140, label:'Συντήρηση'}]};
+}
+
+let prefs = {dir:'A', role:'owner'};
+try { Object.assign(prefs, JSON.parse(localStorage.getItem('kaiki-proto') || '{}')); } catch (e) {}
+let S;
+function fresh(){
+  S = Object.assign(build(), {
+    dir:prefs.dir === 'B' ? 'B' : 'A', role:prefs.role === 'captain' ? 'captain' : 'owner',
+    stack:[{name:'home', arg:''}], bkFilter:'today', bkQuery:'', pxFilter:'missing', pxQuery:'',
+    calDay:0, res:{}, checks:[true, false, false], scanTarget:null, scanN:0, focusSearch:false, pageEl:null
+  });
+}
+function savePrefs(){ try { localStorage.setItem('kaiki-proto', JSON.stringify({dir:S.dir, role:S.role})); } catch (e) {} }
+
+/* ---------------- helpers ---------------- */
+const ic = (id, cls = 'i') => `<svg class="${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+const eur = n => n.toLocaleString('el-GR') + ' €';
+const pct = (a, b) => b ? Math.round(a / b * 100) : 0;
+const norm = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/ς/g, 'σ');
+const chip = (kind, text) => `<span class="chip ${kind}">${text}</span>`;
+const people = n => n + ' ' + (n === 1 ? 'άτομο' : 'άτομα');
+const dayWord = d => d === 0 ? 'σήμερα' : d === 1 ? 'αύριο' : `${DAYS[d].short} ${DAYS[d].n}/09`;
+const dayCap = d => d === 0 ? 'Σήμερα' : d === 1 ? 'Αύριο' : DAYS[d].long;
+const dur = m => m < 60 ? `${m} λεπτά` : `${Math.floor(m / 60)} ${Math.floor(m / 60) === 1 ? 'ώρα' : 'ώρες'}${m % 60 ? ` και ${m % 60} λεπτά` : ''}`;
+const booked = d => d.bookings.reduce((s, b) => s + b.pax.length, 0);
+const onCount = d => d.bookings.reduce((s, b) => s + b.pax.filter(p => p.on).length, 0);
+const isCaptain = () => S.dir === 'B' && S.role === 'captain';
+const cur = sel => S.pageEl && S.pageEl.querySelector(sel);
+const top = () => S.stack[S.stack.length - 1];
+
+function boardingDep(){
+  if (S.scanTarget && !S.byId[S.scanTarget].cancelled) return S.byId[S.scanTarget];
+  return S.deps.find(d => d.day === 0 && !d.cancelled && d.start > NOW && (!isCaptain() || d.boat === CAPTAIN_BOAT));
+}
+function belowMin(d){ return d.day > 0 && !d.cancelled && booked(d) < TRIPS[d.trip].min; }
+function depChips(d){
+  if (d.cancelled) return chip('bad', 'Ακυρώθηκε');
+  let c = '';
+  if (d.weather) c += chip('warn', '5 μποφόρ');
+  if (belowMin(d)) c += S.res.poly === 'keep' && d.id === '1-poly' ? chip('sea', 'Φεύγει κανονικά') : chip('bad', 'κάτω από ελάχιστο');
+  return c;
+}
+function boatNow(boat){
+  const ds = S.deps.filter(d => d.day === 0 && d.boat === boat && !d.cancelled);
+  const sea = ds.find(d => d.start <= NOW && NOW < d.end);
+  if (sea) return {kind:'sea', text:'Εν πλω ως ' + fmt(sea.end), dep:sea};
+  const next = ds.find(d => d.start > NOW);
+  if (next && next.start - NOW <= 30) return {kind:'ok', text: onCount(next) >= booked(next) ? 'Όλοι πάνω' : 'Επιβίβαση τώρα', dep:next};
+  if (next) return {kind:'port', text:'Στο λιμάνι', dep:next};
+  return {kind:'port', text:'Τέλος ημέρας', dep:null};
+}
+function attItems(){
+  const a = [];
+  const poly = S.byId['1-poly'], sun = S.byId['0-sunset'];
+  if (!S.res.poly) a.push({id:'poly', dep:poly.id, title:'Πολύαιγος αύριο 08:00',
+    text:`${booked(poly)} από ελάχιστο ${TRIPS.poly.min} άτομα · απόφαση ως 20:00`,
+    actions:[['cancel','Ακύρωση και ενημέρωση επιβατών','line'],['keep','Φεύγει κανονικά','blue']]});
+  if (!S.res.wind) a.push({id:'wind', dep:sun.id, title:'Ηλιοβασίλεμα σήμερα 17:30',
+    text:`5 μποφόρ μετά τις 15:00 · ${booked(sun)} επιβάτες`,
+    actions:[['notify','Μήνυμα στους επιβάτες','line'],['ok','Φεύγει κανονικά','blue']]});
+  return a;
+}
+
+/* ---------------- shared pieces ---------------- */
+function head(title, sub, right = ''){
+  const subHtml = sub ? `<div class="sub">${sub}</div>` : '';
+  if (S.stack.length > 1){
+    const t = top();
+    const back = t.kind === 'up' ? `${ic('x')}Κλείσιμο` : `${ic('chev','i flip')}Πίσω`;
+    return `<div class="navbar"><button type="button" class="back tap" data-back>${back}</button></div>
+      <div class="apptop pushed"><div class="at"><h1>${title}</h1>${subHtml}</div>${right ? `<div class="acts">${right}</div>` : ''}</div>`;
+  }
+  const menu = S.dir === 'A' ? `<button type="button" class="pill tap" data-act="menu">${ic('menu')}Μενού</button>` : '';
+  const acts = right + menu;
+  return `<div class="apptop"><div class="at"><h1>${title}</h1>${subHtml}</div>${acts ? `<div class="acts">${acts}</div>` : ''}</div>`;
+}
+
+function mini(boat, day){
+  const pos = m => ((m - 420) / 900 * 100).toFixed(2);
+  let h = S.deps.filter(d => d.day === day && d.boat === boat).map(d =>
+    `<i class="${d.cancelled ? 'off' : belowMin(d) && S.res.poly !== 'keep' ? 'risk' : ''}" style="left:${pos(d.start)}%;width:${((d.end - d.start) / 9).toFixed(2)}%"></i>`).join('');
+  h += S.blocks.filter(b => b.day === day && b.boat === boat).map(b =>
+    `<i class="block" style="left:${pos(b.start)}%;width:${((b.end - b.start) / 9).toFixed(2)}%"></i>`).join('');
+  if (day === 0) h += `<span class="now" style="left:${pos(NOW)}%"></span>`;
+  return `<span class="mini">${h}</span><span class="hrs"><span>07</span><span>12</span><span>17</span><span>22</span></span>`;
+}
+
+function depRow(d){
+  const past = d.day === 0 && d.end <= NOW;
+  return `<button type="button" class="drow tap${past ? ' past' : ''}" data-go="departure:${d.id}">
+    <span class="t">${fmt(d.start)}</span><span class="dn">${TRIPS[d.trip].name}${depChips(d)}</span>
+    <span class="p">${booked(d)}/${d.cap}</span>${ic('chev','i chev')}</button>`;
+}
+
+function boatBox(boat, day){
+  const B = BOATS[boat];
+  const st = day === 0 ? boatNow(boat) : null;
+  const rows = [
+    ...S.deps.filter(d => d.day === day && d.boat === boat).map(d => ({start:d.start, html:depRow(d)})),
+    ...S.blocks.filter(b => b.day === day && b.boat === boat).map(b => ({start:b.start,
+      html:`<div class="drow block"><span class="t">${fmt(b.start)}</span><span class="dn">${b.label} ως ${fmt(b.end)}</span><span class="p">—</span><span></span></div>`}))
+  ].sort((a, b) => a.start - b.start).map(r => r.html).join('');
+  return `<div class="box boat"><div class="bh"><b>${B.name}</b><span class="cap2">${B.seats} θέσεις</span>${st ? chip(st.kind, st.text) : ''}</div>
+    ${mini(boat, day)}<div class="deps">${rows || '<div class="empty-row">Χωρίς αναχωρήσεις</div>'}</div></div>`;
+}
+
+function bkBox(b, o = {}){
+  const d = S.byId[b.dep], T = TRIPS[d.trip], cap = isCaptain();
+  let chips = '';
+  if (b.isNew && !cap) chips += chip('sea', 'Νέα');
+  if (d.cancelled) chips += chip('bad', 'Ακυρώθηκε');
+  else if (!cap) chips += b.paid ? chip('ok', 'Πληρωμένη') : chip('warn', 'Οφείλει ' + eur(b.amount));
+  const l2 = o.names
+    ? b.pax.map((p, i) => i === 0 ? b.first : (p.kid != null ? `${p.name} (${p.kid})` : p.name)).join(', ')
+    : `${T.name} · ${dayWord(d.day)} ${fmt(d.start)} · ${BOATS[d.boat].name}`;
+  const inner = `<span class="l1"><b>${b.first} ${b.last}</b>${chips ? `<span class="chips">${chips}</span>` : ''}</span>
+    <span class="l2">${l2}</span><span class="l3"><span class="meta">${people(b.pax.length)} · ${b.code}</span>${cap ? '' : ic('chev','i chev')}</span>`;
+  return cap ? `<div class="box bk">${inner}</div>` : `<button type="button" class="box bk tap" data-go="booking:${b.code}">${inner}</button>`;
+}
+
+function attCard(a){
+  return `<div class="box att" id="att-${a.id}">
+    <div class="ah">${ic('alert')}<div><b>${a.title}</b><div class="meta">${a.text}</div></div></div>
+    ${top().name === 'departure' ? '' : `<button type="button" class="link tap" data-go="departure:${a.dep}">Άνοιγμα αναχώρησης${ic('chev')}</button>`}
+    <div class="abtns">${a.actions.map(([c, l, cls]) => `<button type="button" class="bigbtn ${cls} tap" data-act="resolve" data-id="${a.id}" data-c="${c}">${l}</button>`).join('')}</div>
+  </div>`;
+}
+
+/* ---------------- pages ---------------- */
+const PAGES = {};
+
+PAGES.home = function(){
+  if (isCaptain()) return captainHome();
+  return S.dir === 'B' ? homeB() : homeA();
+};
+
+function homeA(){
+  const nd = boardingDep(), T = TRIPS[nd.trip];
+  const on = onCount(nd), bk = booked(nd);
+  const att = attItems().length;
+  const newN = S.bookings.filter(b => b.isNew).length;
+  const todayN = S.deps.filter(d => d.day === 0 && !d.cancelled).length;
+  const tile = (go, icon, label, small, n, kind) => `<button type="button" class="tile tap" data-go="${go}">
+    ${n ? `<span class="n${kind === 'alert' ? ' alert' : ''}">${n}</span>` : ''}<span class="ic${kind ? ' ' + kind : ''}">${ic(icon)}</span>
+    <span><b>${label}</b><small>${small}</small></span></button>`;
+  const html = `${head('Καλημέρα', DAYS[0].long)}
+    <div class="box dark">
+      <span class="lbl">Επόμενη αναχώρηση · σε ${dur(nd.start - NOW)}</span>
+      <button type="button" class="nd tap" data-go="departure:${nd.id}">
+        <span><span class="bigtime">${fmt(nd.start)}</span><span class="tripname">${T.name}</span><span class="meta">${BOATS[nd.boat].name} · ${T.port}</span></span>
+        <span class="ndr"><span class="mono big">${on}/${bk}</span><span class="meta">επιβιβάστηκαν</span></span>
+      </button>
+      <span class="prog"><i style="width:${pct(on, bk)}%"></i></span>
+      <div class="twobtn"><button type="button" class="bigbtn tap" data-act="scan-open" data-dep="${nd.id}">${ic('qr')}Σάρωση</button><button type="button" class="bigbtn ghost tap" data-go="boarding:${nd.id}">${ic('list')}Λίστα</button></div>
+    </div>
+    <div class="tiles">
+      ${tile('calendar:deps', 'flag', 'Αναχωρήσεις', todayN + ' σήμερα')}
+      ${tile('bookings:new', 'ticket', 'Κρατήσεις', newN + ' νέες', newN)}
+      ${tile('calendar', 'cal', 'Ημερολόγιο', 'Εβδομάδα')}
+      ${att ? tile('attention', 'alert', 'Προσοχή', att + (att === 1 ? ' απόφαση' : ' αποφάσεις'), att, 'alert') : tile('attention', 'check', 'Προσοχή', 'Όλα εντάξει', 0, 'ok')}
+    </div>
+    <div class="sectitle"><h2>Σήμερα ανά σκάφος</h2><button type="button" class="link tap" data-go="calendar">Ημερολόγιο${ic('chev')}</button></div>
+    ${BOAT_IDS.map(b => boatBox(b, 0)).join('')}`;
+  return {html};
+}
+
+function homeB(){
+  const att = attItems();
+  const today = S.deps.filter(d => d.day === 0 && !d.cancelled);
+  const pax = today.reduce((s, d) => s + booked(d), 0);
+  const newN = S.bookings.filter(b => b.isNew).length;
+  const bell = `<button type="button" class="pill tap" data-go="attention">${ic('bell')}Προσοχή${att.length ? `<span class="cnt">${att.length}</span>` : ''}</button>`;
+  let html = head('Σήμερα', `Πέμ 17 Σεπ · ${today.length} αναχωρήσεις · ${pax} επιβάτες`, bell);
+  if (att[0]) html += `<button type="button" class="box alertbox flat tap" data-go="attention">${ic('alert')}<span><b>${att[0].title}</b><span class="meta">${att[0].text}</span></span>${ic('chev','i chev')}</button>`;
+  for (const boat of BOAT_IDS){
+    const st = boatNow(boat), d = st.dep;
+    if (!d) continue;
+    const T = TRIPS[d.trip];
+    const later = S.deps.find(x => x.day === 0 && x.boat === boat && !x.cancelled && x.start > d.start);
+    const block = S.blocks.find(x => x.day === 0 && x.boat === boat && x.start >= d.end);
+    const boarding = st.kind === 'ok';
+    const after = later ? `Μετά: ${fmt(later.start)} ${TRIPS[later.trip].name} · ${booked(later)}/${later.cap}`
+      : block ? `Μετά: ${block.label.toLowerCase()} ${fmt(block.start)}–${fmt(block.end)}` : 'Τίποτα άλλο σήμερα';
+    html += `<button type="button" class="box boat tap" data-go="departure:${d.id}">
+      <span class="bh"><b>${BOATS[boat].name}</b>${chip(st.kind, st.text)}</span>
+      <span class="bline"><span><span class="bt">${fmt(d.start)}</span> <b>${T.name}</b></span><span class="mono meta">${boarding ? onCount(d) + '/' + booked(d) : booked(d) + '/' + d.cap}</span></span>
+      ${boarding ? `<span class="prog"><i style="width:${pct(onCount(d), booked(d))}%"></i></span>` : ''}
+      <span class="meta" style="display:block;margin-top:${boarding ? 0 : 6}px">${boarding ? 'επιβιβάστηκαν · ' : ''}${after}</span>
+    </button>`;
+  }
+  html += `<button type="button" class="box linkbox flat tap" data-go="bookings:new"><span class="ic">${ic('ticket')}</span><span><b>${newN} νέες κρατήσεις</b><span class="meta">από σήμερα το πρωί</span></span>${ic('chev','i chev')}</button>`;
+  return {html};
+}
+
+function captainHome(){
+  const d = boardingDep() || S.byId['0-gyros'], T = TRIPS[d.trip];
+  const on = onCount(d), bk = booked(d);
+  const next = S.deps.find(x => x.day === 0 && x.boat === CAPTAIN_BOAT && !x.cancelled && x.start > d.start);
+  const kids = d.bookings.reduce((s, b) => s + b.pax.filter(p => p.kid != null && p.kid < 6).length, 0);
+  const checks = ['Κατάσταση επιβατών σταλμένη', kids ? `${kids} ${kids === 1 ? 'παιδί' : 'παιδιά'} κάτω των 6: παιδικά σωσίβια` : 'Σωσίβια ελεγμένα', 'Καιρός ελεγμένος'];
+  let html = head(BOATS[CAPTAIN_BOAT].name, `Καπετάνιος ${BOATS[CAPTAIN_BOAT].captain} · Πέμ 17 Σεπ`);
+  html += `<div class="box dark capbox">
+    <span class="lbl">Τώρα · ${on >= bk ? 'όλοι πάνω' : 'επιβίβαση'}</span>
+    <span class="bigtime">${fmt(d.start)}</span><span class="tripname">${T.name}</span><span class="meta">${T.port}</span>
+    <span class="paxn"><b>${on}</b><span class="meta">από ${bk} πάνω · ${bk - on} λείπουν</span></span>
+    <span class="prog"><i style="width:${pct(on, bk)}%"></i></span>
+    <button type="button" class="bigbtn tap" data-act="scan-open" data-dep="${d.id}">${ic('qr')}Σάρωση εισιτηρίων</button>
+    <div class="twobtn"><button type="button" class="bigbtn ghost tap" data-go="boarding:${d.id}">${ic('list')}Λίστα</button><button type="button" class="bigbtn ghost tap" data-act="office">${ic('phone')}Γραφείο</button></div>
+  </div>`;
+  if (next) html += `<button type="button" class="box tap" data-go="departure:${next.id}" style="text-align:left">
+    <span class="lbl">Μετά</span>
+    <span class="drow" style="border-top:0;padding-bottom:0"><span class="t">${fmt(next.start)}</span><span class="dn"><b>${TRIPS[next.trip].name}</b>${depChips(next)}</span><span class="p">${booked(next)}/${next.cap}</span>${ic('chev','i chev')}</span>
+  </button>`;
+  html += `<div class="box"><span class="lbl">Πριν αναχωρήσετε</span><div class="checks">${checks.map((c, i) =>
+    `<button type="button" class="chk tap${S.checks[i] ? ' on' : ''}" data-act="check" data-i="${i}" aria-pressed="${S.checks[i]}"><span class="tick">${ic('check')}</span><span>${c}</span><span class="cw">${S.checks[i] ? 'Έγινε' : 'Εκκρεμεί'}</span></button>`).join('')}</div></div>`;
+  return {html};
+}
+
+const BK_FILTERS = [['today','Σήμερα'],['tomorrow','Αύριο'],['owed','Οφειλές'],['new','Νέες'],['all','Όλες']];
+function bkMatches(){
+  const q = norm(S.bkQuery.trim());
+  const f = S.bkFilter;
+  return S.bookings.filter(b => {
+    const d = S.byId[b.dep];
+    if (f === 'today' && d.day !== 0) return false;
+    if (f === 'tomorrow' && d.day !== 1) return false;
+    if (f === 'owed' && (b.paid || d.cancelled)) return false;
+    if (f === 'new' && !b.isNew) return false;
+    if (q){
+      const hay = norm([b.first, b.last, b.code, TRIPS[d.trip].name, BOATS[d.boat].name, ...b.pax.map(p => p.name)].join(' '));
+      return hay.includes(q);
+    }
+    return true;
+  }).sort((a, b) => {
+    const da = S.byId[a.dep], db = S.byId[b.dep];
+    return da.day - db.day || da.start - db.start || a.code.localeCompare(b.code);
+  });
+}
+function bkListHtml(){
+  const all = bkMatches(), shown = all.slice(0, 40);
+  const meta = all.length ? (all.length > 40 ? `${all.length} κρατήσεις · οι πρώτες 40, ψάξτε για τις άλλες` : `${all.length} ${all.length === 1 ? 'κράτηση' : 'κρατήσεις'}`) : '';
+  const list = shown.length ? shown.map(b => bkBox(b)).join('') :
+    `<div class="box empty"><b>Καμία κράτηση</b><span class="meta">${S.bkFilter !== 'all' ? 'Δοκιμάστε όλες τις κρατήσεις.' : 'Δοκιμάστε άλλο όνομα ή κωδικό.'}</span>
+     ${S.bkFilter !== 'all' ? '<button type="button" class="bigbtn line tap" data-act="bkf" data-f="all">Όλες οι κρατήσεις</button>' : ''}</div>`;
+  return {meta, list};
+}
+PAGES.bookings = function(arg){
+  const t = top();
+  if (arg && !t.applied){ S.bkFilter = arg; t.applied = true; }
+  const {meta, list} = bkListHtml();
+  const html = `${head('Κρατήσεις', `${S.bookings.length} κρατήσεις αυτή την εβδομάδα`)}
+    <label class="field">${ic('search')}<input id="bkq" type="search" placeholder="Όνομα, κωδικός ή εκδρομή" value="${esc(S.bkQuery)}" autocomplete="off" enterkeyhint="search"></label>
+    <div class="filters">${BK_FILTERS.map(([k, l]) => `<button type="button" class="fp tap${S.bkFilter === k ? ' on' : ''}" data-act="bkf" data-f="${k}" aria-pressed="${S.bkFilter === k}">${l}</button>`).join('')}</div>
+    <div class="meta rmeta" id="bkMeta">${meta}</div>
+    <div class="stack" id="bkList">${list}</div>`;
+  return {html, init(page){ if (S.focusSearch){ S.focusSearch = false; setTimeout(() => { const i = page.querySelector('#bkq'); if (i) i.focus(); }, 60); } }};
+};
+function updBk(){
+  const {meta, list} = bkListHtml();
+  const l = cur('#bkList'); if (!l) return;
+  l.innerHTML = list; cur('#bkMeta').textContent = meta;
+  S.pageEl.querySelectorAll('.fp').forEach(b => { const on = b.dataset.f === S.bkFilter; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+}
+
+PAGES.booking = function(code){
+  const b = S.byCode[code], d = S.byId[b.dep], T = TRIPS[d.trip];
+  const kids = b.pax.filter(p => p.kid != null).length, adults = b.pax.length - kids;
+  let chips = '';
+  if (b.isNew) chips += chip('sea', 'Νέα');
+  chips += d.cancelled ? chip('bad', 'Ακυρώθηκε') : b.paid ? chip('ok', 'Πληρωμένη') : chip('warn', 'Οφείλει ' + eur(b.amount));
+  let html = head(`${b.first} ${b.last}`, `${b.code} · κράτηση ${b.created.startsWith('σήμερα') ? b.created : 'στις ' + b.created}`);
+  html += `<div class="chiprow">${chips}</div>`;
+  if (d.cancelled) html += `<div class="box alertbox flat">${ic('alert')}<span><b>Η αναχώρηση ακυρώθηκε</b><span class="meta">Ο επισκέπτης ενημερώθηκε. Η επιστροφή των χρημάτων γίνεται αυτόματα.</span></span></div>`;
+  html += `<button type="button" class="box tap" data-go="departure:${d.id}" style="text-align:left"><span class="lbl">Εκδρομή</span>
+    <span class="tline"><span class="bt">${fmt(d.start)}</span><span><b>${T.name}</b><span class="meta">${DAYS[d.day].long} · ${BOATS[d.boat].name}</span><span class="meta">${T.port}</span></span>${ic('chev','i chev')}</span></button>`;
+  html += `<div class="box"><span class="lbl">Άτομα · ${b.pax.length}</span><div class="plist">${b.pax.map((p, i) =>
+    `<div class="prow"><span>${i === 0 ? b.first + ' ' + b.last : p.name}${p.kid != null ? `<small>παιδί, ${p.kid} ετών</small>` : ''}</span>${d.day === 0 && !d.cancelled ? (p.on ? chip('ok', 'Πάνω') : chip('port', 'Όχι ακόμη')) : ''}</div>`).join('')}</div></div>`;
+  html += `<div class="box"><span class="lbl">Πληρωμή</span>
+    <div class="payline"><span class="mono amt">${eur(b.amount)}</span>${b.paid ? chip('ok', 'Πληρώθηκε') : chip('warn', 'Οφείλεται')}</div>
+    <span class="meta">${adults} × ${eur(T.price)}${kids ? ` · ${kids} ${kids === 1 ? 'παιδί' : 'παιδιά'} × ${eur(T.price / 2)}` : ''}</span>
+    ${!b.paid && !d.cancelled ? `<button type="button" class="bigbtn blue tap" data-act="pay" data-code="${b.code}">${ic('euro')}Πληρώθηκε στο σκάφος</button>` : ''}
+  </div>`;
+  html += `<div class="twobtn"><button type="button" class="bigbtn line tap" data-act="call" data-code="${b.code}">${ic('phone')}Κλήση</button><button type="button" class="bigbtn line tap" data-act="msg" data-code="${b.code}">${ic('chat')}Μήνυμα</button></div>`;
+  return {html};
+};
+
+PAGES.departure = function(id){
+  const d = S.byId[id], T = TRIPS[d.trip], B = BOATS[d.boat];
+  const bk = booked(d), on = onCount(d);
+  const today = d.day === 0, before = today && d.start > NOW, sailing = today && d.start <= NOW && d.end > NOW;
+  const lbl = d.cancelled ? 'Ακυρώθηκε' : before ? `Σε ${dur(d.start - NOW)}` : sailing ? `Εν πλω ως ${fmt(d.end)}` : dayCap(d.day);
+  let html = head(T.name, `${DAYS[d.day].long} · ${B.name}`);
+  html += `<div class="box dark"><span class="lbl">${lbl}</span>
+    <span class="dtop"><span><span class="bigtime">${fmt(d.start)}</span><span class="meta">Επιστροφή ${fmt(d.end)} · ${T.port}</span></span>
+    <span class="ndr"><span class="mono big">${bk}/${d.cap}</span><span class="meta">θέσεις</span></span></span>`;
+  if (today && !d.cancelled){
+    html += `<span class="prog"><i style="width:${pct(on, bk)}%"></i></span><span class="meta">${on} από ${bk} επιβιβάστηκαν</span>`;
+    if (before) html += `<div class="twobtn"><button type="button" class="bigbtn tap" data-go="boarding:${d.id}">${ic('list')}Επιβίβαση</button><button type="button" class="bigbtn ghost tap" data-act="scan-open" data-dep="${d.id}">${ic('qr')}Σάρωση</button></div>`;
+  }
+  html += `</div>`;
+  const chips = depChips(d);
+  if (chips) html += `<div class="chiprow">${chips}${d.weather ? `<span class="meta" style="align-self:center">${d.weather}</span>` : ''}</div>`;
+  if (!isCaptain()){ const a = attItems().find(x => x.dep === d.id); if (a) html += attCard(a); }
+  html += `<div class="sectitle"><h2>Κρατήσεις · ${d.bookings.length}</h2></div>`;
+  html += d.bookings.map(b => bkBox(b, {names:true})).join('') || '<div class="box empty"><span class="meta">Καμία κράτηση ακόμη.</span></div>';
+  return {html};
+};
+
+function pxSumHtml(d){
+  const on = onCount(d), bk = booked(d);
+  return `<span class="paxn" style="margin-top:0"><b>${on}</b><span class="meta">από ${bk} πάνω · ${bk - on} λείπουν</span>${on >= bk ? '<span style="margin-left:auto">' + chip('ok', 'Όλοι πάνω') + '</span>' : ''}</span>
+    <span class="prog"><i style="width:${pct(on, bk)}%"></i></span>
+    <button type="button" class="bigbtn tap" data-act="scan-open" data-dep="${d.id}">${ic('qr')}Σάρωση εισιτηρίων</button>`;
+}
+function pxListHtml(d){
+  const q = norm(S.pxQuery.trim());
+  const groups = d.bookings.map(b => {
+    if (q && !norm([b.first, b.last, b.code, ...b.pax.map(p => p.name)].join(' ')).includes(q)) return '';
+    let rows = b.pax.map((p, i) => ({p, i}));
+    if (S.pxFilter === 'missing') rows = rows.filter(r => !r.p.on);
+    if (S.pxFilter === 'on') rows = rows.filter(r => r.p.on);
+    if (!rows.length) return '';
+    const miss = b.pax.filter(p => !p.on).length;
+    const pay = !b.paid && !isCaptain() ? ' · ' + chip('warn', 'Οφείλει ' + eur(b.amount)) : '';
+    return `<div class="box pgroup">
+      <div class="ph"><div><b>${b.last}</b><span class="meta">${b.code} · ${people(b.pax.length)}${pay}</span></div>
+      ${miss > 1 ? `<button type="button" class="minibtn tap" data-act="paxall" data-code="${b.code}">Όλοι πάνω</button>` : ''}</div>
+      ${rows.map(({p, i}) => `<button type="button" class="pxr tap${p.on ? ' on' : ''}" data-act="pax" data-code="${b.code}" data-i="${i}" aria-pressed="${p.on}">
+        <span class="tick">${ic('check')}</span><span class="pn">${i === 0 ? b.first + ' ' + b.last : p.name}${p.kid != null ? `<small>παιδί, ${p.kid} ετών</small>` : ''}</span><span class="pw">${p.on ? 'Πάνω' : 'Λείπει'}</span></button>`).join('')}
+    </div>`;
+  }).join('');
+  if (groups) return groups;
+  if (S.pxFilter === 'missing' && !q) return `<div class="box okbox flat">${ic('check')}<span><b>Όλοι είναι πάνω</b><span class="meta">${booked(d)} από ${booked(d)}. Καλό ταξίδι.</span></span></div>`;
+  return `<div class="box empty"><b>Κανείς εδώ</b><span class="meta">Δοκιμάστε άλλο όνομα ή «Όλοι».</span></div>`;
+}
+PAGES.boarding = function(id){
+  const d = S.byId[id] || boardingDep();
+  const T = TRIPS[d.trip];
+  const F = [['missing','Λείπουν'],['all','Όλοι'],['on','Πάνω']];
+  const html = `${head('Επιβίβαση', `${fmt(d.start)} ${T.name} · ${BOATS[d.boat].name}`)}
+    <div class="box dark" id="pxSum">${pxSumHtml(d)}</div>
+    <label class="field">${ic('search')}<input id="pxq" type="search" placeholder="Όνομα ή κωδικός" value="${esc(S.pxQuery)}" autocomplete="off"></label>
+    <div class="filters">${F.map(([k, l]) => `<button type="button" class="fp tap${S.pxFilter === k ? ' on' : ''}" data-act="pxf" data-f="${k}" aria-pressed="${S.pxFilter === k}">${l}</button>`).join('')}</div>
+    <div class="stack" id="pxList" data-dep="${d.id}">${pxListHtml(d)}</div>`;
+  return {html};
+};
+function updPx(){
+  const l = cur('#pxList'); if (!l) return;
+  const d = S.byId[l.dataset.dep];
+  l.innerHTML = pxListHtml(d);
+  cur('#pxSum').innerHTML = pxSumHtml(d);
+  S.pageEl.querySelectorAll('.fp').forEach(b => { const on = b.dataset.f === S.pxFilter; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+}
+
+PAGES.scan = function(){
+  const d = boardingDep() || S.byId['0-gyros'], T = TRIPS[d.trip];
+  const html = `${head('Σάρωση', '')}
+    <div class="scanhead"><span class="lbl">Σάρωση για</span><span class="st"><span class="mono">${fmt(d.start)}</span> ${T.name} · ${BOATS[d.boat].name}</span><span class="meta" id="scCount">${onCount(d)} από ${booked(d)} πάνω</span></div>
+    <div class="finder" id="finder"><div class="frame"><span class="c tl"></span><span class="c tr"></span><span class="c bl"></span><span class="c br"></span><span class="line"></span></div><p>Στρέψτε την κάμερα στο QR του εισιτηρίου</p></div>
+    <div class="scres" id="scRes" aria-live="polite"></div>
+    <button type="button" class="bigbtn blue tap" data-act="scan" data-dep="${d.id}">${ic('qr')}Προσομοίωση σάρωσης</button>
+    <button type="button" class="bigbtn ghost tap" data-go="boarding:${d.id}">${ic('list')}Άνοιγμα λίστας</button>`;
+  return {html, dark:true};
+};
+
+PAGES.calendar = function(arg){
+  const cap = isCaptain();
+  const title = cap ? 'Εβδομάδα' : arg === 'deps' ? 'Αναχωρήσεις' : 'Ημερολόγιο';
+  const boats = cap ? [CAPTAIN_BOAT] : BOAT_IDS;
+  const ds = S.deps.filter(d => d.day === S.calDay && boats.includes(d.boat) && !d.cancelled);
+  const pax = ds.reduce((s, d) => s + booked(d), 0);
+  const html = `${head(title, cap ? `${BOATS[CAPTAIN_BOAT].name} · Καπετάνιος ${BOATS[CAPTAIN_BOAT].captain}` : 'Αυτή η εβδομάδα')}
+    <div class="days">${DAYS.map((D, i) => {
+      const risk = !cap && S.deps.some(d => d.day === i && belowMin(d) && !S.res.poly);
+      return `<button type="button" class="day tap${i === S.calDay ? ' on' : ''}" data-act="day" data-d="${i}" aria-pressed="${i === S.calDay}" aria-label="${D.long}"><span>${D.short}</span><b>${D.n}</b>${i === 0 ? '<i class="today"></i>' : ''}${risk ? '<i class="dot"></i>' : ''}</button>`;
+    }).join('')}</div>
+    <div class="daybody">
+      <div class="sectitle"><h2>${dayCap(S.calDay) === DAYS[S.calDay].long ? DAYS[S.calDay].long : dayCap(S.calDay) + ' · ' + DAYS[S.calDay].long}</h2></div>
+      <div class="meta rmeta" style="margin-top:-8px">${ds.length} ${ds.length === 1 ? 'αναχώρηση' : 'αναχωρήσεις'} · ${pax} επιβάτες</div>
+      ${boats.map(b => boatBox(b, S.calDay)).join('')}
+    </div>`;
+  return {html};
+};
+
+PAGES.attention = function(){
+  const items = attItems();
+  let html = head('Προσοχή', items.length ? `${items.length} ${items.length === 1 ? 'απόφαση σας περιμένει' : 'αποφάσεις σας περιμένουν'}` : 'Όλα εντάξει');
+  html += items.length ? items.map(attCard).join('')
+    : `<div class="box okbox flat">${ic('check')}<span><b>Τίποτα δεν περιμένει απόφαση</b><span class="meta">Θα εμφανιστεί εδώ ό,τι χρειαστεί.</span></span></div>`;
+  return {html};
+};
+
+PAGES.stub = function(name){
+  const text = name === 'Νέα κράτηση'
+    ? 'Η φόρμα νέας κράτησης δεν είναι μέρος του πρωτοτύπου. Στο Kaiki θα έχει μεγάλα πεδία σε μία στήλη και κουμπί αποθήκευσης σταθερό κάτω.'
+    : `Η οθόνη «${name}» δεν είναι μέρος του πρωτοτύπου. Στο Kaiki θα έχει την ίδια μορφή με τις Κρατήσεις: κάθε γραμμή ένα κουτί, φίλτρα και αναζήτηση πάνω.`;
+  return {html:`${head(name, 'Δεν είναι μέρος του πρωτοτύπου')}<div class="box stub"><p>${text}</p><button type="button" class="bigbtn blue tap" data-tab="bookings">${ic('ticket')}Δείτε τις Κρατήσεις</button></div>`};
+};
+
+/* ---------------- navigation ---------------- */
+function render(){ const t = top(); return PAGES[t.name](t.arg); }
+
+function mount(r, kind){
+  const vp = $('#viewport');
+  [...vp.children].forEach(n => { if (n !== S.pageEl) n.remove(); });
+  const old = S.pageEl;
+  const page = document.createElement('div');
+  page.className = 'page' + (r.dark ? ' dark' : '');
+  page.innerHTML = `<div class="pscroll">${r.html}</div>`;
+  screen.classList.toggle('darkpage', !!r.dark);
+  S.pageEl = page;
+  if (!old || kind === 'none' || REDUCED){
+    if (old) old.remove();
+    vp.appendChild(page);
+  } else {
+    old.style.pointerEvents = 'none';
+    if (kind === 'pop' || kind === 'down'){
+      vp.insertBefore(page, old);
+      if (kind === 'pop') page.classList.add('a-under-in');
+      old.classList.add(kind === 'pop' ? 'a-out-right' : 'a-out-down');
+    } else {
+      vp.appendChild(page);
+      page.classList.add('a-in-' + kind);
+      if (kind === 'push') old.classList.add('a-under-out');
+    }
+    setTimeout(() => old.remove(), 360);
+  }
+  if (r.init) r.init(page);
+  renderBar();
+}
+function refresh(){
+  if (!S.pageEl) return;
+  const sc = S.pageEl.querySelector('.pscroll');
+  const y = sc.scrollTop;
+  const r = render();
+  S.pageEl.className = 'page' + (r.dark ? ' dark' : '');
+  sc.innerHTML = r.html;
+  sc.scrollTop = y;
+  renderBar();
+}
+function go(name, arg = '', kind = 'push'){
+  const t = top();
+  if (t.name === name && (t.arg || '') === (arg || '')) return;
+  if (name === 'boarding'){ S.pxQuery = ''; S.pxFilter = 'missing'; }
+  closeOv();
+  S.stack.push({name, arg, kind});
+  mount(render(), kind);
+}
+function back(){
+  if (S.stack.length <= 1) return;
+  const t = S.stack.pop();
+  mount(render(), t.kind === 'up' ? 'down' : 'pop');
+}
+function tab(name, arg = ''){
+  closeOv();
+  if (name === 'boarding'){ S.pxQuery = ''; S.pxFilter = 'missing'; }
+  S.stack = [{name, arg}];
+  mount(render(), 'fade');
+}
+const split = s => { const i = s.indexOf(':'); return i < 0 ? [s, ''] : [s.slice(0, i), s.slice(i + 1)]; };
+
+/* ---------------- menu, sheet, bar ---------------- */
+function mb(attrs, icon, label, n, active){
+  return `<button type="button" class="mb tap${active ? ' on' : ''}" ${attrs}>${n ? `<span class="n">${n}</span>` : ''}${ic(icon, '')}<span>${label}</span></button>`;
+}
+function isRoot(name, arg){ const r = S.stack[0]; return r.name === name && (arg === undefined || (r.arg || '') === arg); }
+function menuA(){
+  const newN = S.bookings.filter(b => b.isNew).length;
+  const stub = n => `data-tab="stub:${n}"`;
+  return `<div class="ovin">
+    <div class="apptop"><div class="at"><h1>Μενού</h1><div class="sub">Aegean Blue</div></div><button type="button" class="pill dark tap" data-act="closeov">${ic('x')}Κλείσιμο</button></div>
+    <div class="mboxes">${mb('data-tab="home"', 'home', 'Αρχική', 0, isRoot('home'))}${mb('data-act="gosearch"', 'search', 'Αναζήτηση')}${mb(stub('Νέα κράτηση'), 'plus', 'Νέα κράτηση', 0, isRoot('stub', 'Νέα κράτηση'))}</div>
+    <div class="mg">Σήμερα</div>
+    <div class="mboxes">${mb('data-tab="boarding"', 'qr', 'Επιβίβαση', 0, isRoot('boarding'))}${mb('data-tab="calendar:deps"', 'flag', 'Αναχωρήσεις', 0, isRoot('calendar', 'deps'))}${mb('data-tab="calendar"', 'cal', 'Ημερολόγιο', 0, isRoot('calendar', ''))}</div>
+    <div class="mg">Πωλήσεις</div>
+    <div class="mboxes four">${mb('data-tab="bookings"', 'ticket', 'Κρατήσεις', newN, isRoot('bookings'))}${mb(stub('Προσφορές'), 'chat', 'Προσφορές', 2, isRoot('stub', 'Προσφορές'))}${mb(stub('Κουπόνια'), 'gift', 'Κουπόνια', 0, isRoot('stub', 'Κουπόνια'))}${mb(stub('Παραστατικά'), 'doc', 'Παραστατικά', 0, isRoot('stub', 'Παραστατικά'))}</div>
+    <div class="mg">Κατάλογος και στόλος</div>
+    <div class="mboxes">${[['Εκδρομές','map'],['Τιμές','euro'],['Σκάφη','boat'],['Δρομολόγια','clock'],['Λιμάνια','pin'],['Στατιστικά','chart']].map(([n, i]) => mb(stub(n), i, n, 0, isRoot('stub', n))).join('')}</div>
+    <div class="mboxes one">${mb(stub('Ρυθμίσεις'), 'cog', 'Ρυθμίσεις', 0, isRoot('stub', 'Ρυθμίσεις'))}</div>
+  </div>`;
+}
+function sheetB(){
+  const newN = S.bookings.filter(b => b.isNew).length;
+  const att = attItems().length;
+  const stub = n => `data-tab="stub:${n}"`;
+  return `<button type="button" class="backdrop" data-act="closeov" aria-label="Κλείσιμο"></button>
+  <div class="sheetin" role="dialog" aria-label="Περισσότερα">
+    <span class="grip"></span>
+    <div class="sheethead"><h2>Περισσότερα</h2><button type="button" class="pill tap" data-act="closeov">${ic('x')}Κλείσιμο</button></div>
+    <div class="mboxes">${mb('data-act="gosearch"', 'search', 'Αναζήτηση')}${mb(stub('Νέα κράτηση'), 'plus', 'Νέα κράτηση', 0, isRoot('stub', 'Νέα κράτηση'))}${mb('data-tab="attention"', 'alert', 'Προσοχή', att, isRoot('attention'))}</div>
+    <div class="mg">Σήμερα</div>
+    <div class="mboxes">${mb('data-tab="boarding"', 'list', 'Επιβίβαση', 0, isRoot('boarding'))}${mb('data-tab="calendar:deps"', 'flag', 'Αναχωρήσεις', 0, isRoot('calendar', 'deps'))}${mb('data-tab="bookings"', 'ticket', 'Κρατήσεις', newN, isRoot('bookings'))}</div>
+    <div class="mg">Πωλήσεις</div>
+    <div class="mboxes">${[['Προσφορές','chat',2],['Κουπόνια','gift',0],['Παραστατικά','doc',0]].map(([n, i, c]) => mb(stub(n), i, n, c, isRoot('stub', n))).join('')}</div>
+    <div class="mg">Κατάλογος και στόλος</div>
+    <div class="mboxes">${[['Εκδρομές','map'],['Τιμές','euro'],['Σκάφη','boat'],['Δρομολόγια','clock'],['Λιμάνια','pin'],['Στατιστικά','chart']].map(([n, i]) => mb(stub(n), i, n, 0, isRoot('stub', n))).join('')}</div>
+    <div class="mboxes one">${mb(stub('Ρυθμίσεις'), 'cog', 'Ρυθμίσεις', 0, isRoot('stub', 'Ρυθμίσεις'))}</div>
+  </div>`;
+}
+let ovTimer;
+function openOv(kind){
+  clearTimeout(ovTimer);
+  const o = $('#overlay');
+  o.className = 'overlay ' + kind;
+  o.innerHTML = kind === 'menu' ? menuA() : sheetB();
+  o.hidden = false;
+  screen.classList.toggle('darkstatus', kind === 'menu');
+  void o.offsetWidth;
+  o.classList.add('open');
+  const first = o.querySelector('.pill');
+  if (first) first.focus({preventScroll:true});
+}
+function closeOv(){
+  const o = $('#overlay');
+  if (o.hidden) return;
+  o.classList.remove('open');
+  screen.classList.remove('darkstatus');
+  clearTimeout(ovTimer);
+  ovTimer = setTimeout(() => { o.hidden = true; o.innerHTML = ''; }, REDUCED ? 0 : 340);
+}
+function renderBar(){
+  const bar = $('#bar');
+  screen.classList.toggle('hasbar', S.dir === 'B');
+  if (S.dir === 'A'){ bar.hidden = true; bar.innerHTML = ''; return; }
+  bar.hidden = false;
+  const root = S.stack[0].name;
+  const cap = isCaptain();
+  bar.className = 'bar' + (cap ? ' three' : '');
+  const items = cap
+    ? [['home','boat','Το σκάφος'],['scan','qr','Σάρωση'],['calendar','cal','Εβδομάδα']]
+    : [['home','home','Αρχική'],['scan','qr','Σάρωση'],['calendar','cal','Ημερολόγιο'],['more','menu','Μενού']];
+  bar.innerHTML = items.map(([k, icon, label]) => {
+    const on = k === 'more' ? !['home','calendar'].includes(root) : root === k;
+    const attr = k === 'scan' ? 'data-act="scan-open"' : k === 'more' ? 'data-act="sheet"' : `data-tab="${k}"`;
+    return `<button type="button" class="tap${k === 'scan' ? ' scan' : ''}${on && k !== 'scan' ? ' on' : ''}" ${attr}${on ? ' aria-current="page"' : ''}>${ic(icon, '')}${label}</button>`;
+  }).join('');
+}
+
+let toastTimer;
+function toast(msg, icon = 'check'){
+  const t = $('#toast');
+  t.innerHTML = `${ic(icon)}<span>${msg}</span>`;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ---------------- actions ---------------- */
+const ACT = {
+  menu(){ openOv('menu'); },
+  sheet(){ openOv('sheet'); },
+  closeov(){ closeOv(); },
+  gosearch(){ S.focusSearch = true; S.bkQuery = ''; S.bkFilter = 'all'; tab('bookings'); },
+  'scan-open'(el){
+    if (top().name === 'scan') return;
+    if (el.dataset.dep) S.scanTarget = el.dataset.dep;
+    go('scan', '', 'up');
+  },
+  bkf(el){ S.bkFilter = el.dataset.f; updBk(); },
+  pxf(el){ S.pxFilter = el.dataset.f; updPx(); },
+  day(el){ S.calDay = +el.dataset.d; refresh(); },
+  check(el){ const i = +el.dataset.i; S.checks[i] = !S.checks[i]; refresh(); },
+  office(){ toast('Κλήση στο γραφείο: 22870 23 410', 'phone'); },
+  call(el){ toast('Κλήση στο ' + S.byCode[el.dataset.code].phone, 'phone'); },
+  msg(el){ const b = S.byCode[el.dataset.code]; toast(`Μήνυμα προς ${b.first} ${b.last}`, 'chat'); },
+  pay(el){ const b = S.byCode[el.dataset.code]; b.paid = true; refresh(); toast('Καταγράφηκε πληρωμή ' + eur(b.amount)); },
+  pax(el){
+    const b = S.byCode[el.dataset.code], p = b.pax[+el.dataset.i], d = S.byId[b.dep];
+    p.on = !p.on;
+    el.classList.toggle('on', p.on);
+    el.setAttribute('aria-pressed', p.on);
+    el.querySelector('.pw').textContent = p.on ? 'Πάνω' : 'Λείπει';
+    cur('#pxSum').innerHTML = pxSumHtml(d);
+    const hide = (S.pxFilter === 'missing' && p.on) || (S.pxFilter === 'on' && !p.on);
+    if (hide){ el.classList.add('leaving'); setTimeout(updPx, 260); }
+    else updPx();
+    if (p.on && onCount(d) === booked(d)) toast(`Όλοι είναι πάνω · ${booked(d)}/${booked(d)}`);
+  },
+  paxall(el){
+    const b = S.byCode[el.dataset.code], d = S.byId[b.dep];
+    b.pax.forEach(p => p.on = true);
+    const g = el.closest('.pgroup');
+    if (S.pxFilter === 'missing' && g){ g.classList.add('leaving'); setTimeout(updPx, 260); } else updPx();
+    cur('#pxSum').innerHTML = pxSumHtml(d);
+    toast(onCount(d) === booked(d) ? `Όλοι είναι πάνω · ${booked(d)}/${booked(d)}` : `${b.last}: ${people(b.pax.length)} πάνω`);
+  },
+  scan(el){
+    const d = S.byId[el.dataset.dep];
+    const res = cur('#scRes');
+    const finder = cur('#finder');
+    S.scanN++;
+    let html;
+    if (S.scanN % 4 === 3){
+      const other = S.byId['1-klef'].bookings[2];
+      html = `<div class="scard warn">${ic('alert')}<div><b>Άλλη αναχώρηση</b><div>${other.code} · ${other.first} ${other.last} · ${people(other.pax.length)}</div><div class="small">Το εισιτήριο είναι για αύριο ${fmt(S.byId['1-klef'].start)} Κλέφτικο. Δεν επιβιβάστηκε.</div></div></div>`;
+    } else {
+      const b = d.bookings.find(x => x.pax.some(p => !p.on));
+      if (!b){
+        const next = S.deps.find(x => x.day === 0 && !x.cancelled && x.start > d.start && (!isCaptain() || x.boat === CAPTAIN_BOAT));
+        html = `<div class="scard ok">${ic('check')}<div><b>Όλοι είναι πάνω</b><div>${booked(d)} από ${booked(d)}</div>${next ? `<button type="button" class="bigbtn line tap" data-act="scannext" data-dep="${next.id}">Επόμενη: ${fmt(next.start)} ${TRIPS[next.trip].name}</button>` : ''}</div></div>`;
+      } else {
+        const n = b.pax.filter(p => !p.on).length;
+        b.pax.forEach(p => p.on = true);
+        const payNote = b.paid ? 'Πληρωμένη' : isCaptain() ? 'Εκκρεμεί πληρωμή: ενημερώστε το γραφείο' : 'Οφείλει ' + eur(b.amount);
+        html = `<div class="scard ok">${ic('check')}<div><b>Επιβιβάστηκαν ${n}</b><div>${b.code} · ${b.first} ${b.last}</div><div class="small">${payNote}</div></div></div>`;
+        if (finder){ finder.classList.remove('flash'); void finder.offsetWidth; finder.classList.add('flash'); }
+      }
+    }
+    res.innerHTML = html;
+    cur('#scCount').textContent = `${onCount(d)} από ${booked(d)} πάνω`;
+  },
+  scannext(el){ S.scanTarget = el.dataset.dep; refresh(); toast('Σάρωση για ' + TRIPS[S.byId[el.dataset.dep].trip].name, 'qr'); },
+  resolve(el){
+    const id = el.dataset.id, c = el.dataset.c;
+    S.res[id] = c;
+    let msg;
+    if (id === 'poly'){
+      const d = S.byId['1-poly'];
+      if (c === 'cancel'){ d.cancelled = true; msg = `Ακυρώθηκε · ${booked(d)} επιβάτες ενημερώθηκαν`; }
+      else msg = 'Ο Πολύαιγος αύριο φεύγει κανονικά';
+    } else {
+      msg = c === 'notify' ? `Στάλθηκε μήνυμα σε ${booked(S.byId['0-sunset'])} επιβάτες` : 'Σημειώθηκε: το Ηλιοβασίλεμα φεύγει';
+    }
+    const card = el.closest('.att');
+    if (card){ card.classList.add('leaving'); setTimeout(refresh, 260); } else refresh();
+    toast(msg);
+  }
+};
+
+screen.addEventListener('click', e => {
+  const t = e.target.closest('[data-back],[data-go],[data-tab],[data-act]');
+  if (!t || !screen.contains(t)) return;
+  if (t.hasAttribute('data-back')) return back();
+  if (t.dataset.go){ const [n, a] = split(t.dataset.go); return go(n, a); }
+  if (t.dataset.tab){ const [n, a] = split(t.dataset.tab); return tab(n, a); }
+  const fn = ACT[t.dataset.act];
+  if (fn) fn(t);
+});
+screen.addEventListener('input', e => {
+  if (e.target.id === 'bkq'){ S.bkQuery = e.target.value; updBk(); }
+  if (e.target.id === 'pxq'){ S.pxQuery = e.target.value; updPx(); }
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeOv(); });
+
+/* ---------------- page around the phone ---------------- */
+const NOTES = {
+  A:{
+    tries:[
+      'Tap <b>Μενού</b> at the top right. The whole menu opens as boxes.',
+      'Tap <b>Σάρωση</b> and press <b>Προσομοίωση σάρωσης</b> a few times. The third scan is a ticket for the wrong trip. Go back, and the count on the home page has moved too.',
+      'Tap the <b>Κρατήσεις</b> box, choose <b>Οφειλές</b>, open a booking and press <b>Πληρώθηκε στο σκάφος</b>.',
+      'In Κρατήσεις, choose <b>Όλες</b> and search for a name, such as <b>Müller</b>.',
+      'Tap <b>Προσοχή</b> and cancel tomorrow’s Πολύαιγος. Then check Friday in <b>Ημερολόγιο</b>.'
+    ],
+    good:'Everyone sees the same screen. The menu is complete and easy to scan, and the whole phone screen goes to today’s work.',
+    trade:'From any other screen, boarding takes two taps: Μενού, then Επιβίβαση.', est:'≈ 6 h'
+  },
+  B:{
+    tries:[
+      'The bar at the bottom stays on every screen, so <b>Σάρωση</b> is always one tap away.',
+      'Tap <b>Μενού</b> in the bar. Everything else opens as a sheet of boxes.',
+      'Tap Αύρα’s box, then <b>Επιβίβαση</b>, and tick people off. Switch to <b>Πάνω</b> to see who’s already aboard.',
+      'Tap the red box at the top to decide about tomorrow’s Πολύαιγος.',
+      'Switch to <b>Captain</b> above to see the same day as the captain of Αύρα.'
+    ],
+    good:'Captains and crew: scanning is always one tap away, on every screen. It works like apps they already know.',
+    trade:'The bar takes about 70px on every screen, and the captain’s screen is a new page to build.', est:'≈ 8 h'
+  },
+  C:{
+    tries:[
+      'This account sees only Αύρα and only today, with no money, and the bar has three buttons.',
+      'Tap <b>Λίστα</b> and tick passengers as they come aboard. The count at the top goes up, and people leave the <b>Λείπουν</b> list.',
+      'Try <b>Σάρωση εισιτηρίων</b>. Unpaid bookings say so, without the amount.',
+      'Tick the checks under <b>Πριν αναχωρήσετε</b>.',
+      '<b>Εβδομάδα</b> shows Αύρα’s next days. Switch back to <b>Operator</b>, and the boarding you did is still there.'
+    ],
+    good:'Captains and crew: scanning is always one tap away, on every screen. It works like apps they already know.',
+    trade:'The bar takes about 70px on every screen, and the captain’s screen is a new page to build.', est:'≈ 8 h'
+  }
+};
+function renderChrome(){
+  document.querySelectorAll('[data-dir]').forEach(b => b.setAttribute('aria-checked', b.dataset.dir === S.dir));
+  document.querySelectorAll('[data-role]').forEach(b => b.setAttribute('aria-checked', b.dataset.role === S.role));
+  $('#roleSeg').hidden = S.dir !== 'B';
+  const n = S.dir === 'A' ? NOTES.A : S.role === 'captain' ? NOTES.C : NOTES.B;
+  $('#triesTitle').textContent = S.dir === 'A' ? 'Things to try in A' : S.role === 'captain' ? 'Things to try as a captain in B' : 'Things to try in B';
+  $('#tries').innerHTML = n.tries.map(t => `<li>${t}</li>`).join('');
+  $('#verdict').innerHTML = `<div><b>Good for</b>${n.good}</div><div><b>Trade-off</b>${n.trade}</div><div><b>Estimate</b><span class="est">${n.est}</span></div>`;
+}
+document.querySelectorAll('[data-dir]').forEach(b => b.addEventListener('click', () => {
+  if (S.dir === b.dataset.dir) return;
+  S.dir = b.dataset.dir; S.stack = [{name:'home', arg:''}]; S.scanTarget = null;
+  closeOv(); savePrefs(); renderChrome(); mount(render(), 'fade');
+}));
+document.querySelectorAll('[data-role]').forEach(b => b.addEventListener('click', () => {
+  if (S.role === b.dataset.role) return;
+  S.role = b.dataset.role; S.stack = [{name:'home', arg:''}]; S.scanTarget = null;
+  closeOv(); savePrefs(); renderChrome(); mount(render(), 'fade');
+}));
+$('#reset').addEventListener('click', () => {
+  prefs = {dir:S.dir, role:S.role};
+  closeOv(); fresh(); renderChrome(); mount(render(), 'fade');
+  toast('Η μέρα ξεκίνησε από την αρχή', 'clock');
+});
+
+fresh();
+renderChrome();
+mount(render(), 'none');
+})();
+</script>

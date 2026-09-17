@@ -72,4 +72,42 @@ return [
             'action' => 'Open the calendar',
         ],
     ],
+
+    // The home page: the day, by boat («version 3», 2026-09-17).
+    'home' => [
+        'greeting' => [
+            'morning' => 'Good morning',
+            'evening' => 'Good evening',
+            'morning_named' => 'Good morning, :name',
+            'evening_named' => 'Good evening, :name',
+        ],
+        'next' => [
+            'label' => 'Next departure',
+            'underway' => 'at sea now',
+            'in_minutes' => 'in :count minute|in :count minutes',
+            'in_hours' => 'in :count hour|in :count hours',
+            'aboard' => 'aboard',
+            'booked' => 'seats booked',
+            'none' => 'No departures in the next seven days.',
+            'scan' => 'Scan tickets',
+            'board' => 'Boarding list',
+        ],
+        'boxes' => [
+            'departures' => 'Departures',
+            'departures_today' => ':count today|:count today',
+            'bookings' => 'Bookings',
+            'bookings_new' => ':count new since yesterday|:count new since yesterday',
+            'calendar' => 'Calendar',
+            'calendar_week' => 'This week',
+            'attention' => 'Attention',
+            'attention_count' => ':count decision|:count decisions',
+            'attention_none' => 'All clear',
+        ],
+        'boats' => [
+            'heading' => 'Today by boat',
+            'calendar' => 'Calendar',
+            'seats' => ':count seat|:count seats',
+            'free' => 'Free today',
+        ],
+    ],
 ];

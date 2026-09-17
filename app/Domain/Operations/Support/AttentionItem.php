@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Operations\Support;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
@@ -23,6 +24,13 @@ final class AttentionItem
         public readonly string $detail,
         /** When the chance to act runs out. Null when nothing is counting down. */
         public readonly ?Carbon $deadline,
+        /**
+         * The record this is about — the departure, booking, quote or calendar
+         * feed — so the panel can take the operator straight to where it is
+         * fixed (product owner, 2026-09-17: a list you cannot act on "has no
+         * point"). The domain names the record; the panel decides the screen.
+         */
+        public readonly ?Model $subject = null,
     ) {}
 
     /**

@@ -1,0 +1,1047 @@
+<title>Εκδρομή σε δύο καρτέλες</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* One light look, like the operator panel. Tokens match the phone prototype. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57; --hover:#17396A; --active:#1C4378; --sb-text:#C4D3E8; --sb-muted:#7F98BA; --sb-line:#23497D;
+  --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA;
+  --warn:#B26A12; --warnbg:#FBF0DF; --good:#1F7A4D; --goodbg:#E3F2EA; --rec:#0F2E57;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --waves:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='170' viewBox='0 0 520 170'%3E%3Cg fill='none' stroke='%23C9DAEE' stroke-width='1.3'%3E%3Cpath d='M0 150 Q65 132 130 150 T260 150 T390 150 T520 150' opacity='.9'/%3E%3Cpath d='M0 120 Q65 104 130 120 T260 120 T390 120 T520 120' opacity='.65'/%3E%3Cpath d='M-65 90 Q0 76 65 90 T195 90 T325 90 T455 90 T585 90' opacity='.45'/%3E%3Cpath d='M0 60 Q65 48 130 60 T260 60 T390 60 T520 60' opacity='.28'/%3E%3C/g%3E%3C/svg%3E");
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-inline:24px;padding-block:36px 64px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;text-align:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+a{text-decoration:none;color:var(--blue)}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+h1,h2,h3{margin:0;text-wrap:balance;letter-spacing:-.01em}
+p{margin:0}
+
+.page{max-width:1180px;margin:0 auto;display:grid;gap:44px}
+.intro{display:grid;gap:12px;max-width:760px}
+.eyebrow{font-size:13px;font-weight:600;color:var(--blue)}
+.intro h1{font-size:40px;line-height:1.1;font-weight:800;color:var(--deep)}
+.intro p{font-size:17px;color:var(--muted);max-width:66ch}
+
+.option{display:grid;gap:18px}
+.opt-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px}
+.opt-head h2{font-size:26px;color:var(--deep)}
+.rec{display:inline-flex;align-items:center;gap:6px;background:var(--deep);color:#fff;font-size:13px;font-weight:600;padding:4px 11px;border-radius:999px}
+.opt-lede{color:var(--muted);max-width:72ch}
+
+/* ---------- desktop panel mock ---------- */
+.scroller{overflow-x:auto;border-radius:14px;box-shadow:0 1px 0 var(--line),0 18px 40px -24px rgba(15,46,87,.35)}
+.panel{min-width:1040px;display:grid;grid-template-columns:230px 1fr;background:var(--paper);background-image:var(--waves);background-repeat:repeat-x;background-position:bottom;background-size:520px 170px;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.sb{background:var(--deep);color:var(--sb-text);padding:18px 12px;display:flex;flex-direction:column;gap:14px}
+.sb .brand{color:#fff;font-weight:800;font-size:20px;padding:0 10px 6px}
+.sb .grp{display:grid;gap:1px}
+.sb .grp-l{font-size:12.5px;color:var(--sb-muted);padding:2px 10px 4px}
+.sb .it{display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:8px;font-size:15px;font-weight:500}
+.sb .it svg{color:var(--sb-muted)}
+.sb .it.on{background:var(--active);color:#fff}
+.sb .it.on svg{color:#fff}
+.sb .sb-foot{margin-top:auto;border-top:1px solid var(--sb-line);padding-top:8px;display:grid;gap:1px}
+
+.main{padding:22px 30px 120px;display:grid;gap:18px;align-content:start}
+.crumbs{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.titlebar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.titlebar h3{font-size:26px;font-weight:700;color:var(--ink)}
+.pill{white-space:nowrap;font-size:12.5px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--wash);color:var(--deep)}
+.pill.warn{background:var(--warnbg);color:var(--warn)}
+.pill.good{background:var(--goodbg);color:var(--good)}
+.titlebar .spacer{flex:1}
+.btn{display:inline-flex;align-items:center;gap:8px;border-radius:9px;padding:8px 14px;font-weight:600;font-size:14px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.btn.primary{background:var(--deep);border-color:var(--deep);color:#fff}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tab{display:grid;gap:1px;padding:10px 16px 11px;border-bottom:2px solid transparent;margin-bottom:-1px;color:var(--muted)}
+.tab .tl{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px}
+.tab .ts{font-size:12.5px}
+.tab[aria-selected="true"]{color:var(--deep);border-bottom-color:var(--deep)}
+.tab .ts .ok{color:var(--good)} .tab .ts .miss{color:var(--warn)}
+.tab.soft .tl::after{content:"υπό συζήτηση";font-size:11px;font-weight:600;color:var(--warn);background:var(--warnbg);border-radius:999px;padding:1px 7px}
+
+.work{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:22px;align-items:start}
+.sections{display:grid;gap:14px}
+.sec{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:12px}
+.sec-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.sec-h h4{margin:0;font-size:15.5px;font-weight:650;color:var(--ink)}
+.sec-h .note{font-size:12.5px;color:var(--muted)}
+.fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 14px}
+.f{display:grid;gap:4px;min-width:0}
+.f.w2{grid-column:span 2}.f.w3{grid-column:1/-1}
+.f label{font-size:12.5px;font-weight:600;color:var(--muted)}
+.f .v{border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:#fff;font-size:14px;min-height:36px;display:flex;align-items:center;gap:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.f .v.area{white-space:normal;align-items:flex-start;line-height:1.45;min-height:64px;color:var(--ink)}
+.f .v.empty{color:var(--faint)}
+.f .v.missing{border-color:#E9C58F;background:var(--warnbg);color:var(--warn)}
+.f .v .clock{color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font-size:13px;background:var(--wash);color:var(--deep);border-radius:7px;padding:3px 9px}
+.rows{display:grid;gap:6px}
+.row{display:grid;grid-template-columns:84px 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:14px;background:#fff}
+.row .t{display:flex;align-items:center;gap:6px;color:var(--ink)}
+.row .d{color:var(--muted);font-size:13px}
+.photos{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.ph{aspect-ratio:4/3;border-radius:8px;background:linear-gradient(160deg,#9DC0E3,#3F77B4 60%,#1D4E86);max-width:100%}
+.ph:nth-child(2){background:linear-gradient(160deg,#E7D9BF,#6FA7C9 55%,#2E6B9E)}
+.ph:nth-child(3){background:linear-gradient(160deg,#BFD8E8,#5A93B8 50%,#2B5C7E)}
+.ph:nth-child(4){background:linear-gradient(160deg,#F0E1C9,#C7A77E 45%,#4C7FA8)}
+.ph.add{background:var(--paper);border:1px dashed #BFCDE0;display:grid;place-items:center;color:var(--muted);font-size:13px}
+
+.side{display:grid;gap:12px;position:sticky;top:12px}
+.box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:10px}
+.box h4{margin:0;font-size:14.5px}
+.check{display:grid;gap:7px;margin:0;padding:0;list-style:none}
+.check li{display:grid;grid-template-columns:18px 1fr;gap:8px;font-size:13.5px;align-items:start}
+.check li .dot{width:16px;height:16px;border-radius:50%;margin-top:2px;display:grid;place-items:center;font-size:10px;font-weight:700}
+.check li.ok .dot{background:var(--goodbg);color:var(--good)}
+.check li.no .dot{background:var(--warnbg);color:var(--warn)}
+.check li .where{display:block;font-size:12px;color:var(--muted)}
+.check li.no button{color:var(--blue);font-weight:600;font-size:12px}
+.small{font-size:13px;color:var(--muted)}
+
+.tabpanel[hidden]{display:none!important}
+.discuss{border:1px dashed #D9BE8F;background:#FFFBF3;border-radius:12px;padding:16px 18px;display:grid;gap:10px}
+.discuss h4{margin:0;font-size:15.5px}
+.discuss ul{margin:0;padding-left:18px;display:grid;gap:4px;color:var(--muted);font-size:14px}
+
+/* ---------- desktop + phone side by side ---------- */
+.duo{display:grid;grid-template-columns:minmax(0,1fr);gap:26px}
+.phone-row{display:grid;grid-template-columns:auto minmax(0,1fr);gap:40px;align-items:start}
+.phone{width:360px;max-width:100%;height:740px;border-radius:44px;background:#0F2E57;padding:11px;box-shadow:0 24px 50px -26px rgba(15,46,87,.55)}
+.screen{height:100%;border-radius:34px;overflow:hidden;background:var(--paper);background-image:var(--waves);background-repeat:repeat-x;background-position:bottom;background-size:520px 170px;display:flex;flex-direction:column;position:relative}
+.p-top{padding:16px 16px 10px;display:grid;gap:10px}
+.p-status{display:flex;justify-content:space-between;font-size:12.5px;font-weight:600;padding:0 6px}
+.p-bar{display:flex;align-items:center;gap:10px}
+.p-back{display:inline-flex;align-items:center;gap:4px;font-size:14px;color:var(--blue);font-weight:600}
+.p-bar .spacer{flex:1}
+.p-menu{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:6px 10px;font-weight:600;font-size:14px}
+.p-title{display:grid;gap:4px}
+.p-title h3{font-size:22px;color:var(--ink)}
+.p-tabs{display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:none}
+.p-tab{flex:none;border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 11px;display:grid;gap:0;text-align:left}
+.p-tab b{font-size:14px;font-weight:600}
+.p-tab span{font-size:11.5px;color:var(--muted)}
+.p-tab[aria-selected="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+.p-tab[aria-selected="true"] span{color:#C4D3E8}
+.p-body{flex:1;overflow-y:auto;padding:4px 16px 90px;display:grid;gap:10px;align-content:start}
+.pbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:4px}
+.pbox .k{font-size:12.5px;color:var(--muted);font-weight:600;display:flex;justify-content:space-between;gap:8px}
+.pbox .val{font-size:15px;font-weight:500}
+.pbox.miss{border-color:#E9C58F;background:var(--warnbg)}
+.pbox.miss .val{color:var(--warn)}
+.pbox .edit{color:var(--blue);font-weight:600;font-size:12.5px}
+.p-save{position:absolute;left:0;right:0;bottom:0;padding:12px 16px 18px;background:linear-gradient(to top,var(--paper) 70%,rgba(247,250,253,0))}
+.p-save .btn{width:100%;justify-content:center;padding:12px}
+.phone-notes{display:grid;gap:14px;align-content:start;max-width:520px}
+.phone-notes h3{font-size:19px;color:var(--deep)}
+.phone-notes ul{margin:0;padding-left:18px;display:grid;gap:6px;color:var(--muted)}
+
+/* ---------- pros/cons + alternatives ---------- */
+.pc{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.pc > div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 18px;display:grid;gap:8px;align-content:start}
+.pc h4{margin:0;font-size:14.5px}
+.pc .plus h4{color:var(--good)} .pc .minus h4{color:var(--warn)}
+.pc ul{margin:0;padding-left:18px;display:grid;gap:5px;font-size:14.5px}
+.alts{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.alt{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:grid;gap:14px;align-content:start}
+.alt h3{font-size:19px;color:var(--ink)}
+.alt p{color:var(--muted);font-size:14.5px}
+.sketch{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:10px}
+.steps{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;flex-wrap:wrap}
+.step{padding:5px 10px;border-radius:999px;background:var(--wash);color:var(--deep)}
+.step.on{background:var(--deep);color:#fff}
+.step-sep{color:var(--faint)}
+.ghost{height:10px;border-radius:5px;background:#DCE5F0}
+.ghost.s{width:40%}.ghost.m{width:65%}.ghost.l{width:90%}
+.split2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.prev{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;display:grid}
+.prev .img{height:54px;background:linear-gradient(160deg,#9DC0E3,#3F77B4 60%,#1D4E86)}
+.prev .txt{padding:8px;display:grid;gap:5px}
+.mini-pc{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:13.5px}
+.mini-pc b{display:block;font-size:13px;margin-bottom:3px}
+.mini-pc .plus b{color:var(--good)} .mini-pc .minus b{color:var(--warn)}
+.mini-pc ul{margin:0;padding-left:16px;display:grid;gap:3px}
+
+.ask{background:var(--deep);color:#E3ECF7;border-radius:14px;padding:22px 24px;display:grid;gap:10px}
+.ask h2{color:#fff;font-size:22px}
+.ask ol{margin:0;padding-left:20px;display:grid;gap:6px}
+.ask b{color:#fff}
+.foot{font-size:13px;color:var(--muted)}
+
+/* ---------- parts ---------- */
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.toc a{background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 13px;font-size:14px;font-weight:600;color:var(--deep)}
+.toc a:hover{background:var(--wash)}
+.part{display:flex;align-items:center;gap:12px;font-size:30px;color:var(--deep);padding-top:18px;border-top:1px solid #D5DFEC;margin-bottom:-26px;scroll-margin-top:16px}
+.part .num{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--deep);color:#fff;font-size:18px;font-weight:700;flex:none}
+.part-lede{color:var(--muted);font-size:16px;max-width:72ch;margin-bottom:-14px}
+.btn.is-off{opacity:.45;cursor:not-allowed}
+
+.pill.draft{background:var(--warnbg);color:var(--warn)}
+.pill.live{background:var(--goodbg);color:var(--good)}
+.pill.off{background:#E9EDF3;color:#55657C}
+.pill.grey{background:#EEF1F5;color:#4B5B72;border:1px solid #DDE3EC}
+
+.today{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:22px;align-items:start}
+.today h4{margin:0 0 8px;font-size:15px}
+.today ul{margin:0;padding-left:18px;display:grid;gap:5px;font-size:14.5px;color:var(--muted)}
+.oldtable{border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:13.5px}
+.oldtable div{display:grid;grid-template-columns:1.6fr 1fr .9fr .7fr;gap:8px;padding:7px 10px;border-top:1px solid var(--line);align-items:center}
+.oldtable div:first-child{border-top:0;background:var(--paper);color:var(--muted);font-weight:600;font-size:12.5px}
+.oldfield{display:grid;gap:4px;margin-top:4px}
+.oldfield label{font-size:12.5px;font-weight:600;color:var(--muted)}
+.oldfield .v{white-space:nowrap;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-family:var(--mono);font-size:14px;background:#fff;max-width:220px}
+.oldfield small{color:var(--muted);font-size:12.5px}
+
+.panel.solo{grid-template-columns:1fr;min-width:940px}
+.listhead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.listhead h3{font-size:24px}
+.listhead .spacer{flex:1}
+.fchips{display:flex;gap:6px;flex-wrap:wrap}
+.fchip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 12px;font-size:13.5px;font-weight:600;color:var(--ink);display:inline-flex;gap:6px;align-items:center}
+.fchip .n{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.fchip[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+.fchip[aria-pressed="true"] .n{color:#C4D3E8}
+.fchip.draftchip:not([aria-pressed="true"]){border-color:#E9C58F;color:var(--warn)}
+.ltable{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.lrow{display:grid;grid-template-columns:minmax(0,2.2fr) 1fr 1.1fr minmax(0,2.4fr) .9fr 110px;gap:12px;padding:11px 16px;border-top:1px solid var(--line);align-items:center;font-size:14px}
+.lrow.h{border-top:0;background:var(--paper);font-size:12.5px;font-weight:600;color:var(--muted);padding-block:8px}
+.lrow .tt{font-weight:600}
+.lrow.is-draft{background:#FFFCF6}
+.why{display:grid;gap:2px;font-size:13px}
+.why .miss{color:var(--warn)}
+.why .ok{color:var(--good)}
+.lrow .act{justify-self:end}
+.btn.sm{padding:5px 10px;font-size:13px}
+
+.p-list{display:grid;gap:10px}
+.lbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:6px}
+.lbox.is-draft{border-color:#E9C58F;background:#FFFCF6}
+.lbox .top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.lbox .nm{font-weight:600;font-size:15.5px}
+.lbox .meta{font-size:13px;color:var(--muted)}
+.lbox .miss{font-size:13px;color:var(--warn)}
+.p-fchips{display:flex;gap:6px;overflow-x:auto;padding:0 16px 10px;scrollbar-width:none}
+.p-fchips .fchip{flex:none}
+
+.btnstates{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.bstate{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:10px;align-content:start}
+.bstate h4{margin:0;font-size:14px;color:var(--muted);font-weight:600}
+.bbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bbar .reason{flex-basis:100%;font-size:13px;color:var(--warn)}
+.bbar .fine{flex-basis:100%;font-size:13px;color:var(--good)}
+
+/* ---------- prices ---------- */
+.pricegrid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,1fr);gap:18px;align-items:start}
+.ptable-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:12px}
+table.ptable{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
+.ptable th,.ptable td{padding:10px 12px;border-top:1px solid var(--line);text-align:left;vertical-align:top}
+.ptable thead th{border-top:0;background:var(--paper);font-size:12.5px;color:var(--muted);font-weight:600}
+.ptable thead th b{display:block;color:var(--ink);font-size:14px}
+.ptable .band b{display:block;font-weight:600}
+.ptable .band span{font-size:12.5px;color:var(--muted)}
+.eur{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:#fff;max-width:118px}
+.eur input{width:100%;min-width:0;border:0;background:transparent;padding:7px 4px 7px 10px;font:500 15px var(--mono);font-variant-numeric:tabular-nums;color:var(--ink);text-align:right}
+.eur input:focus{outline:none}
+.eur:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,90,168,.14)}
+.eur span{padding-right:10px;color:var(--muted);font-size:14px}
+.quick{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.qbtn{border:1px solid var(--line);background:var(--paper);border-radius:7px;padding:3px 8px;font-size:12.5px;font-weight:600;color:var(--deep)}
+.qbtn[aria-pressed="true"]{background:var(--wash);border-color:#BCD0EA}
+.hint{margin-top:8px;font-size:12.5px;color:var(--warn);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.hint button{color:var(--blue);font-weight:600;font-size:12.5px}
+.addrow{padding:10px 12px;border-top:1px solid var(--line);font-size:13.5px;color:var(--blue);font-weight:600;display:flex;gap:18px;flex-wrap:wrap}
+.calc{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:12px;position:sticky;top:12px}
+.calc h4{margin:0;font-size:15px}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.cnt{display:grid;gap:8px}
+.cnt .line{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center;font-size:14px}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stepper button{width:30px;height:30px;display:grid;place-items:center;font-size:17px;color:var(--deep);background:var(--paper)}
+.stepper output{min-width:28px;text-align:center;font-family:var(--mono)}
+.cnt .sub{font-family:var(--mono);font-size:13.5px;color:var(--muted);min-width:78px;text-align:right}
+.total{display:flex;justify-content:space-between;align-items:baseline;border-top:1px solid var(--line);padding-top:10px}
+.total b{font-size:24px;font-family:var(--mono);color:var(--deep)}
+.calc .small{font-size:12.5px}
+.oldnew{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.migr{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:10px}
+.migr h4{margin:0;font-size:15.5px}
+.migr p,.migr li{font-size:14.5px;color:var(--muted)}
+.migr ul{margin:0;padding-left:18px;display:grid;gap:5px}
+.example{font-family:var(--mono);font-size:13px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 10px;color:var(--ink)}
+
+@media (max-width:980px){
+  .pricegrid,.today,.oldnew{grid-template-columns:1fr}
+  .btnstates{grid-template-columns:1fr}
+  .phone-row{grid-template-columns:1fr;justify-items:center}
+  .phone-notes{max-width:none}
+  .alts,.pc{grid-template-columns:1fr}
+}
+@media (max-width:520px){
+  body{padding-inline:16px}
+  .intro h1{font-size:30px}
+  .phone{height:700px}
+  .mini-pc{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></symbol>
+  <symbol id="i-cal" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-ticket" viewBox="0 0 24 24"><path d="M3 8a2 2 0 002-2h14a2 2 0 002 2v2a2 2 0 000 4v2a2 2 0 00-2 2H5a2 2 0 00-2-2v-2a2 2 0 000-4z"/></symbol>
+  <symbol id="i-doc" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/></symbol>
+  <symbol id="i-boat" viewBox="0 0 24 24"><path d="M3 16l2 4h14l2-4z"/><path d="M12 3v13M12 5l6 9h-6"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s-7-6.5-7-12a7 7 0 0114 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></symbol>
+  <symbol id="i-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+</svg>
+
+<main class="page">
+
+  <header class="intro">
+    <p class="eyebrow">Kaiki · φόρμα εκδρομής · πρόταση για συζήτηση</p>
+    <h1>Τα βασικά χωριστά από το περιεχόμενο</h1>
+    <p>Τρεις προτάσεις για τις εκδρομές, σε μία σελίδα: πώς χωρίζονται τα βασικά από το περιεχόμενο, πώς φαίνονται οι πρόχειρες στη λίστα, και πώς γράφονται οι τιμές χωρίς ποσοστά. Τα στοιχεία είναι παράδειγμα. Τίποτα δεν έχει αλλάξει ακόμη στο Kaiki.</p>
+    <nav class="toc" aria-label="Ενότητες">
+      <a href="#p1">1. Βασικά και περιεχόμενο</a>
+      <a href="#p2">2. Λίστα και πρόχειρες</a>
+      <a href="#p3">3. Τιμές</a>
+    </nav>
+  </header>
+
+  <h2 class="part" id="p1"><span class="num">1</span>Βασικά και περιεχόμενο</h2>
+  <p class="part-lede">Σήμερα η εκδρομή είναι μία μακριά σελίδα με εννέα ενότητες: ο τρόπος πώλησης και οι θέσεις είναι ανάμεσα στην περιγραφή και στο πρόγραμμα. Εδώ χωρίζονται σε αυτά που χρειάζονται για να πουληθεί η εκδρομή και σε αυτά που θα διαβάσει ο επισκέπτης.</p>
+
+  <!-- ================= Recommended ================= -->
+  <section class="option" aria-labelledby="opt1">
+    <div class="opt-head">
+      <span class="rec">Προτείνεται</span>
+      <h2 id="opt1">Μία σελίδα, δύο καρτέλες</h2>
+    </div>
+    <p class="opt-lede">Η εκδρομή ανοίγει στην καρτέλα «Βασικά». Κάθε καρτέλα γράφει από κάτω πόσο έτοιμη είναι, και το κουτί «Πριν τη δημοσίευση» δείχνει σε ποια καρτέλα είναι αυτό που λείπει. Ό,τι ζητά ο έλεγχος δημοσίευσης είναι στα «Βασικά». Το περιεχόμενο είναι όλο προαιρετικό, όπως και σήμερα, και δεν εμποδίζει ποτέ τη δημοσίευση. Πατήστε τις καρτέλες.</p>
+
+    <div class="duo">
+      <div class="scroller">
+        <div class="panel" data-tabs="desk">
+          <nav class="sb" aria-label="Μενού">
+            <div class="brand">Kaiki</div>
+            <div class="grp"><div class="grp-l">Σήμερα</div>
+              <div class="it"><svg class="i"><use href="#i-home"/></svg>Αρχική</div>
+              <div class="it"><svg class="i"><use href="#i-flag"/></svg>Αναχωρήσεις</div>
+              <div class="it"><svg class="i"><use href="#i-cal"/></svg>Ημερολόγιο</div>
+            </div>
+            <div class="grp"><div class="grp-l">Πωλήσεις</div>
+              <div class="it"><svg class="i"><use href="#i-ticket"/></svg>Κρατήσεις</div>
+              <div class="it"><svg class="i"><use href="#i-doc"/></svg>Προσφορές</div>
+            </div>
+            <div class="grp"><div class="grp-l">Κατάλογος</div>
+              <div class="it on"><svg class="i"><use href="#i-map"/></svg>Εκδρομές</div>
+              <div class="it"><svg class="i"><use href="#i-tag"/></svg>Τιμές</div>
+            </div>
+            <div class="grp"><div class="grp-l">Στόλος</div>
+              <div class="it"><svg class="i"><use href="#i-boat"/></svg>Σκάφη</div>
+              <div class="it"><svg class="i"><use href="#i-pin"/></svg>Λιμάνια</div>
+            </div>
+            <div class="sb-foot">
+              <div class="it"><svg class="i"><use href="#i-chart"/></svg>Στατιστικά</div>
+              <div class="it"><svg class="i"><use href="#i-cog"/></svg>Ρυθμίσεις</div>
+            </div>
+          </nav>
+
+          <div class="main">
+            <div class="crumbs">Εκδρομές <span aria-hidden="true">›</span> Επεξεργασία <span class="pill warn" style="margin-left:6px">Πρόχειρη · λείπει ένα ακόμη</span></div>
+            <div class="titlebar">
+              <h3>Γύρος της Μήλου</h3>
+              <span class="spacer"></span>
+              <span class="btn"><svg class="i"><use href="#i-eye"/></svg>Προεπισκόπηση</span>
+              <span class="btn">Αποθήκευση ως πρόχειρη</span>
+              <span class="btn primary is-off" title="Λείπει: τιμοκατάλογος">Δημοσίευση</span>
+            </div>
+
+            <div class="tabs" role="tablist">
+              <button class="tab" role="tab" aria-selected="true" data-tab="basics"><span class="tl">Βασικά</span><span class="ts"><span class="miss">5 από 6 για δημοσίευση</span></span></button>
+              <button class="tab" role="tab" aria-selected="false" data-tab="content"><span class="tl">Περιεχόμενο σελίδας</span><span class="ts">7 από 9 συμπληρωμένα · προαιρετικά</span></button>
+              <button class="tab soft" role="tab" aria-selected="false" data-tab="schedule"><span class="tl">Δρομολόγια</span><span class="ts">2 δρομολόγια</span></button>
+            </div>
+
+            <div class="work">
+              <div>
+                <!-- Basics -->
+                <div class="tabpanel sections" data-panel="basics">
+                  <div class="sec">
+                    <div class="sec-h"><h4>Τι είναι</h4></div>
+                    <div class="fields">
+                      <div class="f w2"><label>Τίτλος</label><div class="v">Γύρος της Μήλου <span class="chip">EN: Milos Round Trip</span></div></div>
+                      <div class="f"><label>Slug</label><div class="v mono">gyros-tis-milou</div></div>
+                      <div class="f"><label>Είδος</label><div class="v">Ολοήμερη κοινή</div></div>
+                      <div class="f"><label>Κατάσταση</label><div class="v">Πρόχειρη</div></div>
+                      <div class="f"><label>Προβεβλημένη</label><div class="v">Ναι</div></div>
+                    </div>
+                  </div>
+                  <div class="sec">
+                    <div class="sec-h"><h4>Σκάφος και πώληση</h4><span class="note">Ο τρόπος πώλησης δεν αλλάζει μετά την πρώτη κράτηση</span></div>
+                    <div class="fields">
+                      <div class="f"><label>Σκάφος</label><div class="v">Αύρα · άδεια για 45</div></div>
+                      <div class="f"><label>Τρόπος πώλησης</label><div class="v">Ανά θέση</div></div>
+                      <div class="f"><label>Σημείο συνάντησης</label><div class="v">Αδάμαντας, προβλήτα 2</div></div>
+                    </div>
+                  </div>
+                  <div class="sec">
+                    <div class="sec-h"><h4>Ώρες και διάρκεια</h4></div>
+                    <div class="fields">
+                      <div class="f"><label>Ώρα αναχώρησης</label><div class="v mono"><svg class="i clock"><use href="#i-clock"/></svg>09:30</div></div>
+                      <div class="f"><label>Διάρκεια</label><div class="v mono">480 λεπτά</div></div>
+                      <div class="f"><label>Προσέλευση πριν</label><div class="v mono">30 λεπτά</div></div>
+                    </div>
+                  </div>
+                  <div class="sec">
+                    <div class="sec-h"><h4>Πόσα άτομα</h4></div>
+                    <div class="fields">
+                      <div class="f"><label>Μέγιστα άτομα</label><div class="v mono">45</div></div>
+                      <div class="f"><label>Ελάχιστα άτομα για να φύγει</label><div class="v mono">10</div></div>
+                      <div class="f"><label>Ελάχιστα άτομα ανά κράτηση</label><div class="v mono">1</div></div>
+                    </div>
+                  </div>
+                  <div class="sec" id="sec-prices">
+                    <div class="sec-h"><h4>Τιμές</h4><span class="note">Ηλικιακές κατηγορίες και τιμοκατάλογοι, μαζί</span></div>
+                    <div class="chips"><span class="chip">Ενήλικες 13+ · βασική</span><span class="chip">Παιδιά 4–12 · 50%</span><span class="chip">Βρέφη 0–3 · δωρεάν, δεν πιάνει θέση</span></div>
+                    <div class="f w3"><label>Τιμοκατάλογος</label><div class="v missing">Δεν υπάρχει ενεργός τιμοκατάλογος · Φτιάξτε έναν</div></div>
+                  </div>
+                  <div class="sec">
+                    <div class="sec-h"><h4>Όροι και ακύρωση</h4></div>
+                    <div class="fields">
+                      <div class="f"><label>Πολιτική ακύρωσης</label><div class="v">Ευέλικτη · 24 ώρες</div></div>
+                      <div class="f"><label>Συντελεστής ΦΠΑ</label><div class="v">Μεταφορά επιβατών 13%</div></div>
+                      <div class="f"><label>Στοιχεία επιβατών</label><div class="v">Ναι · 48 ώρες πριν</div></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Content -->
+                <div class="tabpanel sections" data-panel="content" hidden>
+                  <div class="sec">
+                    <div class="sec-h"><h4>Φωτογραφίες</h4><span class="note">Η πρώτη μπαίνει στην κάρτα</span></div>
+                    <div class="photos"><div class="ph"></div><div class="ph"></div><div class="ph"></div><div class="ph"></div><div class="ph add">Προσθήκη</div></div>
+                  </div>
+                  <div class="sec">
+                    <div class="sec-h"><h4>Τι θα δει ο επισκέπτης</h4></div>
+                    <div class="fields">
+                      <div class="f w2"><label>Περίληψη</label><div class="v area">Ολόκληρη μέρα γύρω από τη Μήλο, με μπάνιο στο Κλέφτικο και στον Γεράκα και φαγητό πάνω στο σκάφος.</div></div>
+                      <div class="f"><label>Ετικέτα</label><div class="v">Δημοφιλές</div></div>
+                      <div class="f w3"><label>Περιγραφή</label><div class="v area">Ξεκινάμε από τον Αδάμαντα και περνάμε από τις σπηλιές του Κλέφτικου, όπου μόνο με σκάφος φτάνει κανείς. Μετά τον Γεράκα κάνουμε στάση για φαγητό και απογευματινό μπάνιο στον Πολύαιγο…</div></div>
+                    </div>
+                  </div>
+                  <div class="sec">
+                    <div class="sec-h"><h4>Πρόγραμμα</h4><span class="note">Η ώρα διαλέγεται από ρολόι</span></div>
+                    <div class="rows">
+                      <div class="row"><span class="t mono"><svg class="i clock"><use href="#i-clock"/></svg>09:30</span><span>Αναχώρηση από τον Αδάμαντα</span><span class="d">προβλήτα 2</span></div>
+                      <div class="row"><span class="t mono"><svg class="i clock"><use href="#i-clock"/></svg>10:45</span><span>Κλέφτικο</span><span class="d">μπάνιο, 1 ώρα</span></div>
+                      <div class="row"><span class="t mono"><svg class="i clock"><use href="#i-clock"/></svg>13:00</span><span>Γεράκας</span><span class="d">φαγητό στο σκάφος</span></div>
+                      <div class="row"><span class="t mono"><svg class="i clock"><use href="#i-clock"/></svg>15:30</span><span>Πολύαιγος</span><span class="d">μπάνιο</span></div>
+                      <div class="row"><span class="t mono"><svg class="i clock"><use href="#i-clock"/></svg>17:30</span><span>Επιστροφή</span><span class="d"></span></div>
+                    </div>
+                  </div>
+                  <div class="sec">
+                    <div class="sec-h"><h4>Τι θα ζήσετε, τι περιλαμβάνεται</h4></div>
+                    <div class="fields">
+                      <div class="f"><label>Τι θα ζήσετε</label><div class="chips"><span class="chip">Σπηλιές του Κλέφτικου</span><span class="chip">Τρεις στάσεις για μπάνιο</span><span class="chip">Ηλιοβασίλεμα στη θάλασσα</span></div></div>
+                      <div class="f"><label>Περιλαμβάνονται</label><div class="chips"><span class="chip">Μεσημεριανό</span><span class="chip">Νερό και καφές</span><span class="chip">Μάσκες</span></div></div>
+                      <div class="f"><label>Δεν περιλαμβάνονται</label><div class="chips"><span class="chip">Μεταφορά από το ξενοδοχείο</span></div></div>
+                      <div class="f"><label>Τι να φέρετε</label><div class="chips"><span class="chip">Μαγιό και πετσέτα</span><span class="chip">Αντηλιακό</span></div></div>
+                    </div>
+                  </div>
+                  <div class="sec">
+                    <div class="sec-h"><h4>Εμφάνιση στο Google</h4><span class="note">Κενά σημαίνει ο τίτλος και η περίληψη</span></div>
+                    <div class="fields">
+                      <div class="f"><label>Τίτλος στο Google</label><div class="v empty">Γύρος της Μήλου</div></div>
+                      <div class="f w2"><label>Περιγραφή στο Google</label><div class="v empty">Περίπου 155 χαρακτήρες</div></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Schedule -->
+                <div class="tabpanel sections" data-panel="schedule" hidden>
+                  <div class="discuss">
+                    <h4>Αυτή η καρτέλα δεν έχει αποφασιστεί</h4>
+                    <ul>
+                      <li>Συζητήσαμε να μπουν τα δρομολόγια μέσα στην εκδρομή και να φύγουν από το μενού. Δεν το αποφασίσατε ακόμη.</li>
+                      <li>Αν ναι, εμφανίζεται μόνο στις εκδρομές που πωλούνται ανά θέση. Στις ναυλώσεις δεν υπάρχει.</li>
+                      <li>Αν όχι, οι καρτέλες μένουν δύο και τα υπόλοιπα δεν αλλάζουν.</li>
+                    </ul>
+                  </div>
+                  <div class="sec">
+                    <div class="sec-h"><h4>Δρομολόγια</h4><span class="note">Από αυτά φτιάχνονται οι αναχωρήσεις</span></div>
+                    <div class="rows">
+                      <div class="row"><span class="t mono">09:30</span><span>Κάθε μέρα · 1 Ιουνίου – 30 Σεπτεμβρίου</span><span class="d">Αύρα · 45 θέσεις</span></div>
+                      <div class="row"><span class="t mono">15:00</span><span>Τρίτη, Πέμπτη, Σάββατο · 1–31 Αυγούστου</span><span class="d">Αύρα · 45 θέσεις</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <aside class="side">
+                <div class="box">
+                  <h4>Πριν τη δημοσίευση</h4>
+                  <ul class="check">
+                    <li class="ok"><span class="dot">✓</span><span>Τίτλος στα ελληνικά και στα αγγλικά<span class="where">Βασικά</span></span></li>
+                    <li class="ok"><span class="dot">✓</span><span>Σκάφος<span class="where">Βασικά</span></span></li>
+                    <li class="ok"><span class="dot">✓</span><span>Σημείο συνάντησης<span class="where">Βασικά</span></span></li>
+                    <li class="ok"><span class="dot">✓</span><span>Ηλικιακές κατηγορίες<span class="where">Βασικά · Τιμές</span></span></li>
+                    <li class="no"><span class="dot">!</span><span>Τιμοκατάλογος<span class="where">Βασικά · Τιμές <button type="button" data-goto="basics">Πηγαίνετε εκεί</button></span></span></li>
+                    <li class="ok"><span class="dot">✓</span><span>Πολιτική ακύρωσης<span class="where">Βασικά</span></span></li>
+                  </ul>
+                </div>
+                <div class="box">
+                  <h4>Σελίδα εκδρομής</h4>
+                  <p class="small">Συμπληρωμένα 7 από 9. Λείπουν τα δύο πεδία για το Google, που είναι προαιρετικά. Όσα μένουν κενά δεν εμφανίζονται στη σελίδα.</p>
+                </div>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-row">
+        <div class="phone" data-tabs="phone">
+          <div class="screen">
+            <div class="p-top">
+              <div class="p-status"><span class="mono">09:20</span><span>5G</span></div>
+              <div class="p-bar">
+                <span class="p-back"><svg class="i"><use href="#i-back"/></svg>Εκδρομές</span>
+                <span class="spacer"></span>
+                <span class="p-menu"><svg class="i"><use href="#i-menu"/></svg>Μενού</span>
+              </div>
+              <div class="p-title"><h3>Γύρος της Μήλου</h3><span><span class="pill warn">Πρόχειρη · λείπει ένα ακόμη</span></span></div>
+            </div>
+            <div class="p-tabs" role="tablist">
+              <button class="p-tab" role="tab" aria-selected="true" data-tab="basics"><b>Βασικά</b><span>5 από 6</span></button>
+              <button class="p-tab" role="tab" aria-selected="false" data-tab="content"><b>Περιεχόμενο</b><span>7 από 9</span></button>
+              <button class="p-tab" role="tab" aria-selected="false" data-tab="schedule"><b>Δρομολόγια</b><span>υπό συζήτηση</span></button>
+            </div>
+            <div class="p-body">
+              <div class="tabpanel" data-panel="basics" style="display:grid;gap:10px">
+                <div class="pbox miss"><div class="k">Τιμοκατάλογος <span class="edit">Φτιάξτε έναν</span></div><div class="val">Δεν υπάρχει ενεργός</div></div>
+                <div class="pbox"><div class="k">Σκάφος και πώληση <span class="edit">Αλλαγή</span></div><div class="val">Αύρα · ανά θέση</div></div>
+                <div class="pbox"><div class="k">Σημείο συνάντησης <span class="edit">Αλλαγή</span></div><div class="val">Αδάμαντας, προβλήτα 2</div></div>
+                <div class="pbox"><div class="k">Ώρες <span class="edit">Αλλαγή</span></div><div class="val"><span class="mono">09:30</span> · 8 ώρες · προσέλευση 30΄</div></div>
+                <div class="pbox"><div class="k">Άτομα <span class="edit">Αλλαγή</span></div><div class="val">Έως 45 · φεύγει με 10</div></div>
+                <div class="pbox"><div class="k">Κατηγορίες <span class="edit">Αλλαγή</span></div><div class="val">Ενήλικες · Παιδιά 50% · Βρέφη</div></div>
+                <div class="pbox"><div class="k">Όροι <span class="edit">Αλλαγή</span></div><div class="val">Ευέλικτη · ΦΠΑ 13%</div></div>
+              </div>
+              <div class="tabpanel" data-panel="content" hidden style="display:grid;gap:10px">
+                <div class="pbox"><div class="k">Φωτογραφίες <span class="edit">Αλλαγή</span></div><div class="photos" style="grid-template-columns:repeat(4,1fr)"><div class="ph"></div><div class="ph"></div><div class="ph"></div><div class="ph"></div></div></div>
+                <div class="pbox"><div class="k">Περίληψη <span class="edit">Αλλαγή</span></div><div class="val" style="font-size:14px">Ολόκληρη μέρα γύρω από τη Μήλο, με μπάνιο στο Κλέφτικο…</div></div>
+                <div class="pbox"><div class="k">Πρόγραμμα <span class="edit">Αλλαγή</span></div><div class="val" style="font-size:14px"><span class="mono">09:30</span> Αδάμαντας · <span class="mono">10:45</span> Κλέφτικο · <span class="mono">13:00</span> Γεράκας · +2</div></div>
+                <div class="pbox"><div class="k">Περιλαμβάνονται <span class="edit">Αλλαγή</span></div><div class="val" style="font-size:14px">Μεσημεριανό, νερό και καφές, μάσκες</div></div>
+                <div class="pbox"><div class="k">Τι να φέρετε <span class="edit">Αλλαγή</span></div><div class="val" style="font-size:14px">Μαγιό και πετσέτα, αντηλιακό</div></div>
+                <div class="pbox"><div class="k">Εμφάνιση στο Google <span class="edit">Προσθήκη</span></div><div class="val" style="font-size:14px;color:var(--faint)">Κενό · προαιρετικό</div></div>
+              </div>
+              <div class="tabpanel" data-panel="schedule" hidden style="display:grid;gap:10px">
+                <div class="pbox" style="border-style:dashed;background:#FFFBF3"><div class="k">Δεν έχει αποφασιστεί</div><div class="val" style="font-size:14px">Μπαίνει εδώ μόνο αν πείτε ναι στη συγχώνευση.</div></div>
+                <div class="pbox"><div class="k">Κάθε μέρα <span class="edit">Αλλαγή</span></div><div class="val"><span class="mono">09:30</span> · 1/6 – 30/9</div></div>
+                <div class="pbox"><div class="k">Τρ, Πε, Σα <span class="edit">Αλλαγή</span></div><div class="val"><span class="mono">15:00</span> · Αύγουστος</div></div>
+              </div>
+            </div>
+            <div class="p-save"><span class="btn">Αποθήκευση ως πρόχειρη</span></div>
+          </div>
+        </div>
+        <div class="phone-notes">
+          <h3>Στο κινητό, με την κατεύθυνση Α</h3>
+          <ul>
+            <li>Οι καρτέλες γίνονται κουμπιά κάτω από τον τίτλο, και το καθένα γράφει πόσο έτοιμο είναι.</li>
+            <li>Κάθε ενότητα είναι ένα κουτί με ό,τι έχει ήδη συμπληρωθεί. Με το «Αλλαγή» ανοίγει μόνο αυτή η ενότητα, όχι ολόκληρη η φόρμα.</li>
+            <li>Αυτό που λείπει για τη δημοσίευση μπαίνει πρώτο, σε πορτοκαλί κουτί.</li>
+            <li>Η «Αποθήκευση ως πρόχειρη» μένει πάντα στο κάτω μέρος της οθόνης. Η «Δημοσίευση» εμφανίζεται εκεί μόλις δεν λείπει τίποτα (δείτε την ενότητα 2).</li>
+          </ul>
+          <div class="pc">
+            <div class="plus">
+              <h4>Υπέρ</h4>
+              <ul>
+                <li>Ό,τι αφορά τις πωλήσεις είναι σε μία καρτέλα, και ό,τι αφορά τη σελίδα στην άλλη.</li>
+                <li>Στο κινητό η φόρμα κονταίνει περίπου στο μισό.</li>
+                <li>Φαίνεται αμέσως ότι το περιεχόμενο δεν εμποδίζει τη δημοσίευση.</li>
+                <li>Η διεύθυνση της σελίδας μένει ίδια, οπότε το εγχειρίδιο χρειάζεται μόνο νέες εικόνες.</li>
+              </ul>
+            </div>
+            <div class="minus">
+              <h4>Κατά</h4>
+              <ul>
+                <li>Ένα κλικ παραπάνω για όποιον γράφει περιγραφή αμέσως μετά τα βασικά.</li>
+                <li>Ένα λάθος σε άλλη καρτέλα πρέπει να φαίνεται πάνω στην καρτέλα, αλλιώς χάνεται.</li>
+                <li>Οι «Τιμές» φεύγουν από το κάτω μέρος της φόρμας και μπαίνουν στα «Βασικά».</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= Alternatives ================= -->
+  <section class="option" aria-labelledby="alts">
+    <div class="opt-head"><h2 id="alts">Δύο άλλοι τρόποι</h2></div>
+    <div class="alts">
+      <article class="alt">
+        <h3>Νέα εκδρομή σε δύο βήματα</h3>
+        <p>Η δημιουργία γίνεται βήμα βήμα: πρώτα τα βασικά και αποθήκευση, μετά το περιεχόμενο. Η επεξεργασία μένει μία σελίδα, ή η πρόταση με τις καρτέλες.</p>
+        <div class="sketch" aria-hidden="true">
+          <div class="steps"><span class="step on">1 · Βασικά</span><span class="step-sep">→</span><span class="step">2 · Περιεχόμενο</span><span class="step-sep">→</span><span class="step">Τέλος</span></div>
+          <div class="ghost l"></div><div class="ghost m"></div><div class="ghost l"></div><div class="ghost s"></div>
+        </div>
+        <div class="mini-pc">
+          <div class="plus"><b>Υπέρ</b><ul><li>Καθοδηγεί όποιον φτιάχνει την πρώτη του εκδρομή</li><li>Δεν γίνεται να ξεχαστεί ο τιμοκατάλογος</li></ul></div>
+          <div class="minus"><b>Κατά</b><ul><li>Βοηθά μόνο στη δημιουργία, όχι στις μετέπειτα αλλαγές</li><li>Οι έμπειροι βαριούνται τα βήματα</li></ul></div>
+        </div>
+      </article>
+      <article class="alt">
+        <h3>Χωριστή οθόνη «Σελίδα εκδρομής»</h3>
+        <p>Η φόρμα κρατά μόνο τα βασικά. Το περιεχόμενο γράφεται σε δική του οθόνη, με ζωντανή προεπισκόπηση της σελίδας δίπλα.</p>
+        <div class="sketch" aria-hidden="true">
+          <div class="split2">
+            <div style="display:grid;gap:8px"><div class="ghost m"></div><div class="ghost l"></div><div class="ghost l"></div><div class="ghost s"></div></div>
+            <div class="prev"><div class="img"></div><div class="txt"><div class="ghost m"></div><div class="ghost l"></div></div></div>
+          </div>
+        </div>
+        <div class="mini-pc">
+          <div class="plus"><b>Υπέρ</b><ul><li>Βλέπετε τη σελίδα όπως θα τη δει ο επισκέπτης</li><li>Μπορεί να τη γράφει άλλος, π.χ. όποιος κάνει το marketing</li></ul></div>
+          <div class="minus"><b>Κατά</b><ul><li>Η προεπισκόπηση είναι η πιο ακριβή δουλειά από τις τρεις</li><li>Στο κινητό δεν χωράει δίπλα, μόνο σε δεύτερη καρτέλα</li></ul></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= 2. List and drafts ================= -->
+  <h2 class="part" id="p2"><span class="num">2</span>Λίστα και πρόχειρες</h2>
+  <p class="part-lede">Στη λίστα πρέπει να φαίνεται με μια ματιά ποιες εκδρομές δεν πουλάνε ακόμη και τι τους λείπει. Στη φόρμα, η κατάσταση παύει να είναι λίστα επιλογής και γίνεται δύο κουμπιά.</p>
+
+  <section class="option" aria-label="Σήμερα">
+    <div class="today">
+      <div>
+        <h4>Πώς είναι σήμερα</h4>
+        <div class="oldtable" aria-hidden="true">
+          <div><span>Εκδρομή</span><span>Τρόπος πώλησης</span><span>Κατάσταση</span><span>Άτομα</span></div>
+          <div><span>Γύρος της Μήλου</span><span><span class="pill grey">Ανά θέση</span></span><span><span class="pill grey">Πρόχειρη</span></span><span class="mono">45</span></div>
+          <div><span>Ηλιοβασίλεμα</span><span><span class="pill grey">Ανά θέση</span></span><span><span class="pill grey">Σε πώληση</span></span><span class="mono">45</span></div>
+          <div><span>Ναύλωση Θαλασσινή</span><span><span class="pill grey">Ολόκληρο σκάφος</span></span><span><span class="pill grey">Πρόχειρη</span></span><span class="mono">12</span></div>
+        </div>
+        <div class="oldfield">
+          <label>Κατάσταση (στη φόρμα)</label>
+          <div class="v" style="font-family:var(--sans)">Πρόχειρη ▾</div>
+          <small>Δημοσιευμένη γίνεται μόνο όταν συμπληρωθούν όλα τα παρακάτω.</small>
+        </div>
+      </div>
+      <div>
+        <h4>Γιατί δεν αρκεί</h4>
+        <ul>
+          <li>Η στήλη «Κατάσταση» υπάρχει, αλλά είναι μια γκρι ετικέτα ίδια με του «Τρόπου πώλησης». Η «Πρόχειρη» και η «Σε πώληση» δεν ξεχωρίζουν.</li>
+          <li>Δεν λέει γιατί μια εκδρομή είναι ακόμη πρόχειρη. Για να το μάθετε, πρέπει να την ανοίξετε και να κατεβείτε ως τον έλεγχο.</li>
+          <li>Το φίλτρο κατάστασης είναι κρυμμένο πίσω από το κουμπί φίλτρων.</li>
+          <li>Στη φόρμα διαλέγετε «Σε πώληση» από μια λίστα, και αν λείπει κάτι παίρνετε λάθος μόνο όταν πατήσετε αποθήκευση.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="option" aria-labelledby="opt2">
+    <div class="opt-head">
+      <span class="rec">Προτείνεται</span>
+      <h2 id="opt2">Χρώμα, λόγος και φίλτρο πάνω από τη λίστα</h2>
+    </div>
+    <p class="opt-lede">Η πρόχειρη εκδρομή έχει πορτοκαλί ετικέτα και γράφει τι της λείπει, από τον ίδιο έλεγχο που χρησιμοποιεί η φόρμα. Τα φίλτρα είναι κουμπιά πάνω από τη λίστα, με τον αριθμό δίπλα. Πατήστε «Πρόχειρες».</p>
+
+    <div class="duo">
+      <div class="scroller">
+        <div class="panel solo" data-filter="desk">
+          <div class="main" style="padding-bottom:70px">
+            <div class="listhead">
+              <h3>Εκδρομές</h3>
+              <span class="spacer"></span>
+              <span class="btn primary">Νέα εκδρομή</span>
+            </div>
+            <div class="fchips" role="group" aria-label="Φίλτρο">
+              <button type="button" class="fchip" aria-pressed="true" data-f="all">Όλες <span class="n">6</span></button>
+              <button type="button" class="fchip" aria-pressed="false" data-f="live">Σε πώληση <span class="n">2</span></button>
+              <button type="button" class="fchip draftchip" aria-pressed="false" data-f="draft">Πρόχειρες <span class="n">3</span></button>
+              <button type="button" class="fchip" aria-pressed="false" data-f="off">Εκτός πώλησης <span class="n">1</span></button>
+            </div>
+            <div class="ltable">
+              <div class="lrow h"><span>Εκδρομή</span><span>Σκάφος</span><span>Κατάσταση</span><span>Τι λείπει</span><span>Τιμή από</span><span></span></div>
+              <div class="lrow is-draft" data-s="draft"><span class="tt">Γύρος της Μήλου</span><span>Αύρα</span><span><span class="pill draft">Πρόχειρη</span></span><span class="why"><span class="miss">Λείπει 1: τιμοκατάλογος</span></span><span class="small">–</span><span class="act"><span class="btn sm">Συνέχεια</span></span></div>
+              <div class="lrow" data-s="live"><span class="tt">Ηλιοβασίλεμα στο Κλέφτικο</span><span>Αύρα</span><span><span class="pill live">Σε πώληση</span></span><span class="why"><span class="ok">Όλα έτοιμα</span></span><span class="mono">45,00 €</span><span class="act"><span class="btn sm">Αλλαγή</span></span></div>
+              <div class="lrow is-draft" data-s="draft"><span class="tt">Ιδιωτική ναύλωση Θαλασσινή</span><span>Θαλασσινή</span><span><span class="pill draft">Πρόχειρη</span></span><span class="why"><span class="miss">Λείπουν 3: τιμοκατάλογος, πολιτική ακύρωσης, τίτλος στα αγγλικά</span></span><span class="small">–</span><span class="act"><span class="btn sm">Συνέχεια</span></span></div>
+              <div class="lrow" data-s="live"><span class="tt">Πολύαιγος και Κίμωλος</span><span>Ερμής</span><span><span class="pill live">Σε πώληση</span></span><span class="why"><span class="ok">Όλα έτοιμα</span></span><span class="mono">60,00 €</span><span class="act"><span class="btn sm">Αλλαγή</span></span></div>
+              <div class="lrow is-draft" data-s="draft"><span class="tt">Σπηλιές της Σίφνου</span><span>–</span><span><span class="pill draft">Πρόχειρη</span></span><span class="why"><span class="miss">Λείπουν 2: σκάφος, σημείο συνάντησης</span></span><span class="small">–</span><span class="act"><span class="btn sm">Συνέχεια</span></span></div>
+              <div class="lrow" data-s="off"><span class="tt">Ψάρεμα με τον καπετάνιο</span><span>Ερμής</span><span><span class="pill off">Εκτός πώλησης</span></span><span class="why"><span class="small">Σταμάτησε 2 Σεπτεμβρίου</span></span><span class="mono">55,00 €</span><span class="act"><span class="btn sm">Αλλαγή</span></span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-row">
+        <div class="phone" data-filter="phone">
+          <div class="screen">
+            <div class="p-top">
+              <div class="p-status"><span class="mono">09:20</span><span>5G</span></div>
+              <div class="p-bar">
+                <span class="p-title"><h3>Εκδρομές</h3></span>
+                <span class="spacer"></span>
+                <span class="p-menu"><svg class="i"><use href="#i-menu"/></svg>Μενού</span>
+              </div>
+            </div>
+            <div class="p-fchips" role="group" aria-label="Φίλτρο">
+              <button type="button" class="fchip" aria-pressed="true" data-f="all">Όλες <span class="n">6</span></button>
+              <button type="button" class="fchip draftchip" aria-pressed="false" data-f="draft">Πρόχειρες <span class="n">3</span></button>
+              <button type="button" class="fchip" aria-pressed="false" data-f="live">Σε πώληση <span class="n">2</span></button>
+              <button type="button" class="fchip" aria-pressed="false" data-f="off">Εκτός <span class="n">1</span></button>
+            </div>
+            <div class="p-body">
+              <div class="p-list">
+                <div class="lbox is-draft" data-s="draft"><div class="top"><span class="nm">Γύρος της Μήλου</span><span class="pill draft">Πρόχειρη</span></div><span class="meta">Αύρα · ανά θέση</span><span class="miss">Λείπει 1: τιμοκατάλογος</span></div>
+                <div class="lbox" data-s="live"><div class="top"><span class="nm">Ηλιοβασίλεμα στο Κλέφτικο</span><span class="pill live">Σε πώληση</span></div><span class="meta">Αύρα · από <span class="mono">45,00 €</span></span></div>
+                <div class="lbox is-draft" data-s="draft"><div class="top"><span class="nm">Ιδιωτική ναύλωση Θαλασσινή</span><span class="pill draft">Πρόχειρη</span></div><span class="meta">Θαλασσινή · ολόκληρο σκάφος</span><span class="miss">Λείπουν 3: τιμοκατάλογος, πολιτική ακύρωσης, τίτλος στα αγγλικά</span></div>
+                <div class="lbox" data-s="live"><div class="top"><span class="nm">Πολύαιγος και Κίμωλος</span><span class="pill live">Σε πώληση</span></div><span class="meta">Ερμής · από <span class="mono">60,00 €</span></span></div>
+                <div class="lbox is-draft" data-s="draft"><div class="top"><span class="nm">Σπηλιές της Σίφνου</span><span class="pill draft">Πρόχειρη</span></div><span class="meta">Χωρίς σκάφος ακόμη</span><span class="miss">Λείπουν 2: σκάφος, σημείο συνάντησης</span></div>
+                <div class="lbox" data-s="off"><div class="top"><span class="nm">Ψάρεμα με τον καπετάνιο</span><span class="pill off">Εκτός πώλησης</span></div><span class="meta">Ερμής · σταμάτησε 2 Σεπτεμβρίου</span></div>
+              </div>
+            </div>
+            <div class="p-save"><span class="btn primary">Νέα εκδρομή</span></div>
+          </div>
+        </div>
+        <div class="phone-notes">
+          <h3>Τα δύο κουμπιά της φόρμας</h3>
+          <p class="small" style="font-size:14.5px">Η λίστα «Κατάσταση» φεύγει από τη φόρμα. Στη θέση της μπαίνουν δύο κουμπιά, που αλλάζουν ανάλογα με το πού βρίσκεται η εκδρομή.</p>
+          <div class="btnstates" style="grid-template-columns:1fr">
+            <div class="bstate">
+              <h4>Πρόχειρη, λείπει κάτι</h4>
+              <div class="bbar"><span class="btn">Αποθήκευση ως πρόχειρη</span><span class="btn primary is-off">Δημοσίευση</span><span class="reason">Για δημοσίευση λείπει: τιμοκατάλογος.</span></div>
+            </div>
+            <div class="bstate">
+              <h4>Πρόχειρη, όλα έτοιμα</h4>
+              <div class="bbar"><span class="btn">Αποθήκευση ως πρόχειρη</span><span class="btn primary">Δημοσίευση</span><span class="fine">Όλα έτοιμα. Η δημοσίευση τη βάζει σε πώληση.</span></div>
+            </div>
+            <div class="bstate">
+              <h4>Ήδη σε πώληση</h4>
+              <div class="bbar"><span class="btn">Εκτός πώλησης</span><span class="btn primary">Αποθήκευση</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="pc">
+        <div class="plus">
+          <h4>Υπέρ</h4>
+          <ul>
+            <li>Οι πρόχειρες φαίνονται αμέσως, και φαίνεται και ο λόγος, χωρίς να ανοίξετε την εκδρομή.</li>
+            <li>Δεν γίνεται να διαλέξετε «Σε πώληση» και να πάρετε λάθος στο τέλος. Το κουμπί λέει από πριν τι λείπει.</li>
+            <li>Η «Αποθήκευση ως πρόχειρη» δουλεύει πάντα, ακόμη κι αν λείπουν πολλά.</li>
+          </ul>
+        </div>
+        <div class="minus">
+          <h4>Κατά</h4>
+          <ul>
+            <li>Η στήλη «Τι λείπει» πρέπει να υπολογίζει τον έλεγχο για κάθε γραμμή. Με λίγες δεκάδες εκδρομές δεν φαίνεται, αλλά είναι επιπλέον δουλειά.</li>
+            <li>Η «Αρχειοθετημένη» φεύγει από τη φόρμα. Γίνεται ενέργεια στη λίστα, κάτι που αλλάζει μία σελίδα στο εγχειρίδιο.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= 3. Prices ================= -->
+  <h2 class="part" id="p3"><span class="num">3</span>Τιμές</h2>
+  <p class="part-lede">Σήμερα η τιμή μιας εκδρομής είναι σε δύο σημεία: οι ηλικιακές κατηγορίες μέσα στην εκδρομή και οι τιμοκατάλογοι ανά περίοδο. Το παιδί είναι «ποσοστό της βασικής» σε μονάδες όπου το 10000 σημαίνει 100%.</p>
+
+  <section class="option" aria-label="Τιμές σήμερα">
+    <div class="today">
+      <div>
+        <h4>Πώς είναι σήμερα</h4>
+        <div class="oldfield">
+          <label>Ηλικιακή κατηγορία «Παιδιά» · Τιμολόγηση</label>
+          <div class="v" style="font-family:var(--sans)">Ποσοστό της βασικής τιμής ▾</div>
+        </div>
+        <div class="oldfield">
+          <label>Ποσοστό της βασικής</label>
+          <div class="v">5000</div>
+          <small>10000 = 100%, 5000 = 50%.</small>
+        </div>
+        <div class="oldfield">
+          <label>Τιμοκατάλογος «Υψηλή περίοδος» · Τιμή ανά κατηγορία</label>
+          <small>Όποια κατηγορία υπολογίζεται ως ποσοστό της βασικής μπορεί να μείνει κενή.</small>
+        </div>
+      </div>
+      <div>
+        <h4>Γιατί δυσκολεύει</h4>
+        <ul>
+          <li>Κανείς δεν σκέφτεται «5000». Σκέφτεται «το παιδί πληρώνει 22,50 €».</li>
+          <li>Η τιμή του παιδιού δεν γράφεται πουθενά. Υπολογίζεται, και τη βλέπετε μόνο αν κάνετε κράτηση.</li>
+          <li>Οι κατηγορίες είναι μέσα στην εκδρομή, οι τιμές σε άλλη οθόνη, και κάθε περίοδος σε δικό της παράθυρο. Για τρεις περιόδους ανοίγετε τρία.</li>
+          <li>Μια κενή τιμή μπορεί να σημαίνει «υπολογίζεται» ή «ξεχάστηκε», και δεν ξεχωρίζουν.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="option" aria-labelledby="opt3">
+    <div class="opt-head">
+      <span class="rec">Προτείνεται</span>
+      <h2 id="opt3">Ένας πίνακας τιμών σε ευρώ</h2>
+    </div>
+    <p class="opt-lede">Μέσα στην εκδρομή, στα «Βασικά», ένας πίνακας: γραμμές οι κατηγορίες, στήλες οι περίοδοι, και σε κάθε κελί η τιμή σε ευρώ. Για το παιδί υπάρχουν γρήγορα κουμπιά που γράφουν το ποσό για εσάς. Δεξιά φαίνεται τι πληρώνει ο επισκέπτης. Αλλάξτε μια τιμή ή πατήστε «Μισή τιμή».</p>
+
+    <div class="pricegrid" id="prices">
+      <div style="display:grid;gap:10px">
+        <div class="ptable-wrap">
+          <table class="ptable">
+            <thead>
+              <tr>
+                <th>Κατηγορία</th>
+                <th data-col="0"><b>Όλες τις άλλες μέρες</b>Χωρίς περίοδο</th>
+                <th data-col="1"><b>Χαμηλή</b>1 Μαΐου – 30 Ιουνίου</th>
+                <th data-col="2"><b>Υψηλή</b>1 Ιουλίου – 31 Αυγούστου</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr data-band="adult">
+                <td class="band"><b>Ενήλικας</b><span>13 ετών και πάνω · βασική</span></td>
+                <td><label class="eur"><input id="p-adult-0" inputmode="decimal" value="40,00" aria-label="Ενήλικας, όλες τις άλλες μέρες"><span>€</span></label></td>
+                <td><label class="eur"><input id="p-adult-1" inputmode="decimal" value="38,00" aria-label="Ενήλικας, χαμηλή"><span>€</span></label></td>
+                <td><label class="eur"><input id="p-adult-2" inputmode="decimal" value="45,00" aria-label="Ενήλικας, υψηλή"><span>€</span></label></td>
+              </tr>
+              <tr data-band="child">
+                <td class="band"><b>Παιδί</b><span>4 έως 12 ετών</span>
+                  <div class="quick" role="group" aria-label="Γρήγορη συμπλήρωση παιδιού">
+                    <button type="button" class="qbtn" data-rule="1">Ίδια</button>
+                    <button type="button" class="qbtn" data-rule="0.5" aria-pressed="true">Μισή τιμή</button>
+                    <button type="button" class="qbtn" data-rule="0.7">−30%</button>
+                    <button type="button" class="qbtn" data-rule="0">Δωρεάν</button>
+                  </div>
+                  <div class="hint" data-hint="child" hidden>Αλλάξατε την τιμή ενήλικα. <button type="button" data-refresh="child">Ενημέρωση και για το παιδί</button></div>
+                </td>
+                <td><label class="eur"><input id="p-child-0" inputmode="decimal" value="20,00" aria-label="Παιδί, όλες τις άλλες μέρες"><span>€</span></label></td>
+                <td><label class="eur"><input id="p-child-1" inputmode="decimal" value="19,00" aria-label="Παιδί, χαμηλή"><span>€</span></label></td>
+                <td><label class="eur"><input id="p-child-2" inputmode="decimal" value="22,50" aria-label="Παιδί, υψηλή"><span>€</span></label></td>
+              </tr>
+              <tr data-band="infant">
+                <td class="band"><b>Βρέφος</b><span>έως 3 ετών · δεν πιάνει θέση</span>
+                  <div class="quick" role="group" aria-label="Γρήγορη συμπλήρωση βρέφους">
+                    <button type="button" class="qbtn" data-rule="0.5">Μισή τιμή</button>
+                    <button type="button" class="qbtn" data-rule="0" aria-pressed="true">Δωρεάν</button>
+                  </div>
+                  <div class="hint" data-hint="infant" hidden>Αλλάξατε την τιμή ενήλικα. <button type="button" data-refresh="infant">Ενημέρωση και για το βρέφος</button></div>
+                </td>
+                <td><label class="eur"><input id="p-infant-0" inputmode="decimal" value="0,00" aria-label="Βρέφος, όλες τις άλλες μέρες"><span>€</span></label></td>
+                <td><label class="eur"><input id="p-infant-1" inputmode="decimal" value="0,00" aria-label="Βρέφος, χαμηλή"><span>€</span></label></td>
+                <td><label class="eur"><input id="p-infant-2" inputmode="decimal" value="0,00" aria-label="Βρέφος, υψηλή"><span>€</span></label></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="addrow"><span>Προσθήκη κατηγορίας</span><span>Προσθήκη περιόδου</span><span>Προκαταβολή και προθεσμίες</span></div>
+        </div>
+        <p class="small">Τα γρήγορα κουμπιά γράφουν ευρώ, στρογγυλεμένα στο λεπτό. Αποθηκεύεται το ποσό, όχι το ποσοστό. Όταν αλλάξει η τιμή του ενήλικα, το Kaiki ρωτά αν θέλετε να ενημερωθεί και το παιδί. Δεν το αλλάζει μόνο του.</p>
+      </div>
+
+      <aside class="calc" aria-live="polite">
+        <h4>Τι πληρώνει ο επισκέπτης</h4>
+        <div class="seg" role="group" aria-label="Περίοδος">
+          <button type="button" class="fchip" aria-pressed="false" data-season="0">Άλλες μέρες</button>
+          <button type="button" class="fchip" aria-pressed="false" data-season="1">Χαμηλή</button>
+          <button type="button" class="fchip" aria-pressed="true" data-season="2">Υψηλή</button>
+        </div>
+        <div class="cnt">
+          <div class="line"><span>Ενήλικες</span><span class="stepper"><button type="button" data-step="adult" data-d="-1" aria-label="Λιγότεροι ενήλικες">−</button><output data-count="adult">2</output><button type="button" data-step="adult" data-d="1" aria-label="Περισσότεροι ενήλικες">+</button></span><span class="sub" data-sub="adult"></span></div>
+          <div class="line"><span>Παιδιά</span><span class="stepper"><button type="button" data-step="child" data-d="-1" aria-label="Λιγότερα παιδιά">−</button><output data-count="child">1</output><button type="button" data-step="child" data-d="1" aria-label="Περισσότερα παιδιά">+</button></span><span class="sub" data-sub="child"></span></div>
+          <div class="line"><span>Βρέφη</span><span class="stepper"><button type="button" data-step="infant" data-d="-1" aria-label="Λιγότερα βρέφη">−</button><output data-count="infant">1</output><button type="button" data-step="infant" data-d="1" aria-label="Περισσότερα βρέφη">+</button></span><span class="sub" data-sub="infant"></span></div>
+        </div>
+        <div class="total"><span>Σύνολο</span><b data-total></b></div>
+        <p class="small" data-seats></p>
+      </aside>
+    </div>
+
+    <div class="oldnew">
+      <div class="migr">
+        <h4>Τι γίνεται με τις τιμές που υπάρχουν</h4>
+        <p>Προτείνουμε μία μετατροπή, μία φορά. Όπου το παιδί είναι ποσοστό, το Kaiki υπολογίζει το ποσό για κάθε τιμοκατάλογο και το γράφει σε ευρώ. Είναι ακριβώς το ποσό που πληρώνει ο επισκέπτης σήμερα.</p>
+        <div class="example">Υψηλή · ενήλικας 45,00 € · παιδί 5000 → 22,50 €</div>
+        <ul>
+          <li>Οι κρατήσεις που έχουν γίνει δεν αλλάζουν. Κρατούν την τιμή της στιγμής που έγιναν.</li>
+          <li>Πριν τη μετατροπή βλέπετε μια λίστα με ό,τι θα γραφτεί, για κάθε εκδρομή.</li>
+          <li>Όπου ένα ποσοστό δεν βγάζει ακριβές λεπτό (π.χ. 33,33%), στρογγυλεύει όπως στρογγυλεύει και σήμερα η κράτηση.</li>
+        </ul>
+      </div>
+      <article class="alt">
+        <h3>Εναλλακτικά: το ποσοστό μένει, αλλά δεν φαίνεται</h3>
+        <p>Ο πίνακας είναι ίδιος. Το κουμπί «Μισή τιμή» όμως κρατά το παιδί δεμένο με τον ενήλικα, και στο κελί γράφει «22,50 € · ακολουθεί τον ενήλικα». Αν αλλάξει ο ενήλικας, αλλάζει μόνο του και το παιδί.</p>
+        <div class="mini-pc">
+          <div class="plus"><b>Υπέρ</b><ul><li>Χωρίς μετατροπή δεδομένων</li><li>Ανεβάζετε τον ενήλικα και το παιδί ακολουθεί χωρίς ερώτηση</li></ul></div>
+          <div class="minus"><b>Κατά</b><ul><li>Δύο είδη κελιών, που πρέπει να εξηγηθούν</li><li>Ένα ποσό που αλλάζει μόνο του ξαφνιάζει όταν δεν το περιμένετε</li></ul></div>
+        </div>
+      </article>
+    </div>
+
+    <div class="pc">
+      <div class="plus">
+        <h4>Υπέρ</h4>
+        <ul>
+          <li>Όλες οι τιμές σε ευρώ, σε μία οθόνη, για όλες τις περιόδους.</li>
+          <li>Κανένα ποσοστό και κανένας αριθμός όπως το «5000».</li>
+          <li>Ό,τι βλέπετε στον πίνακα είναι αυτό που πληρώνει ο επισκέπτης, και φαίνεται δίπλα.</li>
+          <li>Η βάση δεδομένων έχει ήδη μία τιμή ανά κατηγορία και τιμοκατάλογο, οπότε ο πίνακας γράφει εκεί που γράφει και σήμερα.</li>
+        </ul>
+      </div>
+      <div class="minus">
+        <h4>Κατά</h4>
+        <ul>
+          <li>Με πολλές περιόδους ο πίνακας φαρδαίνει. Στο κινητό γίνεται μία περίοδος τη φορά.</li>
+          <li>Όταν αλλάζει ο ενήλικας, το παιδί δεν ακολουθεί αυτόματα. Το Kaiki ρωτά.</li>
+          <li>Χρειάζεται η μετατροπή των υπαρχόντων και η σελίδα «Τιμές» ξαναγράφεται στο εγχειρίδιο.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="ask">
+    <h2>Τι χρειάζομαι από εσάς</h2>
+    <ol>
+      <li><b>Βασικά και περιεχόμενο:</b> προχωράμε με τις δύο καρτέλες, ή με έναν από τους άλλους δύο τρόπους;</li>
+      <li><b>Τρίτη καρτέλα «Δρομολόγια»;</b> Μόνο αν αποφασίσετε τη συγχώνευση που συζητήσαμε.</li>
+      <li><b>Λίστα:</b> οι πρόχειρες με πορτοκαλί, το «τι λείπει» και τα δύο κουμπιά στη φόρμα, όπως είναι;</li>
+      <li><b>Τιμές:</b> μόνο ευρώ με μία μετατροπή των υπαρχόντων (προτείνεται), ή το παιδί να ακολουθεί τον ενήλικα αυτόματα;</li>
+    </ol>
+  </section>
+
+  <p class="foot">Τα στοιχεία είναι παράδειγμα. Τα ονόματα των πεδίων είναι όπως στη φόρμα του Kaiki σήμερα.</p>
+</main>
+
+<script>
+(function () {
+  document.querySelectorAll('[data-tabs]').forEach(function (group) {
+    var tabs = group.querySelectorAll('[data-tab]');
+    var panels = group.querySelectorAll('[data-panel]');
+    function show(name) {
+      tabs.forEach(function (t) { t.setAttribute('aria-selected', String(t.dataset.tab === name)); });
+      panels.forEach(function (p) { p.hidden = p.dataset.panel !== name; });
+    }
+    tabs.forEach(function (t) { t.addEventListener('click', function () { show(t.dataset.tab); }); });
+    group.querySelectorAll('[data-goto]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        show(b.dataset.goto);
+        var target = group.querySelector('#sec-prices');
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    });
+  });
+
+  // Filters over the trip list, desktop and phone alike.
+  document.querySelectorAll('[data-filter]').forEach(function (scope) {
+    var chips = scope.querySelectorAll('[data-f]');
+    var items = scope.querySelectorAll('[data-s]');
+    chips.forEach(function (c) {
+      c.addEventListener('click', function () {
+        chips.forEach(function (x) { x.setAttribute('aria-pressed', String(x === c)); });
+        items.forEach(function (it) { it.hidden = c.dataset.f !== 'all' && it.dataset.s !== c.dataset.f; });
+      });
+    });
+  });
+
+  // The price table and what the guest pays.
+  var fmt = new Intl.NumberFormat('el-GR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function parse(v) { var n = parseFloat(String(v).replace(/\s/g, '').replace(',', '.')); return isNaN(n) ? 0 : n; }
+  function cell(band, col) { return document.getElementById('p-' + band + '-' + col); }
+  var rules = { child: 0.5, infant: 0 };
+  var season = 2;
+  var counts = { adult: 2, child: 1, infant: 1 };
+
+  function applyRule(band) {
+    var r = rules[band];
+    if (r === null) return;
+    for (var col = 0; col < 3; col++) {
+      var cents = Math.round(parse(cell('adult', col).value) * 100 * r);
+      cell(band, col).value = fmt.format(cents / 100);
+    }
+    var hint = document.querySelector('[data-hint="' + band + '"]');
+    if (hint) hint.hidden = true;
+  }
+
+  function total() {
+    var sum = 0;
+    ['adult', 'child', 'infant'].forEach(function (b) {
+      var line = parse(cell(b, season).value) * counts[b];
+      sum += line;
+      document.querySelector('[data-sub="' + b + '"]').textContent = fmt.format(line) + ' €';
+      document.querySelector('[data-count="' + b + '"]').textContent = counts[b];
+    });
+    document.querySelector('[data-total]').textContent = fmt.format(sum) + ' €';
+    var seats = counts.adult + counts.child;
+    document.querySelector('[data-seats]').textContent = 'Πιάνουν ' + seats + (seats === 1 ? ' θέση' : ' θέσεις') + '. Τα βρέφη δεν πιάνουν θέση.';
+  }
+
+  document.querySelectorAll('.quick').forEach(function (group) {
+    var band = group.closest('tr').dataset.band;
+    group.querySelectorAll('[data-rule]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        group.querySelectorAll('[data-rule]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+        rules[band] = parseFloat(b.dataset.rule);
+        applyRule(band);
+        total();
+      });
+    });
+  });
+
+  document.querySelectorAll('.ptable input').forEach(function (inp) {
+    inp.addEventListener('input', function () {
+      var band = inp.closest('tr').dataset.band;
+      if (band === 'adult') {
+        ['child', 'infant'].forEach(function (b) {
+          if (rules[b] !== null && rules[b] !== 0) document.querySelector('[data-hint="' + b + '"]').hidden = false;
+        });
+      } else {
+        // Typed by hand: the row no longer follows a quick rule.
+        rules[band] = null;
+        inp.closest('tr').querySelectorAll('[data-rule]').forEach(function (x) { x.setAttribute('aria-pressed', 'false'); });
+      }
+      total();
+    });
+    inp.addEventListener('blur', function () { inp.value = fmt.format(parse(inp.value)); total(); });
+  });
+
+  document.querySelectorAll('[data-refresh]').forEach(function (b) {
+    b.addEventListener('click', function () { applyRule(b.dataset.refresh); total(); });
+  });
+
+  document.querySelectorAll('[data-season]').forEach(function (b, _, all) {
+    b.addEventListener('click', function () {
+      season = parseInt(b.dataset.season, 10);
+      all.forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      total();
+    });
+  });
+
+  document.querySelectorAll('[data-step]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var k = b.dataset.step;
+      counts[k] = Math.max(k === 'adult' ? 1 : 0, Math.min(20, counts[k] + parseInt(b.dataset.d, 10)));
+      total();
+    });
+  });
+
+  total();
+})();
+</script>

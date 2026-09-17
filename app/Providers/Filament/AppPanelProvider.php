@@ -26,7 +26,6 @@ use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Navigation\NavigationGroup;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Tables\Columns\TextColumn;
@@ -126,6 +125,11 @@ class AppPanelProvider extends PanelProvider
              * database.
              */
             ->passwordReset()
+            // «Το προφίλ μου» in the user menu (product owner, 2026-09-17): every
+            // person can set their own name, which the home page greets them by,
+            // and their own password. Not a simple page, so it keeps the panel's
+            // sidebar and menu around it.
+            ->profile(isSimple: false)
             // No font from a third-party host. Filament's default loads Inter
             // from fonts.bunny.net, which the panel's own CSP (SEC-10) blocks —
             // so it never loaded, and every page logged the refusal. Local
@@ -143,13 +147,10 @@ class AppPanelProvider extends PanelProvider
              */
             ->brandLogo(fn (): ?string => PlatformBrand::logoUrl())
             ->darkModeBrandLogo(fn (): ?string => PlatformBrand::logoUrl(dark: true))
-            ->favicon(fn (): ?string => PlatformBrand::faviconUrl())
+            ->favicon(fn (): string => PlatformBrand::faviconUrl() ?? asset('favicon.svg'))
             ->brandName(config('app.name'))
             ->discoverResources(in: app_path('Filament/App/Resources'), for: 'App\\Filament\\App\\Resources')
             ->discoverPages(in: app_path('Filament/App/Pages'), for: 'App\\Filament\\App\\Pages')
-            ->pages([
-                Dashboard::class,
-            ])
             ->discoverWidgets(in: app_path('Filament/App/Widgets'), for: 'App\\Filament\\App\\Widgets')
             /*
              * Two groups, and «Ρυθμίσεις» is a page rather than a third.
@@ -183,9 +184,18 @@ class AppPanelProvider extends PanelProvider
              * Αναχωρήσεις moved out of it into «Λειτουργία»: it is the screen
              * an operator opens every morning, and it was filed with the
              * once-a-season ones.
+             *
+             * Menu 1 (product owner, 2026-09-16): four short groups named for the
+             * job — «Σήμερα», «Πωλήσεις», «Κατάλογος», «Στόλος» — and 19 entries
+             * down to 13. Screens that are really a second view of another one
+             * (ερωτήματα of προσφορές, περίοδοι and πολιτικές ακύρωσης of τιμές,
+             * δεσμεύσεις of σκάφη) left the sidebar for tabs on that screen; see
+             * `filament.app.sibling-tabs`. «Στατιστικά» sits at the foot, above
+             * «Ρυθμίσεις». Every address stayed the same.
              */
             ->navigationGroups([
-                NavigationGroup::make()->label(fn (): string => __('panel.groups.operations')),
+                NavigationGroup::make()->label(fn (): string => __('panel.groups.today')),
+                NavigationGroup::make()->label(fn (): string => __('panel.groups.sales')),
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.catalogue')),
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.fleet')),
             ])

@@ -83,6 +83,19 @@ final class AttentionItems
      */
     public function all(?Carbon $now = null): array
     {
+        return array_slice($this->everything($now), 0, self::LIMIT);
+    }
+
+    /**
+     * Every item, not only the first page of them: what «Όλα (N)» counts.
+     *
+     * Each source still stops at {@see self::LIMIT}, so the count is "at least
+     * this many" on a very bad morning — which is still the right thing to say.
+     *
+     * @return list<AttentionItem>
+     */
+    public function everything(?Carbon $now = null): array
+    {
         $now ??= Carbon::now('UTC');
 
         $items = [
@@ -98,7 +111,7 @@ final class AttentionItems
             static fn (AttentionItem $a, AttentionItem $b): int => $a->deadlineSortKey() <=> $b->deadlineSortKey(),
         );
 
-        return array_slice($items, 0, self::LIMIT);
+        return $items;
     }
 
     /**
@@ -136,6 +149,7 @@ final class AttentionItems
                 'vessel' => (string) $departure->vessel?->name,
             ]),
             deadline: $this->local($departure->starts_at_utc),
+            subject: $departure,
         ))->all();
     }
 
@@ -173,6 +187,7 @@ final class AttentionItems
                 'trip' => (string) $booking->product?->title,
             ]),
             deadline: $this->local($booking->starts_at_utc),
+            subject: $booking,
         ))->all();
     }
 
@@ -214,6 +229,7 @@ final class AttentionItems
                 ),
             ]),
             deadline: $this->local($booking->balance_due_at),
+            subject: $booking,
         ))->all();
     }
 
@@ -252,6 +268,7 @@ final class AttentionItems
             ]),
             detail: (string) __('attention.quote.detail'),
             deadline: $this->local($quote->valid_until),
+            subject: $quote,
         ))->all();
     }
 
@@ -283,6 +300,7 @@ final class AttentionItems
                 'count' => $source->consecutive_failures,
             ]),
             deadline: null,
+            subject: $source,
         ))->all();
     }
 

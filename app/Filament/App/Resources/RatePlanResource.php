@@ -8,6 +8,7 @@ use App\Domain\Pricing\Actions\SaveRatePlan;
 use App\Enums\AgeBandPricing;
 use App\Enums\BookingMode;
 use App\Enums\DepositType;
+use App\Filament\App\Navigation\SiblingScreens;
 use App\Filament\App\Resources\RatePlanResource\Pages;
 use App\Filament\Forms\MoneyInput;
 use App\Models\AgeBand;
@@ -72,9 +73,15 @@ class RatePlanResource extends Resource
         return __('panel.groups.catalogue');
     }
 
+    /** Stays highlighted on the screens it shares a tab bar with (Menu 1). */
+    public static function getNavigationItems(): array
+    {
+        return SiblingScreens::highlight(static::class, parent::getNavigationItems());
+    }
+
     public static function getNavigationLabel(): string
     {
-        return __('pricing.rate_plan.nav');
+        return __('panel.nav.prices');
     }
 
     public static function getModelLabel(): string

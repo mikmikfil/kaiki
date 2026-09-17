@@ -1,91 +1,131 @@
 {{--
     «Χρειάζονται προσοχή» (#130, OPS-1).
 
-    Decisions, not failures. OPS-21's feed collects what the system could not do
-    and every row there ends in a retry; nothing here can be retried, because
-    nothing here is broken — each row is a question only the operator can answer.
+    Decisions, not failures. Since 17 September every row is a box that opens
+    the screen where it is dealt with, with its button saying what that is,
+    and a call button where a phone call is the fix. Five first, «Όλα (N)» for
+    the rest. See `NeedsAttention` for which item leads where.
 
     Ordered by deadline and never by severity: a red badge above a boat leaving
     in three hours makes a list that has to be read in full to be used.
 
     No hardcoded strings — `NoHardcodedStringsTest` scans this directory.
 --}}
-<x-filament-widgets::widget>
-    <x-filament::section>
-        <x-slot name="heading">{{ __('attention.heading') }}</x-slot>
+@php
+    $rows = $this->getRows();
+    $total = count($rows);
+    $shown = $this->showAll ? $rows : array_slice($rows, 0, \App\Filament\App\Widgets\NeedsAttention::FIRST);
+@endphp
 
-        <x-slot name="description">{{ __('attention.subheading') }}</x-slot>
+<x-filament-widgets::widget id="ka-attention">
+    @if ($total > 0)
+        <x-filament::section>
+            <x-slot name="heading">{{ __('attention.heading') }}</x-slot>
 
-        <ul class="ka-list">
-            @foreach ($this->getItems() as $item)
-                <li class="ka-item">
-                    <x-filament::badge :color="$item->severity->color()" class="ka-badge">
-                        {{ __('attention.severity.' . $item->severity->value) }}
-                    </x-filament::badge>
+            <x-slot name="description">{{ __('attention.subheading') }}</x-slot>
 
-                    <div class="ka-body">
-                        <p class="ka-title">{{ $item->title }}</p>
-                        <p class="ka-detail">{{ $item->detail }}</p>
-                    </div>
+            <ul class="ka-list">
+                @foreach ($shown as $row)
+                    @php($item = $row['item'])
+                    <li class="ka-item" wire:key="attention-{{ $item->key }}">
+                        <a class="ka-main" href="{{ $row['url'] }}">
+                            <span class="ka-top">
+                                <x-filament::badge :color="$item->severity->color()" class="ka-badge">
+                                    {{ __('attention.severity.' . $item->severity->value) }}
+                                </x-filament::badge>
 
-                    <div class="ka-when">
-                        @if ($item->deadline)
-                            {{-- Relative, because "in 3 hours" is the thing that
-                                 decides whether this is read now, and a
-                                 timestamp makes the reader do that subtraction
-                                 themselves. The absolute time is on hover for
-                                 when it matters. --}}
-                            <span title="{{ $item->deadline->toDayDateTimeString() }}"
-                                  @class(['is-overdue' => $item->isOverdue()])>
-                                {{ $item->deadline->diffForHumans() }}
+                                <span class="ka-when">
+                                    @if ($item->deadline)
+                                        <span title="{{ $item->deadline->toDayDateTimeString() }}"
+                                              @class(['is-overdue' => $item->isOverdue()])>
+                                            {{ $item->deadline->diffForHumans() }}
+                                        </span>
+                                    @else
+                                        <span class="is-undated">{{ __('attention.no_deadline') }}</span>
+                                    @endif
+                                </span>
                             </span>
-                        @else
-                            <span class="is-undated">{{ __('attention.no_deadline') }}</span>
-                        @endif
-                    </div>
-                </li>
-            @endforeach
-        </ul>
-    </x-filament::section>
+
+                            <span class="ka-title">{{ $item->title }}</span>
+                            <span class="ka-detail">{{ $item->detail }}</span>
+                        </a>
+
+                        <div class="ka-actions">
+                            <a class="ka-btn is-primary" href="{{ $row['url'] }}">
+                                <span>{{ $row['action'] }}</span>
+                                <x-filament::icon icon="heroicon-m-arrow-right" class="ka-btn-ic" />
+                            </a>
+
+                            @if ($row['phone'])
+                                <a class="ka-btn" href="tel:{{ preg_replace('/[^0-9+]/', '', $row['phone']) }}">
+                                    <x-filament::icon icon="heroicon-m-phone" class="ka-btn-ic" />
+                                    <span>{{ __('attention.actions.call') }}</span>
+                                </a>
+                            @endif
+                        </div>
+                    </li>
+                @endforeach
+            </ul>
+
+            @if ($total > \App\Filament\App\Widgets\NeedsAttention::FIRST)
+                <button type="button" class="ka-more" wire:click="toggleAll">
+                    {{ $this->showAll ? __('attention.actions.fewer') : __('attention.actions.all', ['count' => $total]) }}
+                </button>
+            @endif
+        </x-filament::section>
+    @endif
 
     <style>
-        .ka-list { display: grid; gap: .1rem; }
+        #ka-attention a { text-decoration: none; }
+
+        .ka-list { display: grid; gap: .6rem; }
 
         .ka-item {
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr) auto;
-            align-items: start; gap: .75rem;
-            padding: .6rem 0;
-            border-bottom: 1px solid rgb(var(--gray-100));
+            display: grid; gap: .6rem;
+            padding: .85rem .9rem;
+            border: 1px solid #E1E8F2; border-radius: 1rem; background: #fff;
         }
 
-        .ka-item:last-child { border-bottom: 0; }
+        .ka-main { display: grid; gap: .2rem; color: inherit; }
+        .ka-top { display: flex; align-items: center; justify-content: space-between; gap: .75rem; margin-bottom: .15rem; }
 
-        .ka-badge { margin-top: .1rem; }
+        .ka-title { font-size: .95rem; font-weight: 600; color: rgb(var(--gray-800)); }
+        .ka-detail { font-size: .85rem; color: rgb(var(--gray-500)); }
 
-        .ka-title { font-size: .875rem; font-weight: 600; color: rgb(var(--gray-800)); }
-        .ka-detail { font-size: .8rem; color: rgb(var(--gray-500)); margin-top: .1rem; }
-
-        .ka-when { font-size: .78rem; color: rgb(var(--gray-500)); white-space: nowrap; text-align: right; }
+        .ka-when { font-size: .78rem; color: rgb(var(--gray-500)); white-space: nowrap; }
         .ka-when .is-overdue { color: rgb(var(--danger-600)); font-weight: 600; }
         .ka-when .is-undated { color: rgb(var(--gray-400)); }
 
-        @media (max-width: 40rem) {
-            .ka-item { grid-template-columns: auto minmax(0, 1fr); }
-            .ka-when { grid-column: 2; text-align: left; }
+        .ka-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+        .ka-btn {
+            display: inline-flex; align-items: center; gap: .4rem;
+            min-height: 2.75rem; padding: 0 .9rem; border-radius: .7rem;
+            border: 1px solid #D5E0EE; background: #fff; color: #0F2E57;
+            font-size: .9rem; font-weight: 600;
+        }
+        .ka-btn.is-primary { background: #0F2E57; border-color: #0F2E57; color: #fff; }
+        .ka-btn:hover { filter: brightness(1.08); }
+        .ka-btn-ic { width: 1.1rem; height: 1.1rem; }
+
+        .ka-more {
+            margin-top: .75rem; min-height: 2.75rem; padding: 0 1rem; border-radius: .7rem;
+            background: #EAF1FA; color: #0F2E57; font-weight: 600; font-size: .9rem;
+        }
+
+        @media (min-width: 768px) {
+            .ka-item { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+            .ka-actions { justify-content: flex-end; }
         }
 
         /* --- dark ------------------------------------------------------------
-           A list whose whole job is to be read quickly. `--gray-800` on white is
-           the strongest thing in the row; on a dark ground it is very nearly the
-           ground, so the title all but disappeared and the overdue marker — the
-           one item here that must never be missed — lost its contrast with it.
-           Each shade moves to its opposite number on the ramp. */
-        .dark .ka-item { border-bottom-color: rgba(255, 255, 255, .08); }
+           Each shade moves to its opposite number on the ramp, so the title and
+           the overdue marker keep their contrast. */
+        .dark .ka-item { border-color: rgba(255, 255, 255, .1); background: rgb(var(--gray-900)); }
         .dark .ka-title { color: rgb(var(--gray-100)); }
         .dark .ka-detail,
         .dark .ka-when { color: rgb(var(--gray-400)); }
         .dark .ka-when .is-undated { color: rgb(var(--gray-500)); }
         .dark .ka-when .is-overdue { color: rgb(var(--danger-400)); }
+        .dark .ka-btn { background: transparent; border-color: rgba(255, 255, 255, .2); color: #fff; }
     </style>
 </x-filament-widgets::widget>

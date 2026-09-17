@@ -62,6 +62,9 @@ class Analytics extends Page
 
     protected static ?int $navigationSort = 3;
 
+    // At the foot of the sidebar, above «Ρυθμίσεις» (Menu 1, 2026-09-16); see `filament.app.settings-sidebar`.
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static string $view = 'filament.app.pages.analytics';
 
     /** Which of the named periods, or the operator's own dates. */
@@ -77,7 +80,7 @@ class Analytics extends Page
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.operations');
+        return __('panel.groups.sales');
     }
 
     public static function getNavigationLabel(): string

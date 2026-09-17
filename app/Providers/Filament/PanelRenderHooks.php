@@ -6,6 +6,9 @@ namespace App\Providers\Filament;
 
 use App\Domain\Hosted\Support\HostedUrl;
 use App\Domain\Platform\Support\Announcements;
+use App\Filament\App\Navigation\BoxMenu;
+use App\Filament\App\Navigation\SiblingScreens;
+use App\Filament\App\Pages\Analytics;
 use App\Filament\App\Pages\Settings;
 use App\Models\PlatformAnnouncement;
 use App\Models\PlatformBrand;
@@ -66,6 +69,53 @@ final class PanelRenderHooks
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
             static fn (): View => view('filament.touch-targets'),
+        );
+
+        // The operator panel's blue sidebar and light waves. Decided inside the
+        // hook, like the rest: `/admin` keeps Filament's plain look.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View|string => Filament::getCurrentPanel()?->getId() === 'app'
+                ? view('filament.app.sea')
+                : '',
+        );
+
+        // A phone's way round `/app` (mobile direction A, 2026-09-17): «Μενού»
+        // in the top bar, and Menu 1 as boxes over the page. Both are hidden
+        // from `lg` up, where the blue sidebar is the menu. `/admin` keeps
+        // Filament's drawer, like the rest of its plain look.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::TOPBAR_START,
+            static fn (): View|string => Filament::getCurrentPanel()?->getId() === 'app' && Tenancy::check()
+                ? view('filament.app.mobile-menu-button')
+                : '',
+        );
+
+        // At the start of the body rather than the end: it is a fixed layer,
+        // so where it sits in the markup changes nothing on screen, and ahead
+        // of the sidebar the sidebar stays the last place the menu's labels
+        // appear in the page, which `SettingsHubTest` reads the footer by.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_START,
+            static fn (): View|string => Filament::getCurrentPanel()?->getId() === 'app' && Tenancy::check() && Auth::check()
+                ? view('filament.app.mobile-menu', ['groups' => BoxMenu::groups(), 'tenant' => (string) Tenancy::current()?->name])
+                : '',
+        );
+
+        // Lists as boxes on a phone: every table in `/app` below `md`.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View|string => Filament::getCurrentPanel()?->getId() === 'app'
+                ? view('filament.app.box-lists')
+                : '',
+        );
+
+        // Tabs between screens that share one sidebar entry (Menu 1). Scoped to
+        // their list pages, so create and edit forms stay uncluttered.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::PAGE_START,
+            static fn (array $scopes): View => view('filament.app.sibling-tabs', ['tabs' => SiblingScreens::tabsFor($scopes)]),
+            scopes: SiblingScreens::listPages(),
         );
 
         // «Ρυθμίσεις» at the very bottom of the sidebar, outside the scrolling
@@ -186,14 +236,31 @@ final class PanelRenderHooks
         ]);
     }
 
-    /** The sidebar's last entry, or nothing for somebody with no card to open. */
+    /**
+     * The sidebar's foot: «Στατιστικά» then «Ρυθμίσεις», each only for somebody
+     * who may open it, and nothing at all when neither applies.
+     */
     private static function settingsItem(): View|string
     {
-        if (! Settings::canAccess()) {
+        if (! Tenancy::check()) {
+            return '';
+        }
+
+        $settings = Settings::canAccess();
+
+        if (! $settings && ! Analytics::canAccess()) {
             return '';
         }
 
         return view('filament.app.settings-sidebar', [
+            // «Στατιστικά» above «Ρυθμίσεις», at the foot of the sidebar (Menu 1).
+            'analytics' => Analytics::canAccess() ? [
+                'url' => Analytics::getUrl(),
+                'label' => Analytics::getNavigationLabel(),
+                'icon' => Analytics::getNavigationIcon(),
+                'active' => request()->routeIs(Analytics::getRouteName()),
+            ] : null,
+            'settings' => $settings,
             'url' => Settings::getUrl(),
             'label' => Settings::getNavigationLabel(),
             'icon' => Settings::getNavigationIcon(),

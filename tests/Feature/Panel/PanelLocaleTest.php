@@ -19,15 +19,17 @@ use function Pest\Laravel\get;
 
 it('translates the panel navigation groups in both locales', function (): void {
     app()->setLocale('en');
-    expect(__('panel.groups.operations'))->toBe('Operations')
+    expect(__('panel.groups.today'))->toBe('Today')
+        ->and(__('panel.groups.sales'))->toBe('Sales')
         ->and(__('panel.groups.catalogue'))->toBe('Catalogue')
-        ->and(__('panel.groups.fleet'))->toBe('Schedule & fleet')
+        ->and(__('panel.groups.fleet'))->toBe('Fleet')
         ->and(__('panel.groups.settings'))->toBe('Settings');
 
     app()->setLocale('el');
-    expect(__('panel.groups.operations'))->toBe('Λειτουργία')
+    expect(__('panel.groups.today'))->toBe('Σήμερα')
+        ->and(__('panel.groups.sales'))->toBe('Πωλήσεις')
         ->and(__('panel.groups.catalogue'))->toBe('Κατάλογος')
-        ->and(__('panel.groups.fleet'))->toBe('Πρόγραμμα & στόλος')
+        ->and(__('panel.groups.fleet'))->toBe('Στόλος')
         ->and(__('panel.groups.settings'))->toBe('Ρυθμίσεις');
 })->group('fast');
 

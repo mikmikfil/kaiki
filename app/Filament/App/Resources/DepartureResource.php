@@ -75,11 +75,11 @@ class DepartureResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-flag';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 2;
 
     public static function getNavigationGroup(): ?string
     {
-        return __('panel.groups.operations');
+        return __('panel.groups.today');
     }
 
     public static function getNavigationLabel(): string
@@ -191,8 +191,10 @@ class DepartureResource extends Resource
                     ->date()
                     ->sortable(),
 
+                // «07:30», not the column's «07:30:00» (product owner, 2026-09-17).
                 TextColumn::make('local_time')
-                    ->label(__('availability.departure.table.local_time')),
+                    ->label(__('availability.departure.table.local_time'))
+                    ->formatStateUsing(static fn (?string $state): string => substr((string) $state, 0, 5)),
 
                 TextColumn::make('product_id')
                     ->label(__('availability.departure.table.product'))

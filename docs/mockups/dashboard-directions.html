@@ -1,0 +1,551 @@
+<title>Kaiki Dashboard Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* One committed light look: the mockups are of the light operator panel. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57; --active:#1C4378; --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA;
+  --warn:#B26A12; --warnbg:#FBF0DF; --bad:#B42318; --badbg:#FBE7E5; --good:#1F7A4D; --goodbg:#E3F2EA;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --waves:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='170' viewBox='0 0 520 170'%3E%3Cg fill='none' stroke='%23C9DAEE' stroke-width='1.3'%3E%3Cpath d='M0 150 Q65 132 130 150 T260 150 T390 150 T520 150' opacity='.9'/%3E%3Cpath d='M0 120 Q65 104 130 120 T260 120 T390 120 T520 120' opacity='.65'/%3E%3Cpath d='M-65 90 Q0 76 65 90 T195 90 T325 90 T455 90 T585 90' opacity='.45'/%3E%3Cpath d='M0 60 Q65 48 130 60 T260 60 T390 60 T520 60' opacity='.28'/%3E%3Cpath d='M-65 30 Q0 20 65 30 T195 30 T325 30 T455 30 T585 30' opacity='.15'/%3E%3C/g%3E%3C/svg%3E");
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-inline:20px;padding-block:0 80px}
+.wrap{max-width:1220px;margin:0 auto}
+h1,h2,h3{letter-spacing:-.02em;text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,4vw,42px);font-weight:800;line-height:1.1}
+h2{font-size:24px;font-weight:800}
+h3{font-size:16px;font-weight:700}
+p{margin:0}
+.lead{font-size:17px;color:var(--muted);max-width:68ch}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.top{padding-block:52px 30px;display:grid;gap:14px}
+.kick{color:var(--blue);font-weight:700;font-size:14px}
+.done{display:flex;flex-wrap:wrap;gap:8px}
+.done span{font-size:13px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 12px;color:var(--muted)}
+.done b{color:var(--good);font-weight:600}
+.rules{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:8px}
+.rules div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--muted)}
+.rules b{display:block;color:var(--ink);font-size:14px;margin-bottom:2px}
+
+section{padding-block:44px 0}
+.shead{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:16px}
+.shead .tag{font-family:var(--mono);font-size:13px;font-weight:600;color:#fff;background:var(--blue);border-radius:8px;padding:3px 10px}
+.shead p{flex-basis:100%;color:var(--muted);max-width:78ch}
+.stage{overflow-x:auto;border-radius:20px;background:#DDE6F1;padding:24px}
+.row{display:flex;gap:26px;align-items:flex-start;width:max-content}
+.cap{font-size:13px;color:var(--muted);margin-top:10px;max-width:330px}
+.cap b{color:var(--ink)}
+.verdict{display:grid;grid-template-columns:1fr 1fr 140px;gap:12px;margin-top:12px}
+.verdict div{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 16px;font-size:14px;color:var(--muted)}
+.verdict b{display:block;color:var(--ink);font-size:12px;font-weight:600;margin-bottom:2px}
+.verdict .est{font-family:var(--mono);font-size:22px;font-weight:600;color:var(--blue)}
+
+/* ---------- device frames ---------- */
+.phone{width:350px;height:740px;border-radius:40px;background:#0B1B33;padding:10px;box-shadow:0 30px 60px -30px rgba(15,46,87,.55);flex:none}
+.tablet{width:800px;height:600px;border-radius:30px;background:#0B1B33;padding:12px;box-shadow:0 30px 60px -30px rgba(15,46,87,.55);flex:none}
+.screen{position:relative;height:100%;border-radius:31px;overflow:hidden;background:var(--paper);display:flex;flex-direction:column;font-size:14px;line-height:1.35}
+.tablet .screen{border-radius:20px}
+.screen::after{content:"";position:absolute;left:0;bottom:0;width:calc(100% + 520px);height:170px;background:var(--waves) repeat-x;background-size:520px 170px;pointer-events:none;animation:drift 90s linear infinite;z-index:0}
+@keyframes drift{to{transform:translateX(-520px)}}
+@media (prefers-reduced-motion:reduce){.screen::after{animation:none}}
+.status{height:30px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 24px;font-size:12px;font-weight:600;color:var(--ink);position:relative;z-index:1}
+.status.dark{background:var(--deep);color:#fff}
+.scroll{flex:1;overflow:hidden;padding:4px 16px 16px;display:flex;flex-direction:column;gap:12px;position:relative;z-index:1}
+.bottombar{flex:none;position:relative;z-index:2;background:rgba(255,255,255,.94);border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);padding:6px 6px 16px}
+.bottombar.three{grid-template-columns:repeat(3,1fr)}
+.bottombar a{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:600;color:var(--muted);padding:6px 0;border-radius:12px;min-height:48px;justify-content:center}
+.bottombar a svg{width:22px;height:22px}
+.bottombar a.on{color:var(--deep)}
+.bottombar a.on svg{color:var(--blue)}
+.bottombar a.scan{background:var(--deep);color:#fff;margin:0 6px}
+.bottombar a.scan svg{color:#fff}
+
+svg.i{width:20px;height:20px;flex:none}
+.apptop{display:flex;align-items:center;gap:10px;padding:8px 0 2px}
+.apptop h4{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}
+.apptop .sub{font-size:12px;color:var(--muted)}
+.apptop .sp{margin-left:auto}
+.round{width:44px;height:44px;border-radius:14px;background:#fff;border:1px solid var(--line);display:grid;place-items:center;color:var(--deep);position:relative}
+.round .badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:var(--bad);color:#fff;font-size:10.5px;font-weight:700;display:grid;place-items:center;padding:0 4px}
+.avatar{width:44px;height:44px;border-radius:50%;background:var(--wash);color:var(--deep);display:grid;place-items:center;font-weight:700;font-size:13px}
+
+.box{background:#fff;border:1px solid var(--line);border-radius:18px;padding:14px}
+.box.dark{background:var(--deep);border-color:var(--deep);color:#fff}
+.lbl{font-size:12px;font-weight:600;color:var(--muted)}
+.box.dark .lbl{color:#9DB6D8}
+.bigtime{font-family:var(--mono);font-size:34px;font-weight:600;letter-spacing:-.03em;line-height:1}
+.tripname{font-size:17px;font-weight:700;margin-top:4px}
+.meta{font-size:12.5px;color:var(--muted)}
+.box.dark .meta{color:#AFC4E0}
+.prog{height:8px;border-radius:5px;background:#1C4378;overflow:hidden;margin:10px 0 4px}
+.prog i{display:block;height:100%;border-radius:5px;background:#9CC0F0}
+.bigbtn{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border-radius:14px;background:#fff;color:var(--deep);font-weight:700;font-size:15px;margin-top:12px}
+.bigbtn.blue{background:var(--blue);color:#fff}
+.bigbtn.ghost{background:transparent;border:1px solid #3B6399;color:#fff}
+.bigbtn.line{background:#fff;border:1px solid var(--line);color:var(--deep)}
+.twobtn{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.twobtn .bigbtn{margin-top:0}
+
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.tile{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;min-height:88px;display:flex;flex-direction:column;justify-content:space-between;position:relative}
+.tile .ic{width:36px;height:36px;border-radius:11px;background:var(--wash);color:var(--blue);display:grid;place-items:center}
+.tile b{font-size:15px;font-weight:700}
+.tile small{font-size:12px;color:var(--muted);display:block;font-weight:500}
+.tile .n{position:absolute;top:12px;right:12px;font-family:var(--mono);font-size:12px;font-weight:600;color:var(--blue);background:var(--wash);border-radius:8px;padding:1px 7px}
+.tile .n.alert{background:var(--badbg);color:var(--bad)}
+.sectitle{display:flex;justify-content:space-between;align-items:baseline;padding:4px 2px 0}
+.sectitle h5{margin:0;font-size:15px;font-weight:700}
+.sectitle a{font-size:13px;color:var(--blue);font-weight:600}
+
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;border-radius:999px;padding:3px 9px;white-space:nowrap}
+.chip::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip.sea{background:var(--wash);color:var(--blue)} .chip.port{background:#EEF2F7;color:var(--muted)} .chip.bad{background:var(--badbg);color:var(--bad)} .chip.warn{background:var(--warnbg);color:var(--warn)} .chip.ok{background:var(--goodbg);color:var(--good)}
+
+.boat .bh{display:flex;align-items:center;gap:8px}
+.boat .bh b{font-size:16px}
+.boat .bh .cap2{font-size:12px;color:var(--muted)}
+.boat .bh .chip{margin-left:auto}
+.mini{position:relative;height:22px;border-radius:7px;background:#F1F5FA;margin:10px 0 2px}
+.mini i{position:absolute;top:4px;bottom:4px;border-radius:4px;background:#B9D1EE}
+.mini i.risk{background:#F2B8B1}
+.mini i.block{background:repeating-linear-gradient(135deg,#D5DEEA 0 4px,#EEF2F7 4px 8px)}
+.mini .now{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--blue);border-radius:2px}
+.hrs{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--faint)}
+.deps{margin-top:8px;display:grid}
+.deps div{display:grid;grid-template-columns:48px 1fr auto;gap:8px;align-items:center;padding:9px 0;border-top:1px solid #EEF2F7;min-height:44px}
+.deps .t{font-family:var(--mono);font-weight:600}
+.deps .p{font-family:var(--mono);font-size:12.5px;color:var(--muted)}
+.deps .past{opacity:.5}
+
+/* A: menu as boxes */
+.menuscreen{background:var(--deep);color:#fff}
+.menuscreen .scroll{gap:14px}
+.menuscreen .apptop h4{color:#fff}
+.menuscreen .round{background:#1C4378;border-color:#1C4378;color:#fff}
+.mg{font-size:12px;font-weight:600;color:#8FAAD0;padding:2px 2px 0}
+.mboxes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.mboxes a{background:#17396A;border-radius:16px;min-height:78px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:12.5px;font-weight:600;color:#DCE7F5;text-align:center;padding:6px 4px;position:relative}
+.mboxes a svg{width:24px;height:24px;color:#9CC0F0}
+.mboxes a.on{background:#fff;color:var(--deep)}
+.mboxes a.on svg{color:var(--blue)}
+.mboxes a .n{position:absolute;top:6px;right:8px;font-family:var(--mono);font-size:11px;background:var(--bad);color:#fff;border-radius:7px;padding:0 5px}
+
+/* tablet layouts */
+.tab-top{display:flex;align-items:center;gap:12px;padding:10px 20px 6px;position:relative;z-index:1}
+.tab-top h4{margin:0;font-size:22px;font-weight:800;letter-spacing:-.02em}
+.tab-top .sub{color:var(--muted);font-size:13px}
+.tab-top .sp{margin-left:auto}
+.tab-body{flex:1;padding:6px 20px 20px;display:grid;gap:14px;align-content:start;position:relative;z-index:1}
+.tabgrid{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:12px}
+.tabgrid .tile{min-height:auto}
+.lanes{display:grid;grid-template-columns:92px 1fr;row-gap:8px;position:relative}
+.lanes .hrs{grid-column:2}
+.lanes .vn{font-weight:700;display:flex;flex-direction:column;justify-content:center;font-size:14px}
+.lanes .vn span{font-size:11.5px;color:var(--muted);font-weight:400}
+.lanes .lane{position:relative;height:54px;border-radius:12px;background:#F1F5FA}
+.lanes .ev{position:absolute;top:5px;bottom:5px;border-radius:9px;background:#DCE8F7;padding:5px 8px;font-size:12px;overflow:hidden;line-height:1.25}
+.lanes .ev b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lanes .ev span{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.lanes .ev.risk{background:var(--badbg);box-shadow:inset 0 0 0 1.5px #EBB2AB}
+.lanes .ev.block{background:repeating-linear-gradient(135deg,#E6ECF3 0 6px,#F4F7FB 6px 12px);color:var(--muted)}
+.lanes .ev.past{opacity:.55}
+.lanes .now{position:absolute;top:14px;bottom:0;width:2px;background:var(--blue);border-radius:2px}
+
+.withrail{display:grid;grid-template-columns:190px 1fr;height:100%}
+.rail{background:var(--deep);padding:14px 10px;display:flex;flex-direction:column;gap:2px;position:relative;z-index:2}
+.rail .wm{display:flex;align-items:center;gap:9px;color:#fff;font-weight:800;font-size:17px;padding:4px 8px 12px}
+.rail .wm i{font-style:normal;width:28px;height:28px;border-radius:8px;background:#fff;color:var(--deep);display:grid;place-items:center;font-size:14px}
+.rail a{display:flex;align-items:center;gap:10px;min-height:42px;padding:0 10px;border-radius:11px;color:#C4D3E8;font-weight:500;font-size:14.5px}
+.rail a svg{width:19px;height:19px;color:#7F98BA}
+.rail a.on{background:#1C4378;color:#fff}
+.rail a.on svg{color:#fff}
+.rail .g{font-size:11.5px;color:#7F98BA;font-weight:600;padding:8px 10px 2px}
+.rail .last{margin-top:auto}
+.boatgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+
+/* captain */
+.capbox .bigtime{font-size:30px}
+.pax{display:flex;align-items:baseline;gap:6px;margin-top:8px}
+.pax b{font-family:var(--mono);font-size:26px}
+.checks{display:grid;gap:6px;margin-top:10px}
+.checks div{display:flex;gap:8px;align-items:center;font-size:13px}
+
+/* lists as boxes */
+.bk{display:grid;gap:6px}
+.bk .l1{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.bk .l1 b{font-size:15px}
+.bk .l2{font-size:13px;color:var(--muted)}
+.bk .l3{display:flex;justify-content:space-between;align-items:center;font-size:13px}
+.filters{display:flex;gap:6px;overflow:hidden}
+.filters span{flex:none;min-height:36px;display:flex;align-items:center;padding:0 14px;border-radius:999px;background:#fff;border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--muted)}
+.filters span.on{background:var(--deep);border-color:var(--deep);color:#fff}
+.table-bad{overflow:hidden;border:1px solid var(--line);border-radius:14px;background:#fff}
+.table-bad table{border-collapse:collapse;font-size:12px;width:520px}
+.table-bad td,.table-bad th{padding:10px 8px;border-bottom:1px solid #EEF2F7;text-align:left;white-space:nowrap}
+.table-bad th{font-size:11px;color:var(--muted)}
+.cut{position:relative}
+.cut::after{content:"";position:absolute;top:0;right:0;bottom:0;width:40px;background:linear-gradient(90deg,transparent,rgba(247,250,253,.95))}
+
+.pick{margin-top:52px;background:var(--deep) var(--waves) repeat-x bottom/520px 170px;color:#C9D8EC;border-radius:20px;padding:30px 34px 60px}
+.pick h2{color:#fff}
+.pick p{margin-top:8px;max-width:66ch}
+.pick ul{margin:12px 0 0;padding-left:20px;display:grid;gap:4px}
+
+@media (max-width:900px){.rules{grid-template-columns:1fr 1fr}.verdict{grid-template-columns:1fr}}
+@media (max-width:520px){body{padding-inline:16px}.rules{grid-template-columns:1fr}.stage{padding:16px}.pick{padding:24px 22px 50px}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="menu" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></g></symbol>
+    <symbol id="x" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></g></symbol>
+    <symbol id="bell" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></g></symbol>
+    <symbol id="search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></g></symbol>
+    <symbol id="home" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/></g></symbol>
+    <symbol id="qr" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2v2M20 14v6h-4M14 18v2"/></g></symbol>
+    <symbol id="flag" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></g></symbol>
+    <symbol id="cal" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></g></symbol>
+    <symbol id="ticket" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/></g></symbol>
+    <symbol id="doc" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l4 4v14H7z"/><path d="M10 12h5M10 16h5"/></g></symbol>
+    <symbol id="chat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/></g></symbol>
+    <symbol id="gift" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 9v11M4 13h16"/></g></symbol>
+    <symbol id="map" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></g></symbol>
+    <symbol id="euro" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6a7 7 0 1 0 0 12M4 10h9M4 14h9"/></g></symbol>
+    <symbol id="boat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 15h18l-3 5H6z"/><path d="M12 15V3l6 9h-6"/></g></symbol>
+    <symbol id="clock" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></g></symbol>
+    <symbol id="pin" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6-7-11a7 7 0 0 1 14 0c0 5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></g></symbol>
+    <symbol id="chart" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V4M4 20h16"/><path d="M8 16l4-5 3 3 5-7"/></g></symbol>
+    <symbol id="cog" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></g></symbol>
+    <symbol id="list" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/></g></symbol>
+    <symbol id="users" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 4.5a3.5 3.5 0 0 1 0 7M18 14a6 6 0 0 1 3.5 6"/></g></symbol>
+    <symbol id="check" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></g></symbol>
+    <symbol id="alert" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2z"/><path d="M12 10v4M12 17.5v.5"/></g></symbol>
+    <symbol id="plus" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></g></symbol>
+    <symbol id="chev" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></g></symbol>
+    <symbol id="phone" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a1 1 0 0 1-1 1A16 16 0 0 1 4 5a1 1 0 0 1 1-1"/></g></symbol>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+<header class="top">
+  <div class="kick">Kaiki · operator panel · round 4 · phone and tablet</div>
+  <h1>Kaiki on a phone, built from boxes</h1>
+  <p class="lead">Captains and operators will mostly use Kaiki from a phone, so these mockups start there. The home page is version 3 (the day, by boat), turned into boxes you can tap with a thumb. Two ways to get around (A and B), each shown on a phone and a tablet, plus what lists like Κρατήσεις would look like. Example data, and nothing is built from these yet.</p>
+  <div class="done"><span><b>Already in code</b> blue sidebar</span><span><b>Already in code</b> waves drifting very slowly</span><span><b>Already in code</b> Menu 1</span><span><b>Already in code</b> menu text back to 15px</span></div>
+  <div class="rules">
+    <div><b>Thumb-sized</b>Everything you tap is at least 44px tall; main actions are 50px, full width.</div>
+    <div><b>One column on a phone</b>No tables to scroll sideways; every row is a box.</div>
+    <div><b>Two or three columns on a tablet</b>The same boxes, side by side, and the timeline comes back.</div>
+    <div><b>Readable in sunlight</b>Text at 14–17px, dark on white, and status in words as well as colour.</div>
+  </div>
+</header>
+
+<!-- ======================= A ======================= -->
+<section>
+  <div class="shead"><span class="tag">A</span><h2>Menu button, and the menu opens as boxes</h2><p>The phone keeps a menu button at the top. Tapping it opens the whole of Menu 1 as a grid of big boxes, so nothing is hidden in a long list. The home page opens with the next departure, then shortcut boxes, then one box per boat for today.</p></div>
+  <div class="stage"><div class="row">
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>09:20</span><span>5G ▮▮▮</span></div>
+        <div class="scroll">
+          <div class="apptop"><div><h4>Καλημέρα</h4><div class="sub">Τετάρτη 16 Σεπτεμβρίου</div></div><span class="sp round"><svg class="i"><use href="#bell"/></svg><span class="badge">2</span></span><span class="round"><svg class="i"><use href="#menu"/></svg></span></div>
+          <div class="box dark">
+            <div class="lbl">Επόμενη αναχώρηση · σε 10 λεπτά</div>
+            <div style="display:flex;justify-content:space-between;align-items:end;margin-top:6px"><div><div class="bigtime">09:30</div><div class="tripname">Γύρος της Μήλου</div><div class="meta">Αύρα · Αδάμαντας, προβλήτα 2</div></div><div style="text-align:right"><div class="mono" style="font-size:20px;font-weight:600">33/38</div><div class="meta">επιβιβάστηκαν</div></div></div>
+            <div class="prog"><i style="width:87%"></i></div>
+            <div class="bigbtn"><svg class="i"><use href="#qr"/></svg>Σάρωση εισιτηρίων</div>
+          </div>
+          <div class="tiles">
+            <div class="tile"><span class="ic"><svg class="i"><use href="#flag"/></svg></span><div><b>Αναχωρήσεις</b><small>5 σήμερα</small></div></div>
+            <div class="tile"><span class="n">3</span><span class="ic"><svg class="i"><use href="#ticket"/></svg></span><div><b>Κρατήσεις</b><small>3 νέες</small></div></div>
+            <div class="tile"><span class="ic"><svg class="i"><use href="#cal"/></svg></span><div><b>Ημερολόγιο</b><small>Εβδομάδα</small></div></div>
+            <div class="tile"><span class="n alert">2</span><span class="ic" style="background:var(--badbg);color:var(--bad)"><svg class="i"><use href="#alert"/></svg></span><div><b>Προσοχή</b><small>2 αποφάσεις</small></div></div>
+          </div>
+          <div class="sectitle"><h5>Σήμερα ανά σκάφος</h5><a>Ημερολόγιο</a></div>
+          <div class="box boat">
+            <div class="bh"><b>Αύρα</b><span class="cap2">45 θέσεις</span><span class="chip port">Στο λιμάνι</span></div>
+            <div class="mini"><i style="left:16.7%;width:33.3%"></i><i style="left:70%;width:23.3%"></i><span class="now" style="left:15.6%"></span></div>
+            <div class="hrs"><span>07</span><span>12</span><span>17</span><span>22</span></div>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap"><b>Home.</b> Next departure first, with the scan button right under your thumb. The boat boxes carry on below.</p>
+    </div>
+
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>09:20</span><span>5G ▮▮▮</span></div>
+        <div class="scroll" style="padding-top:10px">
+          <div class="box boat">
+            <div class="bh"><b>Αύρα</b><span class="cap2">45 θέσεις</span><span class="chip port">Στο λιμάνι</span></div>
+            <div class="mini"><i style="left:16.7%;width:33.3%"></i><i style="left:70%;width:23.3%"></i><span class="now" style="left:15.6%"></span></div>
+            <div class="deps">
+              <div><span class="t">09:30</span><span>Γύρος της Μήλου</span><span class="p">38/45</span></div>
+              <div><span class="t">17:30</span><span>Ηλιοβασίλεμα <span class="chip warn" style="margin-left:4px">5 bft</span></span><span class="p">22/45</span></div>
+            </div>
+          </div>
+          <div class="box boat">
+            <div class="bh"><b>Θαλασσινή</b><span class="cap2">60 θέσεις</span><span class="chip sea">Φεύγει 10:00</span></div>
+            <div class="mini"><i style="left:20%;width:46.7%"></i><span class="now" style="left:15.6%"></span></div>
+            <div class="deps"><div><span class="t">10:00</span><span>Κλέφτικο</span><span class="p">51/60</span></div></div>
+          </div>
+          <div class="box boat">
+            <div class="bh"><b>Ερμής</b><span class="cap2">12 θέσεις</span><span class="chip sea">Εν πλω</span></div>
+            <div class="mini"><i class="risk" style="left:6.7%;width:33.3%"></i><i class="block" style="left:53.3%;width:26.7%"></i><span class="now" style="left:15.6%"></span></div>
+            <div class="deps">
+              <div><span class="t">08:00</span><span>Πολύαιγος <span class="chip bad" style="margin-left:4px">κάτω από ελάχ.</span></span><span class="p">9/12</span></div>
+              <div><span class="t">15:00</span><span style="color:var(--muted)">Συντήρηση ως 19:00</span><span class="p">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap"><b>Home, scrolled.</b> Each boat is one box: a small bar showing when it's out, and its departures underneath. Tap a departure to open its passenger list.</p>
+    </div>
+
+    <div>
+      <div class="phone"><div class="screen menuscreen">
+        <div class="status dark"><span>09:20</span><span>5G ▮▮▮</span></div>
+        <div class="scroll">
+          <div class="apptop"><div><h4>Μενού</h4><div class="sub" style="color:#8FAAD0">Aegean Blue</div></div><span class="sp round"><svg class="i"><use href="#x"/></svg></span></div>
+          <div class="mboxes"><a class="on"><svg><use href="#home"/></svg>Αρχική</a><a><svg><use href="#search"/></svg>Αναζήτηση</a><a><svg><use href="#plus"/></svg>Νέα κράτηση</a></div>
+          <div class="mg">Σήμερα</div>
+          <div class="mboxes"><a><svg><use href="#qr"/></svg>Επιβίβαση</a><a><svg><use href="#flag"/></svg>Αναχωρήσεις</a><a><svg><use href="#cal"/></svg>Ημερολόγιο</a></div>
+          <div class="mg">Πωλήσεις</div>
+          <div class="mboxes"><a><span class="n">3</span><svg><use href="#ticket"/></svg>Κρατήσεις</a><a><span class="n">2</span><svg><use href="#chat"/></svg>Προσφορές</a><a><svg><use href="#gift"/></svg>Κουπόνια</a><a><svg><use href="#doc"/></svg>Παραστατικά</a></div>
+          <div class="mg">Κατάλογος και στόλος</div>
+          <div class="mboxes"><a><svg><use href="#map"/></svg>Εκδρομές</a><a><svg><use href="#euro"/></svg>Τιμές</a><a><svg><use href="#boat"/></svg>Σκάφη</a><a><svg><use href="#clock"/></svg>Δρομολόγια</a><a><svg><use href="#pin"/></svg>Λιμάνια</a><a><svg><use href="#chart"/></svg>Στατιστικά</a></div>
+          <div class="mboxes" style="grid-template-columns:1fr"><a style="min-height:50px;flex-direction:row"><svg><use href="#cog"/></svg>Ρυθμίσεις</a></div>
+        </div>
+      </div></div>
+      <p class="cap"><b>Menu open.</b> Menu 1 as boxes, three to a row, with counts on the ones that need you. Search and "New booking" sit at the top.</p>
+    </div>
+
+    <div>
+      <div class="tablet"><div class="screen">
+        <div class="status"><span>09:20</span><span>▮▮▮ 84%</span></div>
+        <div class="tab-top"><div><h4>Καλημέρα</h4><div class="sub">Τετάρτη 16 Σεπτεμβρίου · Aegean Blue</div></div><span class="sp round"><svg class="i"><use href="#bell"/></svg><span class="badge">2</span></span><span class="round"><svg class="i"><use href="#menu"/></svg></span></div>
+        <div class="tab-body">
+          <div class="tabgrid">
+            <div class="box dark" style="padding:14px 16px">
+              <div class="lbl">Επόμενη · σε 10 λεπτά</div>
+              <div style="display:flex;gap:12px;align-items:baseline;margin-top:4px"><span class="bigtime" style="font-size:28px">09:30</span><div><div class="tripname" style="margin:0;font-size:15px">Γύρος της Μήλου</div><div class="meta">Αύρα · 33/38 πάνω</div></div></div>
+              <div class="bigbtn" style="min-height:44px;margin-top:10px"><svg class="i"><use href="#qr"/></svg>Σάρωση</div>
+            </div>
+            <div class="tile"><span class="n">3</span><span class="ic"><svg class="i"><use href="#ticket"/></svg></span><div><b>Κρατήσεις</b><small>3 νέες</small></div></div>
+            <div class="tile"><span class="n alert">2</span><span class="ic" style="background:var(--badbg);color:var(--bad)"><svg class="i"><use href="#alert"/></svg></span><div><b>Προσοχή</b><small>2 αποφάσεις</small></div></div>
+          </div>
+          <div class="box">
+            <div class="sectitle" style="padding:0 0 10px"><h5>Σήμερα ανά σκάφος</h5><a>Ημερολόγιο</a></div>
+            <div class="lanes">
+              <div></div><div class="hrs"><span>07</span><span>10</span><span>13</span><span>16</span><span>19</span><span>22</span></div>
+              <div class="vn">Αύρα<span>45 θέσεις</span></div>
+              <div class="lane"><div class="ev" style="left:16.7%;width:calc(33.3% - 4px)"><b>Γύρος της Μήλου</b><span>09:30 · 38/45</span></div><div class="ev" style="left:70%;width:calc(23.3% - 4px)"><b>Ηλιοβασίλεμα</b><span>17:30 · 22/45</span></div></div>
+              <div class="vn">Θαλασσινή<span>60 θέσεις</span></div>
+              <div class="lane"><div class="ev" style="left:20%;width:calc(46.7% - 4px)"><b>Κλέφτικο</b><span>10:00 · 51/60</span></div></div>
+              <div class="vn">Ερμής<span>12 θέσεις</span></div>
+              <div class="lane"><div class="ev risk" style="left:6.7%;width:calc(33.3% - 4px)"><b>Πολύαιγος</b><span>08:00 · 9/12</span></div><div class="ev block" style="left:53.3%;width:calc(26.7% - 4px)"><b>Συντήρηση</b><span>15:00–19:00</span></div></div>
+              <div class="now" style="left:calc(92px + (100% - 92px) * .156)"></div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap" style="max-width:780px"><b>Tablet.</b> Next departure and the two boxes that need you on one row, then the full timeline of version 3, which fits once the screen is wide enough. The menu button opens the same box menu.</p>
+    </div>
+  </div></div>
+  <div class="verdict">
+    <div><b>Good for</b>Everyone sees the same screen. The menu is complete and easy to scan, and the phone's whole screen goes to today's work.</div>
+    <div><b>Trade-off</b>Getting to boarding from any other screen takes two taps: menu, then Επιβίβαση.</div>
+    <div><b>Estimate</b><span class="est">≈ 6 h</span></div>
+  </div>
+</section>
+
+<!-- ======================= B ======================= -->
+<section>
+  <div class="shead"><span class="tag">B</span><h2>A bar at the bottom, like a phone app</h2><p>Four buttons always at the bottom of the phone: Αρχική, Σάρωση (the big one, in the middle), Ημερολόγιο, Μενού. The home page is the boats first: one box per boat, saying where it is right now. A captain's account gets a simpler version of the same thing: only their own boat, and three buttons.</p></div>
+  <div class="stage"><div class="row">
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>09:20</span><span>5G ▮▮▮</span></div>
+        <div class="scroll">
+          <div class="apptop"><div><h4>Σήμερα</h4><div class="sub">Τετ 16 Σεπ · 5 αναχωρήσεις · 120 επιβάτες</div></div><span class="sp round"><svg class="i"><use href="#bell"/></svg><span class="badge">2</span></span></div>
+          <div class="box" style="display:flex;gap:10px;align-items:center;background:var(--badbg);border-color:#F1D2CE;padding:12px 14px">
+            <svg class="i" style="color:var(--bad)"><use href="#alert"/></svg><div style="flex:1"><b style="font-size:14px">Πολύαιγος αύριο 08:00</b><div class="meta">4 από ελάχιστο 10 · απόφαση ως 20:00</div></div><svg class="i" style="color:var(--bad)"><use href="#chev"/></svg>
+          </div>
+          <div class="box boat">
+            <div class="bh"><b>Αύρα</b><span class="chip ok">Επιβίβαση τώρα</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px"><div><span class="mono" style="font-size:22px;font-weight:600">09:30</span> <b>Γύρος της Μήλου</b></div><span class="mono meta">33/38</span></div>
+            <div class="prog" style="background:#E3ECF7"><i style="width:87%;background:var(--blue)"></i></div>
+            <div class="meta">Μετά: 17:30 Ηλιοβασίλεμα · 22/45</div>
+          </div>
+          <div class="box boat">
+            <div class="bh"><b>Θαλασσινή</b><span class="chip port">Στο λιμάνι</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px"><div><span class="mono" style="font-size:22px;font-weight:600">10:00</span> <b>Κλέφτικο</b></div><span class="mono meta">51/60</span></div>
+            <div class="meta" style="margin-top:6px">3 κρατήσεις χωρίς διαβατήριο</div>
+          </div>
+          <div class="box boat">
+            <div class="bh"><b>Ερμής</b><span class="chip sea">Εν πλω ως 13:00</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px"><div><span class="mono" style="font-size:22px;font-weight:600">08:00</span> <b>Πολύαιγος</b></div><span class="mono meta">9/12</span></div>
+            <div class="meta" style="margin-top:6px">Μετά: συντήρηση 15:00–19:00</div>
+          </div>
+        </div>
+        <div class="bottombar"><a class="on"><svg><use href="#home"/></svg>Αρχική</a><a class="scan"><svg><use href="#qr"/></svg>Σάρωση</a><a><svg><use href="#cal"/></svg>Ημερολόγιο</a><a><svg><use href="#menu"/></svg>Μενού</a></div>
+      </div></div>
+      <p class="cap"><b>Operator's home.</b> One thing needing a decision at the top, then each boat: what it's doing now, how full, and what's next.</p>
+    </div>
+
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>09:20</span><span>5G ▮▮▮</span></div>
+        <div class="scroll">
+          <div class="apptop"><div><h4>Αύρα</h4><div class="sub">Καπετάνιος Νίκος · Τετ 16 Σεπ</div></div></div>
+          <div class="box dark capbox">
+            <div class="lbl">Τώρα · επιβίβαση</div>
+            <div class="bigtime" style="margin-top:6px">09:30</div>
+            <div class="tripname">Γύρος της Μήλου</div>
+            <div class="meta">Αδάμαντας, προβλήτα 2</div>
+            <div class="pax"><b>33</b><span class="meta">από 38 πάνω · 5 λείπουν</span></div>
+            <div class="prog"><i style="width:87%"></i></div>
+            <div class="bigbtn"><svg class="i"><use href="#qr"/></svg>Σάρωση εισιτηρίων</div>
+            <div class="twobtn" style="margin-top:8px"><div class="bigbtn ghost"><svg class="i"><use href="#list"/></svg>Λίστα</div><div class="bigbtn ghost"><svg class="i"><use href="#phone"/></svg>Γραφείο</div></div>
+          </div>
+          <div class="box">
+            <div class="lbl">Μετά</div>
+            <div class="deps" style="margin-top:2px">
+              <div style="border-top:0"><span class="t">17:30</span><span><b>Ηλιοβασίλεμα</b><br><span class="meta">5 μποφόρ μετά τις 15:00</span></span><span class="p">22/45</span></div>
+            </div>
+          </div>
+          <div class="box">
+            <div class="lbl">Πριν αναχωρήσετε</div>
+            <div class="checks">
+              <div><svg class="i" style="color:var(--good)"><use href="#check"/></svg>Κατάσταση επιβατών σταλμένη</div>
+              <div><svg class="i" style="color:var(--warn)"><use href="#alert"/></svg>2 παιδιά κάτω των 6</div>
+            </div>
+          </div>
+        </div>
+        <div class="bottombar three"><a class="on"><svg><use href="#boat"/></svg>Το σκάφος</a><a class="scan"><svg><use href="#qr"/></svg>Σάρωση</a><a><svg><use href="#cal"/></svg>Εβδομάδα</a></div>
+      </div></div>
+      <p class="cap"><b>Captain's phone.</b> Only their boat and only today. No money, no menu to dig through: the same crew permissions as now, shown as a simpler screen.</p>
+    </div>
+
+    <div>
+      <div class="tablet"><div class="screen">
+        <div class="withrail">
+          <nav class="rail">
+            <div class="wm"><i>K</i>Kaiki</div>
+            <a class="on"><svg><use href="#home"/></svg>Αρχική</a>
+            <div class="g">Σήμερα</div>
+            <a><svg><use href="#qr"/></svg>Επιβίβαση</a><a><svg><use href="#flag"/></svg>Αναχωρήσεις</a><a><svg><use href="#cal"/></svg>Ημερολόγιο</a>
+            <div class="g">Πωλήσεις</div>
+            <a><svg><use href="#ticket"/></svg>Κρατήσεις</a><a><svg><use href="#chat"/></svg>Προσφορές</a>
+            <a class="last"><svg><use href="#menu"/></svg>Όλο το μενού</a>
+          </nav>
+          <div style="display:flex;flex-direction:column;position:relative;z-index:1">
+            <div class="tab-top"><div><h4>Σήμερα</h4><div class="sub">Τετ 16 Σεπ · 5 αναχωρήσεις · 120 επιβάτες</div></div><span class="sp round"><svg class="i"><use href="#bell"/></svg><span class="badge">2</span></span></div>
+            <div class="tab-body">
+              <div class="boatgrid">
+                <div class="box boat"><div class="bh"><b>Αύρα</b><span class="chip ok">Επιβίβαση</span></div><div style="margin-top:8px"><span class="mono" style="font-size:20px;font-weight:600">09:30</span> <b style="font-size:13px">Γύρος Μήλου</b></div><div class="prog" style="background:#E3ECF7"><i style="width:87%;background:var(--blue)"></i></div><div class="meta">33/38 · μετά 17:30</div></div>
+                <div class="box boat"><div class="bh"><b>Θαλασσινή</b><span class="chip port">Λιμάνι</span></div><div style="margin-top:8px"><span class="mono" style="font-size:20px;font-weight:600">10:00</span> <b style="font-size:13px">Κλέφτικο</b></div><div class="meta" style="margin-top:14px">51/60 · 3 χωρίς διαβατ.</div></div>
+                <div class="box boat"><div class="bh"><b>Ερμής</b><span class="chip sea">Εν πλω</span></div><div style="margin-top:8px"><span class="mono" style="font-size:20px;font-weight:600">08:00</span> <b style="font-size:13px">Πολύαιγος</b></div><div class="meta" style="margin-top:14px">9/12 · επιστρ. 13:00</div></div>
+              </div>
+              <div class="box">
+                <div class="lanes">
+                  <div></div><div class="hrs"><span>07</span><span>10</span><span>13</span><span>16</span><span>19</span><span>22</span></div>
+                  <div class="vn">Αύρα</div>
+                  <div class="lane" style="height:44px"><div class="ev" style="left:16.7%;width:calc(33.3% - 4px)"><b>Γύρος της Μήλου</b></div><div class="ev" style="left:70%;width:calc(23.3% - 4px)"><b>Ηλιοβασίλεμα</b></div></div>
+                  <div class="vn">Θαλασσινή</div>
+                  <div class="lane" style="height:44px"><div class="ev" style="left:20%;width:calc(46.7% - 4px)"><b>Κλέφτικο</b></div></div>
+                  <div class="vn">Ερμής</div>
+                  <div class="lane" style="height:44px"><div class="ev risk" style="left:6.7%;width:calc(33.3% - 4px)"><b>Πολύαιγος</b></div><div class="ev block" style="left:53.3%;width:calc(26.7% - 4px)"><b>Συντήρηση</b></div></div>
+                  <div class="now" style="left:calc(92px + (100% - 92px) * .156)"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap" style="max-width:780px"><b>Tablet, held sideways.</b> The bottom bar becomes a short sidebar with words next to every icon. The boat boxes sit three to a row above the timeline.</p>
+    </div>
+  </div></div>
+  <div class="verdict">
+    <div><b>Good for</b>Captains and crew: scanning is always one tap away, on every screen. It feels like an app they already know.</div>
+    <div><b>Trade-off</b>A bar that stays on screen takes about 70px on every page, and the captain's screen is a new page to build.</div>
+    <div><b>Estimate</b><span class="est">≈ 8 h</span></div>
+  </div>
+</section>
+
+<!-- ======================= LISTS ======================= -->
+<section>
+  <div class="shead"><span class="tag">Lists</span><h2>Every list becomes boxes on a phone</h2><p>This applies to A and B alike. Κρατήσεις, Αναχωρήσεις, Προσφορές and the rest are tables today, and on a phone you scroll a table sideways to find the column you need. Below a tablet's width each row becomes a box. From tablet width up, the table stays.</p></div>
+  <div class="stage"><div class="row">
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>09:20</span><span>5G ▮▮▮</span></div>
+        <div class="scroll">
+          <div class="apptop"><div><h4>Κρατήσεις</h4><div class="sub">Όπως είναι σήμερα</div></div></div>
+          <div class="table-bad cut"><table>
+            <tr><th>Κωδικός</th><th>Επισκέπτης</th><th>Εκδρομή</th><th>Ημερομηνία</th><th>Άτομα</th><th>Ποσό</th></tr>
+            <tr><td>K-2291</td><td>Παπαδόπουλος</td><td>Κλέφτικο</td><td>17/09 10:00</td><td>4</td><td>420 €</td></tr>
+            <tr><td>K-2290</td><td>Müller</td><td>Γύρος Μήλου</td><td>16/09 09:30</td><td>2</td><td>180 €</td></tr>
+            <tr><td>K-2289</td><td>Rossi</td><td>Ηλιοβασίλεμα</td><td>16/09 17:30</td><td>3</td><td>195 €</td></tr>
+            <tr><td>K-2288</td><td>Γεωργίου</td><td>Πολύαιγος</td><td>17/09 08:00</td><td>2</td><td>150 €</td></tr>
+          </table></div>
+          <p class="meta" style="padding:0 4px">The trip, date and amount are off the edge of the screen. You have to scroll sideways, row by row.</p>
+        </div>
+      </div></div>
+      <p class="cap"><b>Today.</b> A table squeezed onto a phone.</p>
+    </div>
+    <div>
+      <div class="phone"><div class="screen">
+        <div class="status"><span>09:20</span><span>5G ▮▮▮</span></div>
+        <div class="scroll">
+          <div class="apptop"><div><h4>Κρατήσεις</h4><div class="sub">42 αυτή την εβδομάδα</div></div><span class="sp round"><svg class="i"><use href="#search"/></svg></span><span class="round" style="background:var(--blue);border-color:var(--blue);color:#fff"><svg class="i"><use href="#plus"/></svg></span></div>
+          <div class="filters"><span class="on">Σήμερα</span><span>Αύριο</span><span>Οφειλές</span><span>Νέες</span></div>
+          <div class="box bk">
+            <div class="l1"><b>Παπαδόπουλος</b><span class="chip warn">Οφείλει 420 €</span></div>
+            <div class="l2">Κλέφτικο · Πέμ 17/09, 10:00 · Θαλασσινή</div>
+            <div class="l3"><span class="meta">4 άτομα · K-2291</span><svg class="i" style="color:var(--faint)"><use href="#chev"/></svg></div>
+          </div>
+          <div class="box bk">
+            <div class="l1"><b>Müller</b><span class="chip ok">Πληρωμένη</span></div>
+            <div class="l2">Γύρος της Μήλου · σήμερα 09:30 · Αύρα</div>
+            <div class="l3"><span class="meta">2 άτομα · K-2290</span><svg class="i" style="color:var(--faint)"><use href="#chev"/></svg></div>
+          </div>
+          <div class="box bk">
+            <div class="l1"><b>Rossi</b><span class="chip ok">Πληρωμένη</span></div>
+            <div class="l2">Ηλιοβασίλεμα · σήμερα 17:30 · Αύρα</div>
+            <div class="l3"><span class="meta">3 άτομα · K-2289</span><svg class="i" style="color:var(--faint)"><use href="#chev"/></svg></div>
+          </div>
+          <div class="box bk">
+            <div class="l1"><b>Γεωργίου</b><span class="chip sea">Νέα</span></div>
+            <div class="l2">Πολύαιγος · Πέμ 17/09, 08:00 · Ερμής</div>
+            <div class="l3"><span class="meta">2 άτομα · K-2288</span><svg class="i" style="color:var(--faint)"><use href="#chev"/></svg></div>
+          </div>
+        </div>
+      </div></div>
+      <p class="cap"><b>Proposed.</b> One box per booking: who, what, when, and whether it's paid, in words. Quick filters are big pills, and search and "new" sit at the top.</p>
+    </div>
+  </div></div>
+  <div class="verdict">
+    <div><b>Covers</b>Κρατήσεις, Αναχωρήσεις, Προσφορές, Ερωτήματα, Κουπόνια and Σκάφη: the lists people open on the move. Forms get full-width fields and a save button that stays at the bottom.</div>
+    <div><b>Leaves for later</b>Once-a-season screens (τιμές, περίοδοι, ρυθμίσεις) stay as they are for now: usable on a phone, just not polished.</div>
+    <div><b>Estimate</b><span class="est">≈ 5 h</span></div>
+  </div>
+</section>
+
+<div class="pick">
+  <h2>Pick A or B</h2>
+  <p>A or B decides how people get around on a phone. The home page (version 3, the day by boat) and the list boxes come with either one. Some possible answers:</p>
+  <ul>
+    <li><b>A</b>: menu button, menu as boxes.</li>
+    <li><b>B</b>: bottom bar, with the captain's screen.</li>
+    <li><b>A with B's captain screen</b>: the owner gets A, and crew accounts open straight to their boat.</li>
+  </ul>
+</div>
+
+</div>

@@ -8,15 +8,31 @@ return [
     ],
 
     'view_frontend' => [
-        'label' => 'View your page',
+        'label' => 'Your page',
         'title' => 'Opens your public page in a new tab',
+        'live' => 'Live',
     ],
 
     'groups' => [
-        'operations' => 'Operations',
+        'today' => 'Today',
+        'sales' => 'Sales',
         'catalogue' => 'Catalogue',
-        'fleet' => 'Schedule & fleet',
+        'fleet' => 'Fleet',
         'settings' => 'Settings',
+    ],
+
+    // Sidebar labels shorter than the screen's own title (Menu 1, 2026-09-16).
+    'nav' => [
+        'home' => 'Home',
+        'prices' => 'Prices',
+        'ports' => 'Ports',
+        'related' => 'Related screens',
+    ],
+
+    // The menu as boxes, on a phone (direction A, 2026-09-17).
+    'mobile_menu' => [
+        'open' => 'Menu',
+        'close' => 'Close',
     ],
 
     'roles' => [

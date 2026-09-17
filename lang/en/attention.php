@@ -42,7 +42,7 @@ return [
      * boat that has to move anyway, a forecast for next week.
      */
     'under_minimum' => [
-        'title' => ':trip · :time',
+        'title' => 'Below its minimum · :trip, :time',
         'detail' => ':sold booked, minimum :minimum · :vessel',
     ],
 
@@ -71,6 +71,18 @@ return [
     'calendar' => [
         'title' => 'Calendar not syncing · :name',
         'detail' => ':vessel may look free while it is booked elsewhere. Failed :count times in a row.',
+    ],
+
+    // Every row leads to where it is fixed (2026-09-17).
+    'actions' => [
+        'departure' => 'Open departure',
+        'details' => 'Open booking',
+        'balance' => 'Record payment',
+        'quote' => 'Open quote',
+        'calendar' => 'Fix calendar sync',
+        'call' => 'Call',
+        'all' => 'All (:count)',
+        'fewer' => 'Fewer',
     ],
 
 ];
