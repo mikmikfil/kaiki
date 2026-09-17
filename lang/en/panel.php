@@ -29,6 +29,14 @@ return [
         'related' => 'Related screens',
     ],
 
+    // «My profile» (2026-09-17).
+    'profile' => [
+        'salutation' => [
+            'label' => 'How to greet you',
+            'help' => 'Optional. The home page greets you with it, e.g. «Good morning, Maria». Left empty, your name is used as it is.',
+        ],
+    ],
+
     // The menu as boxes, on a phone (direction A, 2026-09-17).
     'mobile_menu' => [
         'open' => 'Menu',

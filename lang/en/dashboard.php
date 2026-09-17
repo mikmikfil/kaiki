@@ -77,8 +77,10 @@ return [
     'home' => [
         'greeting' => [
             'morning' => 'Good morning',
+            'hello' => 'Hello',
             'evening' => 'Good evening',
             'morning_named' => 'Good morning, :name',
+            'hello_named' => 'Hello, :name',
             'evening_named' => 'Good evening, :name',
         ],
         'next' => [

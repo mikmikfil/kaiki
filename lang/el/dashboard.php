@@ -73,8 +73,10 @@ return [
     'home' => [
         'greeting' => [
             'morning' => 'Καλημέρα',
+            'hello' => 'Γεια σου',
             'evening' => 'Καλησπέρα',
             'morning_named' => 'Καλημέρα, :name',
+            'hello_named' => 'Γεια σου, :name',
             'evening_named' => 'Καλησπέρα, :name',
         ],
         'next' => [

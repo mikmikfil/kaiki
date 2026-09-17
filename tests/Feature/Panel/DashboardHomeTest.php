@@ -56,27 +56,42 @@ function homeOwner(): User
     return $owner;
 }
 
-it('says good morning until four in the afternoon, and good evening from then, on the operator\'s clock', function (string $utc, bool $evening): void {
+it('picks the greeting by the hour on the operator\'s clock', function (string $utc, string $period): void {
     $owner = homeOwner();
     tenancy()->initialize($owner->tenant);
 
-    // Athens is UTC+3 in September: 12:59 UTC is 15:59 on the quay.
-    expect(Dashboard::isEvening(Carbon::parse($utc, 'UTC')))->toBe($evening);
+    // Athens is UTC+3 in September: 02:00 UTC is 05:00 on the quay.
+    expect(Dashboard::greetingPeriod(Carbon::parse($utc, 'UTC')))->toBe($period);
 })->with([
-    'a minute before four' => ['2026-09-08 12:59:00', false],
-    'four o\'clock' => ['2026-09-08 13:00:00', true],
-    'late at night' => ['2026-09-08 23:30:00', true],
-    'early morning' => ['2026-09-08 04:30:00', false],
+    '04:59 still hello' => ['2026-09-08 01:59:00', 'hello'],
+    '05:00 good morning' => ['2026-09-08 02:00:00', 'morning'],
+    '11:59 good morning' => ['2026-09-08 08:59:00', 'morning'],
+    '12:00 hello' => ['2026-09-08 09:00:00', 'hello'],
+    '16:59 hello' => ['2026-09-08 13:59:00', 'hello'],
+    '17:00 good evening' => ['2026-09-08 14:00:00', 'evening'],
+    '00:59 good evening' => ['2026-09-08 21:59:00', 'evening'],
+    '01:00 hello' => ['2026-09-08 22:00:00', 'hello'],
 ])->group('fast');
 
 it('greets the operator with a sun or a moon', function (): void {
-    Carbon::setTestNow('2026-09-08 14:00:00');
+    Carbon::setTestNow('2026-09-08 15:00:00');
     $owner = homeOwner();
 
     actingAs($owner)->get('/app')
         ->assertSuccessful()
         ->assertSee(__('dashboard.home.greeting.evening'))
-        ->assertSee('ka-greeting-ic', escape: false);
+        ->assertSee('is-moon', escape: false);
+})->group('fast');
+
+it('greets by the salutation when there is one, and by the name as written when not', function (): void {
+    $owner = homeOwner();
+    $this->actingAs($owner);
+
+    $owner->forceFill(['name' => 'Μαρία Παπαδοπούλου', 'salutation' => null])->save();
+    expect(Dashboard::nameToGreet())->toBe('Μαρία Παπαδοπούλου');
+
+    $owner->forceFill(['salutation' => 'Κυρία Μαρία'])->save();
+    expect(Dashboard::nameToGreet())->toBe('Κυρία Μαρία');
 })->group('fast');
 
 it('puts the next departure, the four boxes and the boats on the home page', function (): void {
@@ -166,15 +181,15 @@ it('keeps the boarding list but never «Σάρωση» when only the QR scanner 
         ->assertSee(__('dashboard.home.next.board'));
 })->group('fast');
 
-it('greets the operator by their first name, or without one when it is blank', function (?string $name, string $expected): void {
+it('greets with the name as given, or without one when it is blank', function (?string $name, string $morning, string $hello): void {
     app()->setLocale('el');
 
-    expect(Dashboard::greeting(false, $name))->toBe($expected)
-        ->and(Dashboard::greeting(true, $name))->toBe(str_replace('Καλημέρα', 'Καλησπέρα', $expected));
+    expect(Dashboard::greeting('morning', $name))->toBe($morning)
+        ->and(Dashboard::greeting('hello', $name))->toBe($hello);
 })->with([
-    'full name' => ['  Μαρία Παπαδοπούλου ', 'Καλημέρα, Μαρία'],
-    'blank' => ['   ', 'Καλημέρα'],
-    'none' => [null, 'Καλημέρα'],
+    'name' => ['  Μαρία Παπαδοπούλου ', 'Καλημέρα, Μαρία Παπαδοπούλου', 'Γεια σου, Μαρία Παπαδοπούλου'],
+    'blank' => ['   ', 'Καλημέρα', 'Γεια σου'],
+    'none' => [null, 'Καλημέρα', 'Γεια σου'],
 ])->group('fast');
 
 it('puts «Αρχική» in the first group of the phone menu, never alone on its own row', function (): void {

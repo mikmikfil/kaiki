@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Filament\App\Auth\EditProfile;
 use App\Filament\App\Pages\Settings;
 use App\Filament\Avatars\InitialsAvatarProvider;
 use App\Http\Controllers\App\BoardingController;
@@ -126,10 +127,11 @@ class AppPanelProvider extends PanelProvider
              */
             ->passwordReset()
             // «Το προφίλ μου» in the user menu (product owner, 2026-09-17): every
-            // person can set their own name, which the home page greets them by,
-            // and their own password. Not a simple page, so it keeps the panel's
-            // sidebar and menu around it.
-            ->profile(isSimple: false)
+            // person can set their own name, an optional «Προσφώνηση» the home
+            // page greets them by, and their own password. Not a simple page, so
+            // it keeps the panel's sidebar and menu around it. Kept outside
+            // `Pages/`, which is auto-discovered.
+            ->profile(EditProfile::class, isSimple: false)
             // No font from a third-party host. Filament's default loads Inter
             // from fonts.bunny.net, which the panel's own CSP (SEC-10) blocks —
             // so it never loaded, and every page logged the refusal. Local

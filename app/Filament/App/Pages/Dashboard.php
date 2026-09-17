@@ -45,33 +45,53 @@ class Dashboard extends BaseDashboard
     /** The browser tab says the greeting in plain text; the heading adds the icon. */
     public function getTitle(): string|Htmlable
     {
-        return self::greeting(self::isEvening(), auth()->user()?->name);
+        return self::greeting(self::greetingPeriod(), self::nameToGreet());
     }
 
     /**
-     * «Καλημέρα, Μαρία», with the first word of the person's own name, or
-     * plain «Καλημέρα» when they have not given one (product owner, 2026-09-17).
+     * «Καλημέρα, Μαρία», or the greeting alone when there is no name
+     * (product owner, 2026-09-17).
      */
-    public static function greeting(bool $evening, ?string $name): string
+    public static function greeting(string $period, ?string $name): string
     {
-        $first = trim((string) strtok(trim((string) $name), ' 	'));
-        $key = 'dashboard.home.greeting.' . ($evening ? 'evening' : 'morning');
+        $name = trim((string) $name);
+        $key = 'dashboard.home.greeting.' . $period;
 
-        return $first === '' ? __($key) : __($key . '_named', ['name' => $first]);
+        return $name === '' ? __($key) : __($key . '_named', ['name' => $name]);
+    }
+
+    /**
+     * The person's own «Προσφώνηση» from «Το προφίλ μου», or their name exactly
+     * as it is written when they have not set one.
+     */
+    public static function nameToGreet(): ?string
+    {
+        $user = auth()->user();
+
+        if ($user === null) {
+            return null;
+        }
+
+        $salutation = trim((string) $user->getAttribute('salutation'));
+
+        return $salutation !== '' ? $salutation : $user->getAttribute('name');
     }
 
     /**
      * «Καλημέρα» or «Καλησπέρα», with a sun or moon before it
-     * (product owner, 2026-09-17). A UI icon, not a drawing.
+     * (product owner, 2026-09-17). A UI icon, not a drawing: the sun from five
+     * in the morning until five in the afternoon, the moon for the rest.
      */
     public function getHeading(): string|Htmlable
     {
-        $evening = self::isEvening();
+        $period = self::greetingPeriod();
+        $hour = self::localHour();
+        $night = $hour >= 17 || $hour < 5;
 
         return new HtmlString(
             '<span class="ka-greeting">'
-            . svg($evening ? 'heroicon-o-moon' : 'heroicon-o-sun', 'ka-greeting-ic ' . ($evening ? 'is-moon' : 'is-sun'), ['aria-hidden' => 'true'])->toHtml()
-            . '<span>' . e(self::greeting($evening, auth()->user()?->name)) . '</span>'
+            . svg($night ? 'heroicon-o-moon' : 'heroicon-o-sun', 'ka-greeting-ic ' . ($night ? 'is-moon' : 'is-sun'), ['aria-hidden' => 'true'])->toHtml()
+            . '<span>' . e(self::greeting($period, self::nameToGreet())) . '</span>'
             . '</span>'
             // About the height of the capitals, or a touch more, and in a
             // colour of its own: amber for the sun, a soft blue-grey for the
@@ -83,18 +103,31 @@ class Dashboard extends BaseDashboard
     }
 
     /**
-     * From 16:00 on the operator's own clock, which is when the product owner
-     * says good morning becomes good evening; and before 04:00, when nobody
-     * greets a night shift with «Καλημέρα».
+     * Which greeting, on the operator's own clock (product owner, 2026-09-17):
+     *
+     * - 05:00–11:59 «Καλημέρα» (`morning`)
+     * - 12:00–16:59 «Γεια σου» (`hello`)
+     * - 17:00–00:59 «Καλησπέρα» (`evening`)
+     * - 01:00–04:59 «Γεια σου» again
      */
-    public static function isEvening(?Carbon $now = null): bool
+    public static function greetingPeriod(?Carbon $now = null): string
+    {
+        $hour = self::localHour($now);
+
+        return match (true) {
+            $hour >= 5 && $hour < 12 => 'morning',
+            $hour >= 12 && $hour < 17 => 'hello',
+            $hour >= 17 || $hour < 1 => 'evening',
+            default => 'hello',
+        };
+    }
+
+    private static function localHour(?Carbon $now = null): int
     {
         $timezone = Tenancy::current()?->timezone;
         $timezone = is_string($timezone) && $timezone !== '' ? $timezone : (string) config('kaiki.defaults.timezone', 'Europe/Athens');
 
-        $hour = (int) ($now ?? Carbon::now())->copy()->setTimezone($timezone)->format('G');
-
-        return $hour >= 16 || $hour < 4;
+        return (int) ($now ?? Carbon::now())->copy()->setTimezone($timezone)->format('G');
     }
 
     /** @return array<class-string> */
