@@ -48,6 +48,11 @@
 {{ __('mail.common.balance') }}: {{ $d->balance }}
 @endif
 
+@if ($d->reviewUrl !== null)
+{{ __('mail.common.leave_review') }}:
+{!! $d->reviewUrl !!}
+
+@endif
 {{ __('mail.common.manage_booking') }}:
 {!! $d->manageUrl !!}
 @if ($d->full && $d->ticketUrl !== null)

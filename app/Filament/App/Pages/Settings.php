@@ -83,6 +83,7 @@ class Settings extends Page
             'home_page' => HomePage::class,
             'faq' => FaqResource::class,
             'search' => SearchSettings::class,
+            'reviews' => ReviewSettings::class,
             'domains' => Domains::class,
         ],
         'records' => [

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mail\Support;
 
+use App\Domain\Notifications\Support\ReviewRequestSettings;
 use App\Enums\GuestDetailsStatus;
 use App\Enums\NotificationTemplate;
 use App\Models\Booking;
@@ -81,6 +82,7 @@ final class BookingMailDetails
         public readonly ?string $ticketUrl,
         public readonly ?string $detailsUrl,
         public readonly ?string $detailsBy,
+        public readonly ?string $reviewUrl = null,
     ) {}
 
     /** @param array<string, mixed> $extra */
@@ -142,6 +144,11 @@ final class BookingMailDetails
                 : null,
             detailsBy: $booking->guest_details_status === GuestDetailsStatus::Pending && $booking->guest_details_deadline_at !== null
                 ? $booking->guest_details_deadline_at->copy()->locale($locale)->isoFormat('D/M')
+                : null,
+            // Only the review request links out, and only to the operator's own
+            // review page.
+            reviewUrl: $template === NotificationTemplate::ReviewRequest && $tenant instanceof Tenant
+                ? ReviewRequestSettings::for($tenant)->googleUrl
                 : null,
         );
     }

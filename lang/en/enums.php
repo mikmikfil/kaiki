@@ -703,6 +703,7 @@ return [
         'weather_choice_reminder' => ['label' => 'Weather cancellation, reminder'],
         'weather_choice_applied' => ['label' => 'Weather cancellation, settled'],
         'quote_sent' => ['label' => 'Quote sent'],
+        'review_request' => ['label' => 'Google review request'],
     ],
 
     'webhook_event' => [

@@ -169,15 +169,16 @@
                             </p>
                         @endif
 
-                        {{-- One main action, and it is always the guest's own page.
+                        {{-- One main action, and it is the guest's own page — except in the
+                             review request, where it is the operator's review link.
                              ADR-0004: a gateway URL emailed today is dead by the
                              time a guest opens it in three weeks. --}}
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px;">
                             <tr>
                                 <td style="background:{{ $accent }};">
-                                    <a href="{{ $d->manageUrl }}"
+                                    <a href="{{ $d->reviewUrl ?? $d->manageUrl }}"
                                        style="display:inline-block;padding:12px 20px;color:#ffffff;{{ $font }}text-decoration:none;font-weight:bold;font-size:15px;">
-                                        {{ __('mail.common.manage_booking') }}
+                                        {{ $d->reviewUrl !== null ? __('mail.common.leave_review') : __('mail.common.manage_booking') }}
                                     </a>
                                 </td>
                             </tr>

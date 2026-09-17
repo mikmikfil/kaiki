@@ -55,6 +55,7 @@ return [
         'cancellation' => 'Cancellation',
         'full_policy' => 'Full policy',
         'contact' => 'Contact',
+        'leave_review' => 'Write a Google review',
     ],
 
     'booking_confirmed' => [
@@ -174,6 +175,13 @@ return [
         'heading' => 'Your quote is ready',
         'body' => 'The operator has prepared a quote for you. It is on your quote page, along with what is included and how long it is valid for.',
         'sms' => 'Your quote is ready.',
+    ],
+
+    'review_request' => [
+        'subject' => 'How was your trip?',
+        'heading' => 'How was your trip?',
+        'body' => 'We hope you had a lovely day on :date. If you enjoyed it, a short Google review helps other travellers find us.',
+        'sms' => 'How was your trip?',
     ],
 
 ];

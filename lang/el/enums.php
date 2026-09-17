@@ -688,6 +688,7 @@ return [
         'weather_choice_reminder' => ['label' => 'Ακύρωση λόγω καιρού, υπενθύμιση'],
         'weather_choice_applied' => ['label' => 'Ακύρωση λόγω καιρού, τακτοποιήθηκε'],
         'quote_sent' => ['label' => 'Αποστολή προσφοράς'],
+        'review_request' => ['label' => 'Αίτημα αξιολόγησης στην Google'],
     ],
 
     'webhook_event' => [
