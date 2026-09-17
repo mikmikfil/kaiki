@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Guest;
 use App\Domain\Booking\Actions\MintCheckoutSession;
 use App\Domain\Booking\Actions\SaveGuestDetails;
 use App\Domain\Booking\Support\GuestTokenResolver;
+use App\Domain\Booking\Support\PassengerForm;
 use App\Domain\Booking\Support\PolicyExplanation;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Hosted\Support\HostedUrl;
@@ -19,6 +20,8 @@ use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator as ValidatorFactory;
+use Illuminate\Validation\Validator;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -57,11 +60,14 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * ## What it asks for
  *
- * The lead booker always. Per-passenger names and document numbers **only when
- * the trip requires them** (`products.guest_details_required`), which is the
- * flag the catalogue already carries for exactly this and which nothing read
- * until now. A three-hour sunset cruise stays four fields; the manifest is
- * asked for where the coastguard actually wants one.
+ * The lead booker always. The passengers **only when the trip requires them**
+ * (`products.guest_details_required`), which is the flag the catalogue already
+ * carries for exactly this. A three-hour sunset cruise stays four fields; the
+ * manifest is asked for where the coastguard actually wants one.
+ *
+ * What each passenger is asked for — name, nationality, date of birth, and a
+ * passport or identity card unless their band is «Χωρίς έγγραφο» — is
+ * {@see PassengerForm}'s (2026-09-17).
  */
 final class CheckoutController extends GuestPageController
 {
@@ -91,9 +97,14 @@ final class CheckoutController extends GuestPageController
 
         return $this->renderInTenant($tenant, 'guest.checkout', fn (): array => [
             'brand' => $this->brandFor($tenant, $locale),
-            'booking' => $booking->load(['product', 'departure', 'guests']),
+            'booking' => $booking->load(['product', 'departure']),
             'token' => $token,
             'needsGuestDetails' => (bool) $booking->product?->guest_details_required,
+            // One row per person, created if the booking has none yet, each
+            // knowing its band and whether that band carries a document.
+            'passengers' => $booking->product?->guest_details_required
+                ? PassengerForm::rows($booking, $locale)
+                : [],
 
             // **The operator's timezone, not the application's.** Everything is
             // stored UTC (CLAUDE.md), and `config('app.timezone')` is therefore
@@ -213,19 +224,25 @@ final class CheckoutController extends GuestPageController
             ];
 
             if ($needsGuests) {
-                $rules['guests'] = ['required', 'array', 'min:1'];
-                $rules['guests.*.full_name'] = ['required', 'string', 'max:120'];
                 // Required, not optional. `guest_details_required` is set on a
                 // trip precisely because the λιμεναρχείο asks for a passenger
-                // list, and a document number is the column on it that is not
-                // a name. It was `nullable`, so the one document the coastguard
-                // reads could be filed with the numbers missing and nobody
-                // found out until the quay.
-                $rules['guests.*.document_number'] = ['required', 'string', 'max:40'];
-                $rules['guests.*.date_of_birth'] = ['nullable', 'date', 'before:today'];
+                // list; what depends on the passenger's band and document is
+                // checked after the shape, in `PassengerForm::check()`.
+                $rules = [...$rules, ...PassengerForm::rules()];
             }
 
-            $data = $request->validate($rules);
+            $validator = ValidatorFactory::make(
+                $request->all(),
+                $rules,
+                [],
+                $needsGuests ? PassengerForm::attributes($request->all()) : [],
+            );
+
+            if ($needsGuests) {
+                $validator->after(static fn (Validator $v) => PassengerForm::check($v, $booking));
+            }
+
+            $data = $validator->validate();
 
             $booking->forceFill([
                 'guest_name' => $data['guest_name'],

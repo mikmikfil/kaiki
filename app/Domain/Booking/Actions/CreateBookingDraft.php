@@ -8,6 +8,7 @@ use App\Domain\Availability\Actions\HoldSeats;
 use App\Domain\Availability\Support\CountedSeats;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Booking\Support\LeadGuest;
+use App\Domain\Booking\Support\ManifestRows;
 use App\Domain\Pricing\Actions\ComputePrice;
 use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
@@ -163,6 +164,9 @@ final class CreateBookingDraft
 
             return $booking;
         });
+
+        // A row per person, so passenger details have somewhere to go.
+        ManifestRows::ensure($booking);
 
         // Outside the reference retry, because a hold that fails must not be
         // retried with a fresh reference — the seats are gone either way, and

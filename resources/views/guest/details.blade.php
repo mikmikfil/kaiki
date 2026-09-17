@@ -82,6 +82,7 @@
                         </div>
                     </div>
 
+                    @if (! $guest->isDocumentFree())
                     <div class="field-pair">
                         <div>
                             <label for="dtype-{{ $index }}">{{ __('guest.details.document_type') }}</label>
@@ -107,6 +108,7 @@
                     <label for="dexp-{{ $index }}">{{ __('guest.details.document_expires_on') }}</label>
                     <input id="dexp-{{ $index }}" type="date" name="guests[{{ $index }}][document_expires_on]"
                            value="{{ $guest->document_expires_on?->toDateString() }}" @disabled($readOnly)>
+                    @endif
                 @endif
             </div>
         @endforeach

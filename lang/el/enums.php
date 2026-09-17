@@ -380,7 +380,6 @@ return [
     'guest_document_type' => [
         'passport' => ['label' => 'Διαβατήριο'],
         'id_card' => ['label' => 'Ταυτότητα'],
-        'other' => ['label' => 'Άλλο έγγραφο'],
     ],
 
     /*

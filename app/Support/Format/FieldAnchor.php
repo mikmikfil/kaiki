@@ -24,8 +24,11 @@ final class FieldAnchor
     /** `guests.{n}.{field}` — the per-passenger rows, which are the only indexed ones. */
     private const GUEST_FIELDS = [
         'full_name' => 'name',
-        'document_number' => 'doc',
+        'nationality' => 'nat',
         'date_of_birth' => 'dob',
+        'document_type' => 'dtype',
+        'document_number' => 'doc',
+        'document_expires_on' => 'dexp',
     ];
 
     public static function for(string $key): string

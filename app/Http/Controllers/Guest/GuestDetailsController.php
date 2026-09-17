@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Guest;
 
 use App\Domain\Booking\Actions\SaveGuestDetails;
 use App\Domain\Booking\Support\GuestTokenResolver;
+use App\Domain\Booking\Support\ManifestRows;
 use App\Enums\BookingMode;
 use App\Models\Booking;
 use App\Models\BookingGuest;
@@ -59,6 +60,10 @@ final class GuestDetailsController extends GuestPageController
 
         $locale = $this->resolveLocale($request, $booking->locale);
 
+        // A booking made before every booking got its rows gets them now,
+        // or this page would list nobody to fill in.
+        Tenancy::forTenant($tenant, static fn () => ManifestRows::ensure($booking));
+
         return $this->renderInTenant($tenant, 'guest.details', fn (): array => [
             'brand' => $this->brandFor($tenant, $locale),
             'booking' => $booking,
@@ -67,6 +72,7 @@ final class GuestDetailsController extends GuestPageController
             // and a re-ordered list would put a passport against the wrong
             // person.
             'guests' => BookingGuest::query()
+                ->with('ageBand')
                 ->where('booking_id', $booking->getKey())
                 ->orderBy('position')
                 ->get(),

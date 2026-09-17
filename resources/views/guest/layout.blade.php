@@ -276,7 +276,9 @@
         }
 
         .passenger-body { padding: 0 .9rem 1rem; }
-        .passenger-body label:first-child { margin-top: 0; }
+        .passenger-body label:first-of-type { margin-top: 0; }
+        /* A passport has an expiry date; an identity card does not (2026-09-17). */
+        .passenger-body:has(select option[value="id_card"]:checked) .passport-expiry { display: none; }
 
         /* The pay button sits in the summary column and submits the form in the
            other one, so it needs its own top margin rather than the form's. */

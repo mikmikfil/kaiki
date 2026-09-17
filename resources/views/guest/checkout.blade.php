@@ -325,69 +325,88 @@
 
                  A row whose fields failed validation is forced open, or the
                  error is announced on a panel nobody can see. --}}
-            {{-- One row per **person**, from `pax_breakdown` — which is where the
-                 party is written down, band by band, with the label frozen at
-                 booking (§3.1).
+            {{-- One row per **person**, from `PassengerForm::rows()` — the
+                 booking's own `booking_guests` rows, created from
+                 `pax_breakdown` band by band, so the row says «Επιβάτης 2 ·
+                 Παιδί» and a parent filling in three of these knows which child
+                 they are on. Every person, infants included: the manifest counts
+                 people on the boat, not seats.
 
-                 Two things fall out of reading it rather than counting seats.
-                 The row says «Επιβάτης 2 · Παιδί», so a parent filling in three
-                 of these knows which child they are on. And the list is as long
-                 as the **party**, not as long as the seats: it iterated
-                 `pax_capacity_total` before, and an infant does not occupy a
-                 seat — so a family of two adults and a baby filed a manifest
-                 with the baby missing from it, which is the one document the
-                 coastguard reads. `pax_total` counts every person, and BKG-A1
-                 says that is what the manifest is for. --}}
-            @php
-                $people = collect((array) $booking->pax_breakdown)
-                    ->flatMap(static fn (array $band): array => array_fill(
-                        0,
-                        max(0, (int) ($band['qty'] ?? 0)),
-                        (string) (data_get($band, 'label.' . app()->getLocale()) ?? data_get($band, 'label.el') ?? ''),
-                    ))
-                    ->values();
+                 Each row posts its `position`, which is the key the manifest is
+                 written by. It posted none before, and every passenger typed
+                 here was dropped on the floor.
 
-                // A booking made before the breakdown existed, or one whose
-                // bands were written oddly: fall back to counting people rather
-                // than rendering no form at all.
-                if ($people->isEmpty()) {
-                    $people = collect(array_fill(0, max(1, (int) $booking->pax_total), ''));
-                }
-            @endphp
-
-            @foreach ($people as $i => $bandLabel)
-                @php $hasError = $errors->has("guests.$i.full_name") || $errors->has("guests.$i.document_number"); @endphp
+                 Passport or identity card, and nothing else (2026-09-17). The
+                 expiry date belongs to a passport only; it hides itself when
+                 «Ταυτότητα» is chosen, with CSS `:has()` and no script, and a
+                 browser without `:has()` simply shows it. A «Χωρίς έγγραφο»
+                 band gets no document fields at all. --}}
+            @foreach ($passengers as $i => $row)
+                @php
+                    $guest = $row['guest'];
+                    $hasError = collect(['full_name', 'nationality', 'date_of_birth', 'document_type', 'document_number', 'document_expires_on'])
+                        ->contains(static fn (string $field): bool => $errors->has("guests.$i.$field"));
+                    $typed = old("guests.$i.full_name", $guest->full_name);
+                @endphp
 
                 <details class="passenger" @if ($i === 0 || $hasError) open @endif>
                     <summary>
                         {{ __('guest.checkout.passenger_n', ['n' => $i + 1]) }}
-                        @if ($bandLabel !== '')
-                            <span class="passenger-band">{{ $bandLabel }}</span>
+                        @if ($row['label'] !== '')
+                            <span class="passenger-band">{{ $row['label'] }}</span>
                         @endif
-                        @if (old("guests.$i.full_name"))
-                            <span class="passenger-name">{{ old("guests.$i.full_name") }}</span>
+                        @if ($typed)
+                            <span class="passenger-name">{{ $typed }}</span>
                         @endif
                     </summary>
 
                     <div class="passenger-body">
+                        <input type="hidden" name="guests[{{ $i }}][position]" value="{{ $row['position'] }}">
+
                         <label for="g{{ $i }}_name">{{ __('guest.checkout.full_name') }}</label>
                         <input id="g{{ $i }}_name" name="guests[{{ $i }}][full_name]" type="text" required
-                               value="{{ old("guests.$i.full_name") }}">
+                               value="{{ old("guests.$i.full_name", $guest->full_name) }}">
                         @error("guests.$i.full_name") <p class="field-error">{{ $message }}</p> @enderror
 
-                        {{-- Required, like the name beside it. The manifest is
-                             the reason this whole section exists, and a
-                             document number is the half of it that is not a
-                             name — optional here meant a list could be filed
-                             with the numbers missing. --}}
-                        <label for="g{{ $i }}_doc">{{ __('guest.checkout.document') }}</label>
-                        <input id="g{{ $i }}_doc" name="guests[{{ $i }}][document_number]" type="text" required
-                               value="{{ old("guests.$i.document_number") }}">
-                        @error("guests.$i.document_number") <p class="field-error">{{ $message }}</p> @enderror
+                        <label for="g{{ $i }}_nat">{{ __('guest.checkout.nationality') }}</label>
+                        <input id="g{{ $i }}_nat" name="guests[{{ $i }}][nationality]" type="text" required
+                               autocomplete="country-name" value="{{ old("guests.$i.nationality", $guest->nationality) }}">
+                        @error("guests.$i.nationality") <p class="field-error">{{ $message }}</p> @enderror
 
                         <label for="g{{ $i }}_dob">{{ __('guest.checkout.date_of_birth') }}</label>
-                        <input id="g{{ $i }}_dob" name="guests[{{ $i }}][date_of_birth]" type="date"
-                               value="{{ old("guests.$i.date_of_birth") }}">
+                        <input id="g{{ $i }}_dob" name="guests[{{ $i }}][date_of_birth]" type="date" required
+                               value="{{ old("guests.$i.date_of_birth", $guest->date_of_birth?->toDateString()) }}">
+                        @error("guests.$i.date_of_birth") <p class="field-error">{{ $message }}</p> @enderror
+
+                        @if ($row['no_document'])
+                            <p class="muted">{{ __('guest.checkout.no_document') }}</p>
+                        @else
+                            @php $chosen = old("guests.$i.document_type", $guest->document_type?->value); @endphp
+
+                            <label for="g{{ $i }}_dtype">{{ __('guest.checkout.document_type') }}</label>
+                            <select id="g{{ $i }}_dtype" name="guests[{{ $i }}][document_type]" required>
+                                <option value=""></option>
+                                @foreach (\App\Enums\GuestDocumentType::cases() as $type)
+                                    <option value="{{ $type->value }}" @selected($chosen === $type->value)>{{ $type->label() }}</option>
+                                @endforeach
+                            </select>
+                            @error("guests.$i.document_type") <p class="field-error">{{ $message }}</p> @enderror
+
+                            {{-- `autocomplete="off"`: a browser that remembered a
+                                 passport number would keep it long after the
+                                 retention window the page promises. --}}
+                            <label for="g{{ $i }}_doc">{{ __('guest.checkout.document') }}</label>
+                            <input id="g{{ $i }}_doc" name="guests[{{ $i }}][document_number]" type="text" required
+                                   autocomplete="off" value="{{ old("guests.$i.document_number") }}">
+                            @error("guests.$i.document_number") <p class="field-error">{{ $message }}</p> @enderror
+
+                            <div class="passport-expiry">
+                                <label for="g{{ $i }}_dexp">{{ __('guest.checkout.document_expires_on') }}</label>
+                                <input id="g{{ $i }}_dexp" name="guests[{{ $i }}][document_expires_on]" type="date"
+                                       value="{{ old("guests.$i.document_expires_on", $guest->document_expires_on?->toDateString()) }}">
+                                @error("guests.$i.document_expires_on") <p class="field-error">{{ $message }}</p> @enderror
+                            </div>
+                        @endif
                     </div>
                 </details>
             @endforeach

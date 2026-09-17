@@ -391,7 +391,6 @@ return [
     'guest_document_type' => [
         'passport' => ['label' => 'Passport'],
         'id_card' => ['label' => 'ID card'],
-        'other' => ['label' => 'Other document'],
     ],
 
     /*

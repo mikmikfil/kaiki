@@ -411,6 +411,13 @@ class ProductResource extends Resource
 
                             Toggle::make('requires_adult')
                                 ->label(__('catalog.product.form.bands.requires_adult.label')),
+
+                            // «Χωρίς έγγραφο» (2026-09-17): checkout asks these
+                            // passengers for a name, nationality and date of
+                            // birth, and no document.
+                            Toggle::make('no_document')
+                                ->label(__('catalog.product.form.bands.no_document.label'))
+                                ->helperText(__('catalog.product.form.bands.no_document.help')),
                         ])
                         ->itemLabel(fn (array $state): ?string => is_string($state['code'] ?? null) ? $state['code'] : null)
                         ->defaultItems(1)

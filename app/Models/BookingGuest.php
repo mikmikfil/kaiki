@@ -99,6 +99,17 @@ class BookingGuest extends Model
     }
 
     /**
+     * Is this passenger in a «Χωρίς έγγραφο» band (2026-09-17)?
+     *
+     * A row with no band, or whose band has since been removed, is asked for a
+     * document: when in doubt the manifest keeps the column the coastguard reads.
+     */
+    public function isDocumentFree(): bool
+    {
+        return $this->ageBand?->isDocumentFree() ?? false;
+    }
+
+    /**
      * Has this guest supplied what the operator asked for?
      *
      * `$requiresDocuments` is the operator's setting rather than a property of

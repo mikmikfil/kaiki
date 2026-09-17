@@ -86,6 +86,10 @@ final class SaveAgeBands
                     'price_multiplier_bp' => $this->multiplierFor($band),
                     'is_base' => (bool) ($band['is_base'] ?? false),
                     'requires_adult' => (bool) ($band['requires_adult'] ?? false),
+                    // Absent means "decide from the ages" (AgeBand::isDocumentFree).
+                    'no_document' => array_key_exists('no_document', $band) && $band['no_document'] !== null
+                        ? (bool) $band['no_document']
+                        : null,
                     'sort_order' => (int) ($band['sort_order'] ?? $index),
                 ];
 

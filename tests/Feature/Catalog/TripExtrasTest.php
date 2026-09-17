@@ -41,7 +41,7 @@ it('lists a free extra with what the trip includes and never prices it', functio
 
         expect($lines)->toBe([])
             ->and($page['includedExtras'])->toBe(['Μάσκες'])
-            ->and(collect($api['extras'])->pluck('uuid')->all())->not->toContain($masks->uuid);
+            ->and(array_column((array) $api['extras'], 'uuid'))->not->toContain($masks->uuid);
     });
 })->group('fast');
 

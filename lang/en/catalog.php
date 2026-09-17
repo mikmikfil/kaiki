@@ -373,6 +373,7 @@ return [
                 'price_multiplier_bp' => ['label' => 'Share of the base', 'help' => '10000 = 100%, 5000 = 50%.'],
                 'is_base' => ['label' => 'Base band'],
                 'requires_adult' => ['label' => 'Needs an adult'],
+                'no_document' => ['label' => 'No document', 'help' => 'Checkout asks these passengers for no document number, e.g. infants.'],
             ],
         ],
 

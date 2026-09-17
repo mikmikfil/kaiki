@@ -185,6 +185,7 @@ trait ConsumesAgeBands
                 'price_multiplier_bp' => $band->price_multiplier_bp,
                 'is_base' => $band->is_base,
                 'requires_adult' => $band->requires_adult,
+                'no_document' => $band->isDocumentFree(),
             ])
             ->values()
             ->all();
