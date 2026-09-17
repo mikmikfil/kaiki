@@ -95,6 +95,7 @@ return [
         'per_booking' => ['label' => 'Ανά κράτηση'],
         'per_person' => ['label' => 'Ανά άτομο'],
         'on_request' => ['label' => 'Κατόπιν αιτήματος'],
+        'free' => ['label' => 'Δωρεάν'],
     ],
 
     'age_band_pricing' => [

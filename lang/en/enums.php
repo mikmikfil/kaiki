@@ -106,6 +106,7 @@ return [
         'per_booking' => ['label' => 'Per booking'],
         'per_person' => ['label' => 'Per person'],
         'on_request' => ['label' => 'On request'],
+        'free' => ['label' => 'Free'],
     ],
 
     'age_band_pricing' => [

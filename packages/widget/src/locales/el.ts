@@ -57,6 +57,7 @@ export const el: Record<MessageKey, string> = {
   'booking.party.seats_left_many': 'Μένουν :count θέσεις.',
   'booking.party.seats_full': 'Πήρατε όλες τις θέσεις που μένουν.',
   'booking.extras.heading': 'Θέλετε κάτι ακόμη;',
+  'booking.extras.required': 'περιλαμβάνεται υποχρεωτικά',
   // Οι τρεις ετικέτες στοιχείων που χρησιμοποιεί το μπλοκ *αιτήματος*
   // (BKG-24). Η διαδρομή κράτησης σταμάτησε να τις ζητά όταν τις ανέλαβε η
   // σελίδα checkout (ADR-0030)· ένα αίτημα προσφοράς δεν έχει checkout να

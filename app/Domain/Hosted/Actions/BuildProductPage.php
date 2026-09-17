@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Domain\Hosted\Actions;
 
+use App\Domain\Catalog\Data\OfferedExtra;
+use App\Domain\Catalog\Support\OfferedExtrasResolver;
 use App\Enums\BookingMode;
 use App\Models\Departure;
+use App\Models\Extra;
 use App\Models\Faq;
 use App\Models\Product;
 use App\Models\RatePlan;
@@ -61,6 +64,7 @@ class BuildProductPage
      *     fromPriceCents: int|null,
      *     fromPriceFormatted: string|null,
      *     extraPersonNote: string|null,
+     *     includedExtras: list<string>,
      * }
      */
     public function __invoke(Product $product, ?string $locale = null): array
@@ -79,7 +83,36 @@ class BuildProductPage
                 ? MoneyFormatter::format($fromPrice, $locale, MoneyFormatter::currency())
                 : null,
             'extraPersonNote' => $this->extraPersonNote($product, $locale),
+            'includedExtras' => $this->includedExtras($product, $locale),
         ];
+    }
+
+    /**
+     * The trip's free extras, by name, for the «Περιλαμβάνονται» list
+     * (2026-09-17). An amenity the operator added as «Δωρεάν» is something the
+     * trip includes, so it is said there rather than offered for sale.
+     *
+     * @return list<string>
+     */
+    private function includedExtras(Product $product, string $locale): array
+    {
+        $ids = OfferedExtrasResolver::forProduct($product)
+            ->filter(static fn (OfferedExtra $extra): bool => ! $extra->pricingType->isBookable())
+            ->pluck('extraId')
+            ->all();
+
+        if ($ids === []) {
+            return [];
+        }
+
+        return Extra::query()
+            ->whereIn('id', $ids)
+            ->orderBy('sort_order')
+            ->get()
+            ->map(static fn (Extra $extra): string => trim((string) $extra->getTranslation('name', $locale)))
+            ->filter(static fn (string $name): bool => $name !== '')
+            ->values()
+            ->all();
     }
 
     /**

@@ -11,6 +11,7 @@ use App\Enums\BookingMode;
 use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource\Pages;
+use App\Filament\App\Resources\ProductResource\RelationManagers\ExtrasRelationManager;
 use App\Filament\App\Resources\ProductResource\RelationManagers\RatePlansRelationManager;
 use App\Filament\App\Resources\ProductResource\RelationManagers\ScheduleRulesRelationManager;
 use App\Filament\Forms\TranslatableInput;
@@ -963,6 +964,8 @@ class ProductResource extends Resource
     {
         return [
             RatePlansRelationManager::class,
+            // «Πρόσθετα», free or paid (2026-09-17).
+            ExtrasRelationManager::class,
         ];
     }
 

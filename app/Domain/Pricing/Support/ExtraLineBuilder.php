@@ -44,7 +44,15 @@ final class ExtraLineBuilder
         $lines = [];
 
         foreach ($offered as $extra) {
-            $quantity = max(0, $quantities[$extra->extraId] ?? 0);
+            // An amenity is included, not bought: no line, whatever was sent.
+            if (! $extra->pricingType->isBookable()) {
+                continue;
+            }
+
+            // A required extra is on every booking, at least once, whether or
+            // not the client asked (2026-09-17). The widget shows it fixed; a
+            // hand-made request that leaves it out still gets it.
+            $quantity = max($extra->isRequired ? 1 : 0, $quantities[$extra->extraId] ?? 0);
 
             if ($quantity === 0) {
                 continue;

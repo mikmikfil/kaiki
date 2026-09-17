@@ -56,6 +56,7 @@ export const en = {
   'booking.party.seats_left_many': ':count seats left.',
   'booking.party.seats_full': 'That is every seat left.',
   'booking.extras.heading': 'Anything else?',
+  'booking.extras.required': 'always included',
   // The three contact labels the *enquiry* mount uses (BKG-24). The booking
   // walk stopped asking for these when the checkout page took them over
   // (ADR-0030); a quote request has no checkout page to hand off to, so it

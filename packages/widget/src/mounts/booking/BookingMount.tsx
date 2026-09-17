@@ -93,7 +93,12 @@ export interface ProductSummary {
     /** `false` for a band that rides without a seat — an infant on a lap. */
     readonly counts_toward_capacity?: boolean;
   }[];
-  readonly extras?: readonly { readonly uuid: string; readonly name: string; readonly price_formatted?: string }[];
+  readonly extras?: readonly {
+    readonly uuid: string;
+    readonly name: string;
+    readonly price_formatted?: string;
+    readonly is_required?: boolean;
+  }[];
 }
 
 type Phase = 'walking' | 'submitting' | 'redirecting' | 'confirmed' | 'pending' | 'sold_out' | 'expired' | 'failed';
