@@ -145,7 +145,9 @@ it('saves every trip-page field, both languages, blank lines dropped', function 
             ->and($product->getTranslation('includes', 'en'))->toBe(['Coffee and water'])
             ->and($product->getTranslations('excludes'))->toBe(['el' => ['Μεταφορά'], 'en' => []])
             ->and($product->what_to_bring)->toBeNull()
-            ->and($product->itineraryStopsFor('el'))->toBe([
+            // `toEqual`, not `toBe`: a MySQL JSON column hands keys back in its
+            // own order (shortest first), and the order of a stop's keys means nothing.
+            ->and($product->itineraryStopsFor('el'))->toEqual([
                 ['key' => 's1', 'name' => 'Επιβίβαση', 'description' => null, 'duration_minutes' => null, 'time' => '09:00'],
                 ['key' => 's2', 'name' => 'Μπάνιο', 'description' => 'Όπου θέλετε', 'duration_minutes' => null],
             ])

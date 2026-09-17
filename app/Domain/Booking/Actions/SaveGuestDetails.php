@@ -11,6 +11,7 @@ use App\Events\GuestDetailsCompleted;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Models\Product;
+use App\Support\Countries;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -110,7 +111,9 @@ final class SaveGuestDetails
         return [
             'full_name' => self::nullIfBlank($row['full_name'] ?? null),
             'date_of_birth' => self::dateOrNull($row['date_of_birth'] ?? null),
-            'nationality' => self::nullIfBlank($row['nationality'] ?? null),
+            // A two-letter country code or nothing: `/g/` posts without the
+            // checkout's validation, and anything longer is refused by MySQL.
+            'nationality' => Countries::normalise($row['nationality'] ?? null),
             'document_type' => $type,
             'document_number' => self::nullIfBlank($row['document_number'] ?? null),
             // Only a passport keeps an expiry (2026-09-17). An identity card is

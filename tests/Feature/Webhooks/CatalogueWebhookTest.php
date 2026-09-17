@@ -12,6 +12,8 @@ use App\Models\Tenant;
 use App\Models\WebhookDelivery;
 use App\Models\WebhookEndpoint;
 use App\Support\Tenancy;
+use Illuminate\Bus\UniqueLock;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -39,10 +41,30 @@ function catalogueEndpoint(Tenant $tenant): WebhookEndpoint
     return Tenancy::forTenant($tenant, fn (): WebhookEndpoint => WebhookEndpoint::factory()->create());
 }
 
-/** @param  array<string, mixed>  $attributes */
+/**
+ * A trip, with the creation's uniqueness lock let go again.
+ *
+ * Creating a trip queues its own `PublishProductChange`, which takes the job's
+ * unique lock. On the sync queue the job runs at once and releases it; on
+ * Redis (the MySQL CI job) it sits in the queue and the lock stays for two
+ * minutes, so the save each test is really about would be silenced by the
+ * setup. Releasing it here makes the tests about the change, on either queue.
+ *
+ * @param  array<string, mixed>  $attributes
+ */
 function catalogueProduct(Tenant $tenant, array $attributes = []): Product
 {
-    return Tenancy::forTenant($tenant, fn (): Product => Product::factory()->create($attributes));
+    $product = Tenancy::forTenant($tenant, fn (): Product => Product::factory()->create($attributes));
+
+    (new UniqueLock(Cache::store()))->release(new PublishProductChange(
+        (int) $product->getKey(),
+        (int) $product->tenant_id,
+        (string) $product->uuid,
+        (string) $product->slug,
+        false,
+    ));
+
+    return $product;
 }
 
 /** @return list<WebhookDelivery> */
@@ -243,6 +265,8 @@ it('sends catalogue events only to endpoints that ticked them', function (): voi
 });
 
 it('posts a signed product.updated when a published trip is edited, end to end', function (): void {
+    // End to end means the jobs run inline, whichever queue the job is on.
+    config(['queue.default' => 'sync']);
     Http::fake(['*' => Http::response('ok', 200)]);
 
     $tenant = catalogueTenant();

@@ -91,7 +91,8 @@ it('takes one person off at their own price, gives the seat back and refunds the
             ->and($fresh->pax_capacity_total)->toBe(3)
             ->and($fresh->pax_breakdown[0]['qty'])->toBe(2)
             ->and(Departure::query()->findOrFail($booking->departure_id)->seats_sold)->toBe(3)
-            ->and(Payment::query()->where('booking_id', $booking->getKey())->where('kind', PaymentKind::Refund->value)->sum('amount_cents'))->toBe(5000)
+            // `sum()` is a string on MySQL and a number on SQLite.
+            ->and((int) Payment::query()->where('booking_id', $booking->getKey())->where('kind', PaymentKind::Refund->value)->sum('amount_cents'))->toBe(5000)
             ->and($fresh->paid_cents)->toBe(13000)
             ->and($fresh->status)->toBe(BookingStatus::Confirmed);
     });

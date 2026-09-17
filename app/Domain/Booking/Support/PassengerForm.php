@@ -8,6 +8,7 @@ use App\Enums\GuestDocumentType;
 use App\Models\AgeBand;
 use App\Models\Booking;
 use App\Models\BookingGuest;
+use App\Support\Countries;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -85,7 +86,9 @@ final class PassengerForm
             'guests' => ['required', 'array', 'min:1'],
             'guests.*.position' => ['required', 'integer', 'min:1'],
             'guests.*.full_name' => ['required', 'string', 'max:120'],
-            'guests.*.nationality' => ['required', 'string', 'max:60'],
+            // A country code from the list, never free text: the column is
+            // `char(2)` and MySQL refuses anything longer (see `Countries`).
+            'guests.*.nationality' => ['required', 'string', Rule::in(Countries::codes())],
             'guests.*.date_of_birth' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'guests.*.document_type' => ['nullable', Rule::enum(GuestDocumentType::class)],
             'guests.*.document_number' => ['nullable', 'string', 'max:40'],

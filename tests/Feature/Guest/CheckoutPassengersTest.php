@@ -12,6 +12,7 @@ use App\Models\AgeBand;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Models\Tenant;
+use App\Support\Countries;
 use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
 
@@ -90,7 +91,7 @@ function passengerPost(array $adult = [], array $infant = []): array
             [
                 'position' => 1,
                 'full_name' => 'Μαρία Παπαδοπούλου',
-                'nationality' => 'Ελληνική',
+                'nationality' => 'GR',
                 'date_of_birth' => '1990-05-01',
                 'document_type' => 'passport',
                 'document_number' => 'AB1234567',
@@ -100,7 +101,7 @@ function passengerPost(array $adult = [], array $infant = []): array
             [
                 'position' => 2,
                 'full_name' => 'Νίκος Παπαδόπουλος',
-                'nationality' => 'Ελληνική',
+                'nationality' => 'GR',
                 'date_of_birth' => '2025-03-01',
                 ...$infant,
             ],
@@ -165,7 +166,7 @@ it('writes the passengers onto the manifest before sending the guest to pay', fu
     Tenancy::forTenant($tenant, static function () use ($booking): void {
         $rows = BookingGuest::query()->where('booking_id', $booking->getKey())->orderBy('position')->get();
 
-        expect($rows[0]->nationality)->toBe('Ελληνική')
+        expect($rows[0]->nationality)->toBe('GR')
             ->and($rows[0]->document_type)->toBe(GuestDocumentType::Passport)
             ->and($rows[0]->document_number)->toBe('AB1234567')
             ->and($rows[0]->document_expires_on?->toDateString())->toBe('2030-01-01')
@@ -207,6 +208,19 @@ it('refuses a missing document, an old document type and a date of birth outside
 
     post('/c/' . $booking->manage_token, passengerPost(adult: ['nationality' => '']))
         ->assertSessionHasErrors('guests.0.nationality');
+
+    // A country typed out, not chosen: the column holds a two-letter code, and
+    // MySQL refused the longer value with a 500 before this was a list.
+    post('/c/' . $booking->manage_token, passengerPost(adult: ['nationality' => 'Ελληνική']))
+        ->assertSessionHasErrors('guests.0.nationality');
+})->group('fast');
+
+it('offers nationality as a list of countries named in the guest\'s language', function (): void {
+    expect(Countries::options('el')['GR'])->toBe('Ελλάδα')
+        ->and(Countries::options('en')['DE'])->toBe('Germany')
+        ->and(Countries::codes())->not->toContain('EU')
+        ->and(Countries::normalise(' gr '))->toBe('GR')
+        ->and(Countries::normalise('Greek'))->toBeNull();
 })->group('fast');
 
 it('keeps the operator\'s «Χωρίς έγγραφο» when the bands are saved', function (): void {
@@ -231,7 +245,7 @@ it('keeps the operator\'s «Χωρίς έγγραφο» when the bands are saved
             'position' => 9,
             'age_band_id' => $bands['child']->getKey(),
             'full_name' => 'Ελένη',
-            'nationality' => 'Ελληνική',
+            'nationality' => 'GR',
             'date_of_birth' => '2020-01-01',
             'document_type' => null,
             'document_number' => null,

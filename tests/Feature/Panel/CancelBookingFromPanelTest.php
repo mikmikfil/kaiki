@@ -113,7 +113,8 @@ it('issues a voucher instead of money when asked', function (): void {
         ->callAction('cancel_booking', data: ['who' => 'guest', 'refund' => 'voucher', 'percent' => 100, 'reason' => 'Next summer'])
         ->assertHasNoActionErrors();
 
-    expect(Voucher::query()->sum('amount_cents'))->toBe(10000);
+    // `sum()` is a string on MySQL and a number on SQLite.
+    expect((int) Voucher::query()->sum('amount_cents'))->toBe(10000);
 })->group('fast');
 
 it('shows the button to a manager, and crew cannot open the booking at all', function (): void {

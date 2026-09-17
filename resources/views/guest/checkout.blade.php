@@ -413,8 +413,13 @@
 
                         @if ($needsGuestDetails)
                         <label for="g{{ $i }}_nat">{{ __('guest.checkout.nationality') }}</label>
-                        <input id="g{{ $i }}_nat" name="guests[{{ $i }}][nationality]" type="text" required
-                               autocomplete="country-name" value="{{ old("guests.$i.nationality", $guest->nationality) }}">
+                        @php $chosenNationality = old("guests.$i.nationality", $guest->nationality); @endphp
+                        <select id="g{{ $i }}_nat" name="guests[{{ $i }}][nationality]" required autocomplete="country">
+                            <option value=""></option>
+                            @foreach (\App\Support\Countries::options(app()->getLocale()) as $code => $country)
+                                <option value="{{ $code }}" @selected($chosenNationality === $code)>{{ $country }}</option>
+                            @endforeach
+                        </select>
                         @error("guests.$i.nationality") <p class="field-error">{{ $message }}</p> @enderror
 
                         <label for="g{{ $i }}_dob">{{ __('guest.checkout.date_of_birth') }}</label>
