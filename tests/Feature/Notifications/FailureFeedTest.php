@@ -139,3 +139,21 @@ it('shows an operator only their own messages', function (): void {
             ->not->toContain($theirs->getKey());
     });
 })->group('fast');
+
+it('previews a sent email as the guest would receive it, and offers nothing for a text message', function (): void {
+    // Product owner, 2026-09-17. Rebuilt from the booking, rendered for real:
+    // a template that no longer renders would fail here, not in front of him.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    Tenancy::forTenant(Tenant::query()->findOrFail($owner->tenant_id), function (): void {
+        $email = NotificationLog::factory()->create();
+        $text = NotificationLog::factory()->sms()->create();
+
+        $action = NotificationLogResource::previewAction()->record($email);
+
+        expect($action->isVisible())->toBeTrue()
+            ->and(NotificationLogResource::previewAction()->record($text)->isVisible())->toBeFalse()
+            ->and($action->getModalContent()?->render())->toContain('srcdoc=')
+            ->and($action->getModalContent()?->render())->toContain(e($email->booking->reference));
+    });
+})->group('fast');

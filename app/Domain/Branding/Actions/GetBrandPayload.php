@@ -55,11 +55,22 @@ final class GetBrandPayload
         return $payload;
     }
 
-    /** Drop a tenant's cached payload — used by the panel on save (BRD-8). */
+    /** Drop a tenant's cached payload (BRD-8). */
     public static function forget(Tenant $tenant): void
     {
+        self::forgetTenantId((int) $tenant->getKey());
+    }
+
+    /**
+     * Called by every brand write, so a saved colour shows on the next page
+     * load. It was documented as called on save and was not: an operator who
+     * changed a colour saw the old one on their page for up to the cache
+     * window and reasonably concluded the change had not worked (2026-09-17).
+     */
+    public static function forgetTenantId(int $tenantId): void
+    {
         foreach (['el', 'en'] as $locale) {
-            Cache::forget(self::cacheKey($tenant, $locale));
+            Cache::forget("branding:{$tenantId}:{$locale}");
         }
     }
 
