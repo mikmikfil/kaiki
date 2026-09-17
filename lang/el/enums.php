@@ -228,6 +228,7 @@ return [
         'record.deleted' => ['label' => 'Διαγραφή εγγραφής'],
         'override.applied' => ['label' => 'Εφαρμογή παράκαμψης'],
         'payment.recorded' => ['label' => 'Καταχώριση πληρωμής με το χέρι'],
+        'booking.cancelled' => ['label' => 'Ακύρωση κράτησης από τον διοργανωτή'],
         'manifest.generated' => ['label' => 'Έκδοση κατάστασης επιβατών με αριθμούς εγγράφων'],
     ],
 

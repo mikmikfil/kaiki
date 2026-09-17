@@ -239,6 +239,7 @@ return [
         'record.deleted' => ['label' => 'Record deleted'],
         'override.applied' => ['label' => 'Override applied'],
         'payment.recorded' => ['label' => 'Payment recorded by hand'],
+        'booking.cancelled' => ['label' => 'Booking cancelled by the operator'],
         'manifest.generated' => ['label' => 'Passenger list with document numbers generated'],
     ],
 
