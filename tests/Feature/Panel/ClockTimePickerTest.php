@@ -9,6 +9,7 @@ use App\Filament\App\Resources\ScheduleRuleResource\Pages\CreateScheduleRule;
 use App\Filament\App\Resources\VesselBlockResource\Pages\CreateVesselBlock;
 use App\Models\Tenant;
 use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Form;
 use Livewire\Livewire;
 use Tests\Support\OperatorUser;
 
@@ -30,6 +31,10 @@ it('never converts a time-only picker to or from the tenant timezone', function 
     tenancy()->initialize(Tenant::query()->findOrFail($owner->tenant_id));
 
     $form = Livewire::actingAs($owner)->test($page)->instance()->form;
+
+    if (! $form instanceof Form) {
+        throw new RuntimeException("{$page} has no form to inspect.");
+    }
 
     $pickers = collect($form->getFlatComponents(withHidden: true))
         ->filter(static fn (mixed $component): bool => $component instanceof TimePicker);

@@ -85,7 +85,7 @@ it('greets the operator with a sun or a moon', function (): void {
 
 it('greets by the salutation when there is one, and by the name as written when not', function (): void {
     $owner = homeOwner();
-    $this->actingAs($owner);
+    actingAs($owner);
 
     $owner->forceFill(['name' => 'Μαρία Παπαδοπούλου', 'salutation' => null])->save();
     expect(Dashboard::nameToGreet())->toBe('Μαρία Παπαδοπούλου');

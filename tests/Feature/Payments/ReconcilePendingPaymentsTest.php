@@ -30,7 +30,12 @@ use Tests\Support\Payments\WebhookScenario;
 | confirms without checking the amount trusts a number nobody compared.
 */
 
-/** Viva's answer for an order, in their own shape. */
+/**
+ * Viva's answer for an order, in their own shape.
+ *
+ * @param  array<string, mixed>  ...$transactions
+ * @return array{Transactions: list<array<string, mixed>>}
+ */
 function vivaTransactions(array ...$transactions): array
 {
     return ['Transactions' => $transactions];
@@ -138,7 +143,7 @@ it('refuses to confirm an amount that is not the one owed', function (): void {
         pendingVivaPayment(12000)->save();
     });
 
-    Log::spy();
+    $log = Log::spy();
 
     // Paid, settled — and for ninety euros against a hundred and twenty. A
     // person decides what that is; this must not quietly confirm it.
@@ -152,7 +157,7 @@ it('refuses to confirm an amount that is not the one owed', function (): void {
         expect(Payment::query()->latest('id')->first()?->status)->toBe(PaymentStatus::Pending);
     });
 
-    Log::shouldHaveReceived('error')->withArgs(
+    $log->shouldHaveReceived('error')->withArgs(
         fn (string $message): bool => $message === 'payments.reconcile_amount_mismatch',
     );
 })->group('fast');

@@ -202,7 +202,7 @@ it('dispatches no notification, invoice or webhook for an imported booking', fun
 
     Event::fake([BookingConfirmed::class]);
     Mail::fake();
-    Queue::fake();
+    $queue = Queue::fake();
 
     commitImport($tenant, $job);
 
@@ -214,7 +214,7 @@ it('dispatches no notification, invoice or webhook for an imported booking', fun
     // Nothing but the catalogue event for the trips the import created — a
     // website mirroring the catalogue should hear about those. BKG-34 is about
     // the bookings, and no booking job is queued.
-    expect(array_diff(array_keys(Queue::pushedJobs()), [PublishProductChange::class]))->toBe([]);
+    expect(array_diff(array_keys($queue->pushedJobs()), [PublishProductChange::class]))->toBe([]);
 
     Tenancy::forTenant($tenant, function (): void {
         expect(Booking::query()->count())->toBe(4)

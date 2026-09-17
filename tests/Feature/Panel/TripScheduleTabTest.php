@@ -14,6 +14,9 @@ use App\Models\ScheduleRule;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use Livewire\Livewire;
+
+use function Pest\Laravel\actingAs;
+
 use Tests\Support\OperatorUser;
 
 /*
@@ -66,7 +69,7 @@ it('offers no timetable to a whole-boat charter', function (): void {
     $owner = OperatorUser::withRole(Role::Owner);
 
     Tenancy::forTenant(Tenant::query()->findOrFail($owner->tenant_id), function () use ($owner): void {
-        $this->actingAs($owner);
+        actingAs($owner);
         $charter = Product::factory()->create(['mode' => BookingMode::PerVessel]);
 
         expect(ScheduleRulesRelationManager::canViewForRecord($charter, EditProduct::class))->toBeFalse();
@@ -76,5 +79,5 @@ it('offers no timetable to a whole-boat charter', function (): void {
 it('takes «Δρομολόγια» out of the menu but keeps its address', function (): void {
     expect(ScheduleRuleResource::shouldRegisterNavigation())->toBeFalse();
 
-    $this->actingAs(OperatorUser::withRole(Role::Owner))->get('/app/schedule-rules')->assertSuccessful();
+    actingAs(OperatorUser::withRole(Role::Owner))->get('/app/schedule-rules')->assertSuccessful();
 })->group('fast');

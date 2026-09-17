@@ -18,6 +18,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 
+use function Pest\Laravel\travel;
+
 /*
 |--------------------------------------------------------------------------
 | The catalogue events — product.published, product.updated, product.unpublished
@@ -130,7 +132,7 @@ it('queues nothing for a touch', function (): void {
 
     Queue::fake();
 
-    $this->travel(5)->minutes();
+    travel(5)->minutes();
     Tenancy::forTenant($tenant, fn () => $product->touch());
 
     Queue::assertNotPushed(PublishProductChange::class);

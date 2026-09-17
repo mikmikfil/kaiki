@@ -20,6 +20,9 @@ use App\Models\Vessel;
 use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
+
+use function Pest\Laravel\actingAs;
+
 use Tests\Support\OperatorUser;
 
 /*
@@ -59,6 +62,7 @@ function shortDeparture(User $user): Departure
     });
 }
 
+/** @return list<string> */
 function decisionKeys(User $user): array
 {
     return Tenancy::forTenant($user->tenant, fn (): array => array_map(
@@ -146,7 +150,7 @@ it('draws no decision buttons for somebody who may not take them', function (): 
     shortDeparture($crew);
 
     tenancy()->initialize($crew->tenant);
-    $this->actingAs($crew);
+    actingAs($crew);
 
     expect(NeedsAttention::canDecide())->toBeFalse();
 

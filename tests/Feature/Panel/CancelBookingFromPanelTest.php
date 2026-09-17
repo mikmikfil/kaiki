@@ -19,6 +19,9 @@ use App\Support\Authorization\Capability;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
 use Livewire\Livewire;
+
+use function Pest\Laravel\actingAs;
+
 use Tests\Support\Booking\CancellationScenario;
 use Tests\Support\OperatorUser;
 
@@ -45,7 +48,10 @@ afterEach(function (): void {
     Carbon::setTestNow();
 });
 
-/** @return array{0: Tenant, 1: Booking, 2: User} */
+/**
+ * @param  array<int, int>  $ladder  days before => refund percent
+ * @return array{0: Tenant, 1: Booking, 2: User}
+ */
 function panelCancellation(array $ladder = [15 => 100, 7 => 50, 2 => 0]): array
 {
     [$tenant, $booking] = CancellationScenario::make(paidCents: 10000, ladder: $ladder);
@@ -128,6 +134,6 @@ it('shows the button to a manager, and crew cannot open the booking at all', fun
         ->assertActionVisible('cancel_booking');
 
     // Crew never reach a booking's page, and could not act on it if they did.
-    expect($this->actingAs($crew)->get('/app/bookings/' . $booking->getRouteKey())->status())->toBeIn([403, 404])
+    expect(actingAs($crew)->get('/app/bookings/' . $booking->getRouteKey())->status())->toBeIn([403, 404])
         ->and($crew->hasCapability(Capability::ManageBookings))->toBeFalse();
 })->group('fast');
