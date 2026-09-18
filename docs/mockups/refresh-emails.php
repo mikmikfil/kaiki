@@ -33,10 +33,11 @@ use App\Models\Booking;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Foundation\Application;
 
 require __DIR__ . '/../../vendor/autoload.php';
 
-/** @var \Illuminate\Foundation\Application $app */
+/** @var Application $app */
 $app = require __DIR__ . '/../../bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
 

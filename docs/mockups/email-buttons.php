@@ -393,15 +393,17 @@ ob_start();
     <h2>Οι προορισμοί</h2>
     <p class="section-note">Έντεκα σελίδες και αρχεία, τίποτε άλλο. Κάθε email δείχνει σε κάποια από αυτά.</p>
     <div class="dests" style="margin-top:14px">
-      <?php foreach (DESTINATIONS as $kind => $destination): ?>
-        <?php if (! isset($counts[$kind])) { continue; } ?>
+      <?php foreach (DESTINATIONS as $kind => $destination) { ?>
+        <?php if (! isset($counts[$kind])) {
+            continue;
+        } ?>
         <div class="dest">
           <h3><?= $e($destination['name']) ?></h3>
           <span class="used"><?= (int) $counts[$kind] ?>× σε email</span>
           <span class="route"><?= $e($destination['route']) ?></span>
           <p><?= $e($destination['what']) ?></p>
         </div>
-      <?php endforeach; ?>
+      <?php } ?>
     </div>
   </section>
 
@@ -411,7 +413,7 @@ ob_start();
       κουμπί του μηνύματος· τα υπόλοιπα είναι σύνδεσμοι μέσα στο κείμενο.</p>
   </section>
 
-  <?php foreach ($emails as $email): ?>
+  <?php foreach ($emails as $email) { ?>
     <article class="mail" id="m-<?= $e($email['key']) ?>">
       <div class="mail-head">
         <span class="group"><?= $e($email['group']) ?></span>
@@ -419,10 +421,10 @@ ob_start();
         <p class="when"><?= $e($email['when']) ?></p>
       </div>
       <div class="links">
-        <?php if ($email['links'] === []): ?>
+        <?php if ($email['links'] === []) { ?>
           <div class="link"><p class="goes" style="grid-column:1/-1">Κανένα κουμπί — το μήνυμα λέει μόνο τι έγινε.</p></div>
-        <?php endif; ?>
-        <?php foreach ($email['links'] as $link): ?>
+        <?php } ?>
+        <?php foreach ($email['links'] as $link) { ?>
           <?php $destination = DESTINATIONS[$link['kind']]; ?>
           <div class="link">
             <span class="label">
@@ -433,10 +435,10 @@ ob_start();
             <p class="goes">Πάει στο <b><?= $e($destination['name']) ?></b> — <?= $e($destination['route']) ?></p>
             <span class="url"><?= $e($link['url']) ?></span>
           </div>
-        <?php endforeach; ?>
+        <?php } ?>
       </div>
     </article>
-  <?php endforeach; ?>
+  <?php } ?>
 
   <section>
     <h2>Δύο κουμπιά που δεν φαίνονται εδώ</h2>

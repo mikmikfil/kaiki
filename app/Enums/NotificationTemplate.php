@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Enums;
 
 use App\Enums\Concerns\HasTranslatedLabel;
+use App\Mail\GuestMail;
 
 /**
  * The messages this product sends (spec BKG-13, BKG-15, BKG-16, NTF-7).
@@ -123,7 +124,7 @@ enum NotificationTemplate: string
      * adding it for the second time.
      *
      * On the enum rather than in the mail templates, so the HTML half, the
-     * plain-text half and {@see \App\Mail\GuestMail}'s attachment cannot reach
+     * plain-text half and {@see GuestMail}'s attachment cannot reach
      * three different conclusions about the same message.
      */
     public function carriesWholeTrip(): bool
