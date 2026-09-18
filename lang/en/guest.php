@@ -139,7 +139,8 @@ return [
         'balance_due' => 'The balance is due by :date.',
         'pay_balance' => 'Pay the balance',
         'ticket' => 'Download your ticket',
-        'ticket_soon' => 'Your ticket will be available here shortly before departure.',
+        'ticket_title' => 'Your ticket',
+        'ticket_help' => 'Show it to the crew when you board, on your phone or printed. One ticket per passenger, in a single file.',
         'contact' => [
             'heading' => 'Your details',
             'name' => 'Name',

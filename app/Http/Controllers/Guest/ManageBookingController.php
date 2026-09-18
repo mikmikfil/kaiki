@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Guest;
 
 use App\Domain\Booking\Actions\ApplyGuestChoice;
 use App\Domain\Booking\Actions\CancelBooking;
+use App\Domain\Booking\Actions\GenerateETicket;
 use App\Domain\Booking\Actions\MintBalanceSession;
 use App\Domain\Booking\Support\BookingCalendarInvite;
 use App\Domain\Booking\Support\GuestTokenResolver;
@@ -22,6 +23,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
  * `/b/{manage_token}` — the guest's own booking (spec TOK-6, TOK-7, TOK-13).
@@ -83,6 +85,12 @@ final class ManageBookingController extends GuestPageController
             // The same two links as the email (2026-09-18), for the guest who
             // deleted the email and kept the page.
             'calendar' => self::calendarFor($booking, $locale),
+            // TOK-6's download, offered rather than promised (2026-09-18): the
+            // page said «λίγο πριν την αναχώρηση» from M2 onwards and never
+            // grew the button, although #88 had built both the PDF and its
+            // route. The link works even before the queue has rendered
+            // anything — see {@see self::ticket()}.
+            'ticketUrl' => self::ticketUrlFor($booking, $tenant, $token),
             'canCancel' => self::canCancel($booking),
             'weatherChoiceDue' => self::weatherChoiceIsOpen($booking),
             'backUrl' => $this->backToSiteUrl($booking, $tenant),
@@ -103,9 +111,27 @@ final class ManageBookingController extends GuestPageController
      * `no-store` and `no-referrer` on it, so tapping a download does not send
      * the token anywhere.
      *
-     * A booking whose ticket was never generated (BKG-14's failure feed) gets
-     * the same "link not valid" page as a bad token rather than a broken
-     * download, because at a quay the difference is not actionable.
+     * ## A ticket that was never made is made here, on the spot (2026-09-18)
+     *
+     * `GenerateETicketOnConfirmation` is queued on purpose — a Chromium that
+     * will not start must never unwind a payment — and the cost of that is a
+     * window, from a few seconds on a healthy host to for ever on one whose
+     * queue is stopped, in which the booking is confirmed and the file does not
+     * exist. Answering that with "this link is not valid" tells a guest at a
+     * quay that their ticket is gone, which is both untrue and the worst
+     * possible moment to say it. So the file is rendered now, kept, and served.
+     *
+     * The listener still owns the normal path: this is the fallback, it runs
+     * once per missing file, and after it the queued job has nothing left to do.
+     * If the render itself fails — no browser on the host — the guest gets the
+     * old page and the operator has the booking in the failure feed, which is
+     * the same place the queued failure would have landed.
+     *
+     * Two bookings never get one: a cancelled booking, whose ticket would board
+     * somebody onto a trip they are not on, and an operator who does not check
+     * anybody in ({@see Tenant::usesCheckIn()}), for whom a ticket is a
+     * document nobody will ever ask for. An already-rendered file is still
+     * served in both cases — it exists because it was valid when it was made.
      */
     public function ticket(Request $request, string $token): Response
     {
@@ -117,6 +143,10 @@ final class ManageBookingController extends GuestPageController
 
         $disk = Storage::disk((string) config('kaiki.tickets.disk', 'local'));
         $path = $booking->eticket_path;
+
+        if ($path === null || ! $disk->exists($path)) {
+            $path = self::renderTicketNow($booking, $tenant);
+        }
 
         if ($path === null || ! $disk->exists($path)) {
             return $this->linkNotValid($request);
@@ -133,6 +163,46 @@ final class ManageBookingController extends GuestPageController
                 'Content-Disposition' => 'inline; filename="' . $booking->reference . '.pdf"',
             ],
         );
+    }
+
+    /**
+     * The ticket link for the page, or null when this booking has no ticket.
+     *
+     * The same two exclusions as {@see self::renderTicketNow()} — a cancelled
+     * booking and an operator who boards nobody — so the page never offers a
+     * button that the download would then refuse. Everyone else gets it
+     * immediately, whether or not the file has been rendered yet.
+     */
+    private static function ticketUrlFor(Booking $booking, Tenant $tenant, string $token): ?string
+    {
+        if ($booking->status === BookingStatus::Cancelled || ! $tenant->usesCheckIn()) {
+            return null;
+        }
+
+        return route('guest.ticket', ['token' => $token]);
+    }
+
+    /**
+     * Render the missing ticket inside its tenant, and keep it.
+     *
+     * Returns the stored path, or null when there should be no ticket or the
+     * render failed. The failure is swallowed deliberately: the caller's answer
+     * to "no file" is a page that explains itself, and a 500 on a guest's phone
+     * explains nothing.
+     */
+    private static function renderTicketNow(Booking $booking, Tenant $tenant): ?string
+    {
+        if ($booking->status === BookingStatus::Cancelled || ! $tenant->usesCheckIn()) {
+            return null;
+        }
+
+        try {
+            return Tenancy::forTenant($tenant, static fn (): string => app(GenerateETicket::class)($booking));
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
     }
 
     /**

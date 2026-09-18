@@ -203,10 +203,17 @@
         @endif
     </div>
 
-    <div class="card">
-        {{-- The PDF itself is #88's; TOK-6 asks for the download to be here and
-             this is the honest placeholder until it is. --}}
-        <p class="muted">{{ __('guest.booking.ticket_soon') }}</p>
-    </div>
+    {{-- TOK-6's downloadable e-ticket (2026-09-18). The card is drawn only
+         when there is a ticket to give: a cancelled booking and an operator who
+         boards nobody both get nothing here rather than a button that leads to
+         "this link is not valid". The file is rendered on demand if the queue
+         has not made it yet, so this button never has to be waited for. --}}
+    @if ($ticketUrl)
+        <div class="card">
+            <h2>{{ __('guest.booking.ticket_title') }}</h2>
+            <p class="muted">{{ __('guest.booking.ticket_help') }}</p>
+            <p><a class="btn secondary" href="{{ $ticketUrl }}">{{ __('guest.booking.ticket') }}</a></p>
+        </div>
+    @endif
 
 @endsection
