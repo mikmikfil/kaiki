@@ -1,0 +1,1247 @@
+<title>Kaiki Remaining Build</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+
+<style>
+  /* ---------------------------------------------------------------
+     Palette is Kaiki's own platform default brand, from
+     config('kaiki.branding.defaults') — the colours every operator
+     starts with. Neutrals are biased toward the hull blue.
+     --------------------------------------------------------------- */
+  :root {
+    --ink:        #101828;
+    --ink-soft:   #47526B;
+    --ink-faint:  #6E7891;
+    --sea:        #0B3D91;
+    --signal:     #0F62FE;
+
+    --paper:      #F4F6FA;
+    --surface:    #FFFFFF;
+    --rule:       #DCE3EF;
+    --rule-soft:  #E9EDF5;
+
+    --done:       #0E7C5A;
+    --active:     #0F62FE;
+    --waiting:    #8A6410;
+    --external:   #A8321F;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink:        #E7ECF6;
+      --ink-soft:   #A8B3C8;
+      --ink-faint:  #7E8AA3;
+      --sea:        #7FA8F0;
+      --signal:     #6FA0FF;
+
+      --paper:      #0A1119;
+      --surface:    #111C29;
+      --rule:       #26364C;
+      --rule-soft:  #1B2938;
+
+      --done:       #43C79B;
+      --active:     #6FA0FF;
+      --waiting:    #E8B451;
+      --external:   #F0836E;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ink:        #E7ECF6;
+    --ink-soft:   #A8B3C8;
+    --ink-faint:  #7E8AA3;
+    --sea:        #7FA8F0;
+    --signal:     #6FA0FF;
+
+    --paper:      #0A1119;
+    --surface:    #111C29;
+    --rule:       #26364C;
+    --rule-soft:  #1B2938;
+
+    --done:       #43C79B;
+    --active:     #6FA0FF;
+    --waiting:    #E8B451;
+    --external:   #F0836E;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 60rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
+
+  /* --- masthead ------------------------------------------------- */
+
+  .masthead { border-bottom: 2px solid var(--ink); padding-bottom: 1.5rem; }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .72rem; font-weight: 500; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 .75rem;
+  }
+
+  h1 {
+    font-family: Archivo, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 700; font-size: clamp(2rem, 5vw, 2.9rem);
+    line-height: 1.08; letter-spacing: -.022em;
+    text-wrap: balance; margin: 0 0 .6rem;
+  }
+
+  .standfirst { font-size: 1.08rem; color: var(--ink-soft); max-width: 42rem; margin: 0; }
+
+  /* --- totals --------------------------------------------------- */
+
+  .totals {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+    margin: 2.5rem 0 3rem;
+  }
+
+  .total { background: var(--surface); padding: 1.1rem 1.25rem 1.25rem; }
+
+  .total dt {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .68rem; font-weight: 500; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-faint); margin: 0 0 .5rem;
+  }
+
+  .total dd {
+    margin: 0; font-family: Archivo, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 700; font-size: 1.85rem; line-height: 1;
+    letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+  }
+
+  .total .unit {
+    font-size: .82rem; font-weight: 500; color: var(--ink-faint);
+    letter-spacing: 0; margin-left: .3rem;
+  }
+
+  /* --- section headings ----------------------------------------- */
+
+  h2 {
+    font-family: Archivo, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 600; font-size: 1.35rem; letter-spacing: -.012em;
+    margin: 3.25rem 0 .4rem; padding-top: 1.4rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  .section-note { color: var(--ink-soft); font-size: .97rem; margin: 0 0 1.5rem; max-width: 44rem; }
+
+  /* --- milestone bands ------------------------------------------ */
+
+  .milestone {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-left: 4px solid var(--edge, var(--rule));
+    margin-bottom: .9rem; overflow: hidden;
+  }
+
+  .milestone[data-state="done"]   { --edge: var(--done); }
+  .milestone[data-state="active"] { --edge: var(--active); }
+  .milestone[data-state="queued"] { --edge: var(--rule); }
+
+  .m-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem 1rem; padding: 1rem 1.25rem; }
+
+  .m-code {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-weight: 600; font-size: .8rem; letter-spacing: .06em; color: var(--sea);
+  }
+
+  .m-title {
+    font-family: Archivo, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 600; font-size: 1.02rem; letter-spacing: -.008em; flex: 1 1 14rem;
+  }
+
+  .m-days {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .85rem; font-weight: 500; font-variant-numeric: tabular-nums;
+    color: var(--ink); white-space: nowrap;
+  }
+
+  .m-days .unit { color: var(--ink-faint); font-weight: 400; }
+
+  .pill {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .66rem; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; padding: .22rem .5rem;
+    border: 1px solid currentColor; white-space: nowrap;
+  }
+
+  .pill.done   { color: var(--done); }
+  .pill.active { color: var(--active); }
+  .pill.est    { color: var(--waiting); }
+
+  .weight { height: 5px; background: var(--rule-soft); position: relative; }
+  .weight span { position: absolute; inset: 0 auto 0 0; background: var(--edge, var(--sea)); display: block; }
+
+
+  /* --- expandable milestones ------------------------------------ */
+
+  details.milestone > summary {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem 1rem;
+    padding: 1rem 1.25rem; cursor: pointer; list-style: none;
+  }
+
+  details.milestone > summary::-webkit-details-marker { display: none; }
+
+  details.milestone > summary:hover { background: var(--rule-soft); }
+  details.milestone > summary:focus-visible { outline: 2px solid var(--signal); outline-offset: -2px; }
+
+  /* The chevron is the only affordance saying these open, so it earns its place. */
+  .chev {
+    width: .55rem; height: .55rem; flex: none;
+    border-right: 2px solid var(--ink-faint); border-bottom: 2px solid var(--ink-faint);
+    transform: rotate(-45deg); transition: transform .15s ease;
+    margin-right: .1rem; align-self: center;
+  }
+
+  details.milestone[open] > summary .chev { transform: rotate(45deg); }
+
+  @media (prefers-reduced-motion: reduce) { .chev { transition: none; } }
+
+  .m-body { padding: 0 1.25rem 1.25rem; border-top: 1px solid var(--rule-soft); }
+  .m-body > p:first-child { margin-top: 1rem; }
+
+  .tasks { list-style: none; margin: .9rem 0 0; padding: 0; }
+
+  .tasks li {
+    display: grid; grid-template-columns: 4.2rem 1fr auto; gap: .2rem .9rem;
+    align-items: baseline; padding: .45rem 0;
+    border-bottom: 1px solid var(--rule-soft); font-size: .92rem;
+  }
+
+  .tasks li:last-child { border-bottom: none; }
+
+  .tasks .k {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .78rem; font-weight: 500; color: var(--sea); white-space: nowrap;
+  }
+
+  .tasks .k.tick { color: var(--done); }
+  .tasks .h { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .78rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .tasks li.is-done .t { color: var(--ink-faint); text-decoration: line-through; text-decoration-thickness: 1px; }
+
+  .tasks .d {
+    grid-column: 2 / -1;
+    color: var(--ink-soft); font-size: .855rem; line-height: 1.5;
+    margin-top: .12rem; max-width: 46rem;
+  }
+
+  /* A finished task keeps its explanation readable — the strike-through is on
+     the title only, because crossing out the sentence that explains what the
+     thing *is* helps nobody. */
+  .tasks li.is-done .d { color: var(--ink-faint); }
+
+  @media (max-width: 34rem) {
+    .tasks li { grid-template-columns: 4.2rem 1fr; }
+    .tasks .h { grid-column: 2; }
+  }
+
+  /* --- tables --------------------------------------------------- */
+
+  .scroll { overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-size: .93rem; }
+
+  caption {
+    text-align: left;
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .68rem; font-weight: 500; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-faint); padding: 0 0 .6rem;
+  }
+
+  th {
+    text-align: left;
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .68rem; font-weight: 500; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-faint);
+    border-bottom: 1px solid var(--rule);
+    padding: .45rem .7rem .45rem 0; white-space: nowrap;
+  }
+
+  td { border-bottom: 1px solid var(--rule-soft); padding: .5rem .7rem .5rem 0; vertical-align: baseline; }
+  tr:last-child td { border-bottom: none; }
+
+  .num {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .84rem; font-weight: 500; color: var(--sea); white-space: nowrap;
+  }
+
+  .days {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .84rem; font-variant-numeric: tabular-nums;
+    text-align: right; white-space: nowrap; color: var(--ink-soft);
+  }
+
+  .flag {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .66rem; font-weight: 600; letter-spacing: .06em;
+    text-transform: uppercase; color: var(--waiting); white-space: nowrap;
+  }
+
+  tfoot td {
+    border-top: 1px solid var(--rule); border-bottom: none; padding-top: .6rem;
+    font-family: Archivo, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 600; font-size: .9rem;
+  }
+
+  /* --- risks ---------------------------------------------------- */
+
+  .risk {
+    border-top: 1px solid var(--rule); padding: 1.1rem 0;
+    display: grid; grid-template-columns: 8.5rem 1fr; gap: .3rem 1.5rem; align-items: baseline;
+  }
+
+  .risk:last-of-type { border-bottom: 1px solid var(--rule); }
+
+  .risk-who {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .68rem; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--external);
+  }
+
+  .risk-who.internal { color: var(--waiting); }
+
+  .risk h3 {
+    font-family: Archivo, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 600; font-size: 1rem; margin: 0 0 .25rem; letter-spacing: -.008em;
+  }
+
+  .risk p { margin: 0; color: var(--ink-soft); font-size: .95rem; }
+
+  @media (max-width: 34rem) { .risk { grid-template-columns: 1fr; } }
+
+  .note {
+    margin-top: 3rem; padding: 1.25rem 1.4rem;
+    background: var(--surface); border: 1px solid var(--rule);
+    font-size: .93rem; color: var(--ink-soft);
+  }
+
+  .note strong { color: var(--ink); font-weight: 600; }
+  .note p { margin: 0 0 .7rem; }
+  .note p:last-child { margin-bottom: 0; }
+
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+    font-size: .85em; color: var(--sea);
+  }
+
+  .blocker {
+    margin: 2.2rem 0 0; padding: 1.15rem 1.35rem;
+    border: 1px solid var(--external); border-left-width: 4px;
+    background: color-mix(in srgb, var(--external) 7%, var(--surface));
+  }
+  .blocker h2 {
+    font-family: Archivo, "Helvetica Neue", Arial, sans-serif;
+    font-size: 1rem; font-weight: 600; margin: 0 0 .45rem; letter-spacing: -.008em;
+  }
+  .blocker p { margin: 0 0 .6rem; font-size: .93rem; color: var(--ink-soft); }
+  .blocker p:last-child { margin-bottom: 0; }
+  .blocker strong { color: var(--ink); }
+
+  a { color: var(--signal); }
+  a:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Kaiki · booking engine for Greek boat operators</p>
+    <h1>What is left to build</h1>
+    <p class="standfirst">
+      Every remaining task, with an estimate in hours beside it. M0 to M5 are grounded in written
+      issues; M6 onward is a scope breakdown, because those issues do not exist yet.
+    </p>
+  </header>
+
+  <dl class="totals">
+    <div class="total">
+      <dt>Delivered</dt>
+      <dd>93<span class="unit">issues</span></dd>
+      <p style="margin:.5rem 0 0; font-size:.78rem; line-height:1.35; color:var(--ink-faint)">Not counting the 16–17 Sept UX round, Phase 1 for actionseaze (GitHub PRs #121 and #122), the 17 Sept afternoon work or the 18 Sept calendar entry (both PR #123), which had no issue numbers.</p>
+    </div>
+    <div class="total">
+      <dt>Measured so far</dt>
+      <dd>~157<span class="unit">hours</span></dd>
+    </div>
+    <div class="total">
+      <dt>Remaining</dt>
+      <dd>34–42<span class="unit">hours</span></dd>
+      <p style="margin:.5rem 0 0; font-size:.78rem; line-height:1.35; color:var(--ink-faint)">Phase 2 sales channels are not in this figure: about 26–39 hours more, plus approvals.</p>
+    </div>
+    <div class="total">
+      <dt>At 4 hours a day, 5 days a week</dt>
+      <dd>~1¾–2<span class="unit">weeks</span></dd>
+    </div>
+  </dl>
+
+  <section class="blocker" style="border-color: var(--done); background: color-mix(in srgb, var(--done) 7%, var(--surface));">
+    <h2 style="color: var(--done)">Cleared &mdash; CI runs again, and everything above has merged</h2>
+    <p>
+      <strong>14 September.</strong> GitHub Actions starts jobs again, the branches went through in order,
+      and the MySQL 8 schema snapshot has been regenerated and committed. The paragraph below is kept as
+      the record of what was true for eight days.
+    </p>
+    <p>
+      It was not the whole story, though, and the second half took a day to find. Once the jobs ran,
+      <strong>three of them still failed &mdash; thirty-eight tests, in files with nothing to do with
+      PDFs</strong>: <code>Cannot find module 'puppeteer'</code>. The cause was a sentence in
+      <code>docs/ci.md</code> that was not true &mdash; that the <code>pdf-chromium</code> job is the only
+      place a PDF is ever rendered. It is not: the e-ticket listener is queued, the test queue is
+      <code>sync</code>, and so <em>every booking that confirms anywhere in the suite prints a ticket</em>.
+      The three jobs that run the suite install Puppeteer now, and the sentence says what is actually true.
+      Four MySQL-only failures went with it, one of them a real defect the local engine cannot see:
+      <code>charter_agreements.template_version</code> was three characters too short for its own constant,
+      so no charter agreement could ever have been saved on MySQL.
+    </p>
+  </section>
+
+  <section class="blocker" hidden>
+    <h2>The whole back half of M2 cannot be merged, and it is a billing question</h2>
+    <p>
+      <strong>#83 to #89 are complete</strong> — seven issues, written, tested, documented and pushed as
+      pull requests #94 to #100, and <strong>#101 to #131 have now joined them</strong>, committed locally with nowhere to push. <strong>That is every remaining issue in M2, the whole of M3, five of the six in M4, and all twelve of M5 — thirty-seven finished issues.</strong> None of them can merge, because GitHub Actions refuses to start
+      <em>any</em> job on the repository: <em>“The job was not started because recent account payments have
+      failed or your spending limit needs to be increased.”</em> Every job fails in two seconds with no steps
+      and no log, and <code>CI passed</code> is a required check.
+    </p>
+    <p>
+      Nothing here is fixable in the code. It needs a change under the GitHub account’s <strong>Billing &amp;
+      plans</strong>, and it is the only thing standing between a finished milestone and <code>main</code>.
+      One consequence worth knowing: the MySQL 8 schema snapshot (ENV-10) can only be regenerated by CI, so
+      each of those branches carries one deliberate failing test until the first run goes through.
+    </p>
+    <p>
+      Work has continued underneath it — the branches are stacked, so they merge in order the moment CI runs.
+    </p>
+  </section>
+
+  
+
+  <h2>The milestones</h2>
+  <p class="section-note">
+Every band opens — click one for its task list. <strong>M7 is next</strong>, and is expanded below with what it contains.
+  </p>
+
+  <details class="milestone" data-state="done">
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">M0</span>
+      <span class="m-title">Foundation — tenancy, roles, panels, API keys, CI, i18n</span>
+      <span class="pill done">Complete</span>
+      <span class="m-days">~9 <span class="unit">h spent</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0">Closed by #11. #13 and #14 moved to M8 — deployment is deliberately last.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">✓ #1</span><span class="t">Laravel 12 skeleton, SQLite local stack, composer setup</span><span class="h"></span><span class="d">Ο σκελετός της εφαρμογής και το περιβάλλον μέσα στο οποίο γράφεται.</span></li>
+        <li class="is-done"><span class="k tick">✓ #2</span><span class="t">Pint, PHPStan 6 + Larastan, Pest groups, CI scripts</span><span class="h"></span><span class="d">Τα εργαλεία που ελέγχουν τον κώδικα πριν προλάβει να σπάσει κάτι.</span></li>
+        <li class="is-done"><span class="k tick">✓ #3</span><span class="t">CI: Pint, PHPStan, Pest on SQLite plus MySQL 8 and Redis</span><span class="h"></span><span class="d">Κάθε αλλαγή δοκιμάζεται αυτόματα — και στη βάση που θα τρέχει στην παραγωγή, όχι μόνο στην εύκολη.</span></li>
+        <li class="is-done"><span class="k tick">✓ #4</span><span class="t">CI gates: coverage, audits, migrate-from-zero, nightly</span><span class="h"></span><span class="d">Επιπλέον αυτόματοι έλεγχοι: πόσο καλύπτεται από δοκιμές, ευπάθειες σε βιβλιοθήκες, καθαρό στήσιμο από το μηδέν.</span></li>
+        <li class="is-done"><span class="k tick">✓ #5</span><span class="t">Single-database tenancy, tenants, users, role assignments</span><span class="h"></span><span class="d">Πολλοί διοργανωτές στην ίδια βάση, με τα δεδομένα του καθενός αυστηρά χωρισμένα.</span></li>
+        <li class="is-done"><span class="k tick">✓ #6</span><span class="t">API keys — table, generation, hashing, auth middleware</span><span class="h"></span><span class="d">Κλειδιά που επιτρέπουν σε μια ιστοσελίδα ή ένα πρόγραμμα να μιλήσει στο Kaiki.</span></li>
+        <li class="is-done"><span class="k tick">✓ #7</span><span class="t">Four-strategy tenant resolution and read-only mode</span><span class="h"></span><span class="d">Πώς αναγνωρίζεται σε ποιον διοργανωτή ανήκει η κάθε επίσκεψη, και τι γίνεται όταν λήξει η συνδρομή του.</span></li>
+        <li class="is-done"><span class="k tick">✓ #8</span><span class="t">Reflection-driven cross-tenant isolation gate</span><span class="h"></span><span class="d">Αυτόματος έλεγχος ότι κανένας διοργανωτής δεν μπορεί να δει δεδομένα άλλου. Τρέχει σε κάθε αλλαγή.</span></li>
+        <li class="is-done"><span class="k tick">✓ #9</span><span class="t">Filament /app and /admin with the TEN-8 role matrix</span><span class="h"></span><span class="d">Οι δύο πίνακες διαχείρισης, και ποιος ρόλος βλέπει τι μέσα τους.</span></li>
+        <li class="is-done"><span class="k tick">✓ #10</span><span class="t">API keys in the panel — reveal once, revoke</span><span class="h"></span><span class="d">Ο διοργανωτής φτιάχνει και ακυρώνει τα κλειδιά του μόνος του. Το κλειδί εμφανίζεται μία φορά.</span></li>
+        <li class="is-done"><span class="k tick">✓ #11</span><span class="t">OpenAPI skeleton and the docs/api.md drift gate</span><span class="h"></span><span class="d">Η τεκμηρίωση του API, με αυτόματο έλεγχο ότι δεν ξεφεύγει από αυτό που όντως κάνει ο κώδικας.</span></li>
+        <li class="is-done"><span class="k tick">✓ #12</span><span class="t">i18n foundation — EL/EN, locale middleware, lint gates</span><span class="h"></span><span class="d">Ελληνικά και αγγλικά παντού, με έλεγχο ότι δεν ξεχάστηκε καμία φράση αμετάφραστη.</span></li>
+        <li class="is-done"><span class="k tick">✓ #44</span><span class="t">Platform merchant list in /admin, pulled forward from M7</span><span class="h"></span><span class="d">Η λίστα των διοργανωτών στον πίνακα της πλατφόρμας — ήρθε νωρίτερα από το πλάνο.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done">
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">M1</span>
+      <span class="m-title">Catalogue &amp; availability engine</span>
+      <span class="pill done">Complete</span>
+      <span class="m-days">~14 <span class="unit">h spent</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Closed by #53 on 5 September.</strong> Twenty-five issues: the catalogue, the pricing engine, the availability engine, the public API and the operator audit trail. Everything a guest can be shown and everything an operator can configure now exists — what M1 deliberately does not have is a way to <em>buy</em> any of it, which is M2.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">✓ #15</span><span class="t">Translatable infrastructure — fallback, search, sort</span><span class="h"></span><span class="d">Κάθε κείμενο σε δύο γλώσσες, με σωστή αναζήτηση και αλφαβητική σειρά στα ελληνικά.</span></li>
+        <li class="is-done"><span class="k tick">✓ #16</span><span class="t">Vessels and ports — the first catalogue tables</span><span class="h"></span><span class="d">Τα σκάφη και τα σημεία αναχώρησης.</span></li>
+        <li class="is-done"><span class="k tick">✓ #17</span><span class="t">BrandProfile — sanitisers, uploads, contrast check</span><span class="h"></span><span class="d">Λογότυπο, χρώματα και γραμματοσειρά του διοργανωτή, με έλεγχο ότι τα χρώματα διαβάζονται.</span></li>
+        <li class="is-done"><span class="k tick">✓ #47</span><span class="t">vat_rates — platform reference table, CAT-11a guard</span><span class="h"></span><span class="d">Οι συντελεστές ΦΠΑ ως δεδομένα που αλλάζουν, όχι γραμμένοι μέσα στον κώδικα.</span></li>
+        <li class="is-done"><span class="k tick">✓ #23</span><span class="t">Cancellation policies, tiers, refund calculator</span><span class="h"></span><span class="d">Πολιτικές ακύρωσης με κλιμάκια («15 μέρες πριν: 100%»), και ο υπολογισμός της επιστροφής.</span></li>
+        <li class="is-done"><span class="k tick">✓ #18</span><span class="t">Products — modes, CAT-5 validation rules</span><span class="h"></span><span class="d">Οι εκδρομές, σε τρεις μορφές: ανά θέση, ολόκληρο το σκάφος, ή κατόπιν ζήτησης.</span></li>
+        <li class="is-done"><span class="k tick">✓ #19</span><span class="t">Age bands and the CAT-8 set invariants</span><span class="h"></span><span class="d">Ενήλικας, παιδί, βρέφος — ποιος πληρώνει τι και ποιος πιάνει θέση.</span></li>
+        <li class="is-done"><span class="k tick">✓ #20</span><span class="t">Seasons and date ranges, overlap validation</span><span class="h"></span><span class="d">Περίοδοι με διαφορετικές τιμές, με έλεγχο ότι δεν επικαλύπτονται μεταξύ τους.</span></li>
+        <li class="is-done"><span class="k tick">✓ #21</span><span class="t">Rate plans, per-band prices, deposit rules</span><span class="h"></span><span class="d">Τιμοκατάλογοι ανά περίοδο, με τιμή για κάθε κατηγορία ηλικίας και κανόνες προκαταβολής.</span></li>
+        <li class="is-done"><span class="k tick">✓ #22</span><span class="t">Extras and the per-product override pivot</span><span class="h"></span><span class="d">Πρόσθετα — φαγητό, εξοπλισμός, μεταφορά — με δυνατότητα διαφορετικής τιμής ανά εκδρομή.</span></li>
+        <li class="is-done"><span class="k tick">✓ #24</span><span class="t">Product panel, age bands, the CAT-15 checklist</span><span class="h"></span><span class="d">Η οθόνη όπου ο διοργανωτής φτιάχνει μια εκδρομή, με λίστα ελέγχου πριν τη δημοσιεύσει.</span></li>
+        <li class="is-done"><span class="k tick">✓ #25</span><span class="t">Schedule rules, weekday mask, capacity resolver</span><span class="h"></span><span class="d">Επαναλαμβανόμενα δρομολόγια — π.χ. «κάθε Τρίτη και Πέμπτη στις 18:30».</span></li>
+        <li class="is-done"><span class="k tick">✓ #26</span><span class="t">Departures and the local-to-UTC DST authority</span><span class="h"></span><span class="d">Οι συγκεκριμένες αναχωρήσεις, με σωστή ώρα ακόμη και τις μέρες που αλλάζει η ώρα.</span></li>
+        <li class="is-done"><span class="k tick">✓ #27</span><span class="t">Departure generation, nightly and on save</span><span class="h"></span><span class="d">Οι αναχωρήσεις παράγονται μόνες τους από το πρόγραμμα, κάθε βράδυ.</span></li>
+        <li class="is-done"><span class="k tick">✓ #28</span><span class="t">Manual departures, conflict warning, vessel calendar</span><span class="h"></span><span class="d">Έκτακτη αναχώρηση με το χέρι, με προειδοποίηση αν το σκάφος είναι ήδη πιασμένο.</span></li>
+        <li class="is-done"><span class="k tick">✓ #29</span><span class="t">Vessel blocks, iCal tables, the is_blocked cache</span><span class="h"></span><span class="d">Δέσμευση σκάφους για συντήρηση ή ιδιωτική χρήση, ώστε να μη φαίνεται διαθέσιμο.</span></li>
+        <li class="is-done"><span class="k tick">✓ #30</span><span class="t">Per-seat availability, all seven AVL-22 conditions</span><span class="h"></span><span class="d">Πόσες θέσεις μένουν — και οι εφτά λόγοι για τους οποίους μια μέρα μπορεί να μην πουλάει.</span></li>
+        <li class="is-done"><span class="k tick">✓ #31</span><span class="t">Per-vessel availability, flexible start, holds</span><span class="h"></span><span class="d">Διαθεσιμότητα ολόκληρου σκάφους, με ελεύθερη ώρα εκκίνησης και προσωρινή δέσμευση.</span></li>
+        <li class="is-done"><span class="k tick">✓ #32</span><span class="t">Availability edge-case matrix, ENV-14 timezone job</span><span class="h"></span><span class="d">Οι δύσκολες περιπτώσεις της διαθεσιμότητας, δοκιμασμένες μία-μία αντί να ελπίζουμε.</span></li>
+        <li class="is-done"><span class="k tick">✓ #33</span><span class="t">Rate plan resolution, derived price-from</span><span class="h"></span><span class="d">Ποιος τιμοκατάλογος ισχύει σε ποια ημερομηνία, και η τιμή «από …» που βλέπει ο επισκέπτης.</span></li>
+        <li class="is-done"><span class="k tick">✓ #34</span><span class="t">Price computation and the §3.4 snapshot</span><span class="h"></span><span class="d">Ο υπολογισμός της τιμής — και το πάγωμά της τη στιγμή της κράτησης, ώστε να μην αλλάξει μετά.</span></li>
+        <li class="is-done"><span class="k tick">✓ #35</span><span class="t">Public API foundation, branding, CORS, rate limits</span><span class="h"></span><span class="d">Η βάση του API: ποιος επιτρέπεται να καλέσει, από πού, και πόσο συχνά.</span></li>
+        <li class="is-done"><span class="k tick">✓ #36</span><span class="t">Products endpoints, and the <code>?locale=</code> no endpoint had</span><span class="h"></span><span class="d">Το API δίνει τον κατάλογο σε ιστοσελίδες, στη γλώσσα που ζητούν.</span></li>
+        <li class="is-done"><span class="k tick">✓ #37</span><span class="t">Availability and price-quote endpoints</span><span class="h"></span><span class="d">Το API απαντά τι είναι ελεύθερο και πόσο κοστίζει για συγκεκριμένη παρέα.</span></li>
+        <li class="is-done"><span class="k tick">✓ #43</span><span class="t">Read-only mode enforced in the policy layer</span><span class="h"></span><span class="d">Ληγμένη συνδρομή: μπλοκάρονται οι νέες εγγραφές, ποτέ όμως οι επισκέπτες που έχουν ήδη κράτηση.</span></li>
+        <li class="is-done"><span class="k tick">✓ #42</span><span class="t">Decide the operator audit log — ADR-0025 accepted</span><span class="h"></span><span class="d">Η απόφαση ότι θα κρατιέται ιστορικό ενεργειών, και σε ποια μορφή.</span></li>
+        <li class="is-done"><span class="k tick">✓ #53</span><span class="t">ADR-0025 — audit_logs, listeners, the operator's trail, plus the M1 migration renumber</span><span class="h"></span><span class="d">Το ιστορικό ενεργειών: ποιος έκανε τι, πότε και με ποια αιτιολογία.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done">
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">M2</span>
+      <span class="m-title">Booking &amp; payments — holds, Viva, Stripe, quotes, notifications, e-tickets</span>
+      <span class="pill done">All eleven built</span>
+      <span class="m-days">~13 <span class="unit">h spent</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Started and finished on 6 September.</strong> Eleven issues with acceptance criteria, dependencies and test plans. Seven of the eleven are complete but <strong>cannot be merged</strong> until the billing block at the top of this page clears.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">✓ #79</span><span class="t">integration_credentials — the encrypted secret store, and the spec/data-model contradiction settled</span><span class="h">1h 40m</span><span class="d">Κρυπτογραφημένη αποθήκη για τα κλειδιά πληρωμών του κάθε διοργανωτή.</span></li>
+        <li class="is-done"><span class="k tick">✓ #80</span><span class="t">The booking aggregate — vouchers, bookings, guests, extras, and the ADR-0005 hold</span><span class="h">2h 05m</span><span class="d">Η ίδια η κράτηση: επιβάτες, πρόσθετα, κουπόνια — και η προσωρινή δέσμευση θέσης όσο πληρώνει ο επισκέπτης.</span></li>
+        <li class="is-done"><span class="k tick">✓ #81</span><span class="t">Confirmation, payments, voucher ledger — and the AVL-44 overselling test, live at last</span><span class="h">2h 30m</span><span class="d">Επιβεβαίωση κράτησης, καταγραφή πληρωμών, και ο έλεγχος ότι δεν πουλιέται η ίδια θέση δύο φορές.</span></li>
+        <li class="is-done"><span class="k tick">✓ #82</span><span class="t">The PaymentGateway contract, Viva Smart Checkout and Stripe Checkout</span><span class="h">1h 55m</span><span class="d">Σύνδεση με Viva και Stripe — με τα κλειδιά του διοργανωτή. Τα χρήματα δεν περνούν ποτέ από την πλατφόρμα.</span></li>
+        <li class="is-done"><span class="k tick">✓ #83</span><span class="t">Gateway webhooks, and the two-session deposit/balance model</span><span class="h">35m</span><span class="d">Η τράπεζα ειδοποιεί ότι πληρώθηκε, και το μοντέλο «προκαταβολή τώρα, υπόλοιπο αργότερα».</span></li>
+        <li class="is-done"><span class="k tick">✓ #84</span><span class="t">Cancellation and refunds — the policy snapshot, pro-rata voucher restoration, the weather path</span><span class="h">42m</span><span class="d">Ακύρωση με την πολιτική που ίσχυε όταν έγινε η κράτηση, επιστροφή χρημάτων, και η ακύρωση λόγω καιρού.</span></li>
+        <li class="is-done"><span class="k tick">✓ #85</span><span class="t">Quotes and enquiries — and the boat a quote does not hold</span><span class="h">36m</span><span class="d">Προσφορές για εκδρομές κατόπιν ζήτησης, και η φόρμα «ρωτήστε μας» με προστασία από spam.</span></li>
+        <li class="is-done"><span class="k tick">✓ #86</span><span class="t">The four tokenised guest pages, where a URL is a credential</span><span class="h">45m</span><span class="d">Οι τέσσερις σελίδες του επισκέπτη — χωρίς λογαριασμό και χωρίς κωδικό, ο σύνδεσμος είναι το κλειδί.</span></li>
+        <li class="is-done"><span class="k tick">✓ #87</span><span class="t">Notifications — email, SMS, the BKG-16 reminders and the quiet-hours drop</span><span class="h">38m</span><span class="d">Email και SMS: επιβεβαίωση και υπενθυμίσεις — ποτέ μέσα στη νύχτα, και ποτέ αφού φύγει το σκάφος.</span></li>
+        <li class="is-done"><span class="k tick">✓ #88</span><span class="t">E-ticket PDF, crew check-in, and the charter_agreements columns landing early</span><span class="h">40m</span><span class="d">Εισιτήριο PDF με QR, και η οθόνη επιβίβασης που σαρώνει το πλήρωμα από το κινητό.</span></li>
+        <li class="is-done"><span class="k tick">✓ #89</span><span class="t">The booking API, idempotency, and manual and imported bookings</span><span class="h">45m</span><span class="d">Το API κρατήσεων, οι κρατήσεις που παίρνει ο διοργανωτής στο τηλέφωνο, και η εισαγωγή παλιών κρατήσεων.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="active" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">M6</span>
+      <span class="m-title">Greek compliance — ναυλοσύμφωνο, myDATA, invoices, GDPR</span>
+      <span class="pill done">7 of 7 built</span>
+      <span class="m-days">περιμένει απαντήσεις</span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Χτίζεται γύρω από αυτά που λείπουν.</strong> Δεν υπάρχουν διαπιστευτήρια ΑΑΔΕ, δεν υπάρχουν συντελεστές ΦΠΑ από λογιστή, και το ναυλοσύμφωνο θέλει απάντηση δικηγόρου. Αντί να περιμένει, ο πελάτης της ΑΑΔΕ χτίστηκε <em>πίσω από ένα interface</em> &mdash; ό,τι είναι δικό μας δοκιμάζεται κανονικά, και όταν έρθει το κλειδί αλλάζει μία γραμμή.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Δύο πραγματικά λάθη που έπιασαν τα τεστ.</strong> Ο έλεγχος «οι εισαγόμενες κρατήσεις δεν τιμολογούνται» σύγκρινε λάθος τύπο και <em>δεν δούλευε ποτέ</em>. Και η διαγραφή προσωπικών δεδομένων έσβηνε πρώτα την κράτηση και μετά δεν έβρισκε τους επιβάτες &mdash; κάθε όνομα και αριθμός διαβατηρίου θα επιβίωνε μιας διαγραφής που ο διοργανωτής νόμιζε ότι έγινε.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Και ένα τρίτο, τρεις φορές στο ίδιο σχήμα:</strong> ό,τι παράγεται εκτός αιτήματος &mdash; email, μήνυμα σφάλματος, PDF τιμολογίου &mdash; κληρονομεί γλώσσα που δεν όρισε κανείς. Το τιμολόγιο τύπωνε «Retail receipt» ακριβώς κάτω από το «ΑΛΠ Α/2026/1». Διορθωμένο και στα τρία.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Το λεξικό σφαλμάτων της ΑΑΔΕ έχει έξι εγγραφές και μόνο μία είναι κωδικός της ΑΑΔΕ.</strong> Σκόπιμα: χωρίς λογαριασμό δεν επαληθεύεται καμία αντιστοίχιση, και μια λάθος ελληνική εξήγηση είναι χειρότερη από καμία &mdash; ο διοργανωτής θα ενεργήσει πάνω της. Ό,τι δεν είναι χαρτογραφημένο δείχνει <em>αυτούσιο</em> το μήνυμα της ΑΑΔΕ.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Invoice tables, ΑΦΜ validation, ΑΛΠ/ΤΠΥ derivation, numbering</span><span class="h">1.5h</span><span class="d">Οι πίνακες, ο έλεγχος ΑΦΜ, η επιλογή αποδείξης ή τιμολογίου από τα δεδομένα, και η αρίθμηση με τρία επίπεδα προστασίας ώστε δύο παραστατικά να μην πάρουν ποτέ τον ίδιο αριθμό.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">The AADE client, behind an interface</span><span class="h">1.25h</span><span class="d">Η αποστολή στην ΑΑΔΕ, με ουρά και επαναπροσπάθειες &mdash; και καθαρή άρνηση όσο δεν υπάρχει σύνδεση, ώστε να μη μοιάζει τίποτε καταχωρημένο ενώ δεν είναι.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Retries and the Greek error dictionary</span><span class="h">&mdash;</span><span class="d">Ο μηχανισμός ολοκληρωμένος· ο πίνακας κωδικών θέλει επαλήθευση με λογαριασμό ΑΑΔΕ πριν τη λειτουργία.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">GDPR purge and data-subject tooling</span><span class="h">1h</span><span class="d">Οι αριθμοί διαβατηρίου σβήνονται στην ώρα τους, αυτόματα. Και οι δύο απαντήσεις που έχουν προθεσμία: «τι έχετε για εμένα» και «σβήστε τα».</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ναυλοσύμφωνο — the mechanism, awaiting the ΚΥΑ text</span><span class="h">1h</span><span class="d">Παράγεται, παγώνει τα στοιχεία, δεν ξαναγράφεται μετά την αποδοχή. Το ίδιο το κείμενο περιμένει δικηγόρο &mdash; και το λέει πάνω στο έγγραφο, ώστε να μη σταλεί κατά λάθος ως επίσημο.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Cancellation invoices</span><span class="h">1h</span><span class="d">Πιστωτικά, και μερικές επιστροφές &mdash; που είναι ο κανόνας, όχι η εξαίρεση. Η πώληση κλείνει μόνο όταν το δεχτεί η ΑΑΔΕ.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Invoice PDF with QR, and the panel screen</span><span class="h">1.5h</span><span class="d">Το τιμολόγιο σε PDF με το QR της ΑΑΔΕ, και η οθόνη «Παραστατικά» &mdash; με προειδοποίηση που εμφανίζεται μόνο όταν πράγματι κάτι πήγε σε δοκιμαστικό περιβάλλον.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done">
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">M3</span>
+      <span class="m-title">Widget &amp; hosted pages — the first guest-facing surfaces</span>
+      <span class="pill done">Complete — 11 of 11, plus four additions</span>
+      <span class="m-days">done</span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0">The first thing a guest ever sees: the hosted pages first, then the widget. Three of the eleven came out of the design review &mdash; the FAQ, the editable home page and the catalogue-wide search.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>The editable home page has no rich-text field, on purpose.</strong> An operator&rsquo;s words also become a meta description, a WordPress post and an email, and only one of those has a security policy in front of it. The search shows what <em>your</em> party pays rather than &laquo;από &hellip;&raquo;, which is the number a guest otherwise discovers is wrong at checkout. The widget fits in <strong>19 KB of its 80 KB budget</strong>.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>#111&rsquo;s end-to-end run found nine real defects in its first hour.</strong> The largest: <em>no widget on any operator&rsquo;s site could ever have created a booking</em>, because the CORS preflight never allowed the header the booking endpoint requires. Two thousand server-side tests passed over it, because a test client does not preflight. That is the case for the issue in one sentence.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Και άλλο ένα, στις 9 Σεπτεμβρίου, από τον ίδιο δρόμο.</strong> Κάθε κράτηση που ξεκινούσε από <em>σελίδα του Kaiki</em> &mdash; όχι από ξένη ιστοσελίδα &mdash; απαντούσε με σφάλμα διακομιστή. Το προσωρινό διαπιστευτήριο που δίνει η σελίδα στο δικό της widget δεν δήλωνε αν είναι δοκιμαστικό, και ο κώδικας που γράφει την κράτηση το ρωτούσε. Κανένα τεστ δεν το έπιασε: όλα χρησιμοποιούν κανονικό κλειδί API, και αυτό είναι το μόνο διαπιστευτήριο που φτιάχνεται στη στιγμή. <strong>Βρέθηκε με το χέρι, σε φυλλομετρητή.</strong></p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Τέσσερις προσθήκες μετά το κλείσιμο</strong> &mdash; ζητήθηκαν προφορικά, μία-μία: το πέρασμα του σχεδιασμού και το #132 (8 Σεπτ)· η επικεφαλίδα εκδρομής, τα αποτελέσματα αναζήτησης και ο χάρτης (9 Σεπτ)· και <strong>η αναδιάταξη της κράτησης (ADR-0030)</strong> &mdash; ημερομηνία και άτομα στο widget, τα στοιχεία σε δική σας σελίδα ολοκλήρωσης· το <strong>μηνιαίο ημερολόγιο</strong> με πράσινο και κόκκινο· η <strong>σελίδα επικοινωνίας</strong>· και ο <strong>διακόπτης προκαταβολής</strong> του διοργανωτή, κλειστός για όλους μέχρι να τον ανοίξει.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">✓ #101</span><span class="t">The hosted page shell — routing by slug, branding, EL/EN, the CSP</span><span class="h">2h 10m</span><span class="d">Ο σκελετός των έτοιμων σελίδων: ποια εταιρεία, ποια γλώσσα, ποια χρώματα, και οι κεφαλίδες ασφαλείας.</span></li>
+        <li class="is-done"><span class="k tick">✓ #102</span><span class="t">The operator home page — five block types, and no free HTML</span><span class="h">1h 55m</span><span class="d">Μία σελίδα-βιτρίνα που ο διοργανωτής συνθέτει μόνος του από πέντε έτοιμα κομμάτια.</span></li>
+        <li class="is-done"><span class="k tick">✓ #103</span><span class="t">Per-operator FAQ — tenant-wide by default, and the FAQPage markup</span><span class="h">40m</span><span class="d">Συχνές ερωτήσεις ανά διοργανωτή — και εμφάνισή τους στα αποτελέσματα της Google. Γλιτώνει τηλεφωνήματα.</span></li>
+        <li class="is-done"><span class="k tick">✓ #104</span><span class="t">Hosted product pages, and the Product + Event structured data</span><span class="h">1h 45m</span><span class="d">Η σελίδα κάθε εκδρομής, φτιαγμένη ώστε να τη δείχνει σωστά η Google — με τιμή, ημερομηνίες αναχώρησης και τα πάντα ορατά χωρίς JavaScript.</span></li>
+        <li class="is-done"><span class="k tick">✓ #105</span><span class="t">Catalogue-wide search, with the filters the operator chooses</span><span class="h">2h 10m</span><span class="d">Αναζήτηση σε όλες τις εκδρομές, με τιμή για τη συγκεκριμένη παρέα — όχι «από …». Τα φίλτρα τα διαλέγει ο διοργανωτής, και όσα κλείσει αγνοούνται πραγματικά.</span></li>
+        <li class="is-done"><span class="k tick">✓ #106</span><span class="t">The widget shell — Shadow DOM and the 80 KB budget</span><span class="h">1h 30m</span><span class="d">Ο σκελετός του widget, απομονωμένος ώστε να μη χαλάει από τα στυλ της ξένης ιστοσελίδας. Πιάνει 9 KB από τα 80 — μένει χώρος για τα τέσσερα κομμάτια που ακολουθούν.</span></li>
+        <li class="is-done"><span class="k tick">✓ #107</span><span class="t">The booking mount — the walk, the countdown, the return</span><span class="h">15m</span><span class="d">Η ίδια η κράτηση μέσα σε ξένη ιστοσελίδα, από την ημερομηνία μέχρι την πληρωμή.</span></li>
+        <li class="is-done"><span class="k tick">✓ #108</span><span class="t">The list, calendar and enquiry mounts</span><span class="h">10m</span><span class="d">Οι άλλες τρεις μορφές: λίστα εκδρομών, ημερολόγιο διαθεσιμότητας, φόρμα ερώτησης.</span></li>
+        <li class="is-done"><span class="k tick">✓ #109</span><span class="t">Custom domains and on-demand TLS</span><span class="h">25m</span><span class="d">Δικό σου domain αντί για διεύθυνση της πλατφόρμας, με πιστοποιητικό ασφαλείας αυτόματα.</span></li>
+        <li class="is-done"><span class="k tick">✓ #110</span><span class="t">Branding live preview, and widget distribution</span><span class="h">30m</span><span class="d">Ο διοργανωτής βλέπει τα χρώματά του καθώς τα αλλάζει — και πώς φτάνει το widget στις σελίδες.</span></li>
+        <li class="is-done"><span class="k tick">✓ #111</span><span class="t">The Playwright end-to-end booking</span><span class="h">1h 25m</span><span class="d">Αυτόματος έλεγχος ολόκληρης της κράτησης, όπως θα την έκανε άνθρωπος με ποντίκι.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">16–17 Σεπτεμβρίου &mdash; πίνακας διοργανωτή και εκδρομές, γύρος UX</span>
+      <span class="pill done">Complete</span>
+      <span class="m-days">~6 <span class="unit">h spent</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Το βράδυ της 16ης και το πρωί της 17ης, χωρίς αριθμούς issue</strong> &mdash; γι&rsquo; αυτό δεν μετρούν στο «Delivered» στην κορυφή. Τέσσερα commits στο <code>fix/wp-plugin-elementor-widgets</code> (<code>ba7d3de</code>, <code>77a2bce</code>, <code>9ac539d</code>, <code>3d836b5</code>), 17 Σεπτεμβρίου 11:37.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Τέσσερα σοβαρά λάθη, βρέθηκαν και διορθώθηκαν.</strong> <em>Κάθε αποθήκευση της φόρμας εκδρομής έσβηνε όλες τις τιμές της</em>: οι κατηγορίες ηλικίας διαγράφονταν και ξαναφτιάχνονταν, και οι τιμές σβήνονταν μαζί τους. Τα πεδία μόνο ώρας αποθήκευαν το 09:00 ως 06:00, γιατί εφάρμοζαν τη ζώνη ώρας του διοργανωτή σε ώρα ρολογιού &mdash; σε εκδρομές και σε κανόνες δρομολογίων, οπότε οι αναχωρήσεις που παράγονται θα έφευγαν τρεις ώρες νωρίτερα. Ένα διπλό slug εκδρομής κράσαρε αντί να δείξει μήνυμα. Και ένα αποθηκευμένο χρώμα φαινόταν στη σελίδα του επισκέπτη έως ένα λεπτό αργότερα, γιατί η cache δεν καθαριζόταν ποτέ στην αποθήκευση.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Μπλε πλαϊνό μενού με απαλά κύματα &mdash; «Μενού 1»</span><span class="h">&mdash;</span><span class="d">13 επιλογές αντί για 19, και οι συγγενικές οθόνες ως καρτέλες μέσα στην ίδια σελίδα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Αρχική οθόνη: η μέρα ανά σκάφος</span><span class="h">&mdash;</span><span class="d">Καλημέρα ή καλησπέρα με το όνομα, με ήλιο ή φεγγάρι· η επόμενη αναχώρηση με την πρόοδο της επιβίβασης· το σήμερα ανά σκάφος· «Χρειάζεται προσοχή» με κουμπί που πάει εκεί που διορθώνεται κάθε θέμα. Η σάρωση κρύβεται όταν το check-in ή τα QR είναι κλειστά, και τα έσοδα φεύγουν από την αρχική &mdash; μένουν στα Στατιστικά.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Κινητό &mdash; κατεύθυνση A</span><span class="h">&mdash;</span><span class="d">Κουμπί «Μενού» που ανοίγει όλο το μενού ως κουτιά, και οι λίστες ως κουτιά στο κινητό.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Σελίδα σύνδεσης και favicon</span><span class="h">&mdash;</span><span class="d">Μπλε, με κινούμενα κύματα που αντιδρούν στο ποντίκι, και νέο favicon Kaiki.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Εκδρομές: καρτέλες, κουμπιά δημοσίευσης, πρόχειρες</span><span class="h">&mdash;</span><span class="d">Καρτέλες Βασικά / Περιεχόμενο σελίδας / Δρομολόγια &mdash; τα δρομολόγια μέσα στην εκδρομή, έξω από το μενού. Κουμπιά «Αποθήκευση ως πρόχειρη», «Δημοσίευση» και «Εκτός πώλησης» αντί για επιλογή, και οι πρόχειρες φαίνονται στη λίστα με ό,τι τους λείπει.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Τιμές μόνο σε ευρώ</span><span class="h">&mdash;</span><span class="d">Πίνακας ηλικίες &times; περίοδοι, με κουμπιά Ίδια / Μισή / &minus;30% / Δωρεάν. Κόκκινα κελιά όπου λείπει τιμή, και η εκδρομή δεν δημοσιεύεται χωρίς όλες τις τιμές. Τα παλιά ποσοστά μετατράπηκαν: 19 εκδρομές, 36 τιμές.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Προεπισκόπηση email και «Το προφίλ μου»</span><span class="h">&mdash;</span><span class="d">Προεπισκόπηση του email όπως στάλθηκε, και «Το προφίλ μου» για αλλαγή ονόματος και κωδικού.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">Φάση 1 για τον actionseaze (πρώτος υποψήφιος πελάτης)</span>
+      <span class="pill done">Complete &mdash; 15 of 15</span>
+      <span class="m-days">~12 <span class="unit">h spent</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Παραδόθηκε στις 17 Σεπτεμβρίου και είναι στο <code>main</code>.</strong> Δύο pull requests στο GitHub &mdash; το <strong>#121</strong> (merge <code>2d55af18</code>) και το <strong>#122</strong> (merge <code>43aebb74</code>), που δεν έχουν σχέση με τα issues #121 και #122 του M5. Όλοι οι έλεγχοι του CI πέρασαν: MySQL, SQLite με κάλυψη, στήσιμο από το μηδέν, PHPStan, i18n και το widget. Τοπικά, 3234 τεστ πέρασαν.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Τέσσερα σοβαρά λάθη, βρέθηκαν και διορθώθηκαν.</strong> <em>Κάθε αυτόματη ενέργεια (listeners) έτρεχε δύο φορές</em>: διπλή επιβεβαίωση, διπλά εισιτήρια, διπλές απόπειρες τιμολόγησης και διπλά emails &mdash; και αυτό ήταν ήδη στο <code>main</code>. Το checkout κράσαρε σε MySQL, γιατί η εθνικότητα ήταν ελεύθερο κείμενο σε στήλη δύο χαρακτήρων· η SQLite το έκρυβε. Οι γραμμές επιβατών δεν δημιουργούνταν ποτέ για online ή χειροκίνητες κρατήσεις, οπότε η κατάσταση επιβατών έβγαινε άδεια. Και μετά από μερική επιστροφή, μια μεταγενέστερη πλήρης ακύρωση δεν επέστρεφε τίποτα.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Τιμή ολόκληρου σκάφους «έως N άτομα + ανά επιπλέον άτομο»</span><span class="h">&mdash;</span><span class="d">Διακόπτης ανά διοργανωτή από το <code>/admin</code>.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ακύρωση αναχώρησης</span><span class="h">&mdash;</span><span class="d">Email σε όλους, και 100% επιστροφή όταν ακυρώνει ο διοργανωτής.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">«Ακύρωση κράτησης» από το panel</span><span class="h">&mdash;</span><span class="d">Με την πολιτική, 100%, ποσοστό ή voucher.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">«Αφαίρεση ατόμων» από κράτηση</span><span class="h">&mdash;</span><span class="d">Λιγότερα άτομα στην ίδια κράτηση, χωρίς να ακυρωθεί ολόκληρη.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">«Πρόσθετα» στην εκδρομή</span><span class="h">&mdash;</span><span class="d">Δωρεάν ή με χρέωση.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Πολιτική ακύρωσης σε παράθυρο στο checkout</span><span class="h">&mdash;</span><span class="d">Ο επισκέπτης τη διαβάζει εκεί που πληρώνει.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Στοιχεία επιβατών μέσα στο checkout</span><span class="h">&mdash;</span><span class="d">Ταυτότητα με αριθμό, διαβατήριο με αριθμό και λήξη, μωρά χωρίς έγγραφο, εθνικότητα από λίστα χωρών.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Επιπλέον ερωτήσεις ανά εκδρομή</span><span class="h">&mdash;</span><span class="d">Οι απαντήσεις φαίνονται και στη λίστα επιβίβασης.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Κωδικοί έκπτωσης</span><span class="h">&mdash;</span><span class="d">Με εσωτερικό όνομα, και στατιστικά κουπονιών.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Πλήρες email επιβεβαίωσης «Κάρτα εισιτηρίου»</span><span class="h">&mdash;</span><span class="d">Η επιβεβαίωση που παίρνει ο επισκέπτης, ολοκληρωμένη.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Email αξιολόγησης Google</span><span class="h">&mdash;</span><span class="d">Φεύγει 24 ώρες μετά την εκδρομή.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Όλα τα emails προς πελάτες, διορθωμένα και στην ίδια εμφάνιση</span><span class="h">&mdash;</span><span class="d">6 emails που δεν έφευγαν ποτέ συνδέθηκαν· και η επαναφορά κωδικού στα ελληνικά.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">SMS ως διακόπτης ανά διοργανωτή</span><span class="h">&mdash;</span><span class="d">Από το <code>/admin</code>.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Προσφώνηση χρήστη και χαιρετισμός ανά ώρα της ημέρας</span><span class="h">&mdash;</span><span class="d">Ο πίνακας χαιρετά τον χρήστη όπως θέλει να τον λένε, ανάλογα με την ώρα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">«Χρειάζεται προσοχή» με αποφάσεις από εκεί</span><span class="h">&mdash;</span><span class="d">Το θέμα λύνεται από την ίδια τη λίστα.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">17 Σεπτεμβρίου απόγευμα &mdash; ο πρώτος νέος διοργανωτής, από το μηδέν</span>
+      <span class="pill done">Complete</span>
+      <span class="m-days">~6 <span class="unit">h spent</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Βρέθηκαν στήνοντας έναν ολοκαίνουργιο λογαριασμό διοργανωτή από το μηδέν</strong>, χωρίς αριθμούς issue &mdash; γι&rsquo; αυτό δεν μετρούν στο «Delivered» στην κορυφή. Στο <code>fix/wp-plugin-elementor-widgets</code>, pull request <strong>#123</strong> στο GitHub (ανοιχτό, όχι ακόμη στο <code>main</code>). Τοπικά 3241 τεστ πέρασαν· 7 τεστ PDF του Chromium έληξαν χρόνο μόνο υπό παράλληλο φόρτο και περνούν μόνα τους. Το MySQL schema snapshot θα ξαναπαραχθεί από το CI για το νέο migration.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Οδηγός πρώτης ρύθμισης, ένα βήμα τη φορά (κατεύθυνση Β)</span><span class="h">&mdash;</span><span class="d">Λίστα βημάτων δίπλα, «Αργότερα / Πίσω / Συνέχεια», νέο βήμα «Πολιτική ακύρωσης» με τρεις έτοιμες (Ευέλικτη, Κανονική, Αυστηρή).</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Διακόπτης «Οδηγός πρώτης ρύθμισης» στο <code>/admin</code> &rarr; Επεξεργασία διοργανωτή</span><span class="h">&mdash;</span><span class="d">Με πρόοδο και «Επαναφορά οδηγού», όλα στο ιστορικό με αιτιολογία.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Φωτογραφίες σκάφους: κολλούσαν σε «Φόρτωση σε εξέλιξη»</span><span class="h">&mdash;</span><span class="d">Λάθος διεύθυνση εικόνας (LAN αντί για 127.0.0.1), μπλοκαρισμένος worker από το CSP, και τοπικά το <code>public/storage</code> ήταν αντίγραφο αντί για σύνδεσμο.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">«+» για νέο λιμάνι βάσης και νέα πολιτική ακύρωσης</span><span class="h">&mdash;</span><span class="d">Νέο λιμάνι βάσης μέσα από το σκάφος, και νέα πολιτική ακύρωσης μέσα από την εκδρομή.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ηλικιακές κατηγορίες</span><span class="h">&mdash;</span><span class="d">Νέα εκδρομή ξεκινά με Ενήλικας / Παιδί / Βρέφος, χωρίς «Κωδικό», και επιτρέπονται επικαλυπτόμενες ηλικίες (π.χ. ΑΜΕΑ).</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">«Συνέχεια στις τιμές» αντί για «Αποθήκευση ως πρόχειρη» στη νέα εκδρομή</span><span class="h">&mdash;</span><span class="d">Και «Διάρκεια και προσέλευση» χωρίς μία ώρα αναχώρησης στις εκδρομές ανά θέση.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Δρομολόγια με πολλές ώρες την ημέρα</span><span class="h">&mdash;</span><span class="d">Π.χ. 09:00, 13:00, 17:00, σε ένα βήμα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">«Πώς να σας αποκαλεί η πλατφόρμα» και στην Ομάδα</span><span class="h">&mdash;</span><span class="d">Ο χαιρετισμός δείχνει μόνο το μικρό όνομα.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">18 Σεπτεμβρίου &mdash; το ταξίδι στο ημερολόγιο του επισκέπτη</span>
+      <span class="pill done">Complete</span>
+      <span class="m-days">~2 <span class="unit">h spent</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Δύο commits στο <code>fix/wp-plugin-elementor-widgets</code> (PR #123), χωρίς αριθμό issue.</strong> Μία καταχώρηση ανά κράτηση, που γράφεται πάνω στον εαυτό της όταν αλλάζει το ταξίδι &mdash; και <strong>ώρα προσέλευσης, όχι ώρα αναχώρησης</strong>: όποιος διάβαζε 10:00 στο κινητό του θα έφτανε την ώρα που φεύγει το σκάφος.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">&laquo;Προσθήκη στο ημερολόγιο&raquo; στα τρία emails και στη σελίδα της κράτησης</span><span class="h">1.25h</span><span class="d">Αρχείο <code>.ics</code> για Apple, Outlook και κινητό, σύνδεσμος για Google Ημερολόγιο, και το ίδιο αρχείο συνημμένο στα emails που είναι όλο το ταξίδι (επιβεβαίωση, αλλαγή, υπενθύμιση 24 ωρών). Με υπενθύμιση την προηγούμενη μέρα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Επτά έλεγχοι για το ημερολόγιο</span><span class="h">0.5h</span><span class="d">Ότι η ώρα είναι η προσέλευση, ότι μία κράτηση μένει μία καταχώρηση, και ότι ο κωδικός της κράτησης δεν φεύγει ποτέ προς τη Google.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η έκθεση με όλα τα emails, ξανααποδομένη</span><span class="h">0.25h</span><span class="d">Με σκριπτ που την ξαναφτιάχνει με μία εντολή, ώστε κάθε αλλαγή σε πρότυπο να φαίνεται αμέσως.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="queued" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">Μένουν από τον γύρο της 16–17 Σεπτεμβρίου και τη Φάση 1</span>
+      <span class="pill est">7 μένουν &middot; 1 έγινε</span>
+      <span class="m-days">~13–16 <span class="unit">h</span></span>
+    </summary>
+    <div class="weight"><span style="width:3%"></span></div>
+    <div class="m-body">
+      <ul class="tasks">
+        <li><span class="k">&mdash;</span><span class="t">Φόρμα εκδρομής σε πέντε καρτέλες (Βασικά, Πότε φεύγει, Τιμές, Όροι, Σελίδα), με το «Πριν τη δημοσίευση» ως sidebar και έναν διακόπτη Ελληνικά/English</span><span class="h">5–7h</span><span class="d">Εγκρίθηκε στις 17 Σεπτεμβρίου (<a href="https://claude.ai/artifact/5R1Ax4oYfXn8Kd65319PgC" style="text-decoration:none">μακέτα</a>).</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Εγχειρίδιο διοργανωτή και οδηγός δοκιμών — όλα τα νέα (16–17 Σεπτ. και Φάση 1), με νέα screenshots</span><span class="h">2.5–3h</span><span class="d">Μία ενημέρωση και για τα δύο PDF αντί για δύο ξεχωριστές, με τα στιγμιότυπα ξαναφτιαγμένα από το τρέχον Kaiki.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Το PDF ερωτήσεων λογιστή/δικηγόρου, ξανά</span><span class="h">0.25h</span><span class="d">Να ξαναφτιαχτεί.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Μικρά από τη Φάση 1</span><span class="h">3–4h</span><span class="d">Αφαίρεση συγκεκριμένου επιβάτη· επιστροφή voucher στην αφαίρεση ατόμων· η έκπτωση στο email και στο παραστατικό· όριο χρήσεων κωδικού υπό ταυτόχρονες πληρωμές.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Οι λίστες στο κινητό δείχνουν ακόμη όλες τις στήλες</span><span class="h">2h</span><span class="d">Το κόψιμο στηλών ανά οθόνη αναβλήθηκε.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Οι πραγματικοί συντελεστές ΦΠΑ από τον λογιστή</span><span class="h">&mdash;</span><span class="d">Εξωτερικό: μπαίνουν στο <code>/admin</code> όταν έρθουν. Σήμερα υπάρχει προσωρινή τιμή.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Δικηγόρος για την κατάσταση επιβατών και το ναυλοσύμφωνο</span><span class="h">&mdash;</span><span class="d">Εξωτερικό.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ο έλεγχος του MySQL schema snapshot στο CI αποτυγχάνει</span><span class="h">0.25h</span><span class="d">Ξαναπαράχθηκε από το CI και είναι πράσινο.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="queued" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">Φάση 2 &mdash; κανάλια πώλησης</span>
+      <span class="pill est">5 items</span>
+      <span class="m-days">~26–39 <span class="unit">h + έγκριση</span></span>
+    </summary>
+    <div class="weight"><span style="width:0%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Εκτός του «Remaining» στην κορυφή.</strong> Οι ώρες είναι το άθροισμα των GetYourGuide, Viator και λογαριασμών γραφείων· το Click&amp;Boat θέλει πρώτα έλεγχο, και οι εγκρίσεις των πλατφορμών δεν μετριούνται σε ώρες.</p>
+      <ul class="tasks">
+        <li><span class="k">&mdash;</span><span class="t">GetYourGuide</span><span class="h">8–12h</span><span class="d">Συν την έγκριση από το GetYourGuide.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Viator</span><span class="h">8–12h</span><span class="d">Συν την έγκριση από το Viator.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Click&amp;Boat</span><span class="h">&mdash;</span><span class="d">Πιθανώς μέσω iCal &mdash; θέλει έλεγχο.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Λογαριασμοί γραφείων</span><span class="h">10–15h</span><span class="d">Με δικές τους τιμές ή προμήθεια.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Εναλλακτικά: Bókun</span><span class="h">&mdash;</span><span class="d">Εναλλακτική διαδρομή για τα κανάλια.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="active" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">M7</span>
+      <span class="m-title">SaaS — billing, super-admin, setup wizard, importer</span>
+      <span class="pill active">5 από 7 — μένουν οι συνδρομές Viva</span>
+      <span class="m-days">3–4 <span class="unit">h left</span></span>
+    </summary>
+    <div class="weight"><span style="width:75%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>The milestone that turns a product into a business.</strong> Everything before it builds what an operator uses; this is what happens around them — how they sign up, what they pay, what stops when they stop paying, and what the platform can see across all of them.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Δεν είναι πια μπλοκαρισμένο.</strong> Ο πάροχος αποφασίστηκε στις 8 Σεπτεμβρίου: <strong>Viva Wallet</strong> και για τις συνδρομές των διοργανωτών (ADR-0028, τροποποιημένο) — ο ίδιος πάροχος που ήδη χρησιμοποιούν για τους επισκέπτες τους. Το κόστος αυτής της επιλογής το λέει η ίδια η απόφαση: <em>οι χρεώσεις που αποτυγχάνουν, οι αναλογικές χρεώσεις και οι αλλαγές πακέτου είναι δικά μας να γραφτούν</em>, γιατί το Laravel Cashier μιλάει μόνο Stripe και Paddle.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Μένει μία δική σας απόφαση,</strong> και δεν μπλοκάρει κώδικα — μπλοκάρει τον πίνακα των πακέτων: <strong>αν η πλήρης ιστοσελίδα είναι πληρωμένο πακέτο</strong>, και τι περιλαμβάνει το καθένα. Το ADR-0029 λύνει τη <em>μορφή</em> του διακόπτη· οι τιμές είναι δικές σας. Το ίδιο και ένας <strong>λογαριασμός Viva για το ίδιο το Kaiki</strong> — χρειάζεται μόνο για τη χρέωση, όχι για το πρώτο μισό του M7.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>11 Σεπτεμβρίου &mdash; το πρώτο μισό έκλεισε.</strong> Τα όρια ελέγχονται πλέον στη δημιουργία, και η ιστοσελίδα σε τρεις καταστάσεις αποδείχτηκε ήδη χτισμένη. Μένουν ο πίνακας της πλατφόρμας και η μεταφορά από WooCommerce, που δεν περιμένουν τίποτα, και οι συνδρομές, που περιμένουν λογαριασμό Viva για το Kaiki. Το κείμενο που ακολουθεί είναι η κατάσταση πριν: <strong>Το πρώτο μισό δεν περιμένει τίποτα.</strong> Το <code>app/Enums/Plan.php</code> έχει τρεις κανόνες — όριο σκαφών, δικό σου domain, webhooks — και <strong>κανέναν που να τους εφαρμόζει</strong>, από το M0: σήμερα ένας διοργανωτής στο μικρότερο πακέτο φτιάχνει δέκα σκάφη και κανείς δεν τον σταματάει. Ένας τιμοκατάλογος που δεν επιβάλλεται είναι μια σελίδα τιμών που δεν ισχύει.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Το #51 παραδόθηκε στις 10 Σεπτεμβρίου, τραβηγμένο μπροστά.</strong> Και η στήλη <code>tenants.default_vat_rate_id</code> <em>δεν είχε μπει ποτέ</em>: το ίδιο το issue, γραμμένο στις 4 Σεπτεμβρίου, έλεγε ρητά ότι «πρέπει να προσγειωθεί στο M1» &mdash; γιατί ο κανόνας §6 απαγορεύει migration που προσθέτει <em>ξένο κλειδί</em> σε υπάρχοντα πίνακα, και η SQLite δεν το κάνει. Δεν το πρόσεξε κανείς επειδή τίποτα δεν τη χρησιμοποιούσε. Μπήκε τώρα χωρίς να χρειαστεί ξαναχτίσιμο του πίνακα, γιατί <strong>ο κανόνας αφορά τα ξένα κλειδιά και αυτή είναι απλή ευρετηριασμένη στήλη χωρίς κλειδί</strong>: οι συντελεστές ΦΠΑ είναι δεδομένα της πλατφόρμας που αποσύρονται με σημαία αντί να διαγράφονται, οπότε δεν υπάρχει διαγραφή για να επιβάλει ένα constraint.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Ο οδηγός δεν ξαναφτιάχνει φόρμες που υπάρχουν.</strong> Τρία από τα έξι βήματα &mdash; εμφάνιση, σκάφος, εκδρομή &mdash; έχουν ήδη σωστή οθόνη με τους δικούς τους ελέγχους, οπότε ο οδηγός στέλνει εκεί και τσεκάρεται μόνος του από τα δεδομένα όταν γυρίσετε. Κανένα βήμα δεν είναι αποθηκευμένος δείκτης: αν προσθέσετε σκάφος από τη δική του οθόνη χωρίς να ανοίξετε ποτέ τον οδηγό, το βήμα είναι ήδη τελειωμένο.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Τα όρια των πακέτων, επιτέλους επιβαλλόμενα</span><span class="h">1.5h</span><span class="d">Παραδόθηκε στις 11 Σεπτεμβρίου. Η λίστα σκαφών λέει «Έχετε 3 από 5»· στο όριο το «Νέο» γίνεται «Αναβάθμιση πακέτου». Domain και webhooks μόνο στο Pro. <strong>Ό,τι έχει ήδη ένας διοργανωτής δεν σβήνεται ποτέ</strong> &mdash; ένα domain που δουλεύει συνεχίζει να δουλεύει μετά από υποβάθμιση. Οι αριθμοί είναι του M0 και αλλάζουν με μία γραμμή.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">ADR-0029 — η ιστοσελίδα σε τρεις καταστάσεις</span><span class="h">&mdash;</span><span class="d"><strong>Ήταν ήδη χτισμένο</strong>, από τις 9 Σεπτεμβρίου μαζί με τη σελίδα ολοκλήρωσης κράτησης, και αυτή η σελίδα δεν το είχε σημειώσει. <strong>Τροποποιήθηκε στις 11 Σεπτεμβρίου:</strong> δύο καταστάσεις, όχι τρεις &mdash; <em>πλήρης ιστοσελίδα</em> ή <em>μόνο σελίδες κρατήσεων</em>. Η «καμία σελίδα» καταργήθηκε, όπως δεν υπάρχει ούτε στο WebHotelier ούτε στο FareHarbor. Την επιλέγει <strong>η πλατφόρμα στο /admin</strong>, όχι ο διοργανωτής. Μένει μόνο η δική σας απόφαση: αν η πλήρης θα είναι πληρωμένο πακέτο.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #51</span><span class="t">Οδηγός πρώτης ρύθμισης</span><span class="h">2.5h</span><span class="d">Παραδόθηκε στις 10 Σεπτεμβρίου. Έξι βήματα, καθένα <em>παραλείψιμο</em>, με τη λίστα να μένει στον Πίνακα ελέγχου — και όχι παράθυρο που πρέπει να κλείσετε. Πρώτος στο μενού όσο μένει κάτι ανοιχτό, και <strong>φεύγει εντελώς</strong> μόλις ολοκληρωθεί.</span></li>
+        <li><span class="k">—</span><span class="t">Συνδρομές μέσω Viva — δοκιμή, χρέωση, αποτυχία χρέωσης</span><span class="h">3h</span><span class="d">Χρειάζεται λογαριασμό Viva για το ίδιο το Kaiki. Χωρίς έτοιμο πακέτο: τα γράφουμε εμείς.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Πίνακας πλατφόρμας &mdash; υγεία, ανακοινώσεις, διακόπτες</span><span class="h">1.5h</span><span class="d">Παραδόθηκε στις 11 Σεπτεμβρίου. «Υγεία πλατφόρμας»: η ουρά, οι αποτυχημένες εργασίες, και ποιος διοργανωτής έχει ανοιχτό πρόβλημα με ΑΑΔΕ, πληρωμές ή ημερολόγια. <strong>Ανακοινώσεις</strong> πάνω σε κάθε σελίδα κάθε διοργανωτή, που ο καθένας κλείνει μόνος του. Διακόπτες ανά διοργανωτή (ξεκίνησε με το QR). <strong>Χωρίς κουμπί «ξανά» για τις αποτυχημένες εργασίες</strong>: κάθε ενέργεια της πλατφόρμας πρέπει να καταγράφεται, και το ιστορικό σήμερα ανήκει μόνο σε διοργανωτές. Η <strong>είσοδος ως πελάτης</strong> περιμένει ακόμη το ADR-0024 (2FA).</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">WooCommerce / YITH importer &mdash; από αρχεία</span><span class="h">2.5h</span><span class="d">Παραδόθηκε στις 11 Σεπτεμβρίου. Εξαγωγή WordPress και CSV του YITH &rarr; δοκιμαστική εκτέλεση &rarr; <strong>οθόνη ελέγχου</strong> με το τι γίνεται με κάθε εγγραφή και γιατί &rarr; «Εισαγωγή». Εκδρομές ως πρόχειρα, μόνο οι επόμενες κρατήσεις, κανένα email σε επιβάτη, χωρίς διπλά αν ξανατρέξει. <strong>Μένει</strong> η σύνδεση με κλειδιά API σε ζωντανό WordPress, και ένας έλεγχος με πραγματικό αρχείο YITH.</span></li>
+        <li class="is-done"><span class="k tick">✓ #55</span><span class="t">Operator manual EL/EN, with a PDF export</span><span class="h">2h</span><span class="d">Παραδόθηκε στις 8 Σεπτεμβρίου — ελληνικά και αγγλικά, PDF, 40 στιγμιότυπα.</span></li>
+        <li><span class="k">—</span><span class="t">Ιστότοπος τεκμηρίωσης (SAA-16)</span><span class="h">—</span><span class="d"><strong>Εκτός M7.</strong> Το #55 έδωσε ήδη το εγχειρίδιο· ο ξεχωριστός ιστότοπος αναβάλλεται αντί να ανοίξει ADR για 1,25 ώρα.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="active">
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">M4</span>
+      <span class="m-title">WordPress plugin — shortcodes, blocks, Elementor, SEO sync</span>
+      <span class="pill active">#117 δοκιμάστηκε &mdash; μένει η έκδοση</span>
+      <span class="m-days">~1 <span class="unit">h left</span></span>
+    </summary>
+    <div class="weight"><span style="width:94%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0">Paste a shortcode, drop a block or drag an Elementor widget, and take a booking. All three produce the same markup, because the blocks and the widgets call the shortcode rather than reimplementing it.</p>
+      <p class="section-note" style="margin:.6rem 0 0">It targets <strong>PHP 8.1</strong>, not the 8.4 everything else runs, because that is what Greek shared hosting gives you &mdash; so it has its own linter and its own CI job. The security rule the rest leans on: a standard installation stores a public key and nothing else, and a scanner names the three files allowed to read the secret one and fails on a fourth.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>#116 had to build the endpoint it syncs from.</strong> <code>GET /api/v1/sync/products</code> had been fully specified since M0 and never implemented, so the feature had nothing to read. Throughout: <strong>unpublish, trash, never delete</strong> &mdash; a trip you switch off for the winter keeps its address and its ranking, and removing the plugin removes its settings, not your pages.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>16 Σεπτεμβρίου &mdash; το πραγματικό WordPress ήρθε</strong> (<code>kaiki.local</code>, Elementor, πλήρης ιστοσελίδα επίδειξης για την Aegean Blue) <strong>και βρήκε δύο λάθη που καμία σουίτα δεν έβλεπε.</strong> Κάθε σελίδα με widget του Kaiki στο Elementor <em>κράσαρε</em> όταν αποθηκευόταν: το Elementor ξαναφτιάχνει κάθε widget με τον δικό του constructor, και η κλάση μας ζητούσε άλλον. Και ένα κλειδί με λίστα επιτρεπόμενων ιστοσελίδων αρνείται τις κλήσεις του ίδιου του πρόσθετου από τον διακομιστή, γιατί εκείνες δεν στέλνουν <code>Origin</code> &mdash; <strong>διορθώθηκε την ίδια μέρα</strong>: το πρόσθετο λέει πια ποια ιστοσελίδα ρωτά. Το πρόσθετο πήρε μετά ολόκληρη σελίδα εκδρομής σε widgets, έτοιμο πρότυπο, στόλο και νέες ρυθμίσεις (βλ. τη ζώνη της 16ης πιο κάτω).</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">✓ #112</span><span class="t">Plugin skeleton, settings, and the key that must never reach a browser</span><span class="h">22m</span><span class="d">Ο σκελετός του πρόσθετου WordPress, οι ρυθμίσεις του, και ο κανόνας που κρατά το μυστικό κλειδί μακριά από κάθε σελίδα.</span></li>
+        <li class="is-done"><span class="k tick">✓ #113</span><span class="t">The API client, the cache, and the webhook that busts it</span><span class="h">14m</span><span class="d">Ο τρόπος με τον οποίο το πρόσθετο μιλάει στο Kaiki, και πώς μαθαίνει ότι κάτι άλλαξε.</span></li>
+        <li class="is-done"><span class="k tick">✓ #114</span><span class="t">The four shortcodes, loading the bundle only where it is needed</span><span class="h">8m</span><span class="d">Σύντομοι κωδικοί για να μπει η κράτηση σε οποιαδήποτε σελίδα WordPress.</span></li>
+        <li class="is-done"><span class="k tick">✓ #115</span><span class="t">Gutenberg blocks and Elementor widgets, through the same shortcode</span><span class="h">9m</span><span class="d">Μπλοκ για τον επεξεργαστή του WordPress και widgets για το Elementor, με ποντίκι αντί για κώδικα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #116</span><span class="t">The SEO trip pages, and the only secret key the plugin may hold</span><span class="h">1.25h</span><span class="d">Οι εκδρομές γίνονται κανονικές σελίδες WordPress, ώστε να τις βρίσκει η Google.</span></li>
+        <li><span class="k">#117</span><span class="t">The run against a real WordPress site, and the release</span><span class="h">~0.5h left</span><span class="d"><strong>Η δοκιμή έγινε</strong> στις 16 Σεπτεμβρίου σε <code>kaiki.local</code>, τα κλειδιά με λίστα ιστοσελίδων διορθώθηκαν, και το zip φτιάχνεται πια με μία εντολή (<code>npm run plugin:zip</code>, ελέγχει ότι οι αριθμοί έκδοσης συμφωνούν). Μένουν: οι «Άμεσες ενημερώσεις» (η υπογραφή του webhook και γεγονότα αλλαγής εκδρομών &mdash; σε εξέλιξη), και ένα τρέξιμο από το μηδέν σε καθαρό WordPress με μόνο το zip.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">M5</span>
+      <span class="m-title">Operations — dashboard, vessel calendar, manifests, iCal, webhooks</span>
+      <span class="pill done">12 of 12 built</span>
+      <span class="m-days">done</span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0">The screens an operator lives in once bookings arrive. Most of the machinery existed already &mdash; M1 and M2 built the booking, the cancellation, the vouchers and the iCal tables &mdash; so the work is the <strong>operator-facing half</strong>: the screens, the files, the feeds and the outbound calls.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Two were genuinely new.</strong> Outbound webhooks had no tables at all. The consolidated error feed can only be built last, because it consolidates the failures the earlier issues create.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Three things found along the way that were wrong before this milestone started:</strong> a cash booking taken on the telephone had no way to be marked paid, so every one of them stayed unpaid for ever; an iCal URL had been stored unencrypted since M1, because nothing had ever read the column; and the manifest head count would have been short by exactly the number of babies, which the coastguard would have noticed and you would not.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Two more of the same shape since.</strong> The voucher engine had worked since M2 with no screen to see it and no clock to expire it &mdash; the sweep now runs against each operator&rsquo;s own day rather than UTC&rsquo;s, which is three hours of a guest being told their credit expired on a date their calendar says has not arrived. And every failure in the product now lands in one feed, built as a view over six tables rather than a seventh, with a retry button only where pressing one would actually do something.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Το τελευταίο ζευγάρι.</strong> Η επιβίβαση δουλεύει πλέον χωρίς σήμα &mdash; οι σαρώσεις μπαίνουν σε ουρά στο ίδιο το κινητό και φεύγουν μαζί μόλις επανέλθει το δίκτυο, και το ίδιο εισιτήριο δύο φορές το λέει καθαρά αντί να βγάλει σφάλμα. Και ο έλεγχος σε οθόνη κινητού βρήκε δύο πράγματα που κανείς δεν είχε δει, γιατί εμφανίζονταν μόνο την <em>πρώτη</em> φορά ή μόνο με δάχτυλο: το μενού άνοιγε πάνω από τη σελίδα στην πρώτη είσοδο, και τα κουμπιά της κάθε γραμμής ήταν 20 εικονοστοιχεία &mdash; κάτω από το ελάχιστο που πιάνει ένας αντίχειρας. Και τα δύο διορθώθηκαν.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003; #118</span><span class="t">The dashboard, and a precise definition behind every figure</span><span class="h">1h</span><span class="d">Η πρώτη οθόνη κάθε πρωί &mdash; και ο ακριβής ορισμός πίσω από κάθε νούμερο, γιατί ένα νούμερο που δεν εξηγείται είναι ένα νούμερο που δεν το εμπιστεύεται κανείς.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #119</span><span class="t">The vessel calendar, with the turnaround buffer drawn</span><span class="h">1.25h</span><span class="d">Το ημερολόγιο των σκαφών, με ορατό το κενό μεταξύ δρομολογίων &mdash; αλλιώς το &laquo;γιατί δεν με αφήνει να κλείσω;&raquo; γίνεται τηλεφώνημα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #120</span><span class="t">Manual bookings, and marking one paid</span><span class="h">0.75h</span><span class="d">Η κράτηση από τηλέφωνο, και η εξόφληση με μετρητά ή κατάθεση.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #121</span><span class="t">Weather cancellation: preview, then one confirmed action</span><span class="h">1h</span><span class="d">Ακύρωση λόγω καιρού: πρώτα βλέπετε ποιος παίρνει τι, μετά το στέλνετε &mdash; μία φορά.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #122</span><span class="t">Manifests, and the document numbers that need a reason</span><span class="h">1h</span><span class="d">Κατάσταση επιβατών για το λιμεναρχείο &mdash; και οι αριθμοί ταυτότητας, που καταγράφεται ποιος τους έβγαλε και πότε.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #123</span><span class="t">The bookings and guests CSVs, and a link that expires properly</span><span class="h">1.5h</span><span class="d">Οι δύο εξαγωγές που ζητά ο λογιστής &mdash; κρατήσεις και επιβάτες &mdash; με σύνδεσμο που λήγει σε 24 ώρες και αρχείο που διαγράφεται μαζί του. Αριθμοί διαβατηρίου δεν μπαίνουν ποτέ.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #124</span><span class="t">iCal out, and iCal in</span><span class="h">1h</span><span class="d">Συγχρονισμός ημερολογίου με άλλες πλατφόρμες &mdash; χωρίς κανένα στοιχείο επισκέπτη να φεύγει έξω.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #125</span><span class="t">Outbound webhooks, signed, retried, and visible</span><span class="h">1h</span><span class="d">Ειδοποιήσεις προς άλλα συστήματα, υπογεγραμμένες και με ιστορικό παραδόσεων.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #126</span><span class="t">Vouchers in the panel, and the code the widget accepts</span><span class="h">0.75h</span><span class="d">Κουπόνια: έκδοση, λίστα, εξαργύρωση &mdash; και η υπενθύμιση πριν λήξουν, που μετατρέπει μια επιστροφή σε επόμενη κράτηση.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #127</span><span class="t">One feed for every failure an operator can see</span><span class="h">0.75h</span><span class="d">Μία λίστα με ό,τι απέτυχε, στα ελληνικά, με κουμπί επανάληψης.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #128</span><span class="t">Check-in that survives a bad signal</span><span class="h">0.75h</span><span class="d">Επιβίβαση με μία μπάρα σήμα: οι σαρώσεις μπαίνουν σε ουρά και συγχρονίζονται μόλις επανέλθει.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #129</span><span class="t">The back office on a phone, proven rather than asserted</span><span class="h">1h</span><span class="d">Απόδειξη ότι ο πίνακας δουλεύει σε κινητό &mdash; και δύο πράγματα που δεν δούλευαν, διορθωμένα: το μενού άνοιγε πάνω από τη σελίδα στην πρώτη είσοδο, και τα κουμπιά της κάθε γραμμής ήταν πολύ μικρά για δάχτυλο.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done">
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">Το εγχειρίδιο &mdash; και τα τέσσερα κενά που βρήκε</span>
+      <span class="pill done">παραδόθηκε</span>
+      <span class="m-days">3.5 <span class="unit">h</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0">Πλήρες εγχειρίδιο σε PDF: εννέα μέρη, 40 πραγματικές οθόνες, στα ελληνικά, με ένα κεφάλαιο για ό,τι <strong>δεν</strong> έχει φτιαχτεί ακόμη. Οι εικόνες τραβιούνται αυτόματα από ένα τρέχον Kaiki, οπότε το βιβλίο ξαναβγαίνει ενημερωμένο με δύο εντολές αντί να παλιώνει σιωπηλά.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Και το γράψιμό του βρήκε έξι πράγματα που δεν έπρεπε να είναι έτσι.</strong> Το κεφάλαιο «ποιος βλέπει τι» έπρεπε να γράψει έναν πίνακα με μία απάντηση ανά οθόνη &mdash; και δεν υπήρχε μία. Ο πίνακας ελέγχου έδειχνε τζίρο και οφειλές στο πλήρωμα· η λίστα κρατήσεων ήταν ανοιχτή σε ολόκληρο το ιστορικό, με ονόματα, email και τηλέφωνα· το ημερολόγιο γύριζε πίσω μια σεζόν· και το όνομα κάθε χρήστη έφευγε σε ξένη υπηρεσία σε κάθε φόρτωση σελίδας. Όλα διορθωμένα, με τεστ.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Και δύο που έλειπαν εντελώς.</strong> Το κεφάλαιο «ποιος βλέπει τι» έπρεπε να εξηγήσει πώς αποκτά κάποιος ρόλο &mdash; και δεν υπήρχε οθόνη για να δώσει ο ιδιοκτήτης λογαριασμό σε συνεργάτη· ούτε «ξέχασα τον κωδικό μου» σε κανέναν από τους δύο πίνακες. Και τα δύο υπήρχαν μόνο ως δικαιώματα και κείμενα από το M0, χωρίς οθόνη. Φτιάχτηκαν.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Το εγχειρίδιο του διοργανωτή, σε PDF</span><span class="h">1.5h</span><span class="d">Εννέα μέρη, 40 οθόνες, ένα κεφάλαιο για ό,τι έρχεται &mdash; και αυτόματη παραγωγή, ώστε να μην παλιώνει.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">TEN-8 σε κάθε οθόνη, όχι σε μία</span><span class="h">1h</span><span class="d">Το παράθυρο του πληρώματος ζει πλέον σε ένα σημείο και το εφαρμόζουν και οι τρεις οθόνες. Τα οικονομικά νούμερα θέλουν δικαίωμα. Το εικονίδιο χρήστη σχεδιάζεται τοπικά.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η οθόνη «Ομάδα» &mdash; και το «ξέχασα τον κωδικό μου»</span><span class="h">1h</span><span class="d">Δεν υπήρχε τρόπος να δώσετε λογαριασμό σε συνεργάτη· ούτε να ξαναμπείτε αν ξεχνούσατε τον κωδικό σας. Και τα δύο μόνο από τη βάση δεδομένων, από το M0 μέχρι σήμερα.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done">
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">8 Σεπτεμβρίου &mdash; design pass στις σελίδες των επισκεπτών, και εικόνα σε κάθε εκδρομή</span>
+      <span class="pill done">παραδόθηκε</span>
+      <span class="m-days">5 <span class="unit">h</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Δέκα πράγματα λάθος κατά λίγα pixel ή κατά μία λέξη</strong>, βρεμένα με μέτρηση της σελίδας και όχι με ανάγνωση του κώδικα. Η μπάρα αναζήτησης είχε τέσσερα διαφορετικά ύψη. Μια κάρτα χωρίς τιμή είχε τη γραμμή της 43 pixel πιο κάτω από τις διπλανές. Το footer τύπωνε «ΔΟΥ: ΔΟΥ Πειραιά». Η σελίδα εκδρομής έδειχνε τα ίδια τέσσερα στοιχεία δύο φορές, 470 pixel μακριά &mdash; και το δεύτερο αντίγραφο ζούσε μέσα στο widget, οπότε κανένα τεστ δεν μπορούσε να το δει.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Και η ίδια πρόταση δύο φορές.</strong> Αν γράψετε το ίδιο κείμενο στην «Περίληψη» και στην «Περιγραφή» &mdash; απολύτως λογικό την πρώτη φορά &mdash; η σελίδα το τύπωνε δύο φορές κάτω από τίτλο που υποσχόταν περισσότερα.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Οι εικόνες είναι σχεδιασμένες, όχι κατεβασμένες.</strong> Δεκαέξι φωτογραφίες stock χωρίς άδεια μέσα στο repository είναι ευθύνη, όχι διακόσμηση. Παράγονται από κώδικα &mdash; πέντε ώρες της ημέρας, πέντε σκάφη, νησιά, κύμα, αντανάκλαση &mdash; και φαίνεται ότι είναι σχέδια, που είναι και το τίμιο για δεδομένα επίδειξης. Μόλις ανεβάσει ο διοργανωτής δική του φωτογραφία, αυτή δείχνει η σελίδα.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Design pass &mdash; κενά, paddings, τυπογραφία</span><span class="h">1.25h</span><span class="d">Δέκα διορθώσεις στις σελίδες που βλέπει ο πελάτης: ύψη πεδίων, κάρτες στην ίδια γραμμή, hero σε ένα μέτρο και στο κέντρο, η αναζήτηση χωρίς τα τρία μεγάλα κενά της, και δύο φόρμες που έλεγαν «Ηλ. ταχυδρομείο».</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #132</span><span class="t">Εικόνα σε κάθε εκδρομή</span><span class="h">1h</span><span class="d">Και οι 21 εκδρομές της επίδειξης, μαζί με τις τρεις φωτογραφίες της αρχικής σελίδας &mdash; που υπήρχαν σε έναν μόνο υπολογιστή και πουθενά αλλού, οπότε μια καθαρή εγκατάσταση έβγαζε σελίδα χωρίς καμία.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η σελίδα εισόδου του πίνακα &mdash; 500</span><span class="h">0.25h</span><span class="d">Το νούμερο δίπλα στα «Παραστατικά» ρωτούσε τη βάση και στη σελίδα εισόδου, όπου δεν υπάρχει διοργανωτής: ο πίνακας ήταν απρόσιτος για όλους. Τρίτη φορά στο ίδιο σημείο &mdash; τώρα υπάρχει τεστ που τα ελέγχει όλα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η σελίδα εκδρομής τυπωνόταν πάνω από το header</span><span class="h">0.5h</span><span class="d">Δικό μου, από την προηγούμενη νύχτα: το breadcrumb ακύρωνε ένα κενό που είχε αλλάξει, και τραβούσε ολόκληρο το άρθρο 42 pixel ψηλότερα. Τώρα το κενό ανήκει μόνο στον περιέκτη, και υπάρχει έλεγχος σε φυλλομετρητή &mdash; τίποτα από αυτά δεν φαίνεται σε τεστ που δεν ανοίγει σελίδα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Το κουτί κράτησης ξαναχτίστηκε</span><span class="h">1.25h</span><span class="d">Ήταν 816 pixel ύψος με το ημερολόγιο στον πάτο, και ήταν κουτί μέσα σε κουτί: το widget ζωγράφιζε δικό του πλαίσιο μέσα στην κάρτα της σελίδας. Τώρα ένα πλαίσιο, τιμή πρώτη, φόρμα, και οι απαντήσεις πτυσσόμενες από κάτω &mdash; 628 pixel.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Τέσσερα στοιχεία από τη μακέτα της αρχικής</span><span class="h">0.75h</span><span class="d">Γραμμή κάτω από τους τίτλους ενοτήτων, «Δείτε όλες τις εκδρομές» δίπλα τους, εικονίδια στις κάρτες και στα φίλτρα, και το όνομα του διοργανωτή πάνω από τα «Ποιοι είμαστε» και «Πού θα μας βρείτε».</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done">
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">9 Σεπτεμβρίου &mdash; ο χάρτης που ήταν γκρίζο κενό, και δύο ακόμη περάσματα</span>
+      <span class="pill done">παραδόθηκε</span>
+      <span class="m-days">3 <span class="unit">h</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Ο χάρτης &laquo;Πού συναντιόμαστε&raquo; ήταν ένα γκρίζο κενό σε κάθε σελίδα εκδρομής &mdash; και κανένα τεστ δεν το έβλεπε.</strong> Η διεύθυνση της Google που χρησιμοποιούσε από το M3 δεν υπάρχει πια: ανακατευθύνει σε σελίδα που απαντά <em>404</em> και απαγορεύει ρητά να εμφανιστεί μέσα σε άλλη σελίδα. Έξι έλεγχοι περνούσαν κανονικά, ο browser δεν έγραφε κανένα σφάλμα, και το μόνο που το έδειξε ήταν να κατέβει κανείς τη σελίδα με το μάτι.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Καμία σουίτα τεστ δεν καταλαβαίνει ότι κάποιος τρίτος άλλαξε γνώμη.</strong> Αυτό γράφτηκε πλέον στην κορυφή του αρχείου των τεστ, αντί να το μάθουμε δεύτερη φορά. Η λύση της Google θέλει κλειδί &mdash; δηλαδή διαπιστευτήριο της πλατφόρμας μέσα στη σελίδα κάθε διοργανωτή και χρέωση ανά εμφάνιση για μια στατική εικόνα μαρίνας. Ο χάρτης είναι τώρα OpenStreetMap: χωρίς κλειδί, φτιαγμένος για να μπαίνει σε σελίδες, χωρίς κόστος.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Και τα αποτελέσματα της αναζήτησης δεν ήταν κάρτες &mdash; μόνο το CSS νόμιζε ότι ήταν.</strong> Η σελίδα ζωγράφιζε δικό της κομμάτι με το ίδιο όνομα κλάσης και τίποτε από τη δομή: κείμενο κολλημένο στην άκρη, καμία φωτογραφία σε ιστότοπο όπου κάθε άλλη εκδρομή έχει, κανένα κουμπί. Όποιος έψαχνε κατέληγε σε φτωχότερη εκδοχή του καταλόγου που μόλις είχε αφήσει.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ο χάρτης του σημείου συνάντησης</span><span class="h">1h</span><span class="d">Από γκρίζο κενό σε χάρτη που δείχνει τη μαρίνα και τους δρόμους που φτάνουν σε αυτήν. Διεύθυνση χωρίς συντεταγμένες δεν σχεδιάζεται πια &mdash; κρατά τον σύνδεσμό της, γιατί τίποτα είναι καλύτερο από σπασμένο κουτί στο σημείο που λέει στον επισκέπτη πού να σταθεί στις εννιά το πρωί.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η κεφαλή της σελίδας εκδρομής, από τη μακέτα</span><span class="h">1h</span><span class="d">Τα πέντε στοιχεία ήταν μία αράδα με τελείες &mdash; μια πρόταση που πρέπει να διαβαστεί ολόκληρη για να βρεθεί το ένα που ήρθε να δει ο επισκέπτης. Τώρα το καθένα κάτω από το εικονίδιό του, πάνω από τον τίτλο. Τα εικονίδια ξανασχεδιάστηκαν: το παλιό &laquo;άτομα&raquo; ήταν μια φιγούρα με ένα συν δίπλα &mdash; που παντού αλλού σημαίνει <em>πρόσθεσε χρήστη</em>. Και η πολιτική ακύρωσης έγινε η τελευταία συχνή ερώτηση αντί για ενότητα που τυπωνόταν σε όποιον δεν ρώτησε.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Τα αποτελέσματα της αναζήτησης</span><span class="h">1h</span><span class="d">Ίδια κάρτα με όλον τον ιστότοπο &mdash; με φωτογραφία, κουμπί, την τιμή <em>της παρέας σας</em> και την ώρα που φεύγει το σκάφος. Και το πλέγμα δεν τεντώνει δύο αποτελέσματα σε δύο τεράστιες κάρτες.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="active" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">11 Σεπτεμβρίου &mdash; ό,τι δεν χρειάζεται μια μικρή επιχείρηση, και οι ρυθμίσεις σε κουτιά</span>
+      <span class="pill done">14 από 14 παραδόθηκαν</span>
+      <span class="m-days">~10 <span class="unit">h</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Η ερώτηση ήταν: τι δεν θα χρησιμοποιούσε ποτέ ένας διοργανωτής με ένα σκάφος και εκδρομές «στη γωνία»;</strong> Η πρόταση χωρίζει τη λίστα σε δύο: ό,τι μπορεί να κρυφτεί <em>μόνο του</em> όταν δεν ισχύει (στόλος με ένα σκάφος, προσφορές χωρίς εκδρομή κατόπιν ζήτησης, ναυλοσύμφωνο χωρίς ναύλωση ολόκληρου σκάφους) και ό,τι θέλει διακόπτη (κουπόνια, iCal, κλειδιά API, σεζόν και τιμοκατάλογοι). Τα παραστατικά και η πολιτική ακύρωσης <strong>δεν</strong> γίνονται προαιρετικά &mdash; τα απαιτεί ο νόμος.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Πρώτο βγήκε το QR, και ο διακόπτης είναι δικός σας, όχι του διοργανωτή</strong> &mdash; στο <code>/admin</code>, δίπλα στο πακέτο, με αιτιολογία στο ιστορικό. Κλειστό σημαίνει ταυτόχρονα: εισιτήριο χωρίς QR, καμία σελίδα σάρωσης, και «Επιβίβαση» ως λίστα με ένα πάτημα ανά όνομα. Ανοιχτό για όσους υπάρχουν, γιατί υπάρχουν ήδη εισιτήρια με QR σε τσάντες επιβατών.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Επιβίβαση με QR &mdash; διακόπτης της πλατφόρμας ανά διοργανωτή</span><span class="h">1h</span><span class="d">Εισιτήριο, σελίδα χωρίς σήμα, σελίδα επιβίβασης και οθόνη διαχείρισης &mdash; όλα από μία στήλη, με έξι τεστ.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Οι ρυθμίσεις του διοργανωτή σε κουτιά</span><span class="h">1.5h</span><span class="d">Ένα «Ρυθμίσεις» <strong>κάτω κάτω στο αριστερό μενού</strong>, και μέσα δεκαπέντε <strong>τετράγωνα κουτιά</strong> σε τέσσερις ενότητες, τέσσερα ανά σειρά (δύο στο κινητό), με εικονίδιο, τίτλο και μισή πρόταση. Τρεις εκδοχές σε μία μέρα &mdash; φαρδιές κάρτες, μεγαλύτερες ανά τρεις, τετράγωνα ανά τέσσερα &mdash; η καθεμία αφού είδατε την προηγούμενη. Ο καθένας βλέπει μόνο όσα του επιτρέπει ο ρόλος του, και οι διευθύνσεις των οθονών δεν άλλαξαν.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Επιβίβαση χωρίς QR &mdash; τα δύο κενά</span><span class="h">1h</span><span class="d">Βρέθηκαν εξηγώντας την επιβίβαση βήμα-βήμα. Η σελίδα χωρίς σήμα είχε κλείσει μαζί με το QR &mdash; τώρα μένει για όλους, με κουμπί «Επιβίβαση» δίπλα σε κάθε όνομα που μπαίνει σε ουρά όπως μια σάρωση. Και η πρόωρη επιβίβαση υπήρχε μόνο δίπλα σε σκαναρισμένο εισιτήριο: τώρα είναι σε κάθε γραμμή της λίστας, πριν ανοίξει η επιβίβαση.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Πέντε μικρές διορθώσεις σε ό,τι φαίνεται</span><span class="h">0.5h</span><span class="d">Βρέθηκαν από τα στιγμιότυπα του εγχειριδίου. Σωστά ελληνικά σε κάθε κουμπί και τίτλο («Προσθήκη», «Νέα εγγραφή: Ανακοίνωση», «Αποθήκευση και νέα εγγραφή» αντί για «Προσθήκη Ανακοίνωση» και «Δημιούργησε &amp; Δημιούργησε ακόμα ένα»)· ο κωδικός στην «Υγεία πλατφόρμας» δεν κόβεται· ελληνική ημερομηνία και σωστό σύνολο στις εισαγωγές· και ο πίνακας δεν ζητά πια γραμματοσειρά από εξωτερική υπηρεσία.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Εγχειρίδιο και οδηγός δοκιμών, ενημερωμένα</span><span class="h">0.5h</span><span class="d">Εγχειρίδιο 83 σελίδες (από 78), οδηγός δοκιμών 47 (από 44), με καινούργια στιγμιότυπα παντού &mdash; και τα δύο στην επιφάνεια εργασίας. Βρέθηκε και ένα παλιό λάθος: το στυλ του εγχειριδίου έκανε κεφαλαία τις ετικέτες και έσβηνε τους τόνους και στα δύο PDF. Διορθώθηκε.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ερωτήσεις για λογιστή και δικηγόρο, σε PDF</span><span class="h">&mdash;</span><span class="d">19 σελίδες στην επιφάνεια εργασίας: οκτώ ερωτήσεις για τον λογιστή (κωδικοί ΑΑΔΕ, ΦΠΑ, αρίθμηση, ταμειακή και POS, προκαταβολή, πιστωτικά, ΑΦΜ, διατήρηση αρχείων) και πέντε για τον δικηγόρο (διαβατήρια στις σύντομες εκδρομές, έντυπο και ηλεκτρονική δήλωση ναυλοσυμφώνου, διαγραφή δεδομένων, νομικά κείμενα). Μία ερώτηση ανά σελίδα, με γραμμές για την απάντηση.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η «Επεξεργασία» στη λίστα διοργανωτών έβγαζε «δεν βρέθηκε»</span><span class="h">0.25h</span><span class="d">Κάθε κουμπί «Επεξεργασία» στο <code>/admin</code> οδηγούσε σε 404: ο σύνδεσμος έφερνε τον κωδικό του διοργανωτή και η σελίδα έψαχνε με τον αριθμό του. Το ίδιο και οι σύνδεσμοι από την «Υγεία πλατφόρμας». Διορθώθηκε, με τεστ που ανοίγει τη σελίδα από τον ίδιο σύνδεσμο που φτιάχνει η λίστα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ποιες σελίδες δημοσιεύονται &mdash; δύο επιλογές, από την πλατφόρμα</span><span class="h">1h</span><span class="d">«Πλήρης ιστοσελίδα» ή «Μόνο σελίδες κρατήσεων», στην καρτέλα του διοργανωτή στο <code>/admin</code> δίπλα στο QR, με αιτιολογία στο ιστορικό του. Ο διοργανωτής τη βλέπει στο «Η ιστοσελίδα σας» χωρίς να την αλλάζει. Η «καμία σελίδα» καταργήθηκε &mdash; η πληρωμή γινόταν έτσι κι αλλιώς στο Kaiki, και ζητούσε αποδοχή όρων που βρίσκονταν σε σελίδα που η ίδια επιλογή έκλεινε.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Το ημερολόγιο στη δική σας ιστοσελίδα οδηγεί στην κράτηση</span><span class="h">1h</span><span class="d">Με <code>data-link="trip"</code> κάθε μέρα με θέσεις γίνεται κουμπί: ο επισκέπτης πηγαίνει στη σελίδα της εκδρομής στο Kaiki με την ημερομηνία ήδη επιλεγμένη, και ξεκινά από τα άτομα. Οι γεμάτες μέρες δεν πατιούνται. Χωρίς την προσθήκη, το ημερολόγιο μένει μόνο για να βλέπει κανείς. Το μοντέλο του WebHotelier.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">WordPress: η εμφάνιση ρυθμίζεται από το πρόσθετο</span><span class="h">1.5h</span><span class="d">«Όπως στο Kaiki» ή «Δικά μου»: χρώμα κουμπιών, κειμένου και φόντου, γραμματοσειρά (του θέματος ή όποια φορτώνει) και στρογγυλάδα, για όλη την ιστοσελίδα. Το χρώμα των γραμμάτων στα κουμπιά βγαίνει αυτόματα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">WordPress: πολλά shortcodes σε μία σελίδα, φωτογραφίες στη λίστα, χωρίς ημερολόγιο</span><span class="h">1h</span><span class="d">Μια σελίδα με δύο shortcodes έδειχνε μόνο το πρώτο — το βρήκε η σελίδα-δείγμα. Η λίστα δείχνει τη φωτογραφία κάθε εκδρομής. Το <code>[kaiki_calendar]</code> αφαιρέθηκε από το πρόσθετο (shortcode, block, Elementor): το κουτί κράτησης ανοίγει ήδη σε έναν μήνα διαθεσιμότητας.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Μετά την πληρωμή: επιστροφή στην ιστοσελίδα, αποτυχία, Viva</span><span class="h">1.5h</span><span class="d">«Επιστροφή στην ιστοσελίδα» στη σελίδα ολοκλήρωσης και στη σελίδα κράτησης, στη σελίδα από όπου ξεκίνησε ο επισκέπτης. Αποτυχημένη πληρωμή &rarr; πίσω στην ολοκλήρωση με τα στοιχεία συμπληρωμένα. Οι δύο σελίδες επιστροφής της Viva, με τις διευθύνσεις τους στη «Συνδέσεις».</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Δεν υπάρχουν πια υπογραμμισμένοι σύνδεσμοι</span><span class="h">0.25h</span><span class="d">Σε widget, σελίδες εκδρομών, ολοκλήρωση, κράτηση και πίνακα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Τα τεστ browser της κράτησης, για τη σημερινή ροή</span><span class="h">0.75h</span><span class="d">Τέσσερα απέτυχαν από τις 10/9, γιατί έψαχναν το παλιό πεδίο ημερομηνίας και βήμα στοιχείων. Ξαναγράφτηκαν: ημερολόγιο, άτομα, ολοκλήρωση, δοκιμαστική πληρωμή, σελίδα κράτησης — και η απορριφθείσα κάρτα που γυρνά στην ολοκλήρωση.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">«Powered by Kaiki» και στα ελληνικά· επιλογή για το όνομα του σκάφους</span><span class="h">0.5h</span><span class="d">Η γραμμή κάτω από το widget και τις σελίδες μένει στα αγγλικά. Στο πρόσθετο, το κουτάκι «Εμφάνιση του ονόματος του σκάφους»: κλειστό, το κουτί κράτησης δεν δείχνει τη γραμμή «Σκάφος» (widget 0.3.4, <code>data-vessel="hide"</code>).</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="active" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">14 Σεπτεμβρίου &mdash; στατιστικά, προαιρετική επιβίβαση, και το build ξανά πράσινο</span>
+      <span class="pill done">8 από 8 παραδόθηκαν</span>
+      <span class="m-days">~7 <span class="unit">h</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Δεν υπήρχε καμία αναφορά στο προϊόν.</strong> Ο πίνακας ελέγχου απαντά &laquo;τι γίνεται σήμερα&raquo; και τίποτα δεν απαντούσε &laquo;πώς πήγε ο Αύγουστος&raquo;, &laquo;ποια εκδρομή πουλάει&raquo; ή &laquo;ποια δρομολόγια φεύγουν μισοάδεια&raquo;. Οι προδιαγραφές δεν είχαν ούτε μία απαίτηση αναφορών.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Τρεις βάσεις, και η σελίδα λέει ποια είναι ποια.</strong> Μία περίοδος για όλα βγάζει σελίδα της οποίας οι αριθμοί διαφωνούν σιωπηλά: τα <em>έσοδα</em> είναι χρήματα που μπήκαν, οι <em>κρατήσεις</em> είναι πωλήσεις που έγιναν, η <em>πληρότητα</em> είναι σκάφη που έφυγαν. Κάθε μπλοκ το γράφει πάνω του &mdash; γιατί ο διοργανωτής θα συγκρίνει τα έσοδα με τον λογαριασμό του μία φορά, και αν δεν βγαίνουν σταματά να εμπιστεύεται όλη τη σελίδα χωρίς να το πει.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Τρία πράγματα τα βρήκε ο φυλλομετρητής και όχι τα τεστ.</strong> Οι μπάρες του γραφήματος ζωγραφίζονταν μαύρες, γιατί η κλάση χρώματος που χρησιμοποιούσαν δεν υπάρχει στο έτοιμο φύλλο στυλ του πίνακα. Τα ποσοστά γράφονταν με τελεία δύο γραμμές κάτω από το &laquo;13.496,50&nbsp;&euro;&raquo;. Και η πληρότητα μετρούσε <em>μελλοντικά</em> δρομολόγια: ένα σχεδόν γεμάτο καλοκαίρι εμφανιζόταν ως 0,4%, επειδή δεκαεννέα από τις είκοσι χιλιάδες θέσεις ήταν σε σκάφη που δεν έχουν φύγει ακόμη.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Στατιστικά &mdash; η σελίδα και οι ορισμοί της</span><span class="h">2h</span><span class="d">Έσοδα, κρατήσεις, επιβάτες, μέση κράτηση με σύγκριση· έσοδα στον χρόνο· ανά εκδρομή και ανά σκάφος· πληρότητα συνολικά, ανά μήνα και ανά εκδρομή· <strong>τα πιο άδεια δρομολόγια</strong>· από πού ήρθαν οι κρατήσεις· ακυρώσεις. Το γράφημα είναι SVG και δεν φορτώνει τίποτα &mdash; είναι σελίδα που τυπώνεται και στέλνεται σε λογιστή.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Επισκέψεις και χωνί &mdash; πρώτου προσώπου, χωρίς cookie (ADR-0032)</span><span class="h">1.5h</span><span class="d">Το widget έστελνε τα οκτώ γεγονότα του από το M3 και <em>κανείς δεν τα κατέγραφε</em>. Τώρα υπάρχει πίνακας συγκεντρωτικών &mdash; χωρίς κωδικό επισκέπτη, χωρίς IP, χωρίς μία γραμμή ανά άνθρωπο &mdash; οι επισκέψεις μετριούνται στον διακομιστή και τα βήματα με beacon. Το χωνί είναι <strong>αριθμοί</strong> και η αναλογία μεταξύ βημάτων, ποτέ &laquo;ποσοστό μετατροπής&raquo;.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ο έλεγχος επιβίβασης κλείνει ολόκληρος</span><span class="h">0.75h</span><span class="d">Ο παλιός διακόπτης έκλεινε μόνο το QR και άφηνε τη λίστα με πάτημα ανά όνομα. Τώρα υπάρχει και ο ευρύτερος: καμία από τις δύο σελίδες επιβίβασης, κανένα QR. Η κατάσταση επιβατών, η ολοκλήρωση της αναχώρησης και το κλείσιμο της κράτησης μένουν ίδια.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Βίντεο στην κορυφή από YouTube ή Vimeo &mdash; και ένα σφάλμα που ήταν πάντα εκεί</span><span class="h">1h</span><span class="d">Σύνδεσμος αντί για ανέβασμα 20&nbsp;MB, με τη φωτογραφία από κάτω για όποιον ζήτησε λιγότερη κίνηση. Ο πάροχος μπαίνει στην πολιτική ασφαλείας <em>μόνο</em> για όποιον επικόλλησε σύνδεσμο. Και: <strong>το ανεβασμένο βίντεο δεν αποθηκευόταν ποτέ</strong> &mdash; η φόρμα το ζητούσε από την πρώτη μέρα και η αποθήκευση το πετούσε.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">&laquo;Επιλεγμένες εκδρομές&raquo;, και προαιρετικές</span><span class="h">0.25h</span><span class="d">Η σειρά με τις προτεινόμενες λεγόταν &laquo;Οι εκδρομές μας&raquo;· λέγεται πια &laquo;Επιλεγμένες εκδρομές&raquo; και κλείνει με διακόπτη &mdash; τότε όλες οι εκδρομές μπαίνουν σε ένα πλέγμα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Οδηγός WordPress &mdash; καινούργιο PDF</span><span class="h">1h</span><span class="d">Οκτώ μέρη στα ελληνικά: τι είναι το πρόσθετο και τι δεν αγγίζει, εγκατάσταση και κλειδί, όλες οι ρυθμίσεις, shortcodes/blocks/Elementor, σελίδες εκδρομών και ποιος είναι ιδιοκτήτης ποιου κειμένου, μεταφορά από WooCommerce, τι πάει στραβά, και τι δεν έχει γίνει. Χωρίς εικόνες μέχρι να υπάρχει πραγματικό WordPress.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Το build ξανά πράσινο, και τέσσερα λάθη μόνο της MySQL</span><span class="h">0.75h</span><span class="d">Τριάντα οκτώ αποτυχίες σε τρεις εργασίες, από μία πρόταση στην τεκμηρίωση που δεν ήταν αληθινή. Μαζί: στήλη τρεις χαρακτήρες πιο κοντή από τη σταθερά της (κανένα ναυλοσύμφωνο δεν αποθηκευόταν σε MySQL), τρεις έλεγχοι που σύγκριναν σειρά κλειδιών JSON, και δύο που υπέθεταν τη μνήμη αντί για Redis.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Καθάρισμα: δύο διοργανωτές, 42&nbsp;MB αχρησιμοποίητες εικόνες, ΦΠΑ που εξηγείται</span><span class="h">0.75h</span><span class="d">Έμειναν δύο διοργανωτές (ο τρίτος μπήκε στα δοκιμαστικά δεδομένα, με στόλο και κατάλογο). Διαγράφηκαν 209 αρχεία που δεν τα δείχνει καμία σελίδα. Και οι συντελεστές ΦΠΑ: μπήκαν ως <em>δεδομένα</em> &mdash; ο κώδικας εξακολουθεί να μη γράφει ποσοστό πουθενά &mdash; και οι οθόνες εξηγούν πια γιατί τον διαλέγετε αντί να τον πληκτρολογείτε, και γιατί δεν διορθώνεται ποτέ επί τόπου.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">16 Σεπτεμβρίου &mdash; WordPress από την αρχή ως το τέλος: σελίδα εκδρομής, πρότυπο, στόλος</span>
+      <span class="pill done">παραδόθηκε</span>
+      <span class="m-days">~10 <span class="unit">h</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Μια πραγματική ιστοσελίδα WordPress για την Aegean Blue, φτιαγμένη μόνο με δωρεάν εργαλεία</strong> &mdash; Hello Elementor, Elementor Free και το πρόσθετο &mdash; ήταν ο πιο γρήγορος τρόπος να φανεί τι λείπει. Η απάντηση ήταν: <em>ό,τι είναι ανάμεσα στον τίτλο και στη φόρμα κράτησης</em>. Το πρόσθετο έδινε κουτί κράτησης· μια σελίδα εκδρομής δεν έφτιαχνες χωρίς να ξαναγράψεις ό,τι ήδη ξέρει το Kaiki.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Δοκιμάστηκε και απορρίφθηκε: πεδία ACF.</strong> Πρώτα κάθε ενότητα έγινε πεδίο που γέμιζε ο συγχρονισμός· στο τέλος ήταν αντίγραφα του Kaiki που θα μπορούσαν να διαφωνήσουν μαζί του, και ένα πρόσθετο παραπάνω σε κάθε site. Βγήκε ολόκληρο &mdash; τα widgets διαβάζουν το Kaiki απευθείας.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Τρία πράγματα τα βρήκε μόνο ο φυλλομετρητής.</strong> Στον editor του Elementor το πρότυπο φαινόταν χαλασμένο ενώ η σελίδα ήταν σωστή: ο editor δεν φόρτωνε το CSS, δεν ήξερε τον τύπο της εκδρομής και δεν είχε εκδρομή για τη φόρμα. Οι φωτογραφίες δεν γέμιζαν τα κουτιά τους, γιατί το <code>img { height: auto }</code> του Elementor νικούσε. Και οι κάρτες ήταν 790 pixel ψηλές για 400 pixel περιεχόμενο, γιατί το πλέγμα μετρούσε το φυσικό ύψος κάθε φωτογραφίας.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Τα widgets του Kaiki στο Elementor δεν κρασάρουν πια τη σελίδα</span><span class="h">0.5h</span><span class="d">Μία κλάση ανά widget, με τον constructor του Elementor· και τεστ που το κρατά.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η σελίδα εκδρομής σε κομμάτια &mdash; shortcodes και widgets</span><span class="h">2.5h</span><span class="d">Τίτλος, στοιχεία, φωτογραφίες, περιγραφή, τιμή, λίστες, πρόγραμμα, σημείο συνάντησης, ακύρωση, κάρτες εκδρομών, στόλος, και «Πεδίο Kaiki» για οποιοδήποτε άλλο στοιχείο. Κάθε widget με ρυθμίσεις στυλ· κάθε κομμάτι διαβάζει μόνο του την εκδρομή της σελίδας, και στον editor δείχνει την πρώτη ως προεπισκόπηση.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Έτοιμο πρότυπο Elementor, που φτιάχνεται μόνο του</span><span class="h">1h</span><span class="d">«Σελίδα εκδρομής (Kaiki)» σε κάθε site με Elementor, χωρίς Theme Builder. Μετά είναι του διοργανωτή· σβήνεται για να ξαναφτιαχτεί. Με WPML ή Polylang δείχνει τη μετάφρασή του.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Εκδρομές κατόπιν ζήτησης: φόρμα αιτήματος, όχι ημερολόγιο &mdash; παντού</span><span class="h">1h</span><span class="d">Μέσα στο ίδιο το widget (0.4.13), άρα σε σελίδες Kaiki, WordPress και κάθε άλλο site. Η σελίδα παίρνει <code>kaiki-trip--booking</code> ή <code>--request</code>, ώστε ένα πρότυπο να δείχνει άλλα πράγματα στο καθένα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Συμπαγής φόρμα κράτησης</span><span class="h">0.75h</span><span class="d">Σε σελίδα που ήδη λέει εκδρομή, διάρκεια, λιμάνι και σκάφος, η φόρμα δεν τα ξαναλέει (widget 0.4.14, <code>data-details="hide"</code>). Αυτόματα στις σελίδες εκδρομών, διακόπτης στο widget.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Κάρτες εκδρομών και στόλος με επιλογές εμφάνισης</span><span class="h">1h</span><span class="d">Κάρτες: φωτογραφία επάνω, δίπλα, κείμενο πάνω στη φωτογραφία, χωρίς φωτογραφία. Στόλος: σειρές εναλλάξ ή αριστερά, πλέγμα, επικάλυψη, συμπαγής λίστα &mdash; από τα σκάφη των δημοσιευμένων εκδρομών, με τις ελληνικές ετικέτες του Kaiki.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Νέα οθόνη ρυθμίσεων στο πρόσθετο</span><span class="h">1h</span><span class="d">Κάρτα κατάστασης σύνδεσης πρώτη, καρτέλες, και λίστα όλων των shortcodes με αντιγραφή στο κλικ.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η σελίδα εκδρομής του Kaiki με το ίδιο πάνω μέρος</span><span class="h">0.75h</span><span class="d">Τίτλος, στοιχεία σε κουτάκια και μωσαϊκό φωτογραφιών στην κορυφή· η παλιά γκαλερί στο κάτω μέρος έφυγε.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Μικρότερα</span><span class="h">0.5h</span><span class="d">Άγκυρα ως εικονίδιο των εκδρομών στο WordPress· χωρίς πεδίο κειμένου στην επεξεργασία εκδρομής (το κείμενο είναι του Kaiki)· τιμή σε μία γραμμή· ελληνικές μεταφράσεις για όλα τα νέα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η αρχική του Kaiki στο ύφος της ιστοσελίδας WordPress</span><span class="h">3h</span><span class="d">Νέα κομμάτια που ο διοργανωτής ανοίγει, κρύβει και γράφει σε ΕΛ/EN: «Πώς λειτουργεί», «Γιατί εμάς», αριθμοί, κριτικές, κάλεσμα. Hero με το κείμενο αριστερά και την αναζήτηση ως κάρτα δεξιά· επικοινωνία ως μπλε μπάντα με κάρτες· εκδρομές ανά τρεις. Έλεγχος χρωμάτων, hover και focus σε κάθε κουμπί, υπολογιστής και κινητό.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ετικέτες και περιεχόμενο εκδρομής</span><span class="h">2h</span><span class="d">«Δημοφιλές» / «Για δύο» ως πεδίο της εκδρομής. «Τι θα ζήσετε», πρόγραμμα με ώρες, «Περιλαμβάνονται», «Δεν περιλαμβάνονται», «Τι να φέρετε» &mdash; όλα προαιρετικά, στο panel, στο API, στη σελίδα του Kaiki, και τα τραβάει μόνο του το πρόσθετο WordPress. Το «Ποιος πληρώνει τι» δεν φαίνεται στις εκδρομές κατόπιν ζήτησης.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Widget 0.4.15: η ώρα αναχώρησης πάντα ορατή</span><span class="h">0.5h</span><span class="d">Μόλις διαλέξει κανείς μέρα, φαίνεται η ώρα· με περισσότερες αναχωρήσεις την ίδια μέρα, διαλέγει ανάμεσά τους. Η διάρκεια γράφεται «4 ώρες», όχι «240 λεπτά».</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Οδηγός staging &mdash; PDF</span><span class="h">1h</span><span class="d">Πώς ανεβαίνει το Kaiki σε subdomain στον server της Cretaforce χωρίς να αγγίξει τα άλλα sites: email προς το support, DNS, εγκατάσταση, <code>.env</code>, εργασίες στο παρασκήνιο, κλείδωμα από μηχανές αναζήτησης, Viva demo, λίστα ελέγχου.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="queued">
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">Επόμενα στη σειρά &mdash; ιδέες που αποφασίστηκαν, χωρίς εκτίμηση ακόμη</span>
+      <span class="pill est">12 items</span>
+      <span class="m-days">&mdash;</span>
+    </summary>
+    <div class="weight"><span style="width:0%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Ο πίνακας της πλατφόρμας, τα επόμενα</strong> &mdash; ζητήθηκαν στις 11 Σεπτεμβρίου για τη συνάντηση με τους συνεργάτες. Πρώτα τα τρία πρώτα: είσοδος ως διοργανωτής, το ιστορικό του, και η χρήση του. Σύνολο περίπου <strong>13 ώρες</strong>.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Η κράτηση σε αναδυόμενο παράθυρο αποφασίστηκε «όχι»</strong> στις 11 Σεπτεμβρίου (ADR-0031): η πληρωμή μένει στη σελίδα ολοκλήρωσης του Kaiki.</p>
+      <ul class="tasks">
+        <li><span class="k">&mdash;</span><span class="t">Είσοδος ως διοργανωτής</span><span class="h">2h</span><span class="d">Με χρονικό όριο, αιτιολογία, καταγραφή και ένδειξη που βλέπει ο διοργανωτής. Το πιο χρήσιμο εργαλείο υποστήριξης &mdash; περιμένει το ADR-0024 (2FA για τους διαχειριστές).</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Το ιστορικό του διοργανωτή, μόνο για ανάγνωση</span><span class="h">0.75h</span><span class="d">Σήμερα το βλέπει μόνο ο ίδιος στο <code>/app</code>.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Χρήση έναντι πακέτου</span><span class="h">1h</span><span class="d">Σκάφη έναντι ορίου, κρατήσεις και τζίρος 30 ημερών, τελευταία είσοδος.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Κατάσταση συνδέσεων</span><span class="h">1h</span><span class="d">Viva, myDATA, domains και webhooks που αποτυγχάνουν, σε μία ματιά ανά διοργανωτή.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Ιδιοκτήτης και ομάδα</span><span class="h">0.75h</span><span class="d">Στοιχεία επικοινωνίας, επαναποστολή πρόσκλησης, σύνδεσμος για νέο κωδικό.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Εσωτερικές σημειώσεις</span><span class="h">0.5h</span><span class="d">Δικές σας σημειώσεις για τον πελάτη, που ο διοργανωτής δεν βλέπει ποτέ.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Ιστορικό ενεργειών της πλατφόρμας</span><span class="h">1.25h</span><span class="d">Ό,τι γίνεται στο <code>/admin</code>, για όλους τους διοργανωτές, και από ποιον.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Λογαριασμοί διαχειριστών με 2FA</span><span class="h">1.5h</span><span class="d">Περισσότεροι από έναν διαχειριστής, με υποχρεωτικό δεύτερο βήμα στην είσοδο (SEC-15).</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Έσοδα και συνδρομές</span><span class="h">1.5h</span><span class="d">Μηνιαία έσοδα, δοκιμές που γίνονται συνδρομές, πληρωμές που περιμένουν επανάληψη, ακυρώσεις. Μετά τις συνδρομές Viva.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Αποτυχημένα email όλων των διοργανωτών</span><span class="h">0.75h</span><span class="d">Ο κάθε διοργανωτής έχει το δικό του αρχείο στο <code>/app</code>· εσείς δεν βλέπετε κανένα.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Γενικές ρυθμίσεις</span><span class="h">1.25h</span><span class="d">Τιμές και όρια πακέτων, διάρκεια δοκιμής, πρότυπα νομικών κειμένων.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Αιτήματα προσωπικών δεδομένων</span><span class="h">1h</span><span class="d">Όλα τα αιτήματα εξαγωγής και διαγραφής, από όλους τους διοργανωτές, με την προθεσμία τους.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="queued">
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">M8</span>
+      <span class="m-title">Launch — deploy, load test, security review, backups, legal pages</span>
+      <span class="pill est">3 issues written</span>
+      <span class="m-days">4–6 <span class="unit">h</span></span>
+    </summary>
+    <div class="weight"><span style="width:55%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0">Deployment was deliberately moved here from M0 so that nothing shipped before it worked.</p>
+      <ul class="tasks">
+        <li><span class="k">—</span><span class="t">#13 — production Docker Compose, Dockerfile, Caddyfile</span><span class="h">1.5h</span><span class="d">Πώς στήνεται ο εξυπηρετητής της παραγωγής.</span></li>
+        <li><span class="k">—</span><span class="t">#14 — Hetzner deploy workflow with rollback</span><span class="h">2h</span><span class="d">Αυτόματο ανέβασμα νέας έκδοσης, με επιστροφή στην προηγούμενη αν κάτι πάει στραβά.</span></li>
+        <li><span class="k">—</span><span class="t">#40 — pin every GitHub Action to a commit SHA</span><span class="h">0.25h</span><span class="d">Κλείδωμα των εργαλείων CI σε συγκεκριμένη έκδοση, ώστε να μην αλλάξουν από κάτω μας.</span></li>
+        <li><span class="k">—</span><span class="t">Load test against NFR-1</span><span class="h">1h</span><span class="d">Δοκιμή αντοχής: πόσες ταυτόχρονες κρατήσεις σηκώνει χωρίς να αργήσει.</span></li>
+        <li><span class="k">—</span><span class="t">Security review</span><span class="h">1h</span><span class="d">Έλεγχος ασφαλείας πριν βγει στον αέρα.</span></li>
+        <li><span class="k">—</span><span class="t">Sentry and Pulse</span><span class="h">0.75h</span><span class="d">Παρακολούθηση σφαλμάτων και απόδοσης στην παραγωγή.</span></li>
+        <li><span class="k">—</span><span class="t">Backups and a restore drill</span><span class="h">1h</span><span class="d">Αντίγραφα ασφαλείας — και δοκιμή ότι όντως επαναφέρονται, που είναι το μισό της δουλειάς.</span></li>
+        <li><span class="k">—</span><span class="t">Status page and legal pages in EL/EN</span><span class="h">1.25h</span><span class="d">Σελίδα κατάστασης υπηρεσίας, και τα νομικά κείμενα σε δύο γλώσσες.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <h2>What could move the dates</h2>
+  <p class="section-note">
+    Ranked by how much they can move, not by how likely they are. The first three are not engineering
+    problems and cannot be solved by working faster.
+  </p>
+
+  <div class="risk">
+    <span class="risk-who internal">Cleared</span>
+    <div>
+      <h3 style="text-decoration: line-through; text-decoration-thickness: 1px;">GitHub Actions will not run, and twenty-nine finished issues are waiting on it</h3>
+      <p>
+        <strong>Cleared on 14 September.</strong> The jobs start, the branches merged in order, and the
+        schema snapshot came back from the artifact the way <code>docs/ci.md</code> describes. What the
+        first green run then exposed was a second problem underneath it, which had been hidden by the
+        first: three jobs were missing the browser the suite turns out to need. Both are fixed; the
+        original text is below for the record.
+      </p>
+      <p>
+        Since the afternoon of 6 September every job is refused in two seconds with no steps and no log:
+        <em>“recent account payments have failed or your spending limit needs to be increased.”</em> Because
+        <code>CI passed</code> is a required check, <strong>#83 through #89 and #101 to #123 cannot merge</strong> — twenty-nine
+        complete issues, seven in stacked pull requests and twenty-two committed locally. Several of them
+        <em>need</em> a CI run rather than merely waiting for one: they add migrations, and the MySQL 8 schema
+        snapshot can only be regenerated there. This is the only item on this page that is blocking
+        <em>delivered</em> work rather than future work, and it is fixed under Billing &amp; plans rather than
+        in the repository. Second-order cost: the MySQL 8 schema snapshot is generated by CI and nowhere else,
+        so each of those branches carries one deliberately failing test until a run goes through.
+      </p>
+    </div>
+  </div>
+
+  <div class="risk">
+    <span class="risk-who internal">Cleared</span>
+    <div>
+      <h3 style="text-decoration: line-through; text-decoration-thickness: 1px;">The WordPress plugin needs a real WordPress site to be finished against</h3>
+      <p>
+        <strong>Cleared on 16 September.</strong> A local WordPress with Elementor (<code>kaiki.local</code>)
+        ran the plugin end to end and found two defects no suite had seen &mdash; see M4. What remains of
+        #117 is the release and one install from scratch using only the zip. The original text follows.
+      </p>
+      <p>
+        WPP-15 and ADR-0015 both say the plugin’s end-to-end run drives <strong>a real site</strong> whose URL
+        comes from <code>KAIKI_WP_TEST_URL</code> — deliberately, rather than a throwaway local one, because a
+        plugin that works in a clean laboratory and not in a themed site with a page builder on it has not
+        been tested at all. Somebody has to stand up a WordPress install the suite may activate a plugin on
+        and publish pages in. <strong>#112 to #116 can be built and finished without it; #117 cannot</strong>,
+        and #117 is the issue that says the plugin works. It is a small ask — any host, any domain — and it
+        is the only thing standing between a written plugin and a shipped one.
+      </p>
+    </div>
+  </div>
+
+  <div class="risk">
+    <span class="risk-who">External</span>
+    <div>
+      <h3>e-Ναυλοσύμφωνο has no API, and declaration is already mandatory</h3>
+      <p>
+        Electronic declaration through the AADE/ΥΝΑΝΠ portal has been compulsory since 1 July 2026, and no
+        official API is documented — so the platform can generate and export a charter agreement but cannot
+        submit it. Worse, the form is prescribed by ΚΥΑ Α.Π. 3133.1/47821, which means a freely designed PDF
+        may not be a valid ναυλοσύμφωνο at all. This needs a ναυτιλιακός λογιστής or δικηγόρος to confirm —
+        a legal-validity question, not an engineering one. The columns had to land <strong>before anything else
+        created the table</strong>, because SQLite cannot add a foreign key afterwards — and
+        <strong>#88 has now landed them</strong>, with the acceptance-evidence rule enforced in code rather
+        than only described. What is still owed is the legal answer and the document itself, both M6.
+      </p>
+    </div>
+  </div>
+
+  <div class="risk">
+    <span class="risk-who internal">Your call</span>
+    <div>
+      <h3>The map now runs on somebody's free tile server, and that is a question before real traffic</h3>
+      <p>
+        Google's keyless map embed stopped working on 9 September — it answers 404 and refuses to be framed —
+        so the meeting-point map moved to <strong>OpenStreetMap</strong>, which is keyless, free and framed by
+        design. The catch is that the OSM Foundation's tiles are a <em>best-effort donation</em>, and their
+        usage policy asks anyone with real volume to move to a provider that sells them. Fine for a demo and
+        for the first operators; a decision before the hosted pages carry traffic. The alternative is a paid
+        tile provider or Google's keyed Embed API, and it is one line either way — the URL is built in a
+        single method and the security policy reads the origin from a single constant, deliberately.
+      </p>
+    </div>
+  </div>
+
+  <div class="risk">
+    <span class="risk-who">External</span>
+    <div>
+      <h3>myDATA is the highest-risk integration in the project</h3>
+      <p>
+        Invoice issuance against the Greek tax authority, with retries, cancellation invoices and a Greek
+        error dictionary. Sandbox behaviour rarely matches production, which is why M6 carries the widest
+        range on the page. The estimate assumes credentials and a working sandbox exist when it starts —
+        and as of #79 there is somewhere to put them the moment they arrive.
+      </p>
+    </div>
+  </div>
+
+  <div class="risk">
+    <span class="risk-who">External</span>
+    <div>
+      <h3>Two decisions belong to an accountant</h3>
+      <p>
+        The VAT <em>mechanism</em> is settled and built as a reference table — the <em>rates</em> are not, and
+        neither is the invoice-numbering gap policy. Both are needed before M6 closes, and neither is mine to
+        decide.
+      </p>
+      <p>
+        <strong>14 September:</strong> the development database now holds the two typical Greek rates and a
+        zero-rate, <strong>entered as data</strong> — no percentage has been written into the code, the guard
+        that scans for one is untouched, and every description says on its face that the accountant confirms
+        it. That removes the friction (twenty-two demo trips had no rate at all, and the only selectable row
+        was the deliberate placeholder) without answering the question. <strong>The question is unchanged:</strong>
+        which rate applies to a day trip, to a transfer, to a charter.
+      </p>
+    </div>
+  </div>
+
+  <div class="risk">
+    <span class="risk-who internal">Your call</span>
+    <div>
+      <h3>A Viva and a Stripe sandbox account — now the blocking one</h3>
+      <p>
+        <strong>#82, #83 and #84 have all landed, which makes this the oldest open item on the page.</strong>
+        The contract, both gateway clients, the webhook handlers and now the refund path are built and tested
+        against recorded fixtures — but a fixture is a recording of what the documentation says, and every
+        integration in this trade differs from its documentation somewhere. The whole money path is now
+        written and none of it has ever spoken to a real gateway. A Viva Wallet demo account and Stripe test
+        keys are the one thing that turns it from code passing its own tests into something provably working,
+        and they are yours to create rather than mine. Nothing is blocked meanwhile — the fake covers the
+        sandbox path — but the longer this waits, the more code is stacked on an untested assumption.
+      </p>
+    </div>
+  </div>
+
+  <div class="risk">
+    <span class="risk-who internal">Your call</span>
+    <div>
+      <h3>The design review added scope, and it is worth saying so out loud</h3>
+      <p>
+        Three things came out of the mockup on 4 September that were not in any milestone: a per-operator
+        <strong>FAQ</strong>, an <strong>editable home page</strong> of banner/text/trips/FAQ/contact blocks, and
+        a <strong>search across the catalogue</strong> whose filters the operator switches on and off. They are
+        good additions — the FAQ alone removes phone calls, and half of these operators have no website to
+        embed into. All three are now written as issues, and <strong>two of them are built</strong> — the editable
+        home page in #102 and the FAQ in #103, which between them cost about three and a half hours. All three are <strong>now built</strong> — the home page in #102, the FAQ in #103 and the search in #105, about five and a half hours between them, which is roughly what was estimated. The addition is why M3 went from the fourth-largest milestone to the largest. Recurring departures, asked about in the same
+        conversation, are <em>not</em> on this list: #25 and #27 already ship the weekly rule and the generator
+        behind it.
+      </p>
+      <p>
+        <strong>And on 7 September the guest-facing pages had a design pass of their own</strong>, which was not an
+        issue and is not in any estimate: a full-bleed hero that takes a video, the search bar on the home page
+        carrying every filter the search page does, featured trips as a rail with the rest in a grid below, a
+        contact panel that is a contained card rather than a full-width band, and a trip page whose booking card
+        starts beside the title and answers the five questions a visitor asks with their hand over the button.
+        Design is <strong>paused there by your decision</strong> and comes back at the end of the project.
+      </p>
+      <p>
+        <strong>On 8 September it had a second pass, at your request</strong> — spacing, padding and
+        typography on the guest pages, ten fixes, none of them wrong in any single CSS rule and all of
+        them found by measuring the rendered page. It ended with a picture on every trip card, which
+        turned out to be the larger change: the demo had none at all, so the whole catalogue rendered as
+        tinted panels — correct behaviour, and the wrong thing for the page you show people.
+      </p>
+      <p>
+        <strong>On 9 September a third pass finished the trip page and the search results</strong> &mdash; and
+        found, by looking rather than by testing, that the meeting-point map had been a grey void on every
+        trip page since Google withdrew its keyless embed. That one is worth separating from the design work:
+        it was not a matter of taste, it was a broken feature that six green tests reported as working.
+      </p>
+    </div>
+  </div>
+
+  <div class="risk">
+    <span class="risk-who internal">Estimate</span>
+    <div>
+      <h3>Re-measured on 7 September: forty minutes an issue, and falling</h3>
+      <p>
+        The eight issues measured earlier that day — #87, #88, #89, #101 to #105 — took <strong>28 to 72 minutes
+        each from commit to commit</strong>, mean 42, median 40, and that time includes reading the issue,
+        building it, writing its tests, updating the documents and refreshing this page. Every estimate below
+        was cut against that number, which is why the total fell from 43–83 hours to 26–40.
+      </p>
+      <p>
+        The five since have ranged wider, not narrower: #107 at 15 minutes, #108 at 10, #109 at 25, #110 at 30
+        — and <strong>#111 at an hour and twenty-five</strong>. The long one is the informative one. It was the
+        first issue whose acceptance criteria could not be met by writing code against a written spec, because
+        it had to <em>discover</em> what was broken and then fix nine separate things; and it had to build a
+        missing product surface (the sandbox payment page) before it could begin. Treat 40 minutes as the
+        planning figure, expect anything that crosses a new boundary — a browser, a plugin host, a server — to
+        cost two or three times that on its first issue, and read the fast ones as the margin.
+      </p>
+      <p>
+        Two honest caveats. That rate is for <strong>written</strong> issues on a codebase whose conventions are
+        settled; M4 to M8 have no issues yet, and writing each one is folded into the figures rather than
+        ignored. And the widget, the WordPress plugin and the deployment each bring a <strong>new toolchain</strong>
+        — an npm bundle with a size gate, a PHP 8.1 plugin with its own linter, a server with DNS and TLS — so
+        their first issue in each case is costed higher than forty minutes, not lower.
+      </p>
+      <p>
+        <strong>M5 held that shape from end to end.</strong> #118 to #122 came in at one hour, an hour and a
+        quarter, three quarters, an hour and an hour; #123 at an hour and a half, which is the top of the band
+        and earned it &mdash; it added a database table the data model never had, a queued job, a download
+        route and three test files. Twelve issues, about eleven hours. The pattern from #111 repeats in
+        miniature: the issues that cross into something new cost two or three times the ones that sit inside a
+        settled convention, and the cheap ones are the margin rather than the trend.
+      </p>
+      <p>
+        What no rate can compress: the CI billing block, a Viva and a Stripe sandbox, a myDATA credential, the
+        lawyer's answer on the ναυλοσύμφωνο, and a real server to deploy onto. Four of those five are yours.
+      </p>
+    </div>
+  </div>
+
+  
+
+</div>
+
+</body></html>
