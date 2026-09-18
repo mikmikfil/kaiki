@@ -28,12 +28,6 @@ return [
         ],
 
         'sections' => [
-            'schedules' => 'Schedules',
-            'schedules_intro' => 'When the trip repeats. The departures are generated from this.',
-            'extras' => 'Extras',
-            'extras_intro' => 'Whatever is offered alongside the seat, free or paid.',
-            'questions' => 'Extra questions',
-            'questions_intro' => 'Anything you want to ask the guest at checkout.',
             'identity' => 'The boat',
             'capacity' => 'Capacity and crew',
             'operations' => 'Operations',
@@ -212,6 +206,12 @@ return [
         ],
 
         'sections' => [
+            'schedules' => 'Schedules',
+            'schedules_intro' => 'When the trip repeats. The departures are generated from this.',
+            'extras' => 'Extras',
+            'extras_intro' => 'Whatever is offered alongside the seat, free or paid.',
+            'questions' => 'Extra questions',
+            'questions_intro' => 'Anything you want to ask the guest at checkout.',
             'basics' => 'The basics',
             'schedule' => 'Times and duration',
             'schedule_per_seat' => 'Duration and check-in',
