@@ -10,6 +10,7 @@ use App\Domain\Booking\Actions\CreateManualBooking;
 use App\Domain\Booking\Actions\RecordManualPayment;
 use App\Domain\Booking\Actions\RemoveGuestsFromBooking;
 use App\Domain\Booking\Data\RefundOverride;
+use App\Domain\Booking\Support\ManifestRows;
 use App\Domain\Booking\Support\RefundEntitlement;
 use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
@@ -26,6 +27,7 @@ use App\Models\Quote;
 use App\Support\Authorization\Capability;
 use App\Support\Format\MoneyFormatter;
 use Filament\Actions\Action;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
@@ -322,14 +324,26 @@ class ViewBooking extends ViewRecord
     }
 
     /**
-     * «Αφαίρεση ατόμων» — four booked, three coming (2026-09-17).
+     * «Αφαίρεση ατόμων» — four booked, three coming (2026-09-17), by name since
+     * 2026-09-18.
      *
-     * One counter per age band on the booking, with the booked number beside
-     * it, and a live line underneath saying what the change does to the total
-     * and the money — the same {@see RemoveGuestsFromBooking::preview()} the
-     * removal itself runs, so the sentence cannot promise a different figure.
-     * The rules (a minimum party, a child never left without an adult) are the
-     * Action's and come back as the form's error.
+     * The operator ticks the people who are not coming. An operator is told «ο
+     * Γιώργος δεν έρχεται», not «ένας ενήλικας λιγότερος», and the manifest the
+     * coastguard reads has to lose the right name — so the form asks the
+     * question the telephone call answers.
+     *
+     * The passenger rows are made if they are missing: an older booking, or one
+     * taken before the rows were created on confirmation, would otherwise offer
+     * nothing to tick. `ManifestRows::ensure()` is the same idempotent call the
+     * e-ticket makes.
+     *
+     * A person already checked in is not on the list: they are aboard.
+     *
+     * Underneath, the live sentence saying what the change does to the total and
+     * the money — the same {@see RemoveGuestsFromBooking::preview()} the removal
+     * itself runs, so it cannot promise a different figure. The rules (a minimum
+     * party, a child never left without an adult) are the Action's and come back
+     * as the form's error.
      */
     private function removeGuestsAction(): Action
     {
@@ -345,23 +359,20 @@ class ViewBooking extends ViewRecord
             ->modalDescription(__('bookings.remove_guests.description'))
             ->modalSubmitActionLabel(__('bookings.remove_guests.confirm'))
             ->form(fn (): array => [
-                ...array_map(
-                    fn (array $line): TextInput => TextInput::make('remove.' . $line['code'])
-                        ->label(__('bookings.remove_guests.band', [
-                            'label' => $this->bandLabel($line),
-                            'qty' => (int) $line['qty'],
-                        ]))
-                        ->numeric()
-                        ->integer()
-                        ->minValue(0)
-                        ->maxValue((int) $line['qty'])
-                        ->default(0)
-                        ->live(debounce: 300),
-                    array_values($this->booking()->pax_breakdown),
-                ),
+                CheckboxList::make('guests')
+                    ->label(__('bookings.remove_guests.who'))
+                    ->helperText(__('bookings.remove_guests.who_help'))
+                    ->options(fn (): array => $this->removablePassengers())
+                    ->live()
+                    ->columns(1),
                 Placeholder::make('remove_preview')
                     ->hiddenLabel()
-                    ->content(fn (Get $get): string => $this->removalSentence((array) ($get('remove') ?? []))),
+                    ->content(fn (Get $get): string => $this->removalSentence(
+                        RemoveGuestsFromBooking::countsFor(
+                            $this->booking(),
+                            array_map('intval', (array) ($get('guests') ?? [])),
+                        ),
+                    )),
                 Textarea::make('reason')
                     ->label(__('bookings.remove_guests.reason'))
                     ->rows(2)
@@ -369,10 +380,43 @@ class ViewBooking extends ViewRecord
             ])
             ->action(function (array $data): void {
                 $this->removeGuests(
-                    array_map('intval', (array) ($data['remove'] ?? [])),
+                    [],
                     trim((string) ($data['reason'] ?? '')),
+                    array_map('intval', (array) ($data['guests'] ?? [])),
                 );
             });
+    }
+
+    /**
+     * The people who can still be taken off, as id => «Όνομα · Κατηγορία».
+     *
+     * @return array<int, string>
+     */
+    private function removablePassengers(): array
+    {
+        $booking = $this->booking();
+
+        ManifestRows::ensure($booking);
+
+        $bands = [];
+
+        foreach ($booking->pax_breakdown as $line) {
+            $bands[(string) ($line['code'] ?? '')] = $this->bandLabel($line);
+        }
+
+        $options = [];
+
+        foreach ($booking->guests()->whereNull('checked_in_at')->orderBy('position')->get() as $guest) {
+            $name = trim((string) $guest->full_name) !== ''
+                ? (string) $guest->full_name
+                : __('bookings.remove_guests.passenger', ['position' => $guest->position]);
+
+            $band = $bands[(string) $guest->age_band_code] ?? null;
+
+            $options[(int) $guest->getKey()] = $band === null ? $name : $name . ' · ' . $band;
+        }
+
+        return $options;
     }
 
     /**
@@ -381,13 +425,19 @@ class ViewBooking extends ViewRecord
      * Public so a test drives the same path the form does.
      *
      * @param  array<string, int>  $removeByCode
+     * @param  list<int>  $guestIds  the exact people, when the operator picked them
      */
-    public function removeGuests(array $removeByCode, string $reason = ''): void
+    public function removeGuests(array $removeByCode, string $reason = '', array $guestIds = []): void
     {
         $booking = $this->booking();
 
         try {
-            $result = app(RemoveGuestsFromBooking::class)($booking, $removeByCode, $reason !== '' ? $reason : null);
+            $result = app(RemoveGuestsFromBooking::class)(
+                $booking,
+                $removeByCode,
+                $reason !== '' ? $reason : null,
+                $guestIds,
+            );
         } catch (ValidationException $exception) {
             Notification::make()
                 ->danger()
@@ -413,6 +463,14 @@ class ViewBooking extends ViewRecord
         BookingGuestsRemoved::dispatch($booking->getKey(), $booking->tenant_id, $result['removed']);
 
         $body = match (true) {
+            // The voucher's share went back to the voucher, and only the rest
+            // to a card — so the sentence says both rather than one figure the
+            // operator cannot reconcile with the statement.
+            $result['voucher_cents'] > 0 && $result['refund_started_cents'] > 0 => __('bookings.remove_guests.done_split', [
+                'refund' => $this->euros($result['refund_started_cents']),
+                'voucher' => $this->euros($result['voucher_cents']),
+            ]),
+            $result['voucher_cents'] > 0 => __('bookings.remove_guests.done_voucher', ['voucher' => $this->euros($result['voucher_cents'])]),
             $result['refund_started_cents'] > 0 => __('bookings.remove_guests.done_refund', ['refund' => $this->euros($result['refund_started_cents'])]),
             $result['refund_cents'] > 0 => __('bookings.remove_guests.done_manual', ['refund' => $this->euros($result['refund_cents'])]),
             default => null,
@@ -427,7 +485,7 @@ class ViewBooking extends ViewRecord
             ->body($body);
 
         // Money the operator has to hand back themselves stays on screen.
-        if ($result['refund_cents'] > $result['refund_started_cents']) {
+        if ($result['refund_cents'] > $result['refund_started_cents'] + $result['voucher_cents']) {
             $notification->persistent();
         }
 
