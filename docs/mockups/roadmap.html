@@ -372,11 +372,11 @@
     </div>
     <div class="total">
       <dt>Measured so far</dt>
-      <dd>~157<span class="unit">hours</span></dd>
+      <dd>~164<span class="unit">hours</span></dd>
     </div>
     <div class="total">
       <dt>Remaining</dt>
-      <dd>34–42<span class="unit">hours</span></dd>
+      <dd>28–36<span class="unit">hours</span></dd>
       <p style="margin:.5rem 0 0; font-size:.78rem; line-height:1.35; color:var(--ink-faint)">Phase 2 sales channels are not in this figure: about 26–39 hours more, plus approvals.</p>
     </div>
     <div class="total">
@@ -688,18 +688,41 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
     </div>
   </details>
 
+  <details class="milestone" data-state="done" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">18 Σεπτεμβρίου &mdash; οι σελίδες του επισκέπτη και η φόρμα εκδρομής</span>
+      <span class="pill done">Complete</span>
+      <span class="m-days">~7 <span class="unit">h spent</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Δεκατρία commits στο <code>fix/wp-plugin-elementor-widgets</code> (PR #123), χωρίς αριθμούς issue.</strong> Δύο γύροι μακετών μέσα στην ίδια μέρα: οι πέντε σελίδες του επισκέπτη πήγαν στο <strong>Β2</strong> (καθαρή στήλη, δύο μόνο δόσεις χρώματος) και η αρχική του ιστότοπου <em>δεν</em> άλλαξε &mdash; καμία από τις τρεις κατευθύνσεις δεν άρεσε, και μένει ως έχει.</p>
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Δύο πράγματα που δεν έπρεπε να είναι έτσι.</strong> Το εισιτήριο δεν είχε ποτέ κουμπί στη σελίδα της κράτησης: η κάρτα έλεγε «θα είναι διαθέσιμο λίγο πριν την αναχώρηση» από το M2, ενώ το #88 είχε φτιάξει PDF, διαδρομή και μετάφραση. Και οι ρόλοι επιλέγονταν με checkbox, σαν να συνδυάζονταν &mdash; ενώ ο ιδιοκτήτης έχει ήδη ό,τι έχει ο διαχειριστής, και ο διαχειριστής ό,τι έχει το πλήρωμα.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Οι πέντε σελίδες του επισκέπτη σε Β2</span><span class="h">3h</span><span class="d">Ένα λευκό φύλλο, ενότητες με λεπτή γραμμή, χρώμα του διοργανωτή μόνο σε γραμμή 4px και στη ζώνη των ωρών. Ο χάρτης ζωγραφίζεται πια μέσα στη σελίδα· το κουπόνι δείχνει τον κωδικό του μεγάλο· τηλέφωνο και email του διοργανωτή σε κάθε υποσέλιδο. Σε υπολογιστή η σελίδα κράτησης γίνεται δύο στήλες.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Το εισιτήριο, διαθέσιμο όταν το ζητά ο επισκέπτης</span><span class="h">0.75h</span><span class="d">Κουμπί στη σελίδα, και αν η ουρά δεν πρόλαβε να φτιάξει το PDF φτιάχνεται επιτόπου αντί για «ο σύνδεσμος δεν ισχύει». Ακυρωμένη κράτηση και διοργανωτής χωρίς επιβίβαση δεν παίρνουν εισιτήριο, ούτε από τη διεύθυνση.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η φόρμα εκδρομής σε πέντε καρτέλες</span><span class="h">3h</span><span class="d">Βασικά / Πότε φεύγει / Τιμές / Όροι / Σελίδα, με το «Πριν τη δημοσίευση» ως στήλη δίπλα και <strong>έναν διακόπτη ΕΛ/EN για όλη τη φόρμα</strong> αντί για καρτέλες γλώσσας πάνω από κάθε πεδίο. Τα Πρόσθετα και οι Ερωτήσεις μπήκαν στις καρτέλες όπου ανήκουν.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ένας ρόλος ανά άτομο</span><span class="h">0.5h</span><span class="d">Οι τρεις ρόλοι είναι εμφωλευμένοι, οπότε ο συνδυασμός τους δεν σήμαινε τίποτε. Όποιος έχει ήδη δύο διαβάζεται στον υψηλότερο.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Το ταξίδι στο ημερολόγιο, με τα τεστ του</span><span class="h">2h</span><span class="d">Αρχείο .ics και σύνδεσμος Google στα τρία email που είναι όλο το ταξίδι και στη σελίδα της κράτησης, με ώρα προσέλευσης. Επτά τεστ.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">«Πού πάει κάθε κουμπί» και <code>tools/screens.mjs</code></span><span class="h">0.75h</span><span class="d">Έκθεση με κάθε σύνδεσμο κάθε email, ζωντανό· και ένα εργαλείο που φωτογραφίζει οποιαδήποτε σελίδα σε κινητό, tablet και υπολογιστή &mdash; ό,τι φτιάχνεται ελέγχεται πλέον και στις τρεις.</span></li>
+      </ul>
+    </div>
+  </details>
+
   <details class="milestone" data-state="queued" open>
     <summary>
       <span class="chev" aria-hidden="true"></span>
       <span class="m-code">&mdash;</span>
       <span class="m-title">Μένουν από τον γύρο της 16–17 Σεπτεμβρίου και τη Φάση 1</span>
-      <span class="pill est">7 μένουν &middot; 1 έγινε</span>
-      <span class="m-days">~13–16 <span class="unit">h</span></span>
+      <span class="pill est">6 μένουν &middot; 2 έγιναν</span>
+      <span class="m-days">~8–9 <span class="unit">h</span></span>
     </summary>
-    <div class="weight"><span style="width:3%"></span></div>
+    <div class="weight"><span style="width:25%"></span></div>
     <div class="m-body">
       <ul class="tasks">
-        <li><span class="k">&mdash;</span><span class="t">Φόρμα εκδρομής σε πέντε καρτέλες (Βασικά, Πότε φεύγει, Τιμές, Όροι, Σελίδα), με το «Πριν τη δημοσίευση» ως sidebar και έναν διακόπτη Ελληνικά/English</span><span class="h">5–7h</span><span class="d">Εγκρίθηκε στις 17 Σεπτεμβρίου (<a href="https://claude.ai/artifact/5R1Ax4oYfXn8Kd65319PgC" style="text-decoration:none">μακέτα</a>).</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Φόρμα εκδρομής σε πέντε καρτέλες, με το «Πριν τη δημοσίευση» ως sidebar και έναν διακόπτη Ελληνικά/English</span><span class="h">3h</span><span class="d">Παραδόθηκε στις 18 Σεπτεμβρίου, κάτω από την εκτίμηση των 5–7 ωρών.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Εγχειρίδιο διοργανωτή και οδηγός δοκιμών — όλα τα νέα (16–17 Σεπτ. και Φάση 1), με νέα screenshots</span><span class="h">2.5–3h</span><span class="d">Μία ενημέρωση και για τα δύο PDF αντί για δύο ξεχωριστές, με τα στιγμιότυπα ξαναφτιαγμένα από το τρέχον Kaiki.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Το PDF ερωτήσεων λογιστή/δικηγόρου, ξανά</span><span class="h">0.25h</span><span class="d">Να ξαναφτιαχτεί.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Μικρά από τη Φάση 1</span><span class="h">3–4h</span><span class="d">Αφαίρεση συγκεκριμένου επιβάτη· επιστροφή voucher στην αφαίρεση ατόμων· η έκπτωση στο email και στο παραστατικό· όριο χρήσεων κωδικού υπό ταυτόχρονες πληρωμές.</span></li>
@@ -1253,7 +1276,7 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
   </p>
   <div class="scroll">
     <table>
-      <caption>Μηνύματα ανά ημέρα &mdash; 435 συνολικά</caption>
+      <caption>Μηνύματα ανά ημέρα &mdash; 440 συνολικά</caption>
       <thead>
         <tr><th>Ημέρα</th><th style="text-align:right">Μηνύματα</th><th style="width:58%"></th></tr>
       </thead>
@@ -1272,10 +1295,10 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
         <tr><td>14 Σεπ</td><td class="days">16</td><td><span style="display:block;height:9px;background:var(--sea);width:17%"></span></td></tr>
         <tr><td>16 Σεπ</td><td class="days">82</td><td><span style="display:block;height:9px;background:var(--sea);width:87%"></span></td></tr>
         <tr><td>17 Σεπ</td><td class="days">94</td><td><span style="display:block;height:9px;background:var(--sea);width:100%"></span></td></tr>
-        <tr><td>18 Σεπ</td><td class="days">2</td><td><span style="display:block;height:9px;background:var(--sea);width:2%"></span></td></tr>
+        <tr><td>18 Σεπ</td><td class="days">7</td><td><span style="display:block;height:9px;background:var(--sea);width:7%"></span></td></tr>
       </tbody>
       <tfoot>
-        <tr><td>Σύνολο</td><td class="days">435</td><td>15 ημέρες δουλειάς, 38 συνεδρίες, περίπου 48.536 λέξεις</td></tr>
+        <tr><td>Σύνολο</td><td class="days">440</td><td>15 ημέρες δουλειάς, 38 συνεδρίες, περίπου 48.581 λέξεις</td></tr>
       </tfoot>
     </table>
   </div>
