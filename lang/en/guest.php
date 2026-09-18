@@ -139,6 +139,15 @@ return [
         'balance_due' => 'The balance is due by :date.',
         'pay_balance' => 'Pay the balance',
         'ticket' => 'Download your ticket',
+        // Β2's strip of three times (2026-09-18). Lower case: an
+        // uppercase transform strips the accents off Greek.
+        'times' => [
+            'check_in' => 'check-in',
+            'departure' => 'departure',
+            'return' => 'return',
+        ],
+        'take_with_you' => 'Take these with you',
+        'manage' => 'Manage',
         'ticket_title' => 'Your ticket',
         'ticket_help' => 'Show it to the crew when you board, on your phone or printed. One ticket per passenger, in a single file.',
         'contact' => [

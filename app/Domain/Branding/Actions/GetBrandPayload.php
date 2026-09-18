@@ -95,7 +95,11 @@ final class GetBrandPayload
                 'currency' => $tenant->currency,
                 'hosted_page_url' => null,
                 'support_email' => $tenant->email,
-                'support_phone' => null,
+                // Filled in at last (2026-09-18): the guest pages put the
+                // operator's telephone in their footer, and it was already on
+                // `tenants` — the null was a placeholder nobody came back to,
+                // so everything that asked for it got nothing to show.
+                'support_phone' => $tenant->phone,
             ],
             'logo' => [
                 'light_url' => $this->assetUrl($profile, BrandAsset::LogoLight),

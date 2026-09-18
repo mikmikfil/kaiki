@@ -21,6 +21,7 @@ use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use Throwable;
@@ -91,6 +92,10 @@ final class ManageBookingController extends GuestPageController
             // route. The link works even before the queue has rendered
             // anything — see {@see self::ticket()}.
             'ticketUrl' => self::ticketUrlFor($booking, $tenant, $token),
+            // Direction Β2's strip: check-in, departure, return. The three
+            // figures a guest opens this page for, computed once here rather
+            // than three times in the template.
+            'times' => self::timesFor($booking, $tenant),
             'canCancel' => self::canCancel($booking),
             'weatherChoiceDue' => self::weatherChoiceIsOpen($booking),
             'backUrl' => $this->backToSiteUrl($booking, $tenant),
@@ -163,6 +168,40 @@ final class ManageBookingController extends GuestPageController
                 'Content-Disposition' => 'inline; filename="' . $booking->reference . '.pdf"',
             ],
         );
+    }
+
+    /**
+     * Check-in, departure and return, as clock times in the operator's zone.
+     *
+     * Check-in is departure less the product's `check_in_offset_minutes`, the
+     * same arithmetic the emails and the calendar entry do — and, like them,
+     * this page leads with it, because "when must I be there" is a different
+     * question from "when do the lines come off" and it is the one a guest is
+     * standing on a quay asking.
+     *
+     * Clock times, not instants: `local_time` is what the operator typed and
+     * what the boat runs on. Return comes from `ends_at_utc`, which is an
+     * instant, so it is the only one that needs converting.
+     *
+     * @return array{checkIn: string|null, departure: string, return: string|null}
+     */
+    private static function timesFor(Booking $booking, Tenant $tenant): array
+    {
+        $zone = $tenant->timezone ?? (string) config('app.timezone');
+        $departure = Carbon::parse(
+            $booking->local_date->toDateString() . ' ' . $booking->local_time,
+            $zone,
+        );
+
+        // `bookings.product_id` is a non-nullable foreign key, so there is
+        // always a product here — only its offset can be absent.
+        $offset = (int) ($booking->product->check_in_offset_minutes ?? 0);
+
+        return [
+            'checkIn' => $offset > 0 ? $departure->copy()->subMinutes($offset)->format('H:i') : null,
+            'departure' => $departure->format('H:i'),
+            'return' => $booking->ends_at_utc?->copy()->setTimezone($zone)->format('H:i'),
+        ];
     }
 
     /**

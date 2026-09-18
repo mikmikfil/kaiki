@@ -139,6 +139,15 @@ return [
         'balance_due' => 'Το υπόλοιπο είναι πληρωτέο έως τις :date.',
         'pay_balance' => 'Πληρωμή υπολοίπου',
         'ticket' => 'Λήψη εισιτηρίου',
+        // Β2's strip of three times (2026-09-18). Lower case: an
+        // uppercase transform strips the accents off Greek.
+        'times' => [
+            'check_in' => 'προσέλευση',
+            'departure' => 'αναχώρηση',
+            'return' => 'επιστροφή',
+        ],
+        'take_with_you' => 'Πάρτε τα μαζί σας',
+        'manage' => 'Διαχείριση',
         'ticket_title' => 'Το εισιτήριό σας',
         'ticket_help' => 'Δείξτε το στο πλήρωμα κατά την επιβίβαση, από το κινητό ή τυπωμένο. Ένα εισιτήριο για κάθε επιβάτη, σε ένα αρχείο.',
         'contact' => [

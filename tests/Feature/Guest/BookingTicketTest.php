@@ -60,7 +60,10 @@ it('offers the ticket on the booking page', function (): void {
 
     get('/b/' . $booking->manage_token)
         ->assertOk()
-        ->assertSee(__('guest.booking.ticket_title'))
+        // Β2 puts the ticket and the calendar together under one label — both
+        // are «take this with you» — so the assertion is on the button and the
+        // link rather than on a heading of its own.
+        ->assertSee(__('guest.booking.take_with_you'))
         ->assertSee(__('guest.booking.ticket'))
         ->assertSee('/b/' . $booking->manage_token . '/ticket', escape: false);
 })->group('fast');
@@ -76,7 +79,8 @@ it('offers no ticket for a cancelled booking, and serves none either', function 
 
     get('/b/' . $booking->manage_token)
         ->assertOk()
-        ->assertDontSee(__('guest.booking.ticket_title'));
+        ->assertDontSee(__('guest.booking.ticket'))
+        ->assertDontSee('/b/' . $booking->manage_token . '/ticket', escape: false);
 
     // The button being absent is not the guarantee: the URL is guessable from
     // the page's own address, so the route refuses it too rather than boarding
@@ -95,7 +99,8 @@ it('offers no ticket when the operator boards nobody', function (): void {
 
     get('/b/' . $booking->manage_token)
         ->assertOk()
-        ->assertDontSee(__('guest.booking.ticket_title'));
+        ->assertDontSee(__('guest.booking.ticket'))
+        ->assertDontSee('/b/' . $booking->manage_token . '/ticket', escape: false);
 
     get('/b/' . $booking->manage_token . '/ticket')->assertNotFound();
 })->group('fast');
