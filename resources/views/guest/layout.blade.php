@@ -93,10 +93,56 @@
             border-top: 4px solid var(--kaiki-primary, #123a5e);
         }
 
-        /* A section of the sheet. The last one keeps no rule, so the column
-           does not end on a line that divides it from nothing. */
-        .sheet > section { padding: 1.1rem 1.15rem; border-bottom: 1px solid var(--hair); }
-        .sheet > section:last-of-type { border-bottom: 0; }
+        /* A section of the sheet, at whatever depth: on a wide screen the
+           booking page puts its sections into two columns, and they are still
+           sections. The last one in a column keeps no rule, so a column does
+           not end on a line that divides it from nothing. */
+        .sheet section { padding: 1.1rem 1.15rem; border-bottom: 1px solid var(--hair); }
+        .sheet section:last-child { border-bottom: 0; }
+
+        /* ---- the booking page on a wide screen (2026-09-18) --------------
+
+           A phone reads one column in the order things are needed: what is
+           owed, where to stand, what to take, what it cost, and the quiet end.
+           A desktop has room to answer two questions at once, so the same
+           sections become two columns — the trip on the left, the money and
+           the actions on the right — rather than one 40rem ribbon down the
+           middle of a 1400px screen.
+
+           The order is kept honest at both widths with `display: contents` and
+           `order`, the trick the checkout page already uses: one set of
+           markup, read top to bottom on a phone and side by side on a desk. */
+        .b-grid { display: flex; flex-direction: column; }
+        .b-main, .b-side { display: contents; }
+
+        .sec-balance { order: 1; }
+        .sec-weather { order: 2; }
+        .sec-meeting { order: 3; }
+        .sec-take { order: 4; }
+        .sec-price { order: 5; }
+        .sec-quiet { order: 6; }
+
+        .only-wide { display: none; }
+
+        @media (min-width: 56rem) {
+            .wrap.wide-booking { max-width: 58rem; }
+
+            .b-grid {
+                display: grid;
+                grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+                align-items: start;
+            }
+
+            .b-main, .b-side { display: block; }
+            .b-side { border-left: 1px solid var(--hair); }
+
+            /* Both columns end flush with the footer's rule rather than each
+               drawing its own last line at a different height. */
+            .b-main > section:last-child, .b-side > section:last-child { border-bottom: 0; }
+
+            .facts.wide-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .only-wide { display: block; }
+        }
 
         /* The quiet end of the page: change of contact details, cancellation.
            Tinted rather than red — these are not warnings, they are the things
@@ -486,7 +532,7 @@
     </style>
 </head>
 <body>
-<div class="wrap @if ($wide ?? false) wide @endif">
+<div class="wrap @if ($wide ?? false) wide @endif @if ($wideBooking ?? false) wide-booking @endif">
     <div class="sheet">
         <header class="brand">
             @if (! empty($brand['logo']['light_url']))

@@ -16,7 +16,7 @@
     idempotency implemented in a view would protect this page and leave the API
     and the panel exposed to the same double click.
 --}}
-@extends('guest.layout', ['title' => __('guest.booking.title')])
+@extends('guest.layout', ['title' => __('guest.booking.title'), 'wideBooking' => true])
 
 @php
     use App\Enums\BookingStatus;
@@ -53,7 +53,7 @@
     {{-- Β2's strip. Check-in first and in the same colour as the rest, because
          the mistake this page exists to prevent is a guest reading the
          departure time and arriving as the boat leaves. --}}
-    <div class="facts">
+    <div class="facts wide-four">
         @if ($times['checkIn'])
             <div><span>{{ __('guest.booking.times.check_in') }}</span><b>{{ $times['checkIn'] }}</b></div>
         @endif
@@ -61,10 +61,17 @@
         @if ($times['return'])
             <div><span>{{ __('guest.booking.times.return') }}</span><b>{{ $times['return'] }}</b></div>
         @endif
+        {{-- A fourth figure only where there is room for one: on a phone the
+             three times are the answer, and a total squeezed beside them is a
+             column of four numbers nobody asked for. --}}
+        <div class="only-wide"><span>{{ __('guest.booking.price.total') }}</span><b>{{ $money($booking->total_cents) }}</b></div>
     </div>
 
+    <div class="b-grid">
+    <div class="b-main">
+
     @if ($owesBalance)
-        <section>
+        <section class="sec-balance">
             <span class="label">{{ __('guest.booking.price.balance') }}</span>
             <dl class="rows">
                 <dt class="total">{{ $money($booking->balance_cents) }}</dt>
@@ -86,7 +93,7 @@
     @endif
 
     @if ($weatherChoiceDue)
-        <section>
+        <section class="sec-weather">
             <span class="label">{{ __('guest.booking.weather.heading') }}</span>
             <p>{{ __('guest.booking.weather.body', [
                 'amount' => $money($entitlement->totalCents),
@@ -108,7 +115,7 @@
     @endif
 
     @if ($point)
-        <section>
+        <section class="sec-meeting">
             <span class="label">{{ __('guest.booking.meeting_point') }}</span>
             <p><strong>{{ $point->name }}</strong></p>
             @if ($point->address)
@@ -162,7 +169,7 @@
         `BookingCalendarInvite::googleUrl()`.
     --}}
     @if ($ticketUrl || $calendar)
-        <section>
+        <section class="sec-take">
             <span class="label">{{ __('guest.booking.take_with_you') }}</span>
             @if ($ticketUrl)
                 <p class="muted">{{ __('guest.booking.ticket_help') }}</p>
@@ -183,7 +190,12 @@
         </section>
     @endif
 
-    <section>
+
+    </div>{{-- /.b-main --}}
+
+    <div class="b-side">
+
+    <section class="sec-price">
         <span class="label">{{ __('guest.booking.price.heading') }}</span>
         <dl class="rows">
             <dt>{{ __('guest.booking.price.total') }}</dt>
@@ -207,7 +219,7 @@
     {{-- The quiet end of the page. Changing your telephone number and
          cancelling your trip have nothing in common except that neither should
          be met on the way to the meeting point. --}}
-    <section class="quiet">
+    <section class="quiet sec-quiet">
         <span class="label">{{ __('guest.booking.manage') }}</span>
 
         <details>
@@ -261,5 +273,8 @@
             </details>
         @endif
     </section>
+
+    </div>{{-- /.b-side --}}
+    </div>{{-- /.b-grid --}}
 
 @endsection

@@ -28,6 +28,12 @@ return [
         ],
 
         'sections' => [
+            'schedules' => 'Schedules',
+            'schedules_intro' => 'When the trip repeats. The departures are generated from this.',
+            'extras' => 'Extras',
+            'extras_intro' => 'Whatever is offered alongside the seat, free or paid.',
+            'questions' => 'Extra questions',
+            'questions_intro' => 'Anything you want to ask the guest at checkout.',
             'identity' => 'The boat',
             'capacity' => 'Capacity and crew',
             'operations' => 'Operations',
@@ -260,6 +266,8 @@ return [
         ],
 
         'form' => [
+            // Ο ένας διακόπτης γλώσσας της φόρμας (2026-09-18).
+            'locale_switch' => 'Form language',
             'vessel' => [
                 'label' => 'Vessel',
                 'help' => 'The boat that runs this trip. Its passenger certificate is a legal ceiling and is never exceeded.',
@@ -397,9 +405,12 @@ return [
         // The form's two tabs (2026-09-17).
         'tabs' => [
             'basics' => 'Basics',
-            'page' => 'Page content',
+            'when' => 'When it leaves',
+            'prices' => 'Prices',
+            'terms' => 'Terms',
+            'page' => 'Page',
             'missing' => ':count missing|:count missing',
-            'schedule' => 'Schedule',
+            'schedule' => 'Schedules',
             'no_schedule' => 'none',
             'active_schedules' => ':count active|:count active',
             'filled' => ':filled of :total',

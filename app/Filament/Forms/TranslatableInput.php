@@ -8,7 +8,7 @@ use App\Rules\TranslatableRequired;
 use App\Support\Locale\LocaleResolver;
 use Closure;
 use Filament\Forms\Components\Component;
-use Filament\Forms\Components\Tabs;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 
@@ -83,28 +83,44 @@ final class TranslatableInput
     }
 
     /**
+     * One input per locale, all of them in the page, one of them on screen.
+     *
+     * ## Why this stopped being a pair of tabs per field (2026-09-18)
+     *
+     * It was one `Tabs` per translatable attribute, keyed by the attribute so
+     * that two fields did not switch together — which is exactly what made the
+     * trip form ask «Ελληνικά ή English;» eight times on one page, and let an
+     * operator write the summary in Greek and the description in English
+     * without ever seeing that they had. The form now asks once, at the top
+     * ({@see resources/views/filament/app/form-locale-switch.blade.php}), and
+     * every field answers to that switch.
+     *
+     * The mechanism is a class per locale and a `display: none` rule, so both
+     * languages stay in the form's state and are submitted together. A field
+     * that was removed from the page would take its validation error with it.
+     *
      * @param  Closure(string, string): (TextInput|Textarea)  $build
      */
     private static function tabs(string $name, string $label, ?string $helperText, Closure $build): Component
     {
-        $tabs = [];
+        $inputs = [];
 
         foreach (LocaleResolver::installed() as $locale) {
-            $tabs[] = Tabs\Tab::make($locale)
-                // The language names itself — "Ελληνικά", not "Greek" — for the
-                // same reason the switcher does: someone hunting for the Greek
-                // tab recognises the Greek word.
-                ->label(__("enums.locale.{$locale}.label"))
-                ->schema([
-                    $build("{$name}.{$locale}", $locale)
-                        ->label($label)
-                        ->helperText($helperText),
-                ]);
+            $inputs[] = Group::make([
+                $build("{$name}.{$locale}", $locale)
+                    // The language names itself — «Ελληνικά», not «Greek» — on
+                    // the label of the second and later locales, so a form
+                    // switched to English still says which language it is
+                    // collecting. The first locale is the operator's own and
+                    // needs no announcement.
+                    ->label($locale === LocaleResolver::installed()[0]
+                        ? $label
+                        : $label . ' · ' . __("enums.locale.{$locale}.label"))
+                    ->helperText($helperText),
+            ])->extraAttributes(['class' => "ka-locale ka-locale--{$locale}"]);
         }
 
-        // Keyed by the attribute so two translatable fields on one form do not
-        // share a tab state and switch together.
-        return Tabs::make($name)->tabs($tabs)->columnSpanFull();
+        return Group::make($inputs)->columnSpanFull();
     }
 
     /**

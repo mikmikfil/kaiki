@@ -60,24 +60,33 @@ const sizes = [
 
 const browser = await chromium.launch();
 
+/*
+ * One context for every shot, resized between them.
+ *
+ * Two earlier shapes both failed: a context per size signed in three times and
+ * tripped the panel's login throttle, and a shared `storageState` copied from a
+ * sign-in context did not carry the session. One context keeps one session and
+ * photographs each size by changing the viewport, which is also what a person
+ * dragging a window does.
+ */
+const context = await browser.newContext({ locale: 'el-GR' });
+const page = await context.newPage();
+
+if (process.env.SHOT_LOGIN) {
+    const [email, password] = process.env.SHOT_LOGIN.split(':');
+    const loginUrl = process.env.SHOT_LOGIN_URL ?? new URL('/app/login', pages[0][1]).toString();
+
+    await page.goto(loginUrl, { waitUntil: 'networkidle', timeout: 30_000 });
+    await page.fill('input[type="email"]', email);
+    await page.fill('input[type="password"]', password);
+    await page.click('button[type="submit"]');
+    await page.waitForURL((url) => ! url.pathname.endsWith('/login'), { timeout: 30_000 })
+        .catch(() => console.warn('sign-in did not leave the login page'));
+}
+
 for (const [name, url] of pages) {
     for (const [label, viewport, fullPage] of sizes) {
-        const context = await browser.newContext({ viewport, locale: 'el-GR' });
-        const page = await context.newPage();
-
-        // A panel screen needs a session. Signing in per context rather than
-        // once keeps every size honest: the sidebar and the mobile menu are
-        // drawn from the viewport at the moment the page loads.
-        if (process.env.SHOT_LOGIN) {
-            const [email, password] = process.env.SHOT_LOGIN.split(':');
-            const loginUrl = process.env.SHOT_LOGIN_URL ?? new URL('/app/login', url).toString();
-
-            await page.goto(loginUrl, { waitUntil: 'networkidle', timeout: 30_000 });
-            await page.fill('input[type="email"]', email);
-            await page.fill('input[type="password"]', password);
-            await page.click('button[type="submit"]');
-            await page.waitForLoadState('networkidle').catch(() => {});
-        }
+        await page.setViewportSize(viewport);
 
         try {
             await page.goto(url, { waitUntil: 'networkidle', timeout: 30_000 });
@@ -87,14 +96,15 @@ for (const [name, url] of pages) {
             console.warn(`${name} ${label}: ${error.message.split('\n')[0]}`);
         }
 
-        // Fonts and the map tiles settle a beat after the network does.
-        await page.waitForTimeout(700);
+        // Fonts, map tiles and Livewire's first paint settle a beat after the
+        // network does; a form redrawn a moment later is the usual reason a
+        // panel screenshot looks half-built.
+        await page.waitForTimeout(900);
         await page.screenshot({ path: `${OUT}/${name}-${label}.png`, fullPage });
 
         console.log(`${OUT}/${name}-${label}.png`);
-
-        await context.close();
     }
 }
 
+await context.close();
 await browser.close();

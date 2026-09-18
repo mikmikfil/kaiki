@@ -263,4 +263,65 @@
         padding-inline: 0;
         font-weight: 500;
     }
+
+    /*
+     * One language switch for the whole form (2026-09-18), and the two blocks
+     * it shows and hides. Both languages stay in the DOM — see the switch's own
+     * comment — so this is `display: none` rather than a removal.
+     */
+    .ka-locale-switch {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: .6rem;
+        margin-block-end: .25rem;
+    }
+
+    .ka-locale-switch-label {
+        font-size: .8125rem;
+        color: #7B8BA1;
+    }
+
+    .ka-locale-switch-buttons {
+        display: inline-flex;
+        border: 1px solid #DCE4EF;
+        border-radius: .5rem;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .ka-locale-switch-buttons button {
+        padding: .35rem .75rem;
+        font-size: .875rem;
+        font-weight: 600;
+        color: #7B8BA1;
+        background: transparent;
+    }
+
+    .ka-locale-switch-buttons button.ka-locale-on {
+        background: var(--ka-sea-deep);
+        color: #fff;
+    }
+
+    .ka-locale-switch-buttons button:focus-visible {
+        outline: 2px solid var(--ka-sea-deep);
+        outline-offset: -2px;
+    }
+
+    form[data-ka-locale="el"] .ka-locale--en,
+    form[data-ka-locale="en"] .ka-locale--el {
+        display: none;
+    }
+
+    /*
+     * «Πριν τη δημοσίευση» as a column of its own (2026-09-18). It follows the
+     * form down the page, because it is the answer to "why can I not publish
+     * this yet" and that question is asked from whichever tab is open.
+     */
+    @media (min-width: 1280px) {
+        .ka-checklist-side {
+            position: sticky;
+            top: 5rem;
+        }
+    }
 </style>
