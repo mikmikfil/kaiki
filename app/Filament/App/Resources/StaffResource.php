@@ -11,8 +11,8 @@ use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\StaffResource\Pages;
 use App\Models\User;
 use App\Support\Authorization\Capability;
-use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Component;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -149,17 +149,31 @@ class StaffResource extends Resource
                 ->default('el')
                 ->required(),
 
-            CheckboxList::make('roles')
-                ->label(__('staff.form.roles.label'))
-                ->helperText(__('staff.form.roles.help'))
+            /*
+             * One role per person (2026-09-18).
+             *
+             * This was a checkbox list until today, because `role_assignments`
+             * holds a row per role and the screen offered what the table
+             * allowed. But the three roles are strictly nested — crew ⊂ manager
+             * ⊂ owner, see `Capability::heldBy()` — so every combination a
+             * person could tick was already expressed by the highest of them:
+             * «owner and crew» granted exactly what «owner» granted, and the
+             * screen was asking a question whose answer never mattered.
+             *
+             * A radio group answers it once. The table keeps its shape, and
+             * `Role::highest()` is how a person who already holds two is read
+             * back into this field.
+             */
+            Radio::make('role')
+                ->label(__('staff.form.role.label'))
+                ->helperText(__('staff.form.role.help'))
                 ->options(fn (): array => collect(Role::cases())
                     ->mapWithKeys(fn (Role $role): array => [$role->value => $role->label()])
                     ->all())
                 ->descriptions(fn (): array => collect(Role::cases())
                     ->mapWithKeys(fn (Role $role): array => [$role->value => $role->description()])
                     ->all())
-                ->required()
-                ->minItems(1),
+                ->required(),
         ];
     }
 
@@ -238,16 +252,20 @@ class StaffResource extends Resource
                  * their account to a different inbox, not an edit.
                  */
                 EditAction::make()
+                    // Filament composes «Επεξεργασία» with the model label and
+                    // produces «Επεξεργασία Άτομο», which is not Greek.
+                    ->modalHeading(__('staff.actions.edit.heading'))
+                    ->modalSubmitActionLabel(__('staff.actions.edit.submit'))
                     ->form(static::formSchema(inviting: false))
                     ->fillForm(fn (User $record): array => [
                         'name' => $record->name,
                         'salutation' => $record->salutation,
                         'email' => $record->email,
                         'locale' => $record->locale,
-                        'roles' => array_map(
-                            static fn (Role $role): string => $role->value,
-                            $record->roles(),
-                        ),
+                        // A person who already holds two — from a seed, the API,
+                        // or the checkbox list this replaced — opens on the one
+                        // that speaks for both.
+                        'role' => Role::highest($record->roles())?->value,
                     ])
                     ->action(function (User $record, array $data): void {
                         $actor = Auth::user();
@@ -266,7 +284,7 @@ class StaffResource extends Resource
 
                                 Pages\ListStaff::replaceRoles(
                                     $record,
-                                    array_map(Role::from(...), $data['roles']),
+                                    [Role::from($data['role'])],
                                     $actor,
                                 );
                             });

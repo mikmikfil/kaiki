@@ -14,6 +14,8 @@
  * Options through the environment:
  *   SHOT_DIR   where the PNGs go (default: storage/app/screens)
  *   SHOT_ONLY  a subset of sizes, e.g. `phone` or `phone,desktop`
+ *   SHOT_LOGIN `email:password`, for panel screens — each context signs in at
+ *              /app/login first (or SHOT_LOGIN_URL for /admin)
  *
  * Phone shots are full-page, so a column that grows past the fold is caught in
  * one image; the wider ones are viewport-sized, which is what a first look at a
@@ -62,6 +64,20 @@ for (const [name, url] of pages) {
     for (const [label, viewport, fullPage] of sizes) {
         const context = await browser.newContext({ viewport, locale: 'el-GR' });
         const page = await context.newPage();
+
+        // A panel screen needs a session. Signing in per context rather than
+        // once keeps every size honest: the sidebar and the mobile menu are
+        // drawn from the viewport at the moment the page loads.
+        if (process.env.SHOT_LOGIN) {
+            const [email, password] = process.env.SHOT_LOGIN.split(':');
+            const loginUrl = process.env.SHOT_LOGIN_URL ?? new URL('/app/login', url).toString();
+
+            await page.goto(loginUrl, { waitUntil: 'networkidle', timeout: 30_000 });
+            await page.fill('input[type="email"]', email);
+            await page.fill('input[type="password"]', password);
+            await page.click('button[type="submit"]');
+            await page.waitForLoadState('networkidle').catch(() => {});
+        }
 
         try {
             await page.goto(url, { waitUntil: 'networkidle', timeout: 30_000 });

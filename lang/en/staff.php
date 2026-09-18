@@ -35,16 +35,16 @@ return [
             'label' => 'Language',
             'help' => 'Which language they see the panel and receive messages in.',
         ],
-        'roles' => [
-            'label' => 'Roles',
-            'help' => 'You can give more than one. They add up.',
+        'role' => [
+            'label' => 'Role',
+            'help' => 'One role per person. An owner can do everything a manager can, and a manager everything the crew can.',
         ],
     ],
 
     'table' => [
         'name' => 'Name',
         'email' => 'Email',
-        'roles' => 'Roles',
+        'roles' => 'Role',
         'status' => 'Status',
         'pending' => 'Has not signed in yet',
         'active' => 'Active',
@@ -71,6 +71,8 @@ return [
             'done' => 'A new invitation was sent to :email',
         ],
         'edit' => [
+            'heading' => 'Edit team member',
+            'submit' => 'Save',
             'done' => 'Changes saved',
             'last_owner' => 'One owner has to remain',
         ],
