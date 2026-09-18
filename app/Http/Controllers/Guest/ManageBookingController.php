@@ -6,9 +6,12 @@ namespace App\Http\Controllers\Guest;
 
 use App\Domain\Booking\Actions\ApplyGuestChoice;
 use App\Domain\Booking\Actions\CancelBooking;
+use App\Domain\Booking\Actions\GenerateETicket;
 use App\Domain\Booking\Actions\MintBalanceSession;
+use App\Domain\Booking\Support\BookingCalendarInvite;
 use App\Domain\Booking\Support\GuestTokenResolver;
 use App\Domain\Booking\Support\RefundEntitlement;
+use App\Domain\Booking\Support\TicketQr;
 use App\Enums\BookingStatus;
 use App\Enums\CancelledBy;
 use App\Enums\CancelReason;
@@ -19,8 +22,10 @@ use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
  * `/b/{manage_token}` — the guest's own booking (spec TOK-6, TOK-7, TOK-13).
@@ -79,6 +84,23 @@ final class ManageBookingController extends GuestPageController
             // `CancelBooking`, against the same frozen snapshot, so the two
             // cannot disagree — see the class docblock.
             'entitlement' => RefundEntitlement::forCancellation($booking),
+            // The same two links as the email (2026-09-18), for the guest who
+            // deleted the email and kept the page.
+            'calendar' => self::calendarFor($booking, $locale),
+            // TOK-6's download, offered rather than promised (2026-09-18): the
+            // page said «λίγο πριν την αναχώρηση» from M2 onwards and never
+            // grew the button, although #88 had built both the PDF and its
+            // route. The link works even before the queue has rendered
+            // anything — see {@see self::ticket()}.
+            'ticketUrl' => self::ticketUrlFor($booking, $tenant, $token),
+            // Direction Β2's strip: check-in, departure, return. The three
+            // figures a guest opens this page for, computed once here rather
+            // than three times in the template.
+            'times' => self::timesFor($booking, $tenant),
+            // The boarding codes themselves, on the page (product owner,
+            // 2026-09-18): «να φαίνεται όποτε υπάρχει». See below for when
+            // there is one.
+            'boardingPasses' => self::boardingPassesFor($booking, $tenant),
             'canCancel' => self::canCancel($booking),
             'weatherChoiceDue' => self::weatherChoiceIsOpen($booking),
             'backUrl' => $this->backToSiteUrl($booking, $tenant),
@@ -99,9 +121,27 @@ final class ManageBookingController extends GuestPageController
      * `no-store` and `no-referrer` on it, so tapping a download does not send
      * the token anywhere.
      *
-     * A booking whose ticket was never generated (BKG-14's failure feed) gets
-     * the same "link not valid" page as a bad token rather than a broken
-     * download, because at a quay the difference is not actionable.
+     * ## A ticket that was never made is made here, on the spot (2026-09-18)
+     *
+     * `GenerateETicketOnConfirmation` is queued on purpose — a Chromium that
+     * will not start must never unwind a payment — and the cost of that is a
+     * window, from a few seconds on a healthy host to for ever on one whose
+     * queue is stopped, in which the booking is confirmed and the file does not
+     * exist. Answering that with "this link is not valid" tells a guest at a
+     * quay that their ticket is gone, which is both untrue and the worst
+     * possible moment to say it. So the file is rendered now, kept, and served.
+     *
+     * The listener still owns the normal path: this is the fallback, it runs
+     * once per missing file, and after it the queued job has nothing left to do.
+     * If the render itself fails — no browser on the host — the guest gets the
+     * old page and the operator has the booking in the failure feed, which is
+     * the same place the queued failure would have landed.
+     *
+     * Two bookings never get one: a cancelled booking, whose ticket would board
+     * somebody onto a trip they are not on, and an operator who does not check
+     * anybody in ({@see Tenant::usesCheckIn()}), for whom a ticket is a
+     * document nobody will ever ask for. An already-rendered file is still
+     * served in both cases — it exists because it was valid when it was made.
      */
     public function ticket(Request $request, string $token): Response
     {
@@ -113,6 +153,10 @@ final class ManageBookingController extends GuestPageController
 
         $disk = Storage::disk((string) config('kaiki.tickets.disk', 'local'));
         $path = $booking->eticket_path;
+
+        if ($path === null || ! $disk->exists($path)) {
+            $path = self::renderTicketNow($booking, $tenant);
+        }
 
         if ($path === null || ! $disk->exists($path)) {
             return $this->linkNotValid($request);
@@ -129,6 +173,201 @@ final class ManageBookingController extends GuestPageController
                 'Content-Disposition' => 'inline; filename="' . $booking->reference . '.pdf"',
             ],
         );
+    }
+
+    /**
+     * The scannable code for each passenger, or an empty list.
+     *
+     * The e-ticket PDF has carried these since #88, and until today the only
+     * way to a code was to download a file — which is a download, a PDF reader
+     * and a pinch-zoom between a guest and the thing the crew scans. They are
+     * on the page now whenever there is one to show.
+     *
+     * "Whenever there is one" is three conditions, and each of them is somebody
+     * else's decision rather than this page's: the platform has switched QR
+     * boarding on for this operator, the booking is still live, and the trip
+     * has not already sailed. A code for a cancelled booking would scan green
+     * at a gangway, which is the one outcome worth engineering against.
+     *
+     * @return list<array{name: string, code: string, svg: string}>
+     */
+    private static function boardingPassesFor(Booking $booking, Tenant $tenant): array
+    {
+        if (! $tenant->usesQrCheckIn() || ! $booking->status->isLive() || $booking->starts_at_utc->isPast()) {
+            return [];
+        }
+
+        return Tenancy::forTenant($tenant, static function () use ($booking): array {
+            $passes = [];
+
+            foreach ($booking->guests()->orderBy('position')->get() as $guest) {
+                if (trim((string) $guest->ticket_code) === '') {
+                    continue;
+                }
+
+                $passes[] = [
+                    // A booking of four gets four codes, and the crew scans one
+                    // per person — so each has to say whose it is. The position
+                    // is the fallback for a passenger whose name has not been
+                    // given yet, because «Επιβάτης 3» is still an answer.
+                    'name' => trim((string) $guest->full_name) !== ''
+                        ? (string) $guest->full_name
+                        : __('guest.booking.passenger', ['position' => $guest->position]),
+                    'code' => (string) $guest->ticket_code,
+                    'svg' => TicketQr::svgFor($guest),
+                ];
+            }
+
+            return $passes;
+        });
+    }
+
+    /**
+     * Check-in, departure and return, as clock times in the operator's zone.
+     *
+     * Check-in is departure less the product's `check_in_offset_minutes`, the
+     * same arithmetic the emails and the calendar entry do — and, like them,
+     * this page leads with it, because "when must I be there" is a different
+     * question from "when do the lines come off" and it is the one a guest is
+     * standing on a quay asking.
+     *
+     * Clock times, not instants: `local_time` is what the operator typed and
+     * what the boat runs on. Return comes from `ends_at_utc`, which is an
+     * instant, so it is the only one that needs converting.
+     *
+     * @return array{checkIn: string|null, departure: string, return: string|null}
+     */
+    private static function timesFor(Booking $booking, Tenant $tenant): array
+    {
+        $zone = $tenant->timezone ?? (string) config('app.timezone');
+        $departure = Carbon::parse(
+            $booking->local_date->toDateString() . ' ' . $booking->local_time,
+            $zone,
+        );
+
+        // `bookings.product_id` is a non-nullable foreign key, so there is
+        // always a product here — only its offset can be absent.
+        $offset = (int) ($booking->product->check_in_offset_minutes ?? 0);
+
+        return [
+            'checkIn' => $offset > 0 ? $departure->copy()->subMinutes($offset)->format('H:i') : null,
+            'departure' => $departure->format('H:i'),
+            'return' => $booking->ends_at_utc?->copy()->setTimezone($zone)->format('H:i'),
+        ];
+    }
+
+    /**
+     * The ticket link for the page, or null when this booking has no ticket.
+     *
+     * The same two exclusions as {@see self::renderTicketNow()} — a cancelled
+     * booking and an operator who boards nobody — so the page never offers a
+     * button that the download would then refuse. Everyone else gets it
+     * immediately, whether or not the file has been rendered yet.
+     */
+    private static function ticketUrlFor(Booking $booking, Tenant $tenant, string $token): ?string
+    {
+        if ($booking->status === BookingStatus::Cancelled || ! $tenant->usesCheckIn()) {
+            return null;
+        }
+
+        return route('guest.ticket', ['token' => $token]);
+    }
+
+    /**
+     * Render the missing ticket inside its tenant, and keep it.
+     *
+     * Returns the stored path, or null when there should be no ticket or the
+     * render failed. The failure is swallowed deliberately: the caller's answer
+     * to "no file" is a page that explains itself, and a 500 on a guest's phone
+     * explains nothing.
+     */
+    private static function renderTicketNow(Booking $booking, Tenant $tenant): ?string
+    {
+        if ($booking->status === BookingStatus::Cancelled || ! $tenant->usesCheckIn()) {
+            return null;
+        }
+
+        try {
+            return Tenancy::forTenant($tenant, static fn (): string => app(GenerateETicket::class)($booking));
+        } catch (Throwable $e) {
+            report($e);
+
+            return null;
+        }
+    }
+
+    /**
+     * The trip as a calendar entry (product owner, 2026-09-18).
+     *
+     * Served from a route and not only attached to the email, for three
+     * reasons. A guest who deleted the email still has the page. A guest whose
+     * trip moved needs *today's* times, and a file attached in March carries
+     * the March times for ever. And an attachment is stripped by some corporate
+     * mail filters, where a link survives.
+     *
+     * Rendered inside the tenant, so the meeting point and the labels come out
+     * in the operator's own data and the guest's own language — the same reason
+     * {@see self::show()} does it.
+     *
+     * `attachment`, not `inline`: on iOS and Android it is the download handler
+     * that offers "add to calendar", while an inline `text/calendar` is shown
+     * to some guests as a screenful of raw text.
+     */
+    public function calendar(Request $request, string $token): Response
+    {
+        [$booking, $tenant] = $this->resolve($token);
+
+        if ($booking === null || ! $tenant instanceof Tenant) {
+            return $this->linkNotValid($request);
+        }
+
+        $locale = $this->resolveLocale($request, $booking->locale);
+
+        /** @var array{0: string, 1: string}|null $file */
+        $file = Tenancy::forTenant($tenant, static function () use ($booking, $locale): ?array {
+            $invite = BookingCalendarInvite::for($booking, $locale);
+
+            // A draft that never got a departure has nothing to put in a
+            // calendar. The same "link not valid" page as a ticket that was
+            // never generated: at that point the difference is not actionable.
+            return $invite->isAvailable() ? [$invite->ics(), $invite->filename()] : null;
+        });
+
+        if ($file === null) {
+            return $this->linkNotValid($request);
+        }
+
+        return response($file[0], Response::HTTP_OK, [
+            'Content-Type' => 'text/calendar; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $file[1] . '"',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    /**
+     * The page's two calendar links, or null when there is nothing to add.
+     *
+     * Already inside the tenant: {@see self::show()} calls this from within
+     * `renderInTenant`, which is what makes the meeting point readable.
+     *
+     * Nothing is offered for a trip that has already sailed or a booking that
+     * was cancelled. The route still serves both — an old email is a link
+     * somebody may tap, and a cancelled booking's file is what *removes* the
+     * entry — but a page offering to diary last Tuesday is a page that looks
+     * broken.
+     *
+     * @return array{ics: string, google: string}|null
+     */
+    private static function calendarFor(Booking $booking, string $locale): ?array
+    {
+        if ($booking->status === BookingStatus::Cancelled || $booking->starts_at_utc?->isPast() !== false) {
+            return null;
+        }
+
+        $invite = BookingCalendarInvite::for($booking, $locale);
+        $ics = $invite->isAvailable() ? $invite->downloadUrl() : null;
+
+        return $ics === null ? null : ['ics' => $ics, 'google' => $invite->googleUrl()];
     }
 
     /** TOK-6's cancel, per policy. */

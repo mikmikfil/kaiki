@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Booking\Actions;
 
 use App\Domain\Booking\Support\SeatCommitment;
+use App\Domain\Pricing\Actions\ApplyDiscountCode;
 use App\Domain\Pricing\Actions\ApplyVoucher;
 use App\Enums\BookingStatus;
 use App\Enums\PaymentGatewayName;
@@ -12,6 +13,7 @@ use App\Enums\PaymentKind;
 use App\Enums\PaymentStatus;
 use App\Exceptions\CapacityExceeded;
 use App\Exceptions\CheckoutRefused;
+use App\Exceptions\DiscountCodeRefused;
 use App\Exceptions\IllegalStateTransition;
 use App\Models\Booking;
 use App\Models\Departure;
@@ -111,6 +113,15 @@ final class StartCheckout
             // may have been spent on another booking since the draft was made
             // and the total the guest is about to be charged depends on it.
             ($this->applyVoucher)($locked);
+
+            // And the discount code's last use, taken under a lock (2026-09-18).
+            // The checkout page has already checked that the code is good; what
+            // it could not do is stop somebody else spending the last use while
+            // this guest typed their passport number. Whoever reaches this line
+            // second finds the count already includes the first.
+            if (! ApplyDiscountCode::claim($locked)) {
+                throw new DiscountCodeRefused(__('discount_codes.refused.no_longer'));
+            }
 
             if ($departure instanceof Departure) {
                 // The move from held to sold (BKG-9). The guest's own hold is

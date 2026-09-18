@@ -16,7 +16,9 @@ it('sends the security headers on the operator panel', function (): void {
         ->and($response->headers->get('Referrer-Policy'))->toBe('same-origin')
         ->and($response->headers->get('X-Frame-Options'))->toBe('DENY')
         ->and($response->headers->get('Content-Security-Policy'))->toContain("default-src 'self'")
-        ->and($response->headers->get('Content-Security-Policy'))->toContain("frame-ancestors 'none'");
+        ->and($response->headers->get('Content-Security-Policy'))->toContain("frame-ancestors 'none'")
+        // The photo upload field previews images in a blob: worker.
+        ->and($response->headers->get('Content-Security-Policy'))->toContain("worker-src 'self' blob:");
 })->group('fast');
 
 it('sends them on the super-admin panel too', function (): void {

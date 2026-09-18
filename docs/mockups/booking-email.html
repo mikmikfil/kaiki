@@ -1,0 +1,267 @@
+<title>Email επιβεβαίωσης κράτησης</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+  /* Single light look on purpose: the emails themselves are light only. */
+  :root {
+    --ground: #EEF2F6;
+    --paper: #FFFFFF;
+    --ink: #14202B;
+    --muted: #5A6B7A;
+    --line: #D9E2EA;
+    --sea: #0F2E57;
+    --brand: #123A5E;
+    --good: #0E7C5A;
+    --good-bg: #E3F4EC;
+    --bad: #8A3A1F;
+    --bad-bg: #F8ECE6;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font: 15px/1.55 Figtree, "Segoe UI", Arial, sans-serif;
+    padding-inline: 20px;
+    padding-block: 32px 64px;
+  }
+  .wrap { max-width: 1440px; margin: 0 auto; }
+  header { display: grid; gap: 10px; max-width: 70ch; margin-bottom: 22px; }
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; color: var(--muted); }
+  h1 { margin: 0; font-size: clamp(26px, 3.4vw, 36px); line-height: 1.12; letter-spacing: -.02em; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 18px 0 24px; }
+  .seg { display: inline-flex; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .seg button { border: 0; background: none; font: inherit; font-weight: 600; font-size: 14px; color: var(--muted); padding: 7px 14px; border-radius: 8px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--sea); color: #fff; }
+  .seg button:focus-visible { outline: 2px solid var(--sea); outline-offset: 2px; }
+  .hint { color: var(--muted); font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; align-items: start; }
+  @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; max-width: 680px; } }
+  .option { display: grid; gap: 12px; }
+  .opt-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .opt-head h2 { margin: 0; font-size: 18px; letter-spacing: -.01em; }
+  .letter { font-weight: 700; color: var(--sea); }
+  .pick { font-size: 12px; font-weight: 700; color: var(--good); background: var(--good-bg); padding: 3px 9px; border-radius: 999px; }
+  .client { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .meta { padding: 12px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 2px; font-size: 13px; }
+  .meta b { font-size: 14px; }
+  .meta span { color: var(--muted); }
+  .viewport { background: #F2F5F7; overflow: hidden; }
+  .viewport iframe { display: block; border: 0; transform-origin: 0 0; background: #F2F5F7; }
+  .notes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13.5px; }
+  .notes div { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .notes h3 { margin: 0 0 4px; font-size: 13px; }
+  .notes .pro h3 { color: var(--good); }
+  .notes .con h3 { color: var(--bad); }
+  .notes ul { margin: 0; padding-left: 18px; color: var(--muted); }
+  footer { margin-top: 28px; color: var(--muted); font-size: 13px; max-width: 70ch; }
+  @media (max-width: 520px) { .notes { grid-template-columns: 1fr; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Kaiki · email επιβεβαίωσης κράτησης · mockup</div>
+    <h1>Τρεις τρόποι να λέει όλα όσα χρειάζεται ο επισκέπτης</h1>
+    <p>Και οι τρεις έχουν τα ίδια στοιχεία: ημέρα, check-in, αναχώρηση και επιστροφή, σημείο συνάντησης με χάρτη, άτομα και πρόσθετα, πληρωμές με υπόλοιπο, πολιτική ακύρωσης, τι να φέρετε, επικοινωνία, εισιτήριο QR και υπενθύμιση για τα στοιχεία επιβατών. Διαφέρουν στη σειρά και στο ύφος.</p>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Πλάτος προεπισκόπησης">
+      <button type="button" id="w-desk" aria-pressed="true" data-w="600">Υπολογιστής · 600px</button>
+      <button type="button" id="w-phone" aria-pressed="false" data-w="375">Κινητό · 375px</button>
+    </div>
+    <span class="hint">Αποστολέας και θέμα όπως φαίνονται στο inbox. Παράδειγμα με ψεύτικα στοιχεία.</span>
+  </div>
+
+  <div class="grid">
+    <section class="option">
+      <div class="opt-head"><span class="letter">A</span><h2>Κάρτα εισιτηρίου</h2><span class="pick">Προτείνεται</span></div>
+      <div class="client">
+        <div class="meta"><b>Aegean Blue Cruises</b><span>Η κράτησή σας επιβεβαιώθηκε · Γύρος της Μήλου, Πέμπτη 24/9</span></div>
+        <div class="viewport"><iframe title="Σχέδιο A" data-mail="a" scrolling="no"></iframe></div>
+      </div>
+      <div class="notes">
+        <div class="pro"><h3>Υπέρ</h3><ul><li>Με μια ματιά: πότε, πού, τι ώρα να είστε εκεί.</li><li>Το QR είναι στην αρχή, εύκολο να το δείξει στο λιμάνι.</li></ul></div>
+        <div class="con"><h3>Κατά</h3><ul><li>Πιο μακρύ email.</li><li>Η κάρτα θέλει προσοχή σε παλιά email προγράμματα.</li></ul></div>
+      </div>
+    </section>
+
+    <section class="option">
+      <div class="opt-head"><span class="letter">B</span><h2>Καθαρή λίστα</h2></div>
+      <div class="client">
+        <div class="meta"><b>Aegean Blue Cruises</b><span>Επιβεβαίωση κράτησης KAI-7Q4MX · Γύρος της Μήλου</span></div>
+        <div class="viewport"><iframe title="Σχέδιο B" data-mail="b" scrolling="no"></iframe></div>
+      </div>
+      <div class="notes">
+        <div class="pro"><h3>Υπέρ</h3><ul><li>Ήρεμο, μοιάζει με απόδειξη, διαβάζεται παντού.</li><li>Το πιο κοντά στο σημερινό, μικρή αλλαγή.</li></ul></div>
+        <div class="con"><h3>Κατά</h3><ul><li>Η ώρα προσέλευσης δεν ξεχωρίζει αρκετά.</li><li>Λιγότερο «ζεστό».</li></ul></div>
+      </div>
+    </section>
+
+    <section class="option">
+      <div class="opt-head"><span class="letter">C</span><h2>Σε βήματα</h2></div>
+      <div class="client">
+        <div class="meta"><b>Aegean Blue Cruises</b><span>Τι κάνετε μέχρι την Πέμπτη · Γύρος της Μήλου</span></div>
+        <div class="viewport"><iframe title="Σχέδιο C" data-mail="c" scrolling="no"></iframe></div>
+      </div>
+      <div class="notes">
+        <div class="pro"><h3>Υπέρ</h3><ul><li>Λέει τι πρέπει να γίνει και πότε: υπόλοιπο, στοιχεία, προσέλευση.</li><li>Λιγότερα τηλεφωνήματα με ερωτήσεις.</li></ul></div>
+        <div class="con"><h3>Κατά</h3><ul><li>Τα στοιχεία της κράτησης είναι πιο κάτω.</li><li>Αν δεν υπάρχει υπόλοιπο, ένα βήμα φεύγει και αλλάζει η εικόνα.</li></ul></div>
+      </div>
+    </section>
+  </div>
+
+  <footer>Τα emails χρησιμοποιούν γραμματοσειρά συστήματος και πίνακες, όπως τα πραγματικά, για να εμφανίζονται σωστά σε Gmail, Outlook και κινητά. Τα χρώματα είναι του διοργανωτή από την «Εμφάνιση».</footer>
+</div>
+
+<script>
+(function () {
+  const B = '#123A5E';
+  const ink = '#14202B', muted = '#5A6B7A', line = '#E4ECF1';
+  const F = 'font-family:Arial,Helvetica,sans-serif;';
+
+  // A believable QR: a seeded pattern with the three finder squares.
+  function qr(size) {
+    const n = 25, c = size / n;
+    let seed = 42, rects = '';
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const finder = (x, y) => x < 7 && y < 7 || x >= n - 7 && y < 7 || x < 7 && y >= n - 7;
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      if (finder(x, y)) continue;
+      if (rnd() > .52) rects += `<rect x="${x * c}" y="${y * c}" width="${c}" height="${c}"/>`;
+    }
+    const f = (x, y) => `<rect x="${x * c}" y="${y * c}" width="${7 * c}" height="${7 * c}" fill="#000"/><rect x="${(x + 1) * c}" y="${(y + 1) * c}" width="${5 * c}" height="${5 * c}" fill="#fff"/><rect x="${(x + 2) * c}" y="${(y + 2) * c}" width="${3 * c}" height="${3 * c}" fill="#000"/>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Κωδικός QR εισιτηρίου"><rect width="${size}" height="${size}" fill="#fff"/><g fill="#000">${rects}</g>${f(0, 0)}${f(n - 7, 0)}${f(0, n - 7)}</svg>`;
+  }
+
+  const btn = (label, bg = B, fg = '#fff', border = bg) =>
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;"><tr><td style="background:${bg};border:1px solid ${border};border-radius:6px;"><a href="#" style="display:inline-block;padding:11px 18px;${F}font-size:15px;font-weight:bold;color:${fg};text-decoration:none;">${label}</a></td></tr></table>`;
+  const link = (label) => `<a href="#" style="color:${B};text-decoration:none;font-weight:bold;">${label}</a>`;
+  const row = (k, v, first) => `<tr><td style="padding:9px 0;${first ? '' : `border-top:1px solid ${line};`}color:${muted};vertical-align:top;width:42%;">${k}</td><td style="padding:9px 0;${first ? '' : `border-top:1px solid ${line};`}text-align:right;vertical-align:top;">${v}</td></tr>`;
+  const table = (rows) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="${F}font-size:15px;color:${ink};">${rows}</table>`;
+  const h = (t) => `<p style="margin:22px 0 8px;${F}font-size:13px;font-weight:bold;color:${muted};letter-spacing:.04em;">${t}</p>`;
+  const shell = (inner) => `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head><body style="margin:0;background:#F2F5F7;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F2F5F7;"><tr><td align="center" style="padding:20px 10px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#fff;border:1px solid #DBE3E9;border-radius:8px;">
+    <tr><td style="padding:18px 22px;border-bottom:3px solid ${B};${F}font-size:17px;font-weight:bold;color:${ink};">Aegean Blue Cruises</td></tr>
+    <tr><td style="padding:22px;${F}font-size:15px;line-height:1.55;color:${ink};">${inner}</td></tr>
+    </table>
+    <p style="max-width:560px;margin:14px auto 0;${F}font-size:12px;color:${muted};text-align:center;">Λάβατε αυτό το email επειδή κάνατε κράτηση. Δεν είναι διαφημιστικό.</p>
+    </td></tr></table></body></html>`;
+
+  const party = table(
+    row('2 Ενήλικες × 150 €', '300,00 €', true) +
+    row('1 Παιδί (3–8) × 100 €', '100,00 €') +
+    row('Γεύμα στο σκάφος × 2', '50,00 €') +
+    row('<b style="color:' + ink + '">Σύνολο</b>', '<b>450,00 €</b>') +
+    row('Πληρώθηκε (προκαταβολή)', '135,00 €') +
+    row('<b style="color:' + ink + '">Υπόλοιπο</b>', '<b>315,00 €</b><br><span style="color:' + muted + ';font-size:13px;">έως Δευτέρα 21/9</span>')
+  );
+  const meeting = `<p style="margin:0 0 4px;font-weight:bold;">Λιμάνι Αδάμαντα, προβλήτα 2</p>
+    <p style="margin:0 0 4px;color:${muted};">Παραλιακή Αδάμαντα, Μήλος 848 00</p>
+    <p style="margin:0 0 12px;"><span style="color:${muted};">Πώς θα μας βρείτε:</span> μπροστά από το μπλε περίπτερο εισιτηρίων, 15 λεπτά πριν την αναχώρηση.</p>
+    ${btn('Άνοιγμα στον χάρτη', '#fff', B, '#C9D6E3')}`;
+  const bring = `<p style="margin:0;">Αντηλιακό · Καπέλο · Μαγιό · Πετσέτα</p>`;
+  const policy = `<p style="margin:0;">Δωρεάν ακύρωση έως 15 ημέρες πριν, 50% επιστροφή μετά. Αν ακυρωθεί λόγω καιρού, επιστροφή 100%. ${link('Πλήρης πολιτική')}</p>`;
+  const contact = `<p style="margin:0;">+30 22870 23456 · ${link('info@aegeanblue.gr')}</p>`;
+  const details = (compact) => `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#FFF6E5;border:1px solid #F0D9A8;border-radius:6px;"><tr><td style="padding:14px 16px;${F}font-size:15px;color:${ink};">
+    <p style="margin:0 0 ${compact ? 8 : 10}px;"><b>Συμπληρώστε τα στοιχεία των επιβατών έως 22/9.</b> Τα χρειάζεται το λιμεναρχείο για την κατάσταση επιβατών.</p>
+    ${btn('Συμπλήρωση στοιχείων', '#fff', '#7A4B00', '#E3C27F')}</td></tr></table>`;
+  const ticket = (size) => `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding-right:14px;vertical-align:top;">${qr(size)}</td><td style="vertical-align:top;${F}font-size:14px;color:${ink};"><b>Το εισιτήριό σας</b><br><span style="color:${muted};">Δείξτε το στο πλήρωμα κατά την επιβίβαση.</span><br><span style="color:${muted};">Κωδικός</span> <b>KAI-7Q4MX</b></td></tr></table>`;
+
+  const mails = {
+    a: shell(`
+      <p style="margin:0 0 6px;font-size:20px;font-weight:bold;">Η κράτησή σας επιβεβαιώθηκε</p>
+      <p style="margin:0 0 16px;color:${muted};">Γεια σας Μαρία, σας περιμένουμε στο σκάφος.</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${B};border-radius:8px;"><tr><td style="padding:18px 18px 16px;${F}color:#fff;">
+        <p style="margin:0 0 2px;font-size:13px;color:#BFD0E3;">Γύρος της Μήλου · σκάφος Αύρα</p>
+        <p style="margin:0 0 12px;font-size:22px;font-weight:bold;">Πέμπτη 24 Σεπτεμβρίου</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="${F}color:#fff;"><tr>
+          <td style="padding:8px 0;border-top:1px solid #2F557D;"><span style="font-size:12px;color:#BFD0E3;">Check-in</span><br><b style="font-size:20px;">08:45</b></td>
+          <td style="padding:8px 0;border-top:1px solid #2F557D;"><span style="font-size:12px;color:#BFD0E3;">Αναχώρηση</span><br><b style="font-size:20px;">09:30</b></td>
+          <td style="padding:8px 0;border-top:1px solid #2F557D;"><span style="font-size:12px;color:#BFD0E3;">Επιστροφή</span><br><b style="font-size:20px;">~16:30</b></td>
+        </tr></table>
+      </td></tr></table>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${line};border-top:0;border-radius:0 0 8px 8px;"><tr><td style="padding:14px 16px;">${ticket(96)}</td></tr></table>
+      <p style="margin:18px 0 0;">${btn('Διαχείριση κράτησης')}</p>
+      ${h('Σημείο συνάντησης')}${meeting}
+      <p style="margin:18px 0 0;"></p>${details(false)}
+      ${h('Άτομα και πληρωμή')}${party}
+      ${h('Τι να φέρετε')}${bring}
+      ${h('Ακύρωση')}${policy}
+      ${h('Επικοινωνία')}${contact}`),
+
+    b: shell(`
+      <p style="margin:0 0 6px;font-size:19px;font-weight:bold;">Επιβεβαίωση κράτησης</p>
+      <p style="margin:0 0 16px;">Γεια σας Μαρία, η κράτησή σας για τον Γύρο της Μήλου επιβεβαιώθηκε. Παρακάτω είναι όλα τα στοιχεία.</p>
+      ${table(
+        row('Κωδικός', '<b>KAI-7Q4MX</b>', true) +
+        row('Εκδρομή', 'Γύρος της Μήλου') +
+        row('Σκάφος', 'Αύρα') +
+        row('Ημέρα', 'Πέμπτη 24/9/2026') +
+        row('Check-in', '<b>08:45</b>') +
+        row('Αναχώρηση · επιστροφή', '09:30 · ~16:30') +
+        row('Σημείο συνάντησης', 'Λιμάνι Αδάμαντα, προβλήτα 2<br><span style="color:' + muted + ';font-size:13px;">Παραλιακή Αδάμαντα, Μήλος 848 00</span><br>' + link('Άνοιγμα στον χάρτη'))
+      )}
+      <p style="margin:10px 0 0;color:${muted};font-size:14px;">Πώς θα μας βρείτε: μπροστά από το μπλε περίπτερο εισιτηρίων, 15 λεπτά πριν την αναχώρηση.</p>
+      ${h('Άτομα και πληρωμή')}${party}
+      <p style="margin:18px 0 0;"></p>${details(true)}
+      ${h('Εισιτήριο')}${ticket(84)}
+      ${h('Τι να φέρετε')}${bring}
+      ${h('Ακύρωση')}${policy}
+      ${h('Επικοινωνία')}${contact}
+      <p style="margin:22px 0 0;">${btn('Διαχείριση κράτησης')}</p>`),
+
+    c: shell(`
+      <p style="margin:0 0 6px;font-size:20px;font-weight:bold;">Τα λέμε την Πέμπτη</p>
+      <p style="margin:0 0 4px;">Γεια σας Μαρία, η κράτησή σας <b>KAI-7Q4MX</b> επιβεβαιώθηκε.</p>
+      <p style="margin:0 0 16px;color:${muted};">Γύρος της Μήλου · σκάφος Αύρα · Πέμπτη 24/9 · 09:30–~16:30</p>
+      ${[
+        ['Πριν φύγετε', `
+          <p style="margin:0 0 8px;"><b>Υπόλοιπο 315,00 € έως Δευτέρα 21/9.</b> Από 450,00 € έχουν πληρωθεί 135,00 €.</p>
+          <p style="margin:0 0 12px;">${btn('Πληρωμή υπολοίπου')}</p>
+          ${details(true)}`],
+        ['Την ημέρα', `
+          <p style="margin:0 0 8px;"><b>Check-in στις 08:45</b>, αναχώρηση 09:30, επιστροφή περίπου 16:30.</p>
+          ${meeting}
+          <p style="margin:14px 0 6px;"><b>Φέρτε μαζί σας:</b> αντηλιακό, καπέλο, μαγιό, πετσέτα.</p>
+          <p style="margin:12px 0 0;"></p>${ticket(84)}`],
+        ['Μετά', `<p style="margin:0;">Αλλαγή ή ακύρωση από τη σελίδα της κράτησής σας.</p>${policy.replace('<p style="margin:0;">', '<p style="margin:6px 0 0;">')}`],
+      ].map(([title, body], i, all) => `
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+          <td style="width:30px;vertical-align:top;padding-top:2px;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="width:22px;height:22px;background:${B};border-radius:11px;text-align:center;${F}font-size:12px;font-weight:bold;color:#fff;">${i + 1}</td></tr></table></td>
+          <td style="vertical-align:top;padding:0 0 ${i === all.length - 1 ? 0 : 20}px 8px;${i === all.length - 1 ? '' : 'border-left:2px solid #DCE6EF;'}">
+            <p style="margin:0 0 8px;${F}font-size:16px;font-weight:bold;">${title}</p>${body}
+          </td></tr></table>`).join('')}
+      ${h('Άτομα και πληρωμή')}${party}
+      ${h('Επικοινωνία')}${contact}
+      <p style="margin:22px 0 0;">${btn('Διαχείριση κράτησης')}</p>`),
+  };
+
+  let width = 600;
+  const frames = [...document.querySelectorAll('iframe[data-mail]')];
+
+  function fit(frame) {
+    const box = frame.parentElement;
+    const scale = Math.min(1, box.clientWidth / width);
+    frame.style.width = width + 'px';
+    const doc = frame.contentDocument;
+    const hgt = doc && doc.body ? doc.body.scrollHeight : 1200;
+    frame.style.height = hgt + 'px';
+    frame.style.transform = `scale(${scale})`;
+    box.style.height = Math.ceil(hgt * scale) + 'px';
+  }
+
+  frames.forEach((frame) => {
+    frame.addEventListener('load', () => fit(frame));
+    frame.srcdoc = mails[frame.dataset.mail];
+  });
+
+  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+    width = Number(b.dataset.w);
+    document.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    frames.forEach((f) => { f.style.width = width + 'px'; requestAnimationFrame(() => fit(f)); });
+  }));
+
+  window.addEventListener('resize', () => frames.forEach(fit));
+})();
+</script>

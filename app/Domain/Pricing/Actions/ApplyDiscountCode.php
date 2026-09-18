@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Pricing\Actions;
 
+use App\Domain\Booking\Actions\StartCheckout;
 use App\Domain\Pricing\Support\DepositCalculator;
 use App\Enums\BookingStatus;
 use App\Exceptions\DiscountCodeRefused;
@@ -98,6 +99,44 @@ final class ApplyDiscountCode
         $this->write($booking, null, 0);
 
         return false;
+    }
+
+    /**
+     * Take one of the code's uses, or say there is none left (2026-09-18).
+     *
+     * ## Why counting was not enough
+     *
+     * {@see self::refusal()} counts the bookings already holding a use, and two
+     * guests paying for the last one at the same moment both counted the same
+     * number: each saw «one left», each went to the gateway, and a code capped
+     * at fifty redeemed fifty-one. Nothing in the count is wrong — it is that a
+     * count taken before a decision is a guess by the time the decision lands.
+     *
+     * So the row is locked first. The second caller waits at the lock, and
+     * counts afterwards, by which time the first has committed its
+     * `pending_payment`; whoever loses is told the code is gone before paying
+     * rather than after.
+     *
+     * Must be called **inside** the transaction that moves the booking to
+     * `pending_payment` — {@see StartCheckout}
+     * does exactly that, in AVL-45's lock order, after the booking itself.
+     * Called outside one, the lock is released immediately and this is a count
+     * again.
+     */
+    public static function claim(Booking $booking): bool
+    {
+        if ($booking->discount_code_id === null) {
+            return true;
+        }
+
+        /** @var DiscountCode|null $code */
+        $code = DiscountCode::query()->lockForUpdate()->find($booking->discount_code_id);
+
+        if (! $code instanceof DiscountCode) {
+            return false;
+        }
+
+        return self::refusal($code, (int) $booking->product_id, $booking->getKey()) === null;
     }
 
     public static function find(string $typed): ?DiscountCode

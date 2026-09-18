@@ -227,7 +227,32 @@ class VesselResource extends Resource
                             ->all())
                         ->searchable()
                         ->preload()
-                        ->native(false),
+                        ->native(false)
+                        // A new operator has no ports yet, so without this the
+                        // list is empty and the boat cannot get a home port
+                        // from the setup wizard at all. Name, address and map
+                        // link only; photo and directions stay on the port
+                        // screen.
+                        ->createOptionForm([
+                            TranslatableInput::text(
+                                'name',
+                                __('catalog.port.form.name.label'),
+                                __('catalog.port.form.name.help'),
+                            ),
+                            TextInput::make('address')
+                                ->label(__('catalog.port.form.address.label'))
+                                ->maxLength(255),
+                            TextInput::make('maps_url')
+                                ->label(__('catalog.port.form.maps_url.label'))
+                                ->url()
+                                ->maxLength(255),
+                        ])
+                        ->createOptionUsing(static fn (array $data): int => (int) Port::query()->create([
+                            'name' => $data['name'] ?? [],
+                            'address' => $data['address'] ?? null,
+                            'maps_url' => $data['maps_url'] ?? null,
+                            'is_active' => true,
+                        ])->getKey()),
 
                     TextInput::make('turnaround_buffer_minutes')
                         ->label(__('catalog.vessel.form.turnaround_buffer_minutes.label'))

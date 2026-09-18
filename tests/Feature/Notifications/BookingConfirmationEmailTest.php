@@ -185,3 +185,41 @@ it('drops the ticket and the details notice when neither applies', function (): 
         ->and($html)->not->toContain(__('mail.common.details_title', [], 'el'))
         ->and($html)->not->toContain(__('mail.common.balance_due', ['date' => ''], 'el'));
 })->group('fast');
+
+it('shows what the discount code took off, in both halves', function (): void {
+    [$tenant, $booking] = GuestPageScenario::booking(paidCents: 10500);
+
+    $rendered = Tenancy::forTenant($tenant, static function () use ($booking): array {
+        $booking->forceFill([
+            'locale' => 'el',
+            'discount_cents' => 1500,
+            'price_snapshot' => array_merge((array) $booking->price_snapshot, [
+                'discount_code' => ['id' => 1, 'code' => 'SUMMER10', 'name' => 'Καλοκαίρι', 'kind' => 'percent', 'value' => 10, 'amount_cents' => 1500],
+            ]),
+        ])->save();
+
+        $booking = $booking->refresh();
+        $mail = new GuestMail($booking, NotificationTemplate::BookingConfirmed);
+
+        app()->setLocale('el');
+
+        return [
+            $mail->render(),
+            view((string) $mail->textView, [
+                'booking' => $booking,
+                'template' => NotificationTemplate::BookingConfirmed,
+                'brand' => [],
+                'extra' => [],
+            ])->render(),
+        ];
+    });
+
+    foreach ($rendered as $body) {
+        expect(html_entity_decode($body, ENT_QUOTES))
+            ->toContain(__('mail.common.discount', [], 'el'))
+            // The code itself, because «Έκπτωση 15,00 €» does not tell a guest
+            // whether the code they typed is the one that was honoured.
+            ->toContain('SUMMER10')
+            ->toContain('15,00');
+    }
+})->group('fast');

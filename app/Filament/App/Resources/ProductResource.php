@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources;
 
+use App\Domain\Catalog\Actions\SaveCancellationPolicy;
 use App\Domain\Catalog\Support\ProductPublishChecklist;
 use App\Domain\Catalog\Support\TripPageContent;
 use App\Enums\AgeBandPricing;
@@ -25,6 +26,8 @@ use App\Support\Format\MoneyFormatter;
 use App\Support\Locale\LocaleResolver;
 use App\Support\Tenancy;
 use Filament\Forms\Components\Component;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Livewire;
 use Filament\Forms\Components\Placeholder;
@@ -117,42 +120,68 @@ class ProductResource extends Resource
     public static function formSchema(): array
     {
         return [
-            // Two tabs, the form otherwise unchanged (product owner, 2026-09-17,
-            // round 2 option 1): what the trip is and how it sells, and what the
-            // guest reads about it. Plain words with a thin bar under the open
-            // one, styled in `filament.app.sea`. A save error in the tab not on
-            // screen opens that tab by itself, which is Filament's behaviour.
-            Tabs::make('trip')
-                ->contained(false)
-                ->persistTabInQueryString('tab')
-                ->extraAttributes(['class' => 'ka-line-tabs'])
-                ->tabs([
-                    Tabs\Tab::make(__('catalog.product.tabs.basics'))
-                        ->badge(static::basicsBadge(...))
-                        ->badgeColor('warning')
-                        ->schema(static::basicsSections()),
-                    Tabs\Tab::make(__('catalog.product.tabs.page'))
-                        ->badge(static::pageBadge(...))
-                        ->badgeColor('gray')
-                        ->schema(static::pageSections()),
-                    // When it runs (2026-09-17): the trip's own timetable, which
-                    // used to be a separate screen in the menu. On a saved trip
-                    // sold per seat only; see `ScheduleRulesRelationManager`.
-                    Tabs\Tab::make(__('catalog.product.tabs.schedule'))
-                        ->badge(static::scheduleBadge(...))
-                        ->badgeColor(static fn (?Product $record): string => static::scheduleBadge($record) === __('catalog.product.tabs.no_schedule') ? 'warning' : 'gray')
-                        ->visible(static fn (?Product $record, Get $get): bool => $record instanceof Product
-                            && $record->exists
-                            && static::modeOf($get) === BookingMode::PerSeat)
-                        ->schema([
-                            Livewire::make(
-                                ScheduleRulesRelationManager::class,
-                                static fn (?Product $record): array => [
-                                    'ownerRecord' => $record,
-                                    'pageClass' => Pages\EditProduct::class,
-                                ],
-                            )->key('trip-schedule-rules'),
-                        ]),
+            /*
+             * Five tabs and a sidebar (product owner, 2026-09-17; approved from
+             * the mockup, built 2026-09-18).
+             *
+             * The form had grown to nine sections in one column — «χάος», in
+             * his word — and the order of them was the order they were built
+             * in. These five are the questions an operator actually asks, in
+             * the order they ask them: what is it, when does it leave, what
+             * does it cost, on what terms, and what does the guest read.
+             *
+             * The publish checklist leaves the first tab and becomes a column
+             * of its own, because it is the one thing that is true of the whole
+             * trip: a requirement living inside «Βασικά» could not say that a
+             * price was missing without the operator opening a different tab to
+             * find out.
+             *
+             * A save error in a tab that is not on screen opens that tab by
+             * itself, which is Filament's behaviour and the reason the tabs are
+             * a Tabs component rather than five links.
+             */
+            Grid::make(['default' => 1, 'xl' => 3])
+                ->schema([
+                    Group::make([
+                        // One switch for the whole form, instead of a pair of
+                        // language tabs above every translatable field.
+                        ViewField::make('filament.app.form-locale-switch')
+                            ->columnSpanFull(),
+
+                        Tabs::make('trip')
+                            ->contained(false)
+                            ->persistTabInQueryString('tab')
+                            ->extraAttributes(['class' => 'ka-line-tabs'])
+                            ->tabs([
+                                Tabs\Tab::make(__('catalog.product.tabs.basics'))
+                                    ->badge(static::basicsBadge(...))
+                                    ->badgeColor('warning')
+                                    ->schema(static::basicsSections()),
+
+                                Tabs\Tab::make(__('catalog.product.tabs.when'))
+                                    ->badge(static::scheduleBadge(...))
+                                    ->badgeColor(static fn (?Product $record): string => static::scheduleBadge($record) === __('catalog.product.tabs.no_schedule') ? 'warning' : 'gray')
+                                    ->schema(static::whenSections()),
+
+                                Tabs\Tab::make(__('catalog.product.tabs.prices'))
+                                    ->schema(static::priceSections()),
+
+                                Tabs\Tab::make(__('catalog.product.tabs.terms'))
+                                    ->schema(static::termsSections()),
+
+                                Tabs\Tab::make(__('catalog.product.tabs.page'))
+                                    ->badge(static::pageBadge(...))
+                                    ->badgeColor('gray')
+                                    ->schema(static::pageSections()),
+                            ]),
+                    ])->columnSpan(['default' => 1, 'xl' => 2]),
+
+                    Group::make([
+                        Section::make(__('catalog.product.sections.checklist'))
+                            ->description(__('catalog.product.checklist.intro'))
+                            ->extraAttributes(['class' => 'ka-checklist-side'])
+                            ->schema(static::checklistSchema()),
+                    ])->columnSpan(['default' => 1, 'xl' => 1]),
                 ])
                 ->columnSpanFull(),
         ];
@@ -173,7 +202,7 @@ class ProductResource extends Resource
     }
 
     /**
-     * Everything the publish checklist asks about, and the prices.
+     * Tab 1 — what the trip is: its name, its address, its boat, how it sells.
      *
      * @return array<int, Component>
      */
@@ -255,13 +284,31 @@ class ProductResource extends Resource
                         ->helperText(__('catalog.product.form.is_featured.help')),
                 ])
                 ->columns(2),
+        ];
+    }
 
-            Section::make(__('catalog.product.sections.checklist'))
-                ->description(__('catalog.product.checklist.intro'))
-                ->schema(static::checklistSchema()),
-
-            Section::make(__('catalog.product.sections.schedule'))
+    /**
+     * Tab 2 — when it leaves: how long, how early to be there, how many fit,
+     * and the timetable that generates the departures.
+     *
+     * @return array<int, Component>
+     */
+    public static function whenSections(): array
+    {
+        return [
+            // A trip sold per seat takes its days and times from the «Δρομολόγια»
+            // tab, so here it only has duration, check-in and meeting point. The
+            // single departure time is a whole-boat charter's (2026-09-17).
+            Section::make(static fn (Get $get): string => static::modeOf($get) === BookingMode::PerSeat
+                ? __('catalog.product.sections.schedule_per_seat')
+                : __('catalog.product.sections.schedule'))
                 ->schema([
+                    Placeholder::make('schedule_where')
+                        ->hiddenLabel()
+                        ->content(__('catalog.product.form.schedule_where'))
+                        ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat)
+                        ->columnSpanFull(),
+
                     TextInput::make('duration_minutes')
                         ->label(__('catalog.product.form.duration_minutes.label'))
                         ->helperText(__('catalog.product.form.duration_minutes.help'))
@@ -279,7 +326,8 @@ class ProductResource extends Resource
                         // (2026-09-17). Same as a departure's `local_time`.
                         ->timezone('UTC')
                         ->seconds(false)
-                        ->native(false),
+                        ->native(false)
+                        ->visible(static fn (Get $get): bool => static::modeOf($get) !== BookingMode::PerSeat),
 
                     TextInput::make('check_in_offset_minutes')
                         ->label(__('catalog.product.form.check_in_offset_minutes.label'))
@@ -354,6 +402,36 @@ class ProductResource extends Resource
                 ])
                 ->columns(2),
 
+            // The trip's own timetable (2026-09-17), which used to be a screen
+            // of its own in the menu. On a saved trip sold per seat only: there
+            // is nothing to hang a rule on before the first save, and a charter
+            // has no repeating schedule.
+            Section::make(__('catalog.product.sections.schedules'))
+                ->description(__('catalog.product.sections.schedules_intro'))
+                ->visible(static fn (?Product $record, Get $get): bool => $record instanceof Product
+                    && $record->exists
+                    && static::modeOf($get) === BookingMode::PerSeat)
+                ->schema([
+                    Livewire::make(
+                        ScheduleRulesRelationManager::class,
+                        static fn (?Product $record): array => [
+                            'ownerRecord' => $record,
+                            'pageClass' => Pages\EditProduct::class,
+                        ],
+                    )->key('trip-schedule-rules'),
+                ]),
+        ];
+    }
+
+    /**
+     * Tab 3 — what it costs: who pays what, the table of periods, and the
+     * extras that are sold beside the seat.
+     *
+     * @return array<int, Component>
+     */
+    public static function priceSections(): array
+    {
+        return [
             Section::make(__('catalog.product.sections.bands'))
                 ->description(__('catalog.product.form.bands.help'))
                 // A whole-boat charter sells the boat rather than passenger
@@ -364,11 +442,10 @@ class ProductResource extends Resource
                         ->label(__('catalog.product.sections.bands'))
                         ->addActionLabel(__('catalog.product.form.bands.add'))
                         ->schema([
-                            TextInput::make('code')
-                                ->label(__('catalog.product.form.bands.code.label'))
-                                ->helperText(__('catalog.product.form.bands.code.help'))
-                                ->required()
-                                ->maxLength(32),
+                            // Not asked any more (2026-09-17): made from the
+                            // name on first save (SaveAgeBands::withCodes) and
+                            // carried here unchanged, so prices stay attached.
+                            Hidden::make('code'),
 
                             TranslatableInput::text(
                                 'label',
@@ -420,8 +497,16 @@ class ProductResource extends Resource
                                 ->label(__('catalog.product.form.bands.no_document.label'))
                                 ->helperText(__('catalog.product.form.bands.no_document.help')),
                         ])
-                        ->itemLabel(fn (array $state): ?string => is_string($state['code'] ?? null) ? $state['code'] : null)
-                        ->defaultItems(1)
+                        ->itemLabel(static function (array $state): ?string {
+                            $label = $state['label'] ?? null;
+                            $name = is_array($label) ? (string) ($label[app()->getLocale()] ?? $label['el'] ?? '') : '';
+
+                            return $name !== '' ? $name : null;
+                        })
+                        // A new trip starts with the usual three, which the
+                        // operator edits, removes or adds to — e.g. ΑΜΕΑ, which
+                        // may share ages with «Ενήλικας» (2026-09-17).
+                        ->default(static::defaultAgeBands(...))
                         ->columns(2)
                         ->columnSpanFull(),
                 ]),
@@ -431,6 +516,8 @@ class ProductResource extends Resource
             // section is there but says, in one line, that it appears after
             // the first save: a missing section reads as "no prices here".
             Section::make(__('pricing.price_table.heading'))
+                // The create page lands here after «Συνέχεια στις τιμές».
+                ->id('prices')
                 ->description(__('pricing.price_table.intro'))
                 ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat)
                 ->schema([
@@ -442,6 +529,33 @@ class ProductResource extends Resource
                         ->visible(static fn (mixed $livewire): bool => $livewire instanceof Pages\EditProduct),
                 ]),
 
+            // «Πρόσθετα» (2026-09-17), beside the prices rather than in a tab of
+            // its own at the foot of the page: an extra is a price, and an
+            // operator setting up a trip is thinking about money once.
+            Section::make(__('catalog.product.sections.extras'))
+                ->description(__('catalog.product.sections.extras_intro'))
+                ->visible(static fn (?Product $record): bool => $record instanceof Product && $record->exists)
+                ->schema([
+                    Livewire::make(
+                        ExtrasRelationManager::class,
+                        static fn (?Product $record): array => [
+                            'ownerRecord' => $record,
+                            'pageClass' => Pages\EditProduct::class,
+                        ],
+                    )->key('trip-extras'),
+                ]),
+        ];
+    }
+
+    /**
+     * Tab 4 — the terms: what happens on a cancellation, which VAT rate, what
+     * the passengers have to give, and anything else this operator asks.
+     *
+     * @return array<int, Component>
+     */
+    public static function termsSections(): array
+    {
+        return [
             Section::make(__('catalog.product.sections.policy'))
                 ->schema([
                     Select::make('cancellation_policy_id')
@@ -449,7 +563,56 @@ class ProductResource extends Resource
                         ->helperText(__('catalog.product.form.cancellation_policy.help'))
                         ->options(static::cancellationPolicyOptions(...))
                         ->searchable()
-                        ->preload(),
+                        ->preload()
+                        // A new operator has no policy, and a trip cannot be
+                        // published without one, so the trip form can make it.
+                        // Name, free-cancellation window and the refund ladder;
+                        // weather, no-show and voucher keep their column
+                        // defaults and are edited on the policy screen.
+                        ->createOptionForm([
+                            TranslatableInput::text(
+                                'name',
+                                __('pricing.cancellation.form.name.label'),
+                                __('pricing.cancellation.form.name.help'),
+                                maxLength: 80,
+                            ),
+                            TextInput::make('free_cancellation_hours')
+                                ->label(__('pricing.cancellation.form.free_cancellation_hours.label'))
+                                ->helperText(__('pricing.cancellation.form.free_cancellation_hours.help'))
+                                ->integer()
+                                ->minValue(0)
+                                ->maxValue(65535)
+                                ->suffix(__('pricing.cancellation.form.free_cancellation_hours.suffix')),
+                            Repeater::make('tiers')
+                                ->label(__('pricing.cancellation.form.tiers.label'))
+                                ->helperText(__('pricing.cancellation.form.tiers.help'))
+                                ->addActionLabel(__('pricing.cancellation.form.tiers.add'))
+                                ->schema([
+                                    TextInput::make('days_before')
+                                        ->label(__('pricing.cancellation.form.tiers.days_before'))
+                                        ->integer()
+                                        ->required()
+                                        ->minValue(0)
+                                        ->maxValue(65535),
+                                    TextInput::make('refund_percent')
+                                        ->label(__('pricing.cancellation.form.tiers.refund_percent'))
+                                        ->integer()
+                                        ->required()
+                                        ->minValue(0)
+                                        ->maxValue(100)
+                                        ->suffix('%'),
+                                ])
+                                ->reorderable(false)
+                                ->defaultItems(0)
+                                ->columns(2),
+                        ])
+                        ->createOptionUsing(static function (array $data): int {
+                            /** @var list<array{days_before: int|string, refund_percent: int|string}> $tiers */
+                            $tiers = array_values($data['tiers'] ?? []);
+                            unset($data['tiers']);
+
+                            return (int) app(SaveCancellationPolicy::class)(new CancellationPolicy, $data, $tiers)->getKey();
+                        }),
 
                     Select::make('vat_rate_id')
                         ->label(__('catalog.product.form.vat_rate.label'))
@@ -486,6 +649,22 @@ class ProductResource extends Resource
                         ->visible(static fn (Get $get): bool => (bool) $get('guest_details_required')),
                 ])
                 ->columns(2),
+
+            // The operator's own questions (2026-09-17). They are asked at
+            // checkout and they are conditions of travelling, so they belong
+            // beside the policy rather than under the page's marketing text.
+            Section::make(__('catalog.product.sections.questions'))
+                ->description(__('catalog.product.sections.questions_intro'))
+                ->visible(static fn (?Product $record): bool => $record instanceof Product && $record->exists)
+                ->schema([
+                    Livewire::make(
+                        QuestionsRelationManager::class,
+                        static fn (?Product $record): array => [
+                            'ownerRecord' => $record,
+                            'pageClass' => Pages\EditProduct::class,
+                        ],
+                    )->key('trip-questions'),
+                ]),
         ];
     }
 
@@ -660,27 +839,30 @@ class ProductResource extends Resource
      */
     private static function lineList(string $field): Component
     {
-        $tabs = [];
+        $groups = [];
+        $first = LocaleResolver::installed()[0] ?? 'el';
 
         foreach (LocaleResolver::installed() as $locale) {
-            $tabs[] = Tabs\Tab::make($locale)
-                ->label(__("enums.locale.{$locale}.label"))
-                ->schema([
-                    Repeater::make("{$field}.{$locale}")
-                        ->label(__("catalog.product.trip_page.{$field}.label"))
-                        ->helperText(__("catalog.product.trip_page.{$field}.help"))
-                        ->simple(
-                            TextInput::make('value')
-                                ->label(__('catalog.product.trip_page.line'))
-                                ->maxLength(160),
-                        )
-                        ->reorderable()
-                        ->addActionLabel(__('catalog.product.trip_page.add_line'))
-                        ->defaultItems(0),
-                ]);
+            $label = __("catalog.product.trip_page.{$field}.label");
+
+            $groups[] = Group::make([
+                Repeater::make("{$field}.{$locale}")
+                    ->label($locale === $first ? $label : $label . ' · ' . __("enums.locale.{$locale}.label"))
+                    ->helperText(__("catalog.product.trip_page.{$field}.help"))
+                    ->simple(
+                        TextInput::make('value')
+                            ->label(__('catalog.product.trip_page.line'))
+                            ->maxLength(160),
+                    )
+                    ->reorderable()
+                    ->addActionLabel(__('catalog.product.trip_page.add_line'))
+                    ->defaultItems(0),
+                // The form's own language switch shows one of these and hides
+                // the other; see `TranslatableInput`.
+            ])->extraAttributes(['class' => "ka-locale ka-locale--{$locale}"]);
         }
 
-        return Tabs::make($field)->tabs($tabs)->columnSpanFull();
+        return Group::make($groups)->columnSpanFull();
     }
 
     /**
@@ -794,12 +976,14 @@ class ProductResource extends Resource
 
                 TextColumn::make('vessel.name')
                     ->label(__('catalog.product.table.vessel'))
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visibleFrom('md'),
 
                 TextColumn::make('mode')
                     ->label(__('catalog.product.table.mode'))
                     ->badge()
-                    ->formatStateUsing(static fn (BookingMode $state): string => $state->label()),
+                    ->formatStateUsing(static fn (BookingMode $state): string => $state->label())
+                    ->visibleFrom('md'),
 
                 // Coloured, so a draft does not look like the grey mode badge
                 // beside it.
@@ -814,7 +998,8 @@ class ProductResource extends Resource
                     }),
 
                 TextColumn::make('max_pax')
-                    ->label(__('catalog.product.table.max_pax')),
+                    ->label(__('catalog.product.table.max_pax'))
+                    ->visibleFrom('md'),
 
                 // Derived (§1.9), so the list does not fan out across seasons,
                 // plans and bands for every card. **Null renders as nothing**,
@@ -833,7 +1018,8 @@ class ProductResource extends Resource
                 IconColumn::make('is_featured')
                     ->label(__('catalog.product.table.featured'))
                     ->boolean()
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visibleFrom('md'),
             ])
             ->defaultSort('sort_order')
             // Status is a row of tabs above the list (`ListProducts::getTabs`),
@@ -901,6 +1087,40 @@ class ProductResource extends Resource
             ->get()
             ->mapWithKeys(static fn (Port $port): array => [$port->getKey() => (string) $port->name])
             ->all();
+    }
+
+    /**
+     * Ενήλικας, Παιδί, Βρέφος: the set almost every trip starts from.
+     *
+     * No codes: they are made from the names on save. Prices are not here —
+     * they go in the euro table like any other band's.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public static function defaultAgeBands(): array
+    {
+        $band = static fn (string $el, string $en, int $min, ?int $max, array $flags = []): array => [
+            'code' => null,
+            'label' => ['el' => $el, 'en' => $en],
+            'min_age' => $min,
+            'max_age' => $max,
+            'pricing_mode' => AgeBandPricing::Fixed->value,
+            'is_base' => false,
+            'counts_toward_capacity' => true,
+            'requires_adult' => false,
+            'no_document' => false,
+            ...$flags,
+        ];
+
+        return [
+            $band('Ενήλικας', 'Adult', 12, null, ['is_base' => true]),
+            $band('Παιδί', 'Child', 3, 11),
+            $band('Βρέφος', 'Infant', 0, 2, [
+                'counts_toward_capacity' => false,
+                'requires_adult' => true,
+                'no_document' => true,
+            ]),
+        ];
     }
 
     /** @return array<int, string> */
@@ -971,10 +1191,10 @@ class ProductResource extends Resource
     public static function getRelations(): array
     {
         return [
+            // Seasons and their price lists keep a manager of their own: they
+            // are shared between trips, unlike the extras and the questions,
+            // which are this trip's and are edited inside its tabs (2026-09-18).
             RatePlansRelationManager::class,
-            // «Πρόσθετα», free or paid (2026-09-17).
-            ExtrasRelationManager::class,
-            QuestionsRelationManager::class,
         ];
     }
 

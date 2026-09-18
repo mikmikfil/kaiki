@@ -148,7 +148,30 @@
     </tr>
 </table>
 
+@php
+    // The discount, shown rather than merely subtracted (2026-09-18).
+    //
+    // The figures below were already right — the total the guest paid is the
+    // discounted one, and the net and the VAT are derived from it — but the
+    // document said nothing about why it is lower than the price list. An
+    // accountant reconciling a receipt against a price list has to be able to
+    // see the difference, and so does the guest.
+    //
+    // It is a line **above** the net, not a subtraction from it: the net and
+    // the VAT are the frozen row's, and nothing here may recompute them.
+    $discountCents = (int) ($invoice->booking?->discount_cents ?? 0);
+    $discountCode = $invoice->booking?->price_snapshot['discount_code'] ?? null;
+@endphp
+
 <table class="totals">
+    @if ($discountCents > 0)
+        <tr>
+            <td class="label">
+                Έκπτωση@if (is_array($discountCode) && ($discountCode['code'] ?? '') !== '') ({{ $discountCode['code'] }})@endif
+            </td>
+            <td class="figure">&minus;{{ $money($discountCents) }}</td>
+        </tr>
+    @endif
     <tr>
         <td class="label">Καθαρή αξία</td>
         <td class="figure">{{ $money($invoice->net_cents) }}</td>

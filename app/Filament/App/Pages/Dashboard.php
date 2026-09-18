@@ -61,8 +61,9 @@ class Dashboard extends BaseDashboard
     }
 
     /**
-     * The person's own «Προσφώνηση» from «Το προφίλ μου», or their name exactly
-     * as it is written when they have not set one.
+     * The person's own «Προσφώνηση», or the first word of their name when they
+     * have not set one: «Καλημέρα, Μαρία», never the surname (product owner,
+     * 2026-09-17).
      */
     public static function nameToGreet(): ?string
     {
@@ -74,7 +75,13 @@ class Dashboard extends BaseDashboard
 
         $salutation = trim((string) $user->getAttribute('salutation'));
 
-        return $salutation !== '' ? $salutation : $user->getAttribute('name');
+        if ($salutation !== '') {
+            return $salutation;
+        }
+
+        $name = trim((string) $user->getAttribute('name'));
+
+        return $name === '' ? null : (string) preg_split('/\s+/u', $name)[0];
     }
 
     /**

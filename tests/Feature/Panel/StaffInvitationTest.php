@@ -185,7 +185,7 @@ it('refuses to take the owner role off the last owner, and says so', function ()
         ->callTableAction('edit', $owner, [
             'name' => $owner->name,
             'locale' => 'el',
-            'roles' => ['crew'],
+            'role' => 'crew',
         ])
         ->assertNotified();
 
@@ -194,6 +194,28 @@ it('refuses to take the owner role off the last owner, and says so', function ()
         // And the colleague was not collateral damage of the rolled-back swap.
         ->and(array_map(fn (Role $r): string => $r->value, $colleague->refresh()->roles()))
         ->toBe(['crew']);
+})->group('fast');
+
+it('saves what the platform calls a colleague', function (): void {
+    [$owner, $tenant] = staffOwner();
+
+    $colleague = Tenancy::forTenant($tenant, fn (): User => app(InviteStaffMember::class)(
+        name: 'Γιώργος Παπαδάκης',
+        email: 'giorgos@example.test',
+        roles: [Role::Crew],
+        invitedBy: $owner,
+    ));
+
+    staffScreen($owner)
+        ->callTableAction('edit', $colleague, [
+            'name' => 'Γιώργος Παπαδάκης',
+            'salutation' => 'Καπετάν Γιώργη',
+            'locale' => 'el',
+            'roles' => ['crew'],
+        ])
+        ->assertHasNoTableActionErrors();
+
+    expect($colleague->refresh()->salutation)->toBe('Καπετάν Γιώργη');
 })->group('fast');
 
 it('removes a colleague who is not the last owner', function (): void {
@@ -235,4 +257,53 @@ it('sends a fresh invitation only to somebody who has not been in', function ():
     staffScreen($owner)
         ->assertTableActionVisible('resend', $pending)
         ->assertTableActionHidden('resend', $settled);
+})->group('fast');
+
+/*
+|--------------------------------------------------------------------------
+| One role per person (2026-09-18)
+|--------------------------------------------------------------------------
+|
+| The screen used to offer a checkbox list, because `role_assignments` holds a
+| row per role. The three roles are nested, though — crew ⊂ manager ⊂ owner —
+| so every combination it could produce was already what the highest of them
+| granted, and the question had no answer that mattered.
+|
+| What has to keep working is the reading: rows written by a seed, by the API
+| or by the old screen still exist, and the form has to open on something
+| truthful rather than on nothing.
+|
+*/
+
+it('reads a person who holds two roles as the higher of them', function (): void {
+    expect(Role::highest([Role::Crew, Role::Owner]))->toBe(Role::Owner)
+        ->and(Role::highest([Role::Crew, Role::Manager]))->toBe(Role::Manager)
+        ->and(Role::highest([Role::Crew]))->toBe(Role::Crew)
+        ->and(Role::highest([]))->toBeNull();
+})->group('fast');
+
+it('replaces every role a person had with the one that was chosen', function (): void {
+    [$owner, $tenant] = staffOwner();
+
+    $colleague = Tenancy::forTenant($tenant, fn (): User => app(InviteStaffMember::class)(
+        name: 'Δύο Ρόλοι',
+        email: 'two.roles@example.test',
+        // As the old checkbox list would have saved it, and as a seed still can.
+        roles: [Role::Crew, Role::Manager],
+        invitedBy: $owner,
+    ));
+
+    staffScreen($owner)
+        ->callTableAction('edit', $colleague, [
+            'name' => $colleague->name,
+            'locale' => 'el',
+            'role' => 'crew',
+        ]);
+
+    Tenancy::forTenant($tenant, function () use ($colleague): void {
+        expect(array_map(fn (Role $r): string => $r->value, $colleague->refresh()->roles()))
+            // One row, and the one that was asked for — not the union of what
+            // was there before and what was chosen.
+            ->toBe(['crew']);
+    });
 })->group('fast');

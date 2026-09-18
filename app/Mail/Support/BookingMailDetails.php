@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mail\Support;
 
+use App\Domain\Booking\Support\BookingCalendarInvite;
 use App\Domain\Booking\Support\RefundEntitlement;
 use App\Domain\Notifications\Support\ReviewRequestSettings;
 use App\Enums\GuestDetailsStatus;
@@ -83,13 +84,6 @@ use Throwable;
  */
 final class BookingMailDetails
 {
-    /** The messages that carry the whole trip; the rest stay short. */
-    private const FULL = [
-        NotificationTemplate::BookingConfirmed,
-        NotificationTemplate::BookingChanged,
-        NotificationTemplate::PreDeparture24h,
-    ];
-
     /** The messages where what is left to pay is news. */
     private const SHOWS_BALANCE = [
         NotificationTemplate::BookingConfirmed,
@@ -119,6 +113,8 @@ final class BookingMailDetails
         public readonly ?string $meetingInstructions,
         public readonly ?string $mapUrl,
         public readonly array $party,
+        public readonly ?string $discount,
+        public readonly ?string $discountCode,
         public readonly ?string $total,
         public readonly ?string $paid,
         public readonly ?string $balance,
@@ -143,6 +139,16 @@ final class BookingMailDetails
         public readonly string $actionLabel,
         public readonly string $actionUrl,
         public readonly ?string $deadline,
+        /**
+         * "Add to calendar", on the three messages that carry the whole trip
+         * (2026-09-18). Two links because they serve two different guests: the
+         * `.ics` is what a phone's mail client hands to iOS or Android, and the
+         * Google link is one click for somebody reading in a browser. Null on
+         * every other message, and on a booking with no departure to put in a
+         * calendar — the views print what exists.
+         */
+        public readonly ?string $calendarUrl = null,
+        public readonly ?string $calendarGoogleUrl = null,
     ) {}
 
     /** @param array<string, mixed> $extra */
@@ -171,6 +177,11 @@ final class BookingMailDetails
             ->isoFormat($format);
 
         $manageUrl = route('guest.booking', ['token' => $booking->manage_token]);
+        // Only where the message is the whole trip, and only where there is a
+        // departure: the branding preview renders an unsaved booking, and a
+        // calendar entry for one would land on 1 January 1970.
+        $calendar = $template->carriesWholeTrip() ? BookingCalendarInvite::for($booking, $locale) : null;
+        $calendar = $calendar instanceof BookingCalendarInvite && $calendar->isAvailable() ? $calendar : null;
         $formUrl = self::blank($booking->guest_details_token)
             ? null
             : route('guest.details', ['token' => $booking->guest_details_token]);
@@ -205,7 +216,18 @@ final class BookingMailDetails
         $action = [__('mail.common.manage_booking', [], $locale), $manageUrl];
         $party = self::party($booking, $locale, $euros);
         $total = (int) $booking->total_cents > 0 ? $euros((int) $booking->total_cents) : null;
-        $showParty = in_array($template, self::FULL, true);
+
+        // The discount code, if one was used. `discount_cents` is the booking's
+        // own column and the snapshot carries what was applied, so the email
+        // keeps saying so after the code itself is edited or deleted.
+        $discountCents = (int) $booking->discount_cents;
+        $snapshotCode = is_array($booking->price_snapshot)
+            ? ($booking->price_snapshot['discount_code'] ?? null)
+            : null;
+        $discountLabel = is_array($snapshotCode) && trim((string) ($snapshotCode['code'] ?? '')) !== ''
+            ? (string) $snapshotCode['code']
+            : null;
+        $showParty = $template->carriesWholeTrip();
         $deadline = null;
         $reviewUrl = null;
         $refund = null;
@@ -389,7 +411,7 @@ final class BookingMailDetails
         }
 
         return new self(
-            full: in_array($template, self::FULL, true),
+            full: $template->carriesWholeTrip(),
             locale: $locale,
             greeting: self::blank($booking->guest_name) ? null : __('mail.common.greeting', ['name' => self::firstName((string) $booking->guest_name)], $locale),
             trip: $trip,
@@ -403,6 +425,12 @@ final class BookingMailDetails
             meetingInstructions: $port instanceof Port ? self::text($port->getTranslation('instructions', $locale, true)) : null,
             mapUrl: $port instanceof Port ? $port->mapsUrl() : null,
             party: $party,
+            // What the code took off, on the ticket card (2026-09-18). The
+            // total below is already the discounted one; without this line the
+            // guest cannot tell their code was honoured, which is the one
+            // thing they check after typing it.
+            discount: $discountCents > 0 ? $euros($discountCents) : null,
+            discountCode: $discountLabel,
             total: $total,
             paid: $template !== NotificationTemplate::QuoteSent && $paidCents > 0 ? $euros($paidCents) : null,
             balance: $showsBalance && $balanceCents > 0 ? $euros($balanceCents) : null,
@@ -433,6 +461,8 @@ final class BookingMailDetails
             actionLabel: $action[0],
             actionUrl: $action[1],
             deadline: $deadline,
+            calendarUrl: $calendar?->downloadUrl(),
+            calendarGoogleUrl: $calendar?->googleUrl(),
         );
     }
 

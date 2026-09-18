@@ -20,13 +20,15 @@
 
 @section('content')
 
-    <div class="card">
-        <h1>{{ __('guest.voucher.title') }}</h1>
+    <section>
+        <p class="kicker">{{ __('guest.voucher.title') }}</p>
+
+        {{-- Β2 (2026-09-18): the code, large and alone. It is the one thing on
+             this page anybody will ever copy, and in a row of a definition list
+             it was the same size as the word «Κωδικός» beside it. --}}
+        <p class="voucher-code">{{ $voucher->code }}</p>
 
         <dl class="rows">
-            <dt>{{ __('guest.voucher.code') }}</dt>
-            <dd><strong>{{ $voucher->code }}</strong></dd>
-
             <dt>{{ __('guest.voucher.original') }}</dt>
             <dd>{{ $money($voucher->amount_cents) }}</dd>
 
@@ -47,17 +49,17 @@
         @else
             <p class="muted">{{ __('guest.voucher.how') }}</p>
         @endif
-    </div>
+    </section>
 
     @if ($products->isNotEmpty())
-        <div class="card">
-            <h2>{{ __('guest.voucher.products') }}</h2>
+        <section>
+            <span class="label">{{ __('guest.voucher.products') }}</span>
             <ul>
                 @foreach ($products as $product)
                     <li>{{ $product->title }}</li>
                 @endforeach
             </ul>
-        </div>
+        </section>
     @endif
 
 @endsection

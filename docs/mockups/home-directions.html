@@ -1,0 +1,469 @@
+<title>Η αρχική του διοργανωτή</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;600;700;800&family=Noto+Sans:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --ground: #EEF2F8;
+    --surface: #FFFFFF;
+    --ink: #13213A;
+    --ink-soft: #52627A;
+    --ink-faint: #7F8DA3;
+    --rule: #DCE3EE;
+    --rule-soft: #EAEFF6;
+    --accent: #0F2E57;
+    --accent-soft: #E3EBF6;
+    --pick: #0E7C5A;
+    --pick-soft: #DCF3E4;
+
+    /* Ο διοργανωτής. Ό,τι είναι μέσα στα πλαίσια φοράει αυτά. */
+    --brand: #123A5E;
+    --brand-deep: #0B2740;
+    --brand-ink: #14202B;
+    --brand-mute: #5A6B7A;
+    --brand-line: #E1E8EE;
+    --brand-sand: #F4F1EC;
+    --sea-1: #9CC3D8;
+    --sea-2: #5E93B4;
+    --sea-3: #2E6183;
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0; padding-inline: 16px;
+    background: var(--ground); color: var(--ink);
+    font-family: "Noto Sans", system-ui, sans-serif; font-size: 15px; line-height: 1.55;
+  }
+
+  .shell { max-width: 76rem; margin: 0 auto; padding-block: 32px 80px; display: grid; gap: 30px; }
+
+  header.top { display: grid; gap: 10px; border-bottom: 2px solid var(--ink); padding-bottom: 18px; }
+  .eyebrow { margin: 0; font-size: .74rem; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint); }
+  h1 { font-family: Commissioner, sans-serif; font-weight: 700; font-size: clamp(1.7rem, 4vw, 2.4rem); letter-spacing: -.015em; margin: 0; text-wrap: balance; }
+  .lede { margin: 0; color: var(--ink-soft); max-width: 66ch; }
+
+  .dir { display: grid; gap: 14px; }
+  .dir-head { display: grid; gap: 6px; border-top: 1px solid var(--rule); padding-top: 18px; }
+  .dir-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+  .dir-title h2 { font-family: Commissioner, sans-serif; font-weight: 600; font-size: 1.3rem; margin: 0; letter-spacing: -.01em; }
+  .tag { font-size: .68rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; border: 1px solid currentColor; }
+  .tag.pick { color: var(--pick); background: var(--pick-soft); }
+  .tag.hours { color: var(--ink-soft); background: var(--surface); font-weight: 600; }
+  .dir p { margin: 0; color: var(--ink-soft); max-width: 68ch; }
+  .dir p b { color: var(--ink); font-weight: 600; }
+
+  .stage { display: grid; grid-template-columns: minmax(0, 1fr) 264px; gap: 16px; align-items: start; }
+  @media (max-width: 860px) { .stage { grid-template-columns: 1fr; } }
+
+  .frame { background: var(--surface); border: 1px solid var(--rule); padding: 10px; display: grid; gap: 8px; }
+  .frame figcaption { font-size: .78rem; color: var(--ink-faint); }
+  .screen { background: #fff; border: 1px solid var(--rule-soft); overflow: hidden; }
+
+  /* ---------------- κοινά για τις μακέτες ---------------- */
+
+  .s { color: var(--brand-ink); font-size: 12.5px; line-height: 1.5; }
+  .s h3, .s h4, .s .display { font-family: Commissioner, sans-serif; margin: 0; letter-spacing: -.01em; }
+  .s p { margin: 0; }
+  .s .mute { color: var(--brand-mute); }
+  .s a { color: var(--brand); text-decoration: none; font-weight: 600; }
+  .s .btn { display: inline-block; padding: 8px 14px; background: var(--brand); color: #fff; font-weight: 600; font-size: .8rem; }
+  .s .btn.ghost { background: #fff; color: var(--brand); border: 1px solid var(--brand-line); }
+  .s .nav { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; gap: 12px; }
+  .s .nav .logo { display: flex; align-items: center; gap: 7px; font-family: Commissioner, sans-serif; font-weight: 700; font-size: .95rem; }
+  .s .nav .logo i { width: 18px; height: 18px; background: var(--brand); display: block; }
+  .s .nav .links { display: flex; gap: 14px; font-size: .8rem; color: var(--brand-mute); }
+  .s .photo { background: linear-gradient(160deg, var(--sea-1), var(--sea-2) 45%, var(--sea-3)); position: relative; }
+  .s .photo.warm { background: linear-gradient(160deg, #EBD9C2, #C9A57C 55%, #8C6B4B); }
+  .s .photo.dusk { background: linear-gradient(170deg, #F0C9A8, #B98B86 45%, #4C5C7A); }
+  .s .photo::after { content: ""; position: absolute; inset: auto 0 0 0; height: 38%;
+    background: linear-gradient(transparent, rgba(11,39,64,.42)); }
+  .s .price { font-family: Commissioner, sans-serif; font-weight: 700; }
+  .s .chip { font-size: .7rem; padding: 3px 8px; background: var(--brand-sand); color: var(--brand-mute); }
+  .s .field { background: #fff; border: 1px solid var(--brand-line); padding: 7px 10px; font-size: .78rem; color: var(--brand-mute); }
+  .s .label-xs { font-size: .66rem; letter-spacing: .1em; color: var(--brand-mute); }
+
+  /* ---------------- Α · Ήρεμος ορίζοντας ---------------- */
+  .a .hero { position: relative; }
+  .a .hero .photo { height: 210px; }
+  .a .hero .words { position: absolute; inset: 0; display: grid; align-content: center; gap: 8px; padding: 0 28px; color: #fff; }
+  .a .hero .words .display { font-size: 1.9rem; font-weight: 700; line-height: 1.1; max-width: 16ch; text-shadow: 0 1px 14px rgba(5,20,35,.35); }
+  .a .hero .words p { max-width: 34ch; opacity: .95; }
+  .a .searchbar { margin: -22px 28px 0; background: #fff; box-shadow: 0 10px 30px rgba(11,39,64,.12); padding: 12px; display: grid; grid-template-columns: 1.3fr 1fr 1fr auto; gap: 8px; position: relative; }
+  .a .body { padding: 26px 28px 22px; display: grid; gap: 22px; }
+  .a .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .a .sec-head h3 { font-size: 1.15rem; font-weight: 600; }
+  .a .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .a .trip .photo { height: 96px; }
+  .a .trip { display: grid; gap: 6px; }
+  .a .trip .meta { display: flex; justify-content: space-between; align-items: baseline; }
+  .a .quiet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; padding-top: 4px; }
+  .a .band { background: var(--brand-sand); padding: 18px 28px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 18px; }
+
+  /* ---------------- Β · Ασύμμετρο ---------------- */
+  .b .hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 20px; padding: 24px 26px 20px; align-items: center; }
+  .b .hero .display { font-size: 2rem; font-weight: 800; line-height: 1.05; letter-spacing: -.02em; }
+  .b .hero .kicker { font-size: .7rem; letter-spacing: .14em; color: var(--brand-mute); }
+  .b .mosaic { display: grid; grid-template-columns: 1.4fr 1fr; grid-template-rows: 62px 62px; gap: 8px; }
+  .b .mosaic .photo:first-child { grid-row: span 2; }
+  .b .inline-search { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; border-top: 1px solid var(--brand-line); border-bottom: 1px solid var(--brand-line); padding: 12px 26px; }
+  .b .list { padding: 20px 26px; display: grid; gap: 14px; }
+  .b .row { display: grid; grid-template-columns: 148px 1fr auto; gap: 14px; align-items: center; }
+  .b .row .photo { height: 78px; }
+  .b .row .num { font-family: Commissioner, sans-serif; font-weight: 700; font-size: 1.05rem; }
+  .b .figures { display: flex; gap: 26px; padding: 14px 26px; border-top: 1px solid var(--brand-line); }
+  .b .figures div b { font-family: Commissioner, sans-serif; font-size: 1.3rem; display: block; }
+  .b .quote { padding: 18px 26px; border-top: 1px solid var(--brand-line); font-size: 1rem; font-style: italic; color: var(--brand-ink); }
+
+  /* ---------------- Γ · Σημερινή, ακονισμένη ---------------- */
+  .c .hero { display: grid; grid-template-columns: 1fr 260px; gap: 16px; padding: 22px 24px; background: var(--brand-sand); align-items: center; }
+  .c .hero .display { font-size: 1.6rem; font-weight: 700; line-height: 1.15; }
+  .c .card { background: #fff; border: 1px solid var(--brand-line); padding: 12px; display: grid; gap: 8px; }
+  .c .body { padding: 20px 24px; display: grid; gap: 18px; }
+  .c .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .c .trip { border: 1px solid var(--brand-line); display: grid; }
+  .c .trip .photo { height: 86px; }
+  .c .trip .t { padding: 10px; display: grid; gap: 6px; }
+  .c .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .c .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .c .steps .n { width: 22px; height: 22px; background: var(--brand); color: #fff; display: grid; place-items: center; font-size: .75rem; font-weight: 700; }
+
+  /* ---------------- τηλέφωνο ---------------- */
+  .phone { background: #fff; border: 1px solid var(--rule-soft); overflow: hidden; }
+  .phone .p-hero { position: relative; }
+  .phone .p-hero .photo { height: 150px; }
+  .phone .p-hero .words { position: absolute; inset: auto 0 0 0; padding: 14px; color: #fff; display: grid; gap: 4px; }
+  .phone .p-hero .display { font-size: 1.15rem; font-weight: 700; line-height: 1.15; }
+  .phone .p-body { padding: 12px; display: grid; gap: 12px; }
+  .phone .p-card { display: grid; gap: 6px; }
+  .phone .p-card .photo { height: 76px; }
+
+  .note { background: var(--surface); border: 1px solid var(--rule); padding: 16px; display: grid; gap: 10px; }
+  .note h2 { font-family: Commissioner, sans-serif; font-size: 1.15rem; font-weight: 600; margin: 0; }
+  .note table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+  .note th { text-align: left; font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint); border-bottom: 1px solid var(--rule); padding: 0 10px 6px 0; }
+  .note td { border-bottom: 1px solid var(--rule-soft); padding: 7px 10px 7px 0; color: var(--ink-soft); vertical-align: top; }
+  .note td b { color: var(--ink); font-weight: 600; }
+  .note tr:last-child td { border-bottom: 0; }
+  .scroll { overflow-x: auto; }
+
+  .ask { border: 1px solid var(--accent); border-left-width: 4px; background: var(--accent-soft); padding: 14px 16px; display: grid; gap: 6px; }
+  .ask h2 { font-family: Commissioner, sans-serif; font-size: 1.05rem; margin: 0; font-weight: 600; }
+  .ask ol { margin: 0; padding-left: 20px; color: var(--ink-soft); display: grid; gap: 4px; }
+</style>
+
+<div class="shell">
+
+  <header class="top">
+    <p class="eyebrow">Kaiki · η αρχική σελίδα του διοργανωτή, /aegean-blue</p>
+    <h1>Η αρχική του διοργανωτή</h1>
+    <p class="lede">
+      Η σελίδα που βλέπει ο επισκέπτης πριν κλείσει: σήμερα είναι σωστή και γεμάτη, αλλά μιλάει με
+      κουτιά. Τρεις κατευθύνσεις για κάτι πιο σύγχρονο και πιο καθαρό — με τα ίδια κομμάτια που ο
+      διοργανωτής ήδη ανοίγει και κλείνει μόνος του (hero, εκδρομές, πώς λειτουργεί, γιατί εμάς,
+      αριθμοί, κριτικές, ποιοι είμαστε, συχνές ερωτήσεις, επικοινωνία).
+    </p>
+    <p class="lede">
+      Οι φωτογραφίες εδώ είναι χρωματικά πλακάκια, όχι εικόνες: ο καθένας ανεβάζει τις δικές του.
+    </p>
+  </header>
+
+  <!-- ============================ Α ============================ -->
+  <section class="dir">
+    <div class="dir-head">
+      <div class="dir-title">
+        <h2>Α &middot; Ήρεμος ορίζοντας</h2>
+        <span class="tag pick">προτείνεται</span>
+        <span class="tag hours">≈ 3 ώρες</span>
+      </div>
+      <p>
+        Μία φωτογραφία σε όλο το πλάτος, λίγα λόγια πάνω της, και <b>η αναζήτηση σαν λευκή λωρίδα που
+        πατάει στο κάτω χείλος της</b> — το πρώτο πράγμα που μπορεί να κάνει κανείς. Από κάτω, ενότητες
+        χωρισμένες με αέρα αντί για πλαίσια: οι εκδρομές είναι φωτογραφία, τίτλος, μία γραμμή, τιμή.
+        Καθαρό, ήσυχο, και δείχνει σύγχρονο χωρίς να χρειάζεται τίποτε να κινείται.
+      </p>
+    </div>
+    <div class="stage">
+      <figure class="frame">
+        <div class="screen">
+          <div class="s a">
+            <div class="nav">
+              <span class="logo"><i></i> Aegean Blue Cruises</span>
+              <span class="links"><span>Εκδρομές</span><span>Ο στόλος μας</span><span>Συχνές ερωτήσεις</span><span>Επικοινωνία</span><span>EN</span></span>
+            </div>
+            <div class="hero">
+              <div class="photo"></div>
+              <div class="words">
+                <div class="display">Μια μέρα στη θάλασσα, από τον Πειραιά</div>
+                <p>Μικρές παρέες, έμπειρο πλήρωμα, αναχωρήσεις κάθε μέρα από τη Μαρίνα Ζέας.</p>
+              </div>
+            </div>
+            <div class="searchbar">
+              <span class="field">Πού θέλετε να πάτε;</span>
+              <span class="field">Ημερομηνία</span>
+              <span class="field">2 άτομα</span>
+              <span class="btn">Αναζήτηση</span>
+            </div>
+            <div class="body">
+              <div>
+                <div class="sec-head"><h3>Επιλεγμένες εκδρομές</h3><a href="#">Δείτε όλες τις εκδρομές</a></div>
+                <div class="grid3" style="margin-top:10px">
+                  <div class="trip">
+                    <div class="photo"></div>
+                    <div class="meta"><b>Απογευματινό ψάρεμα</b><span class="price">από 60 €</span></div>
+                    <p class="mute">4 ώρες &middot; Μαρίνα Ζέας &middot; έως 8 άτομα</p>
+                  </div>
+                  <div class="trip">
+                    <div class="photo dusk"></div>
+                    <div class="meta"><b>Ηλιοβασίλεμα στη Νάουσα</b><span class="price">από 45 €</span></div>
+                    <p class="mute">2,5 ώρες &middot; Πάρος &middot; έως 12 άτομα</p>
+                  </div>
+                  <div class="trip">
+                    <div class="photo warm"></div>
+                    <div class="meta"><b>Ιδιωτική στα Κουφονήσια</b><span class="price">από 750 €</span></div>
+                    <p class="mute">Όλη μέρα &middot; ολόκληρο το σκάφος</p>
+                  </div>
+                </div>
+              </div>
+              <div class="quiet">
+                <div><span class="label-xs">πώς λειτουργεί</span><p style="margin-top:4px"><b>Διαλέγετε μέρα</b><br><span class="mute">Βλέπετε αμέσως τι είναι ελεύθερο.</span></p></div>
+                <div><span class="label-xs">&nbsp;</span><p style="margin-top:4px"><b>Κλείνετε σε ένα λεπτό</b><br><span class="mute">Με κάρτα, χωρίς λογαριασμό.</span></p></div>
+                <div><span class="label-xs">&nbsp;</span><p style="margin-top:4px"><b>Έρχεστε στο λιμάνι</b><br><span class="mute">Το εισιτήριο στο κινητό σας.</span></p></div>
+              </div>
+            </div>
+            <div class="band">
+              <div><h3 style="font-size:1.05rem">Ποιοι είμαστε</h3><p class="mute" style="margin-top:6px">Οικογενειακή επιχείρηση από το 1998, με τρία σκάφη και άδεια για 12 επιβάτες.</p></div>
+              <div><h3 style="font-size:1.05rem">Πού θα μας βρείτε</h3><p class="mute" style="margin-top:6px">Μαρίνα Ζέας, Πειραιάς &middot; +30 210 4123456</p></div>
+            </div>
+          </div>
+        </div>
+        <figcaption>Υπολογιστής</figcaption>
+      </figure>
+
+      <figure class="frame">
+        <div class="phone">
+          <div class="s a">
+            <div class="nav" style="padding:8px 12px"><span class="logo"><i></i> Aegean Blue</span><span class="links"><span>Μενού</span></span></div>
+            <div class="p-hero">
+              <div class="photo"></div>
+              <div class="words"><div class="display">Μια μέρα στη θάλασσα, από τον Πειραιά</div></div>
+            </div>
+            <div class="p-body">
+              <div style="display:grid;gap:6px">
+                <span class="field">Ημερομηνία</span>
+                <span class="field">2 άτομα</span>
+                <span class="btn" style="text-align:center">Αναζήτηση</span>
+              </div>
+              <div class="p-card"><div class="photo"></div><div style="display:flex;justify-content:space-between"><b>Απογευματινό ψάρεμα</b><span class="price">από 60 €</span></div><p class="mute">4 ώρες &middot; Μαρίνα Ζέας</p></div>
+              <div class="p-card"><div class="photo dusk"></div><div style="display:flex;justify-content:space-between"><b>Ηλιοβασίλεμα</b><span class="price">από 45 €</span></div><p class="mute">2,5 ώρες &middot; Πάρος</p></div>
+            </div>
+          </div>
+        </div>
+        <figcaption>Κινητό — η αναζήτηση κάτω από τη φωτογραφία, όχι πάνω της.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============================ Β ============================ -->
+  <section class="dir">
+    <div class="dir-head">
+      <div class="dir-title">
+        <h2>Β &middot; Ασύμμετρο</h2>
+        <span class="tag hours">≈ 4 ώρες</span>
+      </div>
+      <p>
+        Χωρίς φωτογραφία σε όλο το πλάτος. Αριστερά ένας <b>μεγάλος τίτλος που διαβάζεται σαν
+        πρόταση</b>, δεξιά τρεις φωτογραφίες σε μωσαϊκό· η αναζήτηση γίνεται μια λεπτή λωρίδα από κάτω.
+        Οι εκδρομές δεν είναι πλέγμα αλλά <b>λίστα</b>, με τη διάρκεια και την τιμή σε στήλη που
+        ευθυγραμμίζεται — διαβάζεται σαν πρόγραμμα, που είναι και το σωστό για κάποιον που συγκρίνει.
+        Είναι η πιο τολμηρή και η πιο απαιτητική σε φωτογραφίες: με άσχημες εικόνες δεν στέκει.
+      </p>
+    </div>
+    <div class="stage">
+      <figure class="frame">
+        <div class="screen">
+          <div class="s b">
+            <div class="nav">
+              <span class="logo"><i></i> Aegean Blue Cruises</span>
+              <span class="links"><span>Εκδρομές</span><span>Ο στόλος μας</span><span>Συχνές ερωτήσεις</span><span>Επικοινωνία</span><span>EN</span></span>
+            </div>
+            <div class="hero">
+              <div style="display:grid;gap:10px">
+                <span class="kicker">ΠΕΙΡΑΙΑΣ &middot; ΑΠΟ ΤΟ 1998</span>
+                <div class="display">Η θάλασσα είναι<br>μισή ώρα μακριά.</div>
+                <p class="mute">Ημερήσιες εκδρομές και ιδιωτικές ναυλώσεις από τη Μαρίνα Ζέας, με τρία σκάφη και πλήρωμα που ξέρει πού πιάνουν τα ψάρια.</p>
+                <div style="display:flex;gap:8px"><span class="btn">Δείτε τις εκδρομές</span><span class="btn ghost">Ρωτήστε μας</span></div>
+              </div>
+              <div class="mosaic">
+                <div class="photo"></div>
+                <div class="photo dusk"></div>
+                <div class="photo warm"></div>
+              </div>
+            </div>
+            <div class="inline-search">
+              <span class="label-xs">βρείτε μέρα</span>
+              <span class="field">Ημερομηνία</span>
+              <span class="field">2 άτομα</span>
+              <span class="field">Όλες οι εκδρομές</span>
+              <span class="btn">Αναζήτηση</span>
+            </div>
+            <div class="list">
+              <div class="row">
+                <div class="photo"></div>
+                <div><b>Απογευματινό ψάρεμα</b><p class="mute">Βγαίνουμε στις 15:00, ψαρεύουμε στα ρηχά της Αίγινας και γυρνάμε με το φως.</p><p class="mute">4 ώρες &middot; έως 8 άτομα &middot; Μαρίνα Ζέας</p></div>
+                <div style="text-align:right"><span class="num">60 €</span><p class="mute">ανά άτομο</p></div>
+              </div>
+              <div class="row">
+                <div class="photo dusk"></div>
+                <div><b>Ηλιοβασίλεμα στη Νάουσα</b><p class="mute">Δύο ώρες και μισή στον κόλπο, με ποτό και μεζέ την ώρα που πέφτει ο ήλιος.</p><p class="mute">2,5 ώρες &middot; έως 12 άτομα &middot; Πάρος</p></div>
+                <div style="text-align:right"><span class="num">45 €</span><p class="mute">ανά άτομο</p></div>
+              </div>
+              <div class="row">
+                <div class="photo warm"></div>
+                <div><b>Ιδιωτική εκδρομή στα Κουφονήσια</b><p class="mute">Ολόκληρο το σκάφος δικό σας, με δρομολόγιο που φτιάχνουμε μαζί.</p><p class="mute">Όλη μέρα &middot; έως 10 άτομα</p></div>
+                <div style="text-align:right"><span class="num">750 €</span><p class="mute">το σκάφος</p></div>
+              </div>
+            </div>
+            <div class="figures">
+              <div><b>27</b><span class="mute">χρόνια στη θάλασσα</span></div>
+              <div><b>3</b><span class="mute">σκάφη</span></div>
+              <div><b>4.9</b><span class="mute">στη Google, 312 κριτικές</span></div>
+            </div>
+            <div class="quote">«Μας πήγαν σε μια παραλία που δεν θα βρίσκαμε ποτέ μόνοι μας.» <span class="mute" style="font-style:normal"> — Δήμητρα Κ., Αύγουστος 2026</span></div>
+          </div>
+        </div>
+        <figcaption>Υπολογιστής</figcaption>
+      </figure>
+
+      <figure class="frame">
+        <div class="phone">
+          <div class="s b">
+            <div class="nav" style="padding:8px 12px"><span class="logo"><i></i> Aegean Blue</span><span class="links"><span>Μενού</span></span></div>
+            <div style="padding:14px 14px 10px;display:grid;gap:8px">
+              <span class="kicker">ΠΕΙΡΑΙΑΣ &middot; ΑΠΟ ΤΟ 1998</span>
+              <div class="display" style="font-size:1.35rem;line-height:1.1">Η θάλασσα είναι μισή ώρα μακριά.</div>
+              <div class="mosaic" style="grid-template-rows:54px 54px"><div class="photo"></div><div class="photo dusk"></div><div class="photo warm"></div></div>
+            </div>
+            <div class="inline-search" style="padding:10px 14px;gap:6px">
+              <span class="field" style="flex:1">Ημερομηνία</span><span class="field">2</span><span class="btn">Αναζήτηση</span>
+            </div>
+            <div class="list" style="padding:12px 14px">
+              <div class="row" style="grid-template-columns:90px 1fr">
+                <div class="photo" style="height:58px"></div>
+                <div><b>Απογευματινό ψάρεμα</b><p class="mute">4 ώρες &middot; 60 € ανά άτομο</p></div>
+              </div>
+              <div class="row" style="grid-template-columns:90px 1fr">
+                <div class="photo dusk" style="height:58px"></div>
+                <div><b>Ηλιοβασίλεμα</b><p class="mute">2,5 ώρες &middot; 45 € ανά άτομο</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <figcaption>Κινητό — η λίστα γίνεται δύο στήλες.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- ============================ Γ ============================ -->
+  <section class="dir">
+    <div class="dir-head">
+      <div class="dir-title">
+        <h2>Γ &middot; Η σημερινή, ακονισμένη</h2>
+        <span class="tag hours">≈ 1,5 ώρα</span>
+      </div>
+      <p>
+        Ίδια δομή με σήμερα — hero με την αναζήτηση ως κάρτα δεξιά, κάρτες εκδρομών, βήματα, μπλε
+        μπάντα επικοινωνίας — αλλά <b>μεγαλύτερη τυπογραφία, μία μόνο έμφαση, ίδιες αναλογίες σε όλες
+        τις φωτογραφίες και λιγότερες γραμμές</b>. Η φθηνή και ασφαλής επιλογή: κερδίζει αμέσως σε
+        καθαρότητα, δεν αλλάζει τίποτα που ήδη δούλευε, και δεν δείχνει καινούργια.
+      </p>
+    </div>
+    <div class="stage">
+      <figure class="frame">
+        <div class="screen">
+          <div class="s c">
+            <div class="nav">
+              <span class="logo"><i></i> Aegean Blue Cruises</span>
+              <span class="links"><span>Εκδρομές</span><span>Ο στόλος μας</span><span>Συχνές ερωτήσεις</span><span>Επικοινωνία</span><span>EN</span></span>
+            </div>
+            <div class="hero">
+              <div style="display:grid;gap:8px">
+                <div class="display">Ημερήσιες εκδρομές και ιδιωτικές ναυλώσεις από τον Πειραιά</div>
+                <p class="mute">Τρία σκάφη, αναχωρήσεις κάθε μέρα, κράτηση σε ένα λεπτό.</p>
+              </div>
+              <div class="card">
+                <span class="label-xs">βρείτε μέρα</span>
+                <span class="field">Ημερομηνία</span>
+                <span class="field">2 άτομα</span>
+                <span class="btn" style="text-align:center">Αναζήτηση</span>
+              </div>
+            </div>
+            <div class="body">
+              <div>
+                <h3 style="font-size:1.1rem">Επιλεγμένες εκδρομές</h3>
+                <div class="grid3" style="margin-top:10px">
+                  <div class="trip"><div class="photo"></div><div class="t"><b>Απογευματινό ψάρεμα</b><div class="chips"><span class="chip">4 ώρες</span><span class="chip">έως 8</span></div><div style="display:flex;justify-content:space-between;align-items:center"><span class="price">από 60 €</span><span class="btn ghost">Κράτηση</span></div></div></div>
+                  <div class="trip"><div class="photo dusk"></div><div class="t"><b>Ηλιοβασίλεμα στη Νάουσα</b><div class="chips"><span class="chip">2,5 ώρες</span><span class="chip">έως 12</span></div><div style="display:flex;justify-content:space-between;align-items:center"><span class="price">από 45 €</span><span class="btn ghost">Κράτηση</span></div></div></div>
+                  <div class="trip"><div class="photo warm"></div><div class="t"><b>Ιδιωτική στα Κουφονήσια</b><div class="chips"><span class="chip">όλη μέρα</span><span class="chip">ιδιωτική</span></div><div style="display:flex;justify-content:space-between;align-items:center"><span class="price">από 750 €</span><span class="btn ghost">Ρωτήστε</span></div></div></div>
+                </div>
+              </div>
+              <div class="steps">
+                <div><div class="n">1</div><p style="margin-top:6px"><b>Διαλέγετε μέρα</b><br><span class="mute">Το ημερολόγιο δείχνει τι είναι ελεύθερο.</span></p></div>
+                <div><div class="n">2</div><p style="margin-top:6px"><b>Πληρώνετε με κάρτα</b><br><span class="mute">Χωρίς λογαριασμό, με επιβεβαίωση στο email.</span></p></div>
+                <div><div class="n">3</div><p style="margin-top:6px"><b>Έρχεστε στο λιμάνι</b><br><span class="mute">Με το εισιτήριο στο κινητό.</span></p></div>
+              </div>
+            </div>
+            <div style="background:var(--brand);color:#fff;padding:16px 24px;display:grid;grid-template-columns:1fr auto;gap:14px;align-items:center">
+              <div><b>Θέλετε κάτι δικό σας;</b><p style="opacity:.86">Πείτε μας ημερομηνία και παρέα και σας στέλνουμε προσφορά αυθημερόν.</p></div>
+              <span class="btn" style="background:#fff;color:var(--brand)">Ρωτήστε μας</span>
+            </div>
+          </div>
+        </div>
+        <figcaption>Υπολογιστής</figcaption>
+      </figure>
+
+      <figure class="frame">
+        <div class="phone">
+          <div class="s c">
+            <div class="nav" style="padding:8px 12px"><span class="logo"><i></i> Aegean Blue</span><span class="links"><span>Μενού</span></span></div>
+            <div style="padding:14px;background:var(--brand-sand);display:grid;gap:8px">
+              <div class="display" style="font-size:1.2rem">Ημερήσιες εκδρομές από τον Πειραιά</div>
+              <div class="card"><span class="field">Ημερομηνία</span><span class="field">2 άτομα</span><span class="btn" style="text-align:center">Αναζήτηση</span></div>
+            </div>
+            <div style="padding:12px;display:grid;gap:12px">
+              <div class="trip"><div class="photo"></div><div class="t"><b>Απογευματινό ψάρεμα</b><div class="chips"><span class="chip">4 ώρες</span></div><span class="price">από 60 €</span></div></div>
+              <div class="trip"><div class="photo dusk"></div><div class="t"><b>Ηλιοβασίλεμα</b><div class="chips"><span class="chip">2,5 ώρες</span></div><span class="price">από 45 €</span></div></div>
+            </div>
+          </div>
+        </div>
+        <figcaption>Κινητό</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="note">
+    <h2>Τι ισχύει και για τις τρεις</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Θέμα</th><th>Πώς το λύνει η μακέτα</th></tr></thead>
+        <tbody>
+          <tr><td><b>Χωρίς φωτογραφίες</b></td><td>Κάθε διοργανωτής δεν θα έχει καλές εικόνες από την πρώτη μέρα. Και οι τρεις στέκονται με χρωματικά πλακάκια — ό,τι δείχνει και η μακέτα — αντί να καταρρέουν σε γκρίζα κουτιά.</td></tr>
+          <tr><td><b>Τα κομμάτια μένουν προαιρετικά</b></td><td>Ο διοργανωτής ήδη ανοίγει και κλείνει κάθε ενότητα από τον πίνακα. Καμία κατεύθυνση δεν προϋποθέτει ότι υπάρχουν κριτικές, αριθμοί ή ιστορία.</td></tr>
+          <tr><td><b>Οι κανόνες που έχουμε ήδη δεχτεί</b></td><td>Μόνο ανοιχτό θέμα, χωρίς κεφαλαία σε ελληνικά, χωρίς υπογραμμισμένους συνδέσμους, και η πληρωμή μένει σε σελίδα του Kaiki.</td></tr>
+          <tr><td><b>Ταχύτητα</b></td><td>Καμία δεν προσθέτει βιβλιοθήκη ή κίνηση. Ό,τι βλέπετε είναι CSS πάνω στα σημερινά κομμάτια.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="ask">
+    <h2>Τι χρειάζομαι από εσάς</h2>
+    <ol>
+      <li>Α, Β ή Γ για την αρχική.</li>
+      <li>Αν Β: χρειάζεται τρεις καλές φωτογραφίες ανά διοργανωτή. Το δεχόμαστε ως απαίτηση;</li>
+      <li>Η αναζήτηση στην κορυφή να ψάχνει ημερομηνία και άτομα, ή και προορισμό;</li>
+    </ol>
+  </section>
+
+</div>

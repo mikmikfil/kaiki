@@ -68,6 +68,7 @@ use Stancl\Tenancy\Database\Concerns\TenantRun;
  * @property bool|null $check_in_enabled
  * @property bool|null $extra_person_pricing_enabled
  * @property bool|null $sms_enabled
+ * @property bool|null $setup_guide_enabled
  * @property array<string, mixed> $settings
  * @property int|null $balance_due_days_before_departure
  * @property string|null $weather_choice_default
@@ -108,6 +109,7 @@ class Tenant extends Model implements TenantContract
             'check_in_enabled' => 'boolean',
             'extra_person_pricing_enabled' => 'boolean',
             'sms_enabled' => 'boolean',
+            'setup_guide_enabled' => 'boolean',
             'onboarding_completed_at' => 'datetime',
             'onboarding_skipped_steps' => 'array',
         ];
@@ -249,6 +251,17 @@ class Tenant extends Model implements TenantContract
     public function usesSms(): bool
     {
         return $this->sms_enabled === true;
+    }
+
+    /**
+     * Whether the first-time setup guide is offered (product owner, 2026-09-17).
+     *
+     * Switched off by the platform for an operator whose account it set up
+     * itself. Null reads as **on**, so older operators keep the guide.
+     */
+    public function usesSetupGuide(): bool
+    {
+        return $this->setup_guide_enabled !== false;
     }
 
     /** Operators in `read_only` or `suspended` cannot write (see #7). */

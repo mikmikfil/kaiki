@@ -52,9 +52,22 @@
 
         * { box-sizing: border-box; }
 
+        /* ---- direction B2, chosen 2026-09-18 ---------------------------
+
+           One clean column on a white sheet, sections divided by a hairline
+           rather than boxed into cards, and exactly two doses of the
+           operator's colour: a four-pixel rule across the top and the tinted
+           strip that carries the three times. The reasoning is the product
+           owner's: the page has to look like the operator the guest booked
+           with, and it has to stay readable on a quay on hotel wifi — a stack
+           of bordered white cards on a grey ground did neither.
+
+           Everything below is written against `.sheet` and its sections, so
+           all five token pages — booking, checkout, guest details, voucher,
+           quote — inherit it from this one file. */
         body {
             margin: 0;
-            background: var(--kaiki-background, #f6f7f9);
+            background: var(--kaiki-background, #f1f3f6);
             color: var(--kaiki-text, #14202b);
             font-family: var(--kaiki-font-family, system-ui), system-ui, -apple-system, sans-serif;
             font-size: 16px;
@@ -62,7 +75,139 @@
             -webkit-font-smoothing: antialiased;
         }
 
+        /* The hairline everything is divided by. One value, so a section, the
+           facts strip and the footer cannot drift apart by a percent of black. */
+        :root { --hair: rgba(15, 32, 43, .10); }
+
         .wrap { max-width: 40rem; margin: 0 auto; padding: 1.25rem 1rem 4rem; }
+
+        @media (max-width: 42rem) {
+            /* On a phone the sheet is the page: no grey margin either side of
+               a column that is already the width of the screen. */
+            .wrap { padding: 0 0 3rem; }
+        }
+
+        .sheet {
+            background: #fff;
+            border: 1px solid var(--hair);
+            border-top: 4px solid var(--kaiki-primary, #123a5e);
+        }
+
+        /* A section of the sheet, at whatever depth: on a wide screen the
+           booking page puts its sections into two columns, and they are still
+           sections. The last one in a column keeps no rule, so a column does
+           not end on a line that divides it from nothing. */
+        .sheet section { padding: 1.1rem 1.15rem; border-bottom: 1px solid var(--hair); }
+        .sheet section:last-child { border-bottom: 0; }
+
+        /* ---- the booking page on a wide screen (2026-09-18) --------------
+
+           A phone reads one column in the order things are needed: what is
+           owed, where to stand, what to take, what it cost, and the quiet end.
+           A desktop has room to answer two questions at once, so the same
+           sections become two columns — the trip on the left, the money and
+           the actions on the right — rather than one 40rem ribbon down the
+           middle of a 1400px screen.
+
+           The order is kept honest at both widths with `display: contents` and
+           `order`, the trick the checkout page already uses: one set of
+           markup, read top to bottom on a phone and side by side on a desk. */
+        .b-grid { display: flex; flex-direction: column; }
+        .b-main, .b-side { display: contents; }
+
+        .sec-balance { order: 1; }
+        .sec-weather { order: 2; }
+        .sec-meeting { order: 4; }
+        .sec-take { order: 5; }
+        .sec-price { order: 6; }
+        .sec-quiet { order: 7; }
+
+        .only-wide { display: none; }
+
+        @media (min-width: 56rem) {
+            .wrap.wide-booking { max-width: 58rem; }
+
+            .b-grid {
+                display: grid;
+                grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+                align-items: start;
+            }
+
+            .b-main, .b-side { display: block; }
+            .b-side { border-left: 1px solid var(--hair); }
+
+            /* Both columns end flush with the footer's rule rather than each
+               drawing its own last line at a different height. */
+            .b-main > section:last-child, .b-side > section:last-child { border-bottom: 0; }
+
+            .facts.wide-four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .only-wide { display: block; }
+        }
+
+        /* The quiet end of the page: change of contact details, cancellation.
+           Tinted rather than red — these are not warnings, they are the things
+           nobody should press by accident. */
+        .sheet > section.quiet { background: rgba(15, 32, 43, .025); }
+
+        /* The small lower-case label above a section. Lower case on purpose:
+           uppercase strips the accents off Greek, which the panel learned the
+           hard way (2026-09-11). */
+        .label {
+            display: block; margin: 0 0 .5rem;
+            font-size: .74rem; letter-spacing: .06em; font-weight: 600;
+            color: rgba(15, 32, 43, .55);
+        }
+
+        .kicker { font-size: .82rem; color: rgba(15, 32, 43, .55); margin: 0 0 .15rem; }
+
+        /* The three times, in the operator's colour at a tenth of its strength.
+           This is the second and last dose of brand colour on the page. */
+        .facts {
+            display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: .5rem 1rem;
+            padding: .9rem 1.15rem;
+            background: color-mix(in srgb, var(--kaiki-primary, #123a5e) 7%, #fff);
+            border-bottom: 1px solid var(--hair);
+        }
+
+        .facts.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .facts > div > span { display: block; font-size: .74rem; color: rgba(15, 32, 43, .6); }
+        .facts > div > b {
+            font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums;
+            color: var(--kaiki-primary, #123a5e);
+        }
+
+        @media (max-width: 26rem) { .facts.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+        /* The boarding codes (2026-09-18). One per passenger, big enough for a
+           scanner to read off a screen at arm's length — 150px is about the
+           floor for that, and a code that has to be pinch-zoomed at a gangway
+           is a code the crew types in by hand instead. */
+        .passes { display: flex; flex-wrap: wrap; gap: 1rem; }
+
+        .pass {
+            margin: 0;
+            flex: 0 1 auto;
+            text-align: center;
+            padding: .75rem;
+            border: 1px solid var(--hair);
+            background: #fff;
+        }
+
+        .pass svg { width: 150px; height: 150px; display: block; }
+        .pass figcaption { display: grid; gap: .1rem; margin-top: .45rem; font-size: .9rem; }
+        .pass .code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: .8rem; letter-spacing: .08em; color: rgba(15, 32, 43, .55);
+        }
+
+        .sec-passes { order: 3; }
+
+        /* The meeting point, drawn rather than linked (2026-09-18). Loaded with
+           `no-referrer` so the token in this page's own address never reaches
+           the map provider — the same reason the link beside it carries `rel`. */
+        .map-embed { border: 1px solid var(--hair); line-height: 0; }
+        .map-embed iframe { width: 100%; height: 190px; border: 0; }
 
         /* Checkout is the one guest page with two things to show at once — what
            you are paying for, and the form that pays for it — so it gets a
@@ -163,19 +308,36 @@
             .checkout-side { order: 2; position: sticky; top: 1rem; }
         }
 
-        header.brand { display: flex; align-items: center; gap: .75rem; padding: .5rem 0 1.25rem; }
-        header.brand img { max-height: 44px; width: auto; }
-        header.brand .name { font-weight: 700; font-size: 1.05rem; }
+        header.brand {
+            display: flex; align-items: center; gap: .6rem;
+            padding: .85rem 1.15rem; border-bottom: 1px solid var(--hair);
+        }
+        header.brand img { max-height: 34px; width: auto; }
+        header.brand .name { font-weight: 700; font-size: .95rem; }
 
+        /* `.card` keeps its name because four of the five pages are written in
+           it — but it is no longer a card. It is a section of the sheet,
+           divided by a hairline like every other. */
         .card {
-            background: #fff;
-            border: 1px solid rgba(0, 0, 0, .08);
-            border-radius: var(--kaiki-radius, 8px);
+            background: transparent;
+            border: 0;
+            border-bottom: 1px solid var(--hair);
+            border-radius: 0;
             padding: 1.1rem 1.15rem;
-            margin-bottom: 1rem;
+            margin: 0;
         }
 
-        h1 { font-size: 1.4rem; line-height: 1.25; margin: 0 0 .35rem; }
+        .card:last-child { border-bottom: 0; }
+
+        /* Inside the checkout's two columns a card is a box again: a sticky
+           price panel beside a form needs an edge of its own to sit in. */
+        .checkout-grid .card {
+            border: 1px solid var(--hair);
+            border-radius: var(--kaiki-radius, 8px);
+            background: #fff;
+        }
+
+        h1 { font-size: 1.5rem; line-height: 1.18; margin: 0 0 .35rem; letter-spacing: -.01em; }
         h2 { font-size: 1.05rem; margin: 0 0 .6rem; }
 
         .muted { color: rgba(0, 0, 0, .6); font-size: .92rem; }
@@ -199,9 +361,48 @@
            operator's colour and weight instead; the focus ring stays. */
         a, a:hover { text-decoration: none; }
 
-        .btn.secondary { background: transparent; color: var(--kaiki-text, #14202b); border: 1px solid rgba(0, 0, 0, .2); }
-        .btn.danger { background: #a8321f; }
+        .btn.secondary { background: #fff; color: var(--kaiki-primary, #123a5e); border: 1px solid rgba(0, 0, 0, .18); }
+
+        /* Cancellation is not a red button on a guest's own page. It is a thing
+           they may legitimately have to do, spelled plainly, in a colour that
+           does not shout across the rest of the column. */
+        .btn.danger { background: transparent; color: #8a4b3c; border: 1px solid rgba(138, 75, 60, .35); }
         .btn + .btn { margin-top: .5rem; }
+
+        /* Two or three buttons that belong together: side by side where there
+           is room, stacked where there is not. */
+        /* The two things at the quiet end of the booking page open in place
+           rather than on another screen: a refund figure has to be read before
+           the button under it is pressed, and a `<details>` is the only way to
+           do that without asking a guest on hotel wifi to load a second page.
+           They are drawn as the buttons the design calls for. */
+        .quiet details { display: inline-block; margin: 0 .5rem .5rem 0; vertical-align: top; }
+
+        .quiet details > summary {
+            display: inline-block; cursor: pointer; list-style: none;
+            padding: .8rem 1rem;
+            border: 1px solid rgba(0, 0, 0, .18);
+            border-radius: var(--kaiki-radius, 8px);
+            background: #fff; color: var(--kaiki-primary, #123a5e);
+            font-weight: 600; font-size: 1rem;
+        }
+
+        .quiet details > summary::-webkit-details-marker { display: none; }
+        .quiet details > summary:focus-visible { outline: 2px solid var(--kaiki-primary, #123a5e); outline-offset: 2px; }
+        .quiet details[open] { display: block; margin-right: 0; }
+        .quiet details[open] > summary { margin-bottom: .6rem; }
+
+        /* The voucher code: the one string on that page a guest will copy. */
+        .voucher-code {
+            margin: .2rem 0 .9rem;
+            font-size: 1.9rem; font-weight: 700; letter-spacing: .08em;
+            color: var(--kaiki-primary, #123a5e);
+            word-break: break-all;
+        }
+
+        .btn-row { display: flex; flex-wrap: wrap; gap: .5rem; }
+        .btn-row .btn { width: auto; margin-top: 0; }
+        @media (max-width: 26rem) { .btn-row .btn { width: 100%; } }
 
         label { display: block; font-size: .9rem; font-weight: 600; margin: .75rem 0 .25rem; }
 
@@ -341,24 +542,52 @@
             border-radius: 2px; text-decoration: none;
         }
 
-        footer.brand { padding: 1.5rem 0 0; font-size: .85rem; color: rgba(0, 0, 0, .55); }
+        footer.brand {
+            padding: 1.1rem 1.15rem 1.3rem;
+            font-size: .85rem; color: rgba(15, 32, 43, .55);
+            display: grid; gap: .3rem;
+        }
+
+        /* The operator's telephone and email in the footer of every guest page
+           (2026-09-18). A guest with a problem at a quay should not have to go
+           back to the email to find out who to ring. */
+        footer.brand .contact { display: flex; flex-wrap: wrap; gap: .3rem .9rem; }
+        footer.brand a { color: var(--kaiki-primary, #123a5e); font-weight: 600; }
     </style>
 </head>
 <body>
-<div class="wrap @if ($wide ?? false) wide @endif">
-    <header class="brand">
-        @if (! empty($brand['logo']['light_url']))
-            <img src="{{ $brand['logo']['light_url'] }}" alt="{{ $tenantName }}">
-        @else
-            <span class="name">{{ $tenantName }}</span>
-        @endif
-    </header>
+<div class="wrap @if ($wide ?? false) wide @endif @if ($wideBooking ?? false) wide-booking @endif">
+    <div class="sheet">
+        <header class="brand">
+            @if (! empty($brand['logo']['light_url']))
+                <img src="{{ $brand['logo']['light_url'] }}" alt="{{ $tenantName }}">
+            @else
+                <span class="name">{{ $tenantName }}</span>
+            @endif
+        </header>
 
-    @yield('content')
+        @yield('content')
 
-    <footer class="brand">
-        {{ $brand['email_footer_text'] ?? $tenantName }}
-    </footer>
+        @php
+            $supportPhone = $brand['tenant']['support_phone'] ?? null;
+            $supportEmail = $brand['tenant']['support_email'] ?? null;
+        @endphp
+
+        <footer class="brand">
+            @if ($supportPhone || $supportEmail)
+                <div class="contact">
+                    @if ($supportPhone)
+                        <a href="tel:{{ preg_replace('/[^0-9+]/', '', (string) $supportPhone) }}">{{ $supportPhone }}</a>
+                    @endif
+                    @if ($supportEmail)
+                        <a href="mailto:{{ $supportEmail }}">{{ $supportEmail }}</a>
+                    @endif
+                </div>
+            @endif
+
+            <div>{{ $brand['email_footer_text'] ?? $tenantName }}</div>
+        </footer>
+    </div>
 </div>
 </body>
 </html>

@@ -151,7 +151,8 @@ class VoucherResource extends Resource
                         app()->getLocale(),
                         $record->currency,
                     ))
-                    ->sortable(),
+                    ->sortable()
+                    ->visibleFrom('md'),
 
                 TextColumn::make('remaining_cents')
                     ->label(__('vouchers.table.remaining'))
@@ -179,7 +180,8 @@ class VoucherResource extends Resource
                 TextColumn::make('reason')
                     ->label(__('vouchers.table.reason'))
                     ->formatStateUsing(fn (VoucherReason $state): string => $state->label())
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visibleFrom('md'),
 
                 TextColumn::make('expires_at')
                     ->label(__('vouchers.table.expires'))
@@ -191,7 +193,8 @@ class VoucherResource extends Resource
                     ->label(__('vouchers.table.issued'))
                     ->date()
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->visibleFrom('md'),
             ])
             ->defaultSort('issued_at', 'desc')
             ->filters([

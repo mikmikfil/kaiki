@@ -71,35 +71,30 @@ it('saves a valid set of bands', function (): void {
     });
 })->group('fast');
 
-it('refuses overlapping ranges, naming both bands', function (): void {
-    // CAT-8. "Your bands overlap" on a set of five leaves the operator to work
-    // out which two, so the message names them.
+it('accepts categories that share ages, such as ΑΜΕΑ beside Ενήλικας', function (): void {
+    // Product owner, 2026-09-17: ΑΜΕΑ is not an age, so it covers the same ages
+    // as the adult band. The guest picks the category; nothing resolves one
+    // from an age alone, so the old no-overlap rule only got in the way.
     inBandTenant(function (): void {
-        try {
-            app(SaveAgeBands::class)(bandProduct(), [
-                bandInput(['code' => 'child', 'label' => ['el' => 'Παιδί', 'en' => 'Child'], 'min_age' => 3, 'max_age' => 12, 'is_base' => false, 'price_multiplier_bp' => 5000]),
-                bandInput(['min_age' => 12, 'max_age' => null]),
-            ]);
+        $bands = app(SaveAgeBands::class)(bandProduct(), [
+            bandInput(['min_age' => 12, 'max_age' => null]),
+            bandInput(['code' => 'amea', 'label' => ['el' => 'ΑΜΕΑ', 'en' => 'Disabled'], 'min_age' => 0, 'max_age' => null, 'is_base' => false, 'price_multiplier_bp' => 5000]),
+        ]);
 
-            expect(false)->toBeTrue('the overlap was not refused');
-        } catch (ValidationException $e) {
-            $message = implode(' ', $e->validator->errors()->all());
-
-            expect($message)->toContain('Παιδί')->toContain('Ενήλικας');
-        }
+        expect($bands)->toHaveCount(2);
     });
 })->group('fast');
 
-it('treats a null upper bound as overlapping everything above its minimum', function (): void {
-    // The trap: an adult band of 12+ and a senior band of 65+ both have no
-    // upper bound, so they overlap for everyone over 65 — which is exactly the
-    // band an operator adds later without thinking.
-    inBandTenant(function (): void {
-        expect(fn () => app(SaveAgeBands::class)(bandProduct(), [
-            bandInput(['min_age' => 12, 'max_age' => null]),
-            bandInput(['code' => 'senior', 'label' => ['el' => 'Άνω των 65', 'en' => 'Over 65'], 'min_age' => 65, 'max_age' => null, 'is_base' => false, 'price_multiplier_bp' => 8000]),
-        ]))->toThrow(ValidationException::class);
-    });
+it('makes a code from the name for a band sent without one', function (): void {
+    // The trip form no longer asks for «Κωδικός». English first, Greek when
+    // there is no English, and a suffix when two names give the same code.
+    $bands = SaveAgeBands::withCodes([
+        bandInput(['code' => 'adult']),
+        bandInput(['code' => '', 'label' => ['el' => 'ΑΜΕΑ', 'en' => '']]),
+        bandInput(['code' => null, 'label' => ['el' => 'Ενήλικας κάτοικος', 'en' => 'Adult']]),
+    ]);
+
+    expect(array_column($bands, 'code'))->toBe(['adult', 'amea', 'adult_2']);
 })->group('fast');
 
 it('accepts adjacent ranges that touch without overlapping', function (): void {
@@ -168,8 +163,6 @@ it('accepts a fixed-price band with no multiplier, and clears any stale one', fu
     // stale multiplier would resolve silently if the mode were switched back.
     inBandTenant(function (): void {
         $bands = app(SaveAgeBands::class)(bandProduct(), [
-            // Capped at 64, because an uncapped adult band and a 65+ senior
-            // band overlap for everyone over 65 — which the rule above proves.
             bandInput(['max_age' => 64]),
             bandInput([
                 'code' => 'senior',

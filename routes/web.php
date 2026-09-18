@@ -117,6 +117,10 @@ Route::middleware(['guest.token', 'guest.throttle'])->group(function (): void {
     // TOK-6's downloadable e-ticket (#88's PDF, added by #89). A GET, and the
     // only route to a file on the private disk.
     Route::get('/b/{token}/ticket', [ManageBookingController::class, 'ticket'])->name('guest.ticket');
+    // The trip as a calendar entry, linked from every email that carries the
+    // whole trip and from the page itself (2026-09-18). A GET with no side
+    // effect: a mail client may fetch it twice before the guest ever taps it.
+    Route::get('/b/{token}/calendar.ics', [ManageBookingController::class, 'calendar'])->name('guest.booking.calendar');
     Route::post('/b/{token}/cancel', [ManageBookingController::class, 'cancel'])->name('guest.booking.cancel');
     Route::post('/b/{token}/pay-balance', [ManageBookingController::class, 'payBalance'])->name('guest.booking.pay-balance');
     Route::post('/b/{token}/weather-choice', [ManageBookingController::class, 'weatherChoice'])->name('guest.booking.weather-choice');

@@ -50,10 +50,14 @@ class ListStaff extends ListRecords
                     $user = app(InviteStaffMember::class)(
                         name: $data['name'],
                         email: $data['email'],
-                        roles: array_map(Role::from(...), $data['roles']),
+                        roles: [Role::from($data['role'])],
                         invitedBy: $actor,
                         locale: $data['locale'],
                     );
+
+                    if (($data['salutation'] ?? null) !== null) {
+                        $user->forceFill(['salutation' => $data['salutation']])->save();
+                    }
 
                     Notification::make()
                         ->success()

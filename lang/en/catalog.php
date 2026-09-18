@@ -206,8 +206,15 @@ return [
         ],
 
         'sections' => [
+            'schedules' => 'Schedules',
+            'schedules_intro' => 'When the trip repeats. The departures are generated from this.',
+            'extras' => 'Extras',
+            'extras_intro' => 'Whatever is offered alongside the seat, free or paid.',
+            'questions' => 'Extra questions',
+            'questions_intro' => 'Anything you want to ask the guest at checkout.',
             'basics' => 'The basics',
             'schedule' => 'Times and duration',
+            'schedule_per_seat' => 'Duration and check-in',
             'content' => 'What the guest sees',
             'capacity' => 'How many people',
             'policy' => 'Terms and cancellation',
@@ -259,6 +266,8 @@ return [
         ],
 
         'form' => [
+            // Ο ένας διακόπτης γλώσσας της φόρμας (2026-09-18).
+            'locale_switch' => 'Form language',
             'vessel' => [
                 'label' => 'Vessel',
                 'help' => 'The boat that runs this trip. Its passenger certificate is a legal ceiling and is never exceeded.',
@@ -292,6 +301,7 @@ return [
                 'label' => 'Description',
                 'help' => 'The whole story of the trip.',
             ],
+            'schedule_where' => 'Departure days and times are set on the «Schedule» tab, once the trip is saved.',
             'duration_minutes' => [
                 'label' => 'Duration',
                 'help' => 'In minutes, from departure to return.',
@@ -362,7 +372,7 @@ return [
                 'help' => 'About 155 characters.',
             ],
             'bands' => [
-                'help' => 'Every age belongs to exactly one band. One of them is the base — the others are priced as a share of it.',
+                'help' => 'The usual three are filled in. Change the ages, delete any you do not need or add your own, e.g. disabled passengers. The base one, usually the adult, gives the «from» price.',
                 'add' => 'Add a band',
                 'code' => ['label' => 'Code', 'help' => 'Your own, e.g. "adult".'],
                 'label' => ['label' => 'Name', 'help' => 'The guest reads this when choosing passengers.'],
@@ -395,9 +405,12 @@ return [
         // The form's two tabs (2026-09-17).
         'tabs' => [
             'basics' => 'Basics',
-            'page' => 'Page content',
+            'when' => 'When it leaves',
+            'prices' => 'Prices',
+            'terms' => 'Terms',
+            'page' => 'Page',
             'missing' => ':count missing|:count missing',
-            'schedule' => 'Schedule',
+            'schedule' => 'Schedules',
             'no_schedule' => 'none',
             'active_schedules' => ':count active|:count active',
             'filled' => ':filled of :total',
@@ -407,6 +420,7 @@ return [
         'status_actions' => [
             'save' => 'Save',
             'save_draft' => 'Save as draft',
+            'continue_to_prices' => 'Continue to prices',
             'publish' => 'Publish',
             'unpublish' => 'Take off sale',
             'republish' => 'Put back on sale',

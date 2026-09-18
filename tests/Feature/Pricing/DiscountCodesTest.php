@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Analytics\Support\AnalyticsFigures;
 use App\Domain\Analytics\Support\LocalRange;
+use App\Domain\Pricing\Actions\ApplyDiscountCode;
 use App\Enums\BookingStatus;
 use App\Enums\Role;
 use App\Filament\App\Resources\DiscountCodeResource\Pages\ListDiscountCodes;
@@ -186,4 +187,53 @@ it('counts uses and the revenue a code brought, in the list and in the statistic
     $rows = AnalyticsFigures::forCurrentTenant()->byDiscountCode(LocalRange::between('2026-06-01', '2026-06-30', 'Europe/Athens'));
 
     expect($rows)->toBe([['name' => 'Newsletter', 'code' => 'NEWS', 'uses' => 2, 'revenue' => 18000, 'discount' => 2000]]);
+})->group('fast');
+
+/*
+|--------------------------------------------------------------------------
+| The last use, claimed under a lock (2026-09-18)
+|--------------------------------------------------------------------------
+|
+| `refusal()` counts the bookings already holding a use. Two guests paying for
+| the last one at the same moment both counted the same number, both passed, and
+| a code capped at one was redeemed twice. The count is not wrong; it is that a
+| count taken before a decision is a guess by the time the decision lands.
+|
+| `claim()` takes the code's row lock first, inside the transaction that moves a
+| booking to `pending_payment`, so the loser counts after the winner has
+| committed. Two connections against an in-memory database are not something a
+| test can have, so what is asserted is the property the lock guarantees: the
+| second claim, made once the first booking is pending payment, is refused.
+|
+*/
+
+it('refuses the second claim on the last use of a code', function (): void {
+    [$tenant, $first] = codeDraft();
+    [, $second] = codeDraft();
+
+    Tenancy::forTenant($tenant, function () use ($first, $second): void {
+        $code = DiscountCode::query()->create([
+            'code' => 'LASTONE',
+            'name' => 'Η τελευταία χρήση',
+            'kind' => 'fixed',
+            'value' => 1000,
+            'is_active' => true,
+            'max_uses' => 1,
+        ]);
+
+        foreach ([$first, $second] as $booking) {
+            $booking->forceFill(['discount_code_id' => $code->getKey()])->save();
+        }
+
+        // Nobody has spent it yet, so either of them could.
+        expect(ApplyDiscountCode::claim($first->refresh()))->toBeTrue()
+            ->and(ApplyDiscountCode::claim($second->refresh()))->toBeTrue();
+
+        // The first one reaches the gateway: its booking now holds the use.
+        $first->forceFill(['status' => BookingStatus::PendingPayment])->save();
+
+        expect(ApplyDiscountCode::claim($second->refresh()))->toBeFalse()
+            // And the winner keeps it: a claim is not a token the loser burns.
+            ->and(ApplyDiscountCode::claim($first->refresh()))->toBeTrue();
+    });
 })->group('fast');

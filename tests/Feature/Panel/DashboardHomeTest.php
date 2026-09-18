@@ -83,12 +83,13 @@ it('greets the operator with a sun or a moon', function (): void {
         ->assertSee('is-moon', escape: false);
 })->group('fast');
 
-it('greets by the salutation when there is one, and by the name as written when not', function (): void {
+it('greets by the salutation when there is one, and by the first name alone when not', function (): void {
     $owner = homeOwner();
     actingAs($owner);
 
     $owner->forceFill(['name' => 'Μαρία Παπαδοπούλου', 'salutation' => null])->save();
-    expect(Dashboard::nameToGreet())->toBe('Μαρία Παπαδοπούλου');
+    // Never the surname (product owner, 2026-09-17).
+    expect(Dashboard::nameToGreet())->toBe('Μαρία');
 
     $owner->forceFill(['salutation' => 'Κυρία Μαρία'])->save();
     expect(Dashboard::nameToGreet())->toBe('Κυρία Μαρία');

@@ -4,18 +4,23 @@ declare(strict_types=1);
 
 use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\RemoveGuestsFromBooking;
+use App\Domain\Booking\Support\ManifestRows;
 use App\Enums\BookingStatus;
 use App\Enums\CancelledBy;
 use App\Enums\CancelReason;
 use App\Enums\PaymentKind;
 use App\Enums\PaymentStatus;
 use App\Enums\Role;
+use App\Enums\VoucherStatus;
 use App\Events\BookingGuestsRemoved;
 use App\Filament\App\Resources\BookingResource\Pages\ViewBooking;
 use App\Models\Booking;
+use App\Models\BookingGuest;
 use App\Models\Departure;
 use App\Models\Payment;
 use App\Models\Tenant;
+use App\Models\Voucher;
+use App\Models\VoucherRedemption;
 use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
@@ -143,18 +148,71 @@ it('refuses to remove everyone, or to leave a child without an adult', function 
     });
 })->group('fast');
 
-it('runs from the booking page and tells the guest', function (): void {
+it('runs from the booking page, on the person the operator ticked', function (): void {
     Event::fake([BookingGuestsRemoved::class]);
     [$tenant, $booking] = familyBooking();
     $owner = OperatorUser::withRole(Role::Owner, $tenant);
     tenancy()->initialize($tenant);
 
+    // The rows the form offers. `ensure()` is what the form itself calls, so an
+    // older booking with no passenger rows still has somebody to tick.
+    ManifestRows::ensure($booking);
+
+    /** @var BookingGuest $goes */
+    $goes = $booking->guests()->where('age_band_code', 'adult')->orderBy('position')->first();
+
+    // A name, because the point of the change is that the operator removes
+    // «ο Γιώργος» rather than «ένας ενήλικας» — and the manifest has to lose
+    // that name and not another.
+    $goes->forceFill(['full_name' => 'Γιώργος Παπαδόπουλος'])->save();
+
+    /** @var BookingGuest $stays */
+    $stays = $booking->guests()->where('age_band_code', 'adult')->where('id', '!=', $goes->getKey())->first();
+    $stays->forceFill(['full_name' => 'Μαρία Παπαδοπούλου'])->save();
+
     Livewire::actingAs($owner)
         ->test(ViewBooking::class, ['record' => $booking->getRouteKey()])
         ->assertActionVisible('remove_guests')
-        ->callAction('remove_guests', data: ['remove' => ['adult' => 1, 'child' => 0]])
+        ->callAction('remove_guests', data: ['guests' => [$goes->getKey()]])
         ->assertHasNoActionErrors();
 
-    expect($booking->refresh()->pax_total)->toBe(3);
+    expect($booking->refresh()->pax_total)->toBe(3)
+        ->and(BookingGuest::query()->whereKey($goes->getKey())->exists())->toBeFalse()
+        // The rule the old version would have applied — unnamed first, then the
+        // last position — would have taken this one instead.
+        ->and(BookingGuest::query()->whereKey($stays->getKey())->exists())->toBeTrue();
+
     Event::assertDispatched(BookingGuestsRemoved::class, static fn (BookingGuestsRemoved $event): bool => $event->removed === 1);
+})->group('fast');
+
+it('sends the voucher its own share back rather than putting it on a card', function (): void {
+    [$tenant, $booking] = familyBooking();
+
+    Tenancy::forTenant($tenant, function () use ($booking): void {
+        // A booking half paid with voucher value: PRC-19.2 says that half is
+        // not the operator's cash to hand back.
+        $voucher = Voucher::factory()->create([
+            'amount_cents' => 6000,
+            'remaining_cents' => 0,
+            'status' => VoucherStatus::Redeemed,
+        ]);
+
+        VoucherRedemption::query()->create([
+            'voucher_id' => $voucher->getKey(),
+            'booking_id' => $booking->getKey(),
+            'amount_cents' => 6000,
+            'redeemed_at' => now(),
+        ]);
+
+        // The redemption row is what `RestoreVoucher` reads; the booking only
+        // has to point at the voucher.
+        $booking->forceFill(['voucher_id' => $voucher->getKey()])->save();
+
+        $result = app(RemoveGuestsFromBooking::class)($booking->refresh(), ['adult' => 1]);
+
+        expect($result['voucher_cents'])->toBeGreaterThan(0)
+            // What went back to the voucher did not also go to a card.
+            ->and($result['refund_started_cents'])->toBeLessThan($result['refund_cents'])
+            ->and($voucher->refresh()->remaining_cents)->toBe($result['voucher_cents']);
+    });
 })->group('fast');

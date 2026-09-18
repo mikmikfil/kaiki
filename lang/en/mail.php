@@ -39,6 +39,13 @@ return [
         'ticket_help' => 'Show it on your phone when boarding.',
         'open_ticket' => 'Open ticket',
         'manage_booking' => 'Manage booking',
+
+        // Add to calendar (2026-09-18). ".ics" is in the label on purpose: it is
+        // the word somebody who has met a calendar file before recognises, and
+        // the app names tell everybody else which of the two is theirs.
+        'add_to_calendar' => 'Add to calendar',
+        'calendar_ics' => 'Apple, Outlook and phone (.ics)',
+        'calendar_google' => 'Google Calendar',
         'how_to_find' => 'How to find us',
         'open_map' => 'Open in maps',
         'details_title' => 'We still need the passenger details',
@@ -46,6 +53,7 @@ return [
         'details_by' => 'Please send them by :date.',
         'details_button' => 'Fill in the details',
         'party' => 'People and payment',
+        'discount' => 'Discount',
         'total' => 'Total',
         'paid' => 'Paid',
         'balance_due' => 'Balance, due :date',

@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:4461946c392bd6df4e593b63560e72972e40c903b60eba89e78103f6296091cc
+-- migrations-fingerprint: sha256:135e945ed683900f48a32c3c21bfbc1c97d1eb84b0c07880f21dd705f7a7f01e
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -1386,6 +1386,7 @@ CREATE TABLE `tenants` (
   `check_in_enabled` tinyint(1) DEFAULT '1',
   `extra_person_pricing_enabled` tinyint(1) DEFAULT '0',
   `sms_enabled` tinyint(1) DEFAULT '0',
+  `setup_guide_enabled` tinyint(1) DEFAULT '1',
   `invoicing_mode` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'kaiki',
   `invoice_auto_issue` tinyint(1) NOT NULL DEFAULT '1',
   `invoice_auto_issue_delay_minutes` smallint unsigned NOT NULL DEFAULT '15',
@@ -1711,3 +1712,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (74,'2026_09_17_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (75,'2026_09_17_000040_create_discount_codes',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (76,'2026_09_17_000100_add_salutation_to_users',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (77,'2026_09_17_000200_add_sms_enabled_to_tenants',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (78,'2026_09_17_000300_add_setup_guide_enabled_to_tenants',1);

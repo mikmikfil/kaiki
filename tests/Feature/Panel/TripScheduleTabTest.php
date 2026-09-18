@@ -38,13 +38,15 @@ it('adds a schedule to the trip it is opened on, without asking which trip', fun
 
     Livewire::actingAs($owner)
         ->test(ScheduleRulesRelationManager::class, ['ownerRecord' => $product, 'pageClass' => EditProduct::class])
-        ->callTableAction('create', data: [
+        ->mountTableAction('create')
+        ->set('mountedTableActionsData.0.start_times', ['a' => ['time' => '09:00']])
+        ->setTableActionData([
             'weekdays' => [2, 4],
-            'start_time' => '09:00',
             'valid_from' => '2026-06-01',
             'valid_until' => '2026-09-15',
             'is_active' => true,
         ])
+        ->callMountedTableAction()
         ->assertHasNoTableActionErrors();
 
     $rule = ScheduleRule::query()->where('product_id', $product->getKey())->sole();
@@ -53,6 +55,37 @@ it('adds a schedule to the trip it is opened on, without asking which trip', fun
         ->and(substr((string) $rule->start_time, 0, 5))->toBe('09:00')
         ->and($rule->generate_days_ahead)->toBe(180)
         ->and(ProductResource::scheduleBadge($product))->toBe(trans_choice('catalog.product.tabs.active_schedules', 1, ['count' => 1]));
+})->group('fast');
+
+it('adds one schedule row per departure time, with the same days and dates', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+    tenancy()->initialize(Tenant::query()->findOrFail($owner->tenant_id));
+
+    $product = Product::factory()->create(['mode' => BookingMode::PerSeat]);
+
+    Livewire::actingAs($owner)
+        ->test(ScheduleRulesRelationManager::class, ['ownerRecord' => $product, 'pageClass' => EditProduct::class])
+        ->mountTableAction('create')
+        // Keyed like the repeater's own items, replacing its one empty default.
+        ->set('mountedTableActionsData.0.start_times', [
+            'a' => ['time' => '09:00'],
+            'b' => ['time' => '13:00'],
+            'c' => ['time' => '17:00'],
+        ])
+        ->setTableActionData([
+            'weekdays' => [1, 2, 3, 4, 5, 6, 7],
+            'valid_from' => '2026-06-01',
+            'valid_until' => '2026-09-15',
+            'is_active' => true,
+        ])
+        ->callMountedTableAction()
+        ->assertHasNoTableActionErrors();
+
+    $rules = ScheduleRule::query()->where('product_id', $product->getKey())->orderBy('start_time')->get();
+
+    expect($rules)->toHaveCount(3)
+        ->and($rules->map(static fn (ScheduleRule $rule): string => substr((string) $rule->start_time, 0, 5))->all())->toBe(['09:00', '13:00', '17:00'])
+        ->and($rules->pluck('weekday_mask')->unique()->all())->toBe([WeekdayMask::fromDays([1, 2, 3, 4, 5, 6, 7])]);
 })->group('fast');
 
 it('says «none» on a trip nobody can book on any day', function (): void {

@@ -69,6 +69,12 @@
 {{ __('mail.common.ticket') }} — {{ __('mail.common.ticket_help') }}
 {!! $d->ticketUrl !!}
 @endif
+@if ($d->calendarUrl !== null)
+
+{{ __('mail.common.add_to_calendar') }}
+{{ __('mail.common.calendar_ics') }}: {!! $d->calendarUrl !!}
+{{ __('mail.common.calendar_google') }}: {!! $d->calendarGoogleUrl !!}
+@endif
 @if ($d->full)
 @if ($d->meetingName !== null)
 

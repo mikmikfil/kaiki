@@ -116,6 +116,15 @@ return [
         'when' => 'When',
         'meeting_point' => 'Meeting point',
         'map' => 'Open in maps',
+
+        // Add to calendar (2026-09-18). The sentence says check-in rather than
+        // departure, because that is the time somebody has to be at the quay.
+        'calendar' => [
+            'heading' => 'Add to calendar',
+            'body' => 'It goes in your calendar with the check-in time, the meeting point and a reminder the day before.',
+            'ics' => 'Apple, Outlook and phone',
+            'google' => 'Google Calendar',
+        ],
         'check_in' => 'Check-in',
         'party' => 'Party',
         'people' => ':count people',
@@ -130,7 +139,23 @@ return [
         'balance_due' => 'The balance is due by :date.',
         'pay_balance' => 'Pay the balance',
         'ticket' => 'Download your ticket',
-        'ticket_soon' => 'Your ticket will be available here shortly before departure.',
+        // Β2's strip of three times (2026-09-18). Lower case: an
+        // uppercase transform strips the accents off Greek.
+        'times' => [
+            'check_in' => 'check-in',
+            'departure' => 'departure',
+            'return' => 'return',
+        ],
+        // The boarding codes on the page (2026-09-18), not only inside the PDF.
+        'boarding' => [
+            'heading' => 'Boarding codes',
+            'help' => 'Show it to the crew when you board.|One code per passenger. Show them to the crew when you board.',
+        ],
+        'passenger' => 'Passenger :position',
+        'take_with_you' => 'Take these with you',
+        'manage' => 'Manage',
+        'ticket_title' => 'Your ticket',
+        'ticket_help' => 'Show it to the crew when you board, on your phone or printed. One ticket per passenger, in a single file.',
         'contact' => [
             'heading' => 'Your details',
             'name' => 'Name',

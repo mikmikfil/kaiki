@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Mail;
 
+use App\Domain\Booking\Support\BookingCalendarInvite;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Notifications\Actions\SendNotification;
 use App\Enums\NotificationTemplate;
@@ -11,6 +12,7 @@ use App\Models\Booking;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
@@ -74,6 +76,61 @@ class GuestMail extends Mailable
                 'extra' => $this->extra,
             ],
         );
+    }
+
+    /**
+     * The trip as a calendar file (product owner, 2026-09-18).
+     *
+     * The body already carries two "add to calendar" links, and this is a third
+     * route to the same thing because it is the shortest one there is: Gmail and
+     * Apple Mail both read a `text/calendar` part and put an "Add to calendar"
+     * strip above the message — no link to tap, no download, no browser. A guest
+     * who never scrolls past the first screen still gets it.
+     *
+     * `method=PUBLISH` in the MIME type, matching the file's own `METHOD`.
+     * Without it some clients read the part as a meeting invitation and draw
+     * accept/decline buttons on a trip that is already paid for.
+     *
+     * Only on the three messages that are the whole trip. A balance reminder
+     * carrying a calendar file would be offering a second copy of a morning the
+     * guest's calendar already holds.
+     *
+     * @return list<Attachment>
+     */
+    public function attachments(): array
+    {
+        if (! $this->template->carriesWholeTrip()) {
+            return [];
+        }
+
+        $tenant = Tenancy::withoutTenancy(
+            fn (): ?Tenant => Tenant::query()->find($this->booking->tenant_id),
+        );
+
+        if (! $tenant instanceof Tenant) {
+            return [];
+        }
+
+        $booking = $this->booking;
+        $locale = SendNotification::localeFor($booking);
+
+        // Built inside the tenant, so the meeting point the file names is one
+        // the relation can actually see — the same reason `brand()` below does.
+        /** @var array{0: string, 1: string}|null $file */
+        $file = Tenancy::forTenant($tenant, static function () use ($booking, $locale): ?array {
+            $invite = BookingCalendarInvite::for($booking, $locale);
+
+            return $invite->isAvailable() ? [$invite->ics(), $invite->filename()] : null;
+        });
+
+        if ($file === null) {
+            return [];
+        }
+
+        return [
+            Attachment::fromData(static fn (): string => $file[0], $file[1])
+                ->withMime('text/calendar; charset=UTF-8; method=PUBLISH'),
+        ];
     }
 
     /**

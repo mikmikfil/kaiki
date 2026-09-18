@@ -138,6 +138,70 @@ it('creates a trip and its age bands in one submit', function (): void {
     });
 })->group('fast');
 
+it('starts a new trip with Ενήλικας, Παιδί and Βρέφος, without asking for codes', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $page = productPageAs($owner, CreateProduct::class);
+    $bands = array_values((array) $page->get('data.age_bands'));
+
+    expect(array_map(static fn (array $band): string => $band['label']['el'], $bands))->toBe(['Ενήλικας', 'Παιδί', 'Βρέφος'])
+        ->and($bands[0]['is_base'])->toBeTrue()
+        ->and($bands[2]['counts_toward_capacity'])->toBeFalse();
+
+    // Everything but the bands, which stay the three the form started with.
+    $state = productFormState();
+    unset($state['age_bands']);
+
+    $page->fillForm($state)
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        expect(Product::query()->sole()->ageBands()->orderBy('sort_order')->pluck('code')->all())->toBe(['adult', 'child', 'infant']);
+    });
+})->group('fast');
+
+it('asks for a single departure time only on a whole-boat trip', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    // Per seat: the days and times live on the «Δρομολόγια» tab.
+    productPageAs($owner, CreateProduct::class)
+        ->fillForm(['mode' => BookingMode::PerSeat->value])
+        ->assertFormFieldIsHidden('default_start_time')
+        ->assertFormFieldIsVisible('duration_minutes')
+        ->assertFormFieldIsVisible('check_in_offset_minutes')
+        ->fillForm(['mode' => BookingMode::PerVessel->value])
+        ->assertFormFieldIsVisible('default_start_time');
+})->group('fast');
+
+it('creates a cancellation policy from the trip form when the operator has none', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    productPageAs($owner, CreateProduct::class)
+        ->callFormComponentAction('cancellation_policy_id', 'createOption', [
+            'name' => ['el' => 'Κανονική', 'en' => 'Standard'],
+            'free_cancellation_hours' => 24,
+            'tiers' => [
+                ['days_before' => 7, 'refund_percent' => 100],
+                ['days_before' => 2, 'refund_percent' => 50],
+            ],
+        ])
+        ->assertHasNoFormComponentActionErrors()
+        ->fillForm(productFormState())
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $policy = CancellationPolicy::query()->sole();
+        $product = Product::query()->sole();
+
+        expect($product->cancellation_policy_id)->toBe($policy->getKey())
+            // The first policy becomes the default through the Action.
+            ->and($policy->is_default)->toBeTrue()
+            ->and($policy->tiers()->count())->toBe(2);
+    });
+})->group('fast');
+
 it('refuses publishing a trip that is missing its prerequisites, naming each one', function (): void {
     $owner = OperatorUser::withRole(Role::Owner);
 

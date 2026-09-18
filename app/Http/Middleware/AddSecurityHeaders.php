@@ -35,6 +35,10 @@ final class AddSecurityHeaders
             "img-src 'self' data: blob:",
             "font-src 'self' data:",
             "connect-src 'self'",
+            // FilePond reads a photo in a worker built from a blob: URL. Without
+            // this it falls back to script-src, the worker is refused, and the
+            // upload field sits on «Φόρτωση» for ever.
+            "worker-src 'self' blob:",
             "frame-ancestors 'none'",
             "base-uri 'self'",
             "form-action 'self'",
