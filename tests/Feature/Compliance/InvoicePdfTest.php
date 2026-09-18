@@ -175,3 +175,43 @@ it('names the file by uuid rather than by the document reference', function (): 
     expect($path)->not->toContain('ΑΛΠ')
         ->and($path)->not->toContain('Α/2026');
 })->group('fast');
+
+it('says what a discount code took off, without touching the frozen figures', function (): void {
+    [$tenant, $invoice] = pdfInvoice();
+
+    Tenancy::forTenant($tenant, function () use ($invoice, $tenant): void {
+        $before = [
+            'net' => $invoice->net_cents,
+            'vat' => $invoice->vat_cents,
+            'total' => $invoice->total_cents,
+        ];
+
+        $booking = Booking::query()->findOrFail($invoice->booking_id);
+
+        $booking->forceFill([
+            'discount_cents' => 1500,
+            'price_snapshot' => array_merge((array) $booking->price_snapshot, [
+                'discount_code' => ['id' => 1, 'code' => 'SUMMER10', 'name' => 'Καλοκαίρι', 'kind' => 'percent', 'value' => 10, 'amount_cents' => 1500],
+            ]),
+        ])->save();
+
+        $html = view('pdf.invoice', [
+            'invoice' => Invoice::query()->with('booking')->findOrFail($invoice->getKey()),
+            'tenant' => $tenant,
+            'brand' => [],
+            'qr' => null,
+        ])->render();
+
+        expect($html)->toContain('SUMMER10')
+            ->and($html)->toContain('15,00');
+
+        // The document's own figures are the frozen row's, and nothing here may
+        // recompute them: the discount is a line that explains the total, not a
+        // subtraction applied to it a second time.
+        $fresh = Invoice::query()->findOrFail($invoice->getKey());
+
+        expect($fresh->net_cents)->toBe($before['net'])
+            ->and($fresh->vat_cents)->toBe($before['vat'])
+            ->and($fresh->total_cents)->toBe($before['total']);
+    });
+})->group('fast');

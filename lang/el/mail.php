@@ -53,6 +53,7 @@ return [
         'details_by' => 'Στείλτε τα έως :date.',
         'details_button' => 'Συμπλήρωση στοιχείων',
         'party' => 'Άτομα και πληρωμή',
+        'discount' => 'Έκπτωση',
         'total' => 'Σύνολο',
         'paid' => 'Πληρώθηκαν',
         'balance_due' => 'Υπόλοιπο, έως :date',

@@ -113,6 +113,8 @@ final class BookingMailDetails
         public readonly ?string $meetingInstructions,
         public readonly ?string $mapUrl,
         public readonly array $party,
+        public readonly ?string $discount,
+        public readonly ?string $discountCode,
         public readonly ?string $total,
         public readonly ?string $paid,
         public readonly ?string $balance,
@@ -214,6 +216,17 @@ final class BookingMailDetails
         $action = [__('mail.common.manage_booking', [], $locale), $manageUrl];
         $party = self::party($booking, $locale, $euros);
         $total = (int) $booking->total_cents > 0 ? $euros((int) $booking->total_cents) : null;
+
+        // The discount code, if one was used. `discount_cents` is the booking's
+        // own column and the snapshot carries what was applied, so the email
+        // keeps saying so after the code itself is edited or deleted.
+        $discountCents = (int) $booking->discount_cents;
+        $snapshotCode = is_array($booking->price_snapshot)
+            ? ($booking->price_snapshot['discount_code'] ?? null)
+            : null;
+        $discountLabel = is_array($snapshotCode) && trim((string) ($snapshotCode['code'] ?? '')) !== ''
+            ? (string) $snapshotCode['code']
+            : null;
         $showParty = $template->carriesWholeTrip();
         $deadline = null;
         $reviewUrl = null;
@@ -412,6 +425,12 @@ final class BookingMailDetails
             meetingInstructions: $port instanceof Port ? self::text($port->getTranslation('instructions', $locale, true)) : null,
             mapUrl: $port instanceof Port ? $port->mapsUrl() : null,
             party: $party,
+            // What the code took off, on the ticket card (2026-09-18). The
+            // total below is already the discounted one; without this line the
+            // guest cannot tell their code was honoured, which is the one
+            // thing they check after typing it.
+            discount: $discountCents > 0 ? $euros($discountCents) : null,
+            discountCode: $discountLabel,
             total: $total,
             paid: $template !== NotificationTemplate::QuoteSent && $paidCents > 0 ? $euros($paidCents) : null,
             balance: $showsBalance && $balanceCents > 0 ? $euros($balanceCents) : null,

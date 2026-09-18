@@ -306,6 +306,17 @@ final class CheckoutController extends GuestPageController
                 // never do. `MintCheckoutSession` refuses a deposit that does
                 // not exist, so the fallback is the total.
                 $result = ($this->mintSession)($booking, self::kindFor($booking));
+            } catch (DiscountCodeRefused $refused) {
+                // Somebody else spent the last use between this page and the
+                // lock inside `StartCheckout`. The code comes off and the guest
+                // sees the new total before paying it — the same answer as the
+                // check above, arrived at a second later.
+                ($this->applyCode)($booking, null);
+
+                return redirect()
+                    ->route('guest.checkout', ['token' => $token])
+                    ->withInput()
+                    ->withErrors(['discount_code' => $refused->getMessage()]);
             } catch (CheckoutRefused|IllegalStateTransition) {
                 return redirect()
                     ->route('guest.checkout', ['token' => $token])

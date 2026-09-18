@@ -53,6 +53,7 @@ return [
         'details_by' => 'Please send them by :date.',
         'details_button' => 'Fill in the details',
         'party' => 'People and payment',
+        'discount' => 'Discount',
         'total' => 'Total',
         'paid' => 'Paid',
         'balance_due' => 'Balance, due :date',

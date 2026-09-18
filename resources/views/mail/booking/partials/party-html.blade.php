@@ -11,6 +11,17 @@
             <td style="padding:8px 0;border-bottom:1px solid #e4ecf1;text-align:right;{{ $font }}">{{ $line['amount'] }}</td>
         </tr>
     @endforeach
+    {{-- What the code took off (2026-09-18). Above the total, because the
+         total is already the discounted figure and a guest who typed a code
+         reads this line to find out whether it was honoured. --}}
+    @if ($d->discount !== null)
+        <tr>
+            <td style="padding:8px 0;border-bottom:1px solid #e4ecf1;{{ $font }}">
+                {{ __('mail.common.discount') }}@if ($d->discountCode !== null) ({{ $d->discountCode }})@endif
+            </td>
+            <td style="padding:8px 0;border-bottom:1px solid #e4ecf1;text-align:right;{{ $font }}">&minus;{{ $d->discount }}</td>
+        </tr>
+    @endif
     @if ($d->total !== null)
         <tr>
             <td style="padding:8px 0 4px;{{ $font }}font-weight:bold;">{{ __('mail.common.total') }}</td>
