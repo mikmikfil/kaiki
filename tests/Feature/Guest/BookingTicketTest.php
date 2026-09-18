@@ -150,3 +150,86 @@ it('renders the ticket on demand when the queue never did', function (): void {
     'ENV-20: rendering a ticket needs a Chromium binary. Set KAIKI_CHROME_PATH in .env, '
     . 'or run this in CI where it is always present.',
 )->group('chromium');
+
+/*
+|--------------------------------------------------------------------------
+| The boarding codes on the page (product owner, 2026-09-18)
+|--------------------------------------------------------------------------
+|
+| «Να φαίνεται όποτε υπάρχει.» The codes have existed inside the PDF since #88,
+| which put a download, a PDF reader and a pinch-zoom between a guest and the
+| square the crew scans.
+|
+| "Whenever there is one" is three conditions, and the assertions below are the
+| three of them, because each is somebody else's decision and any of them can
+| change after the page was last looked at: the platform switches QR boarding on
+| per operator, a booking can be cancelled, and a trip sails.
+|
+*/
+
+it('shows a code per passenger when the operator scans them', function (): void {
+    [$tenant, $booking] = GuestPageScenario::booking(pax: 2);
+
+    Tenancy::withoutTenancy(static fn () => Tenant::query()
+        ->whereKey($tenant->getKey())
+        ->update(['check_in_enabled' => true, 'qr_check_in_enabled' => true]));
+
+    $codes = Tenancy::forTenant($tenant, static fn (): array => $booking->guests()
+        ->orderBy('position')
+        ->pluck('ticket_code')
+        ->all());
+
+    $response = get('/b/' . $booking->manage_token)->assertOk();
+
+    $response->assertSee(__('guest.booking.boarding.heading'));
+
+    foreach ($codes as $code) {
+        // Each passenger's own code, not the booking's reference and not one
+        // square for the party: the crew scans one per person.
+        $response->assertSee((string) $code);
+    }
+
+    // A booking of two draws two squares.
+    expect(substr_count($response->getContent(), 'class="pass"'))->toBe(2);
+})->group('fast');
+
+it('shows no code where the operator boards from a list', function (): void {
+    [$tenant, $booking] = GuestPageScenario::booking();
+
+    Tenancy::withoutTenancy(static fn () => Tenant::query()
+        ->whereKey($tenant->getKey())
+        ->update(['check_in_enabled' => true, 'qr_check_in_enabled' => false]));
+
+    get('/b/' . $booking->manage_token)
+        ->assertOk()
+        ->assertDontSee(__('guest.booking.boarding.heading'));
+})->group('fast');
+
+it('shows no code for a cancelled booking or a trip that has sailed', function (): void {
+    [$tenant, $booking] = GuestPageScenario::booking();
+
+    Tenancy::withoutTenancy(static fn () => Tenant::query()
+        ->whereKey($tenant->getKey())
+        ->update(['check_in_enabled' => true, 'qr_check_in_enabled' => true]));
+
+    Tenancy::forTenant($tenant, static function () use ($booking): void {
+        $booking->forceFill(['status' => BookingStatus::Cancelled])->save();
+    });
+
+    // A code that still scanned green at a gangway is the one outcome worth
+    // engineering against.
+    get('/b/' . $booking->manage_token)
+        ->assertOk()
+        ->assertDontSee(__('guest.booking.boarding.heading'));
+
+    Tenancy::forTenant($tenant, static function () use ($booking): void {
+        $booking->forceFill([
+            'status' => BookingStatus::Confirmed,
+            'starts_at_utc' => Carbon::now()->subDay(),
+        ])->save();
+    });
+
+    get('/b/' . $booking->manage_token)
+        ->assertOk()
+        ->assertDontSee(__('guest.booking.boarding.heading'));
+})->group('fast');

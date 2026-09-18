@@ -11,6 +11,7 @@ use App\Domain\Booking\Actions\MintBalanceSession;
 use App\Domain\Booking\Support\BookingCalendarInvite;
 use App\Domain\Booking\Support\GuestTokenResolver;
 use App\Domain\Booking\Support\RefundEntitlement;
+use App\Domain\Booking\Support\TicketQr;
 use App\Enums\BookingStatus;
 use App\Enums\CancelledBy;
 use App\Enums\CancelReason;
@@ -96,6 +97,10 @@ final class ManageBookingController extends GuestPageController
             // figures a guest opens this page for, computed once here rather
             // than three times in the template.
             'times' => self::timesFor($booking, $tenant),
+            // The boarding codes themselves, on the page (product owner,
+            // 2026-09-18): «να φαίνεται όποτε υπάρχει». See below for when
+            // there is one.
+            'boardingPasses' => self::boardingPassesFor($booking, $tenant),
             'canCancel' => self::canCancel($booking),
             'weatherChoiceDue' => self::weatherChoiceIsOpen($booking),
             'backUrl' => $this->backToSiteUrl($booking, $tenant),
@@ -168,6 +173,53 @@ final class ManageBookingController extends GuestPageController
                 'Content-Disposition' => 'inline; filename="' . $booking->reference . '.pdf"',
             ],
         );
+    }
+
+    /**
+     * The scannable code for each passenger, or an empty list.
+     *
+     * The e-ticket PDF has carried these since #88, and until today the only
+     * way to a code was to download a file — which is a download, a PDF reader
+     * and a pinch-zoom between a guest and the thing the crew scans. They are
+     * on the page now whenever there is one to show.
+     *
+     * "Whenever there is one" is three conditions, and each of them is somebody
+     * else's decision rather than this page's: the platform has switched QR
+     * boarding on for this operator, the booking is still live, and the trip
+     * has not already sailed. A code for a cancelled booking would scan green
+     * at a gangway, which is the one outcome worth engineering against.
+     *
+     * @return list<array{name: string, code: string, svg: string}>
+     */
+    private static function boardingPassesFor(Booking $booking, Tenant $tenant): array
+    {
+        if (! $tenant->usesQrCheckIn() || ! $booking->status->isLive() || $booking->starts_at_utc->isPast()) {
+            return [];
+        }
+
+        return Tenancy::forTenant($tenant, static function () use ($booking): array {
+            $passes = [];
+
+            foreach ($booking->guests()->orderBy('position')->get() as $guest) {
+                if (trim((string) $guest->ticket_code) === '') {
+                    continue;
+                }
+
+                $passes[] = [
+                    // A booking of four gets four codes, and the crew scans one
+                    // per person — so each has to say whose it is. The position
+                    // is the fallback for a passenger whose name has not been
+                    // given yet, because «Επιβάτης 3» is still an answer.
+                    'name' => trim((string) $guest->full_name) !== ''
+                        ? (string) $guest->full_name
+                        : __('guest.booking.passenger', ['position' => $guest->position]),
+                    'code' => (string) $guest->ticket_code,
+                    'svg' => TicketQr::svgFor($guest),
+                ];
+            }
+
+            return $passes;
+        });
     }
 
     /**

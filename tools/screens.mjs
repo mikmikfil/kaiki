@@ -100,6 +100,23 @@ for (const [name, url] of pages) {
         // network does; a form redrawn a moment later is the usual reason a
         // panel screenshot looks half-built.
         await page.waitForTimeout(900);
+
+        // Walk the page before photographing it, so anything `loading="lazy"`
+        // — the meeting-point map, most images — has been asked for. A
+        // full-page screenshot does not scroll, so without this the bottom of
+        // a long page is photographed with its iframes still empty.
+        await page.evaluate(async () => {
+            const step = window.innerHeight;
+
+            for (let y = 0; y < document.body.scrollHeight; y += step) {
+                window.scrollTo(0, y);
+                await new Promise((resolve) => setTimeout(resolve, 120));
+            }
+
+            window.scrollTo(0, 0);
+        });
+
+        await page.waitForTimeout(700);
         await page.screenshot({ path: `${OUT}/${name}-${label}.png`, fullPage });
 
         console.log(`${OUT}/${name}-${label}.png`);

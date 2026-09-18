@@ -168,6 +168,25 @@
         token in its own query string either; see
         `BookingCalendarInvite::googleUrl()`.
     --}}
+    @if ($boardingPasses !== [])
+        <section class="sec-passes">
+            <span class="label">{{ __('guest.booking.boarding.heading') }}</span>
+            <p class="muted">{{ trans_choice('guest.booking.boarding.help', count($boardingPasses)) }}</p>
+
+            <div class="passes">
+                @foreach ($boardingPasses as $pass)
+                    <figure class="pass">
+                        {!! $pass['svg'] !!}
+                        <figcaption>
+                            <strong>{{ $pass['name'] }}</strong>
+                            <span class="code">{{ $pass['code'] }}</span>
+                        </figcaption>
+                    </figure>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     @if ($ticketUrl || $calendar)
         <section class="sec-take">
             <span class="label">{{ __('guest.booking.take_with_you') }}</span>

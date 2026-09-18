@@ -117,10 +117,10 @@
 
         .sec-balance { order: 1; }
         .sec-weather { order: 2; }
-        .sec-meeting { order: 3; }
-        .sec-take { order: 4; }
-        .sec-price { order: 5; }
-        .sec-quiet { order: 6; }
+        .sec-meeting { order: 4; }
+        .sec-take { order: 5; }
+        .sec-price { order: 6; }
+        .sec-quiet { order: 7; }
 
         .only-wide { display: none; }
 
@@ -178,6 +178,30 @@
         }
 
         @media (max-width: 26rem) { .facts.four { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+        /* The boarding codes (2026-09-18). One per passenger, big enough for a
+           scanner to read off a screen at arm's length — 150px is about the
+           floor for that, and a code that has to be pinch-zoomed at a gangway
+           is a code the crew types in by hand instead. */
+        .passes { display: flex; flex-wrap: wrap; gap: 1rem; }
+
+        .pass {
+            margin: 0;
+            flex: 0 1 auto;
+            text-align: center;
+            padding: .75rem;
+            border: 1px solid var(--hair);
+            background: #fff;
+        }
+
+        .pass svg { width: 150px; height: 150px; display: block; }
+        .pass figcaption { display: grid; gap: .1rem; margin-top: .45rem; font-size: .9rem; }
+        .pass .code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: .8rem; letter-spacing: .08em; color: rgba(15, 32, 43, .55);
+        }
+
+        .sec-passes { order: 3; }
 
         /* The meeting point, drawn rather than linked (2026-09-18). Loaded with
            `no-referrer` so the token in this page's own address never reaches

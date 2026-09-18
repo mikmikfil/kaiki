@@ -146,6 +146,12 @@ return [
             'departure' => 'departure',
             'return' => 'return',
         ],
+        // The boarding codes on the page (2026-09-18), not only inside the PDF.
+        'boarding' => [
+            'heading' => 'Boarding codes',
+            'help' => 'Show it to the crew when you board.|One code per passenger. Show them to the crew when you board.',
+        ],
+        'passenger' => 'Passenger :position',
         'take_with_you' => 'Take these with you',
         'manage' => 'Manage',
         'ticket_title' => 'Your ticket',
