@@ -123,7 +123,8 @@ class InvoiceResource extends Resource
                     ->url(fn (Invoice $record): string => BookingResource::getUrl(
                         'view',
                         ['record' => $record->booking_id],
-                    )),
+                    ))
+                    ->visibleFrom('md'),
 
                 TextColumn::make('total_cents')
                     ->label(__('mydata.table.total'))
@@ -149,7 +150,8 @@ class InvoiceResource extends Resource
                     ->label(__('mydata.table.issued_at'))
                     ->dateTime('d/m/Y H:i')
                     ->sortable()
-                    ->placeholder('—'),
+                    ->placeholder('—')
+                    ->visibleFrom('md'),
 
                 TextColumn::make('environment')
                     ->label(__('mydata.table.environment'))
@@ -160,7 +162,8 @@ class InvoiceResource extends Resource
                     // row says the same thing, and a column that never varies is
                     // a column that stops being read. The warning above the
                     // table is what carries the message when it matters.
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->visibleFrom('md'),
             ])
             ->filters([
                 SelectFilter::make('status')

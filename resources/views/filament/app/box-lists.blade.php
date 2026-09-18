@@ -56,6 +56,13 @@
             min-width: 0;
         }
 
+        /* A column a resource says is not for a phone — `->visibleFrom('md')`,
+           which Filament renders as `hidden md:table-cell` — stays hidden. The
+           rule above is specific enough to beat Tailwind's `.hidden` on its
+           own, which is how four columns nobody wanted on a phone were showing
+           up in the boxes anyway (2026-09-18). */
+        .fi-ta-table > tbody > tr.fi-ta-row > td.hidden { display: none !important; }
+
         /* Inner padding Filament gives every value on a desktop row. */
         .fi-ta-table > tbody > tr.fi-ta-row > td .fi-ta-col-wrp > *,
         .fi-ta-table > tbody > tr.fi-ta-row > td .fi-ta-text,

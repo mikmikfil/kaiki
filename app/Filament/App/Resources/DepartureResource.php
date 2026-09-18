@@ -206,7 +206,8 @@ class DepartureResource extends Resource
                     ->toggleable(),
 
                 TextColumn::make('capacity')
-                    ->label(__('availability.departure.table.capacity')),
+                    ->label(__('availability.departure.table.capacity'))
+                    ->visibleFrom('md'),
 
                 TextColumn::make('seats_sold')
                     ->label(__('availability.departure.table.seats_sold')),
@@ -215,7 +216,8 @@ class DepartureResource extends Resource
                 // keeps the two disjoint, and "3 sold + 2 in checkout" is the
                 // sentence the operator actually wants.
                 TextColumn::make('seats_held')
-                    ->label(__('availability.departure.table.seats_held')),
+                    ->label(__('availability.departure.table.seats_held'))
+                    ->visibleFrom('md'),
 
                 TextColumn::make('status')
                     ->label(__('availability.departure.table.status'))
@@ -229,12 +231,14 @@ class DepartureResource extends Resource
                     ->formatStateUsing(static fn (Departure $record): string => $record->schedule_rule_id === null
                         ? __('availability.departure.table.manual')
                         : __('availability.departure.table.generated'))
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visibleFrom('md'),
 
                 IconColumn::make('dst_ambiguous')
                     ->label(__('availability.departure.table.dst_ambiguous'))
                     ->boolean()
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visibleFrom('md'),
             ])
             ->defaultSort('starts_at_utc')
             ->filters([

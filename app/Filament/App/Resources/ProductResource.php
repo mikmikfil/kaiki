@@ -976,12 +976,14 @@ class ProductResource extends Resource
 
                 TextColumn::make('vessel.name')
                     ->label(__('catalog.product.table.vessel'))
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visibleFrom('md'),
 
                 TextColumn::make('mode')
                     ->label(__('catalog.product.table.mode'))
                     ->badge()
-                    ->formatStateUsing(static fn (BookingMode $state): string => $state->label()),
+                    ->formatStateUsing(static fn (BookingMode $state): string => $state->label())
+                    ->visibleFrom('md'),
 
                 // Coloured, so a draft does not look like the grey mode badge
                 // beside it.
@@ -996,7 +998,8 @@ class ProductResource extends Resource
                     }),
 
                 TextColumn::make('max_pax')
-                    ->label(__('catalog.product.table.max_pax')),
+                    ->label(__('catalog.product.table.max_pax'))
+                    ->visibleFrom('md'),
 
                 // Derived (§1.9), so the list does not fan out across seasons,
                 // plans and bands for every card. **Null renders as nothing**,
@@ -1015,7 +1018,8 @@ class ProductResource extends Resource
                 IconColumn::make('is_featured')
                     ->label(__('catalog.product.table.featured'))
                     ->boolean()
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visibleFrom('md'),
             ])
             ->defaultSort('sort_order')
             // Status is a row of tabs above the list (`ListProducts::getTabs`),

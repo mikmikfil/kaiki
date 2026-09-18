@@ -257,10 +257,12 @@ class BookingResource extends Resource
 
                 TextColumn::make('product.title')
                     ->label(__('bookings.table.product'))
-                    ->toggleable(),
+                    ->toggleable()
+                    ->visibleFrom('md'),
 
                 TextColumn::make('pax_total')
-                    ->label(__('bookings.table.pax')),
+                    ->label(__('bookings.table.pax'))
+                    ->visibleFrom('md'),
 
                 TextColumn::make('status')
                     ->label(__('bookings.table.status'))
@@ -278,7 +280,8 @@ class BookingResource extends Resource
                         BookingSource::Manual => 'info',
                         default => 'gray',
                     })
-                    ->formatStateUsing(static fn (BookingSource $state): string => $state->label()),
+                    ->formatStateUsing(static fn (BookingSource $state): string => $state->label())
+                    ->visibleFrom('md'),
 
                 TextColumn::make('total_cents')
                     ->label(__('bookings.table.total'))
