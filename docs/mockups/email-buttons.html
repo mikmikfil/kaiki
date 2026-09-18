@@ -1,0 +1,771 @@
+<title>Πού πάει κάθε κουμπί</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Commissioner:wght@500;600;700&family=Noto+Sans:wght@400;500;600&family=Noto+Sans+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F2F5F9;
+    --surface: #FFFFFF;
+    --raise: #FBFCFE;
+    --ink: #13213A;
+    --ink-soft: #52627A;
+    --ink-faint: #7F8DA3;
+    --rule: #DCE3EE;
+    --rule-soft: #EAEFF6;
+    --accent: #0F2E57;
+    --accent-soft: #E3EBF6;
+    --live: #0E7C5A;
+    --live-soft: #DCF3E4;
+    --away: #9A5B0B;
+    --away-soft: #FDF1DC;
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0C1522; --surface: #132033; --raise: #16243A; --ink: #E6ECF5;
+      --ink-soft: #A9B6C9; --ink-faint: #7C8AA0; --rule: #25354C; --rule-soft: #1C2B40;
+      --accent: #9DBBE6; --accent-soft: #1C2E47; --live: #7FD69E; --live-soft: #173323;
+      --away: #F0B45A; --away-soft: #3A2A12; color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0C1522; --surface: #132033; --raise: #16243A; --ink: #E6ECF5;
+    --ink-soft: #A9B6C9; --ink-faint: #7C8AA0; --rule: #25354C; --rule-soft: #1C2B40;
+    --accent: #9DBBE6; --accent-soft: #1C2E47; --live: #7FD69E; --live-soft: #173323;
+    --away: #F0B45A; --away-soft: #3A2A12; color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding-inline: 16px;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Noto Sans", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+
+  .shell { max-width: 62rem; margin: 0 auto; padding-block: 32px 72px; display: grid; gap: 28px; }
+
+  header.top { display: grid; gap: 10px; border-bottom: 2px solid var(--ink); padding-bottom: 18px; }
+
+  .eyebrow {
+    font-family: "Noto Sans Mono", ui-monospace, monospace;
+    font-size: .72rem; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--ink-faint); margin: 0;
+  }
+
+  h1 {
+    font-family: Commissioner, "Noto Sans", sans-serif;
+    font-weight: 700; font-size: clamp(1.7rem, 4vw, 2.4rem); letter-spacing: -.015em;
+    margin: 0; text-wrap: balance;
+  }
+
+  .lede { margin: 0; color: var(--ink-soft); max-width: 62ch; }
+
+  .facts { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  .fact {
+    background: var(--surface); border: 1px solid var(--rule);
+    padding: 6px 12px; font-size: .88rem; color: var(--ink-soft);
+  }
+
+  .fact b {
+    font-family: Commissioner, sans-serif; color: var(--ink);
+    font-size: 1.02rem; margin-right: 5px; font-variant-numeric: tabular-nums;
+  }
+
+  .server {
+    border: 1px solid var(--away); border-left-width: 4px;
+    background: var(--away-soft); color: var(--ink);
+    padding: 14px 16px; display: grid; gap: 6px; font-size: .92rem;
+  }
+
+  .server strong { font-weight: 600; }
+  .server code { font-family: "Noto Sans Mono", ui-monospace, monospace; font-size: .85em; }
+
+  h2 {
+    font-family: Commissioner, sans-serif; font-weight: 600;
+    font-size: 1.22rem; letter-spacing: -.01em; margin: 0;
+  }
+
+  .section-note { margin: 6px 0 0; color: var(--ink-soft); font-size: .93rem; max-width: 62ch; }
+
+  .dests { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+
+  .dest {
+    background: var(--surface); padding: 14px 16px;
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: start;
+  }
+
+  .dest h3 { font-family: Commissioner, sans-serif; font-size: 1rem; font-weight: 600; margin: 0; }
+  .dest .route {
+    grid-column: 1 / -1;
+    font-family: "Noto Sans Mono", ui-monospace, monospace;
+    font-size: .78rem; color: var(--accent); word-break: break-word;
+  }
+  .dest p { grid-column: 1 / -1; margin: 2px 0 0; color: var(--ink-soft); font-size: .9rem; }
+
+  .used {
+    font-family: "Noto Sans Mono", ui-monospace, monospace;
+    font-size: .75rem; color: var(--ink-faint); white-space: nowrap; padding-top: 3px;
+  }
+
+  .mail {
+    background: var(--surface); border: 1px solid var(--rule);
+    display: grid; scroll-margin-top: 16px;
+  }
+
+  .mail-head { padding: 14px 16px 12px; display: grid; gap: 4px; border-bottom: 1px solid var(--rule-soft); }
+  .mail-head h3 { font-family: Commissioner, sans-serif; font-size: 1.05rem; font-weight: 600; margin: 0; }
+  .mail-head .when { margin: 0; color: var(--ink-soft); font-size: .88rem; }
+  .mail-head .group {
+    font-family: "Noto Sans Mono", ui-monospace, monospace;
+    font-size: .7rem; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-faint);
+  }
+
+  .links { display: grid; }
+
+  .link {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 14px; align-items: center;
+    padding: 12px 16px; border-top: 1px solid var(--rule-soft);
+  }
+
+  .link:first-child { border-top: 0; }
+
+  .label { font-weight: 600; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+
+  .chip {
+    font-family: "Noto Sans Mono", ui-monospace, monospace;
+    font-size: .66rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+    padding: 2px 7px; background: var(--accent-soft); color: var(--accent); white-space: nowrap;
+  }
+
+  .chip.away { background: var(--away-soft); color: var(--away); }
+
+  .goes { grid-column: 1 / -1; margin: 0; color: var(--ink-soft); font-size: .89rem; }
+  .goes b { color: var(--ink); font-weight: 600; }
+
+  .url {
+    grid-column: 1 / -1;
+    font-family: "Noto Sans Mono", ui-monospace, monospace;
+    font-size: .76rem; color: var(--ink-faint); word-break: break-all;
+  }
+
+  .open {
+    justify-self: end; align-self: start;
+    font-family: "Noto Sans Mono", ui-monospace, monospace;
+    font-size: .78rem; font-weight: 500; letter-spacing: .04em;
+    text-decoration: none; white-space: nowrap;
+    padding: 7px 12px; border: 1px solid var(--live); color: var(--live); background: var(--live-soft);
+  }
+
+  .open:hover, .open:focus-visible { background: var(--live); color: var(--surface); outline: none; }
+  .open:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .missing { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .missing .dest { background: var(--raise); }
+
+  a { color: var(--accent); }
+
+  @media (max-width: 34rem) {
+    .link, .dest { grid-template-columns: minmax(0, 1fr); }
+    .open { justify-self: start; }
+    .used { padding-top: 0; }
+  }
+</style>
+
+<div class="shell">
+  <header class="top">
+    <p class="eyebrow">Kaiki · τα email του επισκέπτη</p>
+    <h1>Πού πάει κάθε κουμπί</h1>
+    <p class="lede">
+      Κάθε σύνδεσμος που υπάρχει σήμερα μέσα στα 20 email, βγαλμένος από τα ίδια τα
+      αποδομένα μηνύματα και όχι από τον κώδικα — με τους πραγματικούς κωδικούς της κράτησης
+      επίδειξης. <strong>Τα κουμπιά είναι ζωντανά:</strong> πατήστε «Άνοιγμα» και θα δείτε ακριβώς ό,τι
+      βλέπει ο επισκέπτης.
+    </p>
+    <div class="facts">
+      <span class="fact"><b>20</b>email</span>
+      <span class="fact"><b>35</b>σύνδεσμοι</span>
+      <span class="fact"><b>11</b>διαφορετικοί προορισμοί</span>
+    </div>
+  </header>
+
+  <section class="server">
+    <p style="margin:0"><strong>Οι σύνδεσμοι δείχνουν στον τοπικό server</strong>
+      <code>http://192.168.1.43:8000</code> — δουλεύουν όσο τρέχει το Kaiki σε αυτό το μηχάνημα. Στην
+      παραγωγή η διεύθυνση αλλάζει· η διαδρομή δίπλα σε κάθε προορισμό είναι αυτή που μένει ίδια.</p>
+    <p style="margin:0">Ο σύνδεσμος <em>είναι</em> το διαπιστευτήριο: όποιος τον έχει βλέπει την κράτηση.
+      Γι&rsquo; αυτό κανένα από αυτά τα κουμπιά δεν ζητά κωδικό, και γι&rsquo; αυτό ο κωδικός δεν
+      περνά ποτέ στη Google.</p>
+  </section>
+
+  <section>
+    <h2>Οι προορισμοί</h2>
+    <p class="section-note">Έντεκα σελίδες και αρχεία, τίποτε άλλο. Κάθε email δείχνει σε κάποια από αυτά.</p>
+    <div class="dests" style="margin-top:14px">
+                      <div class="dest">
+          <h3>Η σελίδα της κράτησης</h3>
+          <span class="used">9× σε email</span>
+          <span class="route">guest.booking · /b/{token}</span>
+          <p>Ό,τι μπορεί να κάνει ο επισκέπτης μόνος του: στοιχεία του ταξιδιού, πληρωμή υπολοίπου, αλλαγή τηλεφώνου ή email, ακύρωση με ό,τι του επιστρέφεται, επιλογή μετά από ακύρωση λόγω καιρού, και το εισιτήριο. Χωρίς λογαριασμό και χωρίς κωδικό — ο σύνδεσμος είναι το διαπιστευτήριο.</p>
+        </div>
+                      <div class="dest">
+          <h3>Το ταξίδι ως αρχείο ημερολογίου</h3>
+          <span class="used">3× σε email</span>
+          <span class="route">guest.booking.calendar · /b/{token}/calendar.ics</span>
+          <p>Κατεβάζει ένα .ics για Apple, Outlook και κινητό, με ώρα προσέλευσης (όχι αναχώρησης), σημείο συνάντησης και υπενθύμιση την προηγούμενη μέρα. Σερβίρεται από τη διαδρομή, όχι από το συνημμένο, ώστε να δίνει πάντα τη σημερινή ώρα.</p>
+        </div>
+                      <div class="dest">
+          <h3>Google Ημερολόγιο</h3>
+          <span class="used">3× σε email</span>
+          <span class="route">calendar.google.com (εκτός Kaiki)</span>
+          <p>Ανοίγει έτοιμη καταχώρηση στο ημερολόγιο του επισκέπτη. Δεν μεταφέρει τον κωδικό της κράτησης — εκείνος θα αποθηκευόταν στη Google και θα ταξίδευε μαζί με το γεγονός αν το μοιραζόταν κάπου.</p>
+        </div>
+                              <div class="dest">
+          <h3>Στοιχεία επιβατών</h3>
+          <span class="used">5× σε email</span>
+          <span class="route">guest.details · /g/{token}</span>
+          <p>Η φόρμα με ονοματεπώνυμο, ημερομηνία γέννησης, εθνικότητα και έγγραφο για κάθε επιβάτη — και η ίδια σελίδα δέχεται το ναυλοσύμφωνο, όταν η κράτηση είναι ναύλωση ολόκληρου σκάφους.</p>
+        </div>
+                      <div class="dest">
+          <h3>Το κουπόνι</h3>
+          <span class="used">2× σε email</span>
+          <span class="route">guest.voucher · /v/{code}</span>
+          <p>Το υπόλοιπο του κουπονιού, πότε λήγει και πώς εξαργυρώνεται στην επόμενη κράτηση.</p>
+        </div>
+                      <div class="dest">
+          <h3>Η προσφορά</h3>
+          <span class="used">1× σε email</span>
+          <span class="route">guest.quote · /q/{token}</span>
+          <p>Η προσφορά για εκδρομή κατόπιν ζήτησης, με αποδοχή, απόρριψη ή αίτημα για νέα.</p>
+        </div>
+                      <div class="dest">
+          <h3>Ο χάρτης του σημείου συνάντησης</h3>
+          <span class="used">3× σε email</span>
+          <span class="route">google.com/maps (εκτός Kaiki)</span>
+          <p>Ανοίγει τον χάρτη στις συντεταγμένες του λιμανιού — όχι στη διεύθυνσή του, που σε μια προβλήτα είναι συχνά η διεύθυνση του διπλανού κτιρίου.</p>
+        </div>
+                      <div class="dest">
+          <h3>Το τηλέφωνο του διοργανωτή</h3>
+          <span class="used">3× σε email</span>
+          <span class="route">tel: (το κινητό καλεί)</span>
+          <p>Από τα στοιχεία επικοινωνίας του διοργανωτή. Σε υπολογιστή δεν κάνει τίποτα ορατό.</p>
+        </div>
+                      <div class="dest">
+          <h3>Το email του διοργανωτή</h3>
+          <span class="used">3× σε email</span>
+          <span class="route">mailto: (ανοίγει το πρόγραμμα email)</span>
+          <p>Από τα στοιχεία επικοινωνίας του διοργανωτή.</p>
+        </div>
+                      <div class="dest">
+          <h3>Η σελίδα κριτικών στη Google</h3>
+          <span class="used">1× σε email</span>
+          <span class="route">ο σύνδεσμος του διοργανωτή (εκτός Kaiki)</span>
+          <p>Ο σύνδεσμος κριτικών που έχει καταχωρήσει ο διοργανωτής στις ρυθμίσεις του. Χωρίς αυτόν, το email δεν φεύγει καθόλου.</p>
+        </div>
+                      <div class="dest">
+          <h3>Ορισμός κωδικού στον πίνακα</h3>
+          <span class="used">2× σε email</span>
+          <span class="route">/app/password-reset/reset</span>
+          <p>Η μόνη διεύθυνση αυτής της λίστας που δεν πάει σε επισκέπτη αλλά σε άνθρωπο της ομάδας. Ο σύνδεσμος λήγει.</p>
+        </div>
+          </div>
+  </section>
+
+  <section>
+    <h2>Email προς email</h2>
+    <p class="section-note">Με τη σειρά της έκθεσης των email. Το «κύριο κουμπί» είναι το μεγάλο μπλε
+      κουμπί του μηνύματος· τα υπόλοιπα είναι σύνδεσμοι μέσα στο κείμενο.</p>
+  </section>
+
+      <article class="mail" id="m-booking_confirmed">
+      <div class="mail-head">
+        <span class="group">Κράτηση</span>
+        <h3>Επιβεβαίωση κράτησης</h3>
+        <p class="when">Μόλις επιβεβαιωθεί η κράτηση (πληρωμή ή χειροκίνητη επιβεβαίωση). Φεύγει και SMS, αν ο διοργανωτής έχει SMS.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Apple, Outlook και κινητό (.ics)              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv/calendar.ics" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Το ταξίδι ως αρχείο ημερολογίου</b> — guest.booking.calendar · /b/{token}/calendar.ics</p>
+            <span class="url">http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv/calendar.ics</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              Google Ημερολόγιο              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=%CE%91%CF%80%CE%BF%CE%B3%CE%B5%CF%85%CE%BC%CE%B1%CF%84%CE%B9%CE%BD%CF%8C+%CF%88%CE%AC%CF%81%CE%B5%CE%BC%CE%B1+%C2%B7+Aegean+Blue+Cruises&amp;dates=20260704T053000Z%2F20260704T140000Z&amp;details=%CE%A0%CF%81%CE%BF%CF%83%CE%AD%CE%BB%CE%B5%CF%85%CF%83%CE%B7%3A+08%3A30%0A%CE%91%CE%BD%CE%B1%CF%87%CF%8E%CF%81%CE%B7%CF%83%CE%B7%3A+09%3A00%0A%CE%95%CF%80%CE%B9%CF%83%CF%84%CF%81%CE%BF%CF%86%CE%AE%3A+17%3A00%0A%CE%9A%CF%81%CE%AC%CF%84%CE%B7%CF%83%CE%B7%3A+KAI-RHREY%0A%CE%86%CE%BD%CE%BF%CE%B9%CE%B3%CE%BC%CE%B1+%CF%83%CF%84%CE%BF%CE%BD+%CF%87%CE%AC%CF%81%CF%84%CE%B7%3A+https%3A%2F%2Fwww.google.com%2Fmaps%2Fsearch%2F%3Fapi%3D1%26query%3D37.9339000%252C23.6469000&amp;location=%CE%9C%CE%B1%CF%81%CE%AF%CE%BD%CE%B1+%CE%96%CE%AD%CE%B1%CF%82%2C+%CE%91%CE%BA%CF%84%CE%AE+%CE%98%CE%B5%CE%BC%CE%B9%CF%83%CF%84%CE%BF%CE%BA%CE%BB%CE%AD%CE%BF%CF%85%CF%82%2C+%CE%A0%CE%B5%CE%B9%CF%81%CE%B1%CE%B9%CE%AC%CF%82+185+39&amp;ctz=Europe%2FAthens" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Google Ημερολόγιο</b> — calendar.google.com (εκτός Kaiki)</p>
+            <span class="url">https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=%CE%91%CF%80%CE%BF%CE%B3%CE%B5%CF%85%CE%BC%CE%B1%CF%84%CE%B9%CE%BD%CF%8C+%CF%88%CE%AC%CF%81%CE%B5%CE%BC%CE%B1+%C2%B7+Aegean+Blue+Cruises&amp;dates=20260704T053000Z%2F20260704T140000Z&amp;details=%CE%A0%CF%81%CE%BF%CF%83%CE%AD%CE%BB%CE%B5%CF%85%CF%83%CE%B7%3A+08%3A30%0A%CE%91%CE%BD%CE%B1%CF%87%CF%8E%CF%81%CE%B7%CF%83%CE%B7%3A+09%3A00%0A%CE%95%CF%80%CE%B9%CF%83%CF%84%CF%81%CE%BF%CF%86%CE%AE%3A+17%3A00%0A%CE%9A%CF%81%CE%AC%CF%84%CE%B7%CF%83%CE%B7%3A+KAI-RHREY%0A%CE%86%CE%BD%CE%BF%CE%B9%CE%B3%CE%BC%CE%B1+%CF%83%CF%84%CE%BF%CE%BD+%CF%87%CE%AC%CF%81%CF%84%CE%B7%3A+https%3A%2F%2Fwww.google.com%2Fmaps%2Fsearch%2F%3Fapi%3D1%26query%3D37.9339000%252C23.6469000&amp;location=%CE%9C%CE%B1%CF%81%CE%AF%CE%BD%CE%B1+%CE%96%CE%AD%CE%B1%CF%82%2C+%CE%91%CE%BA%CF%84%CE%AE+%CE%98%CE%B5%CE%BC%CE%B9%CF%83%CF%84%CE%BF%CE%BA%CE%BB%CE%AD%CE%BF%CF%85%CF%82%2C+%CE%A0%CE%B5%CE%B9%CF%81%CE%B1%CE%B9%CE%AC%CF%82+185+39&amp;ctz=Europe%2FAthens</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              Διαχείριση κράτησης              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Η σελίδα της κράτησης</b> — guest.booking · /b/{token}</p>
+            <span class="url">http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              Άνοιγμα στον χάρτη              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="https://www.google.com/maps/search/?api=1&amp;query=37.9339000%2C23.6469000" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Ο χάρτης του σημείου συνάντησης</b> — google.com/maps (εκτός Kaiki)</p>
+            <span class="url">https://www.google.com/maps/search/?api=1&amp;query=37.9339000%2C23.6469000</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              +30 210 4123456              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="tel:+302104123456" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Το τηλέφωνο του διοργανωτή</b> — tel: (το κινητό καλεί)</p>
+            <span class="url">tel:+302104123456</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              info@aegean-blue.example              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="mailto:info@aegean-blue.example" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Το email του διοργανωτή</b> — mailto: (ανοίγει το πρόγραμμα email)</p>
+            <span class="url">mailto:info@aegean-blue.example</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-booking_changed">
+      <div class="mail-head">
+        <span class="group">Κράτηση</span>
+        <h3>Η κράτηση άλλαξε</h3>
+        <p class="when">Όταν ο διοργανωτής αφαιρεί άτομα από την κράτηση («Αφαίρεση ατόμων»).</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Apple, Outlook και κινητό (.ics)              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv/calendar.ics" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Το ταξίδι ως αρχείο ημερολογίου</b> — guest.booking.calendar · /b/{token}/calendar.ics</p>
+            <span class="url">http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv/calendar.ics</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              Google Ημερολόγιο              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=%CE%91%CF%80%CE%BF%CE%B3%CE%B5%CF%85%CE%BC%CE%B1%CF%84%CE%B9%CE%BD%CF%8C+%CF%88%CE%AC%CF%81%CE%B5%CE%BC%CE%B1+%C2%B7+Aegean+Blue+Cruises&amp;dates=20260704T053000Z%2F20260704T140000Z&amp;details=%CE%A0%CF%81%CE%BF%CF%83%CE%AD%CE%BB%CE%B5%CF%85%CF%83%CE%B7%3A+08%3A30%0A%CE%91%CE%BD%CE%B1%CF%87%CF%8E%CF%81%CE%B7%CF%83%CE%B7%3A+09%3A00%0A%CE%95%CF%80%CE%B9%CF%83%CF%84%CF%81%CE%BF%CF%86%CE%AE%3A+17%3A00%0A%CE%9A%CF%81%CE%AC%CF%84%CE%B7%CF%83%CE%B7%3A+KAI-RHREY%0A%CE%86%CE%BD%CE%BF%CE%B9%CE%B3%CE%BC%CE%B1+%CF%83%CF%84%CE%BF%CE%BD+%CF%87%CE%AC%CF%81%CF%84%CE%B7%3A+https%3A%2F%2Fwww.google.com%2Fmaps%2Fsearch%2F%3Fapi%3D1%26query%3D37.9339000%252C23.6469000&amp;location=%CE%9C%CE%B1%CF%81%CE%AF%CE%BD%CE%B1+%CE%96%CE%AD%CE%B1%CF%82%2C+%CE%91%CE%BA%CF%84%CE%AE+%CE%98%CE%B5%CE%BC%CE%B9%CF%83%CF%84%CE%BF%CE%BA%CE%BB%CE%AD%CE%BF%CF%85%CF%82%2C+%CE%A0%CE%B5%CE%B9%CF%81%CE%B1%CE%B9%CE%AC%CF%82+185+39&amp;ctz=Europe%2FAthens" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Google Ημερολόγιο</b> — calendar.google.com (εκτός Kaiki)</p>
+            <span class="url">https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=%CE%91%CF%80%CE%BF%CE%B3%CE%B5%CF%85%CE%BC%CE%B1%CF%84%CE%B9%CE%BD%CF%8C+%CF%88%CE%AC%CF%81%CE%B5%CE%BC%CE%B1+%C2%B7+Aegean+Blue+Cruises&amp;dates=20260704T053000Z%2F20260704T140000Z&amp;details=%CE%A0%CF%81%CE%BF%CF%83%CE%AD%CE%BB%CE%B5%CF%85%CF%83%CE%B7%3A+08%3A30%0A%CE%91%CE%BD%CE%B1%CF%87%CF%8E%CF%81%CE%B7%CF%83%CE%B7%3A+09%3A00%0A%CE%95%CF%80%CE%B9%CF%83%CF%84%CF%81%CE%BF%CF%86%CE%AE%3A+17%3A00%0A%CE%9A%CF%81%CE%AC%CF%84%CE%B7%CF%83%CE%B7%3A+KAI-RHREY%0A%CE%86%CE%BD%CE%BF%CE%B9%CE%B3%CE%BC%CE%B1+%CF%83%CF%84%CE%BF%CE%BD+%CF%87%CE%AC%CF%81%CF%84%CE%B7%3A+https%3A%2F%2Fwww.google.com%2Fmaps%2Fsearch%2F%3Fapi%3D1%26query%3D37.9339000%252C23.6469000&amp;location=%CE%9C%CE%B1%CF%81%CE%AF%CE%BD%CE%B1+%CE%96%CE%AD%CE%B1%CF%82%2C+%CE%91%CE%BA%CF%84%CE%AE+%CE%98%CE%B5%CE%BC%CE%B9%CF%83%CF%84%CE%BF%CE%BA%CE%BB%CE%AD%CE%BF%CF%85%CF%82%2C+%CE%A0%CE%B5%CE%B9%CF%81%CE%B1%CE%B9%CE%AC%CF%82+185+39&amp;ctz=Europe%2FAthens</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              Διαχείριση κράτησης              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Η σελίδα της κράτησης</b> — guest.booking · /b/{token}</p>
+            <span class="url">http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              Άνοιγμα στον χάρτη              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="https://www.google.com/maps/search/?api=1&amp;query=37.9339000%2C23.6469000" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Ο χάρτης του σημείου συνάντησης</b> — google.com/maps (εκτός Kaiki)</p>
+            <span class="url">https://www.google.com/maps/search/?api=1&amp;query=37.9339000%2C23.6469000</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              +30 210 4123456              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="tel:+302104123456" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Το τηλέφωνο του διοργανωτή</b> — tel: (το κινητό καλεί)</p>
+            <span class="url">tel:+302104123456</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              info@aegean-blue.example              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="mailto:info@aegean-blue.example" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Το email του διοργανωτή</b> — mailto: (ανοίγει το πρόγραμμα email)</p>
+            <span class="url">mailto:info@aegean-blue.example</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-booking_cancelled">
+      <div class="mail-head">
+        <span class="group">Κράτηση</span>
+        <h3>Ακύρωση κράτησης</h3>
+        <p class="when">Όταν ακυρώνεται η κράτηση: από τον επισκέπτη, από το panel («Ακύρωση κράτησης») ή με ακύρωση αναχώρησης (εκτός καιρού). Δείχνει πόσα επιστρέφονται και πού.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Διαχείριση κράτησης              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Η σελίδα της κράτησης</b> — guest.booking · /b/{token}</p>
+            <span class="url">http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-guest_details_requested">
+      <div class="mail-head">
+        <span class="group">Στοιχεία επιβατών</span>
+        <h3>Ζητούνται στοιχεία επιβατών</h3>
+        <p class="when">Μία ημέρα μετά την επιβεβαίωση, αν τα στοιχεία λείπουν ακόμη και δεν έχει έρθει η ώρα της υπενθύμισης 48 ωρών.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Συμπλήρωση στοιχείων              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/g/O8z7UJPkQrfBgCtKSyXwEkDWwNAzLvCAD9yMtbB2" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Στοιχεία επιβατών</b> — guest.details · /g/{token}</p>
+            <span class="url">http://192.168.1.43:8000/g/O8z7UJPkQrfBgCtKSyXwEkDWwNAzLvCAD9yMtbB2</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-guest_details_reminder_48h">
+      <div class="mail-head">
+        <span class="group">Στοιχεία επιβατών</span>
+        <h3>Υπενθύμιση στοιχείων — 48 ώρες</h3>
+        <p class="when">48 ώρες πριν την προθεσμία στοιχείων (αναχώρηση μείον «προθεσμία στοιχείων» της εκδρομής), αν λείπουν ακόμη.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Συμπλήρωση στοιχείων              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/g/O8z7UJPkQrfBgCtKSyXwEkDWwNAzLvCAD9yMtbB2" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Στοιχεία επιβατών</b> — guest.details · /g/{token}</p>
+            <span class="url">http://192.168.1.43:8000/g/O8z7UJPkQrfBgCtKSyXwEkDWwNAzLvCAD9yMtbB2</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-guest_details_reminder_24h">
+      <div class="mail-head">
+        <span class="group">Στοιχεία επιβατών</span>
+        <h3>Υπενθύμιση στοιχείων — 24 ώρες</h3>
+        <p class="when">24 ώρες πριν την προθεσμία στοιχείων, αν λείπουν ακόμη. Φεύγει και SMS, αν ο διοργανωτής έχει SMS.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Συμπλήρωση στοιχείων              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/g/O8z7UJPkQrfBgCtKSyXwEkDWwNAzLvCAD9yMtbB2" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Στοιχεία επιβατών</b> — guest.details · /g/{token}</p>
+            <span class="url">http://192.168.1.43:8000/g/O8z7UJPkQrfBgCtKSyXwEkDWwNAzLvCAD9yMtbB2</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-balance_due_reminder">
+      <div class="mail-head">
+        <span class="group">Πληρωμές</span>
+        <h3>Υπενθύμιση υπολοίπου</h3>
+        <p class="when">7 ημέρες και 1 ημέρα πριν τη λήξη του υπολοίπου, αν υπάρχει ανεξόφλητο. Φεύγει και SMS, αν ο διοργανωτής έχει SMS.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Πληρωμή υπολοίπου              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Η σελίδα της κράτησης</b> — guest.booking · /b/{token}</p>
+            <span class="url">http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-balance_overdue">
+      <div class="mail-head">
+        <span class="group">Πληρωμές</span>
+        <h3>Ληξιπρόθεσμο υπόλοιπο</h3>
+        <p class="when">Τη στιγμή που λήγει το υπόλοιπο χωρίς να έχει πληρωθεί. Φεύγει και SMS, αν ο διοργανωτής έχει SMS.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Πληρωμή υπολοίπου              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Η σελίδα της κράτησης</b> — guest.booking · /b/{token}</p>
+            <span class="url">http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-pre_departure_24h">
+      <div class="mail-head">
+        <span class="group">Πριν την εκδρομή</span>
+        <h3>Αύριο το ταξίδι σας</h3>
+        <p class="when">24 ώρες πριν την αναχώρηση. Φεύγει και SMS, αν ο διοργανωτής έχει SMS.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Apple, Outlook και κινητό (.ics)              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv/calendar.ics" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Το ταξίδι ως αρχείο ημερολογίου</b> — guest.booking.calendar · /b/{token}/calendar.ics</p>
+            <span class="url">http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv/calendar.ics</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              Google Ημερολόγιο              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=%CE%91%CF%80%CE%BF%CE%B3%CE%B5%CF%85%CE%BC%CE%B1%CF%84%CE%B9%CE%BD%CF%8C+%CF%88%CE%AC%CF%81%CE%B5%CE%BC%CE%B1+%C2%B7+Aegean+Blue+Cruises&amp;dates=20260704T053000Z%2F20260704T140000Z&amp;details=%CE%A0%CF%81%CE%BF%CF%83%CE%AD%CE%BB%CE%B5%CF%85%CF%83%CE%B7%3A+08%3A30%0A%CE%91%CE%BD%CE%B1%CF%87%CF%8E%CF%81%CE%B7%CF%83%CE%B7%3A+09%3A00%0A%CE%95%CF%80%CE%B9%CF%83%CF%84%CF%81%CE%BF%CF%86%CE%AE%3A+17%3A00%0A%CE%9A%CF%81%CE%AC%CF%84%CE%B7%CF%83%CE%B7%3A+KAI-RHREY%0A%CE%86%CE%BD%CE%BF%CE%B9%CE%B3%CE%BC%CE%B1+%CF%83%CF%84%CE%BF%CE%BD+%CF%87%CE%AC%CF%81%CF%84%CE%B7%3A+https%3A%2F%2Fwww.google.com%2Fmaps%2Fsearch%2F%3Fapi%3D1%26query%3D37.9339000%252C23.6469000&amp;location=%CE%9C%CE%B1%CF%81%CE%AF%CE%BD%CE%B1+%CE%96%CE%AD%CE%B1%CF%82%2C+%CE%91%CE%BA%CF%84%CE%AE+%CE%98%CE%B5%CE%BC%CE%B9%CF%83%CF%84%CE%BF%CE%BA%CE%BB%CE%AD%CE%BF%CF%85%CF%82%2C+%CE%A0%CE%B5%CE%B9%CF%81%CE%B1%CE%B9%CE%AC%CF%82+185+39&amp;ctz=Europe%2FAthens" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Google Ημερολόγιο</b> — calendar.google.com (εκτός Kaiki)</p>
+            <span class="url">https://calendar.google.com/calendar/render?action=TEMPLATE&amp;text=%CE%91%CF%80%CE%BF%CE%B3%CE%B5%CF%85%CE%BC%CE%B1%CF%84%CE%B9%CE%BD%CF%8C+%CF%88%CE%AC%CF%81%CE%B5%CE%BC%CE%B1+%C2%B7+Aegean+Blue+Cruises&amp;dates=20260704T053000Z%2F20260704T140000Z&amp;details=%CE%A0%CF%81%CE%BF%CF%83%CE%AD%CE%BB%CE%B5%CF%85%CF%83%CE%B7%3A+08%3A30%0A%CE%91%CE%BD%CE%B1%CF%87%CF%8E%CF%81%CE%B7%CF%83%CE%B7%3A+09%3A00%0A%CE%95%CF%80%CE%B9%CF%83%CF%84%CF%81%CE%BF%CF%86%CE%AE%3A+17%3A00%0A%CE%9A%CF%81%CE%AC%CF%84%CE%B7%CF%83%CE%B7%3A+KAI-RHREY%0A%CE%86%CE%BD%CE%BF%CE%B9%CE%B3%CE%BC%CE%B1+%CF%83%CF%84%CE%BF%CE%BD+%CF%87%CE%AC%CF%81%CF%84%CE%B7%3A+https%3A%2F%2Fwww.google.com%2Fmaps%2Fsearch%2F%3Fapi%3D1%26query%3D37.9339000%252C23.6469000&amp;location=%CE%9C%CE%B1%CF%81%CE%AF%CE%BD%CE%B1+%CE%96%CE%AD%CE%B1%CF%82%2C+%CE%91%CE%BA%CF%84%CE%AE+%CE%98%CE%B5%CE%BC%CE%B9%CF%83%CF%84%CE%BF%CE%BA%CE%BB%CE%AD%CE%BF%CF%85%CF%82%2C+%CE%A0%CE%B5%CE%B9%CF%81%CE%B1%CE%B9%CE%AC%CF%82+185+39&amp;ctz=Europe%2FAthens</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              Διαχείριση κράτησης              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Η σελίδα της κράτησης</b> — guest.booking · /b/{token}</p>
+            <span class="url">http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              Άνοιγμα στον χάρτη              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="https://www.google.com/maps/search/?api=1&amp;query=37.9339000%2C23.6469000" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Ο χάρτης του σημείου συνάντησης</b> — google.com/maps (εκτός Kaiki)</p>
+            <span class="url">https://www.google.com/maps/search/?api=1&amp;query=37.9339000%2C23.6469000</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              +30 210 4123456              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="tel:+302104123456" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Το τηλέφωνο του διοργανωτή</b> — tel: (το κινητό καλεί)</p>
+            <span class="url">tel:+302104123456</span>
+          </div>
+                            <div class="link">
+            <span class="label">
+              info@aegean-blue.example              <span class="chip away">σύνδεσμος</span>
+            </span>
+            <a class="open" href="mailto:info@aegean-blue.example" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Το email του διοργανωτή</b> — mailto: (ανοίγει το πρόγραμμα email)</p>
+            <span class="url">mailto:info@aegean-blue.example</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-weather_choice_requested">
+      <div class="mail-head">
+        <span class="group">Καιρός</span>
+        <h3>Ακύρωση λόγω καιρού — επιλέξτε</h3>
+        <p class="when">Μόλις ο διοργανωτής ακυρώσει αναχώρηση λόγω καιρού: ο επισκέπτης επιλέγει επιστροφή, κουπόνι ή άλλη ημερομηνία.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Κάντε την επιλογή σας              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Η σελίδα της κράτησης</b> — guest.booking · /b/{token}</p>
+            <span class="url">http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-weather_choice_reminder">
+      <div class="mail-head">
+        <span class="group">Καιρός</span>
+        <h3>Υπενθύμιση επιλογής καιρού</h3>
+        <p class="when">72 ώρες μετά την ακύρωση λόγω καιρού, αν ο επισκέπτης δεν έχει επιλέξει ακόμη.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Κάντε την επιλογή σας              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Η σελίδα της κράτησης</b> — guest.booking · /b/{token}</p>
+            <span class="url">http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-weather_choice_applied">
+      <div class="mail-head">
+        <span class="group">Καιρός</span>
+        <h3>Εφαρμόστηκε η προεπιλογή καιρού</h3>
+        <p class="when">Όταν περάσει η προθεσμία χωρίς απάντηση και εφαρμοστεί η προεπιλογή του διοργανωτή. Όχι όταν επιλέγει ο ίδιος ο επισκέπτης.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Διαχείριση κράτησης              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Η σελίδα της κράτησης</b> — guest.booking · /b/{token}</p>
+            <span class="url">http://192.168.1.43:8000/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-charter_agreement_72h">
+      <div class="mail-head">
+        <span class="group">Ναύλωση</span>
+        <h3>Ναυλοσύμφωνο προς αποδοχή — 72 ώρες</h3>
+        <p class="when">72 ώρες πριν από ιδιωτική ναύλωση, αν δεν έχει γίνει αποδοχή. Η προθεσμία είναι η προθεσμία στοιχείων επιβατών.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Αποδοχή ναυλοσυμφώνου              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/g/A88O96iG88JGFdNtAxM3UN8DzoBUeeSuJT1NqkOH" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Στοιχεία επιβατών</b> — guest.details · /g/{token}</p>
+            <span class="url">http://192.168.1.43:8000/g/A88O96iG88JGFdNtAxM3UN8DzoBUeeSuJT1NqkOH</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-charter_agreement_24h">
+      <div class="mail-head">
+        <span class="group">Ναύλωση</span>
+        <h3>Ναυλοσύμφωνο εκκρεμεί — 24 ώρες</h3>
+        <p class="when">24 ώρες πριν από ιδιωτική ναύλωση, αν δεν έχει γίνει αποδοχή.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Αποδοχή ναυλοσυμφώνου              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/g/A88O96iG88JGFdNtAxM3UN8DzoBUeeSuJT1NqkOH" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Στοιχεία επιβατών</b> — guest.details · /g/{token}</p>
+            <span class="url">http://192.168.1.43:8000/g/A88O96iG88JGFdNtAxM3UN8DzoBUeeSuJT1NqkOH</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-voucher_expiry_30d">
+      <div class="mail-head">
+        <span class="group">Κουπόνια / vouchers</span>
+        <h3>Το κουπόνι λήγει σε έναν μήνα</h3>
+        <p class="when">Νυχτερινός έλεγχος: 30 ημέρες πριν λήξει voucher με διαθέσιμο ποσό.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Κλείστε εκδρομή με το κουπόνι              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/v/AEGEAN-7KQ2" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Το κουπόνι</b> — guest.voucher · /v/{code}</p>
+            <span class="url">http://192.168.1.43:8000/v/AEGEAN-7KQ2</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-voucher_expiry_7d">
+      <div class="mail-head">
+        <span class="group">Κουπόνια / vouchers</span>
+        <h3>Το κουπόνι λήγει σε μία εβδομάδα</h3>
+        <p class="when">Νυχτερινός έλεγχος: 7 ημέρες πριν λήξει voucher με διαθέσιμο ποσό.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Κλείστε εκδρομή με το κουπόνι              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/v/AEGEAN-7KQ2" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Το κουπόνι</b> — guest.voucher · /v/{code}</p>
+            <span class="url">http://192.168.1.43:8000/v/AEGEAN-7KQ2</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-quote_sent">
+      <div class="mail-head">
+        <span class="group">Προσφορές</span>
+        <h3>Η προσφορά είναι έτοιμη</h3>
+        <p class="when">Όταν ο διοργανωτής πατά «Αποστολή προσφοράς» στο panel. Κάθε νέα έκδοση στέλνεται ξανά.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Δείτε την προσφορά              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/q/a2KUUKfZ6grtgtlKl79oz0H88zUvAM1ZibpnsYZY" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Η προσφορά</b> — guest.quote · /q/{token}</p>
+            <span class="url">http://192.168.1.43:8000/q/a2KUUKfZ6grtgtlKl79oz0H88zUvAM1ZibpnsYZY</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-review_request">
+      <div class="mail-head">
+        <span class="group">Μετά την εκδρομή</span>
+        <h3>Αξιολόγηση στην Google</h3>
+        <p class="when">Χ ώρες μετά την επιστροφή (προεπιλογή 24), μία φορά, μόνο σε όσους ταξίδεψαν, αν ο διοργανωτής το έχει ανοίξει και έχει δώσει σύνδεσμο Google.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Γράψτε μια κριτική στην Google              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="https://g.page/r/aegean-blue-cruises/review" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Η σελίδα κριτικών στη Google</b> — ο σύνδεσμος του διοργανωτή (εκτός Kaiki)</p>
+            <span class="url">https://g.page/r/aegean-blue-cruises/review</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-staff_invitation">
+      <div class="mail-head">
+        <span class="group">Λογαριασμός και ομάδα</span>
+        <h3>Πρόσκληση μέλους ομάδας</h3>
+        <p class="when">Όταν ο ιδιοκτήτης προσκαλεί συνεργάτη από Ρυθμίσεις → Χρήστες.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Ορισμός κωδικού              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/app/password-reset/reset?email=nikos%40aegean-blue.example&amp;token=ATRuqxf3nI8BBCduekCDmvjkXmJ8xdnkQaft63NeEPoqlaUrhsrcL7olfBL0wLaO" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Ορισμός κωδικού στον πίνακα</b> — /app/password-reset/reset</p>
+            <span class="url">http://192.168.1.43:8000/app/password-reset/reset?email=nikos%40aegean-blue.example&amp;token=ATRuqxf3nI8BBCduekCDmvjkXmJ8xdnkQaft63NeEPoqlaUrhsrcL7olfBL0wLaO</span>
+          </div>
+              </div>
+    </article>
+      <article class="mail" id="m-password_reset">
+      <div class="mail-head">
+        <span class="group">Λογαριασμός και ομάδα</span>
+        <h3>Επαναφορά κωδικού</h3>
+        <p class="when">Όταν κάποιος πατά «Ξεχάσατε τον κωδικό;» στη σύνδεση (panel ή admin). Στη γλώσσα του χρήστη.</p>
+      </div>
+      <div class="links">
+                                    <div class="link">
+            <span class="label">
+              Ορισμός νέου κωδικού              <span class="chip">κύριο κουμπί</span>
+            </span>
+            <a class="open" href="http://192.168.1.43:8000/app/password-reset/reset?email=nikos%40aegean-blue.example&amp;token=ATRuqxf3nI8BBCduekCDmvjkXmJ8xdnkQaft63NeEPoqlaUrhsrcL7olfBL0wLaO" target="_blank" rel="noreferrer noopener">Άνοιγμα ↗</a>
+            <p class="goes">Πάει στο <b>Ορισμός κωδικού στον πίνακα</b> — /app/password-reset/reset</p>
+            <span class="url">http://192.168.1.43:8000/app/password-reset/reset?email=nikos%40aegean-blue.example&amp;token=ATRuqxf3nI8BBCduekCDmvjkXmJ8xdnkQaft63NeEPoqlaUrhsrcL7olfBL0wLaO</span>
+          </div>
+              </div>
+    </article>
+  
+  <section>
+    <h2>Δύο κουμπιά που δεν φαίνονται εδώ</h2>
+    <p class="section-note">Υπάρχουν στο πρότυπο και εμφανίζονται μόνο όταν ισχύει η προϋπόθεσή τους.
+      Η κράτηση επίδειξης δεν τα ενεργοποιεί, γι&rsquo; αυτό λείπουν από τη λίστα πιο πάνω.</p>
+    <div class="missing" style="margin-top:14px">
+      <div class="dest">
+        <h3>«Άνοιγμα εισιτηρίου»</h3>
+        <span class="used">όταν υπάρχει QR</span>
+        <span class="route">guest.ticket · /b/{token}/ticket</span>
+        <p>Μπαίνει στην κάρτα του εισιτηρίου μόνο όταν η πλατφόρμα έχει ανοίξει την επιβίβαση με QR για
+          τον διοργανωτή (/admin → Επεξεργασία διοργανωτή). Κλειστό, το email δείχνει τα στοιχεία της
+          κράτησης χωρίς κουμπί.</p>
+      </div>
+      <div class="dest">
+        <h3>«Δείτε όλη την πολιτική»</h3>
+        <span class="used">όταν υπάρχει πολιτική</span>
+        <span class="route">guest.booking · /b/{token}</span>
+        <p>Κάτω από τη μονόγραμμη περίληψη της ακύρωσης, όταν η κράτηση έχει παγωμένη πολιτική. Οδηγεί
+          στη σελίδα της κράτησης, όπου είναι γραμμένα όλα τα κλιμάκια.</p>
+      </div>
+    </div>
+  </section>
+</div>
