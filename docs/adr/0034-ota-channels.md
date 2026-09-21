@@ -158,3 +158,33 @@ connects availability and bookings. Nothing here computes what anybody is owed.
   not before. That belongs in the M8 uptime conversation.
 - The interface exists, so Viator is an implementation rather than a project — which
   was EXT-1's entire purpose, four milestones early.
+
+## Amendments after acceptance
+
+**2026-09-21 — rule 5's double-sale path is closed, and it was never their number
+to give.** The decision above named the hold window as *"the one genuine double-sale
+path in the design"* and said the figure had to come from GetYourGuide's
+certification documents. Both halves were wrong, and the product owner found the
+page that says so.
+
+Their own supply documentation describes **Reservation Expiration** as a supplier
+feature — *"provides recommended times for customers to complete checkout, with a
+default of 60 minutes if not supported"* — and their OpenAPI confirms the mechanism:
+`ReservationResponse` carries `reservationExpiration`, a date-time **the supplier
+returns**.
+
+So Kaiki does not adopt their window; it **declares its own**. `/1/reserve` answers
+with the `hold_expires_at` it just wrote, and GetYourGuide honours that instead of
+assuming an hour. The gap rule 5 warned about — a hold dying while they still
+believe in it — cannot open, because the two numbers are the same number.
+
+This also removes the reason to lengthen a hold for OTA traffic. Sixty minutes of
+dead inventory on a twelve-seat boat is a real cost, and it is now avoidable rather
+than inherited: the per-channel window in `config/kaiki.php` stays, because a channel
+may still want a different one, but its default no longer has anything to fear.
+
+Two other facts from the same schema, recorded so the next issue does not
+rediscover them: `gygBookingReference` is required on both `reserve` and `book`, so
+it is the idempotency key a retried `book` is matched on; and `BookingResponse`
+returns `tickets[].ticketCode` — **Kaiki issues the ticket codes**, which are the
+boarding codes BKG-20 already produces.

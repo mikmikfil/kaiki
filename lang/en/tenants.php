@@ -87,6 +87,10 @@ return [
         'setup_step_done' => 'done',
         'setup_step_later' => 'later',
         'setup_step_open' => 'open',
+        // Pluralised, because "1 steps" is the kind of detail that makes a
+        // screen look uncared for. Zero says something different: nothing is
+        // left, so there is no reason to ring them.
+        'setup_remaining' => '{0}nothing left|{1}1 step left|[2,*]:count steps left',
         'setup_reset' => 'Restart the guide',
         'setup_reset_body' => 'The guide starts again for this operator. Anything already filled in stays.',
         'setup_reset_done' => 'The guide starts again',

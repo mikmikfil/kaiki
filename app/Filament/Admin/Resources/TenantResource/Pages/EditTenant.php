@@ -560,7 +560,6 @@ class EditTenant extends EditRecord
         ];
     }
 
-    /** «4 από 6» and one line per step, as the operator's own guide sees it. */
     /**
      * The count on the «Κανάλια» tab, or nothing.
      *
@@ -648,6 +647,21 @@ class EditTenant extends EditRecord
         });
     }
 
+    /**
+     * How far the operator got through the first-run guide.
+     *
+     * It used to be «Τα στοιχεία σας: έγινε» strings joined with `<br>`, which
+     * read like debug output. The one question somebody on this screen has is
+     * *should I ring them*, and counting six words to answer it is six too many
+     * — so the answer comes first, as a badge and a bar, and the steps follow.
+     *
+     * **Rendered through a Blade view rather than built here as a string.** The
+     * panel ships a compiled stylesheet holding only the utilities its own
+     * components use: a Tailwind colour class written by hand and not in that
+     * build renders black, silently. That is how the statistics chart's bars
+     * came out black on 2026-09-14. The view uses `x-filament::badge` and
+     * `x-filament::icon`, whose classes are in the build by construction.
+     */
     private static function setupProgress(?Tenant $tenant): HtmlString
     {
         if (! $tenant instanceof Tenant || ! $tenant->exists) {
@@ -658,23 +672,33 @@ class EditTenant extends EditRecord
             $state = SetupChecklist::state();
             $skipped = SetupChecklist::skipped($tenant);
             $progress = SetupChecklist::progress();
-            $lines = [];
+            $steps = [];
 
             foreach (SetupChecklist::questions() as $step) {
-                $status = match (true) {
-                    $state[$step] ?? false => __('tenants.edit.setup_step_done'),
-                    in_array($step, $skipped, true) => __('tenants.edit.setup_step_later'),
-                    default => __('tenants.edit.setup_step_open'),
-                };
-
-                $lines[] = e(__('setup.steps.' . $step . '.label')) . ': ' . e($status);
+                $steps[] = [
+                    'label' => (string) __('setup.steps.' . $step . '.label'),
+                    // Three states, not two. «Αργότερα» is a step the operator
+                    // deliberately passed over and «μένει» is one they have not
+                    // reached — the first needs no phone call and the second
+                    // might, which is the whole reason to look at this.
+                    'state' => match (true) {
+                        $state[$step] ?? false => 'done',
+                        in_array($step, $skipped, true) => 'later',
+                        default => 'open',
+                    },
+                    'note' => (string) __('tenants.edit.setup_step_later'),
+                ];
             }
 
-            $head = $tenant->onboarding_completed_at !== null
-                ? __('tenants.edit.setup_finished')
-                : __('setup.widget.progress', ['done' => $progress['done'], 'total' => $progress['total']]);
+            $finished = $tenant->onboarding_completed_at !== null;
 
-            return new HtmlString('<strong>' . e($head) . '</strong><br>' . implode('<br>', $lines));
+            return new HtmlString(view('filament.admin.tenant-setup-progress', [
+                'steps' => $steps,
+                'finished' => $finished,
+                'headline' => (string) ($finished
+                    ? __('tenants.edit.setup_finished')
+                    : __('setup.widget.progress', ['done' => $progress['done'], 'total' => $progress['total']])),
+            ])->render());
         });
     }
 

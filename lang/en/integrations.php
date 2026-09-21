@@ -87,6 +87,24 @@ return [
         'incomplete' => ':provider needs these details before it can be saved: :fields.',
     ],
 
+    /*
+    | The credentials Kaiki generates and the operator hands to GetYourGuide so
+    | that their servers can call us (ADR-0034).
+    |
+    | This is the only time the password is ever visible — the database holds
+    | only its digest. The copy has to say so plainly, because there is no
+    | second chance.
+    */
+    'inbound' => [
+        'intro' => 'Copy all three into your GetYourGuide dashboard. They ask for an endpoint, a username and a password on the same form.',
+        'endpoint' => 'Endpoint',
+        'username' => 'Username',
+        'password' => 'Password',
+        'copy' => 'Copy',
+        'copied' => 'Copied',
+        'cannot_show_again' => 'The password will not be shown again. If it is lost you generate a new pair — and until you enter it in GetYourGuide, their calls fail.',
+    ],
+
     'verify' => [
         'action' => 'Check these details',
         'succeeded' => 'These details work. :provider accepted them.',
