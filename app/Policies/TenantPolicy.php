@@ -79,8 +79,10 @@ class TenantPolicy
      *
      * A policy can only say who; the confirmation, the reason and the audit row
      * are `EditTenant`'s, because they are properties of the *act* rather than
-     * of the actor. Asserted in `AdminTenantEditTest` so a future edit page
-     * cannot quietly drop them and still pass this gate.
+     * of the actor. Asserted in `TenantResourceTest` — *"records who changed an
+     * operator, when, and why"* and *"refuses to save the change without a
+     * reason"* — so a future edit page cannot quietly drop them and still pass
+     * this gate.
      */
     public function update(User $user, Tenant $tenant): bool
     {

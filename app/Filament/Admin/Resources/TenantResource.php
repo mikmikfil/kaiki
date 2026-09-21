@@ -25,9 +25,9 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 /**
  * The platform's merchant list (spec SAA-1, SCP-13).
  *
- * The read-only half of SAA-1, pulled forward from M7 because `/admin` has been
- * an empty panel since #9 and the platform owner has had no way to see their
- * own operators.
+ * Pulled forward from M7 because `/admin` has been an empty panel since #9 and
+ * the platform owner had no way to see their own operators. It arrived
+ * read-only and is not read-only any more — see below.
  *
  * **This is the one resource in the application that is deliberately
  * cross-tenant.** `tenants` is not tenant-owned — it *is* the tenant — so
@@ -36,10 +36,18 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
  * exists to catch; here it is the entire point, which is why
  * `TenantResourceTest` asserts two merchants appear rather than trusting it.
  *
- * **Read-only on purpose, and it must stay that way for now.** The moment this
- * screen can change an operator's record, SEC-16 applies and #42's undecided
- * ADR-0025 becomes a blocker. {@see TenantPolicy} refuses every
- * write, and the pages list below has exactly one entry.
+ * **It writes now, and SEC-16 is what makes that allowed.** This resource was
+ * read-only until ADR-0025 — named here as the blocker while it was undecided —
+ * was accepted on 2026-09-04 and built by #53. The pages list below has three
+ * entries: the list, `CreateTenant` for onboarding, and `EditTenant`.
+ *
+ * What guards the writes is not this class. {@see TenantPolicy} says only *who*
+ * (a super admin; delete and force-delete stay refused outright). The three
+ * things SEC-16 actually asks for — a confirmation, a typed reason, and an audit
+ * row in the operator's own trail — belong to the act rather than to the actor,
+ * so they live on {@see Pages\EditTenant} and are asserted in
+ * `TenantResourceTest`. A field whose change must be recorded goes in that
+ * page's `AUDITED` list; one that is not there changes silently.
  */
 class TenantResource extends Resource
 {

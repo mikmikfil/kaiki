@@ -21,8 +21,9 @@ use App\Listeners\RecordAuditLog;
  *
  * The alternative — a listener registration per event — is a list that has to
  * be edited in a second file every time, which is the list somebody eventually
- * forgets. `AuditScopeTest` asserts the coverage from the enum's side, so a
- * live action with no event is a red test rather than a silent gap.
+ * forgets. `NoPersonalDataInAuditContextTest` asserts the coverage from the
+ * enum's side, so a live action with no event is a red test rather than a
+ * silent gap.
  *
  * ## The event carries scalars, because the listener is queued
  *

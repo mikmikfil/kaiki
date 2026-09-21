@@ -20,8 +20,8 @@ use App\Events\BookingRefunded;
  * So this enum is **SEC-16's five named actions, plus every soft delete and
  * every operator override that carries a reason**, and adding a case to it is
  * a decision about privacy surface rather than a convenience. An ordinary field
- * edit is not here and must not be added: `AuditScopeTest` asserts a plain save
- * writes nothing.
+ * edit is not here and must not be added: `AuditTrailTest` asserts a plain save
+ * writes nothing — *"writes nothing for an ordinary edit"*.
  *
  * ## Two of the five are not buildable yet
  *
@@ -29,8 +29,9 @@ use App\Events\BookingRefunded;
  * not exist until M2 and M6. They are cases here anyway, so that the milestone
  * that builds them fires an existing action rather than inventing a spelling —
  * the same reasoning that keeps `maintenance` in
- * {@see WindowUnavailableReason}. `AuditActionCoverageTest` records which are
- * live, so the gap stays visible rather than becoming folklore.
+ * {@see WindowUnavailableReason}. `NoPersonalDataInAuditContextTest` records
+ * which are live — *"keeps every live action wired to something that fires
+ * it"* — so the gap stays visible rather than becoming folklore.
  */
 enum AuditAction: string
 {

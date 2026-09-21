@@ -65,7 +65,7 @@ use Illuminate\Support\HtmlString;
  * see is not an answer.
  *
  * `TenantPolicy` says who may do this; none of the three above is a policy's to
- * enforce, which is why they are asserted separately in `AdminTenantEditTest`.
+ * enforce, which is why they are asserted separately in `TenantResourceTest`.
  *
  * ## Only what actually moved is recorded
  *
