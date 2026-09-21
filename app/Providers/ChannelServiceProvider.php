@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Domain\Channels\Channels\IcalChannel;
+use App\Domain\Channels\Support\ChannelManagerFlag;
 use App\Domain\Channels\Support\ChannelRegistry;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Pennant\Feature;
 
 /**
  * Wiring for the sales channels (spec EXT-1, per ADR-0034).
@@ -50,5 +52,23 @@ class ChannelServiceProvider extends ServiceProvider
 
             return $registry;
         });
+    }
+
+    public function boot(): void
+    {
+        /*
+         * EXT-2's `channel_manager`, the first of those nine flags to be wired.
+         *
+         * **The default is false, and the default is the whole point.** A fresh
+         * database, a new deployment and a restored backup all arrive with the
+         * OTA channels shut, and opening them is a deliberate act somebody
+         * performs after GetYourGuide's certification passes — not a state
+         * something can drift into.
+         *
+         * Defined in `boot()` rather than `register()` because a definition is
+         * not a binding: it runs when the feature is first resolved, and at
+         * that point it may want anything the container has.
+         */
+        Feature::define(ChannelManagerFlag::NAME, fn (): bool => false);
     }
 }
