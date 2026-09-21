@@ -353,6 +353,46 @@ it('lets the platform decide which pages an operator gets, with a reason, in the
     });
 })->group('fast');
 
+it('keeps every audited switch on the form after the tabs went in', function (): void {
+    // The reorganisation of 2026-09-21 moved nine controls into four groups and
+    // a separate tab. A field that fell out in the move would stop being
+    // settable without anything failing — the column keeps its value, the audit
+    // list keeps its name, and only an operator noticing months later would
+    // find out. So the form is checked against `AUDITED` itself.
+    ChannelManagerFlag::open();
+
+    $page = editTenantPage(superAdmin(), Tenant::factory()->create());
+
+    foreach (['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'check_in_enabled', 'qr_check_in_enabled', 'hosted_site_mode', 'extra_person_pricing_enabled', 'sms_enabled', 'setup_guide_enabled', 'getyourguide_enabled'] as $field) {
+        $page->assertFormFieldExists($field);
+    }
+})->group('fast');
+
+it('tells you which lock is shut instead of showing an empty channels tab', function (): void {
+    // An empty tab reads as a broken screen. This one says which lock is closed
+    // and who can open it, which is the question somebody standing here has.
+    //
+    // Asserted on the rendered text rather than with `assertFormFieldExists`,
+    // which requires a `Field` — a `Placeholder` is not one, and the notice is
+    // deliberately not a control.
+    expect(ChannelManagerFlag::isOpen())->toBeFalse();
+
+    editTenantPage(superAdmin(), Tenant::factory()->create())
+        // The command is the same string in both locales, which is the point of
+        // asserting on it: the test does not depend on which language the panel
+        // happened to render in.
+        ->assertSee('channels:manager open')
+        ->assertFormFieldIsHidden('getyourguide_enabled');
+})->group('fast');
+
+it('hides the platform-lock notice once the channel is open', function (): void {
+    ChannelManagerFlag::open();
+
+    editTenantPage(superAdmin(), Tenant::factory()->create())
+        ->assertDontSee('channels:manager open')
+        ->assertFormFieldExists('getyourguide_enabled');
+})->group('fast');
+
 it('hides the GetYourGuide switch until the platform has opened the channel', function (): void {
     // ADR-0034 ships the code months before GetYourGuide certifies it. Hidden
     // rather than disabled, for the reason the QR toggle is: a greyed-out

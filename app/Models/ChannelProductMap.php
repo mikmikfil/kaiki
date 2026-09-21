@@ -6,6 +6,8 @@ namespace App\Models;
 
 use App\Enums\ChannelKey;
 use App\Models\Concerns\BelongsToTenant;
+use Database\Factories\ChannelProductMapFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -33,6 +35,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ChannelProductMap extends Model
 {
     use BelongsToTenant;
+
+    /** @use HasFactory<ChannelProductMapFactory> */
+    use HasFactory;
 
     protected $table = 'channel_product_map';
 

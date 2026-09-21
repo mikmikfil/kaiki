@@ -92,6 +92,38 @@ return [
         'setup_reset_done' => 'The guide starts again',
         'sms_help' => 'On: the operator also sends text messages (confirmation, reminders) and sees the Apifon, Yuboto or Twilio connection under Connections. Every message is charged to their own account. Off for everyone unless they ask for it.',
         'getyourguide_help' => 'On: the operator sees the GetYourGuide connection under Connections and enters their own details. Seats GetYourGuide sells come out of the same availability as their own page — there is no second stock, so there is no double booking. Requires their own contract with GetYourGuide; the platform does not hold one. Off for everyone.',
+
+        /*
+        | The group headings inside Features (21 September).
+        |
+        | They split nine unrelated things by whom each one concerns: the crew,
+        | the guest, the money, the start. Sales channels moved out to their own
+        | tab, because a channel is not a switch.
+        */
+        'group_boarding' => 'Boarding',
+        'group_guest' => 'What the guest sees',
+        'group_money' => 'Pricing and messages',
+        'group_start' => 'Getting started',
+
+        'channels' => 'Sales channels',
+        'channels_help' => 'Where this operator sells besides their own pages. Anything sold here comes out of the same availability.',
+        'channels_locked' => 'Locked by the platform',
+        'channels_locked_help' => 'No OTA channel runs yet, for any operator. It is opened from the command line with "channels:manager open" once GetYourGuide certification has passed — not from here.',
+
+        'channel_state' => 'Connection state',
+        'channel_state_off' => 'The switch is off, so nothing is sent or received.',
+        'channel_credentials' => 'GetYourGuide details',
+        'channel_credentials_given' => 'entered',
+        'channel_credentials_missing' => 'missing',
+        'channel_inbound' => 'Keys we issued them',
+        'channel_inbound_given' => 'generated',
+        'channel_inbound_missing' => 'not generated',
+        'channel_mapped' => 'Trips mapped',
+
+        'channel_ical' => 'iCal calendars',
+        'channel_ical_none' => 'No calendars. Nothing outside Kaiki is blocking boats.',
+        'channel_ical_some' => ':count calendars, last read :when.',
+        'channel_ical_never' => 'never',
         'hosted_site_mode_help' => 'The booking pages — a page per trip, search and the legal pages — are published in both. The full website adds the home page. The operator sees this but cannot change it. Takes effect at once; bookings already made are never affected.',
         'confirm_heading' => 'Change this operator’s account',
         'confirm_body' => 'The change is recorded in the operator’s own audit trail, with your name and your reason.',

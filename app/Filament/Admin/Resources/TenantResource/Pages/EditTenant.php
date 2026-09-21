@@ -9,33 +9,41 @@ use App\Domain\Audit\Data\AuditEntryData;
 use App\Domain\Channels\Support\ChannelManagerFlag;
 use App\Domain\Tenancy\Support\SetupChecklist;
 use App\Enums\AuditAction;
+use App\Enums\ChannelKey;
 use App\Enums\HostedSiteMode;
+use App\Enums\IntegrationProvider;
 use App\Enums\Plan;
 use App\Enums\TenantStatus;
 use App\Enums\TenantVertical;
 use App\Filament\Admin\Resources\TenantResource;
+use App\Models\ChannelProductMap;
+use App\Models\IcalSource;
+use App\Models\IntegrationCredential;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use BackedEnum;
 use DateTimeInterface;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Fieldset;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\HtmlString;
 
 /**
- * The five things the platform owner may change about an operator (SAA-1, SEC-16).
+ * What the platform owner may change about an operator (SAA-1, SEC-16).
  *
- * ## Five fields, and each is on this screen for a reason
+ * ## Each field is on this screen for a reason
  *
  * - **Plan** — so an upgrade can be honoured the day it is agreed, rather than
  *   the day the billing code lands.
@@ -49,6 +57,12 @@ use Illuminate\Support\HtmlString;
  * - **QR boarding** — whether tickets carry a QR and the crew get a scanning
  *   page (BKG-20, amended 2026-09-11). A one-boat operator boards from the
  *   passenger list, and the platform decides this with them when they sign up.
+ * - **Selling through GetYourGuide** — whether this operator's seats are offered
+ *   on an OTA they signed with themselves (ADR-0034). On its own tab, with the
+ *   other channels; see {@see self::form()} for why a channel is not a switch.
+ *
+ * The list has grown past the five it opened with, which is what the tabs of
+ * 2026-09-21 are for.
  *
  * Everything else about an operator is theirs: their name, their address, their
  * VAT number, their colours. A platform screen that could rewrite those is a
@@ -93,45 +107,107 @@ class EditTenant extends EditRecord
     /** The operator's own words, captured by the confirmation and not by the form. */
     public ?string $auditReason = null;
 
+    /**
+     * Four tabs, and the fourth is why there are any (product owner, 2026-09-21).
+     *
+     * This was one column of nine controls: boarding, which is the crew's;
+     * published pages, which are the guest's; extra-person pricing; text
+     * messages, which cost money; the setup guide, which is temporary; and now
+     * a sales channel, which is a commercial agreement. Nothing said which was
+     * which, and three more channels are queued behind GetYourGuide.
+     *
+     * **A sales channel is not a toggle**, and that is the part grouping alone
+     * could not fix. Each one wants to show whether credentials have been
+     * entered, how many trips are mapped and when it last spoke — so they get a
+     * tab with room, rather than three more rows in a list of switches.
+     *
+     * The same move the trip form made on 2026-09-18 and the operator's
+     * settings made on 2026-09-11. `/admin` was the last screen still in one
+     * column.
+     *
+     * ## What is deliberately not a tab
+     *
+     * **«Ιστορικό».** Every change here is audited with a typed reason, and the
+     * trail is written to the *operator's* own panel — an operator asking who
+     * put them on read-only is asking about their account. A platform-wide view
+     * across every merchant is a real feature with its own estimate on the
+     * roadmap, not something to improvise into a tab here.
+     */
     public function form(Form $form): Form
     {
         return $form->schema([
-            Section::make(__('tenants.edit.subscription'))
-                ->description(__('tenants.edit.subscription_help'))
-                ->schema([
-                    Select::make('plan')
-                        ->label(__('tenants.columns.plan'))
-                        ->options(Plan::options())
-                        ->required(),
+            Tabs::make('merchant')
+                ->columnSpanFull()
+                // So a save, or a reload after one, comes back to the tab the
+                // change was made on instead of to the first one.
+                ->persistTabInQueryString()
+                ->tabs([
+                    Tabs\Tab::make(__('tenants.edit.subscription'))->schema([
+                        $this->subscriptionSection(),
+                        $this->accountSection(),
+                    ]),
 
-                    Select::make('status')
-                        ->label(__('tenants.columns.status'))
-                        ->options(TenantStatus::options())
-                        ->required(),
+                    Tabs\Tab::make(__('tenants.edit.features'))->schema([
+                        $this->featuresSection(),
+                    ]),
 
-                    DatePicker::make('subscription_ends_at')
-                        ->label(__('tenants.columns.access_ends'))
-                        ->helperText(__('tenants.edit.access_ends_help'))
-                        ->native(false),
-                ])
-                ->columns(3),
+                    Tabs\Tab::make(__('tenants.edit.channels'))
+                        // The count is the useful part of a tab label here: it
+                        // answers "does this merchant sell anywhere else" from
+                        // the tab bar, without opening it.
+                        ->badge(fn (?Tenant $record): ?string => self::channelBadge($record))
+                        ->schema([
+                            $this->channelsSection(),
+                        ]),
+                ]),
+        ]);
+    }
 
-            Section::make(__('tenants.edit.account'))
-                ->schema([
-                    Select::make('vertical')
-                        ->label(__('tenants.columns.vertical'))
-                        ->options(TenantVertical::options())
-                        ->required(),
+    private function subscriptionSection(): Section
+    {
+        return Section::make(__('tenants.edit.subscription'))
+            ->description(__('tenants.edit.subscription_help'))
+            ->schema([
+                Select::make('plan')
+                    ->label(__('tenants.columns.plan'))
+                    ->options(Plan::options())
+                    ->required(),
 
-                    Toggle::make('is_sandbox')
-                        ->label(__('tenants.columns.sandbox'))
-                        ->helperText(__('tenants.edit.sandbox_help')),
-                ])
-                ->columns(2),
+                Select::make('status')
+                    ->label(__('tenants.columns.status'))
+                    ->options(TenantStatus::options())
+                    ->required(),
 
-            Section::make(__('tenants.edit.features'))
-                ->description(__('tenants.edit.features_help'))
-                ->schema([
+                DatePicker::make('subscription_ends_at')
+                    ->label(__('tenants.columns.access_ends'))
+                    ->helperText(__('tenants.edit.access_ends_help'))
+                    ->native(false),
+            ])
+            ->columns(3);
+    }
+
+    private function accountSection(): Section
+    {
+        return Section::make(__('tenants.edit.account'))
+            ->schema([
+                Select::make('vertical')
+                    ->label(__('tenants.columns.vertical'))
+                    ->options(TenantVertical::options())
+                    ->required(),
+
+                Toggle::make('is_sandbox')
+                    ->label(__('tenants.columns.sandbox'))
+                    ->helperText(__('tenants.edit.sandbox_help')),
+            ])
+            ->columns(2);
+    }
+
+    private function featuresSection(): Section
+    {
+        return Section::make(__('tenants.edit.features'))
+            ->description(__('tenants.edit.features_help'))
+            ->schema([
+                Fieldset::make(__('tenants.edit.group_boarding'))->columns(1)->schema([
                     // The wider of the two, and first: an operator who boards
                     // nobody has no use for the question below it.
                     Toggle::make('check_in_enabled')
@@ -160,7 +236,9 @@ class EditTenant extends EditRecord
                         // is how the manual's screenshot of this very section
                         // failed to capture.
                         ->visible(fn (Get $get): bool => $get('check_in_enabled') !== false),
+                ]),
 
+                Fieldset::make(__('tenants.edit.group_guest'))->columns(1)->schema([
                     // ADR-0029's two states (amended 2026-09-11), decided by the
                     // platform with the operator — the same place and the same
                     // trail as QR boarding. The operator's own screen only shows it.
@@ -178,7 +256,9 @@ class EditTenant extends EditRecord
                             ),
                         ))
                         ->required(),
+                ]),
 
+                Fieldset::make(__('tenants.edit.group_money'))->columns(1)->schema([
                     // «Up to N people, +Y € for each extra» on whole-boat prices
                     // (2026-09-17). Off for everybody: switched on for the
                     // operator who prices that way, with the same trail as the
@@ -196,7 +276,9 @@ class EditTenant extends EditRecord
                         ->label(__('tenants.columns.sms'))
                         ->helperText(__('tenants.edit.sms_help'))
                         ->formatStateUsing(fn (?bool $state): bool => $state === true),
+                ]),
 
+                Fieldset::make(__('tenants.edit.group_start'))->columns(1)->schema([
                     // The first-time setup guide (2026-09-17). On for everybody;
                     // off for an operator the platform set up itself. Null is on
                     // (`Tenant::usesSetupGuide()`), so the toggle must not show a
@@ -206,25 +288,6 @@ class EditTenant extends EditRecord
                         ->helperText(__('tenants.edit.setup_guide_help'))
                         ->formatStateUsing(fn (?bool $state): bool => $state !== false),
 
-                    // Selling through GetYourGuide (ADR-0034). Off for
-                    // everybody: the operator holds that contract themselves,
-                    // so switching it on for somebody who has not signed one
-                    // would offer their seats under an agreement that does not
-                    // exist. Null is off (`Tenant::usesGetYourGuide()`).
-                    //
-                    // Hidden entirely while the platform's `channel_manager`
-                    // flag is shut, which it is until GetYourGuide certifies
-                    // the integration. Hidden rather than disabled, for the
-                    // reason the QR toggle is: a greyed-out control invites
-                    // somebody to wonder which switch wins, and this one has an
-                    // answer nobody in /admin can change — it is opened from a
-                    // console, by whoever holds the certification email.
-                    Toggle::make('getyourguide_enabled')
-                        ->label(__('tenants.columns.getyourguide'))
-                        ->helperText(__('tenants.edit.getyourguide_help'))
-                        ->formatStateUsing(fn (?bool $state): bool => $state === true)
-                        ->visible(fn (): bool => ChannelManagerFlag::isOpen()),
-
                     // Where the operator has got to, so the platform knows
                     // whether to call them. Read in their tenant, because every
                     // step is a tenant-scoped question.
@@ -232,7 +295,65 @@ class EditTenant extends EditRecord
                         ->label(__('tenants.edit.setup_progress'))
                         ->content(fn (?Tenant $record): HtmlString => self::setupProgress($record)),
                 ]),
-        ]);
+            ]);
+    }
+
+    /**
+     * Where an operator sells besides their own pages (ADR-0034).
+     *
+     * Its own tab because a channel is not a switch. GetYourGuide alone already
+     * has three things worth showing beside the toggle — whether credentials
+     * have been entered, how many trips are mapped, when it last called — and
+     * Viator, Click&Boat and agency accounts are behind it.
+     */
+    private function channelsSection(): Section
+    {
+        return Section::make(__('tenants.edit.channels'))
+            ->description(__('tenants.edit.channels_help'))
+            ->schema([
+                // Shown *instead of* the switch while the platform lock is
+                // shut, rather than leaving the tab empty. An empty tab reads
+                // as a broken screen; this one says which lock is closed and
+                // who can open it, which is the question somebody standing here
+                // actually has.
+                Placeholder::make('channel_manager_locked')
+                    ->label(__('tenants.edit.channels_locked'))
+                    ->content(fn (): string => (string) __('tenants.edit.channels_locked_help'))
+                    ->visible(fn (): bool => ! ChannelManagerFlag::isOpen()),
+
+                // Selling through GetYourGuide (ADR-0034). Off for everybody:
+                // the operator holds that contract themselves, so switching it
+                // on for somebody who has not signed one would offer their
+                // seats under an agreement that does not exist. Null is off
+                // (`Tenant::usesGetYourGuide()`).
+                //
+                // Hidden entirely while the platform's `channel_manager` flag
+                // is shut, for the reason the QR toggle is hidden rather than
+                // greyed: a disabled control invites somebody to wonder which
+                // switch wins, and this one has an answer nobody in /admin can
+                // change — it is opened from a console, by whoever holds the
+                // certification email.
+                Toggle::make('getyourguide_enabled')
+                    ->label(__('tenants.columns.getyourguide'))
+                    ->helperText(__('tenants.edit.getyourguide_help'))
+                    ->formatStateUsing(fn (?bool $state): bool => $state === true)
+                    ->visible(fn (): bool => ChannelManagerFlag::isOpen()),
+
+                // What the operator has actually done with it, which the toggle
+                // cannot say. A switch that is on and a connection that works
+                // are different facts, and support tickets are about the gap.
+                Placeholder::make('getyourguide_state')
+                    ->label(__('tenants.edit.channel_state'))
+                    ->content(fn (?Tenant $record): HtmlString => self::channelState($record))
+                    ->visible(fn (): bool => ChannelManagerFlag::isOpen()),
+
+                // Calendars the operator pulls in. Not gated by anything — they
+                // predate both locks — and worth seeing here because another
+                // platform's calendar blocks the same boats GetYourGuide sells.
+                Placeholder::make('ical_state')
+                    ->label(__('tenants.edit.channel_ical'))
+                    ->content(fn (?Tenant $record): HtmlString => self::icalState($record)),
+            ]);
     }
 
     /**
@@ -440,6 +561,93 @@ class EditTenant extends EditRecord
     }
 
     /** «4 από 6» and one line per step, as the operator's own guide sees it. */
+    /**
+     * The count on the «Κανάλια» tab, or nothing.
+     *
+     * Only live channels are counted, and iCal counts. A merchant pulling two
+     * calendars is selling the same hulls somewhere else, which is the thing
+     * the number is there to warn about — a tab that said «0» while two
+     * calendars quietly blocked boats would be worse than no number.
+     */
+    private static function channelBadge(?Tenant $tenant): ?string
+    {
+        if (! $tenant instanceof Tenant || ! $tenant->exists) {
+            return null;
+        }
+
+        $live = $tenant->usesGetYourGuide() && ChannelManagerFlag::isOpen() ? 1 : 0;
+
+        $live += Tenancy::forTenant($tenant, static fn (): int => IcalSource::query()
+            ->where('is_active', true)
+            ->count());
+
+        return $live > 0 ? (string) $live : null;
+    }
+
+    /**
+     * What the operator has actually done with GetYourGuide.
+     *
+     * The switch being on says the platform allowed it. It does not say the
+     * operator entered their keys, mapped a single trip, or that GetYourGuide
+     * has ever called — and every support ticket about this integration will be
+     * about that gap. Three facts, each of which the toggle cannot carry.
+     */
+    private static function channelState(?Tenant $tenant): HtmlString
+    {
+        if (! $tenant instanceof Tenant || ! $tenant->exists) {
+            return new HtmlString('');
+        }
+
+        if (! $tenant->usesGetYourGuide()) {
+            return new HtmlString(e(__('tenants.edit.channel_state_off')));
+        }
+
+        return Tenancy::forTenant($tenant, static function (): HtmlString {
+            $credential = IntegrationCredential::query()
+                ->where('provider', IntegrationProvider::GetYourGuide->value)
+                ->first();
+
+            $mapped = ChannelProductMap::query()
+                ->where('channel', ChannelKey::GetYourGuide->value)
+                ->count();
+
+            $lines = [
+                __('tenants.edit.channel_credentials') . ': ' . ($credential instanceof IntegrationCredential
+                    ? __('tenants.edit.channel_credentials_given')
+                    : __('tenants.edit.channel_credentials_missing')),
+                __('tenants.edit.channel_inbound') . ': ' . ($credential?->inbound_username !== null
+                    ? __('tenants.edit.channel_inbound_given')
+                    : __('tenants.edit.channel_inbound_missing')),
+                __('tenants.edit.channel_mapped') . ': ' . $mapped,
+            ];
+
+            return new HtmlString(implode('<br>', array_map(static fn (string $line): string => e($line), $lines)));
+        });
+    }
+
+    /** How many calendars this operator reads, and when they last answered. */
+    private static function icalState(?Tenant $tenant): HtmlString
+    {
+        if (! $tenant instanceof Tenant || ! $tenant->exists) {
+            return new HtmlString('');
+        }
+
+        return Tenancy::forTenant($tenant, static function (): HtmlString {
+            $sources = IcalSource::query()->where('is_active', true)->get();
+
+            if ($sources->isEmpty()) {
+                return new HtmlString(e(__('tenants.edit.channel_ical_none')));
+            }
+
+            $last = $sources->max('last_success_at');
+
+            return new HtmlString(e(__('tenants.edit.channel_ical_some', [
+                'count' => $sources->count(),
+                'when' => $last instanceof Carbon ? $last->diffForHumans() : __('tenants.edit.channel_ical_never'),
+            ])));
+        });
+    }
+
     private static function setupProgress(?Tenant $tenant): HtmlString
     {
         if (! $tenant instanceof Tenant || ! $tenant->exists) {
