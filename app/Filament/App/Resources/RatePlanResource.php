@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources;
 
 use App\Domain\Pricing\Actions\SaveRatePlan;
+use App\Domain\Pricing\Support\PlanSummary;
 use App\Enums\AgeBandPricing;
 use App\Enums\BookingMode;
 use App\Enums\DepositType;
@@ -29,12 +30,16 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\FontFamily;
+use Filament\Support\Enums\FontWeight;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\RestoreAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TrashedFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -264,36 +269,110 @@ class RatePlanResource extends Resource
         ];
     }
 
+    /**
+     * The catalogue's prices, grouped by trip (product owner, 2026-09-21,
+     * direction Α of the «Σύνοψη εκδρομών» mockup).
+     *
+     * ## What was wrong with it
+     *
+     * It listed price lists **without a price in them**: trip, period, name,
+     * deposit *type*, active. Every column except the number the screen is
+     * named after. So *«πόσο κάνει το ηλιοβασίλεμα τον Ιούλιο;»* — the question
+     * an operator has twenty times a day — could only be answered by opening
+     * the trip, then its «Τιμές» tab, then reading a grid.
+     *
+     * ## The shape now
+     *
+     * One group per trip, whose heading carries the boat, the people, the
+     * length of the day and how it is sold — the four things you would
+     * otherwise open the trip to check. One row per period, in the order a
+     * price is resolved: the default plan first, because it is the one that
+     * applies when nothing else does, then the seasons.
+     *
+     * Every cell comes from {@see PlanSummary}, which reads and never resolves:
+     * `QuotePrice` stays the only thing that decides what a party pays.
+     *
+     * ## Trips with no price at all
+     *
+     * Cannot appear here — a table of plans cannot show a trip that has none.
+     * {@see ListRatePlans::getHeaderWidgets()} puts `UnsellableProducts` above
+     * it, which already answers exactly that for published trips and already
+     * explains, in its own docblock, why drafts are left out of it.
+     */
     public static function table(Table $table): Table
     {
         return $table
-            ->columns([
-                TextColumn::make('product_id')
+            ->modifyQueryUsing(static fn (Builder $query): Builder => $query->with([
+                'product.vessel',
+                'product.ageBands',
+                'season.dateRanges',
+                'prices',
+            ]))
+            ->groups([
+                Group::make('product_id')
                     ->label(__('pricing.rate_plan.table.product'))
-                    ->formatStateUsing(static fn (RatePlan $record): string => (string) $record->product?->title),
-
+                    ->getTitleFromRecordUsing(static fn (RatePlan $record): string => (string) $record->product?->title)
+                    ->getDescriptionFromRecordUsing(static fn (RatePlan $record): string => PlanSummary::productMeta($record->product))
+                    ->titlePrefixedWithLabel(false),
+            ])
+            ->defaultGroup('product_id')
+            ->columns([
+                // `state()`, never `formatStateUsing()`: the default plan's
+                // `season_id` is null, and Filament shows the placeholder for a
+                // null state without ever calling the formatter — which left
+                // the one row that matters most, «Όλες τις άλλες μέρες», as an
+                // empty cell with no description under it.
                 TextColumn::make('season_id')
                     ->label(__('pricing.rate_plan.table.season'))
-                    ->formatStateUsing(static fn (RatePlan $record): string => $record->isDefault()
-                        ? __('pricing.rate_plan.table.default')
-                        : (string) $record->season?->name),
+                    ->state(static fn (RatePlan $record): string => PlanSummary::period($record))
+                    // The other bands, or a charter's terms, under the period
+                    // rather than in columns of their own: a trip may have six
+                    // age bands and no table is six prices wide.
+                    ->description(static fn (RatePlan $record): string => PlanSummary::detail($record))
+                    ->width('34%')
+                    ->wrap(),
+
+                TextColumn::make('dates')
+                    ->label(__('pricing.rate_plan.table.dates'))
+                    ->state(static fn (RatePlan $record): string => PlanSummary::dates($record))
+                    ->fontFamily(FontFamily::Mono)
+                    ->color('gray')
+                    ->width('22%'),
 
                 TextColumn::make('name')
                     ->label(__('pricing.rate_plan.table.name'))
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                // The point of the screen. A plan with no price yet says so in
+                // words rather than showing nothing, because an empty cell on a
+                // price list reads as a rendering fault, not as a finding.
+                TextColumn::make('price')
+                    ->label(__('pricing.rate_plan.table.price'))
+                    ->state(static fn (RatePlan $record): string => PlanSummary::headline($record)
+                        ?? __('pricing.rate_plan.table.no_price'))
+                    ->color(static fn (RatePlan $record): ?string => PlanSummary::headline($record) === null ? 'danger' : null)
+                    ->weight(FontWeight::SemiBold)
+                    ->alignEnd(),
 
                 TextColumn::make('deposit_type')
                     ->label(__('pricing.rate_plan.table.deposit'))
-                    ->badge()
-                    ->formatStateUsing(static fn (DepositType $state): string => $state->label()),
+                    ->state(static fn (RatePlan $record): string => PlanSummary::deposit($record))
+                    ->alignEnd(),
 
                 IconColumn::make('is_active')
                     ->label(__('pricing.rate_plan.table.is_active'))
                     ->boolean(),
             ])
-            ->defaultSort('id')
+            // The default plan first within each trip, then the seasons: it is
+            // the price that applies when no period matches, so the others read
+            // as the exceptions to it.
+            ->defaultSort('season_id')
             ->filters([TrashedFilter::make()])
-            ->actions([EditAction::make(), DeleteAction::make(), RestoreAction::make()]);
+            // Folded away: two labelled buttons on every row were taking a
+            // fifth of a table whose whole point is the price column.
+            ->actions([
+                ActionGroup::make([EditAction::make(), DeleteAction::make(), RestoreAction::make()]),
+            ]);
     }
 
     /** @return array<int, string> */

@@ -335,14 +335,30 @@ return [
             ],
         ],
 
+        // The summary: one group per trip, one row per period (2026-09-21).
         'table' => [
             'product' => 'Trip',
             'season' => 'Season',
+            'dates' => 'Dates',
             'name' => 'Name',
             'price' => 'Price',
             'deposit' => 'Deposit',
             'is_active' => 'Active',
             'default' => 'Default',
+
+            // Not an empty cell: a blank on a price list reads as a rendering
+            // fault rather than as a finding.
+            'no_price' => 'No price',
+            'no_dates' => 'No dates set',
+            'more_dates' => '+1 more|+:count more',
+            'deposit_none' => 'Paid in full',
+
+            'up_to_pax' => 'up to 1 person|up to :count people',
+            'hours' => '1 hour|:count hours',
+            'minutes' => '1 minute|:count minutes',
+            'includes_pax' => 'up to 1 person|up to :count people',
+            'extra_pax' => '+:price per person',
+            'extra_hour' => '+:price per hour',
         ],
 
         'validation' => [

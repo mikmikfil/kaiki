@@ -369,4 +369,55 @@
             top: 5rem;
         }
     }
+
+    /*
+     * The heading of a grouped table row, on a phone (2026-09-21).
+     *
+     * Filament stacks a table into cards below `md` and the row becomes a grid,
+     * where the group header is sized by its content and inherits the row's
+     * `white-space: nowrap`. On «Τιμοκατάλογοι» that is the trip's name and,
+     * under it, the boat, the people and the length of the day — the line that
+     * says *which trip these prices belong to*. It was being cut mid-word:
+     * «Ιδιωτική εκδρομή στον Μπάλ», «8 ώρες ·».
+     *
+     * Full width and ordinary wrapping. Not scoped to one screen: any grouped
+     * table in the panel has the same heading in the same place.
+     */
+    .fi-ta-group-header {
+        width: 100%;
+        min-width: 0;
+        flex-wrap: wrap;
+    }
+
+    .fi-ta-group-header > * {
+        min-width: 0;
+    }
+
+    .fi-ta-group-header h4,
+    .fi-ta-group-header p {
+        white-space: normal;
+    }
+
+    /*
+     * The same stacked layout labels every cell by putting its column name in a
+     * `::before`. On a group-header row that label is a lie — the cell holds
+     * «Ηλιοβασίλεμα στη Χώρα» and was announced as «Περίοδος», because the
+     * header happens to sit in the first column's cell.
+     */
+    td:has(> .fi-ta-group-header)::before {
+        content: none !important;
+    }
+
+    /*
+     * And the row itself goes back to being one block. The stacked layout turns
+     * every row into a two-track grid — label, value — which is right for a
+     * price and wrong for a heading: with the label suppressed the heading was
+     * left in the value track, a hundred pixels wide, reading four words to
+     * the line. A group header is not a field; it spans the card.
+     */
+    tr:has(> td > .fi-ta-group-header),
+    td:has(> .fi-ta-group-header) {
+        display: block !important;
+        width: 100% !important;
+    }
 </style>

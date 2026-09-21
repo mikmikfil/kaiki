@@ -1,0 +1,425 @@
+<title>Kaiki Trip Summary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/*
+  Το ίδιο φως με τα υπόλοιπα mockups: ανοιχτό μόνο, μπλε, ήρεμο, χωρίς
+  εικονογραφήσεις. Καμία κεφαλαιοποίηση σε ελληνικά — τα κεφαλαία δεν παίρνουν
+  τόνο και το CSS κρατάει αυτόν που του δόθηκε.
+*/
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57; --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA;
+  --warn:#B26A12; --warnbg:#FBF0DF; --bad:#B42318; --badbg:#FBE7E5; --good:#1F7A4D; --goodbg:#E3F2EA;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-inline:16px;padding-block:0 80px}
+.wrap{max-width:1180px;margin:0 auto}
+h1,h2,h3,h4{letter-spacing:-.02em;text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,4.4vw,42px);font-weight:800;line-height:1.1}
+h2{font-size:clamp(21px,2.6vw,25px);font-weight:800}
+h3{font-size:16px;font-weight:700}
+p{margin:0}
+.lead{font-size:17px;color:var(--muted);max-width:66ch}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.top{padding-block:48px 26px;display:grid;gap:14px}
+.kick{color:var(--blue);font-weight:700;font-size:14px}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:12px;margin-top:10px}
+.rules div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13.5px;color:var(--muted)}
+.rules b{display:block;color:var(--ink);font-size:13.5px;margin-bottom:2px}
+
+section{padding-block:46px 0}
+.shead{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:8px}
+.shead .tag{font-family:var(--mono);font-size:13px;font-weight:600;color:#fff;background:var(--blue);border-radius:8px;padding:3px 10px;flex:none}
+.shead .where{font-size:13px;color:var(--faint);margin-left:auto}
+.shead p{flex-basis:100%;color:var(--muted);max-width:76ch;margin-top:4px}
+
+/* Η «οθόνη»: ένα κάδρο του πάνελ, όχι στιγμιότυπο συσκευής — η σύνοψη
+   διαβάζεται σε γραφείο. Το ίδιο το κάδρο κυλάει οριζόντια σε στενή οθόνη
+   ώστε να μη κυλάει η σελίδα. */
+.stage{margin-top:18px;border-radius:18px;background:#DDE6F1;padding:14px;overflow-x:auto}
+.panel{min-width:720px;background:var(--paper);border-radius:12px;border:1px solid var(--line);overflow:hidden}
+.panel .bar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:#fff;border-bottom:1px solid var(--line)}
+.panel .bar h4{font-size:18px;font-weight:800}
+.panel .bar .sp{margin-left:auto;display:flex;gap:8px;align-items:center}
+.search{font-size:12.5px;color:var(--faint);background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:5px 10px;min-width:160px}
+.btn{font-size:12.5px;font-weight:600;color:#fff;background:var(--blue);border-radius:8px;padding:6px 11px}
+.btn.ghost{background:#fff;color:var(--deep);border:1px solid var(--line)}
+.body{padding:14px 16px 18px;display:grid;gap:14px}
+
+/* γενικά κομμάτια */
+.dot{width:8px;height:8px;border-radius:50%;background:var(--good);display:inline-block;flex:none}
+.dot.off{background:#CBD5E1}
+.pill{font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;border:1px solid var(--line);color:var(--muted);background:#fff;white-space:nowrap}
+.pill.warn{color:var(--warn);background:var(--warnbg);border-color:#EBD6B2}
+.pill.bad{color:var(--bad);background:var(--badbg);border-color:#F0C9C5}
+.pill.good{color:var(--good);background:var(--goodbg);border-color:#BFE0CE}
+.eur{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600}
+
+/* --- Α: ομαδοποιημένη λίστα ------------------------------------------- */
+.grp{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.grp > header{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--wash);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.grp > header .name{font-weight:700;font-size:15px}
+.grp > header .meta{font-size:12.5px;color:var(--muted)}
+.grp > header .sp{margin-left:auto;display:flex;gap:6px;align-items:center}
+.caret{color:var(--muted);font-size:12px}
+table.rows{width:100%;border-collapse:collapse;font-size:13.5px}
+table.rows th{text-align:left;font-weight:600;font-size:11.5px;color:var(--faint);padding:8px 14px;border-bottom:1px solid var(--line)}
+table.rows td{padding:9px 14px;border-bottom:1px solid #F1F5FA;vertical-align:top}
+table.rows tr:last-child td{border-bottom:0}
+table.rows .num{text-align:right;white-space:nowrap}
+.period{font-weight:600}
+.dates{font-size:12px;color:var(--muted);font-family:var(--mono)}
+.bands{font-size:12px;color:var(--muted);margin-top:2px}
+.empty{padding:14px;font-size:13px;color:var(--muted);background:#fff}
+
+/* --- Β: διασταυρούμενος πίνακας --------------------------------------- */
+table.cross{width:100%;border-collapse:collapse;font-size:13.5px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+table.cross th{font-weight:600;font-size:11.5px;color:var(--faint);padding:9px 12px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+table.cross th:first-child{text-align:left}
+table.cross td{padding:10px 12px;border-bottom:1px solid #F1F5FA;text-align:right;white-space:nowrap}
+table.cross td:first-child{text-align:left;white-space:normal}
+table.cross tr:last-child td{border-bottom:0}
+table.cross .trip{font-weight:600}
+table.cross .sub{font-size:12px;color:var(--muted);font-weight:400}
+table.cross .none{color:var(--faint)}
+
+/* --- Γ: κάρτες -------------------------------------------------------- */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px}
+.tcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;display:grid;gap:9px;align-content:start}
+.tcard .name{font-weight:700;font-size:15.5px;line-height:1.25}
+.tcard .meta{font-size:12.5px;color:var(--muted)}
+.tcard dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:5px 10px;font-size:13px;border-top:1px solid var(--line);padding-top:9px}
+.tcard dt{color:var(--muted)}
+.tcard dt small{display:block;font-family:var(--mono);font-size:11px;color:var(--faint)}
+.tcard dd{margin:0;text-align:right}
+.tcard .foot{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:8px}
+
+/* --- κρίση ------------------------------------------------------------ */
+.verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:14px}
+.verdict div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:13.5px;color:var(--muted)}
+.verdict b{display:block;color:var(--ink);font-size:12px;font-weight:600;margin-bottom:2px}
+.verdict .est{font-family:var(--mono);font-size:21px;font-weight:600;color:var(--blue)}
+.pick{margin-top:40px;background:var(--deep);color:#fff;border-radius:18px;padding:22px}
+.pick h2{color:#fff}
+.pick p{color:#C6D6EC;max-width:74ch;margin-top:8px}
+.pick ol{color:#C6D6EC;max-width:74ch;margin:12px 0 0;padding-left:20px;display:grid;gap:5px}
+.pick b{color:#fff}
+
+@media (max-width:640px){
+  .panel{min-width:620px}
+  .shead .where{margin-left:0;flex-basis:100%}
+}
+</style>
+
+<div class="wrap">
+
+<div class="top">
+  <p class="kick">Kaiki · 21 Σεπτεμβρίου 2026</p>
+  <h1>Σύνοψη εκδρομών</h1>
+  <p class="lead">«Η τάδε εκδρομή κοστίζει τόσο τη θερινή περίοδο, τόσα άτομα.» Τρεις τρόποι να απαντηθεί αυτό χωρίς να ανοίγεις εκδρομή-εκδρομή. Διάλεξε έναν.</p>
+
+  <div class="rules">
+    <div><b>Τι υπάρχει ήδη</b>Η λίστα «Εκδρομές» δείχνει σκάφος, τρόπο πώλησης, μέγιστα άτομα και τιμή «από».</div>
+    <div><b>Τι λείπει</b>Η τιμή ανά περίοδο. Πουθενά δεν φαίνεται μαζεμένη.</div>
+    <div><b>Τι είναι σπασμένο</b>Η οθόνη «Τιμές» στο μενού είναι λίστα τιμοκαταλόγων χωρίς στήλη τιμής.</div>
+    <div><b>Τι δεν αλλάζει</b>Καμία πρόταση δεν αγγίζει το πώς αποθηκεύονται οι τιμές. Μόνο το πώς διαβάζονται.</div>
+  </div>
+</div>
+
+<!-- =================================================================== Α -->
+<section>
+  <div class="shead">
+    <span class="tag">Α</span>
+    <h2>Η οθόνη «Τιμές», φτιαγμένη</h2>
+    <span class="where">αντικαθιστά τη σημερινή οθόνη «Κατάλογος → Τιμές»</span>
+    <p>Η ίδια οθόνη που υπάρχει ήδη, ομαδοποιημένη ανά εκδρομή: μία επικεφαλίδα με το σκάφος, τα άτομα και τη διάρκεια, και από κάτω μία γραμμή ανά περίοδο με τις ημερομηνίες, την τιμή, την προκαταβολή και αν πουλάει. Η γραμμή ανοίγει και δείχνει όλες τις κατηγορίες.</p>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="bar">
+        <h4>Τιμές</h4>
+        <div class="sp">
+          <span class="search">Αναζήτηση εκδρομής…</span>
+          <span class="btn ghost">Περίοδοι</span>
+          <span class="btn">Νέος τιμοκατάλογος</span>
+        </div>
+      </div>
+
+      <div class="body">
+
+        <div class="grp">
+          <header>
+            <span class="caret">▾</span>
+            <span class="name">Ηλιοβασίλεμα στη Χώρα</span>
+            <span class="meta">Ναυσικά · έως 12 άτομα · 3 ώρες · Ανά θέση</span>
+            <span class="sp"><span class="pill good">Σε πώληση</span></span>
+          </header>
+          <table class="rows">
+            <thead>
+              <tr>
+                <th style="width:34%">Περίοδος</th>
+                <th style="width:26%">Ημερομηνίες</th>
+                <th class="num">Ενήλικας</th>
+                <th class="num">Προκαταβολή</th>
+                <th class="num" style="width:44px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <span class="period">Όλες τις άλλες μέρες</span>
+                  <div class="bands">Παιδί 3–11 · 26 € &nbsp;·&nbsp; Βρέφος · 0 €</div>
+                </td>
+                <td class="dates">—</td>
+                <td class="num"><span class="eur">45,00 €</span></td>
+                <td class="num">30%</td>
+                <td class="num"><span class="dot"></span></td>
+              </tr>
+              <tr>
+                <td>
+                  <span class="period">Θερινή</span>
+                  <div class="bands">Παιδί 3–11 · 38 € &nbsp;·&nbsp; Βρέφος · 0 €</div>
+                </td>
+                <td class="dates">01/06 – 15/09</td>
+                <td class="num"><span class="eur">65,00 €</span></td>
+                <td class="num">30%</td>
+                <td class="num"><span class="dot"></span></td>
+              </tr>
+              <tr>
+                <td>
+                  <span class="period">Πάσχα</span>
+                  <div class="bands">Παιδί 3–11 · 32 € &nbsp;·&nbsp; Βρέφος · 0 €</div>
+                </td>
+                <td class="dates">10/04 – 20/04</td>
+                <td class="num"><span class="eur">55,00 €</span></td>
+                <td class="num">30%</td>
+                <td class="num"><span class="dot off"></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grp">
+          <header>
+            <span class="caret">▾</span>
+            <span class="name">Ιδιωτική εκδρομή στον Μπάλο</span>
+            <span class="meta">Ναυσικά · έως 10 άτομα · 6 ώρες · Ολόκληρο το σκάφος</span>
+            <span class="sp"><span class="pill good">Σε πώληση</span></span>
+          </header>
+          <table class="rows">
+            <thead>
+              <tr>
+                <th style="width:34%">Περίοδος</th>
+                <th style="width:26%">Ημερομηνίες</th>
+                <th class="num">Σκάφος</th>
+                <th class="num">Προκαταβολή</th>
+                <th class="num" style="width:44px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <span class="period">Όλες τις άλλες μέρες</span>
+                  <div class="bands">έως 8 άτομα · +45 € το άτομο · +90 € η ώρα</div>
+                </td>
+                <td class="dates">—</td>
+                <td class="num"><span class="eur">480,00 €</span></td>
+                <td class="num">200,00 €</td>
+                <td class="num"><span class="dot"></span></td>
+              </tr>
+              <tr>
+                <td>
+                  <span class="period">Θερινή</span>
+                  <div class="bands">έως 8 άτομα · +60 € το άτομο · +110 € η ώρα</div>
+                </td>
+                <td class="dates">01/06 – 15/09</td>
+                <td class="num"><span class="eur">650,00 €</span></td>
+                <td class="num">200,00 €</td>
+                <td class="num"><span class="dot"></span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="grp">
+          <header>
+            <span class="caret">▸</span>
+            <span class="name">Νυχτερινή ψαρική</span>
+            <span class="meta">Αύρα · έως 8 άτομα · 4 ώρες · Ανά θέση</span>
+            <span class="sp"><span class="pill warn">Πρόχειρη</span><span class="pill bad">Καμία τιμή</span></span>
+          </header>
+          <div class="empty">Χωρίς τιμοκατάλογο η εκδρομή δεν πουλάει. <span style="color:var(--blue);font-weight:600">Προσθήκη τιμής</span></div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div><b>Απαντάει</b>«Τόσο τη θερινή» ναι · «τόσα άτομα» ναι · «τι λείπει» ναι</div>
+    <div><b>Νέες έννοιες</b>Καμία. Η ίδια οθόνη, οι στήλες που έπρεπε να έχει.</div>
+    <div><b>Προσοχή</b>Μια περίοδος έχει πολλά εύρη ημερομηνιών — δείχνουμε το πρώτο και «+2 ακόμη».</div>
+    <div><b>Εκτίμηση</b><span class="est">1–2 ώρες</span></div>
+  </div>
+</section>
+
+<!-- =================================================================== Β -->
+<section>
+  <div class="shead">
+    <span class="tag">Β</span>
+    <h2>Ο πίνακας του καταλόγου</h2>
+    <span class="where">νέα οθόνη, δίπλα στα «Στατιστικά»</span>
+    <p>Μία γραμμή ανά εκδρομή, μία στήλη ανά περίοδο. Το κελί είναι η τιμή του ενήλικα — ή του σκάφους, για ό,τι νοικιάζεται ολόκληρο. Φτιαγμένο για σύγκριση: ποια εκδρομή κοστίζει τι, και πού η θερινή δεν έχει οριστεί καθόλου.</p>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="bar">
+        <h4>Σύνοψη καταλόγου</h4>
+        <div class="sp">
+          <span class="search">Όλα τα σκάφη</span>
+          <span class="btn ghost">Εξαγωγή</span>
+        </div>
+      </div>
+      <div class="body">
+        <table class="cross">
+          <thead>
+            <tr>
+              <th style="width:36%">Εκδρομή</th>
+              <th>Άτομα</th>
+              <th>Όλες τις άλλες μέρες</th>
+              <th>Θερινή<div class="sub mono" style="font-weight:400">01/06 – 15/09</div></th>
+              <th>Πάσχα<div class="sub mono" style="font-weight:400">10/04 – 20/04</div></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="trip">Ηλιοβασίλεμα στη Χώρα</span><div class="sub">Ναυσικά · Ανά θέση</div></td>
+              <td>12</td>
+              <td><span class="eur">45,00 €</span></td>
+              <td><span class="eur">65,00 €</span></td>
+              <td><span class="eur">55,00 €</span> <span class="pill">ανενεργή</span></td>
+            </tr>
+            <tr>
+              <td><span class="trip">Ημερήσια Γραμβούσα – Μπάλος</span><div class="sub">Αύρα · Ανά θέση</div></td>
+              <td>30</td>
+              <td><span class="eur">35,00 €</span></td>
+              <td><span class="eur">48,00 €</span></td>
+              <td class="none">—</td>
+            </tr>
+            <tr>
+              <td><span class="trip">Ιδιωτική εκδρομή στον Μπάλο</span><div class="sub">Ναυσικά · Ολόκληρο το σκάφος</div></td>
+              <td>10</td>
+              <td><span class="eur">480,00 €</span></td>
+              <td><span class="eur">650,00 €</span></td>
+              <td class="none">—</td>
+            </tr>
+            <tr>
+              <td><span class="trip">Νυχτερινή ψαρική</span><div class="sub">Αύρα · Ανά θέση</div></td>
+              <td>8</td>
+              <td colspan="3"><span class="pill bad">Καμία τιμή — δεν πουλάει</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <p style="font-size:12.5px;color:var(--muted)">Η παύλα σημαίνει ότι η εκδρομή δεν έχει τιμή για την περίοδο, οπότε ισχύει η τιμή των υπόλοιπων ημερών.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div><b>Απαντάει</b>Σύγκριση μεταξύ εκδρομών, με μια ματιά</div>
+    <div><b>Το βάρος του</b>Οι στήλες είναι η ένωση όλων των περιόδων — με δέκα περίοδοι γίνεται ταμπλό που κυλάει</div>
+    <div><b>Δείχνει μόνο</b>Την τιμή της βασικής κατηγορίας. Παιδικά και βρέφη δεν χωράνε.</div>
+    <div><b>Εκτίμηση</b><span class="est">3–4 ώρες</span></div>
+  </div>
+</section>
+
+<!-- =================================================================== Γ -->
+<section>
+  <div class="shead">
+    <span class="tag">Γ</span>
+    <h2>Κάρτες σύνοψης</h2>
+    <span class="where">νέα οθόνη, και το ίδιο σε PDF</span>
+    <p>Μία κάρτα ανά εκδρομή με όλα όσα ρωτάει κάποιος στο τηλέφωνο: σκάφος, άτομα, διάρκεια, τιμές ανά περίοδο, ακύρωση. Διαβάζεται σαν κατάλογος — και τυπώνεται, οπότε είναι και αυτό που στέλνεις σε πρακτορείο ή ξενοδοχείο.</p>
+  </div>
+
+  <div class="stage">
+    <div class="panel">
+      <div class="bar">
+        <h4>Σύνοψη εκδρομών</h4>
+        <div class="sp">
+          <span class="search">Μόνο όσες πουλάνε</span>
+          <span class="btn ghost">Εκτύπωση</span>
+          <span class="btn">Αποστολή σε PDF</span>
+        </div>
+      </div>
+      <div class="body">
+        <div class="cards">
+
+          <article class="tcard">
+            <div>
+              <div class="name">Ηλιοβασίλεμα στη Χώρα</div>
+              <div class="meta">Ναυσικά · έως 12 άτομα · 3 ώρες · Ανά θέση</div>
+            </div>
+            <dl>
+              <dt>Όλες τις άλλες μέρες</dt><dd><span class="eur">45,00 €</span></dd>
+              <dt>Θερινή <small>01/06 – 15/09</small></dt><dd><span class="eur">65,00 €</span></dd>
+              <dt>Πάσχα <small>10/04 – 20/04 · ανενεργή</small></dt><dd class="none" style="color:var(--faint)"><span class="eur">55,00 €</span></dd>
+            </dl>
+            <div class="foot">Παιδί 3–11 στο 58% · Βρέφος δωρεάν · Προκαταβολή 30% · Δωρεάν ακύρωση έως 48 ώρες πριν</div>
+          </article>
+
+          <article class="tcard">
+            <div>
+              <div class="name">Ιδιωτική εκδρομή στον Μπάλο</div>
+              <div class="meta">Ναυσικά · έως 10 άτομα · 6 ώρες · Ολόκληρο το σκάφος</div>
+            </div>
+            <dl>
+              <dt>Όλες τις άλλες μέρες</dt><dd><span class="eur">480,00 €</span></dd>
+              <dt>Θερινή <small>01/06 – 15/09</small></dt><dd><span class="eur">650,00 €</span></dd>
+            </dl>
+            <div class="foot">Έως 8 άτομα · +45 € το άτομο · +90 € η ώρα · Προκαταβολή 200 € · Δωρεάν ακύρωση έως 7 μέρες πριν</div>
+          </article>
+
+          <article class="tcard">
+            <div>
+              <div class="name">Νυχτερινή ψαρική</div>
+              <div class="meta">Αύρα · έως 8 άτομα · 4 ώρες · Ανά θέση</div>
+            </div>
+            <dl>
+              <dt>Καμία τιμή ακόμη</dt><dd><span class="pill bad">Πρόχειρη</span></dd>
+            </dl>
+            <div class="foot">Λείπουν ακόμη: τιμοκατάλογος, πολιτική ακύρωσης.</div>
+          </article>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div><b>Απαντάει</b>«Τι πουλάω» ολόκληρο, σε μία κάρτα</div>
+    <div><b>Το κερδισμένο</b>Τυπώνεται. Ο τιμοκατάλογος για πρακτορεία βγαίνει από την ίδια οθόνη.</div>
+    <div><b>Το χαμένο</b>Δύσκολη σύγκριση — για «ποια κοστίζει περισσότερο» θέλει σκρολάρισμα</div>
+    <div><b>Εκτίμηση</b><span class="est">4–6 ώρες</span> <span style="font-size:12px">(+2 για το PDF)</span></div>
+  </div>
+</section>
+
+<div class="pick">
+  <h2>Η πρότασή μου</h2>
+  <p><b>Το Α τώρα, το Γ αργότερα.</b> Το Α δεν είναι καινούργια οθόνη· είναι η διόρθωση μιας οθόνης που ήδη πληρώνουμε και δεν δείχνει τιμές. Απαντάει ακριβώς αυτό που ρώτησες, με τα δεδομένα όπως είναι, και μέσα σε δύο ώρες.</p>
+  <ol>
+    <li><b>Το Β δεν το προτείνω μόνο του.</b> Οι στήλες του είναι η ένωση όλων των περιόδων κάθε εκδρομής — με τέσσερις εκδρομές δείχνει ωραίο, με σαράντα είναι ταμπλό που κυλάει δεξιά, και δείχνει μόνο τον ενήλικα.</li>
+    <li><b>Το Γ αξίζει, αλλά για άλλη δουλειά.</b> Η αξία του είναι το PDF προς τα έξω, και αυτό δένει με τη φάση των πρακτορείων και των πλατφορμών — όχι με το «να βλέπω τι πουλάω».</li>
+    <li><b>Και στα τρία:</b> μια περίοδος μπορεί να έχει πολλά εύρη ημερομηνιών. Ό,τι διαλέξεις δείχνει το πρώτο και μετράει τα υπόλοιπα· δεν τα κρύβει.</li>
+  </ol>
+</div>
+
+</div>
