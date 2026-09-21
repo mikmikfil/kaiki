@@ -102,7 +102,7 @@ Every requirement has a stable ID of the form `PREFIX-N`. IDs are permanent: the
 Design so they can be added later; do not build. Any pull request that implements one of these is rejected on scope grounds regardless of quality.
 
 - **OOS-1 (FIXED)** Reseller/agent portal, net rates, commissions.
-- **OOS-2 (FIXED)** OTA channel manager (Viator, GetYourGuide, Bókun).
+- **~~OOS-2 (FIXED)~~ — amended 2026-09-21 (per ADR-0034, Option A).** No longer out of scope. A **direct supplier connection to GetYourGuide** is in scope, built as the first implementation of EXT-1's `Channel` and held behind the `channel_manager` flag (EXT-2), default off, until their certification passes. Viator is a later implementation of the same interface. **An intermediary channel manager (Bókun) stays out of scope** — it is the copy-based model, which is where double-bookings come from. Commissions and net rates remain out under OOS-1.
 - **OOS-3 (FIXED)** Bareboat rental, multi-day charters, damage deposits.
 - **OOS-4 (FIXED)** Marketplace or aggregator site.
 - **OOS-5 (FIXED)** Platform-collected payments of any kind. The platform never holds guest money.
@@ -113,10 +113,10 @@ Design so they can be added later; do not build. Any pull request that implement
 - **OOS-10** Automatic cancellation of bookings with an overdue balance — designed, flag off (ADR-0018).
 
 ### 2.3 Deferred but designed for
-These are the named extension points. MVP code MUST leave them clean; MVP code MUST NOT implement them.
+These are the named extension points. MVP code MUST leave them clean; MVP code MUST NOT implement them — except where an ADR has since taken one of them off this list, which is recorded on the entry itself (EXT-1, per ADR-0034).
 
-- **EXT-1 (FIXED)** `App\Contracts\Channel` — an abstract channel interface with exactly one implementation, `IcalChannel`. Adding Viator/GetYourGuide/Bókun later must not require changing the availability or booking domains. The interface covers: push availability, pull bookings, map external product ids, acknowledge cancellations.
-- **EXT-2 (FIXED)** `laravel-pennant` feature flags for everything marked "later". MVP flags, all default off unless stated: `charter_agreement_custom_template`, `auto_cancel_overdue_balances`, `channel_manager`, `reseller_portal`, `reviews`, `hosted_page_custom_css` (on for Pro), `custom_domain` (on for Pro), `outbound_webhooks` (on for Pro).
+- **EXT-1 (FIXED) — resolved 2026-09-21 (per ADR-0034, Option A).** `App\Contracts\Channel` — an abstract channel interface covering: push availability, pull bookings, map external product ids, acknowledge cancellations. Implementations: `IcalChannel`, wrapping the one-directional pull that already existed, and `GetYourGuideChannel`. **The rule this extension point existed for now has teeth:** a channel MUST NOT compute availability itself. It calls `CheckSeatAvailability` / `CheckVesselAvailability` and holds seats through `HoldSeats`, so every platform selling a boat reads and writes the same `departures` row and no two of them can sell the same seat. Adding Viator must not require changing the availability or booking domains.
+- **EXT-2 (FIXED)** `laravel-pennant` feature flags for everything marked "later". MVP flags, all default off unless stated: `charter_agreement_custom_template`, `auto_cancel_overdue_balances`, `channel_manager`, `reseller_portal`, `reviews`, `hosted_page_custom_css` (on for Pro), `custom_domain` (on for Pro), `outbound_webhooks` (on for Pro). **`channel_manager` is the first of these actually wired (2026-09-21, per ADR-0034)** — it gates the GetYourGuide channel and the per-merchant switch in `/admin`, and stays off until their certification passes.
 - **EXT-3** `App\Contracts\SmsGateway` — MVP implementations `ApifonGateway`, `TwilioGateway`, `NullGateway`. Adding Yuboto later is a new class and a config entry only.
 - **EXT-4** `App\Contracts\PaymentGateway` — implementation `VivaSmartCheckoutGateway`. The contract is deliberately narrow (ADR-0004) so a second gateway is additive; ADR-0028 removed Stripe and deliberately left every plural shape in place.
 - **EXT-5** `App\Contracts\ImportSource` — MVP implementation `WooCommerceYithSource`. A future Bokun or CSV importer reuses the dry-run and mapping-review machinery.
