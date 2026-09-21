@@ -15,8 +15,11 @@ declare(strict_types=1);
 
 return [
     'on_product' => [
-        'title' => 'Prices',
-        'add' => 'New price',
+        // Not "Prices": the tab is already called that, and so is the grid
+        // below it (2026-09-21).
+        'title' => 'Price lists',
+        'intro' => 'One price list per period: when it applies, what deposit you ask for, and when you take bookings. The amounts themselves are quicker to fill in on the «Prices in euros» grid below.',
+        'add' => 'New price list',
         'edit' => 'Change price',
         'more' => 'More',
         'season' => [
@@ -31,7 +34,7 @@ return [
         ],
         'prices' => [
             'label' => 'Price per category',
-            'help' => 'In euros, for one person. Easier: the “Prices in euros” table above, every period at once.',
+            'help' => 'In euros, for one person. Easier: the “Prices in euros” table below, every period at once.',
             'band' => 'Category',
             'price' => 'Price',
         ],
@@ -107,7 +110,7 @@ return [
         'save' => 'Save prices',
         'saved' => 'Prices saved.',
         'unsaved' => 'You have price changes that are not saved yet.',
-        'periods_below' => 'New period, deposit and booking window: in the “Prices” list further down.',
+        'periods_below' => 'New period, deposit and booking window: in “Price lists” above.',
         'save_trip_first' => 'The price table appears once the trip is saved with its age categories.',
         'invalid' => 'Enter an amount in euros, e.g. 22.50.',
         'missing_banner' => 'One price is missing. Without it, that category is not charged and the trip cannot be published.|:count prices are missing. Without them, those categories are not charged and the trip cannot be published.',

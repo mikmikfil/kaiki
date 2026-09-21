@@ -219,6 +219,15 @@
      * one dark with a 2px blue bar under it, one hairline under the row, and
      * the count as quiet text rather than a pill. The bar marks the open tab;
      * it is not an underlined link.
+     *
+     * The row still scrolls sideways when it has to — five Greek words with
+     * their counts do not fit a phone — but **without the scrollbar**
+     * (product owner, 2026-09-21: «βγαίνει ένα συμβολάκι για scroll»). Windows
+     * draws a classic grey bar inside the element, which under a row of tabs
+     * reads as a second, broken underline sitting on the hairline. Hiding the
+     * bar costs nothing here: the tabs are also reachable by touch swipe, by
+     * the arrow keys and by Tab, and a tab scrolled out of view is scrolled
+     * into it when it is focused.
      */
     .ka-line-tabs > nav.fi-tabs {
         justify-content: flex-start;
@@ -232,6 +241,12 @@
         background: transparent;
         box-shadow: none;
         overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .ka-line-tabs > nav.fi-tabs::-webkit-scrollbar {
+        display: none;
     }
 
     .ka-line-tabs > nav.fi-tabs .fi-tabs-item {
@@ -317,7 +332,37 @@
      * «Πριν τη δημοσίευση» as a column of its own (2026-09-18). It follows the
      * form down the page, because it is the answer to "why can I not publish
      * this yet" and that question is asked from whichever tab is open.
+     *
+     * A fifth of the row since 2026-09-21, so the type inside comes down with
+     * it: at the old size the chips set the column's width, and a heading in
+     * the panel's default size next to them made a narrow card look like a
+     * squeezed wide one rather than a margin note. Scoped to this card — the
+     * chips are shared with the trips list, where they are read at full size.
      */
+    .ka-checklist-side .fi-section-header-heading {
+        font-size: .9375rem;
+    }
+
+    .ka-checklist-side .kc-row {
+        gap: .3rem;
+    }
+
+    .ka-checklist-side .kc-chip {
+        padding: .22rem .45rem;
+        font-size: .72rem;
+        gap: .25rem;
+    }
+
+    .ka-checklist-side .kc-icon {
+        width: .8rem;
+        height: .8rem;
+    }
+
+    .ka-checklist-side .kc-summary,
+    .ka-checklist-side .kc-unsaved {
+        font-size: .75rem;
+    }
+
     @media (min-width: 1280px) {
         .ka-checklist-side {
             position: sticky;

@@ -436,7 +436,6 @@ return [
         ],
 
         'checklist' => [
-            'intro' => 'A trip needs all of these before it can be published.',
             'unsaved' => 'Save the trip first and you will see what is missing.',
             'met' => 'Done',
             'ready' => 'All done — this trip can be published.',

@@ -139,8 +139,14 @@ class ProductResource extends Resource
              * A save error in a tab that is not on screen opens that tab by
              * itself, which is Filament's behaviour and the reason the tabs are
              * a Tabs component rather than five links.
+             *
+             * **A fifth, not a third** (product owner, 2026-09-21, twice): the
+             * checklist is a glance, not a panel, and at a third of the page it
+             * was taking room from the trip itself. Four of five columns go to
+             * the form; the chips in the last one shrink to match — see
+             * `.ka-checklist-side` in `sea.blade.php`.
              */
-            Grid::make(['default' => 1, 'xl' => 3])
+            Grid::make(['default' => 1, 'xl' => 5])
                 ->schema([
                     Group::make([
                         // One switch for the whole form, instead of a pair of
@@ -174,11 +180,14 @@ class ProductResource extends Resource
                                     ->badgeColor('gray')
                                     ->schema(static::pageSections()),
                             ]),
-                    ])->columnSpan(['default' => 1, 'xl' => 2]),
+                    ])->columnSpan(['default' => 1, 'xl' => 4]),
 
                     Group::make([
+                        // No description: «Πριν τη δημοσίευση» over a row of
+                        // chips already says what the section is, and a line of
+                        // prose repeating it was half the card's height.
                         Section::make(__('catalog.product.sections.checklist'))
-                            ->description(__('catalog.product.checklist.intro'))
+                            ->compact()
                             ->extraAttributes(['class' => 'ka-checklist-side'])
                             ->schema(static::checklistSchema()),
                     ])->columnSpan(['default' => 1, 'xl' => 1]),
@@ -511,6 +520,42 @@ class ProductResource extends Resource
                         ->columnSpanFull(),
                 ]),
 
+            /*
+             * The trip's price lists, moved into this tab (product owner,
+             * 2026-09-21: *«γιατί οι τιμές υπάρχουν και πάνω και κάτω;»*).
+             *
+             * They were a relation manager below the form, under a heading that
+             * also said «Τιμές» — so one page carried two price screens, and
+             * the one an operator had to use **first** was the lower one, past
+             * the save buttons, where nothing pointed at it. The grid below
+             * this section prices bands that only exist once a list exists.
+             *
+             * Nothing about the pricing rules moved: {@see SaveRatePlan} is
+             * still the only writer and the manager is still the same class.
+             *
+             * **No `Section` around it.** A relation manager draws its own card
+             * and its own heading, so wrapping one produces the heading twice —
+             * which is the very complaint this change answers. The heading and
+             * the line under it are set on the manager's table instead, the way
+             * «Πρόσθετα» sets its own.
+             *
+             * It keeps its gate here, because `Livewire::make()` does not run
+             * the one a registered relation manager gets for free — TEN-8 says
+             * crew read departures, not prices.
+             */
+            Livewire::make(
+                RatePlansRelationManager::class,
+                static fn (?Product $record): array => [
+                    'ownerRecord' => $record,
+                    'pageClass' => Pages\EditProduct::class,
+                ],
+            )
+                ->key('trip-rate-plans')
+                ->visible(static fn (?Product $record): bool => $record instanceof Product
+                    && $record->exists
+                    && RatePlansRelationManager::canViewForRecord($record, Pages\EditProduct::class))
+                ->columnSpanFull(),
+
             // Every band, every period, in euros (product owner, 2026-09-17).
             // The table prices saved bands, so on a trip being created the
             // section is there but says, in one line, that it appears after
@@ -532,18 +577,19 @@ class ProductResource extends Resource
             // «Πρόσθετα» (2026-09-17), beside the prices rather than in a tab of
             // its own at the foot of the page: an extra is a price, and an
             // operator setting up a trip is thinking about money once.
-            Section::make(__('catalog.product.sections.extras'))
-                ->description(__('catalog.product.sections.extras_intro'))
+            //
+            // Unwrapped for the same reason as the price lists above: the
+            // manager already carries this heading on its own table.
+            Livewire::make(
+                ExtrasRelationManager::class,
+                static fn (?Product $record): array => [
+                    'ownerRecord' => $record,
+                    'pageClass' => Pages\EditProduct::class,
+                ],
+            )
+                ->key('trip-extras')
                 ->visible(static fn (?Product $record): bool => $record instanceof Product && $record->exists)
-                ->schema([
-                    Livewire::make(
-                        ExtrasRelationManager::class,
-                        static fn (?Product $record): array => [
-                            'ownerRecord' => $record,
-                            'pageClass' => Pages\EditProduct::class,
-                        ],
-                    )->key('trip-extras'),
-                ]),
+                ->columnSpanFull(),
         ];
     }
 
@@ -1190,12 +1236,12 @@ class ProductResource extends Resource
      */
     public static function getRelations(): array
     {
-        return [
-            // Seasons and their price lists keep a manager of their own: they
-            // are shared between trips, unlike the extras and the questions,
-            // which are this trip's and are edited inside its tabs (2026-09-18).
-            RatePlansRelationManager::class,
-        ];
+        // None. Every manager this trip has is embedded in the tab it belongs
+        // to — price lists and extras in «Τιμές», questions in «Σελίδα». A
+        // manager registered here renders *below* the form and its save
+        // buttons, which put the price lists on the same page as, and out of
+        // sight of, the grid that prices them (product owner, 2026-09-21).
+        return [];
     }
 
     /** @return array<string, PageRegistration> */
