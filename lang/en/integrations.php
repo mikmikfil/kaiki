@@ -80,6 +80,7 @@ return [
         'from_address' => 'From address',
         'from_name' => 'From name',
         'account_id' => 'Account ID',
+        'supplier_id' => 'Supplier ID',
     ],
 
     'refused' => [

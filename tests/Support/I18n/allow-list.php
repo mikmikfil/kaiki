@@ -90,6 +90,7 @@ return [
         'enums.integration_provider.twilio.label' => 'Vendor wordmark, identical in both locales.',
         'enums.integration_provider.postmark.label' => 'Vendor wordmark, identical in both locales.',
         'enums.channel_key.getyourguide.label' => 'Vendor wordmark, identical in both locales. An operator looking for "GetYourGuide" is looking for the word on their own GetYourGuide dashboard.',
+        'enums.integration_provider.getyourguide.label' => 'Vendor wordmark, identical in both locales.',
 
         // The same two vendors again, under the `payments.gateway` column's own
         // enum. Two enums naming one company is not duplication to remove: the

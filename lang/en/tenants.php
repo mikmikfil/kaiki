@@ -37,6 +37,7 @@ return [
         'extra_person_pricing' => 'Price «up to N people + per extra person»',
         'sms' => 'Text messages (SMS)',
         'setup_guide' => 'Setup guide',
+        'getyourguide' => 'Selling through GetYourGuide',
         'hosted_site_mode' => 'Pages we publish',
     ],
 
@@ -90,6 +91,7 @@ return [
         'setup_reset_body' => 'The guide starts again for this operator. Anything already filled in stays.',
         'setup_reset_done' => 'The guide starts again',
         'sms_help' => 'On: the operator also sends text messages (confirmation, reminders) and sees the Apifon, Yuboto or Twilio connection under Connections. Every message is charged to their own account. Off for everyone unless they ask for it.',
+        'getyourguide_help' => 'On: the operator sees the GetYourGuide connection under Connections and enters their own details. Seats GetYourGuide sells come out of the same availability as their own page — there is no second stock, so there is no double booking. Requires their own contract with GetYourGuide; the platform does not hold one. Off for everyone.',
         'hosted_site_mode_help' => 'The booking pages — a page per trip, search and the legal pages — are published in both. The full website adds the home page. The operator sees this but cannot change it. Takes effect at once; bookings already made are never affected.',
         'confirm_heading' => 'Change this operator’s account',
         'confirm_body' => 'The change is recorded in the operator’s own audit trail, with your name and your reason.',

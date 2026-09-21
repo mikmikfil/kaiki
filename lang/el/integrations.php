@@ -81,6 +81,7 @@ return [
         'from_address' => 'Διεύθυνση αποστολέα',
         'from_name' => 'Όνομα αποστολέα email',
         'account_id' => 'Αναγνωριστικό λογαριασμού',
+        'supplier_id' => 'Αναγνωριστικό προμηθευτή (Supplier ID)',
     ],
 
     'refused' => [

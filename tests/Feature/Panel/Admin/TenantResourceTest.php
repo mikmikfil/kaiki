@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Channels\Support\ChannelManagerFlag;
 use App\Enums\AuditAction;
 use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
@@ -348,6 +349,42 @@ it('lets the platform decide which pages an operator gets, with a reason, in the
         expect($entry->context)->toMatchArray([
             'hosted_site_mode_from' => 'full',
             'hosted_site_mode_to' => 'bookings_only',
+        ]);
+    });
+})->group('fast');
+
+it('hides the GetYourGuide switch until the platform has opened the channel', function (): void {
+    // ADR-0034 ships the code months before GetYourGuide certifies it. Hidden
+    // rather than disabled, for the reason the QR toggle is: a greyed-out
+    // control invites somebody to wonder which switch wins, and this one is
+    // opened from a console by whoever holds the certification email.
+    expect(ChannelManagerFlag::isOpen())->toBeFalse();
+
+    editTenantPage(superAdmin(), Tenant::factory()->create())
+        ->assertFormFieldIsHidden('getyourguide_enabled');
+})->group('fast');
+
+it('records switching an operator onto GetYourGuide, with a reason, in their own trail', function (): void {
+    ChannelManagerFlag::open();
+
+    $tenant = Tenant::factory()->create(['getyourguide_enabled' => false]);
+
+    editTenantPage(superAdmin(), $tenant)
+        ->fillForm(['getyourguide_enabled' => true])
+        ->callAction('save', ['auditReason' => 'Υπέγραψε σύμβαση με το GetYourGuide.'])
+        ->assertHasNoErrors();
+
+    expect($tenant->fresh()?->usesGetYourGuide())->toBeTrue();
+
+    Tenancy::forTenant($tenant, function (): void {
+        $entry = AuditLog::query()->where('action', AuditAction::TenantUpdated->value)->sole();
+
+        // The switch is in `AUDITED`, so the diff carries it. A change that
+        // starts offering somebody's seats on a third-party marketplace is
+        // exactly what the trail exists for.
+        expect($entry->context)->toMatchArray([
+            'getyourguide_enabled_from' => false,
+            'getyourguide_enabled_to' => true,
         ]);
     });
 })->group('fast');

@@ -357,6 +357,7 @@ return [
         'yuboto' => ['label' => 'Yuboto'],
         'twilio' => ['label' => 'Twilio'],
         'postmark' => ['label' => 'Postmark'],
+        'getyourguide' => ['label' => 'GetYourGuide'],
     ],
 
     /*

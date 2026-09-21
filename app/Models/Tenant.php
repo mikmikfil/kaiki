@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Domain\Channels\Support\ChannelResolver;
 use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
 use App\Enums\TenantStatus;
@@ -69,6 +70,7 @@ use Stancl\Tenancy\Database\Concerns\TenantRun;
  * @property bool|null $extra_person_pricing_enabled
  * @property bool|null $sms_enabled
  * @property bool|null $setup_guide_enabled
+ * @property bool|null $getyourguide_enabled
  * @property array<string, mixed> $settings
  * @property int|null $balance_due_days_before_departure
  * @property string|null $weather_choice_default
@@ -110,6 +112,7 @@ class Tenant extends Model implements TenantContract
             'extra_person_pricing_enabled' => 'boolean',
             'sms_enabled' => 'boolean',
             'setup_guide_enabled' => 'boolean',
+            'getyourguide_enabled' => 'boolean',
             'onboarding_completed_at' => 'datetime',
             'onboarding_skipped_steps' => 'array',
         ];
@@ -262,6 +265,26 @@ class Tenant extends Model implements TenantContract
     public function usesSetupGuide(): bool
     {
         return $this->setup_guide_enabled !== false;
+    }
+
+    /**
+     * Whether this operator sells through GetYourGuide (ADR-0034).
+     *
+     * Switched on per operator by the platform, never by default. Null reads as
+     * **off**, because the operator holds the GetYourGuide contract themselves:
+     * switching it on for somebody who has not signed one would offer their
+     * seats under an agreement that does not exist.
+     *
+     * This answers about the *operator* only. The platform-wide
+     * `channel_manager` flag sits above it and is shut until GetYourGuide's
+     * certification passes — the two are combined in
+     * {@see ChannelResolver}, which is the one door
+     * anything goes through to reach a channel, exactly as
+     * `SendNotification::smsEnabled()` is for the SMS pair.
+     */
+    public function usesGetYourGuide(): bool
+    {
+        return $this->getyourguide_enabled === true;
     }
 
     /** Operators in `read_only` or `suspended` cannot write (see #7). */

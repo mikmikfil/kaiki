@@ -6,6 +6,7 @@ namespace App\Filament\Admin\Resources\TenantResource\Pages;
 
 use App\Domain\Audit\Actions\RecordAuditEntry;
 use App\Domain\Audit\Data\AuditEntryData;
+use App\Domain\Channels\Support\ChannelManagerFlag;
 use App\Domain\Tenancy\Support\SetupChecklist;
 use App\Enums\AuditAction;
 use App\Enums\HostedSiteMode;
@@ -87,7 +88,7 @@ class EditTenant extends EditRecord
      * Named once, so the snapshot and the diff cannot drift apart — which is
      * how an audit trail quietly stops recording one of them.
      */
-    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'check_in_enabled', 'qr_check_in_enabled', 'hosted_site_mode', 'extra_person_pricing_enabled', 'sms_enabled', 'setup_guide_enabled'];
+    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'check_in_enabled', 'qr_check_in_enabled', 'hosted_site_mode', 'extra_person_pricing_enabled', 'sms_enabled', 'setup_guide_enabled', 'getyourguide_enabled'];
 
     /** The operator's own words, captured by the confirmation and not by the form. */
     public ?string $auditReason = null;
@@ -204,6 +205,25 @@ class EditTenant extends EditRecord
                         ->label(__('tenants.columns.setup_guide'))
                         ->helperText(__('tenants.edit.setup_guide_help'))
                         ->formatStateUsing(fn (?bool $state): bool => $state !== false),
+
+                    // Selling through GetYourGuide (ADR-0034). Off for
+                    // everybody: the operator holds that contract themselves,
+                    // so switching it on for somebody who has not signed one
+                    // would offer their seats under an agreement that does not
+                    // exist. Null is off (`Tenant::usesGetYourGuide()`).
+                    //
+                    // Hidden entirely while the platform's `channel_manager`
+                    // flag is shut, which it is until GetYourGuide certifies
+                    // the integration. Hidden rather than disabled, for the
+                    // reason the QR toggle is: a greyed-out control invites
+                    // somebody to wonder which switch wins, and this one has an
+                    // answer nobody in /admin can change — it is opened from a
+                    // console, by whoever holds the certification email.
+                    Toggle::make('getyourguide_enabled')
+                        ->label(__('tenants.columns.getyourguide'))
+                        ->helperText(__('tenants.edit.getyourguide_help'))
+                        ->formatStateUsing(fn (?bool $state): bool => $state === true)
+                        ->visible(fn (): bool => ChannelManagerFlag::isOpen()),
 
                     // Where the operator has got to, so the platform knows
                     // whether to call them. Read in their tenant, because every
