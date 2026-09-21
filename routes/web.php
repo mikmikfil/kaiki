@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Hosted\Support\HostedHost;
+use App\Http\Controllers\Channels\GetYourGuide\AvailabilityController as GetYourGuideAvailabilityController;
 use App\Http\Controllers\Guest\CheckoutController;
 use App\Http\Controllers\Guest\GuestDetailsController;
 use App\Http\Controllers\Guest\ManageBookingController;
@@ -85,6 +86,37 @@ Route::post('/webhooks/{provider}/{token}', [GatewayWebhookController::class, 'd
     ->middleware('throttle:webhooks')
     ->whereAlphaNumeric('token')
     ->name('webhooks.gateway.tenant');
+
+/*
+|--------------------------------------------------------------------------
+| OTA channels — the endpoints GetYourGuide calls (ADR-0034, spec EXT-1)
+|--------------------------------------------------------------------------
+|
+| **Their contract, their version number, their vocabulary.** The `/1/` is
+| GetYourGuide's, not ours: their supplier API is versioned on their side and a
+| v2 of it has nothing to do with a v2 of `/api/v1`. Hence the prefix, and hence
+| these routes being here rather than in `routes/api.php` — the drift gate
+| compares every route under that prefix against `docs/api.md` §5, and these are
+| not operations an integrator of *ours* calls. The same argument the gateway
+| webhooks above are here for.
+|
+| **No `api.key`, no `tenant`, no CSRF.** GetYourGuide holds none of the three.
+| `channel.auth` does both jobs at once: it authenticates the HTTP Basic pair
+| and resolves the tenant from the username, because that username is the only
+| identifying thing in the request — no supplier id in the path, no signature,
+| no `Origin`. CSRF is excluded by path in `bootstrap/app.php`.
+|
+| Throttled on the username rather than the IP: their calls come from a handful
+| of their own addresses, so an IP limiter would let one busy operator throttle
+| every other operator on the platform.
+*/
+Route::prefix('channels/getyourguide')
+    ->middleware(['channel.auth', 'throttle:channels'])
+    ->name('channels.getyourguide.')
+    ->group(function (): void {
+        Route::get('/1/get-availabilities', GetYourGuideAvailabilityController::class)
+            ->name('availabilities');
+    });
 
 /*
 |--------------------------------------------------------------------------

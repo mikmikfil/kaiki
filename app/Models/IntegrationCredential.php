@@ -57,6 +57,10 @@ use Illuminate\Support\Str;
  * @property string|null $last_error
  * @property string|null $webhook_secret encrypted
  * @property string|null $webhook_token the operator's half of their webhook URL; not a secret, but unguessable
+ * @property string|null $inbound_username what an OTA calling us authenticates as; indexed, because it resolves the tenant
+ * @property string|null $inbound_secret_hash sha256 of the password we issued; never the password
+ * @property string|null $inbound_last_four the tail of that password, so the operator can tell which pair is live
+ * @property Carbon|null $inbound_rotated_at
  */
 class IntegrationCredential extends Model
 {
@@ -88,7 +92,7 @@ class IntegrationCredential extends Model
      *
      * @var list<string>
      */
-    protected $hidden = ['credentials', 'webhook_secret'];
+    protected $hidden = ['credentials', 'webhook_secret', 'inbound_secret_hash'];
 
     /**
      * No database default for `public_config`: MySQL 8 refuses a literal
@@ -113,6 +117,7 @@ class IntegrationCredential extends Model
             'is_default' => 'boolean',
             'is_active' => 'boolean',
             'verified_at' => 'datetime',
+            'inbound_rotated_at' => 'datetime',
         ];
     }
 
@@ -234,5 +239,55 @@ class IntegrationCredential extends Model
                 ->where('external_account_id', $externalAccountId)
                 ->first(),
         );
+    }
+
+    /**
+     * The credential an inbound Basic-auth username belongs to (ADR-0034).
+     *
+     * Runs outside tenancy because it is what *resolves* the tenant: a
+     * GetYourGuide request carries no supplier id, no signature and no origin,
+     * so the username is the only thing in it that says whose seats are being
+     * asked about.
+     *
+     * **Inactive rows still match**, deliberately, and the caller decides what
+     * to do about it. A deactivated credential answering "no such account" and
+     * a wrong password answering "no such account" are indistinguishable to the
+     * far side, which is right for a password and wrong for a switched-off
+     * connection — an operator who turned GetYourGuide off wants their support
+     * ticket answered with "you turned it off", not with a shrug.
+     */
+    public static function findByInboundUsername(IntegrationProvider $provider, string $username): ?self
+    {
+        if ($username === '') {
+            return null;
+        }
+
+        return Tenancy::withoutTenancy(
+            static fn (): ?self => static::query()
+                ->where('provider', $provider->value)
+                ->where('inbound_username', $username)
+                ->first(),
+        );
+    }
+
+    /**
+     * Does this secret match the stored hash?
+     *
+     * `hash_equals` rather than `===`: the comparison runs on every inbound
+     * call, and a short-circuiting compare leaks how much of a guess was right
+     * through timing. `ApiKey::matches()` does the same for the same reason.
+     *
+     * A credential with no inbound pair set answers false rather than throwing,
+     * because "nothing has been generated yet" is an ordinary state — it is the
+     * state every GetYourGuide credential is in until the operator presses the
+     * button — and the caller's answer to it is the same 401 either way.
+     */
+    public function matchesInboundSecret(string $secret): bool
+    {
+        if (! is_string($this->inbound_secret_hash) || $this->inbound_secret_hash === '') {
+            return false;
+        }
+
+        return hash_equals($this->inbound_secret_hash, hash('sha256', $secret));
     }
 }
