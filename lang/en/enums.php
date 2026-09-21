@@ -360,6 +360,20 @@ return [
     ],
 
     /*
+    |--------------------------------------------------------------------------
+    | Sales channels (EXT-1, ADR-0034)
+    |--------------------------------------------------------------------------
+    |
+    | "GetYourGuide" is a trademark and stays in Latin script in both languages,
+    | as the providers above do. iCal is not a brand but a file format, and an
+    | operator meets it as a calendar — which is what their own screen calls it.
+    */
+    'channel_key' => [
+        'ical' => ['label' => 'iCal calendar'],
+        'getyourguide' => ['label' => 'GetYourGuide'],
+    ],
+
+    /*
     | Deliberately the same two words as `api_key_environment` above. PAY-11
     | pairs them directly — sandbox mode means a test key reaching test gateway
     | credentials — and two vocabularies for one concept is how a query
