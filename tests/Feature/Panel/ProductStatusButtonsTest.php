@@ -61,11 +61,17 @@ function completeTripWithStatus(ProductStatus $status): Product
     return $product;
 }
 
-it('names the create button «continue to prices» and offers no «create another»', function (): void {
+it('opens a new trip as a four-step guide, and offers no «create another»', function (): void {
+    // «Συνέχεια στις τιμές» was the single button of the old one-page form. The
+    // guide (2026-09-22) names its four steps instead, and the last one asks
+    // whether to publish — so what a new trip shows first is step one.
     $owner = OperatorUser::withRole(Role::Owner);
 
     statusPageAs($owner, CreateProduct::class)
-        ->assertSee(__('catalog.product.status_actions.continue_to_prices'))
+        ->assertSee(__('catalog.product.wizard.basics.label'))
+        ->assertSee(__('catalog.product.wizard.when.label'))
+        ->assertSee(__('catalog.product.wizard.prices.label'))
+        ->assertSee(__('catalog.product.wizard.publish.label'))
         ->assertDontSee(__('filament-panels::resources/pages/create-record.form.actions.create_another.label'));
 })->group('fast');
 

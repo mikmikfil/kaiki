@@ -14,10 +14,12 @@ use App\Filament\App\Resources\ProductResource\Pages\ListProducts;
 use App\Filament\App\Widgets\UnsellableProducts;
 use App\Models\AgeBand;
 use App\Models\CancellationPolicy;
+use App\Models\Departure;
 use App\Models\Port;
 use App\Models\Product;
 use App\Models\RatePlan;
 use App\Models\RatePlanPrice;
+use App\Models\Season;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Vessel;
@@ -75,6 +77,16 @@ function productFormState(array $overrides = []): array
         'category' => ProductCategory::SharedFullDay->value,
         'mode' => BookingMode::PerSeat->value,
         'status' => ProductStatus::Draft->value,
+        // The create page is a guide of steps since 2026-09-22 and asks for
+        // both of these before it will make a trip: its promise is a trip that
+        // can be published, and neither of them can be filled in later without
+        // the publish checklist stopping the operator anyway.
+        'vessel_id' => Vessel::factory()->create()->getKey(),
+        'meeting_point_id' => Port::factory()->create()->getKey(),
+        // …and what the last step asks. Draft here, so the tests that are about
+        // creating stay about creating; the two that are about publishing say
+        // so themselves.
+        'wizard_publish' => 'draft',
         'duration_minutes' => 480,
         'check_in_offset_minutes' => 30,
         'max_pax' => 12,
@@ -152,9 +164,7 @@ it('starts a new trip with Ενήλικας, Παιδί and Βρέφος, withou
     $state = productFormState();
     unset($state['age_bands']);
 
-    $page->fillForm($state)
-        ->call('create')
-        ->assertHasNoFormErrors();
+    $page->fillForm($state)->call('create');
 
     Tenancy::forTenant(productTenantOf($owner), function (): void {
         expect(Product::query()->sole()->ageBands()->orderBy('sort_order')->pluck('code')->all())->toBe(['adult', 'child', 'infant']);
@@ -203,21 +213,29 @@ it('creates a cancellation policy from the trip form when the operator has none'
 })->group('fast');
 
 it('refuses publishing a trip that is missing its prerequisites, naming each one', function (): void {
+    // On the **edit** page, which is where a half-finished trip is published
+    // from. The create page cannot produce this state any more: since the
+    // four-step guide (2026-09-22) it asks for the boat and the meeting point
+    // before it will make a trip at all.
     $owner = OperatorUser::withRole(Role::Owner);
 
-    // No vessel, no meeting point, no rate plan — three of the six.
-    productPageAs($owner, CreateProduct::class)
-        ->fillForm(productFormState(['status' => ProductStatus::Active->value]))
-        ->call('create')
-        ->assertHasFormErrors(['status']);
+    $product = Tenancy::forTenant(productTenantOf($owner), function (): Product {
+        $product = Product::factory()->create(['status' => ProductStatus::Draft, 'vessel_id' => null, 'meeting_point_id' => null]);
+        AgeBand::factory()->create(['product_id' => $product->getKey()]);
 
-    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        return $product;
+    });
+
+    productPageAs($owner, EditProduct::class, ['record' => $product->getRouteKey()])
+        ->callAction('publish')
+        ->assertHasActionErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function () use ($product): void {
         // The draft is kept. An operator who asked for too much gets the trip
         // they built, not an empty form and a lost afternoon.
-        $product = Product::query()->firstOrFail();
-
-        expect($product->status)->toBe(ProductStatus::Draft)
-            ->and($product->ageBands()->count())->toBe(1);
+        expect($product->refresh()->status)->toBe(ProductStatus::Draft)
+            ->and(ProductPublishChecklist::unmet($product))
+            ->toContain(ProductPublishChecklist::VESSEL, ProductPublishChecklist::MEETING_POINT);
     });
 })->group('fast');
 
@@ -249,34 +267,172 @@ it('publishes a trip once every prerequisite is met', function (): void {
     });
 })->group('fast');
 
-it('publishes a brand-new trip whose bands are created in the same submit', function (): void {
-    // The order trap: the checklist asks whether the product has bands, and the
-    // bands need a product id. Saved naively, publishing on creation would be
-    // refused for having no bands on the very submit that creates them.
+it('publishes a brand-new trip, with its prices and its schedule, in one walk', function (): void {
+    // The promise the guide makes (2026-09-22, direction Α): answer every step
+    // and you have a trip that **sells** — not a draft and a list of what is
+    // still missing. The order trap is in here too: the checklist asks whether
+    // the trip has bands, and the bands need a product id, so a naive save
+    // would refuse to publish on the very submit that creates them.
     $owner = OperatorUser::withRole(Role::Owner);
 
-    [$vesselId, $portId] = Tenancy::forTenant(productTenantOf($owner), function (): array {
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
         CancellationPolicy::factory()->create(['is_default' => true]);
-
-        return [Vessel::factory()->create()->getKey(), Port::factory()->create()->getKey()];
     });
+
+    $page = productPageAs($owner, CreateProduct::class);
+
+    // Built after the page, because the fixture makes a boat and a port and
+    // both of those need the tenant the page just initialised.
+    $state = productFormState([
+        'wizard_publish' => 'publish',
+        'wizard_schedules' => [
+            ['days' => [1, 3, 5], 'times' => [['time' => '19:00']], 'valid_from' => null, 'valid_until' => null],
+        ],
+    ]);
+
+    // The price travels on the band row, the way the step asks for it.
+    $state['age_bands'][0]['wizard_price'] = '45,00';
+
+    $page->fillForm($state)
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $product = Product::query()->firstOrFail();
+        $plan = $product->ratePlans()->sole();
+
+        expect($product->status)->toBe(ProductStatus::Active)
+            ->and($product->ageBands()->count())->toBe(1)
+            // «Όλο τον χρόνο»: the list that applies when no period does.
+            ->and($plan->season_id)->toBeNull()
+            ->and($plan->prices()->value('price_cents'))->toBe(4500)
+            // …and a day to sell, which is the part an operator would never
+            // think to come back for.
+            ->and($product->scheduleRules()->count())->toBe(1)
+            ->and(Departure::query()->where('product_id', $product->getKey())->exists())->toBeTrue();
+    });
+})->group('fast');
+
+it('takes the whole timetable, several times a day, on the first walk', function (): void {
+    // Product owner, 2026-09-22: *«και δρομολόγια extra αν υπάρχουν με ημέρες
+    // ώρες κλπ»*. One row of checkboxes and one time was a trip that leaves
+    // Tuesdays at nine; a summer is two sailings a day plus a weekend one that
+    // stops in September.
+    //
+    // **A rule per time**, sharing the days and the window, which is how the
+    // trip's own «Δρομολόγια» tab stores it too — so 18:00 can be paused later
+    // without touching the morning.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $page = productPageAs($owner, CreateProduct::class);
+
+    $page->fillForm(productFormState([
+        'wizard_schedules' => [
+            ['days' => [1, 2, 3, 4, 5], 'times' => [['time' => '10:00'], ['time' => '18:00']], 'valid_from' => null, 'valid_until' => null],
+            ['days' => [6, 7], 'times' => [['time' => '12:00']], 'valid_from' => '2027-06-01', 'valid_until' => '2027-09-30'],
+            // Days but no time: not a schedule, and not a reason to refuse the
+            // whole submit either.
+            ['days' => [1], 'times' => [], 'valid_from' => null, 'valid_until' => null],
+        ],
+    ]))
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $rules = Product::query()->firstOrFail()->scheduleRules()->orderBy('start_time')->get();
+
+        expect($rules)->toHaveCount(3)
+            // Monday–Friday is 0b0011111 = 31, Saturday and Sunday 0b1100000 = 96.
+            ->and($rules->pluck('weekday_mask')->all())->toBe([31, 96, 31])
+            ->and($rules->map(static fn ($rule): string => substr((string) $rule->start_time, 0, 5))->all())
+            ->toBe(['10:00', '12:00', '18:00'])
+            // The window belongs to the row, not to the trip.
+            ->and($rules[1]->valid_from->toDateString())->toBe('2027-06-01')
+            ->and($rules[1]->valid_until?->toDateString())->toBe('2027-09-30')
+            ->and($rules[0]->valid_until)->toBeNull();
+    });
+})->group('fast');
+
+it('takes a period price beside the band, and fills the rest of the list in', function (): void {
+    // Product owner, 2026-09-22: *«και τιμές περίοδοι κλπ»*. The question is
+    // asked per band — *«ο ενήλικας 45, το καλοκαίρι 55»* — and gathered back
+    // into one list per period on save.
+    //
+    // The band the operator said nothing about keeps its all-year price, which
+    // is both what they meant and what PRC-4 needs: a list that prices some of
+    // the bands is refused.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $season = Tenancy::forTenant(productTenantOf($owner), fn (): Season => Season::factory()->create());
+
+    $page = productPageAs($owner, CreateProduct::class);
+
+    $state = productFormState();
+    $state['age_bands'][] = [
+        'code' => 'child',
+        'label' => ['el' => 'Παιδί', 'en' => 'Child'],
+        'min_age' => 3,
+        'max_age' => 11,
+        'counts_toward_capacity' => true,
+        'pricing_mode' => AgeBandPricing::Fixed->value,
+        'price_multiplier_bp' => null,
+        'is_base' => false,
+        'requires_adult' => true,
+    ];
+
+    $state['age_bands'][0]['wizard_price'] = '45,00';
+    $state['age_bands'][0]['wizard_season_prices'] = [
+        ['season_id' => $season->getKey(), 'price' => '55,00'],
+    ];
+    // The child is priced all year and never for the period.
+    $state['age_bands'][1]['wizard_price'] = '20,00';
+
+    $page->fillForm($state)->call('create')->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function () use ($season): void {
+        $product = Product::query()->firstOrFail();
+        $bands = $product->ageBands()->orderBy('sort_order')->get();
+
+        $allYear = $product->ratePlans()->whereNull('season_id')->sole();
+        $summer = $product->ratePlans()->where('season_id', $season->getKey())->sole();
+
+        $priceFor = static fn ($plan, $band): ?int => $plan->prices()
+            ->where('age_band_id', $band->getKey())
+            ->value('price_cents');
+
+        expect($priceFor($allYear, $bands[0]))->toBe(4500)
+            ->and($priceFor($allYear, $bands[1]))->toBe(2000)
+            ->and($priceFor($summer, $bands[0]))->toBe(5500)
+            // Inherited, not missing.
+            ->and($priceFor($summer, $bands[1]))->toBe(2000);
+    });
+})->group('fast');
+
+it('takes the trip page texts on the first walk', function (): void {
+    // Product owner, 2026-09-22: *«και κείμενα τα πάντα»*. The step is
+    // `ProductResource::pageSections()` verbatim, so this is about the wizard
+    // carrying them to `SaveProduct` — the fields themselves are covered by
+    // `TripPageContentFormTest`.
+    $owner = OperatorUser::withRole(Role::Owner);
 
     productPageAs($owner, CreateProduct::class)
         ->fillForm(productFormState([
-            'vessel_id' => $vesselId,
-            'meeting_point_id' => $portId,
-            'status' => ProductStatus::Active->value,
+            'summary' => ['el' => 'Με γεύμα στο σκάφος.', 'en' => 'Lunch on board.'],
+            'badge' => ['el' => 'Δημοφιλές', 'en' => 'Popular'],
+            'highlights' => [
+                'el' => [['value' => 'Τρεις στάσεις για μπάνιο']],
+                'en' => [['value' => 'Three swimming stops']],
+            ],
         ]))
         ->call('create')
-        // Still refused, but for the *rate plan* alone — the bands landed.
-        ->assertHasFormErrors(['status']);
+        ->assertHasNoFormErrors();
 
     Tenancy::forTenant(productTenantOf($owner), function (): void {
         $product = Product::query()->firstOrFail();
 
-        expect($product->ageBands()->count())->toBe(1)
-            ->and(ProductPublishChecklist::unmet($product))
-            ->toBe([ProductPublishChecklist::RATE_PLAN]);
+        expect($product->getTranslation('summary', 'el'))->toBe('Με γεύμα στο σκάφος.')
+            ->and($product->getTranslation('badge', 'en'))->toBe('Popular')
+            ->and($product->getTranslation('highlights', 'el'))->toBe(['Τρεις στάσεις για μπάνιο']);
     });
 })->group('fast');
 
@@ -416,41 +572,61 @@ it('stops warning once the trip has a plan', function (): void {
     expect(UnsellableProducts::canView())->toBeFalse();
 })->group('fast');
 
-it('saves a trip with a badge in both languages, and one without', function (): void {
-    // The pill on the card's photograph (2026-09-16). Optional: most trips have
-    // none, and the form must not ask for one.
+it('saves a badge in both languages, and leaves a trip without one alone', function (): void {
+    // The pill on the card's photograph (2026-09-16). Optional, and asked for
+    // on the trip's «Σελίδα» tab rather than while creating it: the four-step
+    // guide asks only for what a trip cannot sell without (2026-09-22).
     $owner = OperatorUser::withRole(Role::Owner);
 
-    productPageAs($owner, CreateProduct::class)
-        ->fillForm(productFormState(['badge' => ['el' => 'Δημοφιλές', 'en' => 'Popular']]))
-        ->call('create')
+    [$labelled, $plain] = Tenancy::forTenant(productTenantOf($owner), function (): array {
+        // Drafts: saving an **active** trip re-runs the publish checklist, and
+        // these two have no prices — the refusal would be about the checklist
+        // rather than about the badge this test is for.
+        $trips = [
+            Product::factory()->create(['slug' => 'full-day-cruise', 'status' => ProductStatus::Draft]),
+            Product::factory()->create(['slug' => 'no-label', 'status' => ProductStatus::Draft]),
+        ];
+
+        // A per-seat trip saves only with a band set that holds together
+        // (CAT-8), and the page saves the whole form.
+        foreach ($trips as $trip) {
+            AgeBand::factory()->create(['product_id' => $trip->getKey()]);
+        }
+
+        return $trips;
+    });
+
+    productPageAs($owner, EditProduct::class, ['record' => $labelled->getRouteKey()])
+        ->fillForm(['badge' => ['el' => 'Δημοφιλές', 'en' => 'Popular']])
+        ->call('save')
         ->assertHasNoFormErrors();
 
-    productPageAs($owner, CreateProduct::class)
-        ->fillForm(productFormState(['slug' => 'no-label', 'title' => ['el' => 'Χωρίς ετικέτα', 'en' => 'No label']]))
-        ->call('create')
-        ->assertHasNoFormErrors();
-
-    Tenancy::forTenant(productTenantOf($owner), function (): void {
-        $labelled = Product::query()->where('slug', 'full-day-cruise')->firstOrFail();
-        $plain = Product::query()->where('slug', 'no-label')->firstOrFail();
-
-        expect($labelled->getTranslation('badge', 'el'))->toBe('Δημοφιλές')
+    Tenancy::forTenant(productTenantOf($owner), function () use ($labelled, $plain): void {
+        expect($labelled->refresh()->getTranslation('badge', 'el'))->toBe('Δημοφιλές')
             ->and($labelled->getTranslation('badge', 'en'))->toBe('Popular')
-            ->and($plain->getTranslation('badge', 'el', false))->toBe('');
+            ->and($plain->refresh()->getTranslation('badge', 'el', false))->toBeNull();
     });
 })->group('fast');
 
 it('refuses a badge longer than twenty-four characters', function (): void {
-    // Past two words the pill covers the photograph it sits on.
+    // Past two words the pill covers the photograph it sits on. Asserted on the
+    // edit page, which is where the badge is typed since the create page became
+    // a four-step guide (2026-09-22).
     $owner = OperatorUser::withRole(Role::Owner);
 
-    productPageAs($owner, CreateProduct::class)
-        ->fillForm(productFormState(['badge' => ['el' => str_repeat('α', 25), 'en' => 'Popular']]))
-        ->call('create')
+    $product = Tenancy::forTenant(productTenantOf($owner), function (): Product {
+        $product = Product::factory()->create(['status' => ProductStatus::Draft]);
+        AgeBand::factory()->create(['product_id' => $product->getKey()]);
+
+        return $product;
+    });
+
+    productPageAs($owner, EditProduct::class, ['record' => $product->getRouteKey()])
+        ->fillForm(['badge' => ['el' => str_repeat('α', 25), 'en' => 'Popular']])
+        ->call('save')
         ->assertHasFormErrors(['badge.el' => 'max']);
 
-    Tenancy::forTenant(productTenantOf($owner), function (): void {
-        expect(Product::query()->count())->toBe(0);
+    Tenancy::forTenant(productTenantOf($owner), function () use ($product): void {
+        expect($product->refresh()->getTranslation('badge', 'el', false))->toBeNull();
     });
 })->group('fast');

@@ -101,6 +101,8 @@ return [
                 'label' => 'Photos',
                 'help' => 'The first photo is the one guests see first. Drag to reorder.',
                 'add' => 'Add a photo',
+                'cover' => 'Cover',
+                'make_cover' => 'Make it the cover',
                 'file' => ['label' => 'File'],
                 'alt' => [
                     'label' => 'Description of the photo',
@@ -221,6 +223,7 @@ return [
             'seo' => 'How it appears on Google',
             'bands' => 'Age bands',
             'checklist' => 'Before publishing',
+            'images' => 'Photographs',
             'trip_page' => 'Trip page content',
         ],
 
@@ -284,6 +287,18 @@ return [
             'mode' => [
                 'label' => 'How it is sold',
                 'help' => 'Per seat or as a whole boat. It cannot change once the first booking is taken.',
+            ],
+            'images' => [
+                'label' => 'Photographs',
+                'help' => 'The first one leads the card and the search results. Drag to reorder.',
+                'add' => 'Add a photograph',
+                'cover' => 'Cover',
+                'make_cover' => 'Make it the cover',
+                'file' => ['label' => 'File'],
+                'alt' => [
+                    'label' => 'Description for screen readers',
+                    'help' => 'What the photograph shows, in a few words. It is read by anyone who cannot see it.',
+                ],
             ],
             'title' => [
                 'label' => 'Title',
@@ -403,6 +418,68 @@ return [
         ],
 
         // The form's two tabs (2026-09-17).
+        'wizard' => [
+            // The new-trip guide (product owner, 2026-09-22, direction Α).
+            'basics' => [
+                'label' => 'The basics',
+                'description' => 'What it is and how it sells',
+            ],
+            'when' => [
+                'label' => 'When it sails',
+                'description' => 'Time, length and days',
+                'days' => 'Which days it sails',
+                'days_help' => 'Change them whenever you like.',
+                'schedules' => 'Schedules',
+                'schedules_help' => 'The departures come from these. Add as many as you need: daily at 10:00 and 18:00, say, plus weekends at 12:00 for August only.',
+                'add_schedule' => 'Another schedule',
+                'times' => 'Departure times',
+                'times_help' => 'One or more, on the same days.',
+                'valid_from_help' => 'Empty means from today.',
+                'valid_until_help' => 'Empty means no end.',
+                'schedule_refused' => 'The :time schedule was not saved',
+            ],
+            'prices' => [
+                'label' => 'Prices',
+                'description' => 'What each person pays',
+                'intro' => 'The three usual categories to start with. Change the ages and names, remove any you do not need.',
+                'price' => 'Price per person',
+                'price_help' => 'Applies all year, whenever no period does.',
+                'seasons' => 'Prices per period',
+                'seasons_help' => 'Optional. If a period costs something else, put it here. Any band you leave blank keeps the price above.',
+                'add_season' => 'Price for a period',
+                'plan_refused' => 'The “:season” price list was not saved',
+                'quote' => 'A trip sold on request has no price here: you send one with each enquiry, from “Quotes”.',
+            ],
+            'page' => [
+                'label' => 'Page',
+                'description' => 'Words and photographs',
+                'intro' => 'This is what your guests read. All of it optional — you can fill it in later, on the trip itself.',
+            ],
+            'publish' => [
+                'label' => 'Publish',
+                'description' => 'Terms, and going on sale',
+                'question' => 'What should happen when you finish?',
+                'now' => 'Publish now',
+                'now_help' => 'The trip goes on your page and takes bookings. If something is missing we will say so and keep it a draft.',
+                'draft' => 'Keep it a draft',
+                'draft_help' => 'Nobody sees it. You publish it from its own page whenever you are ready.',
+                'vat_help' => 'Optional for now. It is needed when you issue an invoice, and your accountant says which rate applies.',
+            ],
+            'modes' => [
+                'per_seat' => 'A shared trip: each guest books one seat or several.',
+                'per_vessel' => 'A private charter: one customer takes the whole boat.',
+                'quote' => 'The guest asks and you send them a price.',
+            ],
+            'weekdays' => [
+                1 => 'Monday',
+                2 => 'Tuesday',
+                3 => 'Wednesday',
+                4 => 'Thursday',
+                5 => 'Friday',
+                6 => 'Saturday',
+                7 => 'Sunday',
+            ],
+        ],
         'tabs' => [
             'basics' => 'Basics',
             'when' => 'When it leaves',

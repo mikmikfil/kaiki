@@ -7,8 +7,8 @@ use App\Enums\BookingMode;
 use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
 use App\Enums\Role;
-use App\Filament\App\Resources\ProductResource\Pages\CreateProduct;
 use App\Filament\App\Resources\ProductResource\Pages\EditProduct;
+use App\Models\AgeBand;
 use App\Models\Product;
 use App\Models\Tenant;
 use App\Models\User;
@@ -79,12 +79,30 @@ function tripContentForm(array $overrides = []): array
     ], $overrides);
 }
 
+/**
+ * A draft trip with one band, ready to have its «Σελίδα» filled in.
+ *
+ * The content used to be typed while creating a trip; since the four-step guide
+ * (2026-09-22) creating asks only for what a trip cannot sell without, and all
+ * of this is edited on the trip itself. What is being tested — how the lines,
+ * the languages and the stop times are stored — did not change with it.
+ */
+function tripToEdit(User $owner): Product
+{
+    return Tenancy::forTenant(tripContentTenant($owner), function (): Product {
+        $product = Product::factory()->create(['status' => ProductStatus::Draft, 'mode' => BookingMode::PerSeat]);
+        AgeBand::factory()->create(['product_id' => $product->getKey()]);
+
+        return $product;
+    });
+}
+
 it('saves a trip with every trip-page field left empty, and stores them as null', function (): void {
     $owner = OperatorUser::withRole(Role::Owner);
 
-    tripContentPage($owner, CreateProduct::class)
+    tripContentPage($owner, EditProduct::class, ['record' => tripToEdit($owner)->getRouteKey()])
         ->fillForm(tripContentForm())
-        ->call('create')
+        ->call('save')
         ->assertHasNoFormErrors();
 
     Tenancy::forTenant(tripContentTenant($owner), function (): void {
@@ -114,7 +132,7 @@ function tripLines(string ...$lines): array
 it('saves every trip-page field, both languages, blank lines dropped', function (): void {
     $owner = OperatorUser::withRole(Role::Owner);
 
-    tripContentPage($owner, CreateProduct::class)
+    tripContentPage($owner, EditProduct::class, ['record' => tripToEdit($owner)->getRouteKey()])
         ->fillForm(tripContentForm([
             'highlights' => [
                 'el' => tripLines('Τρεις στάσεις για μπάνιο', '   ', 'Μάσκες για όλους'),
@@ -132,7 +150,7 @@ it('saves every trip-page field, both languages, blank lines dropped', function 
                 ['key' => null, 'time' => '', 'name' => ['el' => '', 'en' => ''], 'description' => ['el' => '', 'en' => '']],
             ],
         ]))
-        ->call('create')
+        ->call('save')
         ->assertHasNoFormErrors();
 
     Tenancy::forTenant(tripContentTenant($owner), function (): void {
@@ -161,13 +179,13 @@ it('takes a stop time from the picker as the browser sends it, and stores the bo
     // and the panel's own timezone must not shift a clock time by three hours.
     $owner = OperatorUser::withRole(Role::Owner);
 
-    tripContentPage($owner, CreateProduct::class)
+    tripContentPage($owner, EditProduct::class, ['record' => tripToEdit($owner)->getRouteKey()])
         ->fillForm(tripContentForm([
             'itinerary_rows' => [
                 ['key' => null, 'time' => '2026-09-17 09:45:00', 'name' => ['el' => 'Επιβίβαση', 'en' => 'Boarding'], 'description' => ['el' => '', 'en' => '']],
             ],
         ]))
-        ->call('create')
+        ->call('save')
         ->assertHasNoFormErrors();
 
     Tenancy::forTenant(tripContentTenant($owner), function (): void {
@@ -178,17 +196,18 @@ it('takes a stop time from the picker as the browser sends it, and stores the bo
 it('refuses a stop time that is not a clock time', function (): void {
     $owner = OperatorUser::withRole(Role::Owner);
 
-    tripContentPage($owner, CreateProduct::class)
+    tripContentPage($owner, EditProduct::class, ['record' => tripToEdit($owner)->getRouteKey()])
         ->fillForm(tripContentForm([
             'itinerary_rows' => [
                 ['key' => null, 'time' => '9 το πρωί', 'name' => ['el' => 'Επιβίβαση', 'en' => 'Boarding'], 'description' => ['el' => '', 'en' => '']],
             ],
         ]))
-        ->call('create')
+        ->call('save')
         ->assertHasFormErrors();
 
     Tenancy::forTenant(tripContentTenant($owner), function (): void {
-        expect(Product::query()->count())->toBe(0);
+        // Nothing was written: the programme is exactly as empty as it was.
+        expect(Product::query()->firstOrFail()->itinerary_stops)->toBeNull();
     });
 })->group('fast');
 

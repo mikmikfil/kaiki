@@ -25,7 +25,9 @@ use App\Models\Vessel;
 use App\Support\Format\MoneyFormatter;
 use App\Support\Locale\LocaleResolver;
 use App\Support\Tenancy;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Component;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Hidden;
@@ -604,80 +606,9 @@ class ProductResource extends Resource
         return [
             Section::make(__('catalog.product.sections.policy'))
                 ->schema([
-                    Select::make('cancellation_policy_id')
-                        ->label(__('catalog.product.form.cancellation_policy.label'))
-                        ->helperText(__('catalog.product.form.cancellation_policy.help'))
-                        ->options(static::cancellationPolicyOptions(...))
-                        ->searchable()
-                        ->preload()
-                        // A new operator has no policy, and a trip cannot be
-                        // published without one, so the trip form can make it.
-                        // Name, free-cancellation window and the refund ladder;
-                        // weather, no-show and voucher keep their column
-                        // defaults and are edited on the policy screen.
-                        ->createOptionForm([
-                            TranslatableInput::text(
-                                'name',
-                                __('pricing.cancellation.form.name.label'),
-                                __('pricing.cancellation.form.name.help'),
-                                maxLength: 80,
-                            ),
-                            TextInput::make('free_cancellation_hours')
-                                ->label(__('pricing.cancellation.form.free_cancellation_hours.label'))
-                                ->helperText(__('pricing.cancellation.form.free_cancellation_hours.help'))
-                                ->integer()
-                                ->minValue(0)
-                                ->maxValue(65535)
-                                ->suffix(__('pricing.cancellation.form.free_cancellation_hours.suffix')),
-                            Repeater::make('tiers')
-                                ->label(__('pricing.cancellation.form.tiers.label'))
-                                ->helperText(__('pricing.cancellation.form.tiers.help'))
-                                ->addActionLabel(__('pricing.cancellation.form.tiers.add'))
-                                ->schema([
-                                    TextInput::make('days_before')
-                                        ->label(__('pricing.cancellation.form.tiers.days_before'))
-                                        ->integer()
-                                        ->required()
-                                        ->minValue(0)
-                                        ->maxValue(65535),
-                                    TextInput::make('refund_percent')
-                                        ->label(__('pricing.cancellation.form.tiers.refund_percent'))
-                                        ->integer()
-                                        ->required()
-                                        ->minValue(0)
-                                        ->maxValue(100)
-                                        ->suffix('%'),
-                                ])
-                                ->reorderable(false)
-                                ->defaultItems(0)
-                                ->columns(2),
-                        ])
-                        ->createOptionUsing(static function (array $data): int {
-                            /** @var list<array{days_before: int|string, refund_percent: int|string}> $tiers */
-                            $tiers = array_values($data['tiers'] ?? []);
-                            unset($data['tiers']);
+                    static::cancellationPolicySelect(),
 
-                            return (int) app(SaveCancellationPolicy::class)(new CancellationPolicy, $data, $tiers)->getKey();
-                        }),
-
-                    Select::make('vat_rate_id')
-                        ->label(__('catalog.product.form.vat_rate.label'))
-                        ->helperText(__('catalog.product.form.vat_rate.help'))
-                        ->options(static::vatRateOptions(...))
-                        // The account's own answer, from the setup guide (#51).
-                        // Per-product stays the truth — a cruise is passenger
-                        // transport and a barbecue extra is catering, and
-                        // data-model §2.3 says so — but an operator answers the
-                        // question once and overrides it where it differs,
-                        // rather than choosing from nothing every time.
-                        //
-                        // `default()` and not a fill, so it applies to a new
-                        // product only: an existing one whose rate was chosen
-                        // deliberately, or deliberately left empty, keeps what
-                        // it has.
-                        ->default(static::defaultVatRateId(...))
-                        ->searchable()
-                        ->preload(),
+                    static::vatRateSelect(),
 
                     Toggle::make('guest_details_required')
                         ->label(__('catalog.product.form.guest_details_required.label'))
@@ -747,6 +678,81 @@ class ProductResource extends Resource
                         __('catalog.product.form.description.help'),
                         rows: 8,
                     ),
+                ]),
+
+            /*
+             * **The photographs** (product owner, 2026-09-22: *«και οι φωτός»*).
+             *
+             * `products.images` has been a real column since the catalogue was
+             * built and `ImagePayload` has been serving it to the guest pages,
+             * the API and the WordPress plugin all along — but **no screen ever
+             * wrote to it**. The ten photographs on the demo trip came from the
+             * seeder, and a real operator had no way to add one. That is why it
+             * looked like a missing field rather than a missing feature.
+             *
+             * Same shape and same component as a boat's gallery (§3.15): a
+             * repeater of `{path, alt: {el, en}}`, because the alt text belongs
+             * beside its own image — a gallery with no alt text is one no screen
+             * reader can describe — and the order is the operator's, so the
+             * first row is the picture that leads the card.
+             */
+            Section::make(__('catalog.product.sections.images'))
+                ->description(__('catalog.product.form.images.help'))
+                ->collapsible()
+                ->schema([
+                    Repeater::make('images')
+                        ->hiddenLabel()
+                        ->addActionLabel(__('catalog.product.form.images.add'))
+                        ->schema([
+                            FileUpload::make('path')
+                                ->label(__('catalog.product.form.images.file.label'))
+                                ->image()
+                                // The disk the API and the hosted pages build
+                                // URLs from; the default `local` cannot produce
+                                // a URL at all.
+                                ->disk((string) config('kaiki.catalog.uploads.disk'))
+                                ->directory('products')
+                                ->maxSize(5120)
+                                ->required(),
+
+                            TranslatableInput::text(
+                                'alt',
+                                __('catalog.product.form.images.alt.label'),
+                                __('catalog.product.form.images.alt.help'),
+                                required: false,
+                            ),
+                        ])
+                        ->itemLabel(static fn (array $state, Repeater $component): ?string => self::imageLabel($state, $component))
+                        /*
+                         * **«Κάνε την κύρια»**, because the cover is the first
+                         * row and dragging is a poor way to say so (product
+                         * owner, 2026-09-22). The order *is* the priority —
+                         * `ImagePayload` and every card read `[0]` — so this
+                         * moves the row to the front rather than storing a
+                         * second opinion in a `is_cover` column that could
+                         * disagree with the order.
+                         */
+                        ->extraItemActions([
+                            Action::make('makeCover')
+                                ->label(__('catalog.product.form.images.make_cover'))
+                                ->icon('heroicon-m-star')
+                                ->color('gray')
+                                ->visible(static fn (array $arguments, Repeater $component): bool => array_key_first($component->getState()) !== $arguments['item'])
+                                ->action(static function (array $arguments, Repeater $component): void {
+                                    $state = $component->getState();
+                                    $key = $arguments['item'];
+
+                                    if (! array_key_exists($key, $state)) {
+                                        return;
+                                    }
+
+                                    $component->state([$key => $state[$key]] + $state);
+                                }),
+                        ])
+                        ->reorderable()
+                        ->collapsible()
+                        ->defaultItems(0)
+                        ->columnSpanFull(),
                 ]),
 
             // «Περιεχόμενο σελίδας εκδρομής» (2026-09-16). Every field optional
@@ -1115,6 +1121,122 @@ class ProductResource extends Resource
     public static function searchByTitle(Builder $query, string $search): Builder
     {
         return $query->whereTranslationMatches($search);
+    }
+
+    /** @return array<int, string> */
+    /**
+     * The cancellation policy, with the «+» that makes one.
+     *
+     * Shared by the edit page's «Όροι» tab and the fourth step of the new-trip
+     * guide (2026-09-22). One definition, because the «+» carries a form of its
+     * own — name, free-cancellation window, refund ladder — and two copies of
+     * that would drift the first time a tier is added to one of them.
+     */
+    public static function cancellationPolicySelect(): Select
+    {
+        return Select::make('cancellation_policy_id')
+            ->label(__('catalog.product.form.cancellation_policy.label'))
+            ->helperText(__('catalog.product.form.cancellation_policy.help'))
+            ->options(static::cancellationPolicyOptions(...))
+            ->searchable()
+            ->preload()
+            // A new operator has no policy, and a trip cannot be
+            // published without one, so the trip form can make it.
+            // Name, free-cancellation window and the refund ladder;
+            // weather, no-show and voucher keep their column
+            // defaults and are edited on the policy screen.
+            ->createOptionForm([
+                TranslatableInput::text(
+                    'name',
+                    __('pricing.cancellation.form.name.label'),
+                    __('pricing.cancellation.form.name.help'),
+                    maxLength: 80,
+                ),
+                TextInput::make('free_cancellation_hours')
+                    ->label(__('pricing.cancellation.form.free_cancellation_hours.label'))
+                    ->helperText(__('pricing.cancellation.form.free_cancellation_hours.help'))
+                    ->integer()
+                    ->minValue(0)
+                    ->maxValue(65535)
+                    ->suffix(__('pricing.cancellation.form.free_cancellation_hours.suffix')),
+                Repeater::make('tiers')
+                    ->label(__('pricing.cancellation.form.tiers.label'))
+                    ->helperText(__('pricing.cancellation.form.tiers.help'))
+                    ->addActionLabel(__('pricing.cancellation.form.tiers.add'))
+                    ->schema([
+                        TextInput::make('days_before')
+                            ->label(__('pricing.cancellation.form.tiers.days_before'))
+                            ->integer()
+                            ->required()
+                            ->minValue(0)
+                            ->maxValue(65535),
+                        TextInput::make('refund_percent')
+                            ->label(__('pricing.cancellation.form.tiers.refund_percent'))
+                            ->integer()
+                            ->required()
+                            ->minValue(0)
+                            ->maxValue(100)
+                            ->suffix('%'),
+                    ])
+                    ->reorderable(false)
+                    ->defaultItems(0)
+                    ->columns(2),
+            ])
+            ->createOptionUsing(static function (array $data): int {
+                /** @var list<array{days_before: int|string, refund_percent: int|string}> $tiers */
+                $tiers = array_values($data['tiers'] ?? []);
+                unset($data['tiers']);
+
+                return (int) app(SaveCancellationPolicy::class)(new CancellationPolicy, $data, $tiers)->getKey();
+            });
+    }
+
+    /** The VAT rate, defaulted from the account's own answer. */
+    public static function vatRateSelect(): Select
+    {
+        return Select::make('vat_rate_id')
+            ->label(__('catalog.product.form.vat_rate.label'))
+            ->helperText(__('catalog.product.form.vat_rate.help'))
+            ->options(static::vatRateOptions(...))
+            // The account's own answer, from the setup guide (#51).
+            // Per-product stays the truth — a cruise is passenger
+            // transport and a barbecue extra is catering, and
+            // data-model §2.3 says so — but an operator answers the
+            // question once and overrides it where it differs,
+            // rather than choosing from nothing every time.
+            //
+            // `default()` and not a fill, so it applies to a new
+            // product only: an existing one whose rate was chosen
+            // deliberately, or deliberately left empty, keeps what
+            // it has.
+            ->default(static::defaultVatRateId(...))
+            ->searchable()
+            ->preload();
+    }
+
+    /**
+     * «Κύρια» on the first row, the file name on the rest.
+     *
+     * The cover is the first photograph — `ImagePayload` hands the gallery back
+     * in this order and every card takes `[0]` — so the label is where an
+     * operator finds that out, rather than in a help line under the field.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private static function imageLabel(array $state, Repeater $component): ?string
+    {
+        $isFirst = array_key_first($component->getState()) === array_search($state, $component->getState(), strict: true);
+
+        $alt = $state['alt'][app()->getLocale()] ?? $state['alt']['el'] ?? null;
+        $name = is_string($alt) && trim($alt) !== ''
+            ? trim($alt)
+            : basename((string) ($state['path'] ?? ''));
+
+        if (! $isFirst) {
+            return $name === '' ? null : $name;
+        }
+
+        return trim(__('catalog.product.form.images.cover') . ' · ' . $name, ' ·');
     }
 
     /** @return array<int, string> */
