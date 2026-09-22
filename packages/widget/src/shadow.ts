@@ -507,6 +507,15 @@ const BASE_STYLES = `
    the rule through the number unexplained. */
 .kaiki-legend .kaiki-day-sold_out { text-decoration: line-through; }
 
+/* Read but not seen. Same mechanism as the honeypot below: off screen rather
+   than "display: none", which would take it out of the accessibility tree
+   along with the view. */
+.kaiki-visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  margin: 0;
+}
+
 /* The honeypot: off-screen rather than "display: none", so a form filler that
    skips hidden inputs still fills it. */
 .kaiki-trap {

@@ -275,9 +275,8 @@
         @endif
 
         {{-- Three sections of the same kind — when it sails, where you meet
-             it, what you sail on — as tabs rather than as three headings a
-             visitor scrolls past. Departures first and open, because it is the
-             one a person came to look at.
+             it, what you sail on — as tabs rather than as headings a visitor
+             scrolls past.
 
              Radio inputs and labels, so this works with no JavaScript like
              everything else on these pages (HOS-4). What that costs, said
@@ -288,8 +287,12 @@
 
              A tab whose section has nothing in it is not drawn at all. --}}
         @php
+            // «Επόμενες αναχωρήσεις» came out on 22 September: the booking
+            // box beside it is a calendar, and a list of the same dates in
+            // words next to a calendar that takes the press is one list too
+            // many. The dates are still published as structured data
+            // (`ProductJsonLd`), which is what a search engine reads.
             $tabs = array_filter([
-                'departures' => $departures->isNotEmpty(),
                 'meeting' => (bool) $port,
                 'vessel' => (bool) $product->vessel,
             ]);
@@ -309,40 +312,6 @@
                 </div>
 
                 <div class="tabpanels">
-                    @isset($tabs['departures'])
-                        <section class="tabpanel tabpanel-departures" aria-label="{{ __('hosted.product.tabs.departures') }}">
-                <ul class="departures">
-                    @foreach ($departures as $departure)
-                        @php
-                            $local = $departure->starts_at_utc->copy()->setTimezone($timezone);
-
-                            // Three states rather than two. Green and red are
-                            // what a booking site usually shows; the amber in
-                            // between is the one that changes a decision, and
-                            // leaving it out means a date with two seats looks
-                            // exactly like a date with forty.
-                            $left = $departure->seatsAvailable();
-                            $state = $left <= 0 ? 'out' : ($left <= 3 ? 'few' : 'open');
-                        @endphp
-                        <li class="is-{{ $state }}">
-                            {{-- The dot is `aria-hidden` and every state carries
-                                 words as well, because colour alone is not a
-                                 label — and red-green is the one pair a
-                                 colour-blind visitor is most likely to miss. --}}
-                            <span class="dot" aria-hidden="true"></span>
-                            <span class="when">{{ $local->format('d/m/Y') }} · {{ $local->format('H:i') }}</span>
-                            @if ($state === 'out')
-                                <span class="sold-out">{{ __('hosted.product.sold_out') }}</span>
-                            @elseif ($state === 'few')
-                                <span class="few-left">{{ trans_choice('hosted.product.seats_left', $left, ['count' => $left]) }}</span>
-                            @else
-                                <span class="sr-only">{{ __('hosted.product.available') }}</span>
-                            @endif
-                        </li>
-                    @endforeach
-                </ul>
-                        </section>
-                    @endisset
 
                     @isset($tabs['meeting'])
                         <section class="tabpanel tabpanel-meeting" aria-label="{{ __('hosted.product.tabs.meeting') }}">
@@ -441,6 +410,46 @@
                 'policy' => $policy,
             ])
 
+            {{-- «Έχετε απορίες;» — under the questions, in the reading
+                 column (Mike, 2026-09-22).
+
+                 It used to sit under the booking card on the right, where it
+                 was an exit beside the thing asking for the sale. Here it is
+                 the end of the conversation instead: somebody has read the
+                 answers the operator wrote, has not found theirs, and this is
+                 the next line of the page rather than a box in the corner.
+
+                 Only drawn when there is something to reach the operator
+                 with — an operator with no phone and no email gets no card
+                 rather than a heading over nothing. --}}
+            @if ($tenant->email || $tenant->phone)
+                <section class="ask">
+                    @include('hosted.partials.icon', ['name' => 'support'])
+                    <h2>{{ __('hosted.product.ask.heading') }}</h2>
+                    <p>{{ __('hosted.product.ask.body') }}</p>
+
+                    <p class="ask-actions">
+                        @if ($tenant->phone)
+                            <a class="button" href="tel:{{ $tenant->phone }}">{{ __('hosted.product.ask.call') }}</a>
+                        @endif
+
+                        {{-- The contact page, carrying this trip's uuid, rather
+                             than a `mailto:`. Two reasons, and the second is
+                             the one that matters: a `mailto:` opens whatever
+                             mail client the visitor's phone thinks it has,
+                             which on a shared laptop is nothing at all — and
+                             the answer lands in an inbox instead of in
+                             `enquiries`, where it has a status and somebody
+                             whose job it is to close it (BKG-29). The uuid
+                             attaches the question to the trip it is about, so
+                             the operator is not reading «is this available?»
+                             with no idea what «this» is. --}}
+                        <a class="button ghost"
+                           href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale, 'product' => $product->uuid]) }}">{{ __('hosted.product.ask.write') }}</a>
+                    </p>
+                </section>
+            @endif
+
             {{-- The lightbox for the mosaic at the top of the page. Every
                  photograph the operator uploaded is here, including the ones the
                  mosaic has no tile for, so replacing the old gallery at the foot
@@ -532,11 +541,14 @@
                 @endif
             @endif
 
-            <dl class="four-lines">
+            {{-- Three facts, not four: the boat's name came out on 22 September.
+                 It is the operator's word for a hull, it means nothing to a
+                 visitor choosing a day, and «Το σκάφος» has a tab of its own
+                 with the length, the crew and the photographs on it. --}}
+            <dl class="card-facts">
                 <div><dt>{{ __('hosted.product.booking.trip') }}</dt><dd>{{ $product->title }}</dd></div>
                 <div><dt>{{ __('hosted.product.booking.duration') }}</dt><dd>{{ \App\Domain\Hosted\Support\TripDuration::format((int) $product->duration_minutes) }}</dd></div>
                 <div><dt>{{ __('hosted.product.booking.port') }}</dt><dd>{{ $port?->name ?? '—' }}</dd></div>
-                <div><dt>{{ __('hosted.product.booking.vessel') }}</dt><dd>{{ $product->vessel?->name ?? '—' }}</dd></div>
             </dl>
 
             @if ($readOnly)
@@ -610,159 +622,31 @@
                                  796 ms of the page's own booking bar waiting to
                                  be replaced by an identical one. --}}
                             data-branding="inherit"
+                            {{-- The boat's name, out of the booking box
+                                 (Mike, 2026-09-22). The widget's four lines
+                                 carry it by default, because on somebody
+                                 else's website those lines are the whole trip;
+                                 here the page around them already says which
+                                 boat it is — on a chip under the title and on a
+                                 tab with its length, its crew and its
+                                 photographs. The same switch the WordPress
+                                 plugin gives an operator, set on our own
+                                 pages. --}}
+                            data-vessel="hide"
                             defer></script>
                 </div>
             @endif
 
-            {{-- What a visitor asks with their hand over the button: how many of
-                 us fit, which boat is it, what does a child pay, what is
-                 included, and can I get out of it.
+            {{-- Nothing under the button.
 
-                 **Folded, and under the button rather than above it.** All five
-                 answers used to be open, between the price and the form — so the
-                 card was eight hundred pixels tall, the thing a visitor came to
-                 do was at the bottom of it, and on a laptop the button was below
-                 the fold on a card whose whole purpose is to keep it in view.
-                 Folded, the card is short enough to be seen whole, and the guest
-                 with a five-year-old still gets their answer in one click
-                 without leaving the button.
-
-                 A `<details>` rather than a scripted panel: it opens with no
-                 JavaScript, it is a disclosure to a screen reader without an
-                 attribute anybody has to remember, and the browser's own
-                 find-in-page opens it (`hidden="until-found"` is the default for
-                 details content in Chromium). HOS-8 removed `unsafe-inline`
-                 from the policy and this needs no exception to it. --}}
-            <div class="booking-more">
-                @php
-                    $includes = array_values(array_unique([
-                        ...(is_array($product->includes)
-                            ? array_values(array_filter($product->includes, fn ($item) => is_string($item) && trim($item) !== ''))
-                            : []),
-                        ...($includedExtras ?? []),
-                    ]));
-                @endphp
-
-                @if (! $isQuote || $product->vessel || $includes !== [])
-                    <details class="fold">
-                        <summary>{{ __('hosted.product.booking.details') }}</summary>
-                        <div class="fold-body">
-                            @if (! $isQuote)
-                                <div class="extra">
-                                    @include('hosted.partials.icon', ['name' => 'users'])
-                                    <div>
-                                        <span class="label">{{ __('hosted.product.booking.capacity') }}</span>
-                                        <span>{{ __('hosted.product.max_pax', ['count' => $product->max_pax]) }}</span>
-                                    </div>
-                                </div>
-                            @endif
-
-                            @if ($product->vessel)
-                                <div class="extra">
-                                    @include('hosted.partials.icon', ['name' => 'boat'])
-                                    <div>
-                                        <span class="label">{{ __('hosted.product.vessel') }}</span>
-                                        <span>{{ $product->vessel->type->label() }}</span>
-                                        <span class="muted">{{ __('hosted.product.vessel_capacity', ['count' => $product->vessel->capacity_max]) }}</span>
-                                    </div>
-                                </div>
-                            @endif
-
-                            @if ($includes !== [])
-                                <div class="extra">
-                                    @include('hosted.partials.icon', ['name' => 'check'])
-                                    <div>
-                                        <span class="label">{{ __('hosted.product.includes') }}</span>
-                                        <ul>
-                                            @foreach (array_slice($includes, 0, 3) as $item)
-                                                <li>{{ $item }}</li>
-                                            @endforeach
-                                        </ul>
-                                        @if (count($includes) > 3)
-                                            <span class="more">{{ __('hosted.product.booking.and_more', ['count' => count($includes) - 3]) }}</span>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endif
-                        </div>
-                    </details>
-                @endif
-
-                {{-- Who pays what. A guest with a five-year-old wants this before
-                     they pick a date, not after — and a band that takes no seat
-                     is the one they most need told about. Not on a trip that
-                     is priced by enquiry: there is no ticket to pay for yet,
-                     and the operator's quote says what the party costs. --}}
-                @if (! $isQuote && $product->ageBands->isNotEmpty())
-                    <details class="fold">
-                        <summary>{{ __('hosted.product.age_bands') }}</summary>
-                        <div class="fold-body">
-                            <div class="extra">
-                                @include('hosted.partials.icon', ['name' => 'tickets'])
-                                <div>
-                                    <ul class="bands">
-                                        @foreach ($product->ageBands as $band)
-                                            <li>
-                                                <strong>{{ $band->label }}</strong>
-                                                <span class="muted">
-                                                    {{ $band->max_age !== null
-                                                        ? __('hosted.product.age_range', ['from' => $band->min_age, 'to' => $band->max_age])
-                                                        : __('hosted.product.age_from', ['from' => $band->min_age]) }}
-                                                    @unless ($band->counts_toward_capacity)
-                                                        · {{ __('hosted.product.no_seat') }}
-                                                    @endunless
-                                                </span>
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </details>
-                @endif
-
-            </div>
+                 The card carried two folds — «Λεπτομέρειες εκδρομής» (how many
+                 fit, which boat, what is included) and «Ποιος πληρώνει τι» —
+                 and both came out on 22 September. Every answer in them is on
+                 the page already: the chips under the title, «Περιλαμβάνονται»
+                 in the prose, the boat's own tab. A column that repeats the
+                 page is a second place to keep in step, and the card's whole
+                 job is to hold the button in view. --}}
                 </section>
-
-                {{-- A second card under the booking one, for the visitor who is
-                     nearly ready and has a question first.
-
-                     It is separate rather than folded into the booking card on
-                     purpose: everything in that card is part of choosing a date
-                     and paying, and a «ring us» line inside it is an exit in the
-                     middle of a checkout. Underneath, it catches the person who
-                     was about to close the tab instead.
-
-                     Only drawn when there is something to reach the operator
-                     with — an operator with no phone and no email gets no card
-                     rather than a heading over nothing. --}}
-                @if ($tenant->email || $tenant->phone)
-                    <section class="ask">
-                        @include('hosted.partials.icon', ['name' => 'support'])
-                        <h2>{{ __('hosted.product.ask.heading') }}</h2>
-                        <p>{{ __('hosted.product.ask.body') }}</p>
-
-                        <p class="ask-actions">
-                            @if ($tenant->phone)
-                                <a class="button" href="tel:{{ $tenant->phone }}">{{ __('hosted.product.ask.call') }}</a>
-                            @endif
-
-                            {{-- The contact page, carrying this trip's uuid, rather
-                                 than a `mailto:`. Two reasons, and the second is
-                                 the one that matters: a `mailto:` opens whatever
-                                 mail client the visitor's phone thinks it has,
-                                 which on a shared laptop is nothing at all — and
-                                 the answer lands in an inbox instead of in
-                                 `enquiries`, where it has a status and somebody
-                                 whose job it is to close it (BKG-29). The uuid
-                                 attaches the question to the trip it is about, so
-                                 the operator is not reading «is this available?»
-                                 with no idea what «this» is. --}}
-                            <a class="button ghost"
-                               href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale, 'product' => $product->uuid]) }}">{{ __('hosted.product.ask.write') }}</a>
-                        </p>
-                    </section>
-                @endif
             </aside>
         </div>
 

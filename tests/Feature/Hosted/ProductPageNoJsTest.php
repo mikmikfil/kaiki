@@ -40,7 +40,10 @@ it('renders every section in the HTML the server sent', function (): void {
         ->and($body)->toContain('Zea Marina')
         ->and($body)->toContain('At the blue kiosk.')
         ->and($body)->toContain('Flexible')
-        ->and($body)->toContain('20/12/2026')
+        // The departure, in the structured data rather than in a list of its
+        // own since 22 September — still sent by the server, which is what
+        // this test is about.
+        ->and($body)->toContain('2026-12-20T18:30')
         ->and($body)->toContain('A glass of wine');
 })->group('fast');
 

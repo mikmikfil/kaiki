@@ -558,7 +558,11 @@
            is the second thing on that column and a second white card of the
            same weight competes with the one asking for the sale. */
         .ask {
-            margin-block-start: 1.25rem;
+            /* In the reading column since 22 September, under the FAQ: still
+               the same card, given the width it was drawn at rather than the
+               whole column, and the space of a section above it. */
+            margin-block-start: 2rem;
+            max-width: 34rem;
             /* Its own box rather than `.card`, which does not exist in this
                stylesheet — the booking card above it is `.booking`. The same
                white, radius, padding and shadow as that one, so the column
@@ -1256,7 +1260,7 @@
            emphasis. Found by looking at the page — the second copy lives in the
            widget's shadow root, so nothing that inspects this document can see
            the duplication. */
-        .booking:has(.mount > [data-kaiki-widget]) > .four-lines { display: none; }
+        .booking:has(.mount > [data-kaiki-widget]) > .card-facts { display: none; }
 
         /* And the widget's own frame comes off, because this card is already
            one. Left on, the trip page drew a white bordered box inside a white
@@ -1480,7 +1484,7 @@
            mount come off; the details, the «who pays what» and the operator's
            contact card stay, because the bar carries none of those. */
         .booking:has([data-kaiki-sheet="true"]) > .price,
-        .booking:has([data-kaiki-sheet="true"]) > .four-lines { display: none; }
+        .booking:has([data-kaiki-sheet="true"]) > .card-facts { display: none; }
 
         /* ---- the page's own booking bar ---------------------------------
 
@@ -1853,21 +1857,18 @@
 
         .tabpanel { display: none; }
 
-        /* One pair per tab. There are three, so writing them out is shorter and
+        /* One pair per tab. There are two, so writing them out is shorter and
            clearer than anything that would generate them. */
-        #tab-departures:checked ~ .tablist label[for="tab-departures"],
         #tab-meeting:checked ~ .tablist label[for="tab-meeting"],
         #tab-vessel:checked ~ .tablist label[for="tab-vessel"] {
             color: var(--kaiki-primary); border-block-end-color: var(--kaiki-primary);
         }
 
-        #tab-departures:focus-visible ~ .tablist label[for="tab-departures"],
         #tab-meeting:focus-visible ~ .tablist label[for="tab-meeting"],
         #tab-vessel:focus-visible ~ .tablist label[for="tab-vessel"] {
             outline: 2px solid var(--kaiki-primary); outline-offset: 2px; border-radius: 6px;
         }
 
-        #tab-departures:checked ~ .tabpanels .tabpanel-departures,
         #tab-meeting:checked ~ .tabpanels .tabpanel-meeting,
         #tab-vessel:checked ~ .tabpanels .tabpanel-vessel { display: block; }
 
@@ -1927,106 +1928,23 @@
                         0 18px 44px -34px color-mix(in srgb, var(--kaiki-text) 30%, transparent);
         }
 
-        .four-lines { display: grid; gap: .55rem; margin: 0 0 1.1rem; }
-        .four-lines > div { display: grid; grid-template-columns: 8.5rem 1fr; gap: .9rem; align-items: baseline; }
-        .four-lines dt {
+        .card-facts { display: grid; gap: .55rem; margin: 0 0 1.1rem; }
+        .card-facts > div { display: grid; grid-template-columns: 8.5rem 1fr; gap: .9rem; align-items: baseline; }
+        .card-facts dt {
             font-size: .74rem; font-weight: 600; letter-spacing: .07em;
             color: var(--ink-faint); margin: 0;
         }
-        .four-lines dd { margin: 0; font-weight: 600; }
+        .card-facts dd { margin: 0; font-weight: 600; }
 
         /* No rule above it any more: it is the first thing in the card. */
         .price { margin: 0 0 1.3rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: .5rem; }
         .price .from { font-size: .85rem; color: var(--ink-faint); }
         .price strong { font-size: var(--step-3); letter-spacing: -.025em; }
-        .price .vat { font-size: .82rem; color: var(--ink-faint); flex-basis: 100%; }
+        /* On the same line as the figure, small: `flex-basis: 100%` used to
+           break it onto a row of its own, which gave four words the weight of
+           a fact. It wraps by itself when the line is too narrow for it. */
+        .price .vat { font-size: .74rem; color: var(--ink-faint); }
 
-        /* What the card carries besides the price and the form: capacity, the
-           boat, who pays what, the first of the includes, and the cancellation
-           window. A visitor deciding whether to press the button is asking
-           exactly these, and scrolling away from the button to answer them is
-           how a booking is abandoned — so they stay in the card.
-
-           **Folded, and below the form.** Open, the five of them made the card
-           816 pixels tall with the date picker at the bottom of it: on a laptop
-           the button was below the fold, on a card whose entire purpose is to
-           keep the button in view. Three disclosures put the card at about a
-           third of that and cost one click to the guest who wants an answer.
-
-           `<details>` and nothing else. It opens without JavaScript, it is a
-           disclosure to a screen reader with no attribute to remember, and
-           find-in-page opens it — none of which is true of a scripted panel,
-           and HOS-8 took `unsafe-inline` out of the policy. */
-        .booking-more {
-            margin: 1.4rem 0 0; padding-top: .35rem;
-            border-top: 1px solid var(--rule);
-            font-size: .92rem;
-        }
-
-        .fold { border-bottom: 1px solid var(--rule-soft, var(--rule)); }
-        .fold:last-child { border-bottom: 0; }
-
-        .fold > summary {
-            list-style: none; cursor: pointer;
-            display: flex; align-items: center; justify-content: space-between; gap: 1rem;
-            padding: .85rem 0;
-            font-weight: 600; color: var(--kaiki-text);
-            /* WCAG 2.5.8 — the whole row is the target, not the words. */
-            min-block-size: 2.75rem;
-        }
-
-        .fold > summary::-webkit-details-marker { display: none; }
-        .fold > summary::marker { content: ''; }
-        .fold > summary:hover { color: var(--kaiki-primary); }
-        .fold > summary:focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 3px; border-radius: 4px; }
-
-        /* The chevron, drawn rather than fetched: two borders and a rotation.
-           It points down when the fold is shut and up when it is open, which is
-           the only signal on the row that it does anything at all. */
-        .fold > summary::after {
-            content: ''; flex: none;
-            inline-size: .5rem; block-size: .5rem;
-            border-right: 2px solid var(--ink-faint);
-            border-bottom: 2px solid var(--ink-faint);
-            transform: rotate(45deg) translate(-2px, -2px);
-            transition: transform .15s ease;
-        }
-
-        .fold[open] > summary::after { transform: rotate(-135deg) translate(-2px, -2px); }
-
-        @media (prefers-reduced-motion: reduce) {
-            .fold > summary::after { transition: none; }
-        }
-
-        .fold-body { padding: 0 0 1.1rem; display: grid; gap: 1.05rem; }
-
-        .booking-more .extra { display: grid; grid-template-columns: 1.15rem 1fr; gap: .8rem; align-items: start; }
-        .booking-more .extra > div { display: grid; gap: .22rem; min-width: 0; }
-
-        .booking-more .icon {
-            width: 1.15rem; height: 1.15rem;
-            color: var(--kaiki-primary);
-            margin-top: .1rem;
-        }
-
-        .booking-more .label {
-            font-size: .72rem; font-weight: 600; letter-spacing: .08em; color: var(--ink-faint);
-        }
-
-        .booking-more .muted { color: var(--ink-faint); font-size: .86rem; }
-
-        .booking-more ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .3rem; }
-        .booking-more ul li { padding-left: 1.2rem; position: relative; color: var(--ink-soft); }
-        .booking-more ul li::before { position: absolute; left: 0; content: '✓'; color: var(--kaiki-primary); }
-        .booking-more .more { color: var(--ink-faint); font-size: .85rem; }
-
-        /* The age bands are a list of pairs, not ticks: the marker in front of
-           each one would read as "this is included", which is the opposite of
-           what a band that pays nothing and takes no seat means. */
-        .booking-more ul.bands { gap: .35rem; margin-top: .1rem; }
-        .booking-more ul.bands li { padding-left: 0; display: flex; flex-wrap: wrap; gap: .45rem; align-items: baseline; }
-        .booking-more ul.bands li::before { content: none; }
-        .booking-more ul.bands strong { color: var(--kaiki-text); font-weight: 600; }
 
         .mount .no-js { margin: 0 0 .9rem; color: var(--ink-soft); font-size: .93rem; }
         .contact-cta { margin: 0; display: flex; flex-wrap: wrap; gap: .6rem; }
@@ -2179,87 +2097,6 @@
         ol.itinerary p { margin: 0; color: var(--ink-soft); font-size: .93rem; }
 
         ul.tiers { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .45rem; font-size: .95rem; }
-
-        /* Departures as chips rather than a column. Twenty dates stacked one to
-           a line is a wall a visitor scrolls past; the same twenty in a wrapped
-           row can be read at a glance, which is the actual question — "is there
-           one on Saturday". */
-        ul.departures {
-            list-style: none; margin: 1rem 0 0; padding: 0;
-            display: flex; flex-wrap: wrap; gap: .5rem;
-            font-size: .9rem;
-        }
-
-        /* The availability dot, the convention every booking site uses.
-
-           `currentColor` on a per-state colour, so the dot and the words beside
-           it cannot drift apart — and the states are set on the `<li>` rather
-           than the dot, so a chip can be styled as a whole later without
-           re-deciding what colour it is. */
-        ul.departures .dot {
-            inline-size: .6rem; block-size: .6rem; border-radius: 50%;
-            background: currentColor; flex: none; align-self: center;
-            /* A soft halo in the same colour. At 8px on white the dot was
-               technically present and practically invisible; the ring gives it
-               the weight of the thing it is standing for without making the
-               chip look like a status badge. */
-            box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
-        }
-
-        ul.departures li.is-open { color: #12A06E; }
-        ul.departures li.is-few { color: #C4820A; }
-        ul.departures li.is-out { color: #C0392B; }
-
-        /* Only the dot and the state label take the state colour. The date
-           itself stays the page's ordinary ink, or a full row of chips becomes
-           a row of coloured text. */
-        ul.departures .when { color: var(--kaiki-text); }
-        ul.departures li.is-out .when { color: var(--ink-faint); text-decoration: line-through; text-decoration-thickness: 1px; }
-        ul.departures .few-left { font-size: .8rem; font-weight: 600; }
-
-        ul.departures li {
-            display: flex; gap: .5rem; align-items: baseline;
-            background: var(--surface);
-            border: 1px solid var(--rule);
-            border-radius: 999px;
-            padding: .4rem .85rem;
-        }
-
-        /* Two to a row on a phone.
-
-           Wrapped flex put one chip per line there — a chip is a date, a time
-           and sometimes «τελευταία θέση», and two of those never fit across
-           393px, so the row that was supposed to be readable at a glance came
-           out as the column it was drawn to replace. A two-column grid forces
-           the pair; the chip wraps inside itself when it has a seats-left line
-           to carry, and the grid gives its neighbour the same height. */
-        @media (max-width: 47.99rem) {
-            ul.departures {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                align-items: stretch;
-            }
-
-            ul.departures li {
-                flex-wrap: wrap;
-                row-gap: .1rem;
-                column-gap: .4rem;
-                align-items: center;
-                align-content: center;
-                justify-content: center;
-                text-align: center;
-                /* A two-line chip in a 999px pill is a lozenge with nothing in
-                   its ends. The page's own radius keeps it a chip. */
-                border-radius: var(--kaiki-radius);
-                padding: .45rem .6rem;
-            }
-
-            ul.departures .few-left,
-            ul.departures .sold-out { flex-basis: 100%; }
-        }
-
-        .departures .when { font-variant-numeric: tabular-nums; }
-        .departures .sold-out { font-size: .78rem; color: var(--kaiki-accent); letter-spacing: .04em; }
 
         /* --- FAQ (#103) --------------------------------------------- */
 
@@ -2765,6 +2602,19 @@
         .block-head h2::after, .story-copy > h2::after, .block.faq > h2::after { display: none; }
         .block-head h2 { margin-block-end: 0; }
         .story-copy > h2, .block.faq > h2 { margin-block-end: 1.5rem; }
+
+        /* The FAQ heading on a trip page is one section among six, not the
+           head of a home-page band (Mike, 2026-09-22). The rule above is
+           written for the home page and reaches this block through the same
+           class; the trip page steps it back down to the size its neighbours
+           are set in. (In words rather than in Greek on purpose: this
+           stylesheet is inlined into every page, and `FaqRenderingTest` asserts
+           that a page with no FAQ does not say the heading anywhere.) */
+        .product-main .block.faq > h2 {
+            font-size: var(--step-1);
+            letter-spacing: -.012em;
+            margin-block-end: 1rem;
+        }
         .block-head { align-items: end; margin-block-end: 2rem; }
         .story .eyebrow { color: var(--kaiki-accent); }
 

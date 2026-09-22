@@ -96,16 +96,19 @@ it('renders every section HOS-1 lists', function (): void {
         ->assertSee('Zea Marina', escape: false)
         ->assertSee('At the blue kiosk.', escape: false)
         ->assertSee('google.com/maps', escape: false)
-        // The boat, the bands and the terms.
+        // The boat and the terms. Not the age bands: «Ποιος πληρώνει τι» came
+        // out of the booking card on 22 September, and what a child pays is
+        // now answered where the party is chosen, inside the widget.
         ->assertSee('Kalypso', escape: false)
-        ->assertSee('Adult', escape: false)
         ->assertSee('Flexible', escape: false)
-        ->assertSee(__('hosted.product.free_cancellation', ['hours' => 48], 'en'), escape: false)
-        // A real departure, server-rendered — the same collection the `Event`
-        // graph is built from, so the page and the structured data cannot
-        // disagree about when the boat leaves.
-        ->assertSee('20/12/2026', escape: false)
-        ->assertSee('18:30', escape: false);
+        ->assertSee(__('hosted.product.free_cancellation', ['hours' => 48], 'en'), escape: false);
+
+    // A real departure, still server-rendered — but as structured data only
+    // since «Επόμενες αναχωρήσεις» came off the page (Mike, 2026-09-22). It is
+    // the same collection the `Event` graph is built from, so what a search
+    // engine reads and what the booking box offers cannot disagree about when
+    // the boat leaves.
+    expect((string) $response->getContent())->toContain('2026-12-20T18:30');
 })->group('fast');
 
 it('shows the price with the VAT sentence and never the rate', function (): void {
@@ -123,18 +126,23 @@ it('shows the price with the VAT sentence and never the rate', function (): void
         ->and($body)->not->toContain('13%');
 })->group('fast');
 
-it('puts exactly four lines above the date picker', function (): void {
+it('puts three lines above the date picker, and not the boat', function (): void {
     $tenant = OperatorPage::operator('four-lines');
     $product = TripPage::create($tenant);
 
     $body = (string) get(TripPage::url($tenant, $product, 'en'))->getContent();
 
-    // Brand decision 3, and the temptation this asserts against is adding a
-    // photograph because the space looks empty. It looked empty in the mockup
-    // too, and the decision was made against exactly that.
-    expect(substr_count($body, '<div><dt>'))->toBe(4)
+    // Brand decision 3 was four lines — trip, duration, port, boat — and the
+    // temptation it asserts against is adding a photograph because the space
+    // looks empty. The boat came off on 22 September: the page around this card
+    // already says which boat it is, on a chip under the title and on a tab
+    // with its length and its photographs, and the name meant nothing to a
+    // guest choosing a day. The widget is told the same thing, through
+    // `data-vessel="hide"`, so both copies of these lines agree.
+    expect(substr_count($body, '<div><dt>'))->toBe(3)
         ->and($body)->toContain(__('hosted.product.booking.port', [], 'en'))
-        ->and($body)->toContain(__('hosted.product.booking.vessel', [], 'en'));
+        ->and($body)->not->toContain(__('hosted.product.booking.vessel', [], 'en'))
+        ->and($body)->toContain('data-vessel="hide"');
 })->group('fast');
 
 it('shows no price and offers an enquiry for a quote product', function (): void {

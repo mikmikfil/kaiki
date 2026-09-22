@@ -79,7 +79,7 @@
            facts strip and the footer cannot drift apart by a percent of black. */
         :root { --hair: rgba(15, 32, 43, .10); }
 
-        .wrap { max-width: 40rem; margin: 0 auto; padding: 1.25rem 1rem 4rem; }
+        .wrap { max-width: 40rem; margin: 0 auto; padding: 2rem 1rem 5rem; }
 
         @media (max-width: 42rem) {
             /* On a phone the sheet is the page: no grey margin either side of
@@ -97,7 +97,7 @@
            booking page puts its sections into two columns, and they are still
            sections. The last one in a column keeps no rule, so a column does
            not end on a line that divides it from nothing. */
-        .sheet section { padding: 1.1rem 1.15rem; border-bottom: 1px solid var(--hair); }
+        .sheet section { padding: 1.35rem 1.4rem; border-bottom: 1px solid var(--hair); }
         .sheet section:last-child { border-bottom: 0; }
 
         /* ---- the booking page on a wide screen (2026-09-18) --------------
@@ -212,15 +212,15 @@
         /* Checkout is the one guest page with two things to show at once — what
            you are paying for, and the form that pays for it — so it gets a
            wider measure than the pages that are a single column of facts. */
-        .wrap.wide { max-width: 62rem; }
+        .wrap.wide { max-width: 66rem; }
 
-        .checkout-grid { display: grid; gap: 1.25rem; }
+        .checkout-grid { display: grid; gap: 1.6rem; }
 
         /* The trip's photograph, at the head of the summary. Full bleed inside
            the card: a picture with a margin round it reads as an attachment,
            and this is the thing being bought. */
         .trip-photo {
-            margin: -1.1rem -1.15rem .9rem;
+            margin: -1.35rem -1.4rem 1.05rem;
             aspect-ratio: 16 / 9;
             overflow: hidden;
             background: #eef3f9;
@@ -253,7 +253,7 @@
 
         /* The cancellation sentence, under the price and above the button. Not
            a card of its own — it is part of what the button commits to. */
-        .policy { margin-block-start: 1rem; }
+        .policy { margin-block-start: 1.4rem; }
 
         .policy h3 {
             margin: 0 0 .25rem;
@@ -307,8 +307,8 @@
 
         @media (min-width: 56rem) {
             .checkout-grid {
-                grid-template-columns: minmax(0, 1fr) 23rem;
-                gap: 1.5rem;
+                grid-template-columns: minmax(0, 1fr) 24rem;
+                gap: 2.25rem;
                 align-items: start;
             }
 
@@ -356,7 +356,7 @@
             border: 0;
             border-bottom: 1px solid var(--hair);
             border-radius: 0;
-            padding: 1.1rem 1.15rem;
+            padding: 1.35rem 1.4rem;
             margin: 0;
         }
 
@@ -372,12 +372,19 @@
             overflow: hidden;
         }
 
-        h1 { font-size: 1.5rem; line-height: 1.18; margin: 0 0 .35rem; letter-spacing: -.01em; }
-        h2 { font-size: 1.05rem; margin: 0 0 .6rem; }
+        h1 { font-size: 1.6rem; line-height: 1.18; margin: 0 0 .5rem; letter-spacing: -.01em; }
+        h2 { font-size: 1.08rem; margin: 0 0 .8rem; }
+
+        /* A heading in the middle of the form — «Οι ερωτήσεις μας», «Επιβάτες»
+           — starts a new subject, so it is given the space to say so. The first
+           one does not: it is the top of the card and already has the card's
+           padding above it. */
+        .checkout-main h2 { margin-block-start: 2.1rem; }
+        .checkout-main h2:first-of-type { margin-block-start: 0; }
 
         .muted { color: rgba(0, 0, 0, .6); font-size: .92rem; }
 
-        dl.rows { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: .35rem .75rem; }
+        dl.rows { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: .5rem .9rem; }
         dl.rows dt { color: rgba(0, 0, 0, .6); }
         dl.rows dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -451,7 +458,7 @@
         /* The consent row. `input { width: 100% }` above is right for text
            fields and wrong for a checkbox, which was stretching to the width of
            the card with its label orphaned underneath. */
-        .consent { margin: 1rem 0 1.25rem; }
+        .consent { margin: 1.6rem 0 .25rem; }
 
         .consent label {
             display: flex; align-items: flex-start; gap: .6rem;
@@ -467,6 +474,67 @@
         }
 
         .field-error { margin: .3rem 0 0; font-size: .85rem; color: #a8321f; }
+
+        /* ---- floating labels, on the checkout only (Mike, 2026-09-22) ----
+
+           The label starts inside the field and rises out of the way once there
+           is something in it. Two things come of that: a field is one line of
+           the page instead of two, so a form of fifteen questions is fifteen
+           lines shorter — which is most of the air this page was asked for —
+           and the name of what you typed stays on screen while you type it,
+           which a placeholder-only form loses.
+
+           No script, and no second set of markup. `:placeholder-shown` is what
+           tells an empty text field from a filled one, which is why every input
+           below carries `placeholder=" "`: it is never seen, and it is what
+           makes the selector work. `:has()` does the rest — a `<select>` shows
+           its first option and a date input shows dd/mm/yyyy from the moment
+           it is drawn, so neither can ever look empty and both keep their label
+           floated for good.
+
+           `:has()` is the same feature this page already depends on for the
+           passport expiry, so it is not a new bet. A browser without it shows
+           the label over the top of the field's first line — ugly for a version
+           of Safari nobody is on any more, not broken. */
+        .checkout-grid .field { position: relative; margin: 0 0 .9rem; }
+
+        .checkout-grid .field > label {
+            position: absolute;
+            inset-inline-start: .75rem;
+            inset-block-start: .8rem;
+            margin: 0;
+            max-width: calc(100% - 1.5rem);
+            overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+            font-size: .95rem; font-weight: 500;
+            color: rgba(15, 32, 43, .55);
+            transform-origin: left top;
+            transition: transform .12s ease-out, color .12s ease-out;
+            /* The press has to reach the field under it; the label is still the
+               field's name to a screen reader, through `for`. */
+            pointer-events: none;
+        }
+
+        /* Room for the label above the value. */
+        .checkout-grid .field > input,
+        .checkout-grid .field > select,
+        .checkout-grid .field > textarea,
+        .checkout-grid .field .discount-row input { padding-block: 1.4rem .5rem; }
+
+        .checkout-grid .field > textarea { min-height: 5.5rem; }
+
+        .checkout-grid .field:focus-within > label,
+        .checkout-grid .field:has(input:not(:placeholder-shown)) > label,
+        .checkout-grid .field:has(textarea:not(:placeholder-shown)) > label,
+        .checkout-grid .field:has(select) > label,
+        .checkout-grid .field:has(input[type="date"]) > label {
+            transform: translateY(-.6rem) scale(.76);
+            color: rgba(15, 32, 43, .62);
+        }
+
+        .checkout-grid .field:focus-within > label { color: var(--kaiki-primary, #123a5e); }
+
+        .checkout-grid .field .field-error { margin-block-start: .35rem; }
+
 
         /* One folded panel per passenger, so a manifest of eight is a list the
            length of the party rather than twenty-four fields in a column. */
@@ -528,7 +596,7 @@
 
         /* The pay button sits in the summary column and submits the form in the
            other one, so it needs its own top margin rather than the form's. */
-        .btn.pay { margin-top: 1.1rem; }
+        .btn.pay { margin-top: 1.4rem; padding-block: .95rem; }
 
         /* Padlock, mark, sentence. Boxed and set apart from the price above it,
            because the job of this block is to look like the part of the page

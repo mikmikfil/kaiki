@@ -189,11 +189,13 @@
                 <p class="muted">{{ __('discount_codes.checkout.using', ['code' => $discountCode['code']]) }}</p>
                 <button type="submit" name="remove" value="1" class="btn btn-quiet">{{ __('discount_codes.checkout.remove') }}</button>
             @else
-                <label for="discount_code">{{ __('discount_codes.checkout.label') }}</label>
-                <div class="discount-row">
-                    <input id="discount_code" name="discount_code" type="text" maxlength="32" autocomplete="off"
-                           autocapitalize="characters" value="{{ old('discount_code') }}">
-                    <button type="submit" class="btn btn-quiet">{{ __('discount_codes.checkout.apply') }}</button>
+                <div class="field">
+                    <label for="discount_code">{{ __('discount_codes.checkout.label') }}</label>
+                    <div class="discount-row">
+                        <input id="discount_code" name="discount_code" type="text" maxlength="32" autocomplete="off"
+                               placeholder=" " autocapitalize="characters" value="{{ old('discount_code') }}">
+                        <button type="submit" class="btn btn-quiet">{{ __('discount_codes.checkout.apply') }}</button>
+                    </div>
                 </div>
             @endif
             @error('discount_code') <p class="field-error" role="alert">{{ $message }}</p> @enderror
@@ -337,23 +339,34 @@
 
         <h2>{{ __('guest.checkout.your_details') }}</h2>
 
-        <label for="guest_name">{{ __('guest.checkout.name') }}</label>
-        <input id="guest_name" name="guest_name" type="text" required autocomplete="name"
-               value="{{ old('guest_name', $booking->guest_name) }}">
-        @error('guest_name') <p class="field-error">{{ $message }}</p> @enderror
+        {{-- `placeholder=" "` on every text field: it is never seen, and it
+             is what lets the stylesheet tell an empty field from a filled one
+             and float the label accordingly, with no script. --}}
+        <div class="field">
+            <label for="guest_name">{{ __('guest.checkout.name') }}</label>
+            <input id="guest_name" name="guest_name" type="text" required autocomplete="name"
+                   placeholder=" " value="{{ old('guest_name', $booking->guest_name) }}">
+            @error('guest_name') <p class="field-error">{{ $message }}</p> @enderror
+        </div>
 
-        <label for="guest_email">{{ __('guest.checkout.email') }}</label>
-        <input id="guest_email" name="guest_email" type="email" required autocomplete="email"
-               value="{{ old('guest_email', $booking->guest_email) }}">
-        @error('guest_email') <p class="field-error">{{ $message }}</p> @enderror
+        <div class="field">
+            <label for="guest_email">{{ __('guest.checkout.email') }}</label>
+            <input id="guest_email" name="guest_email" type="email" required autocomplete="email"
+                   placeholder=" " value="{{ old('guest_email', $booking->guest_email) }}">
+            @error('guest_email') <p class="field-error">{{ $message }}</p> @enderror
+        </div>
 
-        <label for="guest_phone">{{ __('guest.checkout.phone') }}</label>
-        <input id="guest_phone" name="guest_phone" type="tel" autocomplete="tel"
-               value="{{ old('guest_phone', $booking->guest_phone) }}">
-        @error('guest_phone') <p class="field-error">{{ $message }}</p> @enderror
+        <div class="field">
+            <label for="guest_phone">{{ __('guest.checkout.phone') }}</label>
+            <input id="guest_phone" name="guest_phone" type="tel" autocomplete="tel"
+                   placeholder=" " value="{{ old('guest_phone', $booking->guest_phone) }}">
+            @error('guest_phone') <p class="field-error">{{ $message }}</p> @enderror
+        </div>
 
-        <label for="special_requests">{{ __('guest.checkout.special_requests') }}</label>
-        <textarea id="special_requests" name="special_requests" rows="3">{{ old('special_requests', $booking->special_requests) }}</textarea>
+        <div class="field">
+            <label for="special_requests">{{ __('guest.checkout.special_requests') }}</label>
+            <textarea id="special_requests" name="special_requests" rows="3" placeholder=" ">{{ old('special_requests', $booking->special_requests) }}</textarea>
+        </div>
 
         {{-- The operator's own questions, once for the booking (2026-09-17). --}}
         @if ($bookingQuestions->isNotEmpty())
@@ -430,26 +443,32 @@
                     <div class="passenger-body">
                         <input type="hidden" name="guests[{{ $i }}][position]" value="{{ $row['position'] }}">
 
-                        <label for="g{{ $i }}_name">{{ __('guest.checkout.full_name') }}</label>
-                        <input id="g{{ $i }}_name" name="guests[{{ $i }}][full_name]" type="text" required
-                               value="{{ old("guests.$i.full_name", $guest->full_name) }}">
-                        @error("guests.$i.full_name") <p class="field-error">{{ $message }}</p> @enderror
+                        <div class="field">
+                            <label for="g{{ $i }}_name">{{ __('guest.checkout.full_name') }}</label>
+                            <input id="g{{ $i }}_name" name="guests[{{ $i }}][full_name]" type="text" required
+                                   placeholder=" " value="{{ old("guests.$i.full_name", $guest->full_name) }}">
+                            @error("guests.$i.full_name") <p class="field-error">{{ $message }}</p> @enderror
+                        </div>
 
                         @if ($needsGuestDetails)
-                        <label for="g{{ $i }}_nat">{{ __('guest.checkout.nationality') }}</label>
-                        @php $chosenNationality = old("guests.$i.nationality", $guest->nationality); @endphp
-                        <select id="g{{ $i }}_nat" name="guests[{{ $i }}][nationality]" required autocomplete="country">
-                            <option value=""></option>
-                            @foreach (\App\Support\Countries::options(app()->getLocale()) as $code => $country)
-                                <option value="{{ $code }}" @selected($chosenNationality === $code)>{{ $country }}</option>
-                            @endforeach
-                        </select>
-                        @error("guests.$i.nationality") <p class="field-error">{{ $message }}</p> @enderror
+                        <div class="field">
+                            <label for="g{{ $i }}_nat">{{ __('guest.checkout.nationality') }}</label>
+                            @php $chosenNationality = old("guests.$i.nationality", $guest->nationality); @endphp
+                            <select id="g{{ $i }}_nat" name="guests[{{ $i }}][nationality]" required autocomplete="country">
+                                <option value=""></option>
+                                @foreach (\App\Support\Countries::options(app()->getLocale()) as $code => $country)
+                                    <option value="{{ $code }}" @selected($chosenNationality === $code)>{{ $country }}</option>
+                                @endforeach
+                            </select>
+                            @error("guests.$i.nationality") <p class="field-error">{{ $message }}</p> @enderror
+                        </div>
 
-                        <label for="g{{ $i }}_dob">{{ __('guest.checkout.date_of_birth') }}</label>
-                        <input id="g{{ $i }}_dob" name="guests[{{ $i }}][date_of_birth]" type="date" required
-                               value="{{ old("guests.$i.date_of_birth", $guest->date_of_birth?->toDateString()) }}">
-                        @error("guests.$i.date_of_birth") <p class="field-error">{{ $message }}</p> @enderror
+                        <div class="field">
+                            <label for="g{{ $i }}_dob">{{ __('guest.checkout.date_of_birth') }}</label>
+                            <input id="g{{ $i }}_dob" name="guests[{{ $i }}][date_of_birth]" type="date" required
+                                   value="{{ old("guests.$i.date_of_birth", $guest->date_of_birth?->toDateString()) }}">
+                            @error("guests.$i.date_of_birth") <p class="field-error">{{ $message }}</p> @enderror
+                        </div>
                         @endif
 
                         @if (! $needsGuestDetails)
@@ -459,24 +478,28 @@
                         @else
                             @php $chosen = old("guests.$i.document_type", $guest->document_type?->value); @endphp
 
-                            <label for="g{{ $i }}_dtype">{{ __('guest.checkout.document_type') }}</label>
-                            <select id="g{{ $i }}_dtype" name="guests[{{ $i }}][document_type]" required>
-                                <option value=""></option>
-                                @foreach (\App\Enums\GuestDocumentType::cases() as $type)
-                                    <option value="{{ $type->value }}" @selected($chosen === $type->value)>{{ $type->label() }}</option>
-                                @endforeach
-                            </select>
-                            @error("guests.$i.document_type") <p class="field-error">{{ $message }}</p> @enderror
+                            <div class="field">
+                                <label for="g{{ $i }}_dtype">{{ __('guest.checkout.document_type') }}</label>
+                                <select id="g{{ $i }}_dtype" name="guests[{{ $i }}][document_type]" required>
+                                    <option value=""></option>
+                                    @foreach (\App\Enums\GuestDocumentType::cases() as $type)
+                                        <option value="{{ $type->value }}" @selected($chosen === $type->value)>{{ $type->label() }}</option>
+                                    @endforeach
+                                </select>
+                                @error("guests.$i.document_type") <p class="field-error">{{ $message }}</p> @enderror
+                            </div>
 
                             {{-- `autocomplete="off"`: a browser that remembered a
                                  passport number would keep it long after the
                                  retention window the page promises. --}}
-                            <label for="g{{ $i }}_doc">{{ __('guest.checkout.document') }}</label>
-                            <input id="g{{ $i }}_doc" name="guests[{{ $i }}][document_number]" type="text" required
-                                   autocomplete="off" value="{{ old("guests.$i.document_number") }}">
-                            @error("guests.$i.document_number") <p class="field-error">{{ $message }}</p> @enderror
+                            <div class="field">
+                                <label for="g{{ $i }}_doc">{{ __('guest.checkout.document') }}</label>
+                                <input id="g{{ $i }}_doc" name="guests[{{ $i }}][document_number]" type="text" required
+                                       autocomplete="off" placeholder=" " value="{{ old("guests.$i.document_number") }}">
+                                @error("guests.$i.document_number") <p class="field-error">{{ $message }}</p> @enderror
+                            </div>
 
-                            <div class="passport-expiry">
+                            <div class="passport-expiry field">
                                 <label for="g{{ $i }}_dexp">{{ __('guest.checkout.document_expires_on') }}</label>
                                 <input id="g{{ $i }}_dexp" name="guests[{{ $i }}][document_expires_on]" type="date"
                                        value="{{ old("guests.$i.document_expires_on", $guest->document_expires_on?->toDateString()) }}">
