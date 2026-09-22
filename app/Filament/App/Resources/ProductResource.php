@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources;
 use App\Domain\Catalog\Actions\SaveCancellationPolicy;
 use App\Domain\Catalog\Support\ProductPublishChecklist;
 use App\Domain\Catalog\Support\TripPageContent;
+use App\Domain\Hosted\Support\HostedUrl;
 use App\Enums\AgeBandPricing;
 use App\Enums\BookingMode;
 use App\Enums\ProductCategory;
@@ -20,6 +21,7 @@ use App\Filament\Forms\TranslatableInput;
 use App\Models\CancellationPolicy;
 use App\Models\Port;
 use App\Models\Product;
+use App\Models\Tenant;
 use App\Models\VatRate;
 use App\Models\Vessel;
 use App\Support\Format\MoneyFormatter;
@@ -46,6 +48,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\Action as TableAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\RestoreAction;
@@ -1087,7 +1090,47 @@ class ProductResource extends Resource
             ->filters([
                 TrashedFilter::make(),
             ])
-            ->actions([EditAction::make(), DeleteAction::make(), RestoreAction::make()]);
+            ->actions([
+                /*
+                 * **«Δείτε τη σελίδα»** (product owner, 2026-09-22).
+                 *
+                 * The trip page is what the operator is really editing, and
+                 * until now the only way to it was to find the site, find the
+                 * trip and click through. A draft has no page — it is not
+                 * published, and a link to a 404 teaches an operator the
+                 * feature is broken rather than that the trip is not on sale —
+                 * so the action is absent rather than dead.
+                 */
+                TableAction::make('preview')
+                    ->label(__('catalog.product.table.preview'))
+                    ->icon('heroicon-m-arrow-top-right-on-square')
+                    ->color('gray')
+                    ->url(static fn (Product $record): ?string => self::previewUrl($record), shouldOpenInNewTab: true)
+                    ->visible(static fn (Product $record): bool => self::previewUrl($record) !== null),
+                EditAction::make(),
+                DeleteAction::make(),
+                RestoreAction::make(),
+            ]);
+    }
+
+    /**
+     * The guest's own address for this trip, or null when there is not one yet.
+     *
+     * Null for a draft and for an archived trip: neither is served, and a
+     * button that leads to a «δεν βρέθηκε» is worse than no button. The URL
+     * comes from {@see HostedUrl}, which is where the operator's domain, their
+     * slug and the locale are decided — building it here would be a second
+     * opinion about an address that appears in every link they paste.
+     */
+    public static function previewUrl(Product $record): ?string
+    {
+        $tenant = Tenancy::check() ? Tenancy::current() : null;
+
+        if (! $tenant instanceof Tenant || $record->status !== ProductStatus::Active) {
+            return null;
+        }
+
+        return HostedUrl::product($tenant, $record);
     }
 
     /** «Λείπουν 2: Σκάφος, Τιμοκατάλογος» under a draft's title; nothing otherwise. */

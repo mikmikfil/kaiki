@@ -397,6 +397,7 @@ return [
         ],
 
         'table' => [
+            'preview' => 'View the page',
             'title' => 'Trip',
             'vessel' => 'Vessel',
             'mode' => 'How it is sold',

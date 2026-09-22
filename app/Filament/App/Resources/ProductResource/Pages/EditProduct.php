@@ -45,6 +45,14 @@ class EditProduct extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            // The guest's own page, for the trip being edited. Absent while it
+            // is a draft: there is nothing published to look at.
+            Action::make('preview')
+                ->label(__('catalog.product.table.preview'))
+                ->icon('heroicon-o-arrow-top-right-on-square')
+                ->color('gray')
+                ->url(fn (): ?string => ProductResource::previewUrl($this->product()), shouldOpenInNewTab: true)
+                ->visible(fn (): bool => ProductResource::previewUrl($this->product()) !== null),
             Action::make('archive')
                 ->label(__('catalog.product.status_actions.archive'))
                 ->icon('heroicon-o-archive-box')
