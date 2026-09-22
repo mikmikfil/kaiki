@@ -13,6 +13,7 @@ use App\Domain\Import\Sources\WooCommerceYithSource;
 use App\Domain\Media\Actions\StoreUploadedImage;
 use App\Domain\Tenancy\Support\DnsLookup;
 use App\Domain\Tenancy\Support\SystemDnsLookup;
+use App\Filament\Support\NumberSteppers;
 use App\Http\Middleware\SetLocale;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Providers\Filament\PanelRenderHooks;
@@ -141,6 +142,12 @@ class AppServiceProvider extends ServiceProvider
         // scoped, so registering from both panel providers would draw the
         // language switcher twice. See PanelRenderHooks.
         PanelRenderHooks::register();
+
+        // And the − / + on every number field in both panels. Here rather than
+        // in a panel provider for the same reason as the hooks above: a
+        // `configureUsing` registered from both would run twice per field and
+        // hang two buttons on each side.
+        NumberSteppers::register();
 
         // **Every button in the panel is a `POST /livewire/update`**, and on
         // that endpoint `SetLocale` would otherwise run from the `web` group

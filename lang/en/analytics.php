@@ -57,6 +57,10 @@ return [
         'help_week' => 'Revenue per week.',
         'help_month' => 'Revenue per month.',
         'empty' => 'No money came in during this period.',
+        // What the chart's top gridline is worth, printed beside the
+        // dates. A chart drawn to its own peak says nothing about size
+        // until one figure on it is named.
+        'peak' => 'peak :amount',
     ],
 
     'products' => [

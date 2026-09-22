@@ -553,35 +553,33 @@
             }
         }
 
-        /* The «any questions» card, under the booking one. Quieter than the
-           card above it — tinted rather than white, and no shadow — because it
-           is the second thing on that column and a second white card of the
-           same weight competes with the one asking for the sale. */
-        .ask {
-            /* In the reading column since 22 September, under the FAQ: still
-               the same card, given the width it was drawn at rather than the
-               whole column, and the space of a section above it. */
-            margin-block-start: 2rem;
-            max-width: 34rem;
-            /* Its own box rather than `.card`, which does not exist in this
-               stylesheet — the booking card above it is `.booking`. The same
-               white, radius, padding and shadow as that one, so the column
-               reads as two cards of one family rather than a card and a panel.
+        /* «Έχετε απορίες;» — direction Α of the 22 September mockup: one more
+           row of the FAQ list rather than a card that was moved into a column
+           it was not drawn for.
 
-               The first attempt tinted it, on the reasoning that a second card
-               of equal weight would compete with the one asking for the sale.
-               It just looked like a different component. Weight is not what
-               separates them — position is, and the heading on this one is a
-               step smaller. */
-            background: var(--surface);
-            border-radius: 14px;
-            /* Smaller than the booking card in every dimension — padding, type,
-               icon and buttons. It is the fallback for somebody who did not
-               book, and at the same scale it competed with the thing that
-               matters on this column. */
-            padding: clamp(1.15rem, 1.6vw, 1.5rem);
-            box-shadow: 0 1px 2px color-mix(in srgb, var(--kaiki-text) 5%, transparent),
-                        0 18px 44px -34px color-mix(in srgb, var(--kaiki-text) 30%, transparent);
+           It takes the list's own width, corner and hairline, and keeps two
+           differences, both of which mean something: it is filled rather than
+           white, and its mark is a solid disc rather than the «+» of a
+           question. It is the last line of the list — the one that is not a
+           question but the answer to all the ones the operator did not write.
+
+           What it stopped being: a shadowed card at the width of the booking
+           column, sitting in a 46rem column of prose with its buttons stranded
+           on the left. Position is what separates it from its neighbours now,
+           not weight. */
+        .ask {
+            margin-block-start: .6rem;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            gap: .1rem 1rem;
+            align-items: center;
+            /* Taller than a question's row on purpose (Mike, 2026-09-22): it
+               carries three things where they carry one, and the row it closes
+               the list with should not read as cramped. */
+            padding: 1.6rem 1.35rem;
+            border: 1px solid var(--line, var(--rule));
+            border-radius: 16px;
+            background: var(--mist, var(--surface));
         }
 
         /* Under the address on its own line, and small. It was briefly beside
@@ -597,18 +595,46 @@
 
         .button.small .icon { inline-size: .9rem; block-size: .9rem; }
 
+        /* The disc, where a question in this list has its «+». It spans the
+           three rows beside it, so the heading, the sentence and the buttons
+           all start on one line down the column. */
         .ask > .icon {
-            inline-size: 1.35rem; block-size: 1.35rem;
-            color: var(--kaiki-primary); display: block; margin-block-end: .6rem;
+            grid-row: span 3;
+            /* Level with the heading rather than with the middle of the block:
+               centred against three rows it sat beside the sentence, pointing
+               at nothing. */
+            align-self: start;
+            margin-block-start: .05rem;
+            box-sizing: border-box;
+            inline-size: 1.75rem; block-size: 1.75rem; padding: .4rem;
+            border-radius: 50%;
+            background: var(--kaiki-primary); color: #fff;
+            display: block; margin: 0;
         }
 
-        .ask h2 { font-size: 1rem; margin-block-end: .35rem; }
-        .ask p { margin: 0; color: var(--ink-soft); font-size: .86rem; line-height: 1.45; }
-        .ask-actions { margin-block-start: .9rem !important; display: flex; flex-wrap: wrap; gap: .5rem; }
+        .ask h2 { font-size: 1rem; margin: 0; color: var(--deep, var(--kaiki-text)); }
+        .ask p { grid-column: 2; margin: .1rem 0 0; color: var(--ink-soft); font-size: .88rem; line-height: 1.45; }
 
+        .ask-actions {
+            grid-column: 2;
+            margin-block-start: .85rem !important;
+            display: flex; flex-wrap: wrap; gap: .5rem;
+        }
+
+        /* Not `flex: 1 1 auto` any more: in a 23rem column the two buttons
+           filling the row was the tidy answer, and in a column of prose it
+           stretched «Πάρτε τηλέφωνο» to twenty-three centimetres. */
         .ask-actions .button {
-            flex: 1 1 auto; justify-content: center;
-            padding-block: .5rem; padding-inline: .8rem; font-size: .84rem;
+            padding-block: .5rem; padding-inline: .9rem; font-size: .84rem;
+        }
+
+        /* On a phone the disc leaves the row: 1.75rem of it plus a gap is a
+           sixth of the screen taken off every line of the sentence beside it. */
+        @media (max-width: 30rem) {
+            .ask { grid-template-columns: 1fr; gap: .1rem; }
+            .ask > .icon { grid-row: auto; margin-block-end: .55rem; }
+            .ask p, .ask-actions { grid-column: 1; }
+            .ask-actions .button { flex: 1 1 auto; justify-content: center; }
         }
 
         .trips-rail-frame { position: relative; padding-block-end: 3.5rem; }
@@ -1670,30 +1696,53 @@
             .product-aside {
                 position: sticky;
                 top: 1.5rem;
+            }
+
+            /* **The scrollbar is inside the card** (Mike, 2026-09-22).
+
+               The column used to be the box that scrolled, so the track was
+               drawn at the edge of the *column* — a grey bar running down the
+               outside of a white card, against the page, with nothing around
+               it. Moving the cap and the overflow onto the card itself puts
+               the track inside its rounded corner, where it reads as part of
+               the card.
+
+               `overflow: hidden` on the card already clips the photograph to
+               its radius; `auto` on the block axis keeps that and lets the
+               content scroll. The extra inline padding is the room the thumb
+               needs: without it, a 6px track sits on top of the last character
+               of «Αναχώρηση από». */
+            .product-aside > .booking {
                 max-block-size: calc(100svh - 3rem);
                 overflow-y: auto;
                 overscroll-behavior: contain;
+                padding-inline-end: calc(clamp(1.75rem, 2.2vw, 2.35rem) - .35rem);
 
-                /* Thin and in the page's own greys. `scrollbar-gutter: stable`
-                   was worse than the problem it solved: it reserves an empty
-                   channel down the side of the card whether or not anything
-                   scrolls, which reads as a rendering fault rather than as a
-                   scrollbar. This leaves no gutter and a track that is barely
-                   there until a thumb is in it. */
+                /* Barely there until a thumb is in it. `scrollbar-gutter:
+                   stable` was tried and was worse than the problem it solved:
+                   it reserves an empty channel down the side of the card
+                   whether or not anything scrolls, which reads as a rendering
+                   fault rather than as a scrollbar. */
                 scrollbar-width: thin;
-                scrollbar-color: color-mix(in srgb, var(--kaiki-text) 22%, transparent) transparent;
+                scrollbar-color: color-mix(in srgb, var(--kaiki-text) 16%, transparent) transparent;
             }
 
-            .product-aside::-webkit-scrollbar { inline-size: 6px; }
-            .product-aside::-webkit-scrollbar-track { background: transparent; }
+            .product-aside > .booking::-webkit-scrollbar { inline-size: 6px; }
+            .product-aside > .booking::-webkit-scrollbar-track { background: transparent; }
 
-            .product-aside::-webkit-scrollbar-thumb {
+            .product-aside > .booking::-webkit-scrollbar-thumb {
                 border-radius: 999px;
-                background: color-mix(in srgb, var(--kaiki-text) 18%, transparent);
+                background: color-mix(in srgb, var(--kaiki-text) 14%, transparent);
+                /* A border in the card's own colour, so the thumb is a thin
+                   line with air either side of it rather than a bar wedged
+                   against the edge. */
+                border: 1px solid var(--surface);
+                background-clip: padding-box;
             }
 
-            .product-aside:hover::-webkit-scrollbar-thumb {
-                background: color-mix(in srgb, var(--kaiki-text) 30%, transparent);
+            .product-aside > .booking:hover::-webkit-scrollbar-thumb {
+                background: color-mix(in srgb, var(--kaiki-text) 26%, transparent);
+                background-clip: padding-box;
             }
         }
 

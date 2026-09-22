@@ -57,4 +57,9 @@ return [
         'switcher' => 'Language',
     ],
 
+    'number' => [
+        'decrease' => 'Decrease',
+        'increase' => 'Increase',
+    ],
+
 ];

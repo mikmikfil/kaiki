@@ -72,6 +72,18 @@ final class PanelRenderHooks
             static fn (): View => view('filament.touch-targets'),
         );
 
+        // − and + either side of every number field, on both panels
+        // (product owner, 2026-09-22: *«όπου στο διαχειριστικό έχει βελάκια
+        // πάνω κάτω για αύξηση αριθμού, τα θέλω οριζόντια + και −»*). The
+        // buttons themselves are hung on the fields by
+        // {@see \App\Filament\Support\NumberSteppers}; this is the stylesheet
+        // that takes the browser's own spinner away and the handler behind the
+        // press.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View => view('filament.number-steppers'),
+        );
+
         // The water, on **both** panels (product owner, 2026-09-22: *«και τα
         // κύματα βάλτα και στο admin περιβάλλον»*). `/admin` used to keep
         // Filament's plain look on the argument that it is how somebody with

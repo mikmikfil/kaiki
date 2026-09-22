@@ -191,7 +191,13 @@ class ProductResource extends Resource
                                     ->badgeColor('gray')
                                     ->schema(static::pageSections()),
                             ]),
-                    ])->columnSpan(['default' => 1, 'xl' => 4]),
+                    ])->columnSpan([
+                        'default' => 1,
+                        // Per breakpoint, because that is where Filament
+                        // evaluates a closure: one returning the whole array
+                        // is used as a string and throws.
+                        'xl' => static fn (?Product $record): int => static::showsChecklist($record) ? 4 : 5,
+                    ]),
 
                     Group::make([
                         // No description: «Πριν τη δημοσίευση» over a row of
@@ -201,10 +207,47 @@ class ProductResource extends Resource
                             ->compact()
                             ->extraAttributes(['class' => 'ka-checklist-side'])
                             ->schema(static::checklistSchema()),
-                    ])->columnSpan(['default' => 1, 'xl' => 1]),
+                    ])
+                        ->visible(static fn (?Product $record): bool => static::showsChecklist($record))
+                        ->columnSpan(['default' => 1, 'xl' => 1]),
                 ])
                 ->columnSpanFull(),
         ];
+    }
+
+    /**
+     * Is «Πριν τη δημοσίευση» worth a fifth of the screen on this trip?
+     *
+     * Product owner, 2026-09-22: *«όταν δημοσιεύω πρώτη φορά μια εκδρομή, μετά
+     * μπαίνω να κάνω edit και εμφανίζεται το sidebar με το πριν την δημοσίευση.
+     * νομίζω πρέπει να φύγει και να μεγαλώσει το width των στοιχείων της
+     * εκδρομής»*. A list of things to do before publishing, on a trip that is
+     * published, is a column of ticks — and it is taking a fifth of the width
+     * from the form somebody opened this page to edit.
+     *
+     * **Not simply "is it active".** A trip goes live and then loses a price,
+     * an age band or its last schedule: it is still `active`, and the checklist
+     * is the one place that says which requirement it is now failing. So the
+     * column comes back the moment something on it is unmet, on a published
+     * trip exactly as on a draft.
+     */
+    public static function showsChecklist(?Product $record): bool
+    {
+        if (! $record instanceof Product || ! $record->exists) {
+            return true;
+        }
+
+        if ($record->status !== ProductStatus::Active) {
+            return true;
+        }
+
+        foreach (ProductPublishChecklist::requirements() as $requirement) {
+            if (! ProductPublishChecklist::satisfies($record, $requirement)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** «2 ενεργά», or «κανένα» in amber: a trip nobody can book on any day. */
@@ -291,13 +334,22 @@ class ProductResource extends Resource
                         ->default(ProductStatus::Draft->value)
                         ->required(),
 
-                    TextInput::make('sort_order')
-                        ->label(__('catalog.shared.sort_order.label'))
-                        ->helperText(__('catalog.shared.sort_order.help'))
-                        ->integer()
-                        ->default(0)
-                        ->minValue(0)
-                        ->maxValue(65535),
+                    // **«Σειρά εμφάνισης» is not a field any more**
+                    // (Mike, 2026-09-22): *«βγάλε την σειρά εμφάνισης της
+                    // εκδρομής. αυτό το νούμερο. η σειρά θέλω να μπορεί να
+                    // γίνει με drag n drop μέσα από τη λίστα των εκδρομών»*.
+                    //
+                    // A number between 0 and 65535, typed on the form of one
+                    // trip, is a way of arranging a list you cannot see: to put
+                    // a trip third an operator had to open the other trips and
+                    // read their numbers. The list itself is where the order is
+                    // decided, so it is now dragged there — `sort_order` is
+                    // still the column behind it, written by Filament's own
+                    // reorder handler (see `table()`).
+                    //
+                    // The column keeps its default of 0 in the database, so a
+                    // trip created before a first drag sorts by title with its
+                    // neighbours instead of jumping to the top.
 
                     Toggle::make('is_featured')
                         ->label(__('catalog.product.form.is_featured.label'))
@@ -1084,6 +1136,23 @@ class ProductResource extends Resource
                     ->visibleFrom('md'),
             ])
             ->defaultSort('sort_order')
+            /*
+             * Drag to arrange (Mike, 2026-09-22).
+             *
+             * `reorderable()` adds the handle column and writes `sort_order`
+             * on drop. Two things it needs to be honest about:
+             *
+             * - It only sorts what is on the screen, so it is offered on the
+             *   default sort alone. Dragging a row while the list is sorted by
+             *   title would write positions that the next visit does not show.
+             * - The guest side reads the same column: the hosted catalogue and
+             *   the API both order by `sort_order`, so this is the operator
+             *   arranging their own shop window, not a panel preference.
+             */
+            ->reorderable('sort_order')
+            ->reorderRecordsTriggerAction(
+                static fn (TableAction $action): TableAction => $action->label(__('catalog.product.table.reorder')),
+            )
             // Status is a row of tabs above the list (`ListProducts::getTabs`),
             // with the number of drafts on its tab, rather than a filter
             // hidden behind a button.

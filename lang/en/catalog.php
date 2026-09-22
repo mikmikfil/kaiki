@@ -398,6 +398,7 @@ return [
 
         'table' => [
             'preview' => 'View the page',
+            'reorder' => 'Change the order',
             'title' => 'Trip',
             'vessel' => 'Vessel',
             'mode' => 'How it is sold',

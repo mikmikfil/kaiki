@@ -57,4 +57,11 @@ return [
         'switcher' => 'Γλώσσα',
     ],
 
+    // The two buttons either side of a number field. Read by a screen reader
+    // and shown as the tooltip; the button itself is the sign.
+    'number' => [
+        'decrease' => 'Μείωση',
+        'increase' => 'Αύξηση',
+    ],
+
 ];

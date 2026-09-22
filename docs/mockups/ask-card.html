@@ -1,0 +1,388 @@
+<title>Έχετε απορίες — τρεις δρόμοι</title>
+
+<style>
+    :root {
+        --deep: #14314a;
+        --ink: #1f2d3a;
+        --ink-soft: #44566a;
+        --ink-faint: #7a8a99;
+        --line: #dfe7ee;
+        --mist: #f2f6f9;
+        --primary: #123a5e;
+        --accent: #c4551f;
+        --page: #f6f8fa;
+        --surface: #fff;
+        --shadow: 0 1px 2px rgba(20, 49, 74, .05), 0 18px 44px -34px rgba(20, 49, 74, .3);
+        --radius: 16px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+            --deep: #eaf1f7;
+            --ink: #e6edf3;
+            --ink-soft: #a9b8c6;
+            --ink-faint: #8496a5;
+            --line: #2a3a49;
+            --mist: #1b2733;
+            --primary: #8fc0e8;
+            --accent: #e08a54;
+            --page: #10181f;
+            --surface: #16202a;
+            --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 18px 44px -34px rgba(0, 0, 0, .8);
+        }
+    }
+
+    :root[data-theme="dark"] {
+        --deep: #eaf1f7;
+        --ink: #e6edf3;
+        --ink-soft: #a9b8c6;
+        --ink-faint: #8496a5;
+        --line: #2a3a49;
+        --mist: #1b2733;
+        --primary: #8fc0e8;
+        --accent: #e08a54;
+        --page: #10181f;
+        --surface: #16202a;
+        --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 18px 44px -34px rgba(0, 0, 0, .8);
+    }
+
+    body {
+        margin: 0;
+        background: var(--page);
+        color: var(--ink);
+        font: 16px/1.6 "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .page { max-width: 58rem; margin: 0 auto; padding-block: 2.5rem 5rem; padding-inline: 1rem; }
+
+    .masthead { margin-block-end: 2.5rem; }
+    .masthead .kicker {
+        font-size: .74rem; letter-spacing: .12em; font-weight: 700;
+        color: var(--accent); margin: 0 0 .5rem;
+    }
+    .masthead h1 { font-size: clamp(1.6rem, 3.4vw, 2.2rem); line-height: 1.15; margin: 0 0 .7rem; color: var(--deep); letter-spacing: -.02em; text-wrap: balance; }
+    .masthead p { margin: 0; color: var(--ink-soft); max-width: 44rem; }
+
+    /* One direction, presented. */
+    .take { margin-block-end: 3.25rem; }
+
+    .take-head {
+        display: flex; align-items: baseline; gap: .7rem; flex-wrap: wrap;
+        margin-block-end: .35rem;
+    }
+
+    .take-head .letter {
+        inline-size: 1.7rem; block-size: 1.7rem; flex: none;
+        display: grid; place-items: center;
+        border-radius: 50%; background: var(--deep); color: var(--page);
+        font-size: .82rem; font-weight: 700;
+        align-self: center;
+    }
+
+    .take-head h2 { margin: 0; font-size: 1.15rem; color: var(--deep); letter-spacing: -.01em; }
+    .take > p.why { margin: 0 0 1.25rem; color: var(--ink-soft); font-size: .93rem; max-width: 46rem; }
+
+    /* The frame each variant is drawn inside: the reading column of a trip
+       page, at the width it actually has. */
+    .column {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        padding: clamp(1.25rem, 3vw, 2rem);
+        box-shadow: var(--shadow);
+    }
+
+    .column > h3 {
+        margin: 0 0 1rem;
+        font-size: 1.22rem; font-weight: 800; letter-spacing: -.012em; color: var(--deep);
+    }
+
+    .column > h3::after {
+        content: ''; display: block;
+        inline-size: 2.6rem; block-size: 3px;
+        margin-block: .55rem 0;
+        background: var(--accent); border-radius: 2px;
+    }
+
+    /* The FAQ list itself — the neighbours anything here has to match. */
+    .faq-list { display: grid; gap: .6rem; }
+
+    .faq-item {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+    }
+
+    .faq-item summary {
+        list-style: none;
+        display: flex; align-items: center; gap: 1rem;
+        padding: 1.05rem 1.35rem;
+        font-weight: 700; color: var(--deep);
+        cursor: pointer;
+    }
+
+    .faq-item summary::-webkit-details-marker { display: none; }
+
+    .faq-item summary::after {
+        content: '+';
+        margin-inline-start: auto;
+        inline-size: 1.65rem; block-size: 1.65rem; flex: none;
+        display: grid; place-items: center;
+        border-radius: 50%; background: var(--mist); color: var(--primary);
+        font-weight: 700;
+    }
+
+    .faq-item[open] summary::after { content: '−'; }
+    .faq-item .prose { margin: 0; padding: 0 1.35rem 1.2rem; color: var(--ink-soft); font-size: .95rem; }
+
+    /* Buttons, as the hosted pages draw them. */
+    .button {
+        display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+        padding: .55rem .95rem;
+        border-radius: 10px; border: 1px solid transparent;
+        background: var(--primary); color: #fff;
+        font: inherit; font-size: .88rem; font-weight: 600;
+        text-decoration: none;
+    }
+
+    :root[data-theme="dark"] .button, :root:not([data-theme="light"]) .button { color: #0d1620; }
+    @media (prefers-color-scheme: light) { :root:not([data-theme="dark"]) .button { color: #fff; } }
+
+    .button.ghost { background: transparent; color: var(--primary); border-color: var(--primary); }
+    .button .icon { inline-size: .95rem; block-size: .95rem; }
+
+    /* ---------------- Α: μια ακόμη ερώτηση ---------------- */
+
+    .ask-a {
+        margin-block-start: .6rem;
+        display: grid; grid-template-columns: auto 1fr; gap: .25rem 1rem;
+        align-items: center;
+        padding: 1.05rem 1.35rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        /* The one tinted row in a list of white ones: it is the row that is not
+           a question but an answer to all of them. */
+        background: var(--mist);
+    }
+
+    .ask-a .mark {
+        inline-size: 1.65rem; block-size: 1.65rem;
+        display: grid; place-items: center;
+        border-radius: 50%; background: var(--primary); color: var(--surface);
+        grid-row: span 2;
+    }
+
+    .ask-a .mark svg { inline-size: .95rem; block-size: .95rem; }
+    .ask-a h4 { margin: 0; font-size: 1rem; color: var(--deep); }
+    .ask-a p { margin: .1rem 0 0; font-size: .9rem; color: var(--ink-soft); }
+    .ask-a .actions { grid-column: 2; display: flex; gap: .5rem; flex-wrap: wrap; margin-block-start: .85rem; }
+
+    /* ---------------- Β: το κλείσιμο της σελίδας ---------------- */
+
+    .ask-b {
+        margin-block-start: 1.6rem;
+        padding-block-start: 1.6rem;
+        border-block-start: 1px solid var(--line);
+        display: grid; gap: 1rem;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+    }
+
+    .ask-b h4 { margin: 0 0 .2rem; font-size: 1.02rem; color: var(--deep); }
+    .ask-b p { margin: 0; font-size: .9rem; color: var(--ink-soft); }
+    .ask-b .actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+    @media (max-width: 34rem) {
+        .ask-b { grid-template-columns: 1fr; }
+    }
+
+    /* ---------------- Γ: η κάρτα με το χρώμα του διοργανωτή ---------------- */
+
+    .ask-c {
+        margin-block-start: 1.4rem;
+        position: relative;
+        overflow: hidden;
+        border-radius: var(--radius);
+        padding: 1.4rem 1.5rem;
+        color: #fff;
+        background:
+            radial-gradient(120% 140% at 88% 8%, rgba(255, 255, 255, .16), transparent 55%),
+            linear-gradient(160deg, var(--primary), color-mix(in srgb, var(--primary) 72%, #05111d));
+    }
+
+    .ask-c .wave {
+        position: absolute; inset-inline: 0; inset-block-end: -1px;
+        block-size: 3.2rem; opacity: .22; color: #fff;
+    }
+
+    .ask-c h4 { margin: 0 0 .25rem; font-size: 1.08rem; }
+    .ask-c p { margin: 0; font-size: .92rem; color: rgba(255, 255, 255, .8); max-width: 34rem; }
+    .ask-c .actions { position: relative; display: flex; gap: .5rem; flex-wrap: wrap; margin-block-start: 1.1rem; }
+    .ask-c .button { background: #fff; color: var(--primary); }
+    .ask-c .button.ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, .55); }
+
+    .verdict {
+        margin-block-start: 3.5rem;
+        border-block-start: 1px solid var(--line);
+        padding-block-start: 1.5rem;
+        color: var(--ink-soft);
+        font-size: .95rem;
+    }
+
+    .verdict h2 { font-size: 1.05rem; color: var(--deep); margin: 0 0 .5rem; }
+    .verdict p { margin: 0 0 .6rem; max-width: 46rem; }
+    .verdict strong { color: var(--deep); }
+</style>
+
+<div class="page">
+
+    <div class="masthead">
+        <p class="kicker">Σελίδα εκδρομής · 22 Σεπτεμβρίου</p>
+        <h1>«Έχετε απορίες;», κάτω από τις συχνές ερωτήσεις</h1>
+        <p>
+            Η κάρτα μετακόμισε από τη δεξιά στήλη στη στήλη που διαβάζεται. Εκεί όμως
+            είναι πλέον γειτόνισσα των ερωτήσεων, όχι του κουμπιού κράτησης — άρα θέλει
+            να μοιάζει με αυτές. Τρεις δρόμοι, με τις πραγματικές ερωτήσεις από πάνω
+            για να φαίνεται η γειτονιά.
+        </p>
+    </div>
+
+    <!-- Α -->
+    <section class="take">
+        <div class="take-head">
+            <span class="letter">Α</span>
+            <h2>Μια ακόμη ερώτηση</h2>
+        </div>
+        <p class="why">
+            Ίδιο πλάτος, ίδια γωνία, ίδιο περίγραμμα με τα πτυσσόμενα από πάνω — αλλά
+            γεμισμένη, όχι λευκή, και με κύκλο αντί για «+». Διαβάζεται ως η τελευταία
+            γραμμή της λίστας: η μόνη που δεν είναι ερώτηση αλλά απάντηση σε όλες.
+        </p>
+
+        <div class="column">
+            <h3>Συχνές ερωτήσεις</h3>
+
+            <div class="faq-list">
+                <details class="faq-item" open>
+                    <summary>Μπορώ να ακυρώσω;</summary>
+                    <p class="prose">Ναι, έως 48 ώρες πριν την αναχώρηση με πλήρη επιστροφή.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>Τι γίνεται αν έχει αέρα;</summary>
+                </details>
+            </div>
+
+            <div class="ask-a">
+                <span class="mark">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+                        <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+                    </svg>
+                </span>
+                <div>
+                    <h4>Δεν βρήκατε την απάντησή σας;</h4>
+                    <p>Πείτε μας τι θέλετε να μάθετε για αυτή την εκδρομή.</p>
+                </div>
+                <div class="actions">
+                    <a class="button" href="#">Πάρτε τηλέφωνο</a>
+                    <a class="button ghost" href="#">Στείλτε μήνυμα</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Β -->
+    <section class="take">
+        <div class="take-head">
+            <span class="letter">Β</span>
+            <h2>Το κλείσιμο της σελίδας</h2>
+        </div>
+        <p class="why">
+            Καθόλου κουτί. Μια γραμμή κάτω από τη λίστα, το κείμενο αριστερά και τα δύο
+            κουμπιά δεξιά — όπως τελειώνει ένα κεφάλαιο. Το ελαφρύτερο από τα τρία:
+            δεν προσθέτει σχήμα σε μια σελίδα που έχει ήδη πολλά.
+        </p>
+
+        <div class="column">
+            <h3>Συχνές ερωτήσεις</h3>
+
+            <div class="faq-list">
+                <details class="faq-item" open>
+                    <summary>Μπορώ να ακυρώσω;</summary>
+                    <p class="prose">Ναι, έως 48 ώρες πριν την αναχώρηση με πλήρη επιστροφή.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>Τι γίνεται αν έχει αέρα;</summary>
+                </details>
+            </div>
+
+            <div class="ask-b">
+                <div>
+                    <h4>Δεν βρήκατε την απάντησή σας;</h4>
+                    <p>Πείτε μας τι θέλετε να μάθετε για αυτή την εκδρομή.</p>
+                </div>
+                <div class="actions">
+                    <a class="button" href="#">Πάρτε τηλέφωνο</a>
+                    <a class="button ghost" href="#">Στείλτε μήνυμα</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Γ -->
+    <section class="take">
+        <div class="take-head">
+            <span class="letter">Γ</span>
+            <h2>Η κάρτα με το χρώμα του διοργανωτή</h2>
+        </div>
+        <p class="why">
+            Η μόνη γεμάτη επιφάνεια στη στήλη, στο χρώμα του διοργανωτή και με το κύμα
+            που η σελίδα χρησιμοποιεί ήδη. Ξεχωρίζει — και ακριβώς γι' αυτό πρέπει να
+            είναι το τελευταίο πράγμα στη σελίδα: αν μπει πιο ψηλά, τραβάει το μάτι από
+            το κουμπί της κράτησης.
+        </p>
+
+        <div class="column">
+            <h3>Συχνές ερωτήσεις</h3>
+
+            <div class="faq-list">
+                <details class="faq-item" open>
+                    <summary>Μπορώ να ακυρώσω;</summary>
+                    <p class="prose">Ναι, έως 48 ώρες πριν την αναχώρηση με πλήρη επιστροφή.</p>
+                </details>
+                <details class="faq-item">
+                    <summary>Τι γίνεται αν έχει αέρα;</summary>
+                </details>
+            </div>
+
+            <div class="ask-c">
+                <svg class="wave" viewBox="0 0 1200 120" preserveAspectRatio="none" aria-hidden="true">
+                    <path fill="currentColor" d="M0 60c150-40 250 40 400 20s250-60 400-30 250 50 400 10v60H0z"/>
+                </svg>
+                <h4>Δεν βρήκατε την απάντησή σας;</h4>
+                <p>Πείτε μας τι θέλετε να μάθετε για αυτή την εκδρομή — απαντάμε την ίδια μέρα.</p>
+                <div class="actions">
+                    <a class="button" href="#">Πάρτε τηλέφωνο</a>
+                    <a class="button ghost" href="#">Στείλτε μήνυμα</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="verdict">
+        <h2>Τι προτείνω</h2>
+        <p>
+            <strong>Το Α.</strong> Ο λόγος που η κάρτα έδειχνε «απλά μεταφερμένη» είναι
+            ότι κρατούσε το πλάτος και τη σκιά μιας κάρτας πλαϊνής στήλης μέσα σε μια
+            στήλη κειμένου. Το Α της δίνει το σχήμα των γειτόνων της και κρατάει τη
+            διαφορά εκεί που μετράει: στο γέμισμα και στον κύκλο.
+        </p>
+        <p>
+            Το Γ είναι ωραίο αλλά δυνατό — μπαίνει σε σελίδα όπου το μόνο έγχρωμο
+            κουμπί πρέπει να είναι η κράτηση. Το Β είναι το σωστό αν αργότερα
+            προστεθούν κι άλλα τμήματα κάτω από τις ερωτήσεις.
+        </p>
+    </div>
+
+</div>

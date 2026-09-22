@@ -59,6 +59,10 @@ return [
         'help_week' => 'Έσοδα ανά εβδομάδα.',
         'help_month' => 'Έσοδα ανά μήνα.',
         'empty' => 'Δεν μπήκαν χρήματα σε αυτό το διάστημα.',
+        // What the chart's top gridline is worth, printed beside the
+        // dates. A chart drawn to its own peak says nothing about size
+        // until one figure on it is named.
+        'peak' => 'κορυφή :amount',
     ],
 
     'products' => [

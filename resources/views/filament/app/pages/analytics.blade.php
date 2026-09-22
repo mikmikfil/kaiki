@@ -11,6 +11,16 @@
     already server-rendered, so a single JavaScript dependency here would be the
     only thing on the screen that can fail to appear.
 
+    ## Icons and bars (Mike, 2026-09-22)
+
+    Every section carries the icon of the thing it counts, and every table that
+    ranks rows carries a bar. The icon is how a reader finds the block they
+    came for on a page of eleven; the bar is the answer to «which is the big
+    one», which is otherwise a subtraction the reader does in their head. Both
+    are drawn from the figures already on the page — no shape here is the only
+    place a number appears, so the page still reads as a table when it is
+    printed in black and white.
+
     ## Nothing here computes anything
 
     `Analytics::report()` gathers it in one pass and `AnalyticsFigures` does the
@@ -33,7 +43,7 @@
 
     {{-- The period. A form of three controls that reloads the page's own data,
          with the choice kept in the URL so it can be sent to somebody. --}}
-    <x-filament::section>
+    <x-filament::section icon="heroicon-o-calendar-days" icon-color="primary">
         <x-slot name="heading">{{ __('analytics.range.label') }}</x-slot>
 
         <div class="flex flex-wrap items-end gap-4">
@@ -86,7 +96,7 @@
         @if ($this->showsMoney())
             @php $change = $this->change($report['revenue'], $report['revenue_previous']); @endphp
 
-            <x-filament::section>
+            <x-filament::section icon="heroicon-o-banknotes" icon-color="primary">
                 <x-slot name="heading">{{ __('analytics.headline.revenue') }}</x-slot>
 
                 <p class="text-3xl font-semibold tracking-tight">{{ $money($report['revenue']) }}</p>
@@ -103,7 +113,7 @@
             </x-filament::section>
         @endif
 
-        <x-filament::section>
+        <x-filament::section icon="heroicon-o-ticket" icon-color="primary">
             <x-slot name="heading">{{ __('analytics.headline.bookings') }}</x-slot>
 
             <p class="text-3xl font-semibold tracking-tight">{{ $report['sales']['bookings'] }}</p>
@@ -121,7 +131,7 @@
             <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">{{ __('analytics.headline.bookings_basis') }}</p>
         </x-filament::section>
 
-        <x-filament::section>
+        <x-filament::section icon="heroicon-o-users" icon-color="primary">
             <x-slot name="heading">{{ __('analytics.headline.pax') }}</x-slot>
 
             <p class="text-3xl font-semibold tracking-tight">{{ $report['sales']['pax'] }}</p>
@@ -129,7 +139,7 @@
         </x-filament::section>
 
         @if ($this->showsMoney())
-            <x-filament::section>
+            <x-filament::section icon="heroicon-o-calculator" icon-color="primary">
                 <x-slot name="heading">{{ __('analytics.headline.average') }}</x-slot>
 
                 <p class="text-3xl font-semibold tracking-tight">
@@ -143,7 +153,7 @@
     {{-- Revenue over time. Bars rather than a line: the buckets are days, and a
          line between two days implies a value at noon that nothing measured. --}}
     @if ($this->showsMoney())
-        <x-filament::section>
+        <x-filament::section icon="heroicon-o-chart-bar" icon-color="primary">
             <x-slot name="heading">{{ __('analytics.series.heading') }}</x-slot>
             <x-slot name="description">
                 @if ($report['grain'] === \App\Domain\Analytics\Support\LocalRange::GRAIN_DAY)
@@ -173,6 +183,24 @@
                     role="img"
                     aria-label="{{ __('analytics.series.heading') }}"
                 >
+                    {{-- Three lines to read the bars against: the peak, half of
+                         it, and the floor. Without them a tall bar beside a
+                         short one says «more», and this page is read to find
+                         out «how much more». `preserveAspectRatio="none"`
+                         stretches the box, so the lines are drawn with
+                         `vector-effect` to keep them one pixel however wide
+                         the card is. --}}
+                    @foreach ([0.0, 0.5, 1.0] as $line)
+                        <line
+                            x1="0"
+                            x2="{{ $width }}"
+                            y1="{{ round($height - ($line * ($height - 20)), 2) }}"
+                            y2="{{ round($height - ($line * ($height - 20)), 2) }}"
+                            vector-effect="non-scaling-stroke"
+                            stroke-width="1"
+                            style="stroke: rgb(var(--gray-200))"
+                        />
+                    @endforeach
                     @foreach ($series as $index => $point)
                         @php
                             $value = max(0, $point['revenue']);
@@ -203,6 +231,10 @@
 
                 <div class="mt-2 flex justify-between text-xs text-gray-500 dark:text-gray-400">
                     <span>{{ $series[0]['bucket'] }}</span>
+                    {{-- What the top line is worth. The scale of a chart drawn
+                         to its own peak means nothing until one figure on it is
+                         named. --}}
+                    <span class="tabular-nums">{{ __('analytics.series.peak', ['amount' => $money($peak)]) }}</span>
                     <span>{{ $series[count($series) - 1]['bucket'] }}</span>
                 </div>
             @endif
@@ -212,10 +244,10 @@
     {{-- Per trip and per boat. --}}
     <div class="grid gap-4 xl:grid-cols-2">
         @foreach ([
-            ['rows' => $report['products'], 'heading' => __('analytics.products.heading'), 'label' => __('analytics.products.label'), 'help' => __('analytics.products.help')],
-            ['rows' => $report['vessels'], 'heading' => __('analytics.vessels.heading'), 'label' => __('analytics.vessels.label'), 'help' => null],
+            ['rows' => $report['products'], 'heading' => __('analytics.products.heading'), 'label' => __('analytics.products.label'), 'help' => __('analytics.products.help'), 'icon' => 'heroicon-o-map'],
+            ['rows' => $report['vessels'], 'heading' => __('analytics.vessels.heading'), 'label' => __('analytics.vessels.label'), 'help' => null, 'icon' => 'heroicon-o-lifebuoy'],
         ] as $table)
-            <x-filament::section>
+            <x-filament::section :icon="$table['icon']" icon-color="primary">
                 <x-slot name="heading">{{ $table['heading'] }}</x-slot>
 
                 @if ($table['help'])
@@ -225,6 +257,17 @@
                 @if ($table['rows'] === [])
                     <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('analytics.empty') }}</p>
                 @else
+                    {{-- The scale of the bars: the biggest row of **this**
+                         table, on the figure the table is sorted by. Money when
+                         the reader is allowed to see money, passengers when
+                         they are not — so a manager gets bars of the thing
+                         their own columns show rather than of a column that
+                         is not on their screen. --}}
+                    @php
+                        $barKey = $this->showsMoney() ? 'revenue' : 'pax';
+                        $tableTop = max(1, max(array_map(static fn (array $row): int => (int) ($row[$barKey] ?? 0), $table['rows'])) ?: 1);
+                    @endphp
+
                     <table class="w-full text-sm">
                         <thead class="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
                             <tr>
@@ -239,11 +282,14 @@
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                             @foreach ($table['rows'] as $row)
                                 <tr>
-                                    <td class="py-2 pr-2">{{ $row['label'] }}</td>
-                                    <td class="py-2 text-right tabular-nums">{{ $row['bookings'] }}</td>
-                                    <td class="py-2 text-right tabular-nums">{{ $row['pax'] }}</td>
+                                    <td class="py-2 pr-2 align-top">
+                                        {{ $row['label'] }}
+                                        @include('filament.app.pages.analytics.bar', ['ratio' => ((int) ($row[$barKey] ?? 0)) / $tableTop])
+                                    </td>
+                                    <td class="py-2 text-right align-top tabular-nums">{{ $row['bookings'] }}</td>
+                                    <td class="py-2 text-right align-top tabular-nums">{{ $row['pax'] }}</td>
                                     @if ($this->showsMoney())
-                                        <td class="py-2 text-right tabular-nums">{{ $money($row['revenue']) }}</td>
+                                        <td class="py-2 text-right align-top tabular-nums">{{ $money($row['revenue']) }}</td>
                                     @endif
                                 </tr>
                             @endforeach
@@ -255,7 +301,7 @@
     </div>
 
     {{-- Occupancy: the number that turns into money. --}}
-    <x-filament::section>
+    <x-filament::section icon="heroicon-o-chart-pie" icon-color="primary">
         <x-slot name="heading">{{ __('analytics.occupancy.heading') }}</x-slot>
         <x-slot name="description">{{ __('analytics.occupancy.help') }}</x-slot>
 
@@ -288,9 +334,18 @@
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                             @foreach ($report['occupancy_by_month'] as $month)
                                 <tr>
-                                    <td class="py-2">{{ $month['month'] }}</td>
-                                    <td class="py-2 text-right tabular-nums">{{ $month['sold'] }} / {{ $month['capacity'] }}</td>
-                                    <td class="py-2 text-right tabular-nums font-medium">{{ $percent($month['rate']) }}</td>
+                                    <td class="py-2 align-top">
+                                        {{ $month['month'] }}
+                                        {{-- Occupancy is already a share of
+                                             something, so the bar is the figure
+                                             itself rather than a share of the
+                                             biggest row: a full bar is a full
+                                             boat, in every row of every table
+                                             on this page. --}}
+                                        @include('filament.app.pages.analytics.bar', ['ratio' => $month['rate']])
+                                    </td>
+                                    <td class="py-2 text-right align-top tabular-nums">{{ $month['sold'] }} / {{ $month['capacity'] }}</td>
+                                    <td class="py-2 text-right align-top tabular-nums font-medium">{{ $percent($month['rate']) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -303,9 +358,12 @@
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                             @foreach ($report['occupancy_by_product'] as $row)
                                 <tr>
-                                    <td class="py-2">{{ $row['label'] }}</td>
-                                    <td class="py-2 text-right tabular-nums">{{ $row['sold'] }} / {{ $row['capacity'] }}</td>
-                                    <td class="py-2 text-right tabular-nums font-medium">{{ $percent($row['rate']) }}</td>
+                                    <td class="py-2 align-top">
+                                        {{ $row['label'] }}
+                                        @include('filament.app.pages.analytics.bar', ['ratio' => $row['rate']])
+                                    </td>
+                                    <td class="py-2 text-right align-top tabular-nums">{{ $row['sold'] }} / {{ $row['capacity'] }}</td>
+                                    <td class="py-2 text-right align-top tabular-nums font-medium">{{ $percent($row['rate']) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -316,7 +374,7 @@
     </x-filament::section>
 
     {{-- The emptiest sailings: the part of the page an operator can act on. --}}
-    <x-filament::section>
+    <x-filament::section icon="heroicon-o-moon" icon-color="primary">
         <x-slot name="heading">{{ __('analytics.quiet.heading') }}</x-slot>
         <x-slot name="description">{{ __('analytics.quiet.help') }}</x-slot>
 
@@ -336,11 +394,14 @@
                 <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                     @foreach ($report['quiet'] as $sailing)
                         <tr>
-                            <td class="py-2">{{ $sailing['date'] }}</td>
-                            <td class="py-2 tabular-nums">{{ $sailing['time'] }}</td>
-                            <td class="py-2">{{ $sailing['label'] }}</td>
-                            <td class="py-2 text-right tabular-nums">{{ $sailing['sold'] }} / {{ $sailing['capacity'] }}</td>
-                            <td class="py-2 text-right tabular-nums font-medium">{{ $percent($sailing['rate']) }}</td>
+                            <td class="py-2 align-top">{{ $sailing['date'] }}</td>
+                            <td class="py-2 align-top tabular-nums">{{ $sailing['time'] }}</td>
+                            <td class="py-2 align-top">
+                                {{ $sailing['label'] }}
+                                @include('filament.app.pages.analytics.bar', ['ratio' => $sailing['rate']])
+                            </td>
+                            <td class="py-2 text-right align-top tabular-nums">{{ $sailing['sold'] }} / {{ $sailing['capacity'] }}</td>
+                            <td class="py-2 text-right align-top tabular-nums font-medium">{{ $percent($sailing['rate']) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -349,13 +410,74 @@
     </x-filament::section>
 
     {{-- Where the bookings came from, from the bookings themselves. --}}
-    <x-filament::section>
+    <x-filament::section icon="heroicon-o-globe-alt" icon-color="primary">
         <x-slot name="heading">{{ __('analytics.sources.heading') }}</x-slot>
         <x-slot name="description">{{ __('analytics.sources.help') }}</x-slot>
 
         @if ($report['sources'] === [])
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('analytics.sources.none') }}</p>
         @else
+            {{-- The mix as a ring, beside the table that says what each slice
+                 is worth (2026-09-22).
+
+                 A pie is the wrong shape for most things and the right one for
+                 this: «how much of our business comes through the website» is
+                 a question about parts of a whole, and there are three or four
+                 channels, not thirty.
+
+                 Drawn with one circle per slice and a dash pattern round its
+                 circumference — the trick that needs no arc arithmetic and no
+                 library. Every slice is the operator's own colour at a
+                 different strength rather than a palette of unrelated hues:
+                 the channels are not categories of different kinds, they are
+                 shares of one thing. --}}
+            @php
+                $mixTotal = max(1, array_sum(array_map(static fn (array $row): int => (int) $row['bookings'], $report['sources'])));
+                $mixOffset = 0.0;
+            @endphp
+
+            <div class="mb-6 flex flex-wrap items-center gap-6">
+                <svg viewBox="0 0 42 42" class="h-32 w-32 -rotate-90" role="img" aria-label="{{ __('analytics.sources.heading') }}">
+                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke-width="6" style="stroke: rgb(var(--gray-100))"></circle>
+
+                    @foreach ($report['sources'] as $index => $row)
+                        @php
+                            $share = ((int) $row['bookings']) / $mixTotal;
+                            $length = round($share * 100, 2);
+                            $strength = max(25, 100 - ($index * 22));
+                        @endphp
+
+                        <circle
+                            cx="21" cy="21" r="15.915"
+                            fill="transparent"
+                            stroke-width="6"
+                            stroke-dasharray="{{ $length }} {{ round(100 - $length, 2) }}"
+                            stroke-dashoffset="{{ round(100 - $mixOffset, 2) }}"
+                            style="stroke: color-mix(in srgb, rgb(var(--primary-600)) {{ $strength }}%, transparent)"
+                        >
+                            <title>{{ $row['label'] }} — {{ $row['bookings'] }}</title>
+                        </circle>
+
+                        @php $mixOffset += $length; @endphp
+                    @endforeach
+                </svg>
+
+                <ul class="grid gap-2 text-sm">
+                    @foreach ($report['sources'] as $index => $row)
+                        <li class="flex items-center gap-2">
+                            <span
+                                class="inline-block h-3 w-3 rounded-sm"
+                                style="background: color-mix(in srgb, rgb(var(--primary-600)) {{ max(25, 100 - ($index * 22)) }}%, transparent)"
+                            ></span>
+                            <span>{{ $row['label'] }}</span>
+                            <span class="tabular-nums text-gray-500 dark:text-gray-400">
+                                {{ $percent(((int) $row['bookings']) / $mixTotal) }}
+                            </span>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+
             <table class="w-full text-sm">
                 <thead class="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
                     <tr>
@@ -425,7 +547,7 @@
 
     {{-- «Κουπόνια» (2026-09-17): which codes brought bookings, and what those
          bookings came to. --}}
-    <x-filament::section>
+    <x-filament::section icon="heroicon-o-tag" icon-color="primary">
         <x-slot name="heading">{{ __('analytics.discount_codes.heading') }}</x-slot>
         <x-slot name="description">{{ __('analytics.discount_codes.help') }}</x-slot>
 
@@ -465,7 +587,7 @@
          them — never called a conversion rate, because cookieless means nobody
          is followed from one step to the next and a number named something it
          is not is worse than no number. --}}
-    <x-filament::section>
+    <x-filament::section icon="heroicon-o-funnel" icon-color="primary">
         <x-slot name="heading">{{ __('analytics.funnel.heading') }}</x-slot>
         <x-slot name="description">{{ __('analytics.funnel.help') }}</x-slot>
 
@@ -508,7 +630,7 @@
     </x-filament::section>
 
     {{-- Cancellations. --}}
-    <x-filament::section>
+    <x-filament::section icon="heroicon-o-x-circle" icon-color="primary">
         <x-slot name="heading">{{ __('analytics.cancellations.heading') }}</x-slot>
         <x-slot name="description">{{ __('analytics.cancellations.help') }}</x-slot>
 
