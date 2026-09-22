@@ -114,6 +114,7 @@ return [
             'not_per_seat' => 'Schedules only apply to trips sold per seat. This trip is ":mode" and is booked as a whole boat, so it has no scheduled departures.',
             'empty_mask' => 'Choose at least one day. To stop the schedule, switch off "Active" instead.',
             'inverted_window' => 'The end date cannot be before the start.',
+            'duplicate' => 'There is already an active schedule at :time on one of these days. Two identical schedules do not make a second departure: change the time or the days, or edit the one you have.',
             'unknown_vessel' => 'That vessel was not found.',
         ],
     ],
