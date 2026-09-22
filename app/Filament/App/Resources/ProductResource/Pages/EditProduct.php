@@ -82,7 +82,31 @@ class EditProduct extends EditRecord
                 ->label(fn (): string => $this->product()->status === ProductStatus::Draft
                     ? __('catalog.product.status_actions.save_draft')
                     : __('catalog.product.status_actions.save'))
-                ->color(fn (): string => $this->product()->status === ProductStatus::Draft ? 'gray' : 'primary'),
+                ->color(fn (): string => $this->product()->status === ProductStatus::Draft ? 'gray' : 'primary')
+                /*
+                 * **The button has to name its form** (2026-09-22).
+                 *
+                 * «Αποθήκευση» is a plain `type="submit"`, which submits the
+                 * form it sits inside. Since the price lists, the extras and
+                 * the schedule rules moved into the tabs (2026-09-21) this page
+                 * renders relation managers — each carrying a `<form>` of its
+                 * own — inside the trip's form, and a nested `<form>` ends the
+                 * outer one as far as the browser is concerned. The save
+                 * button, which comes after them, was left inside no form at
+                 * all: clicking it issued **no request**. No error, no
+                 * notification, and the operator's edit simply gone on the next
+                 * load. It was found by driving the real form: the escort
+                 * toggle would not stay on, and neither would anything else.
+                 *
+                 * `formId()` renders `form="form"`, which ties a button to a
+                 * form by id wherever it sits in the document. The create page
+                 * never had this — it has no relation managers to nest — and
+                 * nor do the vessel and port forms, which is why it looked at
+                 * first like something about one trip rather than about this
+                 * page. «Δημοσίευση» below was never affected: it is a Livewire
+                 * action and does not submit anything.
+                 */
+                ->formId('form'),
             Action::make('publish')
                 ->label(fn (): string => $this->product()->status === ProductStatus::Inactive
                     ? __('catalog.product.status_actions.republish')
