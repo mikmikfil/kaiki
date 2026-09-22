@@ -74,6 +74,11 @@ Thumbs.db
 /docs/ekdromi/kaiki-ekdromi.pdf
 /docs/ekdromi/shots
 
+# «Πώς είναι φτιαγμένο», on the same terms. It has no screenshots at all, so
+# the only build products are the assembled HTML and the PDF.
+/docs/architecture/architecture.html
+/docs/architecture/kaiki-architecture.pdf
+
 # The WordPress guide's intermediate HTML, for the same reason. Its PDF **is**
 # committed, unlike the manual's: it carries no screenshots, so it is under a
 # megabyte, and a reader who clones this repository to answer "how does the

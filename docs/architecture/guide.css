@@ -1,0 +1,132 @@
+/*
+ * The few things this booklet has that the manual does not.
+ *
+ * Everything else — the page, the cover, headings, notes, tables — comes from
+ * `docs/manual/manual.css`, which is inlined before this file. Nothing here
+ * redefines one of its rules; it only adds.
+ */
+
+/* A layer: a name, and what it is allowed to know. The two columns are
+   deliberately uneven — the left one is a label and the right one is the
+   sentence that matters. */
+.ka-layers {
+    margin: 0 0 4mm;
+    border-block-start: 0.3mm solid var(--rule, #d9e2ea);
+}
+
+.ka-layers > div {
+    display: grid;
+    grid-template-columns: 34mm 1fr;
+    gap: 1mm 5mm;
+    padding: 2.4mm 0;
+    border-block-end: 0.3mm solid var(--rule, #d9e2ea);
+    break-inside: avoid;
+}
+
+.ka-layers dt,
+.ka-layers .k {
+    font-weight: 700;
+    color: var(--hull-deep, #14314a);
+    font-size: 0.94em;
+}
+
+.ka-layers dd,
+.ka-layers .v {
+    margin: 0;
+    color: var(--ink-soft, #44566a);
+}
+
+.ka-layers .v code {
+    font-size: 0.86em;
+}
+
+/* One fact per line, for the numbers that describe the system. */
+.ka-facts {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2.5mm 6mm;
+    margin: 0 0 4mm;
+}
+
+.ka-facts > div {
+    padding: 2.5mm 3mm;
+    background: var(--mist, #f2f6f9);
+    border-radius: 2mm;
+    break-inside: avoid;
+}
+
+.ka-facts .n {
+    display: block;
+    font-weight: 800;
+    font-size: 1.25em;
+    color: var(--hull-deep, #14314a);
+    letter-spacing: -0.02em;
+}
+
+.ka-facts .t {
+    display: block;
+    font-size: 0.86em;
+    color: var(--ink-soft, #44566a);
+    margin-block-start: 0.6mm;
+}
+
+/* The flow of a booking, drawn as text rather than as a diagram: a picture
+   would need a tool, and this has to stay true when the code changes. */
+.ka-flow {
+    margin: 0 0 4mm;
+    padding: 0;
+    list-style: none;
+    counter-reset: step;
+}
+
+.ka-flow li {
+    position: relative;
+    padding-inline-start: 9mm;
+    padding-block: 1.6mm;
+    break-inside: avoid;
+}
+
+.ka-flow li::before {
+    counter-increment: step;
+    content: counter(step);
+    position: absolute;
+    inset-inline-start: 0;
+    inset-block-start: 1.6mm;
+    width: 6mm;
+    height: 6mm;
+    border-radius: 50%;
+    background: var(--hull-deep, #14314a);
+    color: #fff;
+    font-size: 0.68em;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+}
+
+.ka-flow strong {
+    color: var(--hull-deep, #14314a);
+}
+
+/* «Ναι / Όχι» — what the system does and does not have, side by side. */
+.ka-has {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5mm;
+    margin: 0 0 4mm;
+}
+
+.ka-has h4 {
+    margin: 0 0 1.5mm;
+    font-size: 0.95em;
+}
+
+.ka-has ul {
+    margin: 0;
+    padding-inline-start: 4.5mm;
+    font-size: 0.93em;
+    color: var(--ink-soft, #44566a);
+}
+
+.ka-has li {
+    margin-block-end: 1.2mm;
+}
