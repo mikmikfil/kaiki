@@ -94,6 +94,17 @@ return [
         'setup_reset' => 'Restart the guide',
         'setup_reset_body' => 'The guide starts again for this operator. Anything already filled in stays.',
         'setup_reset_done' => 'The guide starts again',
+        // A soft delete: the merchant goes dark, the books stay whole.
+        'delete' => 'Delete merchant',
+        'delete_body' => 'Their pages stop opening, their API keys stop authenticating and their staff cannot sign in. Bookings, invoices and history all stay — and this is undone from here.',
+        'delete_confirm_label' => 'Type the merchant’s name to confirm',
+        'delete_confirm_help' => 'Exactly as it reads: “:name”.',
+        'delete_confirm_mismatch' => 'That name does not match.',
+        'delete_done' => 'Merchant deleted',
+        'restore' => 'Restore merchant',
+        'restore_body' => 'The merchant works again: pages, keys and staff sign-in, as before.',
+        'restore_done' => 'Merchant restored',
+        'deleted_banner' => 'This merchant was deleted on :date. They sell nothing and nobody can sign in.',
         'sms_help' => 'On: the operator also sends text messages (confirmation, reminders) and sees the Apifon, Yuboto or Twilio connection under Connections. Every message is charged to their own account. Off for everyone unless they ask for it.',
         'getyourguide_help' => 'On: the operator sees the GetYourGuide connection under Connections and enters their own details. Seats GetYourGuide sells come out of the same availability as their own page — there is no second stock, so there is no double booking. Requires their own contract with GetYourGuide; the platform does not hold one. Off for everyone.',
 

@@ -22,6 +22,7 @@ use App\Models\IntegrationCredential;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use BackedEnum;
+use Closure;
 use DateTimeInterface;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
@@ -32,6 +33,7 @@ use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -557,7 +559,118 @@ class EditTenant extends EditRecord
 
                     Notification::make()->success()->title(__('tenants.edit.setup_reset_done'))->send();
                 }),
+
+            /*
+             * «Διαγραφή διοργανωτή» (product owner, 2026-09-22).
+             *
+             * A **soft** delete, and the modal says what that buys: the pages
+             * stop opening, the keys stop authenticating and the staff cannot
+             * sign in — every resolver finds a tenant through the default scope
+             * — while bookings, invoices and the trail stay exactly where they
+             * are. `forceDelete` is still refused by the policy and still
+             * belongs to the erasure tooling, because `tenant_id` cascades
+             * across the whole schema.
+             *
+             * Two gates rather than one: the merchant's name typed out, because
+             * a confirmation dialog is a thing people click through, and the
+             * same required reason as every other platform write here (SEC-16).
+             */
+            Action::make('deleteMerchant')
+                ->label(__('tenants.edit.delete'))
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->visible(fn (): bool => ! $this->tenant()->trashed()
+                    && auth()->user()?->can('delete', $this->tenant()) === true)
+                ->modalHeading(__('tenants.edit.delete'))
+                ->modalDescription(__('tenants.edit.delete_body'))
+                ->form([
+                    TextInput::make('confirmName')
+                        ->label(__('tenants.edit.delete_confirm_label'))
+                        ->helperText(__('tenants.edit.delete_confirm_help', ['name' => $this->tenant()->name]))
+                        ->required()
+                        ->rule(fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                            if (trim((string) $value) !== $this->tenant()->name) {
+                                $fail(__('tenants.edit.delete_confirm_mismatch'));
+                            }
+                        }),
+                    Textarea::make('reason')
+                        ->label(__('tenants.edit.reason'))
+                        ->helperText(__('tenants.edit.reason_help'))
+                        ->required()
+                        ->minLength(3)
+                        ->maxLength(500),
+                ])
+                ->action(function (array $data): void {
+                    $tenant = $this->tenant();
+
+                    // Written **before** the delete: the entry goes into this
+                    // operator's own trail, and a tenant the default scope can
+                    // no longer find is one the writer cannot resolve either.
+                    $this->recordTenantChange($tenant, (string) ($data['reason'] ?? ''), ['deleted' => true]);
+
+                    $tenant->delete();
+
+                    Notification::make()->success()->title(__('tenants.edit.delete_done'))->send();
+
+                    $this->redirect(static::getResource()::getUrl('index'));
+                }),
+
+            /** The way back, with the same reason and the same trail. */
+            Action::make('restoreMerchant')
+                ->label(__('tenants.edit.restore'))
+                ->icon('heroicon-o-arrow-uturn-left')
+                ->color('gray')
+                ->visible(fn (): bool => $this->tenant()->trashed()
+                    && auth()->user()?->can('restore', $this->tenant()) === true)
+                ->modalHeading(__('tenants.edit.restore'))
+                ->modalDescription(__('tenants.edit.restore_body'))
+                ->form([
+                    Textarea::make('reason')
+                        ->label(__('tenants.edit.reason'))
+                        ->helperText(__('tenants.edit.reason_help'))
+                        ->required()
+                        ->minLength(3)
+                        ->maxLength(500),
+                ])
+                ->action(function (array $data): void {
+                    $tenant = $this->tenant();
+
+                    $tenant->restore();
+
+                    $this->recordTenantChange($tenant, (string) ($data['reason'] ?? ''), ['restored' => true]);
+
+                    Notification::make()->success()->title(__('tenants.edit.restore_done'))->send();
+                }),
         ];
+    }
+
+    /** This page's record, typed. */
+    private function tenant(): Tenant
+    {
+        /** @var Tenant */
+        return $this->getRecord();
+    }
+
+    /**
+     * One entry in the operator's own trail, for a change the platform made.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    private function recordTenantChange(Tenant $tenant, string $reason, array $context): void
+    {
+        app(RecordAuditEntry::class)(
+            new AuditEntryData(
+                action: AuditAction::TenantUpdated,
+                subjectType: 'Tenant',
+                subjectId: (int) $tenant->getKey(),
+                subjectLabel: $tenant->name,
+                reason: $reason,
+                context: $context,
+            ),
+            $tenant,
+            userId: auth()->id(),
+            ipAddress: request()->ip(),
+        );
     }
 
     /**

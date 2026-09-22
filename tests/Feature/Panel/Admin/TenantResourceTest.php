@@ -229,24 +229,78 @@ it('refuses a slug the hosted router would never match', function (): void {
         ->assertHasFormErrors(['slug']);
 })->group('fast');
 
-it('offers no way to delete a merchant', function (): void {
-    // Asserted rather than trusted to the absence of a page. Filament allows an
+it('deletes a merchant softly, and never any other way', function (): void {
+    // Asserted rather than trusted to the absence of a page: Filament allows an
     // action when no policy forbids it, so "we did not build a form" is not the
-    // same as "it is refused" — the next person to scaffold a resource would
-    // get one for free.
+    // same as "it is refused".
     //
-    // `create` and `update` **are** allowed since 2026-09-09 — the audit trail
-    // SEC-16 needs was built by #53, and onboarding had to exist somewhere or
-    // no customer could be taken on at all. Deleting stays refused: it is a
-    // retention decision, not a button (GDR, ADR-0012).
+    // The **soft** delete is allowed from 2026-09-22 (product owner: «add
+    // option to delete merchant on admin»). The row stays, every `tenant_id`
+    // still points at it, and what changes is that the resolvers stop finding
+    // it. `forceDelete` stays refused: that one cascades across the schema and
+    // belongs to the erasure tooling (GDR, ADR-0012).
     $tenant = Tenant::factory()->create();
     $admin = superAdmin();
 
-    expect($admin->can('delete', $tenant))->toBeFalse()
-        ->and($admin->can('forceDelete', $tenant))->toBeFalse()
-        ->and($admin->can('restore', $tenant))->toBeFalse();
+    expect($admin->can('delete', $tenant))->toBeTrue()
+        ->and($admin->can('restore', $tenant))->toBeTrue()
+        ->and($admin->can('forceDelete', $tenant))->toBeFalse();
 
     expect(array_keys(TenantResource::getPages()))->toBe(['index', 'create', 'edit']);
+})->group('fast');
+
+it('asks for the merchant name and a reason before deleting, and records both', function (): void {
+    $tenant = Tenant::factory()->create(['name' => 'Aegean Blue Cruises']);
+    $admin = superAdmin();
+
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    // A confirmation dialog is a thing people click through, so the name has to
+    // be typed out — and a near miss is not a match.
+    Livewire::actingAs($admin)
+        ->test(EditTenant::class, ['record' => $tenant->getRouteKey()])
+        ->callAction('deleteMerchant', ['confirmName' => 'Aegean Blue', 'reason' => 'Σταμάτησαν τη συνδρομή.'])
+        ->assertHasActionErrors(['confirmName']);
+
+    expect($tenant->refresh()->trashed())->toBeFalse();
+
+    Livewire::actingAs($admin)
+        ->test(EditTenant::class, ['record' => $tenant->getRouteKey()])
+        ->callAction('deleteMerchant', ['confirmName' => 'Aegean Blue Cruises', 'reason' => 'Σταμάτησαν τη συνδρομή.'])
+        ->assertHasNoActionErrors();
+
+    expect($tenant->refresh()->trashed())->toBeTrue();
+
+    // Into the operator's own trail: the answer to "who closed us down, and
+    // when?" has to be one they can read when they come back.
+    Tenancy::forTenant($tenant, function (): void {
+        $entry = AuditLog::query()->where('action', AuditAction::TenantUpdated->value)->latest('id')->sole();
+
+        expect($entry->context)->toHaveKey('deleted', true)
+            ->and($entry->reason)->toBe('Σταμάτησαν τη συνδρομή.');
+    });
+})->group('fast');
+
+it('takes a deleted merchant off the air, and gives them back on restore', function (): void {
+    $tenant = Tenant::factory()->create(['slug' => 'aegean-blue']);
+    $admin = superAdmin();
+
+    $tenant->delete();
+
+    // The whole point of the soft delete: every resolver reads through the
+    // default scope, so while a merchant is deleted nothing finds them — not
+    // their hosted slug, not their API keys, not their staff's session.
+    expect(Tenant::query()->where('slug', 'aegean-blue')->exists())->toBeFalse()
+        ->and(Tenant::withTrashed()->where('slug', 'aegean-blue')->exists())->toBeTrue();
+
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    Livewire::actingAs($admin)
+        ->test(EditTenant::class, ['record' => $tenant->getRouteKey()])
+        ->callAction('restoreMerchant', ['reason' => 'Λάθος μου, επιστροφή.'])
+        ->assertHasNoActionErrors();
+
+    expect(Tenant::query()->where('slug', 'aegean-blue')->exists())->toBeTrue();
 })->group('fast');
 
 it('lets a super-admin view and edit', function (): void {

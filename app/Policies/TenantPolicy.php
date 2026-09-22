@@ -89,14 +89,35 @@ class TenantPolicy
         return $user->isSuperAdmin();
     }
 
+    /**
+     * The **soft** delete, allowed from 2026-09-22 (product owner: *«add option
+     * to delete merchant on admin»*).
+     *
+     * It was refused for a good reason that had grown into a bigger one:
+     * *"seven years of invoices and audit rows that must not go with it"*. They
+     * do not go with it. `Tenant` soft-deletes, every `tenant_id` still points
+     * at the row, and nothing cascades — `forceDelete` below is the one that
+     * would, and it stays refused.
+     *
+     * What changes is reach: all four resolvers (`ApiKeyResolver`,
+     * `CustomDomainResolver`, `HostedSlugResolver`, `PanelSessionResolver`)
+     * find the tenant through the default scope, so a deleted merchant's pages
+     * 404, their API keys stop authenticating and their staff cannot sign in.
+     * That is what "delete this merchant" should mean while the books stay
+     * whole.
+     *
+     * The conditions of the act — the name typed out, a reason, the audit row —
+     * are `EditTenant`'s, for the reason `update` gives above.
+     */
     public function delete(User $user, Tenant $tenant): bool
     {
-        return false;
+        return $user->isSuperAdmin();
     }
 
+    /** The other half: a merchant deleted in error comes back whole. */
     public function restore(User $user, Tenant $tenant): bool
     {
-        return false;
+        return $user->isSuperAdmin();
     }
 
     /**
