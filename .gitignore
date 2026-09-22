@@ -65,6 +65,15 @@ Thumbs.db
 /docs/manual/manual.html
 /docs/manual/kaiki-manual.pdf
 
+# «Μια εκδρομή, από την αρχή ως τη δημοσίευση», on the same terms. The guide,
+# its stylesheet, the capture and the JPEGs the booklet prints are committed,
+# so `node docs/ekdromi/build.mjs` reproduces the rest; `shots/` is the raw PNG
+# capture that `img/` is made from, and the build copies the PDF to the Desktop
+# anyway.
+/docs/ekdromi/ekdromi.html
+/docs/ekdromi/kaiki-ekdromi.pdf
+/docs/ekdromi/shots
+
 # The WordPress guide's intermediate HTML, for the same reason. Its PDF **is**
 # committed, unlike the manual's: it carries no screenshots, so it is under a
 # megabyte, and a reader who clones this repository to answer "how does the
