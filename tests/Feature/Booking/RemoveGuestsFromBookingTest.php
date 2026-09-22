@@ -148,6 +148,43 @@ it('refuses to remove everyone, or to leave a child without an adult', function 
     });
 })->group('fast');
 
+it('lets an adult who is not the base band stay with the child', function (): void {
+    [$tenant, $booking] = familyBooking();
+
+    Tenancy::forTenant($tenant, function () use ($booking): void {
+        $booking->product->ageBands()->create([
+            'code' => 'child', 'label' => ['el' => 'Παιδί', 'en' => 'Child'], 'min_age' => 3, 'max_age' => 11,
+            'counts_toward_capacity' => true, 'is_base' => false, 'requires_adult' => true, 'sort_order' => 2,
+        ]);
+        $booking->product->ageBands()->create([
+            'code' => 'adult', 'label' => ['el' => 'Ενήλικας', 'en' => 'Adult'], 'min_age' => 12, 'max_age' => null,
+            'counts_toward_capacity' => true, 'is_base' => true, 'requires_adult' => false, 'sort_order' => 1,
+        ]);
+        // «Άνω των 65», priced on its own terms rather than off the adult fare
+        // (PRC-7) — so `is_base` is false and she is still an adult.
+        $booking->product->ageBands()->create([
+            'code' => 'senior', 'label' => ['el' => 'Άνω των 65', 'en' => 'Over 65'], 'min_age' => 65, 'max_age' => null,
+            'counts_toward_capacity' => true, 'is_base' => false, 'requires_adult' => false, 'sort_order' => 3,
+        ]);
+
+        $booking->forceFill([
+            'pax_breakdown' => [
+                ['code' => 'adult', 'label' => 'Ενήλικας', 'qty' => 2, 'unit_price_cents' => 5000, 'line_total_cents' => 10000],
+                ['code' => 'senior', 'label' => 'Άνω των 65', 'qty' => 1, 'unit_price_cents' => 5000, 'line_total_cents' => 5000],
+                ['code' => 'child', 'label' => 'Παιδί', 'qty' => 1, 'unit_price_cents' => 3000, 'line_total_cents' => 3000],
+            ],
+        ])->save();
+
+        // Both adults come off; the grandmother and her grandchild stay. The
+        // rule this file used to hold counted only the base band and would have
+        // refused it — the shared predicate asks whether the band itself needs
+        // an adult, which was always the question.
+        app(RemoveGuestsFromBooking::class)($booking->refresh(), ['adult' => 2]);
+
+        expect($booking->refresh()->pax_total)->toBe(2);
+    });
+})->group('fast');
+
 it('runs from the booking page, on the person the operator ticked', function (): void {
     Event::fake([BookingGuestsRemoved::class]);
     [$tenant, $booking] = familyBooking();

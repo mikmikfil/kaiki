@@ -124,6 +124,30 @@ export function isPriceChanged(error: unknown): boolean {
   return (error as ApiError | null)?.code === 'price_changed';
 }
 
+/**
+ * `422` on **who** is travelling, rather than on when or how many (AVL-26, AVL-26b).
+ *
+ * Two children with no adult, or a party of infants alone. Nothing was created
+ * and no seat moved, so the guest stays on the party step with a sentence — the
+ * same shape as a refused discount code, and for the same reason: the remedy is
+ * one tap away, and an error screen would throw the whole walk away.
+ *
+ * The codes are listed rather than inferred from the status: a 422 also comes
+ * back for a malformed body, and "add an adult" is not the answer to that.
+ */
+export function isPartyRefused(error: unknown): boolean {
+  const code = (error as ApiError | null)?.code;
+
+  return code === 'needs_adult' || code === 'no_counted_pax';
+}
+
+/** The server's sentence for a refusal, in the guest's language, when it sent one. */
+export function refusalMessage(error: unknown): string | null {
+  const detail = (error as ApiError | null)?.detail;
+
+  return typeof detail === 'string' && detail.trim() !== '' ? detail : null;
+}
+
 function readDraft(data: Record<string, unknown>): DraftResult {
   const money = (data['money'] ?? {}) as Record<string, unknown>;
 

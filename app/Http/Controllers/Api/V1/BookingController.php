@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Availability\Support\CountedSeats;
+use App\Domain\Availability\Support\PartyGuard;
 use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\CreateBookingDraft;
 use App\Domain\Booking\Actions\MintCheckoutSession;
@@ -77,7 +79,7 @@ final class BookingController
     ) {}
 
     /** `POST /api/v1/bookings` — a draft, and a hold. */
-    public function store(BookingCreateRequest $request): JsonResponse
+    public function store(BookingCreateRequest $request, PartyGuard $party): JsonResponse
     {
         $product = $request->product();
 
@@ -90,6 +92,28 @@ final class BookingController
         }
 
         $departure = $request->departure();
+
+        // AVL-26 and AVL-26b, in the same words `GET /availability` and
+        // `POST /price-quote` use. Only the party rules: seats and the boat's
+        // certificate are `HoldSeats`' answer below, and §5 owes a **409** for
+        // those, not a 422 — asking twice here would be a second answer with
+        // the wrong status attached.
+        //
+        // Checked at all because a widget is under nobody's control: the
+        // calendar greys a party out and the quote refuses it, and neither
+        // stops a client posting it anyway. Until this, `requires_adult` was a
+        // promise the trip form made and the checkout never kept.
+        $pax = CountedSeats::sanitise($product->ageBands, $request->paxByCode($product));
+
+        if (($rejection = $party->blanket($product->ageBands, $pax)) !== null) {
+            return ApiErrorResponse::make(
+                code: $rejection->value,
+                message: $rejection->labelIn('en'),
+                messageEl: $rejection->labelIn('el'),
+                status: SymfonyResponse::HTTP_UNPROCESSABLE_ENTITY,
+                details: ['reason' => $rejection->value],
+            );
+        }
 
         try {
             $booking = ($this->createDraft)($request->toData($product, $departure));

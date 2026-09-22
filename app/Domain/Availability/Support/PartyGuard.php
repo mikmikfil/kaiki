@@ -33,8 +33,10 @@ use Illuminate\Support\Collection;
  * because that is the one the guest can act on.
  *
  * 1. **No counted pax** (AVL-26) — add an adult. Nothing else will help.
- * 2. **Not enough seats** (AVL-23) — pick another date, or fewer people.
- * 3. **Legal capacity** (AVL-25) — fewer people, and only fewer *people*.
+ * 2. **Needs an adult** (AVL-26b) — the same remedy, for a party that does take
+ *    seats: children whose band says they travel with one.
+ * 3. **Not enough seats** (AVL-23) — pick another date, or fewer people.
+ * 4. **Legal capacity** (AVL-25) — fewer people, and only fewer *people*.
  *
  * ## Why 2 and 3 are separate, restated where it is easy to merge them
  *
@@ -52,7 +54,11 @@ final class PartyGuard
     public function __construct(private readonly iterable $personsAboard = []) {}
 
     /**
-     * The one rule that holds before any date is looked at (AVL-26).
+     * The rules that hold before any date is looked at (AVL-26, AVL-26b).
+     *
+     * Both are about who is in the party and nothing else, so they answer the
+     * same whichever sailing is asked about — which is what makes them safe to
+     * apply to a whole range of dates at once.
      *
      * Deliberately **not** the whole set. Legal capacity depends on who is
      * already aboard a specific departure, so evaluating it here would refuse
@@ -71,11 +77,24 @@ final class PartyGuard
     {
         // An empty party is a calendar asking what exists, not a family asking
         // for four seats — so there is nothing to judge.
-        if ($pax === [] || CountedSeats::hasCountedPax($bands, $pax)) {
+        if ($pax === []) {
             return null;
         }
 
-        return AvailabilityRejection::NoCountedPax;
+        if (! CountedSeats::hasCountedPax($bands, $pax)) {
+            return AvailabilityRejection::NoCountedPax;
+        }
+
+        // AVL-26b, and it has to be *after* the rule above rather than merged
+        // with it: a party of infants alone fails both, and `no_counted_pax`
+        // is the more precise of the two sentences. Two children with no adult
+        // only reaches here — they take seats, so the infants rule lets them
+        // through, and until this line nothing else looked.
+        if (CountedSeats::escortMissing($bands, $pax)) {
+            return AvailabilityRejection::NeedsAdult;
+        }
+
+        return null;
     }
 
     /**

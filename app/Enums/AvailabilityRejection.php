@@ -64,6 +64,17 @@ enum AvailabilityRejection: string
     /** A party of infants alone (AVL-26). */
     case NoCountedPax = 'no_counted_pax';
 
+    /**
+     * Passengers who need an adult, with no adult in the party (AVL-26b).
+     *
+     * Distinct from `NoCountedPax`, and the distinction is the whole point: two
+     * children **do** have counted pax — they take two seats and pay for them —
+     * so the infants-alone rule never sees them. What refuses this is the
+     * band's `requires_adult`, the flag the trip form has always offered and
+     * nothing has ever enforced at checkout.
+     */
+    case NeedsAdult = 'needs_adult';
+
     /** The operator's subscription has lapsed (AVL-22.7, TEN-9). */
     case TenantReadOnly = 'tenant_read_only';
 

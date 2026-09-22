@@ -34,6 +34,16 @@ export interface ApiError extends Error {
   readonly status: number | null;
   /** The contract's machine-readable code (`docs/api.md` §4), when there was one. */
   readonly code: string | null;
+  /**
+   * The server's own sentence for this refusal, in the negotiated locale.
+   *
+   * Beside the code rather than instead of it: the widget branches on the code
+   * and keeps its own wording for the refusals it has a screen for. This is for
+   * the ones it does not — a party rule the catalogue can grow without a widget
+   * release, where the honest sentence is the server's and a local copy would
+   * be a second place the same rule is worded.
+   */
+  readonly detail: string | null;
   readonly retryable: boolean;
 }
 
@@ -249,23 +259,34 @@ export class ApiClient implements Api {
 
   private async errorFromResponse(response: Response): Promise<ApiError> {
     let code: string | null = null;
+    let detail: string | null = null;
 
     try {
-      const payload = (await response.json()) as { error?: { code?: string } };
+      const payload = (await response.json()) as { error?: { code?: string; message?: unknown } };
       code = payload.error?.code ?? null;
+      // `message` is already in the locale this client asked for, through the
+      // `Accept-Language` it sends. The envelope also carries `message_el`, and
+      // reading that here would hand a Greek sentence to an English page.
+      detail = typeof payload.error?.message === 'string' ? payload.error.message : null;
     } catch {
       // A 502 from a proxy is HTML, and the status is the whole of what it
       // has to say.
     }
 
-    return this.error(code ?? 'http_error', response.status, response.status >= 500);
+    return this.error(code ?? 'http_error', response.status, response.status >= 500, detail);
   }
 
-  private error(code: string, status: number | null, retryable: boolean): ApiError {
-    const error = new Error(code) as ApiError & { status: number | null; code: string | null; retryable: boolean };
+  private error(code: string, status: number | null, retryable: boolean, detail: string | null = null): ApiError {
+    const error = new Error(code) as ApiError & {
+      status: number | null;
+      code: string | null;
+      detail: string | null;
+      retryable: boolean;
+    };
 
     error.status = status;
     error.code = code;
+    error.detail = detail;
     error.retryable = retryable;
 
     return error;

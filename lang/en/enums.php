@@ -271,6 +271,7 @@ return [
         'not_enough_seats' => ['label' => 'There are not enough seats left.'],
         'legal_capacity_exceeded' => ['label' => 'That would put more people on board than the boat is licensed for.'],
         'no_counted_pax' => ['label' => 'At least one passenger who takes a seat is needed.'],
+        'needs_adult' => ['label' => 'On this trip children travel with an adult. Please add an adult to the booking.'],
         'tenant_read_only' => ['label' => 'Bookings are not available at the moment.'],
         'off_grid' => ['label' => 'Please choose a time on the quarter hour (09:00, 09:15 and so on).'],
         'outside_operating_window' => ['label' => 'That time is outside the hours this operator sails.'],

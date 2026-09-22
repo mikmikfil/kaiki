@@ -62,6 +62,23 @@ final class CountedSeats
     }
 
     /**
+     * AVL-26b: somebody in this party needs an adult and there is none.
+     *
+     * The second rule here about *who* is travelling rather than how many —
+     * and, like `hasCountedPax`, one whose remedy is "add an adult" rather than
+     * "pick another date". {@see AgeBandResolver::escortMissing} holds the
+     * definition; this exists so the availability path reads one class instead
+     * of remembering which resolver method to call.
+     *
+     * @param  iterable<AgeBand>  $bands
+     * @param  array<string, int>  $paxByCode
+     */
+    public static function escortMissing(iterable $bands, array $paxByCode): bool
+    {
+        return AgeBandResolver::escortMissing($bands, $paxByCode);
+    }
+
+    /**
      * The party as the engine reads it, with negatives and unknown codes gone.
      *
      * A widget on somebody else's page can post anything. Filtering here rather

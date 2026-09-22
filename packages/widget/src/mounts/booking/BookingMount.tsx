@@ -2,7 +2,14 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'p
 
 import type { Analytics } from '../../analytics';
 import type { Api } from '../../api-client';
-import { BookingApi, isSoldOut, type DraftResult, isInvalidDiscountCode } from '../../booking/api';
+import {
+  BookingApi,
+  isSoldOut,
+  type DraftResult,
+  isInvalidDiscountCode,
+  isPartyRefused,
+  refusalMessage,
+} from '../../booking/api';
 import { holdState } from '../../booking/countdown';
 import { pollForConfirmation, readBookingStatus } from '../../booking/confirmation';
 import {
@@ -124,6 +131,8 @@ export function BookingMount({
   const [draft, setDraft] = useState<DraftResult | null>(null);
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [codeRefused, setCodeRefused] = useState(false);
+  /** The server's sentence when it refused this party (AVL-26, AVL-26b). */
+  const [partyRefusal, setPartyRefusal] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   const hold = holdState(draft?.holdExpiresAt ?? null);
@@ -207,6 +216,18 @@ export function BookingMount({
         // a sentence under the code field.
         setCodeRefused(true);
         setPhase('walking');
+
+        return;
+      }
+
+      if (isPartyRefused(error)) {
+        // AVL-26 and AVL-26b: the party itself is not allowed to sail — no
+        // adult with the children, or nobody in a seat at all. Nothing was
+        // created, so the guest stays where they are and reads why, exactly
+        // like a refused discount code.
+        setPartyRefusal(refusalMessage(error));
+        setPhase('walking');
+        analytics.emit('kaiki:error', { product_uuid: productUuid, error_code: 'party_refused' });
 
         return;
       }
@@ -493,8 +514,23 @@ export function BookingMount({
             client={client}
             productUuid={productUuid}
             t={t}
-            onChange={(patch) => dispatch({ type: 'patch', patch })}
+            onChange={(patch) => {
+              // Any change to the party is a new answer to the rule that
+              // refused the last one, so the sentence goes as the guest acts.
+              setPartyRefusal(null);
+              dispatch({ type: 'patch', patch });
+            }}
           />
+
+          {partyRefusal !== null ? (
+            // The server's own sentence — «Σε αυτή την εκδρομή τα παιδιά
+            // ταξιδεύουν με συνοδό ενήλικα», or whatever rule the catalogue
+            // grows next. The widget keeps no wording of its own for these on
+            // purpose: the rule and its explanation ship together.
+            <p class="kaiki-error" role="alert">
+              {partyRefusal}
+            </p>
+          ) : null}
         </div>
 
         {last ? (
