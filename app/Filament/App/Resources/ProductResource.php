@@ -616,20 +616,7 @@ class ProductResource extends Resource
 
                     static::vatRateSelect(),
 
-                    Toggle::make('guest_details_required')
-                        ->label(__('catalog.product.form.guest_details_required.label'))
-                        ->helperText(__('catalog.product.form.guest_details_required.help'))
-                        ->live(),
-
-                    TextInput::make('guest_details_deadline_hours')
-                        ->label(__('catalog.product.form.guest_details_deadline_hours.label'))
-                        ->helperText(__('catalog.product.form.guest_details_deadline_hours.help'))
-                        ->suffix(__('catalog.product.form.guest_details_deadline_hours.suffix'))
-                        ->integer()
-                        ->default(48)
-                        ->minValue(0)
-                        ->maxValue(65535)
-                        ->visible(static fn (Get $get): bool => (bool) $get('guest_details_required')),
+                    ...static::guestDetailsFields(),
                 ])
                 ->columns(2),
 
@@ -825,6 +812,37 @@ class ProductResource extends Resource
                         rows: 2,
                     ),
                 ]),
+        ];
+    }
+
+    /**
+     * «Στοιχεία επιβατών», and the deadline that only means anything with it on.
+     *
+     * Extracted so the creation guide can ask the same question with the same
+     * words (product owner, 2026-09-22). It was on the «Όροι» tab only, which
+     * is a tab nobody opens on a trip they are still writing — and the
+     * consequence is invisible until a guest reaches checkout and is asked for
+     * no documents at all, which is where he found it.
+     *
+     * @return array<int, Component>
+     */
+    public static function guestDetailsFields(): array
+    {
+        return [
+            Toggle::make('guest_details_required')
+                ->label(__('catalog.product.form.guest_details_required.label'))
+                ->helperText(__('catalog.product.form.guest_details_required.help'))
+                ->live(),
+
+            TextInput::make('guest_details_deadline_hours')
+                ->label(__('catalog.product.form.guest_details_deadline_hours.label'))
+                ->helperText(__('catalog.product.form.guest_details_deadline_hours.help'))
+                ->suffix(__('catalog.product.form.guest_details_deadline_hours.suffix'))
+                ->integer()
+                ->default(48)
+                ->minValue(0)
+                ->maxValue(65535)
+                ->visible(static fn (Get $get): bool => (bool) $get('guest_details_required')),
         ];
     }
 

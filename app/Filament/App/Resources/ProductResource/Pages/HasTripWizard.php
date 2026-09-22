@@ -436,6 +436,23 @@ trait HasTripWizard
                 ProductResource::vatRateSelect()
                     ->helperText(__('catalog.product.wizard.publish.vat_help')),
 
+                /*
+                 * **«Στοιχεία επιβατών»** (product owner, 2026-09-22, after
+                 * reaching a real checkout: *«δεν υπάρχουν πεδία για τα
+                 * έγγραφα»*).
+                 *
+                 * They exist and they work — checkout asks every passenger for
+                 * a name, a nationality, a date of birth and a document — but
+                 * only for a trip whose switch is on, and the switch lived on
+                 * the «Όροι» tab alone. That is a tab nobody opens on a trip
+                 * they are still writing, and the consequence is invisible
+                 * until a guest is asked for nothing on the way to paying.
+                 *
+                 * So the guide asks it, beside the other terms, where an
+                 * operator is already thinking about what travelling requires.
+                 */
+                ...ProductResource::guestDetailsFields(),
+
                 Radio::make('wizard_publish')
                     ->label(__('catalog.product.wizard.publish.question'))
                     ->options([
