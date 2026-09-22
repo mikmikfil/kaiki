@@ -10,6 +10,7 @@ use App\Filament\App\Navigation\BoxMenu;
 use App\Filament\App\Navigation\SiblingScreens;
 use App\Filament\App\Pages\Analytics;
 use App\Filament\App\Pages\Settings;
+use App\Filament\App\Pages\Setup;
 use App\Models\PlatformAnnouncement;
 use App\Models\PlatformBrand;
 use App\Models\Tenant;
@@ -144,6 +145,25 @@ final class PanelRenderHooks
             PanelsRenderHook::PAGE_START,
             static fn (): View => view('filament.app.settings-hub-back', ['url' => Settings::getUrl()]),
             scopes: Settings::destinations(),
+        );
+
+        /*
+         * The Kaiki mark, above the heading of the setup guide (product owner,
+         * 2026-09-22: *«βάλε μου πάνω αριστερά το logo kaiki»*).
+         *
+         * That screen drops the navigation on purpose — it is the first thing
+         * a new operator sees and the panel is not there yet — which leaves
+         * nothing on it saying whose product this is. `PAGE_START` is where the
+         * settings back-link goes, above the title, which is exactly «πάνω
+         * αριστερά».
+         *
+         * The panel's own brand: an uploaded platform logo when there is one,
+         * the name when there is not.
+         */
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::PAGE_START,
+            static fn (): View => view('filament.app.setup-brand'),
+            scopes: [Setup::class],
         );
 
         // The split sign-in screen: a photograph on one half, the form on the

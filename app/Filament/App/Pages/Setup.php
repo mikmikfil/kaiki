@@ -4,15 +4,32 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Pages;
 
+use App\Domain\Branding\Actions\UpdateBrandProfile;
+use App\Domain\Branding\Actions\UploadBrandAsset;
 use App\Domain\Catalog\Actions\SaveCancellationPolicy;
+use App\Domain\Catalog\Actions\SaveSeason;
+use App\Domain\Tenancy\Support\PlanLimits;
 use App\Domain\Tenancy\Support\SetupChecklist;
+use App\Enums\BrandAsset;
+use App\Enums\VesselStatus;
+use App\Enums\VesselType;
+use App\Exceptions\UploadRefused;
 use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Resources\VesselResource;
+use App\Http\Middleware\RequireSetupFirst;
+use App\Models\BrandProfile;
 use App\Models\CancellationPolicy;
+use App\Models\Port;
+use App\Models\Season;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Models\Vessel;
+use App\Rules\HexColor;
 use App\Support\Authorization\Capability;
 use App\Support\Tenancy;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -22,9 +39,11 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Dashboard;
 use Filament\Pages\Page;
+use Filament\Support\Enums\MaxWidth;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\Url;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 /**
  * The first-run setup guide (#51, SAA-9, SAA-10), one question at a time.
@@ -57,11 +76,22 @@ use Livewire\Attributes\Url;
  * step it is on. An operator who fills in their ΑΦΜ and closes the tab has
  * filled in their ΑΦΜ.
  *
- * ## Skipping is a requirement, not a courtesy
+ * ## It holds the panel back, and it hands it over on request
  *
- * SAA-10: an operator whose accountant has not answered the VAT question must
- * still reach the panel and add their boats. «Αργότερα» records the skip and
- * moves on. Nothing on this page blocks the panel.
+ * Since 2026-09-22 this is the first thing a new operator sees and, until they
+ * are done with it, the only thing: {@see RequireSetupFirst}
+ * sends every other panel page back here, and the layout drops the navigation
+ * so there is nothing to wander off into.
+ *
+ * That is only defensible because the way out is on the screen. **«Θα το κάνω
+ * αργότερα»** (`deferSetup`) opens the panel and leaves the guide in the menu;
+ * **«Δεν το χρειάζομαι»** (`dismissSetup`) retires it altogether and leaves it
+ * reachable from Ρυθμίσεις. SAA-10's operator — the one whose accountant has
+ * not answered the VAT question — presses either and gets on with their boats,
+ * which is what that requirement was protecting.
+ *
+ * Per-step skipping stays what it was: «Αργότερα» records the skip and moves
+ * on, so a step set aside is not the same as a step untouched.
  *
  * ## Owner only, and off when /admin says so
  *
@@ -80,6 +110,22 @@ class Setup extends Page implements HasForms
     protected static ?string $navigationIcon = 'heroicon-o-rocket-launch';
 
     protected static string $view = 'filament.app.pages.setup';
+
+    /**
+     * **Full screen, with no panel around it** (product owner, 2026-09-22).
+     *
+     * The simple layout is the one the sign-in page uses: no sidebar, no
+     * navigation, nothing to wander off into — which is the whole point of a
+     * screen an operator is meant to finish. It is the same reasoning as the
+     * gate in {@see RequireSetupFirst}, made visible: the
+     * panel is not there yet, so the page should not pretend it is.
+     *
+     * The page stays a navigable `Page` rather than becoming a `SimplePage`,
+     * because it has to keep its place in the menu for the operator who defers
+     * it. Only the shell changes; `getLayoutData()` below supplies what that
+     * shell reads.
+     */
+    protected static string $layout = 'filament-panels::components.layout.simple';
 
     /**
      * First in the menu, above every group, while there is setting up left.
@@ -135,14 +181,58 @@ class Setup extends Page implements HasForms
         return $left > 0 ? (string) $left : null;
     }
 
+    /**
+     * What the simple layout needs, since this is not a `SimplePage`.
+     *
+     * The card is as wide as the widest step (the list beside the question),
+     * and the top bar stays: it carries the user menu, and «Αποσύνδεση» has to
+     * be reachable from behind a gate.
+     *
+     * @return array<string, mixed>
+     */
+    protected function getLayoutData(): array
+    {
+        return [
+            'hasTopbar' => true,
+            'maxWidth' => MaxWidth::SevenExtraLarge,
+        ];
+    }
+
+    /**
+     * The Kaiki mark, top left (product owner, 2026-09-22).
+     *
+     * With the navigation gone there is nothing on the screen that says whose
+     * product this is — and this is the first screen a new operator ever sees.
+     * The simple layout renders the panel's own brand logo when the page asks
+     * for one, which is the platform's mark and falls back to its name.
+     */
+    public function hasLogo(): bool
+    {
+        return true;
+    }
+
     public function getTitle(): string|Htmlable
     {
         return __('setup.title');
     }
 
+    /**
+     * No heading and no subheading above the card.
+     *
+     * The card carries «Βήμα 1 από 7» and the question itself, so a title above
+     * it repeated the same thing in bigger type — and on a 1080p screen those
+     * two blocks were what pushed the first step's fields below the fold
+     * (product owner, 2026-09-22). The subtitle moved into the top row beside
+     * the two exits; `getTitle()` still names the browser tab.
+     */
+    public function getHeading(): string|Htmlable
+    {
+        return '';
+    }
+
     public function getSubheading(): ?string
     {
-        return __('setup.subtitle');
+        return null;
     }
 
     /**
@@ -169,6 +259,11 @@ class Setup extends Page implements HasForms
 
         $tenant = $this->tenant();
 
+        // Read once, not three times, and through the relation's query so that
+        // "no profile yet" is a null rather than an assumption — on a first
+        // afternoon there is no row at all.
+        $profile = $tenant->brandProfile()->first();
+
         $this->getForm('form')?->fill([
             'legal_name' => $tenant->legal_name,
             'vat_number' => $tenant->vat_number,
@@ -178,6 +273,7 @@ class Setup extends Page implements HasForms
             'postcode' => $tenant->postcode,
             'phone' => $tenant->phone,
             'default_vat_rate_id' => $tenant->default_vat_rate_id,
+            ...$this->brandingState($profile),
         ]);
     }
 
@@ -209,10 +305,13 @@ class Setup extends Page implements HasForms
                             ->label(__('setup.fields.tax_office.label'))
                             ->maxLength(60),
 
+                        // Half a row, not a whole one: five rows of fields did
+                        // not fit a 1080p screen, and this is the step an
+                        // operator meets first (2026-09-22). A street name does
+                        // not need the width.
                         TextInput::make('address_line1')
                             ->label(__('setup.fields.address_line1.label'))
-                            ->maxLength(180)
-                            ->columnSpanFull(),
+                            ->maxLength(180),
 
                         TextInput::make('city')
                             ->label(__('setup.fields.city.label'))
@@ -237,6 +336,123 @@ class Setup extends Page implements HasForms
                     ->searchable()
                     ->native(false)
                     ->visible(fn (): bool => $this->currentStep() === SetupChecklist::VAT),
+
+                /*
+                 * **Το λογότυπο και τα χρώματα, εδώ** (product owner,
+                 * 2026-09-22: *«στην εμφάνιση, μόνο logo και χρώματα· όχι link
+                 * προς εμφάνιση»*).
+                 *
+                 * This step used to hand off to {@see Branding}, which owns
+                 * fifteen fields — the favicon, the email header, the font, the
+                 * five colours and the contrast warnings. None of that is a
+                 * first-afternoon question, and sending somebody to a screen
+                 * that big to answer «what is your logo» is how a guide loses
+                 * people. Two colours and a logo is what makes a page look like
+                 * theirs; the rest is on that screen whenever they want it.
+                 *
+                 * The upload goes through {@see UploadBrandAsset}, the same way
+                 * the branding screen does, because the magic-byte check, the
+                 * SVG sanitiser and the variants (BRD-7, SEC-13) are not
+                 * something a second screen gets to skip.
+                 */
+                Grid::make(2)
+                    ->visible(fn (): bool => $this->currentStep() === SetupChecklist::BRANDING)
+                    ->schema([
+                        FileUpload::make('logo_light_path')
+                            ->label(__('setup.fields.logo.label'))
+                            ->helperText(__('setup.fields.logo.help'))
+                            ->disk((string) config('kaiki.branding.uploads.disk'))
+                            ->visibility('private')
+                            ->acceptedFileTypes((array) config('kaiki.branding.uploads.mime_types'))
+                            ->maxSize((int) config('kaiki.branding.uploads.max_kilobytes'))
+                            ->image()
+                            ->columnSpanFull()
+                            ->saveUploadedFileUsing(fn (TemporaryUploadedFile $file): ?string => $this->storeLogo($file)),
+
+                        ColorPicker::make('color_primary')
+                            ->label(__('branding.form.color_primary.label'))
+                            ->helperText(__('branding.form.color_primary.help'))
+                            ->rules([new HexColor]),
+
+                        ColorPicker::make('color_secondary')
+                            ->label(__('branding.form.color_secondary.label'))
+                            ->helperText(__('branding.form.color_secondary.help'))
+                            ->rules([new HexColor]),
+                    ]),
+
+                /*
+                 * **Το λιμάνι, το σκάφος και η περίοδος, εδώ** (product owner,
+                 * 2026-09-22: *«ανοίγει το προσθήκη σκάφους με όλη την
+                 * πλατφόρμα μετά»*).
+                 *
+                 * These three used to hand off to their own screens, and the
+                 * jump was the problem: the guide runs without the navigation
+                 * on purpose, and then dropped the operator into the whole
+                 * panel with no way back. Each of them is two or three fields
+                 * when you ask only for what the next step needs — a port is a
+                 * name and an address, a boat is a name, a type and how many it
+                 * takes — so they are asked here and the screens that own them
+                 * keep everything else for later.
+                 *
+                 * The trip is the one that still hands off: it has a four-step
+                 * guide of its own, and a guide inside a guide is worse than a
+                 * door.
+                 */
+                Grid::make(2)
+                    ->visible(fn (): bool => $this->currentStep() === SetupChecklist::PORT)
+                    ->schema([
+                        TextInput::make('port_name')
+                            ->label(__('setup.fields.port_name.label'))
+                            ->helperText(__('setup.fields.port_name.help'))
+                            ->maxLength(120)
+                            ->columnSpanFull(),
+
+                        TextInput::make('port_address')
+                            ->label(__('setup.fields.port_address.label'))
+                            ->helperText(__('setup.fields.port_address.help'))
+                            ->maxLength(180)
+                            ->columnSpanFull(),
+                    ]),
+
+                Grid::make(2)
+                    ->visible(fn (): bool => $this->currentStep() === SetupChecklist::VESSEL)
+                    ->schema([
+                        TextInput::make('vessel_name')
+                            ->label(__('setup.fields.vessel_name.label'))
+                            ->helperText(__('setup.fields.vessel_name.help'))
+                            ->maxLength(120)
+                            ->columnSpanFull(),
+
+                        Select::make('vessel_type')
+                            ->label(__('catalog.vessel.form.type.label'))
+                            ->options(VesselType::options())
+                            ->native(false),
+
+                        TextInput::make('vessel_capacity')
+                            ->label(__('catalog.vessel.form.capacity_max.label'))
+                            ->helperText(__('setup.fields.vessel_capacity.help'))
+                            ->integer()
+                            ->minValue(1)
+                            ->maxValue(2000),
+                    ]),
+
+                Grid::make(2)
+                    ->visible(fn (): bool => $this->currentStep() === SetupChecklist::SEASON)
+                    ->schema([
+                        TextInput::make('season_name')
+                            ->label(__('setup.fields.season_name.label'))
+                            ->helperText(__('setup.fields.season_name.help'))
+                            ->maxLength(80)
+                            ->columnSpanFull(),
+
+                        DatePicker::make('season_starts_on')
+                            ->label(__('setup.fields.season_starts_on.label'))
+                            ->native(false),
+
+                        DatePicker::make('season_ends_on')
+                            ->label(__('setup.fields.season_ends_on.label'))
+                            ->native(false),
+                    ]),
             ])
             ->statePath('data');
     }
@@ -265,6 +481,10 @@ class Setup extends Page implements HasForms
 
         match ($current) {
             SetupChecklist::BUSINESS => $this->persistBusiness(),
+            SetupChecklist::BRANDING => $this->persistBranding(),
+            SetupChecklist::PORT => $this->persistPort(),
+            SetupChecklist::VESSEL => $this->persistVessel(),
+            SetupChecklist::SEASON => $this->persistSeason(),
             SetupChecklist::VAT => $this->persistVat(),
             SetupChecklist::CANCELLATION => $this->persistCancellation(),
             default => $this->guardedTenant(),
@@ -276,6 +496,67 @@ class Setup extends Page implements HasForms
         }
 
         $this->step = $this->stepAfter($current);
+    }
+
+    /**
+     * «Θα το κάνω αργότερα»: hand over the panel, keep the guide (2026-09-22).
+     *
+     * The escape hatch that makes the gate safe — *"but there should be a
+     * button to totally skip it if operator wants to"*. This is the softer of
+     * the two: whatever is filled in is saved, the panel opens, and the guide
+     * stays first in the menu with its badge, to be picked up where it was
+     * left. {@see RequireSetupFirst} never holds this
+     * operator again.
+     */
+    public function deferSetup(): void
+    {
+        $tenant = $this->guardedTenant();
+
+        // The step on screen may be half filled in. Saving first means «later»
+        // never costs the operator what they had already typed.
+        $this->persistBusiness();
+        $this->persistVat();
+
+        $tenant->forceFill(['onboarding_deferred_at' => Carbon::now()])->save();
+
+        Notification::make()
+            ->title(__('setup.deferred.title'))
+            ->body(__('setup.deferred.body'))
+            ->success()
+            ->send();
+
+        $this->redirect(Dashboard::getUrl());
+    }
+
+    /**
+     * «Δεν το χρειάζομαι»: retire the guide altogether (2026-09-22).
+     *
+     * *«από κάπου να ανοίγει συνέχεια ρύθμισης, αλλά να υπάρχει και τελείως
+     * skip»* — so this is the second half of that sentence. No gate, no menu
+     * item, no badge, no checklist on the home page.
+     *
+     * It does **not** mark the account as set up: `onboarding_completed_at`
+     * means finished, and claiming that about an operator who declined the
+     * guide would put a false line in their own record. The page keeps working
+     * at its own address and Ρυθμίσεις keeps a card pointing at it, which is
+     * the first half of the same sentence.
+     */
+    public function dismissSetup(): void
+    {
+        $tenant = $this->guardedTenant();
+
+        $this->persistBusiness();
+        $this->persistVat();
+
+        $tenant->forceFill(['onboarding_dismissed_at' => Carbon::now()])->save();
+
+        Notification::make()
+            ->title(__('setup.dismissed.title'))
+            ->body(__('setup.dismissed.body'))
+            ->success()
+            ->send();
+
+        $this->redirect(Dashboard::getUrl());
     }
 
     /** «Αργότερα»: set this step aside and move on. */
@@ -376,6 +657,193 @@ class Setup extends Page implements HasForms
             'postcode' => $this->normalise($state['postcode'] ?? null),
             'phone' => $this->normalise($state['phone'] ?? null),
         ])->save();
+    }
+
+    /**
+     * The logo and the two colours, through the same Action the branding
+     * screen uses.
+     *
+     * Only what this step asked for: `UpdateBrandProfile` fills what it is
+     * given, so the favicon, the font and the other three colours are not
+     * touched by a guide that never mentioned them.
+     */
+    private function persistBranding(): void
+    {
+        $this->guardedTenant();
+
+        $profile = $this->brandProfile();
+        $attributes = [];
+
+        foreach (['color_primary', 'color_secondary'] as $colour) {
+            $value = $this->data[$colour] ?? null;
+
+            if (is_string($value) && trim($value) !== '') {
+                $attributes[$colour] = trim($value);
+            }
+        }
+
+        // The upload already wrote the file and the column through
+        // `UploadBrandAsset`; what is in the form state is the stored path.
+        $logo = $this->data['logo_light_path'] ?? null;
+
+        if (is_string($logo) && $logo !== '' && $logo !== $profile->logo_light_path) {
+            $attributes['logo_light_path'] = $logo;
+        }
+
+        if ($attributes === []) {
+            return;
+        }
+
+        app(UpdateBrandProfile::class)($profile, $attributes);
+    }
+
+    /**
+     * What the branding step opens on.
+     *
+     * The account's own logo and colours when it has any, the platform's
+     * colours when it does not — two pickers opening on black would read as a
+     * choice somebody made.
+     *
+     * @return array<string, string|null>
+     */
+    private function brandingState(?BrandProfile $profile): array
+    {
+        if (! $profile instanceof BrandProfile) {
+            return [
+                'logo_light_path' => null,
+                'color_primary' => (string) config('kaiki.branding.defaults.colors.primary'),
+                'color_secondary' => (string) config('kaiki.branding.defaults.colors.secondary'),
+            ];
+        }
+
+        return [
+            'logo_light_path' => $profile->logo_light_path,
+            'color_primary' => $profile->color_primary,
+            'color_secondary' => $profile->color_secondary,
+        ];
+    }
+
+    /** The account's brand profile, made on first use like the branding screen does. */
+    private function brandProfile(): BrandProfile
+    {
+        $tenant = $this->guardedTenant();
+
+        return $tenant->brandProfile()->firstOrCreate([]);
+    }
+
+    /**
+     * One logo, checked from its bytes.
+     *
+     * Filament would write the file itself, which skips the magic-byte check,
+     * the SVG sanitiser, the EXIF strip and the variants — every part of BRD-7
+     * and SEC-13. A refusal is a sentence the operator can act on, not a 500.
+     */
+    private function storeLogo(TemporaryUploadedFile $file): ?string
+    {
+        try {
+            return app(UploadBrandAsset::class)($this->brandProfile(), BrandAsset::LogoLight, $file);
+        } catch (UploadRefused $refused) {
+            Notification::make()->title($refused->getMessage())->danger()->send();
+
+            return null;
+        }
+    }
+
+    /**
+     * The first port: a name and, if they gave one, an address.
+     *
+     * **One name, written into both locales.** A translatable attribute cannot
+     * be saved with a locale missing (data-model §1.6), and asking a new
+     * operator to type «Παλιό Λιμάνι Χανίων» twice is how a guide loses people.
+     * A port's name is usually the same in both anyway, and the English one is
+     * edited on the port's own screen — the same stand-in the itinerary makes
+     * for a stop whose English name was left empty.
+     */
+    private function persistPort(): void
+    {
+        $this->guardedTenant();
+
+        $name = $this->normalise($this->data['port_name'] ?? null);
+
+        if ($name === null || Port::query()->exists()) {
+            return;
+        }
+
+        $port = new Port;
+
+        foreach ((array) config('kaiki.i18n.required_locales') as $locale) {
+            $port->setTranslation('name', (string) $locale, $name);
+        }
+
+        $port->address = $this->normalise($this->data['port_address'] ?? null);
+        $port->is_active = true;
+        $port->save();
+    }
+
+    /**
+     * The first boat: name, type and how many it takes.
+     *
+     * The plan limit is asked the same way the vessel screen asks it — an
+     * operator on Solo with a boat already does not get a second one through a
+     * guide (PlanLimits, and the message says what the plan includes).
+     */
+    private function persistVessel(): void
+    {
+        $tenant = $this->guardedTenant();
+
+        $name = $this->normalise($this->data['vessel_name'] ?? null);
+
+        if ($name === null || ! PlanLimits::canAddVessel($tenant)) {
+            return;
+        }
+
+        $vessel = new Vessel;
+        $vessel->name = $name;
+        // The five the product knows about (CAT-2); a guide does not get to
+        // invent a sixth, and «παραδοσιακό καΐκι» is the one this platform is
+        // named after.
+        $vessel->type = VesselType::tryFrom((string) ($this->data['vessel_type'] ?? '')) ?? VesselType::TraditionalKaiki;
+        $vessel->status = VesselStatus::Active;
+        $vessel->capacity_max = (int) ($this->data['vessel_capacity'] ?? 0) ?: null;
+        // The port from the step before, so the boat has a home the moment it
+        // exists and the trip form has something to offer.
+        $vessel->home_port_id = Port::query()->value('id');
+        // Both are `NOT NULL` json columns with no default (§3.9, §3.15): the
+        // spec sheet and the photographs are filled in on the boat's own
+        // screen, and an empty list is what "none yet" looks like there.
+        $vessel->specs = [];
+        $vessel->images = [];
+        $vessel->save();
+    }
+
+    /**
+     * The first period, with its one date range.
+     *
+     * Through {@see SaveSeason}, which owns the overlap rules — a guide is not
+     * a place to re-implement PRC-4.
+     */
+    private function persistSeason(): void
+    {
+        $this->guardedTenant();
+
+        $name = $this->normalise($this->data['season_name'] ?? null);
+        $from = $this->normalise($this->data['season_starts_on'] ?? null);
+        $to = $this->normalise($this->data['season_ends_on'] ?? null);
+
+        if ($name === null || $from === null || $to === null || Season::query()->exists()) {
+            return;
+        }
+
+        // One name in both locales, for the reason the port gives above.
+        $translated = [];
+
+        foreach ((array) config('kaiki.i18n.required_locales') as $locale) {
+            $translated[(string) $locale] = $name;
+        }
+
+        app(SaveSeason::class)(new Season, ['name' => $translated, 'priority' => 10], [
+            ['starts_on' => $from, 'ends_on' => $to],
+        ]);
     }
 
     private function persistVat(): void
@@ -485,12 +953,34 @@ class Setup extends Page implements HasForms
         return SetupChecklist::questions();
     }
 
+    /**
+     * The screens the guide sends people to, for the gate to let through.
+     *
+     * {@see RequireSetupFirst} holds every panel page back while the guide is
+     * unanswered — and these three **are** the guide: the boat, the periods and
+     * the first trip are answered on the screens that own them. Without this
+     * the hand-off buttons bounced straight back here, which is exactly what
+     * the product owner hit (2026-09-22: *«το οποίο δεν ανοίγει κιόλας»*).
+     *
+     * A list rather than "anything under /app/products": what is allowed is
+     * what the guide itself offers, and nothing else.
+     *
+     * @return list<string>
+     */
+    public static function handOffUrls(): array
+    {
+        // Only the trip: the port, the boat and the period are asked on this
+        // page now, so the guide has exactly one door and it leads to the
+        // trip's own four-step guide.
+        return [
+            ProductResource::getUrl('create'),
+        ];
+    }
+
     /** Where a step whose work lives on another screen sends the operator. */
     public function handOffUrl(string $step): ?string
     {
         return match ($step) {
-            SetupChecklist::BRANDING => Branding::getUrl(),
-            SetupChecklist::VESSEL => VesselResource::getUrl('create'),
             SetupChecklist::PRODUCT => ProductResource::getUrl('create'),
             default => null,
         };

@@ -17,6 +17,37 @@
 @endphp
 
 <x-filament-panels::page>
+    {{--
+        The two ways out of the gate (product owner, 2026-09-22). Above the
+        guide rather than buried at the foot of it: an operator who does not
+        want to do this now should not have to read the whole thing to find
+        that out. «Αργότερα» keeps the guide in the menu; «Δεν το χρειάζομαι»
+        retires it, and Ρυθμίσεις keeps a way back either way.
+    --}}
+    {{--
+        One row across the top: the subtitle on the left, the two exits on the
+        right. It was three stacked blocks — logo, heading, exits — and on a
+        1080p screen that pushed the seven fields of the first step below the
+        fold (product owner, 2026-09-22: *«έχει scroll η σελίδα και είμαι σε
+        fullhd»*). The page's own heading is gone with them: the card already
+        says «Βήμα 1 από 7» and asks the question, so the title above it was
+        saying the same thing twice.
+    --}}
+    <div class="ka-setup-exit">
+        <span>{{ __('setup.subtitle') }}</span>
+        <x-filament::button color="gray" size="sm" wire:click="deferSetup">
+            {{ __('setup.exit.later') }}
+        </x-filament::button>
+        <x-filament::link
+            tag="button"
+            color="gray"
+            wire:click="dismissSetup"
+            wire:confirm="{{ __('setup.exit.dismiss_confirm') }}"
+        >
+            {{ __('setup.exit.dismiss') }}
+        </x-filament::link>
+    </div>
+
     <div class="ka-setup">
         <nav class="ka-setup-steps" aria-label="{{ __('setup.steps_label') }}">
             @foreach ($questions as $i => $step)
@@ -107,6 +138,12 @@
                                 {{ __('setup.steps.' . $current . '.action') }}
                             </x-filament::button>
                         </div>
+                        {{-- «Περίοδοι» is the one hand-off step an operator is
+                             expected to skip — one price all year needs none —
+                             so it says that before it says «come back». --}}
+                        @if ($current === \App\Domain\Tenancy\Support\SetupChecklist::SEASON)
+                            <p class="ka-setup-hint">{{ __('setup.steps.season.caveat') }}</p>
+                        @endif
                         <p class="ka-setup-hint">{{ __('setup.come_back') }}</p>
                     @endif
                 @else
@@ -132,6 +169,9 @@
     </div>
 
     <style>
+        /* The two exits, on one line above the guide and wrapping on a phone. */
+        .ka-setup-exit { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; justify-content: flex-end; font-size: .85rem; color: #5F6F86; margin-bottom: .75rem; }
+        .ka-setup-exit > span { margin-inline-end: auto; }
         .ka-setup { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 1.5rem; align-items: start; max-width: 60rem; }
         .ka-setup-steps { display: grid; gap: 2px; background: #fff; border: 1px solid #E1E8F2; border-radius: .75rem; padding: .5rem; }
         .ka-setup-step { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) auto; gap: .6rem; align-items: center; padding: .55rem .5rem; border-radius: .5rem; font-size: .9rem; color: #5F6F86; text-align: left; }

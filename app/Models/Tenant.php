@@ -71,6 +71,9 @@ use Stancl\Tenancy\Database\Concerns\TenantRun;
  * @property bool|null $sms_enabled
  * @property bool|null $setup_guide_enabled
  * @property bool|null $getyourguide_enabled
+ * @property Carbon|null $onboarding_completed_at
+ * @property Carbon|null $onboarding_deferred_at
+ * @property Carbon|null $onboarding_dismissed_at
  * @property array<string, mixed> $settings
  * @property int|null $balance_due_days_before_departure
  * @property string|null $weather_choice_default
@@ -115,6 +118,8 @@ class Tenant extends Model implements TenantContract
             'getyourguide_enabled' => 'boolean',
             'onboarding_completed_at' => 'datetime',
             'onboarding_skipped_steps' => 'array',
+            'onboarding_deferred_at' => 'datetime',
+            'onboarding_dismissed_at' => 'datetime',
         ];
     }
 
@@ -265,6 +270,25 @@ class Tenant extends Model implements TenantContract
     public function usesSetupGuide(): bool
     {
         return $this->setup_guide_enabled !== false;
+    }
+
+    /**
+     * Has this operator put the guide aside — either way out of it?
+     *
+     * «Θα το κάνω αργότερα» defers it and «Δεν το χρειάζομαι» dismisses it for
+     * good (2026-09-22). Both stop the gate; only the second also takes the
+     * guide out of the menu. Either way it stays reachable, which is the
+     * promise that makes a gate on the panel safe to ship.
+     */
+    public function hasSetGuideAside(): bool
+    {
+        return $this->onboarding_deferred_at !== null || $this->onboarding_dismissed_at !== null;
+    }
+
+    /** «Δεν το χρειάζομαι»: no gate, no menu item, still reachable from Ρυθμίσεις. */
+    public function hasDismissedSetupGuide(): bool
+    {
+        return $this->onboarding_dismissed_at !== null;
     }
 
     /**

@@ -7,7 +7,9 @@ namespace App\Domain\Tenancy\Support;
 use App\Domain\Operations\Support\FirstSteps;
 use App\Models\BrandProfile;
 use App\Models\CancellationPolicy;
+use App\Models\Port;
 use App\Models\Product;
+use App\Models\Season;
 use App\Models\Tenant;
 use App\Models\Vessel;
 use App\Observers\TenantObserver;
@@ -69,8 +71,33 @@ final class SetupChecklist
      */
     public const CANCELLATION = 'cancellation';
 
+    /**
+     * Where the boat leaves from (product owner, 2026-09-22).
+     *
+     * **Before the boat**, because a boat has a home port and a trip cannot be
+     * published without a meeting point — and until this step existed a new
+     * operator reached the trip guide with nothing to choose. It is the
+     * shortest step in the guide: a name and a line of address.
+     */
+    public const PORT = 'port';
+
     /** A boat to sail on. Delegated to {@see FirstSteps}. */
     public const VESSEL = 'vessel';
+
+    /**
+     * The times of year the price changes (product owner, 2026-09-22).
+     *
+     * Between the boat and the trip because that is the order the answers are
+     * needed in: an operator who has met periods here arrives at the trip form
+     * knowing what the column «Θερινή» would be, and the price list they make
+     * there can point at one. After the boat, because a season with nothing to
+     * sail in it is an abstraction.
+     *
+     * **Often skipped, and that is a complete answer**: one price all year
+     * needs no period, and the trip's own «Όλο τον χρόνο» list covers it. The
+     * step says so rather than implying a period is required.
+     */
+    public const SEASON = 'season';
 
     /** Something to sell on it. Delegated to {@see FirstSteps}. */
     public const PRODUCT = 'product';
@@ -95,7 +122,9 @@ final class SetupChecklist
             self::BRANDING,
             self::VAT,
             self::CANCELLATION,
+            self::PORT,
             self::VESSEL,
+            self::SEASON,
             self::PRODUCT,
             self::READY,
         ];
@@ -137,7 +166,11 @@ final class SetupChecklist
             self::BRANDING => self::brandingTouched($tenant),
             self::VAT => $tenant->default_vat_rate_id !== null,
             self::CANCELLATION => CancellationPolicy::query()->exists(),
+            self::PORT => Port::query()->exists(),
             self::VESSEL => $catalogue[FirstSteps::VESSEL] ?? Vessel::query()->exists(),
+            // Not delegated: `FirstSteps` is the chain to a first booking, and
+            // a period is not on it — a trip sells all year without one.
+            self::SEASON => Season::query()->exists(),
             self::PRODUCT => $catalogue[FirstSteps::PRODUCT] ?? Product::query()->exists(),
             self::READY => $tenant->onboarding_completed_at !== null,
         ];
@@ -226,10 +259,38 @@ final class SetupChecklist
         $tenant = Tenancy::check() ? Tenancy::current() : null;
 
         // Switched off on /admin for an operator the platform set up itself:
-        // no guide, no menu item, no checklist (2026-09-17).
+        // no guide, no menu item, no checklist (2026-09-17). «Δεν το
+        // χρειάζομαι» does the same thing at the operator's own hand
+        // (2026-09-22) — the page stays reachable from Ρυθμίσεις, but nothing
+        // offers it any more.
         return $tenant instanceof Tenant
             && $tenant->usesSetupGuide()
+            && ! $tenant->hasDismissedSetupGuide()
             && $tenant->onboarding_completed_at === null;
+    }
+
+    /**
+     * Does the guide stand in front of the panel right now (2026-09-22)?
+     *
+     * *"The first time configurator should open fullscreen and not have access
+     * to panel before setting this up"* — so a brand-new operator meets the
+     * guide and nothing else. The gate is narrow on purpose: it lifts the
+     * moment the operator finishes it, defers it or dismisses it, and it never
+     * comes back on its own. An operator who has said "later" once has said it
+     * for good; asking again next week is the nagging SAA-10 forbids, wearing a
+     * different hat.
+     *
+     * What it is **not** is a lock on the account: {@see Tenant::hasSetGuideAside()}
+     * is one click away on the gate itself, and the platform can switch the
+     * whole guide off from /admin.
+     */
+    public static function blocksPanel(): bool
+    {
+        $tenant = Tenancy::check() ? Tenancy::current() : null;
+
+        return $tenant instanceof Tenant
+            && ! $tenant->hasSetGuideAside()
+            && self::applies();
     }
 
     /**

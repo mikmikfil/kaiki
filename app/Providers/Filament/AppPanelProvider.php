@@ -14,7 +14,7 @@ use App\Http\Controllers\App\DismissAnnouncementController;
 use App\Http\Controllers\ExportDownloadController;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EnsureTenantIsWritable;
-use App\Http\Middleware\OfferSetupOnce;
+use App\Http\Middleware\RequireSetupFirst;
 use App\Http\Middleware\ResolveTenant;
 use App\Http\Middleware\SetLocale;
 use App\Models\PlatformBrand;
@@ -333,8 +333,9 @@ class AppPanelProvider extends PanelProvider
                 // After the tenant is resolved, because what it decides is a
                 // question about the tenant. Last in the stack, so it never
                 // stands between a request and the guard that would refuse it
-                // (#51, SAA-10).
-                OfferSetupOnce::class,
+                // (#51, SAA-10) — a request that should 403 must 403 rather
+                // than be redirected to a setup guide.
+                RequireSetupFirst::class,
                 // isPersistent, or none of this runs on `POST /livewire/update`
                 // — which is every button in the panel. Filament only forwards
                 // auth middleware to Livewire's persistent list when asked, and

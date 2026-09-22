@@ -40,6 +40,25 @@ return [
         'body' => 'Anything you skipped is waiting in Settings. We will not remind you again.',
     ],
 
+    // The two ways out of the guide (2026-09-22). One leaves it in the menu,
+    // the other retires it — both open the panel straight away.
+    'exit' => [
+        'prompt' => 'In a hurry?',
+        'later' => 'I will do this later',
+        'dismiss' => 'I do not need this',
+        'dismiss_confirm' => 'The guide leaves the menu. You will find it again under Settings whenever you want it.',
+    ],
+
+    'deferred' => [
+        'title' => 'Carry on',
+        'body' => 'The guide is waiting first in the menu, right where you left it.',
+    ],
+
+    'dismissed' => [
+        'title' => 'Done — you will not see it again',
+        'body' => 'If you need it, it is under Settings → “First-time setup guide”.',
+    ],
+
     'steps' => [
         'business' => [
             'label' => 'Your business',
@@ -68,6 +87,13 @@ return [
             'question' => 'What do you refund when a guest cancels?',
             'why' => 'Pick one. You can change it whenever you like, and bookings already made keep the terms they were made under. A trip cannot be published without a cancellation policy.',
         ],
+        'port' => [
+            'label' => 'Ports',
+            'description' => 'Where you sail from',
+            'question' => 'Where do your trips leave from?',
+            'why' => 'The port or marina where you meet your guests. A trip cannot be published without a meeting point — and your boat wants a home port.',
+            'done' => 'You have already added a port.',
+        ],
         'vessel' => [
             'label' => 'Your first boat',
             'description' => 'What your guests board',
@@ -75,6 +101,15 @@ return [
             'why' => 'Name, type and how many passengers it carries. Photos and a home port can come later.',
             'done' => 'You have already added a boat.',
             'action' => 'Add a boat',
+        ],
+        'season' => [
+            'label' => 'Periods',
+            'description' => 'When your price changes',
+            'question' => 'Does your price change through the year?',
+            'why' => 'A period is a stretch of the year with its own price — “Summer, 1 June to 15 September”. It is set up once and every trip can use it.',
+            'caveat' => 'One price all year? Skip this: every trip already starts with an «All year» price.',
+            'done' => 'You have already set up a period.',
+            'action' => 'Add a period',
         ],
         'product' => [
             'label' => 'Your first trip',
@@ -94,6 +129,35 @@ return [
     ],
 
     'fields' => [
+        'port_name' => [
+            'label' => 'Port name',
+            'help' => 'As your guests call it — “Chania Old Port”.',
+        ],
+        'port_address' => [
+            'label' => 'Address',
+            'help' => 'Optional. It helps anyone arriving by taxi or following a map.',
+        ],
+        'vessel_name' => [
+            'label' => 'Boat name',
+            'help' => 'As your guests know it.',
+        ],
+        'vessel_capacity' => [
+            'help' => 'As many as the certificate says. No trip ever goes above this number.',
+        ],
+        'season_name' => [
+            'label' => 'Period name',
+            'help' => 'Yours to choose — “Summer”, “Easter”.',
+        ],
+        'season_starts_on' => [
+            'label' => 'From',
+        ],
+        'season_ends_on' => [
+            'label' => 'To',
+        ],
+        'logo' => [
+            'label' => 'Your logo',
+            'help' => 'PNG, JPG or SVG. It sits top left on your pages and in your emails. Without one, your name is written instead.',
+        ],
         'legal_name' => [
             'label' => 'Legal name',
             'help' => 'Exactly as registered with the tax office — not your trading name, if they differ.',
