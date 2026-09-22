@@ -65,6 +65,30 @@
     <aside class="checkout-side">
 
     <div class="card">
+        {{--
+            **The trip's own photograph** (product owner, 2026-09-22). The
+            summary listed a title, a date and a number of people — the shape
+            of a receipt, on the page where somebody decides whether to pay. The
+            picture is the thing they chose, and it is already on the trip page
+            they came from.
+
+            `ImagePayload` hands the gallery back in the operator's order, so
+            `[0]` is the one that leads the card everywhere else too. Absent
+            rather than a grey box when the trip has no photograph yet.
+        --}}
+        @php
+            $cover = \App\Domain\Media\Support\ImagePayload::collection(
+                $booking->product?->images,
+                $locale,
+            )[0] ?? null;
+        @endphp
+
+        @if ($cover !== null)
+            <div class="trip-photo">
+                <img src="{{ $cover['url'] }}" alt="{{ $cover['alt'] ?? '' }}" loading="lazy">
+            </div>
+        @endif
+
         <h1>{{ __('guest.checkout.title') }}</h1>
         {{-- `dl.rows` is the layout's own two-column list, used by every other
              guest page. A second pattern here would be a second thing to keep
@@ -481,10 +505,16 @@
         <p class="consent">
             <label>
                 <input id="terms" type="checkbox" name="terms" value="1" required @checked(old('terms'))>
-                {!! __('guest.checkout.terms', [
+                {{-- **One span around the whole sentence.** The label is a flex
+                     row, so every node inside it was an item of that row: the
+                     words before the link, the link, and the full stop after it
+                     became three columns, and on a phone they wrapped into a
+                     ragged block with a lone «.» floating at the end of it
+                     (2026-09-22). --}}
+                <span>{!! __('guest.checkout.terms', [
                     'link' => '<a href="' . e($legalUrl) . '" target="_blank" rel="noopener">'
                         . e(__('guest.checkout.terms_link')) . '</a>',
-                ]) !!}
+                ]) !!}</span>
             </label>
             @error('terms') <span class="field-error">{{ $message }}</span> @enderror
         </p>

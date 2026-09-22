@@ -216,6 +216,17 @@
 
         .checkout-grid { display: grid; gap: 1.25rem; }
 
+        /* The trip's photograph, at the head of the summary. Full bleed inside
+           the card: a picture with a margin round it reads as an attachment,
+           and this is the thing being bought. */
+        .trip-photo {
+            margin: -1.1rem -1.15rem .9rem;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            background: #eef3f9;
+        }
+        .trip-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
         /* ---- the order a phone reads this in ---------------------------
 
            The summary is first in the markup so a phone sees what is being paid
@@ -308,12 +319,34 @@
             .checkout-side { order: 2; position: sticky; top: 1rem; }
         }
 
+        /* ---- the masthead (2026-09-22) ----------------------------------
+           Shaped like the hosted site's: the mark or the logo, the name with
+           the town under it, and on the right a telephone that dials and the
+           two languages. Taller than the old strip on purpose — it is the
+           first thing on the page and it should look like the operator. */
         header.brand {
-            display: flex; align-items: center; gap: .6rem;
-            padding: .85rem 1.15rem; border-bottom: 1px solid var(--hair);
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; flex-wrap: wrap;
+            padding: .95rem 1.15rem; border-bottom: 1px solid var(--hair);
         }
-        header.brand img { max-height: 34px; width: auto; }
-        header.brand .name { font-weight: 700; font-size: .95rem; }
+        header.brand .who { display: flex; align-items: center; gap: .7rem; min-width: 0; }
+        header.brand img { max-height: 42px; width: auto; }
+        header.brand .mark {
+            width: 2.4rem; height: 2.4rem; flex: none; border-radius: 11px;
+            display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 1.1rem;
+            background: var(--kaiki-primary, #123a5e);
+        }
+        header.brand .text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+        header.brand .name { font-weight: 800; font-size: 1.05rem; letter-spacing: -.02em; }
+        header.brand .tag { font-size: .75rem; color: #6b7a89; margin-top: .15rem; }
+
+        header.brand .aside { display: flex; align-items: center; gap: .9rem; margin-left: auto; }
+        header.brand .phone { font-weight: 600; font-size: .9rem; color: var(--kaiki-primary, #123a5e); }
+        header.brand .langs { display: flex; gap: .2rem; }
+        header.brand .langs a {
+            padding: .2rem .45rem; border-radius: 6px; font-size: .8rem; font-weight: 600; color: #6b7a89;
+        }
+        header.brand .langs a[aria-current="true"] { background: #eef3f9; color: var(--kaiki-primary, #123a5e); }
 
         /* `.card` keeps its name because four of the five pages are written in
            it — but it is no longer a card. It is a section of the sheet,
@@ -335,6 +368,8 @@
             border: 1px solid var(--hair);
             border-radius: var(--kaiki-radius, 8px);
             background: #fff;
+            /* So the photograph's square corners take the card's. */
+            overflow: hidden;
         }
 
         h1 { font-size: 1.5rem; line-height: 1.18; margin: 0 0 .35rem; letter-spacing: -.01em; }
@@ -558,12 +593,60 @@
 <body>
 <div class="wrap @if ($wide ?? false) wide @endif @if ($wideBooking ?? false) wide-booking @endif">
     <div class="sheet">
+        {{--
+            The masthead the rest of the operator's site wears (product owner,
+            2026-09-22: the checkout «είναι χάλια» next to the trip page).
+
+            It was the operator's name in small bold type on a hairline — a
+            different product from the page the guest was reading a minute
+            earlier. The same three things the hosted header carries: who they
+            are, a telephone that dials, and the language.
+
+            No navigation, and that is the one deliberate difference. A menu on
+            a page somebody is paying on is an invitation to leave it.
+        --}}
         <header class="brand">
-            @if (! empty($brand['logo']['light_url']))
-                <img src="{{ $brand['logo']['light_url'] }}" alt="{{ $tenantName }}">
-            @else
-                <span class="name">{{ $tenantName }}</span>
-            @endif
+            <div class="who">
+                @if (! empty($brand['logo']['light_url']))
+                    <img src="{{ $brand['logo']['light_url'] }}" alt="{{ $tenantName }}">
+                @else
+                    {{-- The operator who never uploaded a logo gets a mark in
+                         their own colour, exactly as on their site. --}}
+                    <span class="mark" aria-hidden="true">{{ mb_substr($tenantName, 0, 1) }}</span>
+                @endif
+
+                <span class="text">
+                    <span class="name">{{ $tenantName }}</span>
+                    @if (! empty($brand['tenant']['city']))
+                        <span class="tag">{{ $brand['tenant']['city'] }}</span>
+                    @endif
+                </span>
+            </div>
+
+            <div class="aside">
+                @if (! empty($brand['tenant']['support_phone']))
+                    <a class="phone" href="tel:{{ preg_replace('/[^0-9+]/', '', (string) $brand['tenant']['support_phone']) }}">
+                        {{ $brand['tenant']['support_phone'] }}
+                    </a>
+                @endif
+
+                {{-- `?lang=` is first in the I18N-5 chain, so this switches the
+                     page without a second route or any state of its own.
+
+                     **Off where the page must reveal nothing** (TOK-4): these
+                     links carry the current address, and on a token page the
+                     address is the token. See `link-not-valid`. --}}
+                @if ($languages ?? true)
+                    <span class="langs">
+                        @foreach (\App\Support\Locale\LocaleResolver::installed() as $code)
+                            <a
+                                href="{{ request()->fullUrlWithQuery(['lang' => $code]) }}"
+                                @if (app()->getLocale() === $code) aria-current="true" @endif
+                            >{{ __('enums.locale.' . $code . '.short') }}</a>
+                        @endforeach
+                    </span>
+                @endif
+            </div>
         </header>
 
         @yield('content')

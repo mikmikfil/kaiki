@@ -100,6 +100,11 @@ final class GetBrandPayload
                 // `tenants` — the null was a placeholder nobody came back to,
                 // so everything that asked for it got nothing to show.
                 'support_phone' => $tenant->phone,
+                // The town they sail from, which the hosted masthead has always
+                // shown under the operator's name. Added 2026-09-22 so the
+                // token pages can wear the same masthead: they have the brand
+                // payload and no tenant of their own.
+                'city' => $tenant->city,
             ],
             'logo' => [
                 'light_url' => $this->assetUrl($profile, BrandAsset::LogoLight),

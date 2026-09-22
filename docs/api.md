@@ -2444,6 +2444,7 @@ components:
         hosted_page_url: { type: [string, "null"], format: uri, example: 'https://book.kaiki.app/aegean-cruises' }
         support_email: { type: [string, "null"], format: email }
         support_phone: { type: [string, "null"] }
+        city: { type: [string, "null"], example: Γλυφάδα }
       additionalProperties: false
 
     # ---------- Branding ----------
