@@ -36,6 +36,9 @@ use Illuminate\Support\Carbon;
  * @property int $generate_days_ahead
  * @property bool $is_active
  * @property Carbon|null $last_generated_on
+ * @property-read Product|null $product null once the trip is soft-deleted —
+ *                the rules stay behind and the column still points at a row the
+ *                default scope will not return (2026-09-22)
  */
 #[ObservedBy(ScheduleRuleObserver::class)]
 class ScheduleRule extends Model
