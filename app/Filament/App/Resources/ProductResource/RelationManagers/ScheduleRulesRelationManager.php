@@ -109,6 +109,8 @@ class ScheduleRulesRelationManager extends RelationManager
                 ->defaultItems(1)
                 ->minItems(1)
                 ->reorderable(false)
+                // «Σκαμμένο»: see `.ka-nest` in `sea.blade.php`.
+                ->extraFieldWrapperAttributes(['class' => 'ka-nest'])
                 ->visibleOn('create'),
         ]);
 

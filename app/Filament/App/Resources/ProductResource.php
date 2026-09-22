@@ -337,7 +337,15 @@ class ProductResource extends Resource
 
                     TimePicker::make('default_start_time')
                         ->label(__('catalog.product.form.default_start_time.label'))
-                        ->helperText(__('catalog.product.form.default_start_time.help'))
+                        // Optional, and said so, on a trip sold «κατόπιν
+                        // προσφοράς»: the guest proposes a time in the request
+                        // and `ProposedWindowBuilder` prefers theirs.
+                        ->helperText(static fn (Get $get): string => static::modeOf($get) === BookingMode::Quote
+                            ? __('catalog.product.form.default_start_time.quote_help')
+                            : __('catalog.product.form.default_start_time.help'))
+                        ->placeholder(static fn (Get $get): ?string => static::modeOf($get) === BookingMode::Quote
+                            ? __('catalog.product.form.default_start_time.optional')
+                            : null)
                         // A clock time on the quay, not an instant: the panel's
                         // tenant-timezone conversion stored 09:00 as 06:00
                         // (2026-09-17). Same as a departure's `local_time`.

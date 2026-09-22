@@ -317,6 +317,8 @@ return [
             'default_start_time' => [
                 'label' => 'Departure time',
                 'help' => 'Local time. Everyone leaves at the same time.',
+                'quote_help' => 'Optional. Leave it empty when the guest asks for a time in their request — you then quote for the time they asked for.',
+                'optional' => 'Optional',
             ],
             'flexible_start' => [
                 'label' => 'Flexible departure time',

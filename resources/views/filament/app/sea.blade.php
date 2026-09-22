@@ -409,6 +409,63 @@
     }
 
     /*
+     * «Σκαμμένο» — a box inside a box (product owner, 2026-09-22, direction Α).
+     *
+     * *«Τα boxes που εμφανίζονται μέσα σε άλλα boxes, όπως π.χ. στις τιμές αν
+     * πας να βάλεις περίοδο, πρέπει να κάνουν λίγο πιο πολύ standout.»* And
+     * before that: *«δεν είναι πολύ εμφανές πότε αλλάζει κάτι»*.
+     *
+     * The two complaints are one thing. A repeater row inside a repeater row
+     * was drawn exactly like its parent — white, same radius, same hairline —
+     * so the form had depth that the page did not show, and a row that
+     * appeared on a click looked like part of what was already there.
+     *
+     * A **well**, not a second card: the nested block is recessed into its
+     * parent with a tint and an inset shadow, and the fields inside it stay
+     * white. Two cards with the same surface are two equal things; a well is
+     * never mistaken for one, and it needs no extra border to say so — which
+     * matters where these nest, because the third border in a row is the one
+     * nobody can read.
+     *
+     * Marked in PHP (`extraFieldWrapperAttributes`) rather than matched with
+     * `:has()`, so the intent is named where the field is written and a
+     * repeater that merely happens to sit inside another does not get it by
+     * accident.
+     */
+    .ka-nest {
+        background: #EDF3FA;
+        border-radius: 0.75rem;
+        padding: 0.8rem 0.9rem;
+        box-shadow: inset 0 1px 2px rgba(15, 46, 87, 0.07);
+    }
+
+    /* The label and the helper line belong to the well, so they come inside
+       its padding rather than floating above it. */
+    .ka-nest > .fi-fo-field-wrp-label {
+        margin-bottom: 0.35rem;
+    }
+
+    /* Whatever is typed into stays white, the way every other field on the
+       page is — that contrast is what makes the well read as depth rather
+       than as a grey patch. */
+    .ka-nest .fi-input-wrp,
+    .ka-nest .fi-fo-repeater-item,
+    .ka-nest .fi-btn {
+        background-color: #fff;
+    }
+
+    .dark .ka-nest {
+        background: rgba(255, 255, 255, 0.04);
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+    }
+
+    .dark .ka-nest .fi-input-wrp,
+    .dark .ka-nest .fi-fo-repeater-item,
+    .dark .ka-nest .fi-btn {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    /*
      * And the row itself goes back to being one block. The stacked layout turns
      * every row into a two-track grid — label, value — which is right for a
      * price and wrong for a heading: with the label suppressed the heading was

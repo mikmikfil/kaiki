@@ -216,7 +216,9 @@ trait HasTripWizard
                             // side: the times grow downwards as they are added,
                             // and a column that grows beside a date field
                             // leaves «Ισχύει έως» stranded on its own row.
-                            ->columnSpanFull(),
+                            ->columnSpanFull()
+                            // «Σκαμμένο»: see `.ka-nest` in `sea.blade.php`.
+                            ->extraFieldWrapperAttributes(['class' => 'ka-nest']),
 
                         DatePicker::make('valid_from')
                             ->label(__('availability.schedule_rule.form.valid_from.label'))
@@ -241,10 +243,27 @@ trait HasTripWizard
                     ->columnSpanFull()
                     ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value),
 
-                // A charter's single start time is a column on the trip.
+                /*
+                 * A charter's single start time is a column on the trip — and
+                 * on a trip sold «κατόπιν προσφοράς» it is **optional**
+                 * (product owner, 2026-09-22: *«μπορεί να την ζητήσει ο
+                 * χρήστης»*).
+                 *
+                 * The column has always been nullable and the quoting side has
+                 * always honoured a proposed time — `ProposedWindowBuilder`
+                 * takes the guest's over the trip's. Only the form said
+                 * otherwise, with a helper line («την ίδια ώρα ξεκινούν όλοι»)
+                 * that is simply untrue of a trip whose whole point is that the
+                 * guest asks for a time.
+                 */
                 TimePicker::make('default_start_time')
                     ->label(__('catalog.product.form.default_start_time.label'))
-                    ->helperText(__('catalog.product.form.default_start_time.help'))
+                    ->helperText(static fn (Get $get): string => $get('mode') === BookingMode::Quote->value
+                        ? __('catalog.product.form.default_start_time.quote_help')
+                        : __('catalog.product.form.default_start_time.help'))
+                    ->placeholder(static fn (Get $get): ?string => $get('mode') === BookingMode::Quote->value
+                        ? __('catalog.product.form.default_start_time.optional')
+                        : null)
                     ->seconds(false)
                     ->timezone('UTC')
                     ->visible(static fn (Get $get): bool => $get('mode') !== BookingMode::PerSeat->value),
@@ -343,6 +362,7 @@ trait HasTripWizard
                             ->columns(2)
                             ->defaultItems(0)
                             ->columnSpanFull()
+                            ->extraFieldWrapperAttributes(['class' => 'ka-nest'])
                             ->visible(static fn (): bool => RatePlanResource::seasonOptions() !== []),
                     ])
                     ->default(ProductResource::defaultAgeBands(...))
@@ -378,6 +398,7 @@ trait HasTripWizard
                     ->columns(2)
                     ->defaultItems(0)
                     ->columnSpanFull()
+                    ->extraFieldWrapperAttributes(['class' => 'ka-nest'])
                     ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value
                         && RatePlanResource::seasonOptions() !== []),
 
