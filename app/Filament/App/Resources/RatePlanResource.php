@@ -43,6 +43,7 @@ use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\HtmlString;
 
 /**
  * What a trip costs, on `/app` (spec CAT-10, PRC-23, AVL-19, AVL-20, SEC-3).
@@ -79,7 +80,16 @@ class RatePlanResource extends Resource
         return __('panel.groups.catalogue');
     }
 
-    /** Stays highlighted on the screens it shares a tab bar with (Menu 1). */
+    /**
+     * Its own entry, lit on its own screens.
+     *
+     * It used to hold «Περίοδοι» and «Πολιτικές ακύρωσης» under one sidebar
+     * line and stay lit while either of them was open. Both are entries in
+     * their own right since 2026-09-22, so there is nothing left to borrow the
+     * highlight: `SiblingScreens::highlight()` finds no set for this resource
+     * and hands the items back untouched. The call stays because it is the one
+     * line that would have to come back if they ever share a line again.
+     */
     public static function getNavigationItems(): array
     {
         return SiblingScreens::highlight(static::class, parent::getNavigationItems());
@@ -182,6 +192,50 @@ class RatePlanResource extends Resource
                         __('pricing.on_product.extra_pax_price.help'),
                     )->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerVessel
                         && Tenancy::current()?->usesExtraPersonPricing() === true),
+
+                    /*
+                     * **Why «Τιμές» is empty, said out loud** (product owner,
+                     * 2026-09-22: *«στις τιμές μπορώ να προσθέσω νέα τιμή για
+                     * μια εκδρομή αλλά δεν μπορώ να βάλω ηλικίες κλπ»*).
+                     *
+                     * On this screen the section held only things that are
+                     * conditional on the trip — the band rows, the charter's
+                     * price — so before a trip is chosen it rendered as a card
+                     * with a heading and nothing under it. Reading it as "I
+                     * cannot add ages here" is the only reading available.
+                     *
+                     * Ages are not addable here and should not be: a band is a
+                     * property of the **trip** (one set, used by every price
+                     * list of that trip), and inventing one from a price list
+                     * is how two lists end up disagreeing about what a child
+                     * is. So the empty state says where they live and links
+                     * there, rather than growing a second place to make them.
+                     */
+                    Placeholder::make('prices_hint')
+                        ->hiddenLabel()
+                        ->content(static function (Get $get): HtmlString {
+                            $product = static::productOf($get);
+
+                            if (! $product instanceof Product) {
+                                return new HtmlString(e(__('pricing.rate_plan.form.prices.pick_product')));
+                            }
+
+                            return new HtmlString(__('pricing.rate_plan.form.prices.no_bands', [
+                                'trip' => e((string) $product->title),
+                                'url' => ProductResource::getUrl('edit', ['record' => $product, 'tab' => '-times-tab']),
+                            ]));
+                        })
+                        ->visible(static function (Get $get): bool {
+                            $product = static::productOf($get);
+
+                            if (! $product instanceof Product) {
+                                return true;
+                            }
+
+                            return $product->mode === BookingMode::PerSeat
+                                && $product->ageBands()->count() === 0;
+                        })
+                        ->columnSpanFull(),
 
                     Repeater::make('band_prices')
                         ->label(__('pricing.rate_plan.form.prices.label'))
@@ -428,13 +482,19 @@ class RatePlanResource extends Resource
     /** The booking mode of the product currently selected in the form. */
     public static function modeOf(Get $get): ?BookingMode
     {
+        return static::productOf($get)?->mode;
+    }
+
+    /** The trip the form is pointed at, or null while none is chosen. */
+    public static function productOf(Get $get): ?Product
+    {
         $productId = $get('product_id');
 
         if (! is_numeric($productId)) {
             return null;
         }
 
-        return Product::query()->find((int) $productId)?->mode;
+        return Product::query()->find((int) $productId);
     }
 
     /** @return Builder<RatePlan> */

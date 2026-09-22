@@ -56,8 +56,17 @@ class CancellationPolicyResource extends Resource
 
     protected static ?int $navigationSort = 40;
 
-    // Reached from a tab on its sibling screen, not from the sidebar (Menu 1, 2026-09-16).
-    protected static bool $shouldRegisterNavigation = false;
+    /*
+     * **In the sidebar in its own right** (product owner, 2026-09-22), for the
+     * same reason as «Περίοδοι» beside it: a cancellation policy is written
+     * once, applies to every trip, and is the thing an operator goes looking
+     * for when a guest asks to cancel — not a second view of the price lists.
+     *
+     * With both of them in the menu the pricing tab bar had nothing left to
+     * hold, so it is gone from these screens entirely — see
+     * `App\Filament\App\Navigation\SiblingScreens`.
+     */
+    protected static bool $shouldRegisterNavigation = true;
 
     public static function getNavigationGroup(): ?string
     {

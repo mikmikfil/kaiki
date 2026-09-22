@@ -47,8 +47,19 @@ class SeasonResource extends Resource
 
     protected static ?int $navigationSort = 30;
 
-    // Reached from a tab on its sibling screen, not from the sidebar (Menu 1, 2026-09-16).
-    protected static bool $shouldRegisterNavigation = false;
+    /*
+     * **In the sidebar in its own right** (product owner, 2026-09-22:
+     * *«νιώθω ότι οι Περίοδοι θα έπρεπε να είναι κάπου ξεχωριστά στο μενού»*).
+     *
+     * It used to be reachable only through a tab on «Τιμές» (Menu 1,
+     * 2026-09-16), which is right for the screens an operator opens *while*
+     * pricing a trip. A period is not one of those: it is set up once a season,
+     * it is used by every trip, and it is looked for by name months later — and
+     * a thing somebody goes looking for belongs in the menu rather than behind
+     * another screen's tab. The tab stays exactly where it is; this only adds
+     * the second way in.
+     */
+    protected static bool $shouldRegisterNavigation = true;
 
     public static function getNavigationGroup(): ?string
     {

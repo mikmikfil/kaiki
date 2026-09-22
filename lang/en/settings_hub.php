@@ -26,6 +26,7 @@ return [
     ],
 
     'cards' => [
+        'setup' => 'The guide that sets the account up, step by step',
         'branding' => 'Logo, colours and typeface',
         'staff' => 'Who can sign in, and in which role',
         'payments' => 'What a guest pays, and when',

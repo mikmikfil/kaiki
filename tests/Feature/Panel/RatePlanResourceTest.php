@@ -186,3 +186,41 @@ it('renders integer cents back as decimal text', function (): void {
     expect(MoneyInput::toDecimal(15050))->toBe('150.50')
         ->and(MoneyInput::toDecimal(null))->toBeNull();
 })->group('fast');
+
+it('says where age bands come from, instead of showing an empty «Τιμές» box', function (): void {
+    // Product owner, 2026-09-22: «στις τιμές μπορώ να προσθέσω νέα τιμή για μια
+    // εκδρομή αλλά δεν μπορώ να βάλω ηλικίες κλπ». He was right that he could
+    // not, and right to expect the screen to say so: a band belongs to the trip,
+    // and this form only prices the ones that exist.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $bandless = Tenancy::forTenant(
+        ratePlanTenantOf($owner),
+        fn (): Product => Product::factory()->create(),
+    );
+
+    // Nothing chosen yet: the section explains what it is waiting for.
+    ratePlanPageAs($owner, CreateRatePlan::class)
+        ->assertSee(__('pricing.rate_plan.form.prices.pick_product'));
+
+    // A trip with no bands: the section names it and links to where they live.
+    ratePlanPageAs($owner, CreateRatePlan::class)
+        ->fillForm(['product_id' => $bandless->getKey()])
+        ->assertSee((string) $bandless->title)
+        ->assertSee('/app/products/' . $bandless->getRouteKey() . '/edit', escape: false);
+})->group('fast');
+
+it('drops the hint once the trip has bands to price', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $product = Tenancy::forTenant(ratePlanTenantOf($owner), function (): Product {
+        $product = Product::factory()->create();
+        AgeBand::factory()->create(['product_id' => $product->getKey()]);
+
+        return $product;
+    });
+
+    ratePlanPageAs($owner, CreateRatePlan::class)
+        ->fillForm(['product_id' => $product->getKey()])
+        ->assertDontSee(__('pricing.rate_plan.form.prices.pick_product'));
+})->group('fast');

@@ -24,8 +24,8 @@ return [
         'more' => 'More',
         'season' => [
             'label' => 'Period',
-            'help' => 'Leave empty for the price that applies when no period matches.',
-            'default' => 'Every other date',
+            'help' => 'Leave empty for the price that applies all year, when no other period does.',
+            'default' => 'All year',
         ],
         'new_season' => [
             'name' => 'Period name',
@@ -100,7 +100,11 @@ return [
         'base' => 'base',
         'no_seat' => 'takes no seat',
         'inactive' => 'inactive',
-        'no_period' => 'No period',
+        // Not “No period” (2026-09-22): a column that says what it is *not*
+        // reads like a price that lost its place. It is the price that applies
+        // all year when no other period does — so every price in the grid
+        // belongs to a period, without an operator having to invent one.
+        'no_period' => 'when no other applies',
         'ages_from' => ':min and over',
         'ages_between' => ':min to :max',
         'derived' => 'Still worked out as a share of the adult price. Saving writes it as an amount.',
@@ -302,6 +306,11 @@ return [
                 'band' => 'Band',
                 'price' => 'Price',
                 'empty' => 'This trip has no age bands yet.',
+                // Ages belong to the trip, not to the price list, which only
+                // carries the amount for each band. Without these two lines the
+                // «Prices» section was an empty box (2026-09-22).
+                'pick_product' => 'Choose a trip first. Its categories appear here, one price each.',
+                'no_bands' => '“:trip” has no age bands. Categories and their ages are set on the trip itself: <a href=":url">open its «Prices» tab</a> and add them.',
             ],
             'deposit_type' => [
                 'label' => 'Deposit',

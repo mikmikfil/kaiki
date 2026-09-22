@@ -121,7 +121,7 @@ final class PlanSummary
         return implode(' · ', $parts);
     }
 
-    /** «Όλες τις άλλες μέρες», or the season's own name. */
+    /** «Όλο τον χρόνο», or the season's own name. */
     public static function period(RatePlan $plan): string
     {
         return $plan->isDefault()

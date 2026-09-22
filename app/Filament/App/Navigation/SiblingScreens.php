@@ -4,16 +4,10 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Navigation;
 
-use App\Filament\App\Resources\CancellationPolicyResource;
-use App\Filament\App\Resources\CancellationPolicyResource\Pages\ListCancellationPolicies;
 use App\Filament\App\Resources\EnquiryResource;
 use App\Filament\App\Resources\EnquiryResource\Pages\ListEnquiries;
 use App\Filament\App\Resources\QuoteResource;
 use App\Filament\App\Resources\QuoteResource\Pages\ListQuotes;
-use App\Filament\App\Resources\RatePlanResource;
-use App\Filament\App\Resources\RatePlanResource\Pages\ListRatePlans;
-use App\Filament\App\Resources\SeasonResource;
-use App\Filament\App\Resources\SeasonResource\Pages\ListSeasons;
 use App\Filament\App\Resources\VesselBlockResource;
 use App\Filament\App\Resources\VesselBlockResource\Pages\ListVesselBlocks;
 use App\Filament\App\Resources\VesselResource;
@@ -24,11 +18,14 @@ use Filament\Resources\Resource;
 /**
  * Screens that share one sidebar entry and are told apart by tabs (Menu 1, 2026-09-16).
  *
- * The product owner's menu has 13 entries where there were 19. Six screens did
- * not go away: each is a second view of a neighbour, so it left the sidebar and
- * became a tab across the top of that neighbour's list — ερωτήματα next to
- * προσφορές, περίοδοι and πολιτικές ακύρωσης next to τιμοκατάλογοι, δεσμεύσεις
- * next to σκάφη.
+ * The product owner's menu has 13 entries where there were 19. Screens that did
+ * not go away became a tab across the top of a neighbour's list instead —
+ * ερωτήματα next to προσφορές, δεσμεύσεις next to σκάφη.
+ *
+ * **Περίοδοι and πολιτικές ακύρωσης were here and are not any more**
+ * (2026-09-22): both went back to the sidebar, because each is set up once and
+ * used by every trip rather than being another way of looking at the price
+ * lists. Their tab bar went with them; see the note on the sets below.
  *
  * **Tabs between existing screens, not a Filament cluster.** A cluster would
  * move every one of them under a new URL prefix, and the operator manual, the
@@ -50,11 +47,20 @@ final class SiblingScreens
             QuoteResource::class => ['quotes.quote.nav', ListQuotes::class],
             EnquiryResource::class => [null, ListEnquiries::class],
         ],
-        [
-            RatePlanResource::class => ['pricing.rate_plan.nav', ListRatePlans::class],
-            SeasonResource::class => [null, ListSeasons::class],
-            CancellationPolicyResource::class => [null, ListCancellationPolicies::class],
-        ],
+        /*
+         * **The pricing set is gone** (product owner, 2026-09-22:
+         * *«πολιτικές ακύρωσης → στο menu. περίοδοι, βγάλ' το από το υπομενού
+         * των τιμών»*).
+         *
+         * Περίοδοι and Πολιτικές ακύρωσης are sidebar entries now, and a tab
+         * bar whose every tab is also a menu item is two doors to one room. So
+         * «Τιμοκατάλογοι» carries no tabs at all — the other two are reached
+         * from the menu, at the same addresses as before.
+         *
+         * The two sets that remain are still second *views* of their
+         * neighbour rather than screens of their own: ερωτήματα beside
+         * προσφορές, δεσμεύσεις beside σκάφη.
+         */
         [
             VesselResource::class => [null, ListVessels::class],
             VesselBlockResource::class => [null, ListVesselBlocks::class],
