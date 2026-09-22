@@ -59,7 +59,16 @@
     <meta charset="utf-8">
     <title>{{ __('ticket.title', [], $locale) }} — {{ $booking->reference }}</title>
     <style>
-        @page { size: A4; }
+        /*
+         * Margin zero on the page and the inset on the ticket itself (product
+         * owner, 2026-09-22: *«βάλε λίγο κενό δεξιά αριστερά, είναι τσίτα»*).
+         *
+         * The page's own margin was the renderer's default, which a browser
+         * ignores — so the ticket looked flush to the paper everywhere it was
+         * read on screen, and the two never agreed. The invoice has always done
+         * it this way; now both do.
+         */
+        @page { size: A4; margin: 0; }
 
         body {
             margin: 0;
@@ -70,7 +79,7 @@
             -webkit-print-color-adjust: exact;
         }
 
-        .ticket { padding: 0 0 8mm; }
+        .ticket { padding: 14mm 15mm 10mm; }
         /* One guest per page, and no trailing blank page after the last. */
         .ticket + .ticket { page-break-before: always; }
 
