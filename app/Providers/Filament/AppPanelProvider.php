@@ -93,8 +93,29 @@ class AppPanelProvider extends PanelProvider
             static fn (DateTimePicker $component): DateTimePicker => $component->timezone($timezone),
         );
 
+        /*
+         * **A date on its own is a day on a calendar, never converted**
+         * (2026-09-22) — the same rule as a time on its own, and found the same
+         * way: a schedule rule whose window was typed as 1/6–30/9 was stored as
+         * **31/5–29/9**.
+         *
+         * `DatePicker` extends `DateTimePicker`, so the configuration above
+         * already reaches it, and the conversion it does is right for an
+         * instant and wrong for a date. Athens is two or three hours ahead of
+         * UTC, so midnight on the 1st is 21:00 on the 31st, and the column —
+         * `date`, with no time in it — keeps the 31st. Every date field in the
+         * panel is a calendar day: a rule's window, a period's range, a
+         * coupon's validity, a report's from and to. None of them is an
+         * instant, and all of them were a day early for an operator east of
+         * Greenwich.
+         *
+         * Registered after the parent's so it wins (`ComponentManager` applies
+         * the configurations in registration order, and a `DatePicker` matches
+         * both). `ClockTimePickerTest` walks the panel's forms and fails on any
+         * date or time picker that is not pinned to UTC.
+         */
         DatePicker::configureUsing(
-            static fn (DatePicker $component): DatePicker => $component->timezone($timezone),
+            static fn (DatePicker $component): DatePicker => $component->timezone('UTC'),
         );
 
         TextColumn::configureUsing(
