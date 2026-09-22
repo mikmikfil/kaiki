@@ -53,7 +53,29 @@ use Illuminate\Validation\Rule;
  */
 class CreateTenant extends CreateRecord
 {
+    use HasTenantAccountFields;
+
     protected static string $resource = TenantResource::class;
+
+    /**
+     * What the platform's own sections write, beyond what `OnboardOperator`
+     * already takes as arguments.
+     *
+     * **Not `status`, and not `subscription_ends_at`.** The Action decides the
+     * status from the plan — a trial starts `trialing` — and writing one here
+     * would overrule it with whatever the form happened to default to. The
+     * access date belongs to a contract that does not exist yet. Both are on
+     * the edit page, where changing them is a decision with a reason.
+     */
+    private const PLATFORM_COLUMNS = [
+        'check_in_enabled',
+        'qr_check_in_enabled',
+        'hosted_site_mode',
+        'extra_person_pricing_enabled',
+        'sms_enabled',
+        'setup_guide_enabled',
+        'getyourguide_enabled',
+    ];
 
     public function form(Form $form): Form
     {
@@ -113,18 +135,25 @@ class CreateTenant extends CreateRecord
                 ])
                 ->columns(2),
 
+            /*
+             * **The same questions the edit page asks**, from the same trait
+             * (product owner, 2026-09-22: *«στη δημιουργία νέου merchant να
+             * μπουν και τα features και όλα αυτά τα πεδία, μην εμφανίζονται
+             * μόνο μετά τη δημιουργία του»*).
+             *
+             * Everything the platform decides is decided once, when the
+             * customer is taken on — rather than created with seven fields and
+             * then visited a second time to switch on what was agreed on the
+             * telephone. Shared rather than copied: two lists of feature
+             * switches drift the first time one is added, and the copy nobody
+             * is looking at is the one that goes stale.
+             */
             Section::make(__('tenants.create.account'))
                 ->schema([
                     Select::make('plan')
                         ->label(__('tenants.columns.plan'))
                         ->options(Plan::options())
                         ->default(Plan::Trial->value)
-                        ->required(),
-
-                    Select::make('vertical')
-                        ->label(__('tenants.columns.vertical'))
-                        ->options(TenantVertical::options())
-                        ->default(TenantVertical::Boats->value)
                         ->required(),
 
                     Select::make('default_locale')
@@ -136,11 +165,21 @@ class CreateTenant extends CreateRecord
                         ->default('el')
                         ->required(),
 
+                    Select::make('vertical')
+                        ->label(__('tenants.columns.vertical'))
+                        ->options(TenantVertical::options())
+                        ->default(TenantVertical::Boats->value)
+                        ->required(),
+
                     Toggle::make('is_sandbox')
                         ->label(__('tenants.columns.sandbox'))
                         ->helperText(__('tenants.edit.sandbox_help')),
                 ])
                 ->columns(3),
+
+            $this->featuresSection(),
+
+            $this->channelsSection(),
         ]);
     }
 
@@ -159,7 +198,7 @@ class CreateTenant extends CreateRecord
         /** @var User $admin */
         $admin = auth()->user();
 
-        return app(OnboardOperator::class)(
+        $tenant = app(OnboardOperator::class)(
             name: (string) $data['name'],
             slug: (string) $data['slug'],
             email: (string) $data['email'],
@@ -171,6 +210,27 @@ class CreateTenant extends CreateRecord
             locale: (string) $data['default_locale'],
             isSandbox: (bool) ($data['is_sandbox'] ?? false),
         );
+
+        /*
+         * The rest of what the form asked, onto the row the Action made.
+         *
+         * Not arguments to `OnboardOperator`: that Action is the **shape** of
+         * taking a customer on — a tenant, a brand profile and an invited owner
+         * — and a dozen optional switches passed through it would make the one
+         * thing it guarantees harder to read. These are ordinary columns with
+         * their own defaults, and writing them after is the same write the edit
+         * page makes.
+         *
+         * Only the keys the form actually sent, so a switch that was not on
+         * screen keeps the database's default rather than being set to null.
+         */
+        $settings = array_intersect_key($data, array_flip(self::PLATFORM_COLUMNS));
+
+        if ($settings !== []) {
+            $tenant->forceFill($settings)->save();
+        }
+
+        return $tenant;
     }
 
     protected function getCreatedNotification(): ?Notification
