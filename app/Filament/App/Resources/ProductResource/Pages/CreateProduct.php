@@ -13,6 +13,7 @@ use App\Enums\BookingMode;
 use App\Enums\DepositType;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource;
+use App\Filament\App\Support\ScheduleConflictNotice;
 use App\Filament\Forms\MoneyInput;
 use App\Models\AgeBand;
 use App\Models\Product;
@@ -394,6 +395,11 @@ class CreateProduct extends CreateRecord
                 }
 
                 app(GenerateDepartures::class)($rule);
+
+                // Whether the boat is already out on another trip at this hour
+                // — after the departures exist, so the answer is about what is
+                // really on the calendar.
+                ScheduleConflictNotice::sendFor($rule);
             }
         }
     }

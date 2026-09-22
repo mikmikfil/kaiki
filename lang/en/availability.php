@@ -117,6 +117,13 @@ return [
             'duplicate' => 'There is already an active schedule at :time on one of these days. Two identical schedules do not make a second departure: change the time or the days, or edit the one you have.',
             'unknown_vessel' => 'That vessel was not found.',
         ],
+
+        // A warning, not a refusal (AVL-11): the boat is already committed to
+        // another trip at the same hours.
+        'conflict' => [
+            'title' => 'The boat is already out then',
+            'body' => '“:trip” sails on the same boat on :date at :time. We are not stopping you: two trips on one boat at the same hour are allowed, and the bookings decide. Just so you know.',
+        ],
     ],
 
     /*

@@ -8,6 +8,7 @@ use App\Domain\Availability\Support\WeekdayMask;
 use App\Domain\Catalog\Actions\SaveScheduleRule;
 use App\Enums\BookingMode;
 use App\Filament\App\Resources\ScheduleRuleResource;
+use App\Filament\App\Support\ScheduleConflictNotice;
 use App\Models\Product;
 use App\Models\ScheduleRule;
 use Filament\Forms\Components\Component;
@@ -242,7 +243,11 @@ class ScheduleRulesRelationManager extends RelationManager
         }
 
         try {
-            return app(SaveScheduleRule::class)($record, $product, $data);
+            $rule = app(SaveScheduleRule::class)($record, $product, $data);
+
+            ScheduleConflictNotice::sendFor($rule);
+
+            return $rule;
         } catch (ValidationException $exception) {
             $messages = [];
 
