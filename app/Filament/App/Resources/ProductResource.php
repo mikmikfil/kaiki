@@ -722,7 +722,7 @@ class ProductResource extends Resource
                                 required: false,
                             ),
                         ])
-                        ->itemLabel(static fn (array $state, Repeater $component): ?string => self::imageLabel($state, $component))
+                        ->itemLabel(static fn (array $state, string $uuid, Repeater $component): ?string => self::imageLabel($state, $uuid, $component))
                         /*
                          * **«Κάνε την κύρια»**, because the cover is the first
                          * row and dragging is a poor way to say so (product
@@ -1221,16 +1221,35 @@ class ProductResource extends Resource
      * in this order and every card takes `[0]` — so the label is where an
      * operator finds that out, rather than in a help line under the field.
      *
+     * ## Everything here may be half-typed, and one thing is not a string
+     *
+     * A label is rendered on every Livewire round trip, including the ones in
+     * the middle of an upload — and `FileUpload` holds **an array** while a file
+     * is in flight (`['<id>' => TemporaryUploadedFile]`), not a path. Casting it
+     * threw «Array to string conversion» from deep inside the repeater's view,
+     * which is a 500 on `/livewire/update` and, to the operator, a photograph
+     * that simply would not upload (2026-09-22).
+     *
+     * The row is found by its `$uuid` rather than by searching the state for an
+     * equal array, which was both slower and wrong the moment two rows held the
+     * same values.
+     *
      * @param  array<string, mixed>  $state
      */
-    private static function imageLabel(array $state, Repeater $component): ?string
+    private static function imageLabel(array $state, string $uuid, Repeater $component): ?string
     {
-        $isFirst = array_key_first($component->getState()) === array_search($state, $component->getState(), strict: true);
+        $isFirst = array_key_first($component->getState()) === $uuid;
 
         $alt = $state['alt'][app()->getLocale()] ?? $state['alt']['el'] ?? null;
+
+        // Mid-upload this is `['<id>' => TemporaryUploadedFile]`; once saved it
+        // is the stored path. Anything else is a row with no file in it yet.
+        $path = $state['path'] ?? null;
+        $file = is_array($path) ? (array_values($path)[0] ?? null) : $path;
+
         $name = is_string($alt) && trim($alt) !== ''
             ? trim($alt)
-            : basename((string) ($state['path'] ?? ''));
+            : (is_string($file) ? basename($file) : '');
 
         if (! $isFirst) {
             return $name === '' ? null : $name;

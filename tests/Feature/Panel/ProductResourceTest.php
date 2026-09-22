@@ -487,6 +487,38 @@ it('rewrites the band set rather than merging into it', function (): void {
     });
 })->group('fast');
 
+it('renders the gallery while a photograph is still uploading', function (): void {
+    /*
+     * The operator's report, 2026-09-22: *«cannot upload photos to εκδρομή,
+     * getting error»*. A 500 on `/livewire/update`, and the upload never
+     * finished.
+     *
+     * `FileUpload` holds **an array** while a file is in flight —
+     * `['<id>' => TemporaryUploadedFile]`, not a path — and the gallery's item
+     * label cast it to a string, which threw «Array to string conversion» from
+     * inside the repeater's view on the very round trip the upload needs.
+     *
+     * The shape below is what the browser sends, so it renders the row the
+     * operator was looking at when it broke.
+     */
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $product = Tenancy::forTenant(
+        productTenantOf($owner),
+        fn (): Product => Product::factory()->create(['status' => ProductStatus::Draft]),
+    );
+
+    productPageAs($owner, EditProduct::class, ['record' => $product->uuid])
+        ->set('data.images', [
+            'saved' => ['path' => 'products/1/sunset.jpg', 'alt' => ['el' => 'Ηλιοβασίλεμα', 'en' => 'Sunset']],
+            // Mid-upload, and with no alt text typed yet.
+            'uploading' => ['path' => ['abc123' => 'livewire-file:abc123'], 'alt' => ['el' => null, 'en' => null]],
+        ])
+        ->assertSuccessful()
+        // The first row is the cover, and says so.
+        ->assertSee(__('catalog.product.form.images.cover'));
+})->group('fast');
+
 it('loads the existing bands into the repeater for editing', function (): void {
     $owner = OperatorUser::withRole(Role::Owner);
 
