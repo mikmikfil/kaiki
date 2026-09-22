@@ -7,28 +7,20 @@ namespace App\Filament\App\Pages;
 use App\Domain\Branding\Actions\UpdateBrandProfile;
 use App\Domain\Branding\Actions\UploadBrandAsset;
 use App\Domain\Catalog\Actions\SaveCancellationPolicy;
-use App\Domain\Catalog\Actions\SaveSeason;
-use App\Domain\Tenancy\Support\PlanLimits;
 use App\Domain\Tenancy\Support\SetupChecklist;
 use App\Enums\BrandAsset;
-use App\Enums\VesselStatus;
-use App\Enums\VesselType;
 use App\Exceptions\UploadRefused;
 use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Resources\VesselResource;
 use App\Http\Middleware\RequireSetupFirst;
 use App\Models\BrandProfile;
 use App\Models\CancellationPolicy;
-use App\Models\Port;
-use App\Models\Season;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Models\Vessel;
 use App\Rules\HexColor;
 use App\Support\Authorization\Capability;
 use App\Support\Tenancy;
 use Filament\Forms\Components\ColorPicker;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
@@ -380,79 +372,6 @@ class Setup extends Page implements HasForms
                             ->rules([new HexColor]),
                     ]),
 
-                /*
-                 * **Το λιμάνι, το σκάφος και η περίοδος, εδώ** (product owner,
-                 * 2026-09-22: *«ανοίγει το προσθήκη σκάφους με όλη την
-                 * πλατφόρμα μετά»*).
-                 *
-                 * These three used to hand off to their own screens, and the
-                 * jump was the problem: the guide runs without the navigation
-                 * on purpose, and then dropped the operator into the whole
-                 * panel with no way back. Each of them is two or three fields
-                 * when you ask only for what the next step needs — a port is a
-                 * name and an address, a boat is a name, a type and how many it
-                 * takes — so they are asked here and the screens that own them
-                 * keep everything else for later.
-                 *
-                 * The trip is the one that still hands off: it has a four-step
-                 * guide of its own, and a guide inside a guide is worse than a
-                 * door.
-                 */
-                Grid::make(2)
-                    ->visible(fn (): bool => $this->currentStep() === SetupChecklist::PORT)
-                    ->schema([
-                        TextInput::make('port_name')
-                            ->label(__('setup.fields.port_name.label'))
-                            ->helperText(__('setup.fields.port_name.help'))
-                            ->maxLength(120)
-                            ->columnSpanFull(),
-
-                        TextInput::make('port_address')
-                            ->label(__('setup.fields.port_address.label'))
-                            ->helperText(__('setup.fields.port_address.help'))
-                            ->maxLength(180)
-                            ->columnSpanFull(),
-                    ]),
-
-                Grid::make(2)
-                    ->visible(fn (): bool => $this->currentStep() === SetupChecklist::VESSEL)
-                    ->schema([
-                        TextInput::make('vessel_name')
-                            ->label(__('setup.fields.vessel_name.label'))
-                            ->helperText(__('setup.fields.vessel_name.help'))
-                            ->maxLength(120)
-                            ->columnSpanFull(),
-
-                        Select::make('vessel_type')
-                            ->label(__('catalog.vessel.form.type.label'))
-                            ->options(VesselType::options())
-                            ->native(false),
-
-                        TextInput::make('vessel_capacity')
-                            ->label(__('catalog.vessel.form.capacity_max.label'))
-                            ->helperText(__('setup.fields.vessel_capacity.help'))
-                            ->integer()
-                            ->minValue(1)
-                            ->maxValue(2000),
-                    ]),
-
-                Grid::make(2)
-                    ->visible(fn (): bool => $this->currentStep() === SetupChecklist::SEASON)
-                    ->schema([
-                        TextInput::make('season_name')
-                            ->label(__('setup.fields.season_name.label'))
-                            ->helperText(__('setup.fields.season_name.help'))
-                            ->maxLength(80)
-                            ->columnSpanFull(),
-
-                        DatePicker::make('season_starts_on')
-                            ->label(__('setup.fields.season_starts_on.label'))
-                            ->native(false),
-
-                        DatePicker::make('season_ends_on')
-                            ->label(__('setup.fields.season_ends_on.label'))
-                            ->native(false),
-                    ]),
             ])
             ->statePath('data');
     }
@@ -482,9 +401,6 @@ class Setup extends Page implements HasForms
         match ($current) {
             SetupChecklist::BUSINESS => $this->persistBusiness(),
             SetupChecklist::BRANDING => $this->persistBranding(),
-            SetupChecklist::PORT => $this->persistPort(),
-            SetupChecklist::VESSEL => $this->persistVessel(),
-            SetupChecklist::SEASON => $this->persistSeason(),
             SetupChecklist::VAT => $this->persistVat(),
             SetupChecklist::CANCELLATION => $this->persistCancellation(),
             default => $this->guardedTenant(),
@@ -674,17 +590,36 @@ class Setup extends Page implements HasForms
         $profile = $this->brandProfile();
         $attributes = [];
 
+        /*
+         * **Through the form, not through `$this->data`** (2026-09-22:
+         * *«στο styling ανεβάζω logo αλλά δεν το κρατάει»*).
+         *
+         * Every other step here reads the raw Livewire state, and for a text
+         * box or a colour picker that is the same thing as the final value. A
+         * `FileUpload` is not: while the file is in the browser its state is a
+         * `TemporaryUploadedFile` keyed by an id, and the path only exists once
+         * Filament dehydrates the field and runs `saveUploadedFileUsing()` —
+         * which is where {@see UploadBrandAsset} lives.
+         *
+         * So the old line asked `is_string()` of an array, got false, and saved
+         * nothing at all. The upload appeared to work because the preview is
+         * the browser's own copy of the file.
+         *
+         * `getState()` validates and dehydrates, so the file is stored, the
+         * colours are checked against `HexColor`, and what comes back is what
+         * the columns should hold.
+         */
+        $state = $this->getForm('form')?->getState() ?? [];
+
         foreach (['color_primary', 'color_secondary'] as $colour) {
-            $value = $this->data[$colour] ?? null;
+            $value = $state[$colour] ?? null;
 
             if (is_string($value) && trim($value) !== '') {
                 $attributes[$colour] = trim($value);
             }
         }
 
-        // The upload already wrote the file and the column through
-        // `UploadBrandAsset`; what is in the form state is the stored path.
-        $logo = $this->data['logo_light_path'] ?? null;
+        $logo = $state['logo_light_path'] ?? null;
 
         if (is_string($logo) && $logo !== '' && $logo !== $profile->logo_light_path) {
             $attributes['logo_light_path'] = $logo;
@@ -747,103 +682,6 @@ class Setup extends Page implements HasForms
 
             return null;
         }
-    }
-
-    /**
-     * The first port: a name and, if they gave one, an address.
-     *
-     * **One name, written into both locales.** A translatable attribute cannot
-     * be saved with a locale missing (data-model §1.6), and asking a new
-     * operator to type «Παλιό Λιμάνι Χανίων» twice is how a guide loses people.
-     * A port's name is usually the same in both anyway, and the English one is
-     * edited on the port's own screen — the same stand-in the itinerary makes
-     * for a stop whose English name was left empty.
-     */
-    private function persistPort(): void
-    {
-        $this->guardedTenant();
-
-        $name = $this->normalise($this->data['port_name'] ?? null);
-
-        if ($name === null || Port::query()->exists()) {
-            return;
-        }
-
-        $port = new Port;
-
-        foreach ((array) config('kaiki.i18n.required_locales') as $locale) {
-            $port->setTranslation('name', (string) $locale, $name);
-        }
-
-        $port->address = $this->normalise($this->data['port_address'] ?? null);
-        $port->is_active = true;
-        $port->save();
-    }
-
-    /**
-     * The first boat: name, type and how many it takes.
-     *
-     * The plan limit is asked the same way the vessel screen asks it — an
-     * operator on Solo with a boat already does not get a second one through a
-     * guide (PlanLimits, and the message says what the plan includes).
-     */
-    private function persistVessel(): void
-    {
-        $tenant = $this->guardedTenant();
-
-        $name = $this->normalise($this->data['vessel_name'] ?? null);
-
-        if ($name === null || ! PlanLimits::canAddVessel($tenant)) {
-            return;
-        }
-
-        $vessel = new Vessel;
-        $vessel->name = $name;
-        // The five the product knows about (CAT-2); a guide does not get to
-        // invent a sixth, and «παραδοσιακό καΐκι» is the one this platform is
-        // named after.
-        $vessel->type = VesselType::tryFrom((string) ($this->data['vessel_type'] ?? '')) ?? VesselType::TraditionalKaiki;
-        $vessel->status = VesselStatus::Active;
-        $vessel->capacity_max = (int) ($this->data['vessel_capacity'] ?? 0) ?: null;
-        // The port from the step before, so the boat has a home the moment it
-        // exists and the trip form has something to offer.
-        $vessel->home_port_id = Port::query()->value('id');
-        // Both are `NOT NULL` json columns with no default (§3.9, §3.15): the
-        // spec sheet and the photographs are filled in on the boat's own
-        // screen, and an empty list is what "none yet" looks like there.
-        $vessel->specs = [];
-        $vessel->images = [];
-        $vessel->save();
-    }
-
-    /**
-     * The first period, with its one date range.
-     *
-     * Through {@see SaveSeason}, which owns the overlap rules — a guide is not
-     * a place to re-implement PRC-4.
-     */
-    private function persistSeason(): void
-    {
-        $this->guardedTenant();
-
-        $name = $this->normalise($this->data['season_name'] ?? null);
-        $from = $this->normalise($this->data['season_starts_on'] ?? null);
-        $to = $this->normalise($this->data['season_ends_on'] ?? null);
-
-        if ($name === null || $from === null || $to === null || Season::query()->exists()) {
-            return;
-        }
-
-        // One name in both locales, for the reason the port gives above.
-        $translated = [];
-
-        foreach ((array) config('kaiki.i18n.required_locales') as $locale) {
-            $translated[(string) $locale] = $name;
-        }
-
-        app(SaveSeason::class)(new Season, ['name' => $translated, 'priority' => 10], [
-            ['starts_on' => $from, 'ends_on' => $to],
-        ]);
     }
 
     private function persistVat(): void
@@ -969,21 +807,31 @@ class Setup extends Page implements HasForms
      */
     public static function handOffUrls(): array
     {
-        // Only the trip: the port, the boat and the period are asked on this
-        // page now, so the guide has exactly one door and it leads to the
-        // trip's own four-step guide.
-        return [
-            ProductResource::getUrl('create'),
-        ];
+        // Nothing any more. The guide asks four questions about the account and
+        // none of them lives on another screen; the catalogue left it entirely
+        // (product owner, 2026-09-22), so there is no door to hold open.
+        return [];
     }
 
     /** Where a step whose work lives on another screen sends the operator. */
     public function handOffUrl(string $step): ?string
     {
-        return match ($step) {
-            SetupChecklist::PRODUCT => ProductResource::getUrl('create'),
-            default => null,
-        };
+        return null;
+    }
+
+    /**
+     * Does this operator get a marketing home page from us?
+     *
+     * Only the closing screen asks (product owner, 2026-09-22: *«άλλαξέ το όταν
+     * ο merchant είναι booking pages only, αν χρειάζεται»*). It does need it:
+     * the four questions apply either way — a bookings-only operator's pages
+     * carry the same logo, the same VAT rate and the same cancellation terms —
+     * but «η ιστοσελίδα σας είναι ήδη ζωντανή» describes a home page they were
+     * never given.
+     */
+    public function servesHomePage(): bool
+    {
+        return $this->guardedTenant()->hosted_site_mode->servesHomePage();
     }
 
     public function isDone(string $step): bool

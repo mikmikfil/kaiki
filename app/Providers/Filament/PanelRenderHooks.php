@@ -72,8 +72,18 @@ final class PanelRenderHooks
             static fn (): View => view('filament.touch-targets'),
         );
 
-        // The operator panel's blue sidebar and light waves. Decided inside the
-        // hook, like the rest: `/admin` keeps Filament's plain look.
+        // The water, on **both** panels (product owner, 2026-09-22: *«και τα
+        // κύματα βάλτα και στο admin περιβάλλον»*). `/admin` used to keep
+        // Filament's plain look on the argument that it is how somebody with
+        // two tabs open tells them apart — the blue sidebar still does that, so
+        // the waves were the half of it that was only ever decoration.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View => view('filament.waves'),
+        );
+
+        // The operator panel's blue sidebar. Decided inside the hook, like the
+        // rest: `/admin` keeps Filament's plain chrome above the water.
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
             static fn (): View|string => Filament::getCurrentPanel()?->getId() === 'app'

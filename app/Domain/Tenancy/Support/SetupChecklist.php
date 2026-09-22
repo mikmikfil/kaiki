@@ -122,12 +122,56 @@ final class SetupChecklist
             self::BRANDING,
             self::VAT,
             self::CANCELLATION,
+            self::READY,
+        ];
+    }
+
+    /**
+     * The catalogue, which the guide no longer asks for.
+     *
+     * Product owner, 2026-09-22: *«λέω να φύγουν λιμάνια, πρώτο σκάφος και
+     * εκδρομή και περίοδοι — αλλά μετά κάπως πρέπει να φαίνονται ότι πρέπει να
+     * συμπληρωθούν, αλλά όχι μέσα στα steps»*.
+     *
+     * The guide is now four questions about the **account**: who you are on an
+     * invoice, how you look, which VAT rate, on what terms you cancel. None of
+     * them has a screen of its own that does the job better, which is what
+     * makes a guide the right place to ask them.
+     *
+     * A port, a boat, a period and a trip are different: each has a real screen
+     * built for it, and the trip has a five-step guide of its own. Asked inside
+     * this one they were either a hand-off that threw the operator into the
+     * panel, or a shortened copy of a form that already exists. They are still
+     * **owed** — nothing sells without a boat and a trip — and they are still
+     * reported by {@see state()} and shown on the dashboard, by
+     * {@see FirstSteps} and the setup widget.
+     * They are simply not questions in this guide.
+     *
+     * @return list<string>
+     */
+    public static function catalogueSteps(): array
+    {
+        return [
             self::PORT,
             self::VESSEL,
             self::SEASON,
             self::PRODUCT,
-            self::READY,
         ];
+    }
+
+    /**
+     * Everything this class reports on: the guide's steps and the catalogue.
+     *
+     * Not the same as {@see steps()}, which is the guide alone. Both branches
+     * of {@see state()} have to answer about the same set of keys, or a caller
+     * reading it outside tenancy gets a shorter array than the one it gets
+     * inside — which is how a dashboard list silently loses half its rows.
+     *
+     * @return list<string>
+     */
+    public static function reported(): array
+    {
+        return [...self::steps(), ...self::catalogueSteps()];
     }
 
     /**
@@ -153,7 +197,7 @@ final class SetupChecklist
         $tenant = Tenancy::check() ? Tenancy::current() : null;
 
         if ($tenant === null) {
-            return array_fill_keys(self::steps(), false);
+            return array_fill_keys(self::reported(), false);
         }
 
         // Asked once. `FirstSteps::state()` runs two `exists()` queries and this
@@ -161,6 +205,8 @@ final class SetupChecklist
         // the widget wants both the state and the count.
         $catalogue = FirstSteps::state();
 
+        // Every step, including the four the guide no longer asks: the
+        // dashboard still tells the operator a boat is owed.
         return [
             self::BUSINESS => self::businessAnswered($tenant),
             self::BRANDING => self::brandingTouched($tenant),

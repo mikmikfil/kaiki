@@ -67,7 +67,7 @@ return [
             'why' => 'These are printed on your receipts and invoices and sent to the tax authority. Without a legal name and a VAT number no document can be issued — everything else here can wait.',
         ],
         'branding' => [
-            'label' => 'How you look',
+            'label' => 'Styling',
             'description' => 'Logo and colours',
             'question' => 'How should your pages look?',
             'why' => 'Your logo and colours go on your booking pages and on the emails guests receive. Optional: the pages work without them.',
@@ -124,6 +124,7 @@ return [
             'description' => 'Where your pages are',
             'question' => 'You are ready',
             'body' => 'Your website is already live, and it updates itself every time you change something here. Its address, and the embed code that puts booking inside a site of your own, are under Settings → Domains and API keys.',
+            'body_bookings_only' => 'Your booking pages are already live — one per trip, with your search and your terms — and they update themselves every time you change something here. Link them from your own website, or put booking inside it with the embed code: Settings → Domains and API keys.',
             'outstanding' => 'Still open: :steps. You will find them under Settings whenever you want them.',
         ],
     ],
@@ -216,7 +217,7 @@ return [
         ],
         'weather' => 'Cancelled for weather',
         'weather_refund' => '100%',
-        'later' => 'The percentages can be changed later, under Cancellation policies.',
+        'later' => 'Pick the closest one — the percentages and the cut-offs are yours to change whenever you like, under “Cancellation policies”.',
         'existing' => 'You already have a cancellation policy: «:name».',
     ],
 
@@ -225,6 +226,7 @@ return [
         'description' => 'Finish setting your account up.',
         'progress' => ':done of :total',
         'continue' => 'Continue',
+        'catalogue' => 'And in your catalogue:',
         'skipped' => 'Skipped',
     ],
 ];

@@ -104,11 +104,19 @@ class CreateProduct extends CreateRecord
         $vesselPrice = $data['wizard_vessel_price'] ?? null;
         $vesselSeasonPrices = (array) ($data['wizard_vessel_season_prices'] ?? []);
 
+        // «Μέχρι N άτομα, +Y € ο καθένας παραπάνω», where the operator sells
+        // that way. Both or neither — `SaveRatePlan` clears one without the
+        // other, so a half-answer is not quietly stored.
+        $includedPax = $data['wizard_included_pax'] ?? null;
+        $extraPaxPrice = $data['wizard_extra_pax_price'] ?? null;
+
         unset(
             $data['wizard_publish'],
             $data['wizard_schedules'],
             $data['wizard_vessel_price'],
             $data['wizard_vessel_season_prices'],
+            $data['wizard_included_pax'],
+            $data['wizard_extra_pax_price'],
         );
 
         /*
@@ -150,7 +158,7 @@ class CreateProduct extends CreateRecord
 
         $product = $this->saveProductWithBands(new Product, $data);
 
-        $this->createRatePlans($product, $prices, $seasonPrices, $vesselPrice, $vesselSeasonPrices);
+        $this->createRatePlans($product, $prices, $seasonPrices, $vesselPrice, $vesselSeasonPrices, $includedPax, $extraPaxPrice);
         $this->createSchedules($product, $schedules);
 
         if ($wants === 'publish') {
@@ -181,9 +189,11 @@ class CreateProduct extends CreateRecord
         array $seasonPrices,
         mixed $vesselPrice,
         array $vesselSeasonPrices,
+        mixed $includedPax = null,
+        mixed $extraPaxPrice = null,
     ): void {
         if ($product->mode === BookingMode::PerVessel) {
-            $this->createVesselPlans($product, $vesselPrice, $vesselSeasonPrices);
+            $this->createVesselPlans($product, $vesselPrice, $vesselSeasonPrices, $includedPax, $extraPaxPrice);
 
             return;
         }
@@ -222,8 +232,22 @@ class CreateProduct extends CreateRecord
      *
      * @param  array<array-key, array<string, mixed>>  $seasonRows
      */
-    private function createVesselPlans(Product $product, mixed $vesselPrice, array $seasonRows): void
-    {
+    private function createVesselPlans(
+        Product $product,
+        mixed $vesselPrice,
+        array $seasonRows,
+        mixed $includedPax = null,
+        mixed $extraPaxPrice = null,
+    ): void {
+        // Carried by every list, the all-year one and each period's: «μέχρι 8
+        // άτομα» is a fact about the boat, not about the month.
+        $extra = [];
+        $extraCents = $this->cents($extraPaxPrice);
+
+        if (is_numeric($includedPax) && (int) $includedPax > 0 && $extraCents !== null) {
+            $extra = ['included_pax' => (int) $includedPax, 'extra_pax_price_cents' => $extraCents];
+        }
+
         // Already cents: `MoneyInput` dehydrates its own state, so what arrives
         // here is the integer, not «450,00».
         $cents = $this->cents($vesselPrice);
@@ -232,7 +256,7 @@ class CreateProduct extends CreateRecord
             return;
         }
 
-        $this->savePlan($product, [...$this->planAttributes(null), 'vessel_price_cents' => $cents]);
+        $this->savePlan($product, [...$this->planAttributes(null), ...$extra, 'vessel_price_cents' => $cents]);
 
         foreach ($seasonRows as $row) {
             $seasonId = $row['season_id'] ?? null;
@@ -244,7 +268,7 @@ class CreateProduct extends CreateRecord
 
             $this->savePlan(
                 $product,
-                [...$this->planAttributes((int) $seasonId), 'vessel_price_cents' => $seasonCents],
+                [...$this->planAttributes((int) $seasonId), ...$extra, 'vessel_price_cents' => $seasonCents],
                 seasonId: (int) $seasonId,
             );
         }

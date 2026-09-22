@@ -78,7 +78,10 @@
             @if ($isReady)
                 <div class="head">
                     <h2>{{ __('setup.steps.ready.question') }}</h2>
-                    <p>{{ __('setup.steps.ready.body') }}</p>
+                    {{-- An operator on «μόνο σελίδες κρατήσεων» has no home
+                         page from us, so «η ιστοσελίδα σας» would be the wrong
+                         word for what they just finished setting up. --}}
+                    <p>{{ __('setup.steps.ready.' . ($this->servesHomePage() ? 'body' : 'body_bookings_only')) }}</p>
                 </div>
 
                 @if ($this->outstanding() !== '')

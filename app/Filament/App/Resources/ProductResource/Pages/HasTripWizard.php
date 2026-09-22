@@ -376,6 +376,32 @@ trait HasTripWizard
                     __('pricing.rate_plan.form.vessel_price_cents.help'),
                 )->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value),
 
+                /*
+                 * **«Μέχρι N άτομα, +Y € ο καθένας παραπάνω»** — the charter
+                 * shape some operators sell (2026-09-17), switched on per
+                 * operator by the platform.
+                 *
+                 * The guide asked for the boat's price and stopped, so an
+                 * operator who prices this way finished the guide with half a
+                 * price list and no sign that the other half existed. Same two
+                 * fields as the trip's own «Τιμές», same gate, same words.
+                 */
+                TextInput::make('wizard_included_pax')
+                    ->label(__('pricing.on_product.included_pax.label'))
+                    ->helperText(__('pricing.on_product.included_pax.help'))
+                    ->integer()
+                    ->minValue(1)
+                    ->maxValue(999)
+                    ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value
+                        && Tenancy::current()?->usesExtraPersonPricing() === true),
+
+                MoneyInput::make(
+                    'wizard_extra_pax_price',
+                    __('pricing.on_product.extra_pax_price.label'),
+                    __('pricing.on_product.extra_pax_price.help'),
+                )->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value
+                    && Tenancy::current()?->usesExtraPersonPricing() === true),
+
                 // The same question for a charter, where there are no bands to
                 // hang it on: the boat's price, per period.
                 Repeater::make('wizard_vessel_season_prices')

@@ -488,6 +488,43 @@ it('rewrites the band set rather than merging into it', function (): void {
     });
 })->group('fast');
 
+it('takes «up to N people, plus each extra» on a charter, where the operator sells that way', function (): void {
+    /*
+     * The charter shape of 2026-09-17, and the guide never asked for it:
+     * *«have you also considered the price up to N people + per extra
+     * person?»* An operator who prices that way finished the guide with half a
+     * price list and nothing on screen saying the other half existed.
+     *
+     * Switched on per operator by the platform, so the fields are gated the
+     * same way the trip's own «Τιμές» gates them.
+     */
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    Tenancy::forTenant(productTenantOf($owner), function () use ($owner): void {
+        productTenantOf($owner)->forceFill(['extra_person_pricing_enabled' => true])->save();
+    });
+
+    $page = productPageAs($owner, CreateProduct::class);
+
+    $state = productFormState([
+        'mode' => BookingMode::PerVessel->value,
+        'wizard_vessel_price' => '450,00',
+        'wizard_included_pax' => 8,
+        'wizard_extra_pax_price' => '25,00',
+    ]);
+    unset($state['age_bands']);
+
+    $page->fillForm($state)->call('create')->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $plan = Product::query()->sole()->ratePlans()->sole();
+
+        expect($plan->vessel_price_cents)->toBe(45000)
+            ->and($plan->included_pax)->toBe(8)
+            ->and($plan->extra_pax_price_cents)->toBe(2500);
+    });
+})->group('fast');
+
 it('uploads the gallery in one field, first photograph first', function (): void {
     /*
      * Product owner, 2026-09-22, after trying the first cut: *«ανεβάζουμε όλο

@@ -5,16 +5,12 @@ declare(strict_types=1);
 use App\Domain\Tenancy\Support\SetupChecklist;
 use App\Enums\AuditAction;
 use App\Enums\Role;
-use App\Enums\VesselType;
 use App\Filament\Admin\Resources\TenantResource\Pages\EditTenant;
 use App\Filament\App\Pages\Setup;
 use App\Models\AuditLog;
 use App\Models\CancellationPolicy;
-use App\Models\Port;
-use App\Models\Season;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Models\Vessel;
 use App\Support\Tenancy;
 use Filament\Facades\Filament;
 use Illuminate\Support\Carbon;
@@ -45,21 +41,26 @@ function guideOwner(): User
 }
 
 it('asks the questions in the order each answer is needed', function (): void {
-    // The policy between VAT and the boat, because a trip cannot be published
-    // without one. «Λιμάνια» before the boat and «Περίοδοι» after it (product
-    // owner, 2026-09-22): a boat has a home port, a trip cannot be published
-    // without a meeting point, and a period is met before the trip form offers
-    // a price list to hang on one.
+    // Four questions about the **account**, and nothing about the catalogue
+    // (product owner, 2026-09-22: «λέω να φύγουν λιμάνια, πρώτο σκάφος και
+    // εκδρομή και περίοδοι»). Each of those has a real screen of its own, and
+    // asking for them here was either a hand-off out of the guide or a
+    // shortened copy of a form that already exists.
     expect(SetupChecklist::questions())->toBe([
         SetupChecklist::BUSINESS,
         SetupChecklist::BRANDING,
         SetupChecklist::VAT,
         SetupChecklist::CANCELLATION,
+    ]);
+
+    // Still owed, still reported — just not questions here.
+    expect(SetupChecklist::catalogueSteps())->toBe([
         SetupChecklist::PORT,
         SetupChecklist::VESSEL,
         SetupChecklist::SEASON,
         SetupChecklist::PRODUCT,
-    ]);
+    ])
+        ->and(array_keys(SetupChecklist::state()))->toContain(SetupChecklist::VESSEL);
 })->group('fast');
 
 it('saves the chosen ladder as the default policy and moves on', function (): void {
@@ -71,7 +72,7 @@ it('saves the chosen ladder as the default policy and moves on', function (): vo
             ->set('step', SetupChecklist::CANCELLATION)
             ->call('choosePreset', 'strict')
             ->call('continue')
-            ->assertSet('step', SetupChecklist::PORT);
+            ->assertSet('step', SetupChecklist::READY);
 
         $policy = CancellationPolicy::query()->with('tiers')->sole();
 
@@ -110,7 +111,7 @@ it('sets a step aside with «Αργότερα» and goes forward to the next ope
             ->assertSet('step', SetupChecklist::BUSINESS);
 
         expect(SetupChecklist::skipped())->toBe([SetupChecklist::BUSINESS])
-            ->and(SetupChecklist::progress())->toBe(['done' => 1, 'total' => 8]);
+            ->and(SetupChecklist::progress())->toBe(['done' => 1, 'total' => 4]);
     });
 })->group('fast');
 
@@ -150,64 +151,6 @@ it('lets the guide reach the screens it hands off to', function (): void {
 
     // …and nothing beyond them.
     actingAs($owner)->get('/app/bookings')->assertRedirect(Setup::getUrl());
-})->group('fast');
-
-it('makes the port, the boat and the period without leaving the guide', function (): void {
-    // Product owner, 2026-09-22: «ανοίγει το προσθήκη σκάφους με όλη την
-    // πλατφόρμα μετά». The guide runs without navigation on purpose, so three
-    // steps that dropped the operator into the whole panel are asked here
-    // instead — each of them is two or three fields.
-    $owner = guideOwner();
-    actingAs($owner);
-
-    Tenancy::forTenant($owner->tenant, function (): void {
-        Livewire::test(Setup::class)
-            ->set('step', SetupChecklist::PORT)
-            ->set('data.port_name', 'Παλιό Λιμάνι Χανίων')
-            ->set('data.port_address', 'Ακτή Τομπάζη')
-            ->call('continue')
-            ->assertSet('step', SetupChecklist::VESSEL)
-            ->set('data.vessel_name', 'Αύρα')
-            ->set('data.vessel_type', VesselType::TraditionalKaiki->value)
-            ->set('data.vessel_capacity', 30)
-            ->call('continue')
-            ->assertSet('step', SetupChecklist::SEASON)
-            ->set('data.season_name', 'Θερινή')
-            ->set('data.season_starts_on', '2027-06-01')
-            ->set('data.season_ends_on', '2027-09-15')
-            ->call('continue');
-
-        $port = Port::query()->sole();
-        $vessel = Vessel::query()->sole();
-        $season = Season::query()->sole();
-
-        expect($port->getTranslation('name', 'el'))->toBe('Παλιό Λιμάνι Χανίων')
-            ->and($vessel->name)->toBe('Αύρα')
-            ->and($vessel->capacity_max)->toBe(30)
-            // The boat sails from the port the step before made.
-            ->and($vessel->home_port_id)->toBe($port->getKey())
-            ->and($season->getTranslation('name', 'el'))->toBe('Θερινή')
-            ->and($season->dateRanges()->count())->toBe(1);
-
-        $state = SetupChecklist::state();
-
-        expect($state[SetupChecklist::PORT])->toBeTrue()
-            ->and($state[SetupChecklist::VESSEL])->toBeTrue()
-            ->and($state[SetupChecklist::SEASON])->toBeTrue();
-    });
-})->group('fast');
-
-it('leaves only the trip behind a door, and the door opens', function (): void {
-    // The trip keeps its hand-off: it has a four-step guide of its own, and a
-    // guide inside a guide is worse than a door. The gate lets that one
-    // through and nothing else.
-    $owner = guideOwner();
-
-    expect(Setup::handOffUrls())->toHaveCount(1);
-
-    foreach (Setup::handOffUrls() as $url) {
-        actingAs($owner)->get($url)->assertSuccessful();
-    }
 })->group('fast');
 
 it('saves the business details on «Συνέχεια»', function (): void {

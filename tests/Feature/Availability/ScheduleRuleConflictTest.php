@@ -31,13 +31,13 @@ use Illuminate\Support\Carbon;
 |
 */
 
-function conflictTenant(callable $callback): mixed
+function ruleConflictTenant(callable $callback): mixed
 {
     return Tenancy::forTenant(Tenant::factory()->create(['timezone' => 'Europe/Athens']), $callback);
 }
 
 /** A per-seat trip on `$vessel` with a rule on `$days` at `$time`, departures generated. */
-function tripSailing(Vessel $vessel, array $days, string $time, int $minutes = 180): ScheduleRule
+function ruleTripSailing(Vessel $vessel, array $days, string $time, int $minutes = 180): ScheduleRule
 {
     $product = Product::factory()->create([
         'vessel_id' => $vessel->getKey(),
@@ -58,11 +58,11 @@ function tripSailing(Vessel $vessel, array $days, string $time, int $minutes = 1
 }
 
 it('finds the other trip the boat is already committed to', function (): void {
-    conflictTenant(function (): void {
+    ruleConflictTenant(function (): void {
         $vessel = Vessel::factory()->create(['capacity_max' => 20]);
 
-        tripSailing($vessel, [2], '10:00');
-        $second = tripSailing($vessel, [2], '11:00');
+        ruleTripSailing($vessel, [2], '10:00');
+        $second = ruleTripSailing($vessel, [2], '11:00');
 
         // 10:00 for three hours and 11:00 for three hours on the same Tuesday,
         // on one boat.
@@ -74,25 +74,25 @@ it('finds the other trip the boat is already committed to', function (): void {
 })->group('fast');
 
 it('says nothing when the boat is free', function (): void {
-    conflictTenant(function (): void {
+    ruleConflictTenant(function (): void {
         $vessel = Vessel::factory()->create(['capacity_max' => 20]);
 
         // Tuesday morning and Thursday morning never meet.
-        tripSailing($vessel, [2], '10:00');
-        $second = tripSailing($vessel, [4], '10:00');
+        ruleTripSailing($vessel, [2], '10:00');
+        $second = ruleTripSailing($vessel, [4], '10:00');
 
         expect(ScheduleRuleConflictFinder::forRule($second, Carbon::parse('2026-07-01')))->toBeEmpty();
     });
 })->group('fast');
 
 it('does not report a trip against its own departures', function (): void {
-    conflictTenant(function (): void {
+    ruleConflictTenant(function (): void {
         $vessel = Vessel::factory()->create(['capacity_max' => 20]);
 
         // One trip, its own rule, its own generated departures. A rule never
         // conflicts with itself (AVL-9) — and by the time this is asked the
         // departures exist, which is exactly when the naive check fires.
-        $only = tripSailing($vessel, [2], '10:00');
+        $only = ruleTripSailing($vessel, [2], '10:00');
 
         expect(ScheduleRuleConflictFinder::forRule($only, Carbon::parse('2026-07-01')))->toBeEmpty();
     });
@@ -103,15 +103,15 @@ it('leaves another operator boat alone', function (): void {
         Tenant::factory()->create(['timezone' => 'Europe/Athens']),
         function (): Vessel {
             $vessel = Vessel::factory()->create(['capacity_max' => 20]);
-            tripSailing($vessel, [2], '10:00');
+            ruleTripSailing($vessel, [2], '10:00');
 
             return $vessel;
         },
     );
 
-    conflictTenant(function () use ($theirs): void {
+    ruleConflictTenant(function () use ($theirs): void {
         $mine = Vessel::factory()->create(['capacity_max' => 20]);
-        $rule = tripSailing($mine, [2], '10:00');
+        $rule = ruleTripSailing($mine, [2], '10:00');
 
         expect($theirs->getKey())->not->toBe($mine->getKey())
             ->and(ScheduleRuleConflictFinder::forRule($rule, Carbon::parse('2026-07-01')))->toBeEmpty();
@@ -119,9 +119,9 @@ it('leaves another operator boat alone', function (): void {
 })->group('fast');
 
 it('reports nothing for a rule whose trip has been deleted', function (): void {
-    conflictTenant(function (): void {
+    ruleConflictTenant(function (): void {
         $vessel = Vessel::factory()->create(['capacity_max' => 20]);
-        $rule = tripSailing($vessel, [2], '10:00');
+        $rule = ruleTripSailing($vessel, [2], '10:00');
 
         $rule->product->delete();
         $rule->unsetRelation('product');

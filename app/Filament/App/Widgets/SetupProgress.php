@@ -6,6 +6,10 @@ namespace App\Filament\App\Widgets;
 
 use App\Domain\Tenancy\Support\SetupChecklist;
 use App\Filament\App\Pages\Setup;
+use App\Filament\App\Resources\PortResource;
+use App\Filament\App\Resources\ProductResource;
+use App\Filament\App\Resources\SeasonResource;
+use App\Filament\App\Resources\VesselResource;
 use App\Models\User;
 use App\Support\Authorization\Capability;
 use Filament\Widgets\Widget;
@@ -61,8 +65,38 @@ class SetupProgress extends Widget
     /** @return array<string, bool> */
     public function getSteps(): array
     {
-        // The six questions, without the closing «Έτοιμοι» screen.
+        // The guide's questions, without the closing «Έτοιμοι» screen.
         return array_intersect_key(SetupChecklist::state(), array_flip(SetupChecklist::questions()));
+    }
+
+    /**
+     * The catalogue, which the guide stopped asking for.
+     *
+     * Product owner, 2026-09-22: *«λέω να φύγουν … αλλά μετά κάπως πρέπει να
+     * φαίνονται ότι πρέπει να συμπληρωθούν, αλλά όχι μέσα στα steps»*. Here is
+     * that «κάπως»: a second, quieter line under the guide's own, where each
+     * item is a link to the screen that owns it rather than a step of a wizard.
+     *
+     * @return array<string, bool>
+     */
+    public function getCatalogue(): array
+    {
+        return array_intersect_key(SetupChecklist::state(), array_flip(SetupChecklist::catalogueSteps()));
+    }
+
+    /**
+     * Where each of those goes — the real screen, never a copy of it.
+     *
+     * @return array<string, string>
+     */
+    public function getCatalogueLinks(): array
+    {
+        return [
+            SetupChecklist::PORT => PortResource::getUrl('create'),
+            SetupChecklist::VESSEL => VesselResource::getUrl('create'),
+            SetupChecklist::SEASON => SeasonResource::getUrl('index'),
+            SetupChecklist::PRODUCT => ProductResource::getUrl('create'),
+        ];
     }
 
     /** @return list<string> */
