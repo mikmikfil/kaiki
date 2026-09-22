@@ -93,6 +93,12 @@ class ProductResource extends Resource
 
     protected static ?int $navigationSort = 10;
 
+    /**
+     * The uploader's name for the gallery, so it cannot collide with the
+     * `images` column it maps to ({@see TripPageContent::galleryToForm()}).
+     */
+    public const GALLERY_FIELD = 'gallery';
+
     public static function getNavigationGroup(): ?string
     {
         return __('panel.groups.catalogue');
@@ -690,68 +696,43 @@ class ProductResource extends Resource
              * seeder, and a real operator had no way to add one. That is why it
              * looked like a missing field rather than a missing feature.
              *
-             * Same shape and same component as a boat's gallery (§3.15): a
-             * repeater of `{path, alt: {el, en}}`, because the alt text belongs
-             * beside its own image — a gallery with no alt text is one no screen
-             * reader can describe — and the order is the operator's, so the
-             * first row is the picture that leads the card.
+             * **One uploader, not a row per photograph** (same day, after
+             * trying it: *«ανεβάζουμε όλο το gallery και η πρώτη γίνεται
+             * featured»*). A gallery arrives as a folder of twelve files, and
+             * «add a row, choose a file» twelve times is not how anybody has
+             * ever uploaded a gallery. So: pick them all at once, drag the one
+             * that should lead the card to the front.
+             *
+             * The **first is the featured one** — `ImagePayload` hands the
+             * gallery back in this order and every card takes `[0]` — which is
+             * why the order is the only thing that says so, rather than an
+             * `is_cover` flag that could disagree with it.
+             *
+             * `products.images` keeps its `{path, alt}` shape (§3.15): the
+             * uploader edits a list of paths and {@see TripPageContent} maps
+             * between the two, carrying over the alt text of every photograph
+             * that is still there.
              */
             Section::make(__('catalog.product.sections.images'))
                 ->description(__('catalog.product.form.images.help'))
                 ->collapsible()
                 ->schema([
-                    Repeater::make('images')
+                    FileUpload::make(self::GALLERY_FIELD)
                         ->hiddenLabel()
-                        ->addActionLabel(__('catalog.product.form.images.add'))
-                        ->schema([
-                            FileUpload::make('path')
-                                ->label(__('catalog.product.form.images.file.label'))
-                                ->image()
-                                // The disk the API and the hosted pages build
-                                // URLs from; the default `local` cannot produce
-                                // a URL at all.
-                                ->disk((string) config('kaiki.catalog.uploads.disk'))
-                                ->directory('products')
-                                ->maxSize(5120)
-                                ->required(),
-
-                            TranslatableInput::text(
-                                'alt',
-                                __('catalog.product.form.images.alt.label'),
-                                __('catalog.product.form.images.alt.help'),
-                                required: false,
-                            ),
-                        ])
-                        ->itemLabel(static fn (array $state, string $uuid, Repeater $component): ?string => self::imageLabel($state, $uuid, $component))
-                        /*
-                         * **«Κάνε την κύρια»**, because the cover is the first
-                         * row and dragging is a poor way to say so (product
-                         * owner, 2026-09-22). The order *is* the priority —
-                         * `ImagePayload` and every card read `[0]` — so this
-                         * moves the row to the front rather than storing a
-                         * second opinion in a `is_cover` column that could
-                         * disagree with the order.
-                         */
-                        ->extraItemActions([
-                            Action::make('makeCover')
-                                ->label(__('catalog.product.form.images.make_cover'))
-                                ->icon('heroicon-m-star')
-                                ->color('gray')
-                                ->visible(static fn (array $arguments, Repeater $component): bool => array_key_first($component->getState()) !== $arguments['item'])
-                                ->action(static function (array $arguments, Repeater $component): void {
-                                    $state = $component->getState();
-                                    $key = $arguments['item'];
-
-                                    if (! array_key_exists($key, $state)) {
-                                        return;
-                                    }
-
-                                    $component->state([$key => $state[$key]] + $state);
-                                }),
-                        ])
+                        ->image()
+                        ->multiple()
                         ->reorderable()
-                        ->collapsible()
-                        ->defaultItems(0)
+                        // New files land at the end, so uploading more never
+                        // moves the photograph that leads the card.
+                        ->appendFiles()
+                        ->panelLayout('grid')
+                        ->imagePreviewHeight('120')
+                        // The disk the API and the hosted pages build URLs
+                        // from; the default `local` cannot produce a URL at all.
+                        ->disk((string) config('kaiki.catalog.uploads.disk'))
+                        ->directory('products')
+                        ->maxSize(5120)
+                        ->maxFiles(40)
                         ->columnSpanFull(),
                 ]),
 
@@ -1212,50 +1193,6 @@ class ProductResource extends Resource
             ->default(static::defaultVatRateId(...))
             ->searchable()
             ->preload();
-    }
-
-    /**
-     * «Κύρια» on the first row, the file name on the rest.
-     *
-     * The cover is the first photograph — `ImagePayload` hands the gallery back
-     * in this order and every card takes `[0]` — so the label is where an
-     * operator finds that out, rather than in a help line under the field.
-     *
-     * ## Everything here may be half-typed, and one thing is not a string
-     *
-     * A label is rendered on every Livewire round trip, including the ones in
-     * the middle of an upload — and `FileUpload` holds **an array** while a file
-     * is in flight (`['<id>' => TemporaryUploadedFile]`), not a path. Casting it
-     * threw «Array to string conversion» from deep inside the repeater's view,
-     * which is a 500 on `/livewire/update` and, to the operator, a photograph
-     * that simply would not upload (2026-09-22).
-     *
-     * The row is found by its `$uuid` rather than by searching the state for an
-     * equal array, which was both slower and wrong the moment two rows held the
-     * same values.
-     *
-     * @param  array<string, mixed>  $state
-     */
-    private static function imageLabel(array $state, string $uuid, Repeater $component): ?string
-    {
-        $isFirst = array_key_first($component->getState()) === $uuid;
-
-        $alt = $state['alt'][app()->getLocale()] ?? $state['alt']['el'] ?? null;
-
-        // Mid-upload this is `['<id>' => TemporaryUploadedFile]`; once saved it
-        // is the stored path. Anything else is a row with no file in it yet.
-        $path = $state['path'] ?? null;
-        $file = is_array($path) ? (array_values($path)[0] ?? null) : $path;
-
-        $name = is_string($alt) && trim($alt) !== ''
-            ? trim($alt)
-            : (is_string($file) ? basename($file) : '');
-
-        if (! $isFirst) {
-            return $name === '' ? null : $name;
-        }
-
-        return trim(__('catalog.product.form.images.cover') . ' · ' . $name, ' ·');
     }
 
     /** @return array<int, string> */

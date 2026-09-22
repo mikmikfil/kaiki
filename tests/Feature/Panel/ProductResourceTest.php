@@ -24,6 +24,7 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Vessel;
 use App\Support\Tenancy;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 
@@ -487,36 +488,95 @@ it('rewrites the band set rather than merging into it', function (): void {
     });
 })->group('fast');
 
-it('renders the gallery while a photograph is still uploading', function (): void {
+it('uploads the gallery in one field, first photograph first', function (): void {
     /*
-     * The operator's report, 2026-09-22: *«cannot upload photos to εκδρομή,
-     * getting error»*. A 500 on `/livewire/update`, and the upload never
-     * finished.
+     * Product owner, 2026-09-22, after trying the first cut: *«ανεβάζουμε όλο
+     * το gallery και η πρώτη γίνεται featured»* — a gallery arrives as a folder
+     * of a dozen files, and «add a row, choose a file» a dozen times is not how
+     * anybody uploads one.
      *
-     * `FileUpload` holds **an array** while a file is in flight —
-     * `['<id>' => TemporaryUploadedFile]`, not a path — and the gallery's item
-     * label cast it to a string, which threw «Array to string conversion» from
-     * inside the repeater's view on the very round trip the upload needs.
-     *
-     * The shape below is what the browser sends, so it renders the row the
-     * operator was looking at when it broke.
+     * The column keeps `{path, alt}` (§3.15) and the uploader edits a list of
+     * paths, so what is asserted is the mapping in both directions — including
+     * that a photograph's alt text survives the operator adding another one.
+     * Nothing on screen would show that loss: a screen reader is the only thing
+     * that reads it.
      */
     $owner = OperatorUser::withRole(Role::Owner);
 
-    $product = Tenancy::forTenant(
-        productTenantOf($owner),
-        fn (): Product => Product::factory()->create(['status' => ProductStatus::Draft]),
-    );
+    // The uploader drops a path whose file is gone, which is the right thing on
+    // a real panel and would empty this fixture.
+    $disk = Storage::fake((string) config('kaiki.catalog.uploads.disk'));
+
+    foreach (['sunset', 'deck', 'bay'] as $name) {
+        $disk->put("products/1/{$name}.jpg", 'not really a jpeg');
+    }
+
+    $product = Tenancy::forTenant(productTenantOf($owner), function (): Product {
+        $product = Product::factory()->create([
+            'status' => ProductStatus::Draft,
+            'images' => [
+                ['path' => 'products/1/sunset.jpg', 'alt' => ['el' => 'Ηλιοβασίλεμα', 'en' => 'Sunset']],
+                ['path' => 'products/1/deck.jpg', 'alt' => ['el' => 'Κατάστρωμα', 'en' => 'Deck']],
+            ],
+        ]);
+
+        // The form saves the whole trip, and a per-seat trip with no bands is
+        // refused by CAT-8 for reasons that have nothing to do with photographs.
+        AgeBand::factory()->create(['product_id' => $product->getKey()]);
+
+        return $product;
+    });
+
+    $page = productPageAs($owner, EditProduct::class, ['record' => $product->uuid]);
+
+    // The uploader holds paths, in the stored order.
+    expect(array_values((array) $page->get('data.gallery')))
+        ->toBe(['products/1/sunset.jpg', 'products/1/deck.jpg']);
+
+    // The operator drags the deck shot to the front and adds a third.
+    $page->set('data.gallery', [
+        'a' => 'products/1/deck.jpg',
+        'b' => 'products/1/bay.jpg',
+        'c' => 'products/1/sunset.jpg',
+    ])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $images = Product::query()->sole()->images;
+
+        expect(array_column($images, 'path'))
+            // The order is the only thing that says which one is featured.
+            ->toBe(['products/1/deck.jpg', 'products/1/bay.jpg', 'products/1/sunset.jpg'])
+            ->and($images[0]['alt'])->toBe(['el' => 'Κατάστρωμα', 'en' => 'Deck'])
+            // The new one has none yet, and did not invent one.
+            ->and($images[1])->toBe(['path' => 'products/1/bay.jpg'])
+            ->and($images[2]['alt']['el'])->toBe('Ηλιοβασίλεμα');
+    });
+})->group('fast');
+
+it('empties the gallery when the last photograph is removed', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $product = Tenancy::forTenant(productTenantOf($owner), function (): Product {
+        $product = Product::factory()->create([
+            'status' => ProductStatus::Draft,
+            'images' => [['path' => 'products/1/sunset.jpg']],
+        ]);
+
+        AgeBand::factory()->create(['product_id' => $product->getKey()]);
+
+        return $product;
+    });
 
     productPageAs($owner, EditProduct::class, ['record' => $product->uuid])
-        ->set('data.images', [
-            'saved' => ['path' => 'products/1/sunset.jpg', 'alt' => ['el' => 'Ηλιοβασίλεμα', 'en' => 'Sunset']],
-            // Mid-upload, and with no alt text typed yet.
-            'uploading' => ['path' => ['abc123' => 'livewire-file:abc123'], 'alt' => ['el' => null, 'en' => null]],
-        ])
-        ->assertSuccessful()
-        // The first row is the cover, and says so.
-        ->assertSee(__('catalog.product.form.images.cover'));
+        ->set('data.gallery', [])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        expect(Product::query()->sole()->images)->toBe([]);
+    });
 })->group('fast');
 
 it('loads the existing bands into the repeater for editing', function (): void {

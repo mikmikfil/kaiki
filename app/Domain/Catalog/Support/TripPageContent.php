@@ -228,4 +228,79 @@ final class TripPageContent
 
         return $kept === [] ? $stops : [...$stops, '_geo' => $kept];
     }
+
+    /**
+     * The gallery as the uploader holds it: a plain list of paths.
+     *
+     * Product owner, 2026-09-22: *«ανεβάζουμε όλο το gallery και η πρώτη
+     * γίνεται featured»*. So the field is one multi-file uploader rather than a
+     * row per photograph — an operator picks twelve files at once and drags the
+     * one they want on the card to the front — while `products.images` keeps
+     * the `{path, alt}` shape §3.15 defines and the API reads.
+     *
+     * @param  array<int, mixed>|null  $images
+     * @return list<string>
+     */
+    public static function galleryToForm(?array $images): array
+    {
+        $paths = [];
+
+        foreach ($images ?? [] as $image) {
+            $path = is_array($image) ? ($image['path'] ?? null) : $image;
+
+            if (is_string($path) && $path !== '') {
+                $paths[] = $path;
+            }
+        }
+
+        return $paths;
+    }
+
+    /**
+     * And back, in the operator's order — the first is the one every card and
+     * every search result shows.
+     *
+     * **The alt text is carried over by path.** The uploader has no field for
+     * it, and adding a photograph must not silently blank the descriptions
+     * written for the others: a screen reader is the only thing that reads
+     * them, so nothing on screen would show the loss.
+     *
+     * @param  array<int, mixed>|null  $existing  the column as it is stored now
+     * @return list<array<string, mixed>>|null
+     */
+    public static function galleryFromForm(mixed $state, ?array $existing = null): ?array
+    {
+        if (! is_array($state)) {
+            return null;
+        }
+
+        $alts = [];
+
+        foreach ($existing ?? [] as $image) {
+            if (is_array($image) && is_string($image['path'] ?? null) && isset($image['alt'])) {
+                $alts[$image['path']] = $image['alt'];
+            }
+        }
+
+        $images = [];
+
+        foreach ($state as $path) {
+            if (! is_string($path) || $path === '') {
+                continue;
+            }
+
+            $image = ['path' => $path];
+
+            if (isset($alts[$path])) {
+                $image['alt'] = $alts[$path];
+            }
+
+            $images[] = $image;
+        }
+
+        // An empty list rather than null: an operator who removed the last
+        // photograph means the gallery is empty, and `ImagePayload` reads both
+        // the same way.
+        return $images;
+    }
 }

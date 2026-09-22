@@ -290,15 +290,7 @@ return [
             ],
             'images' => [
                 'label' => 'Photographs',
-                'help' => 'The first one leads the card and the search results. Drag to reorder.',
-                'add' => 'Add a photograph',
-                'cover' => 'Cover',
-                'make_cover' => 'Make it the cover',
-                'file' => ['label' => 'File'],
-                'alt' => [
-                    'label' => 'Description for screen readers',
-                    'help' => 'What the photograph shows, in a few words. It is read by anyone who cannot see it.',
-                ],
+                'help' => 'Upload them all at once. The first one leads the card and the search results — drag whichever you want to the front.',
             ],
             'title' => [
                 'label' => 'Title',

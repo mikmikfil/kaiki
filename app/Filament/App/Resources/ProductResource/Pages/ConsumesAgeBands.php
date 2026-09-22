@@ -9,6 +9,7 @@ use App\Domain\Catalog\Actions\SaveProduct;
 use App\Domain\Catalog\Support\TripPageContent;
 use App\Enums\BookingMode;
 use App\Enums\ProductStatus;
+use App\Filament\App\Resources\ProductResource;
 use App\Models\AgeBand;
 use App\Models\Product;
 use Illuminate\Database\Eloquent\Model;
@@ -97,6 +98,16 @@ trait ConsumesAgeBands
             }
         }
 
+        // The gallery: a list of paths on the form, `{path, alt}` in the
+        // column. Only when the form sent it, so a caller that fills part of
+        // the form leaves the stored photographs alone.
+        if (array_key_exists(ProductResource::GALLERY_FIELD, $data)) {
+            $existing = $record instanceof Product && $record->exists ? $record->images : null;
+            $data['images'] = TripPageContent::galleryFromForm($data[ProductResource::GALLERY_FIELD], $existing);
+        }
+
+        unset($data[ProductResource::GALLERY_FIELD]);
+
         if (array_key_exists(TripPageContent::ITINERARY_FIELD, $data)) {
             $geo = $record instanceof Product && $record->exists ? $record->itineraryGeo() : [];
             $data['itinerary_stops'] = TripPageContent::itineraryFromRows($data[TripPageContent::ITINERARY_FIELD], $geo);
@@ -138,6 +149,9 @@ trait ConsumesAgeBands
 
         $data[TripPageContent::ITINERARY_FIELD] = TripPageContent::itineraryToRows($record);
         unset($data['itinerary_stops']);
+
+        $data[ProductResource::GALLERY_FIELD] = TripPageContent::galleryToForm($record->images);
+        unset($data['images']);
 
         return $data;
     }
