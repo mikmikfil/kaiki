@@ -373,6 +373,89 @@
         @endif
     </x-filament::section>
 
+
+    {{-- **Columns**, because the seven of them are a shape: a week, read left
+         to right, with the tall ones where the boat goes out full. The other
+         charts on this page are shares of something; this one is a comparison
+         of seven things that have an order of their own, and columns are how
+         that is drawn everywhere. --}}
+    <x-filament::section icon="heroicon-o-calendar" icon-color="primary">
+        <x-slot name="heading">{{ __('analytics.weekdays.heading') }}</x-slot>
+        <x-slot name="description">{{ __('analytics.weekdays.help') }}</x-slot>
+
+        @php
+            $weekPeak = max(1, max(array_map(static fn (array $day): int => $day['pax'], $report['weekdays'])) ?: 1);
+            $weekTotal = array_sum(array_map(static fn (array $day): int => $day['pax'], $report['weekdays']));
+        @endphp
+
+        @if ($weekTotal === 0)
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('analytics.weekdays.empty') }}</p>
+        @else
+            <div class="flex items-end gap-2" style="height: 9rem;">
+                @foreach ($report['weekdays'] as $day)
+                    <div class="flex flex-1 flex-col items-center justify-end gap-1" style="height: 100%;">
+                        <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">{{ $day['pax'] }}</span>
+                        {{-- A column with a floor: a day with nobody on it is
+                             still a day, and a bar of zero height reads as a
+                             missing column rather than as an empty Tuesday. --}}
+                        <span
+                            class="w-full rounded-t"
+                            style="height: {{ max(2, round(($day['pax'] / $weekPeak) * 100, 1)) }}%; background: color-mix(in srgb, rgb(var(--primary-600)) {{ $day['pax'] === 0 ? 18 : 100 }}%, transparent);"
+                            title="{{ __('analytics.weekdays.day.' . $day['weekday']) }} — {{ $day['pax'] }}"
+                        ></span>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="mt-2 flex gap-2">
+                @foreach ($report['weekdays'] as $day)
+                    <span class="flex-1 text-center text-xs text-gray-500 dark:text-gray-400">{{ __('analytics.weekdays.short.' . $day['weekday']) }}</span>
+                @endforeach
+            </div>
+        @endif
+    </x-filament::section>
+
+    {{-- **One bar, in five parts**: how far ahead the bookings came in. A
+         hundred per cent of something, so it is drawn as the whole of one line
+         rather than as five bars that have to be added up by eye. --}}
+    <x-filament::section icon="heroicon-o-clock" icon-color="primary">
+        <x-slot name="heading">{{ __('analytics.lead_time.heading') }}</x-slot>
+        <x-slot name="description">{{ __('analytics.lead_time.help') }}</x-slot>
+
+        @php
+            $leadTotal = array_sum(array_map(static fn (array $part): int => $part['bookings'], $report['lead_time']));
+        @endphp
+
+        @if ($leadTotal === 0)
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('analytics.lead_time.empty') }}</p>
+        @else
+            <div class="flex h-4 w-full overflow-hidden rounded" style="background: rgb(var(--gray-100));">
+                @foreach ($report['lead_time'] as $index => $part)
+                    @continue($part['bookings'] === 0)
+                    <span
+                        style="width: {{ round(($part['bookings'] / $leadTotal) * 100, 2) }}%; background: color-mix(in srgb, rgb(var(--primary-600)) {{ max(25, 100 - ($index * 18)) }}%, transparent);"
+                        title="{{ __('analytics.lead_time.bucket.' . $part['bucket']) }} — {{ $part['bookings'] }}"
+                    ></span>
+                @endforeach
+            </div>
+
+            <ul class="mt-4 grid gap-2 text-sm sm:grid-cols-2 xl:grid-cols-3">
+                @foreach ($report['lead_time'] as $index => $part)
+                    <li class="flex items-center gap-2">
+                        <span
+                            class="inline-block h-3 w-3 rounded-sm"
+                            style="background: color-mix(in srgb, rgb(var(--primary-600)) {{ max(25, 100 - ($index * 18)) }}%, transparent);"
+                        ></span>
+                        <span>{{ __('analytics.lead_time.bucket.' . $part['bucket']) }}</span>
+                        <span class="tabular-nums text-gray-500 dark:text-gray-400">
+                            {{ $part['bookings'] }} · {{ $percent($part['bookings'] / $leadTotal) }}
+                        </span>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
+    </x-filament::section>
+
     {{-- The emptiest sailings: the part of the page an operator can act on. --}}
     <x-filament::section icon="heroicon-o-moon" icon-color="primary">
         <x-slot name="heading">{{ __('analytics.quiet.heading') }}</x-slot>

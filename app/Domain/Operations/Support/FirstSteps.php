@@ -8,6 +8,7 @@ use App\Enums\ProductStatus;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Product;
+use App\Models\Season;
 use App\Models\Vessel;
 use App\Support\Tenancy;
 
@@ -37,6 +38,8 @@ use App\Support\Tenancy;
 final class FirstSteps
 {
     public const VESSEL = 'vessel';
+
+    public const SEASON = 'season';
 
     public const PRODUCT = 'product';
 
@@ -90,7 +93,23 @@ final class FirstSteps
     }
 
     /**
-     * The four steps and whether each is done, in order.
+     * The steps this list can be asked about, and which of them are optional.
+     *
+     * Product owner, 2026-09-22: *«μετά το first time configuration, βάλε ένα
+     * checklist με τα πρώτα σου βήματα στην αρχική οθόνη. σκάφη, περίοδοι,
+     * εκδρομές»*. Περίοδοι were not on this list, because the chain here is
+     * the chain to a first booking and a trip sells all year without one — so
+     * they are on it as an **optional** step: shown, ticked when done, and
+     * never the thing the panel says to do next. An operator who prices the
+     * same trip the same way in August and in February should not be told they
+     * are missing something.
+     *
+     * @var list<string>
+     */
+    public const OPTIONAL = [self::SEASON];
+
+    /**
+     * The five steps and whether each is done, in order.
      *
      * @return array<string, bool>
      */
@@ -98,6 +117,7 @@ final class FirstSteps
     {
         return [
             self::VESSEL => Vessel::query()->exists(),
+            self::SEASON => Season::query()->exists(),
             self::PRODUCT => Product::query()->exists(),
             self::PUBLISHED => Product::query()->where('status', ProductStatus::Active->value)->exists(),
             self::DEPARTURE => Departure::query()->exists(),
@@ -114,7 +134,7 @@ final class FirstSteps
     public static function next(): ?string
     {
         foreach (self::state() as $step => $done) {
-            if (! $done) {
+            if (! $done && ! in_array($step, self::OPTIONAL, true)) {
                 return $step;
             }
         }

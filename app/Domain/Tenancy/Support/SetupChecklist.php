@@ -214,9 +214,10 @@ final class SetupChecklist
             self::CANCELLATION => CancellationPolicy::query()->exists(),
             self::PORT => Port::query()->exists(),
             self::VESSEL => $catalogue[FirstSteps::VESSEL] ?? Vessel::query()->exists(),
-            // Not delegated: `FirstSteps` is the chain to a first booking, and
-            // a period is not on it — a trip sells all year without one.
-            self::SEASON => Season::query()->exists(),
+            // Delegated since 22 September, when periods joined that list as
+            // an optional step: one query, and one definition of «has this
+            // operator set up a period».
+            self::SEASON => $catalogue[FirstSteps::SEASON] ?? Season::query()->exists(),
             self::PRODUCT => $catalogue[FirstSteps::PRODUCT] ?? Product::query()->exists(),
             self::READY => $tenant->onboarding_completed_at !== null,
         ];

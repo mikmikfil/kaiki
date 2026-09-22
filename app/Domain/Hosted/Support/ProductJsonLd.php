@@ -112,7 +112,10 @@ final class ProductJsonLd
             'brand' => [
                 '@type' => 'Organization',
                 'name' => $tenant->name,
-                'url' => HostedUrl::operator($tenant, $locale),
+                // `siteStart`, not `operator`: a bookings-only operator serves
+                // no home page, and an `Organization.url` that 404s is a claim
+                // about this business that a crawler can check and disprove.
+                'url' => HostedUrl::siteStart($tenant, $locale),
             ],
             // The trip's own identity in the operator's catalogue. A `sku` is
             // what a search engine dedupes on when the same trip is syndicated
@@ -156,7 +159,7 @@ final class ProductJsonLd
             'organizer' => [
                 '@type' => 'Organization',
                 'name' => $tenant->name,
-                'url' => HostedUrl::operator($tenant),
+                'url' => HostedUrl::siteStart($tenant),
             ],
             'isAccessibleForFree' => false,
             // The dated occurrence *of* the product above, rather than a second

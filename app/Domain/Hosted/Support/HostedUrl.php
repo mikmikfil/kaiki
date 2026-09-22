@@ -41,6 +41,26 @@ final class HostedUrl
     }
 
     /**
+     * Where this operator's site starts, whichever pages they have.
+     *
+     * The home page when they have one, the search page when they do not — a
+     * *bookings only* operator serves no `/{operator}`, and a link to it is a
+     * 404 (Mike, 2026-09-22). The search page is the honest substitute: it is
+     * the list of everything they sell, which is what both a visitor pressing
+     * a logo and a search engine following `Organization.url` are looking for.
+     *
+     * Decided from the tenant on every call, so the platform moving an
+     * operator between the two modes changes every link at once, in both
+     * directions, with nothing to rebuild.
+     */
+    public static function siteStart(Tenant $tenant, ?string $locale = null): string
+    {
+        return self::homeEnabledFor($tenant)
+            ? self::operator($tenant, $locale)
+            : self::withLocale(sprintf('%s/%s/search', self::origin(), $tenant->slug), $locale);
+    }
+
+    /**
      * The operator's terms, privacy notice and cancellation policy (HOS-9).
      *
      * Built here for the same reason as everything else in this class: the

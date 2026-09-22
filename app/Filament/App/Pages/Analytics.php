@@ -246,6 +246,8 @@ class Analytics extends Page
             'campaigns' => $figures->byCampaign($range),
             'referrers' => $figures->byReferrer($range),
             'discount_codes' => $figures->byDiscountCode($range),
+            'weekdays' => $figures->byWeekday($range),
+            'lead_time' => $figures->leadTime($range),
             'cancellations' => $figures->cancellations($range),
             'funnel' => $figures->funnel($range),
             'visits' => $figures->visits($range),

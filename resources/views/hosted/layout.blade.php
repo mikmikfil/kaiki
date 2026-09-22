@@ -1715,7 +1715,16 @@
             .product-aside > .booking {
                 max-block-size: calc(100svh - 3rem);
                 overflow-y: auto;
-                overscroll-behavior: contain;
+
+                /* **No `overscroll-behavior: contain` here** (Mike,
+                   2026-09-22: *«αν σκρολλάρω μέσα του δεν κινείται τπτ»*). It
+                   was copied over with the rest when the scrolling moved from
+                   the column to the card, and on a card whose content fits —
+                   which is most trips — `contain` stops the wheel reaching the
+                   page as well as stopping it inside the box. The pointer sat
+                   over the booking card and the page would not move. The
+                   default chains: the card scrolls while it has somewhere to
+                   go, the page carries on from there. */
                 padding-inline-end: calc(clamp(1.75rem, 2.2vw, 2.35rem) - .35rem);
 
                 /* Barely there until a thumb is in it. `scrollbar-gutter:
@@ -3167,13 +3176,45 @@
 </head>
 <body>
 
+@php
+    /*
+     * Does this operator have a home page for a link to go to?
+     *
+     * ADR-0029: a «bookings only» operator serves trip pages, the search page,
+     * the contact page and the legal pages — and `/{operator}` 404s. The header
+     * hung the logo on that URL regardless, so the one thing every visitor
+     * presses to «go back to the start» led to a not-found page on every
+     * booking-only site (Mike, 2026-09-22).
+     *
+     * Read from the tenant on every render rather than baked in anywhere, which
+     * is what makes it follow the switch in both directions: an operator
+     * promoted to the full site gets the home link on their next page view, and
+     * one moved back to booking pages loses it just as fast. Nothing is cached
+     * per mode; there is nothing to invalidate.
+     */
+    $servesHome = \App\Domain\Hosted\Support\HostedUrl::homeEnabledFor($tenant);
+
+    // Where «the start of this site» is. The search page is the honest answer
+    // for an operator with no home page: it is the list of everything they
+    // sell, which is what a visitor pressing a logo is looking for.
+    $siteStart = $servesHome
+        ? route('hosted.index', ['operator' => $tenant->slug, 'lang' => $locale])
+        : route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]);
+
+    // The routes above rather than `HostedUrl::siteStart()` on purpose: these
+    // are links inside the page, and on a custom domain (HOS-3) the route
+    // helper keeps the visitor on the host they are already on, while
+    // `HostedUrl` always builds the platform's own. The decision — which of
+    // the two pages is the start — is the same one, and it is `$servesHome`.
+@endphp
+
 <header class="site">
     <div class="wrap">
         {{-- The operator's logo, or — for the operator who has not uploaded
              one — a mark in their own colours beside their name and the town
              they sail from, the masthead of their WordPress site (2026-09-16).
              The mark is drawing and hidden; the name is the link text. --}}
-        <a class="brand" href="{{ route('hosted.index', ['operator' => $tenant->slug, 'lang' => $locale]) }}">
+        <a class="brand" href="{{ $siteStart }}">
             @if ($logo)
                 <img src="{{ $logo }}" alt="{{ $tenant->name }}">
             @else
@@ -3310,7 +3351,11 @@
             <div>
                 <h3>{{ __('hosted.footer.explore') }}</h3>
                 <ul>
-                    <li><a href="{{ route('hosted.index', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.footer.home') }}</a></li>
+                    {{-- «Αρχική» only where there is one. The other two are
+                         served in both modes. --}}
+                    @if ($servesHome)
+                        <li><a href="{{ route('hosted.index', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.footer.home') }}</a></li>
+                    @endif
                     <li><a href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.search.nav') }}</a></li>
                     <li><a href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.contact.nav') }}</a></li>
                 </ul>

@@ -370,6 +370,24 @@ class Setup extends Page implements HasForms
                             ->label(__('branding.form.color_secondary.label'))
                             ->helperText(__('branding.form.color_secondary.help'))
                             ->rules([new HexColor]),
+
+                        /*
+                         * And the accent (Mike, 2026-09-22: *«στο styling στο
+                         * first time guide, θέλω και χρώματα accent»*).
+                         *
+                         * It earns its place beside the other two because it is
+                         * the one colour a visitor actually presses: «Κλείστε
+                         * θέση» in the header, the pay button at the end of the
+                         * checkout, the rule under a section heading. Left at
+                         * the platform's terracotta, every operator's booking
+                         * button is the same orange — which is the one thing on
+                         * their page that should be theirs.
+                         */
+                        ColorPicker::make('color_accent')
+                            ->label(__('branding.form.color_accent.label'))
+                            ->helperText(__('branding.form.color_accent.help'))
+                            ->rules([new HexColor])
+                            ->columnSpanFull(),
                     ]),
 
             ])
@@ -611,7 +629,7 @@ class Setup extends Page implements HasForms
          */
         $state = $this->getForm('form')?->getState() ?? [];
 
-        foreach (['color_primary', 'color_secondary'] as $colour) {
+        foreach (['color_primary', 'color_secondary', 'color_accent'] as $colour) {
             $value = $state[$colour] ?? null;
 
             if (is_string($value) && trim($value) !== '') {
@@ -648,6 +666,7 @@ class Setup extends Page implements HasForms
                 'logo_light_path' => null,
                 'color_primary' => (string) config('kaiki.branding.defaults.colors.primary'),
                 'color_secondary' => (string) config('kaiki.branding.defaults.colors.secondary'),
+                'color_accent' => (string) config('kaiki.branding.defaults.colors.accent'),
             ];
         }
 
@@ -655,6 +674,7 @@ class Setup extends Page implements HasForms
             'logo_light_path' => $profile->logo_light_path,
             'color_primary' => $profile->color_primary,
             'color_secondary' => $profile->color_secondary,
+            'color_accent' => $profile->color_accent,
         ];
     }
 
