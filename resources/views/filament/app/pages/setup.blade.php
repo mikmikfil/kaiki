@@ -175,7 +175,17 @@
         /* The two exits, on one line above the guide and wrapping on a phone. */
         .ka-setup-exit { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; justify-content: flex-end; font-size: .85rem; color: #5F6F86; margin-bottom: .75rem; }
         .ka-setup-exit > span { margin-inline-end: auto; }
-        .ka-setup { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 1.5rem; align-items: start; max-width: 60rem; }
+        /*
+         * **Τέρμα πλάτος** (product owner, 2026-09-22, direction Α of
+         * `docs/mockups/setup-width.html`).
+         *
+         * The guide was held to 60rem inside a sheet that spans the screen, so
+         * at 1080p half the sheet was empty and the exits row above it — which
+         * does span the full width — made the mismatch obvious. With four
+         * steps instead of eight the left column is shorter and it read worse
+         * still.
+         */
+        .ka-setup { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 1.5rem; align-items: start; }
         .ka-setup-steps { display: grid; gap: 2px; background: #fff; border: 1px solid #E1E8F2; border-radius: .75rem; padding: .5rem; }
         .ka-setup-step { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) auto; gap: .6rem; align-items: center; padding: .55rem .5rem; border-radius: .5rem; font-size: .9rem; color: #5F6F86; text-align: left; }
         .ka-setup-step:hover { background: #F4F7FB; }
@@ -191,6 +201,30 @@
         .ka-setup-card .count { font-size: .82rem; color: #5F6F86; }
         .ka-setup-card h2 { font-size: 1.35rem; font-weight: 700; color: #0F2E57; letter-spacing: -.01em; line-height: 1.25; }
         .ka-setup-card .head p { color: #5F6F86; font-size: .92rem; max-width: 62ch; }
+
+        /*
+         * **Equal boxes in a row** (same note: *«πρόσεχε τα ύψη των κουτιών
+         * της φόρμας να είναι ίσα»*).
+         *
+         * Filament's grid stretches its items, so the boxes were already the
+         * same height — what was uneven was what sat inside them. «ΑΦΜ» carries
+         * a helper line and «ΔΟΥ» does not, so one input had text under it and
+         * its neighbour had nothing, and the pair read as two different
+         * shapes. Wider rows made it worse, because there is more of the row
+         * to notice.
+         *
+         * Each field becomes a column: the input where it always was, and the
+         * helper line pinned to the bottom of the box. A field with no helper
+         * text leaves the space empty rather than closing up, so every row
+         * lands on the same two lines.
+         */
+        .ka-setup-card .fi-fo-field-wrp { display: flex; flex-direction: column; height: 100%; }
+        /* The block that holds the input and, under it, the helper line. */
+        .ka-setup-card .fi-fo-field-wrp > :last-child { flex: 1; display: flex; flex-direction: column; }
+        /* Only the helper moves. Pinning whatever happens to be last would
+           push the **input** of a field that has no helper text to the bottom
+           of its box, which is the opposite of lining them up. */
+        .ka-setup-card .fi-fo-field-wrp-helper-text { margin-top: auto; padding-top: .35rem; }
 
         .ka-setup-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; }
         .ka-setup-preset { border: 1.5px solid #E1E8F2; border-radius: .75rem; padding: .8rem; display: grid; gap: .3rem; text-align: left; font-size: .84rem; color: #5F6F86; }
