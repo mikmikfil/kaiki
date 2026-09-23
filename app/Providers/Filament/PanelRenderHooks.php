@@ -17,6 +17,7 @@ use App\Models\PlatformBrand;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Locale\LocaleOptions;
+use App\Support\PanelApp;
 use App\Support\Tenancy;
 use Filament\Facades\Filament;
 use Filament\Support\Colors\Color;
@@ -56,6 +57,38 @@ final class PanelRenderHooks
         FilamentView::registerRenderHook(
             PanelsRenderHook::BODY_START,
             static fn (): View => view('filament.impersonation-banner'),
+        );
+
+        /*
+         * **The panel as an app on a phone** (PWA, 2026-09-23): the manifest,
+         * the status-bar colour, the iPhone's icon and the service worker, on
+         * every `/app` page including the sign-in screens — Chrome decides
+         * whether a page is installable from its `<head>`, and somebody who has
+         * not signed in yet should be able to install it too. `/admin` is not
+         * an app. See {@see PanelApp}.
+         */
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (array $scopes): View|string => Filament::getCurrentPanel()?->getId() === 'app'
+                ? self::pwaHead($scopes)
+                : '',
+        );
+
+        // «Εγκατάσταση εφαρμογής» under the profile in the user menu, and the
+        // two steps an iPhone needs instead. Hidden by the page's own script
+        // unless there is an install to offer; see the views.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::USER_MENU_PROFILE_AFTER,
+            static fn (): View|string => Filament::getCurrentPanel()?->getId() === 'app'
+                ? view('filament.app.install-menu-item')
+                : '',
+        );
+
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            static fn (): View|string => Filament::getCurrentPanel()?->getId() === 'app' && Auth::check()
+                ? view('filament.app.install-ios')
+                : '',
         );
 
         // The topbar, for every authenticated panel page.
@@ -369,6 +402,23 @@ final class PanelRenderHooks
             'message' => $announcement->message,
             'severity' => $announcement->severity->value,
             'dismissUrl' => route('filament.app.announcements.dismiss', ['announcement' => $announcement->getKey()]),
+        ]);
+    }
+
+    /**
+     * @param  array<int, string>  $scopes
+     */
+    private static function pwaHead(array $scopes): View
+    {
+        return view('filament.app.pwa-head', [
+            'manifestUrl' => PanelApp::path(route('filament.app.manifest')),
+            'workerUrl' => PanelApp::path(route('filament.app.sw')),
+            'scope' => PanelApp::scope(),
+            'appName' => (string) config('app.name'),
+            'appleIcon' => PanelApp::icon('apple-touch-icon.png'),
+            'themeColor' => PanelApp::themeColor($scopes),
+            'topbar' => PanelApp::TOPBAR,
+            'topbarDark' => PanelApp::TOPBAR_DARK,
         ]);
     }
 

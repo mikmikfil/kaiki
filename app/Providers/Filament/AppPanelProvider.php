@@ -13,6 +13,9 @@ use App\Filament\Avatars\InitialsAvatarProvider;
 use App\Http\Controllers\App\BoardingController;
 use App\Http\Controllers\App\BoardingServiceWorkerController;
 use App\Http\Controllers\App\DismissAnnouncementController;
+use App\Http\Controllers\App\PanelManifestController;
+use App\Http\Controllers\App\PanelOfflineController;
+use App\Http\Controllers\App\PanelServiceWorkerController;
 use App\Http\Controllers\ExportDownloadController;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EndExpiredImpersonation;
@@ -318,6 +321,24 @@ class AppPanelProvider extends PanelProvider
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.catalogue')),
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.fleet')),
             ])
+            /*
+             * The panel as an app on a phone (PWA, 2026-09-23): its manifest,
+             * its service worker and the page that worker shows with no
+             * network. `routes` rather than `authenticatedRoutes`: the sign-in
+             * page links the manifest and registers the worker too, and none of
+             * the three is about anybody. The worker at `/app/sw.js` is allowed
+             * the scope `/app`; see {@see PanelServiceWorkerController}.
+             */
+            ->routes(function (): void {
+                Route::get('manifest.webmanifest', PanelManifestController::class)
+                    ->name('manifest');
+
+                Route::get('sw.js', PanelServiceWorkerController::class)
+                    ->name('sw');
+
+                Route::get('offline', PanelOfflineController::class)
+                    ->name('offline');
+            })
             /*
              * The export download (OPS-18).
              *
