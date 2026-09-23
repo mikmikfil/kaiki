@@ -53,7 +53,13 @@ class VesselFactory extends Factory
             'status' => VesselStatus::Active,
             'registration_number' => 'NP ' . $this->faker->numberBetween(1000, 9999),
             'length_cm' => $this->faker->numberBetween(800, 2400),
-            'capacity_max' => $this->faker->numberBetween(8, 90),
+            // Never under 12, which is `ProductFactory`'s `max_pax` — that
+            // factory promises its trips sit "well under any plausible
+            // capacity_max", and from 8 the promise failed one boat in twenty.
+            // Nothing noticed until the trip form began enforcing CAT-5's
+            // ceiling (2026-09-23), when a form test went red about once in
+            // fifteen runs. A test that wants a small boat asks with capacity().
+            'capacity_max' => $this->faker->numberBetween(12, 90),
             'crew_count' => $this->faker->numberBetween(1, 4),
             'captain_name' => null,
             'home_port_id' => null,

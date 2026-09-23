@@ -102,6 +102,24 @@ enum BookingStatus: string
     }
 
     /**
+     * Does a booking in this status have a ticket — a file and a code a guest
+     * can hold up at a gangway?
+     *
+     * Narrower than {@see self::isLive()} on purpose. A draft and a booking at
+     * the gateway are live to the seat engine, and neither has been paid for;
+     * the crew's scan refuses both, so a ticket for one is a document that
+     * fails at the one moment it is shown. Completed stays in: the trip has
+     * sailed and the ticket is its receipt.
+     */
+    public function hasTicket(): bool
+    {
+        return match ($this) {
+            self::Confirmed, self::CheckedIn, self::Completed => true,
+            default => false,
+        };
+    }
+
+    /**
      * The §4.1 transition table, in one place.
      *
      * @return list<self>

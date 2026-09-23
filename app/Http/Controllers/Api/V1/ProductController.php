@@ -8,6 +8,7 @@ use App\Domain\Catalog\Queries\PublicProductQuery;
 use App\Http\Requests\Api\V1\ProductIndexRequest;
 use App\Http\Resources\Api\V1\ProductDetailResource;
 use App\Http\Resources\Api\V1\ProductListResource;
+use App\Http\Responses\ApiErrorResponse;
 use App\Http\Responses\ConditionalJson;
 use App\Models\Product;
 use Illuminate\Contracts\Pagination\CursorPaginator;
@@ -71,7 +72,15 @@ final class ProductController
         $product = PublicProductQuery::find($uuid);
 
         if (! $product instanceof Product) {
-            abort(SymfonyResponse::HTTP_NOT_FOUND);
+            // Not a bare abort: the central renderer's 404 says «that endpoint
+            // does not exist», and an integrator with a stale uuid then spends
+            // an afternoon checking a path that was right. Same `code`, so no
+            // client branching on it changes; still silent on *why* (SEC-1/2).
+            return ApiErrorResponse::fromKey(
+                key: 'api.errors.product_not_found',
+                code: 'not_found',
+                status: SymfonyResponse::HTTP_NOT_FOUND,
+            );
         }
 
         return $this->cacheable($request, [

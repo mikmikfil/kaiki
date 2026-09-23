@@ -88,6 +88,59 @@ it('offers no ticket for a cancelled booking, and serves none either', function 
     get('/b/' . $booking->manage_token . '/ticket')->assertNotFound();
 })->group('fast');
 
+it('stops serving a ticket the queue rendered once the booking is cancelled', function (): void {
+    // Found by the stress sweep (2026-09-23). The test above cancels a booking
+    // that never had a file, so the refusal it proves is the *render's*. The
+    // ordinary life of a ticket is the other way round: rendered at
+    // confirmation, cancelled a week later — and the route served the file it
+    // already had without asking what the booking had become since.
+    $disk = ticketDisk();
+
+    [$tenant, $booking] = GuestPageScenario::booking();
+
+    Tenancy::forTenant($tenant, static function () use ($booking, $disk): void {
+        Storage::disk($disk)->put('tickets/rendered-at-confirmation.pdf', '%PDF-1.4');
+
+        $booking->forceFill([
+            'eticket_path' => 'tickets/rendered-at-confirmation.pdf',
+            'status' => BookingStatus::Cancelled,
+        ])->save();
+    });
+
+    get('/b/' . $booking->manage_token . '/ticket')->assertNotFound();
+})->group('fast');
+
+it('gives no ticket and no codes to a booking nobody has paid for', function (BookingStatus $status): void {
+    // A draft whose hold lapsed and a booking still at the gateway are both
+    // «live» to the seat engine, and both had a download and a code per
+    // passenger. The crew's scan refuses them, so nobody boards on one — but a
+    // guest who abandoned the payment page held something that looked exactly
+    // like a ticket, and would find out at the gangway.
+    ticketDisk();
+
+    [$tenant, $booking] = GuestPageScenario::booking();
+
+    Tenancy::withoutTenancy(static fn () => Tenant::query()
+        ->whereKey($tenant->getKey())
+        ->update(['check_in_enabled' => true, 'qr_check_in_enabled' => true]));
+
+    Tenancy::forTenant($tenant, static function () use ($booking, $status): void {
+        $booking->forceFill(['status' => $status, 'confirmed_at' => null])->save();
+    });
+
+    get('/b/' . $booking->manage_token)
+        ->assertOk()
+        ->assertDontSee('/b/' . $booking->manage_token . '/ticket', escape: false)
+        ->assertDontSee(__('guest.booking.boarding.heading'));
+
+    get('/b/' . $booking->manage_token . '/ticket')->assertNotFound();
+})->with([
+    'a draft' => [BookingStatus::Draft],
+    'at the gateway' => [BookingStatus::PendingPayment],
+    'refunded' => [BookingStatus::Refunded],
+    'expired' => [BookingStatus::Expired],
+])->group('fast');
+
 it('offers no ticket when the operator boards nobody', function (): void {
     ticketDisk();
 

@@ -13,6 +13,7 @@ use App\Domain\Catalog\Queries\PublicProductQuery;
 use App\Enums\BookingMode;
 use App\Http\Requests\Api\V1\AvailabilityRequest;
 use App\Http\Resources\Api\V1\AvailabilityDayResource;
+use App\Http\Responses\ApiErrorResponse;
 use App\Models\Product;
 use App\Support\Format\MoneyFormatter;
 use Illuminate\Http\JsonResponse;
@@ -63,8 +64,13 @@ final class AvailabilityController
 
         if (! $product instanceof Product) {
             // Indistinguishable from another tenant's product, per SEC-1 and
-            // SEC-2 — the same rule `GET /products/{uuid}` follows.
-            abort(SymfonyResponse::HTTP_NOT_FOUND);
+            // SEC-2 — the same rule and the same answer `GET /products/{uuid}`
+            // gives, which names the product rather than the endpoint.
+            return ApiErrorResponse::fromKey(
+                key: 'api.errors.product_not_found',
+                code: 'not_found',
+                status: SymfonyResponse::HTTP_NOT_FOUND,
+            );
         }
 
         $range = $request->range($product);
