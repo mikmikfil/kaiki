@@ -368,20 +368,20 @@
     <div class="total">
       <dt>Delivered</dt>
       <dd>93<span class="unit">issues</span></dd>
-      <p style="margin:.5rem 0 0; font-size:.78rem; line-height:1.35; color:var(--ink-faint)">Not counting the 16–17 Sept UX round, Phase 1 for actionseaze (GitHub PRs #121 and #122), the 17 Sept afternoon work or the 18 Sept calendar entry (both PR #123), which had no issue numbers.</p>
+      <p style="margin:.5rem 0 0; font-size:.78rem; line-height:1.35; color:var(--ink-faint)">Not counting the 16–17 Sept UX round, Phase 1 for actionseaze (GitHub PRs #121 and #122), the 17 Sept afternoon work or the 18 Sept calendar entry (both PR #123), nor the rounds of 21–23 Sept, which had no issue numbers.</p>
     </div>
     <div class="total">
       <dt>Measured so far</dt>
-      <dd>~168<span class="unit">hours</span></dd>
+      <dd>~189<span class="unit">hours</span></dd>
     </div>
     <div class="total">
       <dt>Remaining</dt>
-      <dd>23–30<span class="unit">hours</span></dd>
+      <dd>24–32<span class="unit">hours</span></dd>
       <p style="margin:.5rem 0 0; font-size:.78rem; line-height:1.35; color:var(--ink-faint)">Phase 2 sales channels are not in this figure: about 26–39 hours more, plus approvals.</p>
     </div>
     <div class="total">
       <dt>At 4 hours a day, 5 days a week</dt>
-      <dd>~1¾–2<span class="unit">weeks</span></dd>
+      <dd>~1¼–1½<span class="unit">weeks</span></dd>
     </div>
   </dl>
 
@@ -717,15 +717,62 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
     </div>
   </details>
 
+  <details class="milestone" data-state="done" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">21–22 Σεπτεμβρίου &mdash; η νέα εκδρομή σε βήματα, ο οδηγός, τα στατιστικά</span>
+      <span class="pill done">Complete</span>
+      <span class="m-days">~15 <span class="unit">h spent</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Περίπου τριάντα commits στο <code>feat/ota-channel-getyourguide</code>, χωρίς αριθμούς issue</strong> (από <code>28afcc9</code> ως <code>b5ebc7b</code>). Δύο πραγματικά σφάλματα βρέθηκαν στο panel με το χέρι: μία αρχειοθετημένη εκδρομή έριχνε ολόκληρο το panel, και το «Αποθήκευση» της φόρμας εκδρομής δεν έστελνε κανένα αίτημα.</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Νέα εκδρομή σε πέντε βήματα, και ένας τυπωμένος οδηγός γι&rsquo; αυτήν</span><span class="h">4h</span><span class="d">Από την αρχή ως τη δημοσίευση, με τα «Στοιχεία επιβατών» μέσα. Το PDF «Πώς φτιάχνω μια εκδρομή» φτιάχνεται από τα ίδια στιγμιότυπα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ο οδηγός πρώτης ρύθμισης κρατά το panel</span><span class="h">2h</span><span class="d">Ζητά μόνος του λιμάνι, σκάφος και περίοδο· τέσσερις ερωτήσεις· ο κατάλογος πήγε στον Πίνακα ελέγχου. Νέος διοργανωτής φτιάχνεται με ό,τι αποφασίζει η πλατφόρμα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Τιμές ως σύνοψη, Περίοδοι και Πολιτικές ως δικά τους μενού</span><span class="h">2h</span><span class="d">Μία καρτέλα τιμών στη φόρμα, μετρητές στη λίστα εκδρομών, και άρνηση δεύτερου δρομολογίου για αναχώρηση που έχει ήδη.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Κανόνες που έλειπαν</span><span class="h">1.5h</span><span class="d">Το ταμείο αρνείται παιδιά χωρίς ενήλικα· μια σκέτη ημερομηνία δεν μετατρέπεται ποτέ σε ζώνη ώρας· το σκάφος λέει όταν είναι ήδη έξω σε άλλη εκδρομή.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Διαγραφή διοργανωτή από το /admin</span><span class="h">1h</span><span class="d">Με αιτιολογία και γραμμή στο ιστορικό· όχι οριστική διαγραφή, γιατί συγκρούεται με το ιστορικό και το myDATA.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Φωτογραφίες και σελίδα εκδρομής</span><span class="h">2h</span><span class="d">Ένα πεδίο για όλες τις φωτογραφίες, με την πρώτη ως κύρια (και μια που δεν ανέβαινε καθόλου). Πιο σύντομη κάρτα κράτησης, ένας σύνδεσμος από την εκδρομή στη σελίδα που βλέπει ο επισκέπτης, floating labels στο ταμείο.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">− και + σε κάθε αριθμό, γραφήματα στα στατιστικά</span><span class="h">2h</span><span class="d">Και στα 79 αριθμητικά πεδία. Στα στατιστικά: μπάρες, δακτύλιος καναλιών, «Ποιες μέρες ταξιδεύουν» και «Πόσο νωρίς κλείνουν». Η κεφαλίδα ακολουθεί την κατάσταση του ιστότοπου· το όριο των δέκα σκαφών είναι ο πελάτης, όχι όριο.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">«Πώς είναι φτιαγμένο»</span><span class="h">0.5h</span><span class="d">Η αρχιτεκτονική σε τυπωμένο φυλλάδιο.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">23 Σεπτεμβρίου &mdash; η λίστα των 23 σημείων</span>
+      <span class="pill done">23 από 23</span>
+      <span class="m-days">~6 <span class="unit">h spent</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Ένα commit, <code>d3a5b07</code>, στο <code>feat/ota-channel-getyourguide</code>.</strong> Δεκαπέντε σημεία το πρωί, οκτώ ακόμη μέσα στη μέρα, και τέσσερις μακέτες &mdash; από τις οποίες διαλέξατε τρεις και χτίστηκαν. Σουίτα: 3425 πέρασαν, 1 αποτυγχάνει (το MySQL snapshot, πιο κάτω).</p>
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Είσοδος ως διοργανωτής</span><span class="h">1.5h</span><span class="d">Πλήρης πρόσβαση για 60 λεπτά, με άτομο και αιτιολογία υποχρεωτικά, μόνιμη μπάρα πάνω από κάθε σελίδα, και γραμμή στο ιστορικό <em>του διοργανωτή</em>. Το όριο ελέγχεται σε κάθε αίτημα, όχι από ουρά. Το 2FA των διαχειριστών μένει ανοιχτό.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Το ταμείο, κατεύθυνση Α</span><span class="h">1.5h</span><span class="d">Κεφαλίδα και υποσέλιδο σε όλο το πλάτος, ταινία με ντεγκραντέ από το χρώμα του διοργανωτή αντί για φωτογραφία, μπάρα πληρωμής στο κινητό. Ελεγμένο σε επτά πλάτη, από 360 ως 1280.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Το πλήρωμα βλέπει την εκδρομή του, όχι τις τιμές</span><span class="h">0.75h</span><span class="d">Κατεύθυνση Β: περίληψη πάνω από τη λίστα επιβατών. Ένα τεστ ελέγχει ότι καμία τιμή δεν εμφανίζεται.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η κράτηση στο κινητό, κατεύθυνση Α</span><span class="h">0.75h</span><span class="d">Μισό φύλλο, ένα βήμα τη φορά, με δείκτη βημάτων. Widget v0.4.23.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Πρότυπα πολιτικών ακύρωσης και ΦΠΑ στο /admin</span><span class="h">1h</span><span class="d">Τα πρότυπα που προτείνει ο οδηγός είναι πλέον δεδομένα της πλατφόρμας. Ο συντελεστής ΦΠΑ αλλάζει με «Νέος συντελεστής», που αντικαθιστά τον παλιό από μια ημερομηνία &mdash; όχι με αλλαγή του ποσοστού επιτόπου.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η φόρμα εκδρομής και ο οδηγός</span><span class="h">1h</span><span class="d">Ερωτήσεις μέσα στην εκδρομή· κάθε δρομολόγιο γράφει το όνομά του· τα σκάφη σέρνονται· τα άτομα δεν ξεπερνούν το σκάφος· «Η αρχική σας» ως τελευταίο βήμα για όσους έχουν πλήρη ιστοσελίδα. Ο «Ορίζοντας» διαγράφηκε.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Το demo δεν είχε ηλικίες σε καμία εκδρομή</span><span class="h">0.5h</span><span class="d">Ένα <code>return</code> που έπρεπε να είναι <code>break</code>. Επτά σκάφη σε τρία λιμάνια, και κάθε εκδρομή παίρνει κατηγορίες και τιμοκατάλογο.</span></li>
+      </ul>
+    </div>
+  </details>
+
   <details class="milestone" data-state="queued" open>
     <summary>
       <span class="chev" aria-hidden="true"></span>
       <span class="m-code">&mdash;</span>
       <span class="m-title">Μένουν από τον γύρο της 16–17 Σεπτεμβρίου και τη Φάση 1</span>
-      <span class="pill est">4 μένουν &middot; 4 έγιναν</span>
-      <span class="m-days">~3 <span class="unit">h + εξωτερικά</span></span>
+      <span class="pill est">6 μένουν &middot; 3 έγιναν</span>
+      <span class="m-days">~6–7 <span class="unit">h + εξωτερικά</span></span>
     </summary>
-    <div class="weight"><span style="width:55%"></span></div>
+    <div class="weight"><span style="width:35%"></span></div>
     <div class="m-body">
       <ul class="tasks">
         <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Φόρμα εκδρομής σε πέντε καρτέλες, με το «Πριν τη δημοσίευση» ως sidebar και έναν διακόπτη Ελληνικά/English</span><span class="h">3h</span><span class="d">Παραδόθηκε στις 18 Σεπτεμβρίου, κάτω από την εκτίμηση των 5–7 ωρών.</span></li>
@@ -735,7 +782,8 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
         <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Οι λίστες στο κινητό δείχνουν ακόμη όλες τις στήλες</span><span class="h">0.75h</span><span class="d">Έγινε στις 18 Σεπτεμβρίου, στις πέντε λίστες που ανοίγει κανείς σε προβλήτα.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Οι πραγματικοί συντελεστές ΦΠΑ από τον λογιστή</span><span class="h">&mdash;</span><span class="d">Εξωτερικό: μπαίνουν στο <code>/admin</code> όταν έρθουν. Σήμερα υπάρχει προσωρινή τιμή.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Δικηγόρος για την κατάσταση επιβατών και το ναυλοσύμφωνο</span><span class="h">&mdash;</span><span class="d">Εξωτερικό.</span></li>
-        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ο έλεγχος του MySQL schema snapshot στο CI αποτυγχάνει</span><span class="h">0.25h</span><span class="d">Ξαναπαράχθηκε από το CI και είναι πράσινο.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Το MySQL schema snapshot, ξανά</span><span class="h">0.25h</span><span class="d">Δύο νέα migrations στις 23 Σεπτεμβρίου. Ξαναπαράγεται από το CI (<code>docs/ci.md</code>) &mdash; τοπικά δεν υπάρχει MySQL 8.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">Stress test &mdash; κάθε διαδρομή &times; κάθε ρόλος, πάνω σε «βρόμικο» λογαριασμό</span><span class="h">3–4h</span><span class="d">Ποτέ 500, ποτέ διαρροή ανάμεσα σε λογαριασμούς. Ο λογαριασμός με τα μισοτελειωμένα: εκδρομή χωρίς τιμή, τιμή χωρίς ηλικίες, σκάφος χωρίς λιμάνι, ληγμένη δέσμευση θέσεων, εκδρομή στον κάδο με ζωντανό τιμοκατάλογο. Ξεκίνησε στις 23 Σεπτεμβρίου.</span></li>
       </ul>
     </div>
   </details>
@@ -1007,7 +1055,7 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
       <span class="chev" aria-hidden="true"></span>
       <span class="m-code">&mdash;</span>
       <span class="m-title">Επόμενα στη σειρά &mdash; ιδέες που αποφασίστηκαν, χωρίς εκτίμηση ακόμη</span>
-      <span class="pill est">12 items</span>
+      <span class="pill est">11 μένουν &middot; 1 έγινε</span>
       <span class="m-days">&mdash;</span>
     </summary>
     <div class="weight"><span style="width:0%"></span></div>
@@ -1015,7 +1063,7 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
       <p class="section-note" style="margin:1rem 0 0"><strong>Ο πίνακας της πλατφόρμας, τα επόμενα</strong> &mdash; ζητήθηκαν στις 11 Σεπτεμβρίου για τη συνάντηση με τους συνεργάτες. Πρώτα τα τρία πρώτα: είσοδος ως διοργανωτής, το ιστορικό του, και η χρήση του. Σύνολο περίπου <strong>13 ώρες</strong>.</p>
       <p class="section-note" style="margin:.6rem 0 0"><strong>Η κράτηση σε αναδυόμενο παράθυρο αποφασίστηκε «όχι»</strong> στις 11 Σεπτεμβρίου (ADR-0031): η πληρωμή μένει στη σελίδα ολοκλήρωσης του Kaiki.</p>
       <ul class="tasks">
-        <li><span class="k">&mdash;</span><span class="t">Είσοδος ως διοργανωτής</span><span class="h">2h</span><span class="d">Με χρονικό όριο, αιτιολογία, καταγραφή και ένδειξη που βλέπει ο διοργανωτής. Το πιο χρήσιμο εργαλείο υποστήριξης &mdash; περιμένει το ADR-0024 (2FA για τους διαχειριστές).</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Είσοδος ως διοργανωτής</span><span class="h">1.5h</span><span class="d">Παραδόθηκε στις 23 Σεπτεμβρίου, με απόφασή σας χωρίς να περιμένει το 2FA: 60 λεπτά, πλήρης πρόσβαση, αιτιολογία, ιστορικό, μπάρα.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Το ιστορικό του διοργανωτή, μόνο για ανάγνωση</span><span class="h">0.75h</span><span class="d">Σήμερα το βλέπει μόνο ο ίδιος στο <code>/app</code>.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Χρήση έναντι πακέτου</span><span class="h">1h</span><span class="d">Σκάφη έναντι ορίου, κρατήσεις και τζίρος 30 ημερών, τελευταία είσοδος.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Κατάσταση συνδέσεων</span><span class="h">1h</span><span class="d">Viva, myDATA, domains και webhooks που αποτυγχάνουν, σε μία ματιά ανά διοργανωτή.</span></li>
@@ -1282,7 +1330,7 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
   </p>
   <div class="scroll">
     <table>
-      <caption>Μηνύματα ανά ημέρα &mdash; 440 συνολικά</caption>
+      <caption>Μηνύματα ανά ημέρα &mdash; 544 συνολικά</caption>
       <thead>
         <tr><th>Ημέρα</th><th style="text-align:right">Μηνύματα</th><th style="width:58%"></th></tr>
       </thead>
@@ -1301,15 +1349,18 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
         <tr><td>14 Σεπ</td><td class="days">16</td><td><span style="display:block;height:9px;background:var(--sea);width:17%"></span></td></tr>
         <tr><td>16 Σεπ</td><td class="days">82</td><td><span style="display:block;height:9px;background:var(--sea);width:87%"></span></td></tr>
         <tr><td>17 Σεπ</td><td class="days">94</td><td><span style="display:block;height:9px;background:var(--sea);width:100%"></span></td></tr>
-        <tr><td>18 Σεπ</td><td class="days">7</td><td><span style="display:block;height:9px;background:var(--sea);width:7%"></span></td></tr>
+        <tr><td>18 Σεπ</td><td class="days">11</td><td><span style="display:block;height:9px;background:var(--sea);width:12%"></span></td></tr>
+        <tr><td>21 Σεπ</td><td class="days">34</td><td><span style="display:block;height:9px;background:var(--sea);width:36%"></span></td></tr>
+        <tr><td>22 Σεπ</td><td class="days">19</td><td><span style="display:block;height:9px;background:var(--sea);width:20%"></span></td></tr>
+        <tr><td>23 Σεπ</td><td class="days">47</td><td><span style="display:block;height:9px;background:var(--sea);width:50%"></span></td></tr>
       </tbody>
       <tfoot>
-        <tr><td>Σύνολο</td><td class="days">440</td><td>15 ημέρες δουλειάς, 38 συνεδρίες, περίπου 48.581 λέξεις</td></tr>
+        <tr><td>Σύνολο</td><td class="days">544</td><td>18 ημέρες δουλειάς, 47 συνεδρίες, περίπου 63.827 λέξεις</td></tr>
       </tfoot>
     </table>
   </div>
   <p class="section-note" style="margin-top:1rem">
-    Από τις 31 Αυγούστου ως το πρωί της 18ης Σεπτεμβρίου. Οι τρεις μεγάλες ημέρες &mdash; 3, 16 και 17
+    Από τις 31 Αυγούστου ως τις 23 Σεπτεμβρίου. Οι τρεις μεγάλες ημέρες &mdash; 3, 16 και 17
     Σεπτεμβρίου &mdash; είναι οι ημέρες που κοιτάξατε το προϊόν σε φυλλομετρητή και όχι σε κείμενο:
     ο γύρος UX, το WordPress από την αρχή ως το τέλος, και η Φάση 1.
   </p>
