@@ -22,6 +22,12 @@ return [
     'heading' => ':count things did not work',
     'subheading' => 'Everything the system tried and could not do, over the last month. Where it can try again, there is a button.',
 
+    'more' => 'More',
+    'details' => 'Details',
+    'times' => ':count times',
+    'at' => 'Last time',
+    'showing' => ':shown of :total',
+
     'empty' => [
         'heading' => 'Nothing went wrong',
         'description' => 'Nothing has failed in the last month. If something does, you will find it here.',

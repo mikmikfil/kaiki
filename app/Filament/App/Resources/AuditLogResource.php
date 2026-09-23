@@ -125,6 +125,7 @@ class AuditLogResource extends Resource
 
                 TextColumn::make('subject_label')
                     ->label(__('audit.subject'))
+                    ->formatStateUsing(static fn (?string $state): ?string => self::subjectLabel($state))
                     ->description(fn (AuditLog $record): ?string => self::subjectTypeLabel($record->subject_type))
                     ->placeholder(__('audit.subject_none')),
 
@@ -180,6 +181,7 @@ class AuditLogResource extends Resource
             TextEntry::make('action')->label(__('audit.action'))->badge(),
             TextEntry::make('subject_label')
                 ->label(__('audit.subject'))
+                ->formatStateUsing(static fn (?string $state): ?string => self::subjectLabel($state))
                 ->placeholder(__('audit.subject_none')),
             TextEntry::make('reason')
                 ->label(__('audit.reason'))
@@ -193,6 +195,23 @@ class AuditLogResource extends Resource
             // it would make the trail less useful than the log line it replaced.
             KeyValueEntry::make('context')->label(__('audit.context')),
         ]);
+    }
+
+    /**
+     * The subject's label with its date the way the panel writes dates
+     * (2026-09-23).
+     *
+     * A departure's label is frozen at write time as «2026-09-25 08:30» — the
+     * row is kept seven years and never rewritten, so the stored text stays
+     * ISO and only the screen turns it into «25/09/2026 08:30».
+     */
+    public static function subjectLabel(?string $label): ?string
+    {
+        if ($label === null) {
+            return null;
+        }
+
+        return (string) preg_replace('/\b(\d{4})-(\d{2})-(\d{2})\b/', '$3/$2/$1', $label);
     }
 
     /**

@@ -61,6 +61,16 @@ class ViewBooking extends ViewRecord
 {
     protected static string $resource = BookingResource::class;
 
+    /**
+     * The booking's own reference as the heading, not Filament's «Προβολή:
+     * Κράτηση» — the reference is what the guest reads out on the phone, and
+     * the words said nothing the page does not (2026-09-23).
+     */
+    public function getTitle(): string
+    {
+        return (string) $this->booking()->reference;
+    }
+
     public function infolist(Infolist $infolist): Infolist
     {
         $money = static fn (int $state): string => MoneyFormatter::format(
@@ -69,27 +79,53 @@ class ViewBooking extends ViewRecord
             MoneyFormatter::currency(),
         );
 
+        // Two across on a phone, three from `lg` (2026-09-23). One field per
+        // row, label above value, was eighty pixels a field and three sections
+        // of 1,600 px for a record that is read standing on the quay; paired,
+        // the trip and the guest each fit one screen. The long values — the
+        // trip's name, the email, the requests — take the whole row there.
+        $grid = ['default' => 2, 'lg' => 3];
+        $wide = ['default' => 2, 'lg' => 1];
+
         return $infolist->schema([
             Section::make(__('bookings.view.trip'))
                 ->schema([
+                    TextEntry::make('product.title')->label(__('bookings.table.product'))->columnSpan($wide),
                     TextEntry::make('reference')->label(__('bookings.table.reference'))->copyable(),
-                    TextEntry::make('product.title')->label(__('bookings.table.product')),
+                    TextEntry::make('status')->label(__('bookings.table.status'))->badge(),
                     TextEntry::make('local_date')->label(__('bookings.table.date'))->date(),
                     TextEntry::make('local_time')->label(__('bookings.view.time'))->time(),
-                    TextEntry::make('status')->label(__('bookings.table.status'))->badge(),
-                    TextEntry::make('source')->label(__('bookings.table.source'))->badge(),
+                    TextEntry::make('source')->label(__('bookings.table.source'))->badge()->columnSpan($wide),
                 ])
-                ->columns(3),
+                ->columns($grid),
 
             Section::make(__('bookings.view.guest'))
                 ->schema([
                     TextEntry::make('guest_name')->label(__('bookings.table.guest')),
-                    TextEntry::make('guest_email')->label(__('bookings.view.email'))->copyable(),
-                    TextEntry::make('guest_phone')->label(__('bookings.view.phone'))->copyable(),
                     TextEntry::make('pax_total')->label(__('bookings.table.pax')),
-                    TextEntry::make('special_requests')->label(__('bookings.view.special_requests'))->columnSpanFull(),
+                    // Tappable: on a phone the next thing after reading the
+                    // address is writing to it or calling it. Coloured, never
+                    // underlined (`.ka-contact` in the panel theme).
+                    TextEntry::make('guest_email')
+                        ->label(__('bookings.view.email'))
+                        ->url(static fn (?string $state): ?string => filled($state) ? 'mailto:' . $state : null)
+                        ->color('primary')
+                        ->extraAttributes(['class' => 'ka-contact'])
+                        ->columnSpan($wide),
+                    TextEntry::make('guest_phone')
+                        ->label(__('bookings.view.phone'))
+                        ->url(static fn (?string $state): ?string => filled($state) ? 'tel:' . preg_replace('/[^\d+]/', '', $state) : null)
+                        ->color('primary')
+                        ->extraAttributes(['class' => 'ka-contact'])
+                        ->columnSpan($wide),
+                    // Only when there are some: an empty «Ειδικά αιτήματα»
+                    // label read as a field that failed to load.
+                    TextEntry::make('special_requests')
+                        ->label(__('bookings.view.special_requests'))
+                        ->visible(static fn (Booking $record): bool => filled($record->special_requests))
+                        ->columnSpanFull(),
                 ])
-                ->columns(3),
+                ->columns($grid),
 
             // The trip's checkout questions (2026-09-17), as they were asked:
             // the booking's first, then each passenger's with their name.
@@ -108,6 +144,7 @@ class ViewBooking extends ViewRecord
                     TextEntry::make('paid_cents')->label(__('bookings.view.paid'))->formatStateUsing($money),
                     TextEntry::make('balance_cents')->label(__('bookings.view.balance'))->formatStateUsing($money),
                 ])
+                // Three sums side by side even on a phone: each is short.
                 ->columns(3)
                 ->visible(static fn (): bool => Auth::user()?->hasCapability(Capability::ViewFinancials) ?? false),
         ]);

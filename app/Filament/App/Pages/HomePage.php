@@ -18,6 +18,7 @@ use App\Models\Product;
 use App\Rules\EmbeddableVideoUrl;
 use App\Support\Tenancy;
 use Closure;
+use Filament\Forms\ComponentContainer;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
@@ -214,7 +215,13 @@ class HomePage extends Page implements HasForms
                     ->helperText(__('home_page.form.blocks.help'))
                     ->schema($this->blockSchema())
                     ->reorderable()
-                    ->collapsible()
+                    // Closed by default (2026-09-23): every section open was
+                    // 28,000 px of phone with «Αποθήκευση» at the bottom of it.
+                    // Closed, the page reads as its own table of contents and
+                    // one tap opens the section being changed. A section just
+                    // added has no type yet and opens, so «Προσθήκη» never
+                    // produces a row the operator has to find and unfold.
+                    ->collapsed(static fn (?ComponentContainer $item): bool => filled($item?->getRawState()['type'] ?? null))
                     // The label on a collapsed block is the operator's own
                     // heading, so a page of six collapsed rows is readable.
                     // Falling back to the type's label rather than to "Block 4"
