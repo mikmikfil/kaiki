@@ -16,11 +16,14 @@
 @php
     $rows = $this->getRows();
     $total = count($rows);
-    $shown = $this->showAll ? $rows : array_slice($rows, 0, \App\Filament\App\Widgets\NeedsAttention::FIRST);
+    $shown = $this->withAnswered(
+        $this->showAll ? $rows : array_slice($rows, 0, \App\Filament\App\Widgets\NeedsAttention::FIRST),
+    );
 @endphp
 
 <x-filament-widgets::widget id="ka-attention">
-    @if ($total > 0)
+    {{-- Kept open while the last answer fades, or it would vanish mid-click. --}}
+    @if ($total > 0 || $this->answered !== [])
         <x-filament::section>
             <x-slot name="heading">{{ __('attention.heading') }}</x-slot>
 
@@ -28,6 +31,21 @@
 
             <ul class="ka-list">
                 @foreach ($shown as $row)
+                    @if ($row['done'] ?? false)
+                        {{-- Answered: the outcome where the row stood, then gone. --}}
+                        <li class="ka-item is-done" wire:key="attention-done-{{ $row['key'] }}"
+                            x-data="{ gone: false }"
+                            x-init="setTimeout(() => { gone = true; setTimeout(() => $wire.forgetAnswer(@js($row['key'])), 400) }, 3500)"
+                            x-bind:class="{ 'is-gone': gone }">
+                            <span class="ka-done">
+                                <x-filament::icon icon="heroicon-m-check-circle" class="ka-done-ic" />
+                                <span>{{ $row['outcome'] }}</span>
+                            </span>
+                            <span class="ka-title">{{ $row['title'] }}</span>
+                        </li>
+                        @continue
+                    @endif
+
                     @php($item = $row['item'])
                     <li class="ka-item" wire:key="attention-{{ $item->key }}">
                         <a class="ka-main" href="{{ $row['url'] }}">
@@ -59,6 +77,9 @@
                                 {{ ($this->cancelDepartureAction)(['departure' => $row['id']]) }}
                             @elseif ($row['decide'] === 'balance')
                                 {{ ($this->markPaidAction)(['booking' => $row['id']]) }}
+                            @elseif ($row['decide'] === 'refund')
+                                {{-- Cash or a transfer to hand back: confirmed once it has gone. --}}
+                                {{ ($this->markRefundedAction)(['refund' => $row['id']]) }}
                             @else
                                 <a class="ka-btn is-primary" href="{{ $row['url'] }}">
                                     <span>{{ $row['action'] }}</span>
@@ -127,6 +148,16 @@
         .ka-btn:hover { filter: brightness(1.08); }
         .ka-btn-ic { width: 1.1rem; height: 1.1rem; }
 
+        .ka-item.is-done {
+            display: grid; gap: .2rem; grid-template-columns: none;
+            border-color: #CBE8D6; background: #F1FAF4;
+            transition: opacity .4s ease;
+        }
+        .ka-item.is-gone { opacity: 0; }
+        .ka-done { display: inline-flex; align-items: center; gap: .35rem; font-size: .85rem; font-weight: 600; color: #1F7A45; }
+        .ka-done-ic { width: 1.1rem; height: 1.1rem; }
+        .ka-item.is-done .ka-title { color: rgb(var(--gray-500)); }
+
         .ka-more {
             margin-top: .75rem; min-height: 2.75rem; padding: 0 1rem; border-radius: .7rem;
             background: #EAF1FA; color: #0F2E57; font-weight: 600; font-size: .9rem;
@@ -146,6 +177,8 @@
         .dark .ka-when { color: rgb(var(--gray-400)); }
         .dark .ka-when .is-undated { color: rgb(var(--gray-500)); }
         .dark .ka-when .is-overdue { color: rgb(var(--danger-400)); }
+        .dark .ka-item.is-done { border-color: rgba(74, 222, 128, .25); background: rgba(74, 222, 128, .06); }
+        .dark .ka-done { color: rgb(134, 239, 172); }
         .dark .ka-btn { background: transparent; border-color: rgba(255, 255, 255, .2); color: #fff; }
     </style>
 </x-filament-widgets::widget>

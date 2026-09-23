@@ -5,15 +5,22 @@ declare(strict_types=1);
 namespace App\Domain\Operations\Support;
 
 use App\Domain\Availability\Actions\SailBelowMinimum;
+use App\Domain\Booking\Actions\ConfirmManualRefund;
+use App\Domain\Booking\Actions\RefundBooking;
 use App\Enums\BookingStatus;
 use App\Enums\DepartureStatus;
 use App\Enums\GuestDetailsStatus;
+use App\Enums\PaymentGatewayName;
+use App\Enums\PaymentKind;
+use App\Enums\PaymentStatus;
 use App\Enums\QuoteStatus;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\IcalSource;
+use App\Models\Payment;
 use App\Models\Quote;
 use App\Support\Format\MoneyFormatter;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 
 /**
@@ -75,7 +82,35 @@ final class AttentionItems
     /** The most rows one panel shows before it stops being readable. */
     private const LIMIT = 8;
 
+    /**
+     * How many rows one source hands «Όλα (N)» at most.
+     *
+     * Only a guard against a pathological morning. It used to be {@see self::LIMIT},
+     * and that cap is what made the list look deaf (Mike, 2026-09-23): answer a
+     * row and the ninth slid into its place, the count stayed on «8», and the
+     * list read as if nothing had happened.
+     */
+    private const SOURCE_LIMIT = 50;
+
     public function __construct(private readonly string $timezone) {}
+
+    /**
+     * How many items there really are — every source counted, none capped.
+     *
+     * What the home-page box and «Όλα (N)» say, so that answering one row
+     * visibly takes the number down by one.
+     */
+    public function count(?Carbon $now = null): int
+    {
+        $now ??= Carbon::now('UTC');
+
+        return $this->underMinimumQuery($now)->count()
+            + $this->missingGuestDetailsQuery($now)->count()
+            + $this->overdueBalancesQuery($now)->count()
+            + $this->expiringQuotesQuery($now)->count()
+            + $this->owedRefundsQuery()->count()
+            + $this->brokenCalendarsQuery()->count();
+    }
 
     /**
      * Everything wanting a decision, soonest deadline first.
@@ -88,10 +123,10 @@ final class AttentionItems
     }
 
     /**
-     * Every item, not only the first page of them: what «Όλα (N)» counts.
+     * Every item, not only the first page of them: what «Όλα (N)» opens.
      *
-     * Each source still stops at {@see self::LIMIT}, so the count is "at least
-     * this many" on a very bad morning — which is still the right thing to say.
+     * Each source still stops at {@see self::SOURCE_LIMIT}; {@see self::count()}
+     * is the true number when that guard bites.
      *
      * @return list<AttentionItem>
      */
@@ -104,6 +139,7 @@ final class AttentionItems
             ...$this->missingGuestDetails($now),
             ...$this->overdueBalances($now),
             ...$this->expiringQuotes($now),
+            ...$this->owedRefunds(),
             ...$this->brokenCalendars(),
         ];
 
@@ -132,15 +168,10 @@ final class AttentionItems
      */
     private function underMinimum(Carbon $now): array
     {
-        $departures = Departure::query()
+        $departures = $this->underMinimumQuery($now)
             ->with(['product', 'vessel'])
-            ->where('status', DepartureStatus::Scheduled->value)
-            ->where('min_pax', '>', 0)
-            ->whereColumn('seats_sold', '<', 'min_pax')
-            ->where('starts_at_utc', '>=', $now)
-            ->where('starts_at_utc', '<', $now->copy()->addHours(self::AT_RISK_HOURS))
             ->orderBy('starts_at_utc')
-            ->limit(self::LIMIT)
+            ->limit(self::SOURCE_LIMIT)
             ->get();
 
         return $departures->map(fn (Departure $departure): AttentionItem => new AttentionItem(
@@ -171,18 +202,10 @@ final class AttentionItems
      */
     private function missingGuestDetails(Carbon $now): array
     {
-        $bookings = Booking::query()
+        $bookings = $this->missingGuestDetailsQuery($now)
             ->with('product')
-            ->where('is_test', false)
-            ->whereIn('status', [
-                BookingStatus::PendingPayment->value,
-                BookingStatus::Confirmed->value,
-            ])
-            ->where('guest_details_status', GuestDetailsStatus::Pending->value)
-            ->where('starts_at_utc', '>=', $now)
-            ->where('starts_at_utc', '<', $now->copy()->addHours(self::DETAILS_HOURS))
             ->orderBy('starts_at_utc')
-            ->limit(self::LIMIT)
+            ->limit(self::SOURCE_LIMIT)
             ->get();
 
         return $bookings->map(fn (Booking $booking): AttentionItem => new AttentionItem(
@@ -210,17 +233,9 @@ final class AttentionItems
      */
     private function overdueBalances(Carbon $now): array
     {
-        $bookings = Booking::query()
-            ->where('is_test', false)
-            ->whereIn('status', [
-                BookingStatus::PendingPayment->value,
-                BookingStatus::Confirmed->value,
-            ])
-            ->where('balance_cents', '>', 0)
-            ->whereNotNull('balance_due_at')
-            ->where('balance_due_at', '<', $now)
+        $bookings = $this->overdueBalancesQuery($now)
             ->orderBy('balance_due_at')
-            ->limit(self::LIMIT)
+            ->limit(self::SOURCE_LIMIT)
             ->get();
 
         return $bookings->map(fn (Booking $booking): AttentionItem => new AttentionItem(
@@ -251,20 +266,10 @@ final class AttentionItems
      */
     private function expiringQuotes(Carbon $now): array
     {
-        $quotes = Quote::query()
+        $quotes = $this->expiringQuotesQuery($now)
             ->with('booking')
-            ->where('status', QuoteStatus::Sent->value)
-            // `valid_until`, which is the column — a quote has no `expires_at`.
-            // `expired_at` is the *stamp* recorded when the sweeper lapses one,
-            // and is null for every quote this list is about.
-            ->where('valid_until', '>=', $now)
-            ->where('valid_until', '<', $now->copy()->addHours(self::AT_RISK_HOURS))
-            // The same test-booking exclusion the dashboard figure makes; a
-            // quote's own row carries no such flag, so it is asked of the
-            // booking the quote belongs to.
-            ->whereHas('booking', static fn ($query) => $query->where('is_test', false))
             ->orderBy('valid_until')
-            ->limit(self::LIMIT)
+            ->limit(self::SOURCE_LIMIT)
             ->get();
 
         return $quotes->map(fn (Quote $quote): AttentionItem => new AttentionItem(
@@ -291,11 +296,10 @@ final class AttentionItems
      */
     private function brokenCalendars(): array
     {
-        $sources = IcalSource::query()
+        $sources = $this->brokenCalendarsQuery()
             ->with('vessel')
-            ->where('consecutive_failures', '>=', IcalSource::ATTENTION_THRESHOLD)
             ->orderByDesc('consecutive_failures')
-            ->limit(self::LIMIT)
+            ->limit(self::SOURCE_LIMIT)
             ->get();
 
         return $sources->map(fn (IcalSource $source): AttentionItem => new AttentionItem(
@@ -322,6 +326,127 @@ final class AttentionItems
      *
      * Sorting is unaffected: converting a zone does not move the instant.
      */
+    /**
+     * Money to hand back by hand: a cancelled booking's cash or transfer share
+     * (2026-09-23).
+     *
+     * A card refund goes through the gateway on its own; these cannot, so
+     * {@see RefundBooking} leaves them as `pending` rows and this is where the
+     * operator is told. The row stays until «Επιστράφηκε»
+     * ({@see ConfirmManualRefund}). Its deadline is the sailing the guest
+     * would have been on — the day they are most likely to be standing in
+     * front of the operator.
+     *
+     * @return list<AttentionItem>
+     */
+    private function owedRefunds(): array
+    {
+        $refunds = $this->owedRefundsQuery()
+            ->with('booking')
+            ->orderBy('id')
+            ->limit(self::SOURCE_LIMIT)
+            ->get();
+
+        return $refunds->map(fn (Payment $refund): AttentionItem => new AttentionItem(
+            key: 'refund:' . $refund->getKey(),
+            severity: AttentionSeverity::Warning,
+            title: (string) __('attention.refund.title', [
+                'amount' => MoneyFormatter::format($refund->amount_cents, null, MoneyFormatter::currency()),
+                'reference' => (string) $refund->booking?->reference,
+            ]),
+            detail: (string) __('attention.refund.detail', [
+                'guest' => (string) $refund->booking?->guest_name,
+                'method' => __('attention.refund.' . $refund->gateway->value),
+            ]),
+            deadline: $this->local($refund->booking->starts_at_utc),
+            subject: $refund,
+        ))->all();
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | The questions themselves, shared by the rows and by count()
+    |--------------------------------------------------------------------------
+    |
+    | One predicate per source, so the number on the box and the rows under it
+    | cannot drift apart.
+    |
+    */
+
+    /** @return Builder<Departure> */
+    private function underMinimumQuery(Carbon $now): Builder
+    {
+        return Departure::query()
+            ->where('status', DepartureStatus::Scheduled->value)
+            ->where('min_pax', '>', 0)
+            ->whereColumn('seats_sold', '<', 'min_pax')
+            ->where('starts_at_utc', '>=', $now)
+            ->where('starts_at_utc', '<', $now->copy()->addHours(self::AT_RISK_HOURS));
+    }
+
+    /** @return Builder<Booking> */
+    private function missingGuestDetailsQuery(Carbon $now): Builder
+    {
+        return Booking::query()
+            ->where('is_test', false)
+            ->whereIn('status', [
+                BookingStatus::PendingPayment->value,
+                BookingStatus::Confirmed->value,
+            ])
+            ->where('guest_details_status', GuestDetailsStatus::Pending->value)
+            ->where('starts_at_utc', '>=', $now)
+            ->where('starts_at_utc', '<', $now->copy()->addHours(self::DETAILS_HOURS));
+    }
+
+    /** @return Builder<Booking> */
+    private function overdueBalancesQuery(Carbon $now): Builder
+    {
+        return Booking::query()
+            ->where('is_test', false)
+            ->whereIn('status', [
+                BookingStatus::PendingPayment->value,
+                BookingStatus::Confirmed->value,
+            ])
+            ->where('balance_cents', '>', 0)
+            ->whereNotNull('balance_due_at')
+            ->where('balance_due_at', '<', $now);
+    }
+
+    /** @return Builder<Quote> */
+    private function expiringQuotesQuery(Carbon $now): Builder
+    {
+        return Quote::query()
+            ->where('status', QuoteStatus::Sent->value)
+            // `valid_until`, which is the column — a quote has no `expires_at`.
+            // `expired_at` is the *stamp* recorded when the sweeper lapses one,
+            // and is null for every quote this list is about.
+            ->where('valid_until', '>=', $now)
+            ->where('valid_until', '<', $now->copy()->addHours(self::AT_RISK_HOURS))
+            // The same test-booking exclusion the dashboard figure makes; a
+            // quote's own row carries no such flag, so it is asked of the
+            // booking the quote belongs to.
+            ->whereHas('booking', static fn ($query) => $query->where('is_test', false));
+    }
+
+    /** @return Builder<Payment> */
+    private function owedRefundsQuery(): Builder
+    {
+        return Payment::query()
+            ->where('kind', PaymentKind::Refund->value)
+            ->where('status', PaymentStatus::Pending->value)
+            ->whereIn('gateway', [
+                PaymentGatewayName::Cash->value,
+                PaymentGatewayName::BankTransfer->value,
+            ]);
+    }
+
+    /** @return Builder<IcalSource> */
+    private function brokenCalendarsQuery(): Builder
+    {
+        return IcalSource::query()
+            ->where('consecutive_failures', '>=', IcalSource::ATTENTION_THRESHOLD);
+    }
+
     private function local(?Carbon $at): ?Carbon
     {
         return $at?->copy()->setTimezone($this->timezone);

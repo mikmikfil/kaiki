@@ -81,5 +81,9 @@ class DatabaseSeeder extends Seeder
         // προσοχή», the manifests, the exports and the reconciliation — which is
         // the one state nobody needs to look at.
         $this->call(DemoBookingSeeder::class);
+
+        // After the bookings, which decide which sailings are short: one a day
+        // stays as the example, not the whole season.
+        $this->call(DemoShortSailingsSeeder::class);
     }
 }

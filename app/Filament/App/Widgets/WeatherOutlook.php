@@ -66,6 +66,16 @@ class WeatherOutlook extends Widget
     }
 
     /**
+     * Not `canView()` on every poll: the rows emptying between two polls is
+     * about the forecast, not the viewer, and a 403 there is a black error box
+     * over the dashboard (the same fault {@see NeedsAttention} had, 2026-09-23).
+     */
+    public function hydrateCanAuthorizeAccess(): void
+    {
+        abort_unless(Tenancy::check() && ! FirstSteps::applies(), 403);
+    }
+
+    /**
      * @return list<array{vessel: Vessel, days: list<WindForecast>, rough: list<WindForecast>, departures: int, passengers: int}>
      */
     public function getRows(): array
