@@ -244,6 +244,7 @@ return [
             'manual' => 'Manual',
             'generated' => 'From a schedule',
             'dst_ambiguous' => 'Clocks change',
+            'from_today' => 'From today',
         ],
 
         'validation' => [

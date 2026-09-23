@@ -12,6 +12,7 @@ use App\Enums\DepositType;
 use App\Filament\App\Navigation\SiblingScreens;
 use App\Filament\App\Resources\RatePlanResource\Pages;
 use App\Filament\Forms\MoneyInput;
+use App\Filament\Support\MoreActions;
 use App\Models\AgeBand;
 use App\Models\Product;
 use App\Models\RatePlan;
@@ -32,7 +33,6 @@ use Filament\Resources\Resource;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
 use Filament\Tables\Actions\Action as TableAction;
-use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\RestoreAction;
@@ -461,9 +461,7 @@ class RatePlanResource extends Resource
             ])
             // Folded away: two labelled buttons on every row were taking a
             // fifth of a table whose whole point is the price column.
-            ->actions([
-                ActionGroup::make([EditAction::make(), DeleteAction::make(), RestoreAction::make()]),
-            ]);
+            ->actions(MoreActions::row(null, [EditAction::make(), DeleteAction::make(), RestoreAction::make()]));
     }
 
     /**

@@ -30,5 +30,81 @@
             min-inline-size: 2.75rem;
             justify-content: center;
         }
+
+        /*
+         * Everything else a thumb reaches for (phone audit, 2026-09-23) — the
+         * checkboxes of a table, the avatar that opens the user menu, the
+         * filter and column buttons over a table, the icons on a repeater row,
+         * the extra-small buttons. Measured at 16–36px. (The EL/EN switch
+         * carries its own, in `locale-switcher`, which is only on the page
+         * when it is.)
+         *
+         * The target grows, the drawing does not: an invisible `::after`
+         * laid over the control's surroundings, so a toolbar or a repeater
+         * header keeps its spacing and nothing on the page moves. Each of
+         * these is `position: relative` already or is made so here.
+         */
+        .fi-ta-table .fi-ta-selection-cell label,
+        .fi-ta-table .fi-ta-page-checkbox-cell label,
+        .fi-ta-table th label:has(.fi-checkbox-input),
+        .fi-user-menu .fi-dropdown-trigger > button,
+        .fi-ta-header-toolbar .fi-icon-btn,
+        .fi-fo-repeater-item-header .fi-icon-btn,
+        .fi-fo-builder-item-header .fi-icon-btn,
+        .fi-btn.fi-size-xs,
+        .fi-btn.fi-btn-size-xs {
+            position: relative;
+        }
+
+        .fi-ta-table .fi-ta-selection-cell label::after,
+        .fi-ta-table th label:has(.fi-checkbox-input)::after {
+            content: '';
+            position: absolute;
+            inset: -13px;
+        }
+
+        .fi-user-menu .fi-dropdown-trigger > button::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+        }
+
+        .fi-ta-header-toolbar .fi-icon-btn::after,
+        .fi-fo-repeater-item-header .fi-icon-btn::after,
+        .fi-fo-builder-item-header .fi-icon-btn::after {
+            content: '';
+            position: absolute;
+            inset: -6px;
+        }
+
+        .fi-btn.fi-size-xs::after,
+        .fi-btn.fi-btn-size-xs::after {
+            content: '';
+            position: absolute;
+            inset: -8px -2px;
+        }
+    }
+
+    /*
+     * A file field on a touch screen says «Επιλέξτε αρχείο», not «Σύρετε τα
+     * αρχεία σας ή Αναζήτηση»: there is nothing to drag from on a phone. The
+     * whole box stays the button it already is; only the words change.
+     */
+    @media (hover: none) and (pointer: coarse) {
+        .filepond--drop-label label {
+            font-size: 0 !important;
+        }
+
+        .filepond--drop-label label::after {
+            {{-- Not @js(): that escapes Greek as \u03.., which CSS reads as garbage. --}}
+            content: {!! json_encode(__('panel.upload_pick'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) !!};
+            font-size: .875rem;
+            font-weight: 600;
+            color: rgb(var(--primary-600));
+        }
+
+        .dark .filepond--drop-label label::after {
+            color: rgb(var(--primary-400));
+        }
     }
 </style>

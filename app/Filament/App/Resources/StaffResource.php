@@ -9,6 +9,7 @@ use App\Enums\Role;
 use App\Exceptions\LastOwnerException;
 use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\StaffResource\Pages;
+use App\Filament\Support\MoreActions;
 use App\Models\User;
 use App\Support\Authorization\Capability;
 use Filament\Forms\Components\Component;
@@ -214,33 +215,7 @@ class StaffResource extends Resource
                         ? __('staff.table.pending')
                         : __('staff.table.active')),
             ])
-            ->actions([
-                Action::make('resend')
-                    ->label(__('staff.actions.resend.label'))
-                    ->icon('heroicon-o-envelope')
-                    ->color('gray')
-                    ->requiresConfirmation()
-                    ->modalHeading(__('staff.actions.resend.heading'))
-                    ->modalDescription(__('staff.actions.resend.description'))
-                    // Only for somebody who has not been in yet. Sending a
-                    // "choose your password" link to a colleague who has one
-                    // reads as a security incident.
-                    ->visible(fn (User $record): bool => $record->email_verified_at === null)
-                    ->action(function (User $record): void {
-                        $actor = Auth::user();
-
-                        if (! $actor instanceof User) {
-                            return;
-                        }
-
-                        app(InviteStaffMember::class)->sendInvitation($record, $actor);
-
-                        Notification::make()
-                            ->success()
-                            ->title(__('staff.actions.resend.done', ['email' => $record->email]))
-                            ->send();
-                    }),
-
+            ->actions(MoreActions::row(
                 /*
                  * Editing is a modal with the role checkboxes filled by hand.
                  *
@@ -302,11 +277,36 @@ class StaffResource extends Resource
                             ->success()
                             ->title(__('staff.actions.edit.done'))
                             ->send();
-                    }),
+                    }), [
+                        Action::make('resend')
+                            ->label(__('staff.actions.resend.label'))
+                            ->icon('heroicon-o-envelope')
+                            ->color('gray')
+                            ->requiresConfirmation()
+                            ->modalHeading(__('staff.actions.resend.heading'))
+                            ->modalDescription(__('staff.actions.resend.description'))
+                            // Only for somebody who has not been in yet. Sending a
+                            // "choose your password" link to a colleague who has one
+                            // reads as a security incident.
+                            ->visible(fn (User $record): bool => $record->email_verified_at === null)
+                            ->action(function (User $record): void {
+                                $actor = Auth::user();
 
-                DeleteAction::make()
-                    ->modalDescription(__('staff.actions.delete.description'))
-                    /*
+                                if (! $actor instanceof User) {
+                                    return;
+                                }
+
+                                app(InviteStaffMember::class)->sendInvitation($record, $actor);
+
+                                Notification::make()
+                                    ->success()
+                                    ->title(__('staff.actions.resend.done', ['email' => $record->email]))
+                                    ->send();
+                            }),
+
+                        DeleteAction::make()
+                            ->modalDescription(__('staff.actions.delete.description'))
+                            /*
                      * `RoleAssignment` refuses to delete the last owner's role
                      * and throws. Caught here and turned into a sentence,
                      * because the alternative an operator sees is a five
@@ -314,28 +314,28 @@ class StaffResource extends Resource
                      * somebody who has left) is reasonable, it is only the order
                      * that is wrong.
                      */
-                    ->action(function (User $record): void {
-                        try {
-                            DB::transaction(function () use ($record): void {
-                                $record->roleAssignments()->get()->each->delete();
-                                $record->delete();
-                            });
-                        } catch (LastOwnerException) {
-                            Notification::make()
-                                ->danger()
-                                ->title(__('staff.actions.delete.last_owner'))
-                                ->body(__('staff.actions.delete.last_owner_body'))
-                                ->send();
+                            ->action(function (User $record): void {
+                                try {
+                                    DB::transaction(function () use ($record): void {
+                                        $record->roleAssignments()->get()->each->delete();
+                                        $record->delete();
+                                    });
+                                } catch (LastOwnerException) {
+                                    Notification::make()
+                                        ->danger()
+                                        ->title(__('staff.actions.delete.last_owner'))
+                                        ->body(__('staff.actions.delete.last_owner_body'))
+                                        ->send();
 
-                            return;
-                        }
+                                    return;
+                                }
 
-                        Notification::make()
-                            ->success()
-                            ->title(__('staff.actions.delete.done'))
-                            ->send();
-                    }),
-            ])
+                                Notification::make()
+                                    ->success()
+                                    ->title(__('staff.actions.delete.done'))
+                                    ->send();
+                            }),
+                    ]))
             ->defaultSort('name');
     }
 

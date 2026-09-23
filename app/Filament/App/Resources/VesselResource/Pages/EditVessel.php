@@ -6,6 +6,7 @@ namespace App\Filament\App\Resources\VesselResource\Pages;
 
 use App\Filament\App\Resources\VesselResource;
 use App\Filament\App\Resources\VesselResource\Pages\Concerns\TranslatesVesselFormData;
+use App\Filament\Support\MoreActions;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\ForceDeleteAction;
@@ -21,10 +22,10 @@ class EditVessel extends EditRecord
     /** @return array<int, Action> */
     protected function getHeaderActions(): array
     {
-        return [
+        return MoreActions::header([], [
             DeleteAction::make(),
             RestoreAction::make(),
             ForceDeleteAction::make(),
-        ];
+        ]);
     }
 }

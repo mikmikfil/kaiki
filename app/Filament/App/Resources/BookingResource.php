@@ -251,9 +251,14 @@ class BookingResource extends Resource
                     ->date()
                     ->sortable(),
 
+                // On a phone's box and on a desktop row, but not on a tablet
+                // held upright, where eight columns cut the status off (phone
+                // audit, 2026-09-23). `box-lists` hides the class at 768–1023.
                 TextColumn::make('guest_name')
                     ->label(__('bookings.table.guest'))
-                    ->searchable(),
+                    ->searchable()
+                    ->extraHeaderAttributes(['class' => 'ka-tablet-hidden'])
+                    ->extraCellAttributes(['class' => 'ka-tablet-hidden']),
 
                 TextColumn::make('product.title')
                     ->label(__('bookings.table.product'))
@@ -262,7 +267,7 @@ class BookingResource extends Resource
 
                 TextColumn::make('pax_total')
                     ->label(__('bookings.table.pax'))
-                    ->visibleFrom('md'),
+                    ->visibleFrom('lg'),
 
                 TextColumn::make('status')
                     ->label(__('bookings.table.status'))
@@ -276,7 +281,7 @@ class BookingResource extends Resource
                     ->label(__('bookings.table.source'))
                     // Label and colour from the enum (`HasLabel`, `HasColor`).
                     ->badge()
-                    ->visibleFrom('md'),
+                    ->visibleFrom('lg'),
 
                 TextColumn::make('total_cents')
                     ->label(__('bookings.table.total'))

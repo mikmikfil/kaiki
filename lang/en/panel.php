@@ -62,4 +62,8 @@ return [
         'increase' => 'Increase',
     ],
 
+    'more_actions' => 'More',
+
+    'upload_pick' => 'Choose a file',
+
 ];

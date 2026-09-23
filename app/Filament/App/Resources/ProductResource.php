@@ -19,6 +19,7 @@ use App\Filament\App\Resources\ProductResource\RelationManagers\QuestionsRelatio
 use App\Filament\App\Resources\ProductResource\RelationManagers\RatePlansRelationManager;
 use App\Filament\App\Resources\ProductResource\RelationManagers\ScheduleRulesRelationManager;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\CancellationPolicy;
 use App\Models\Port;
 use App\Models\Product;
@@ -1232,7 +1233,7 @@ class ProductResource extends Resource
             ->filters([
                 TrashedFilter::make(),
             ])
-            ->actions([
+            ->actions(MoreActions::row(EditAction::make(), [
                 /*
                  * **«Δείτε τη σελίδα»** (product owner, 2026-09-22).
                  *
@@ -1249,10 +1250,9 @@ class ProductResource extends Resource
                     ->color('gray')
                     ->url(static fn (Product $record): ?string => self::previewUrl($record), shouldOpenInNewTab: true)
                     ->visible(static fn (Product $record): bool => self::previewUrl($record) !== null),
-                EditAction::make(),
                 DeleteAction::make(),
                 RestoreAction::make(),
-            ]);
+            ]));
     }
 
     /**

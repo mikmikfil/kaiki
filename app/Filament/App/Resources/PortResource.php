@@ -6,6 +6,7 @@ namespace App\Filament\App\Resources;
 
 use App\Filament\App\Resources\PortResource\Pages;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\Port;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\FileUpload;
@@ -202,12 +203,11 @@ class PortResource extends Resource
                     ->label(__('catalog.port.form.is_active.label')),
                 TrashedFilter::make(),
             ])
-            ->actions([
-                EditAction::make(),
+            ->actions(MoreActions::row(EditAction::make(), [
                 DeleteAction::make(),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
-            ])
+            ]))
             ->searchPlaceholder(__('catalog.shared.search_placeholder'));
     }
 

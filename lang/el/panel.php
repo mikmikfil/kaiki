@@ -64,4 +64,10 @@ return [
         'increase' => 'Αύξηση',
     ],
 
+    // «⋯» — the row's and the page's less-used actions, behind one button.
+    'more_actions' => 'Περισσότερα',
+
+    // A file field on a touch screen, which has nothing to drag from.
+    'upload_pick' => 'Επιλέξτε αρχείο',
+
 ];

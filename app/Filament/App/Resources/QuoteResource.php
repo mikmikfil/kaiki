@@ -10,6 +10,7 @@ use App\Enums\QuoteLineKind;
 use App\Enums\QuoteStatus;
 use App\Filament\App\Navigation\SiblingScreens;
 use App\Filament\App\Resources\QuoteResource\Pages;
+use App\Filament\Support\MoreActions;
 use App\Models\Quote;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DateTimePicker;
@@ -248,15 +249,14 @@ class QuoteResource extends Resource
                     ->label(__('quotes.quote.table.status'))
                     ->options(QuoteStatus::options()),
             ])
-            ->actions([
+            ->actions(MoreActions::row(
                 // Drafts only. See the class docblock: a sent quote is an offer
                 // somebody holds a link to.
                 EditAction::make()
-                    ->visible(static fn (Quote $record): bool => $record->status === QuoteStatus::Draft),
-
-                static::sendAction(),
-                static::reviseAction(),
-            ]);
+                    ->visible(static fn (Quote $record): bool => $record->status === QuoteStatus::Draft), [
+                        static::sendAction(),
+                        static::reviseAction(),
+                    ]));
     }
 
     /**

@@ -8,6 +8,7 @@ use App\Domain\Availability\Support\WeekdayMask;
 use App\Domain\Catalog\Actions\SaveScheduleRule;
 use App\Enums\BookingMode;
 use App\Filament\App\Resources\ScheduleRuleResource\Pages;
+use App\Filament\Support\MoreActions;
 use App\Models\Product;
 use App\Models\ScheduleRule;
 use App\Models\Vessel;
@@ -256,7 +257,7 @@ class ScheduleRuleResource extends Resource
                     ->boolean(),
             ])
             ->defaultSort('valid_from')
-            ->actions([EditAction::make(), DeleteAction::make()]);
+            ->actions(MoreActions::row(EditAction::make(), [DeleteAction::make()]));
     }
 
     /** "Daily", or the day names — never the number the column stores. */

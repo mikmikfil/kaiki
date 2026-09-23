@@ -11,6 +11,7 @@ use App\Enums\VesselType;
 use App\Filament\App\Navigation\SiblingScreens;
 use App\Filament\App\Resources\VesselResource\Pages;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\Port;
 use App\Models\Vessel;
 use App\Rules\VesselCapacityNotLowered;
@@ -473,12 +474,11 @@ class VesselResource extends Resource
                     ->options(VesselType::options()),
                 TrashedFilter::make(),
             ])
-            ->actions([
-                EditAction::make(),
+            ->actions(MoreActions::row(EditAction::make(), [
                 DeleteAction::make(),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
-            ])
+            ]))
             ->searchPlaceholder(__('catalog.shared.search_placeholder'));
     }
 

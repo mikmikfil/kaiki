@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources\ScheduleRuleResource\Pages;
 
 use App\Filament\App\Resources\ScheduleRuleResource;
+use App\Filament\Support\MoreActions;
 use App\Models\ScheduleRule;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -28,7 +29,7 @@ class EditScheduleRule extends EditRecord
      */
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make()];
+        return MoreActions::header([], [DeleteAction::make()]);
     }
 
     /**

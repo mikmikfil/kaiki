@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources;
 use App\Domain\Availability\Actions\CreateVesselBlock;
 use App\Enums\BlockReason;
 use App\Filament\App\Resources\VesselBlockResource\Pages;
+use App\Filament\Support\MoreActions;
 use App\Models\Vessel;
 use App\Models\VesselBlock;
 use Filament\Forms\Components\Component;
@@ -200,7 +201,7 @@ class VesselBlockResource extends Resource
                     ->label(__('availability.block.table.reason'))
                     ->options(BlockReason::options()),
             ])
-            ->actions([
+            ->actions(MoreActions::row(null, [
                 // No edit: a block is a window, and changing one is clearer as
                 // delete-and-recreate than as a partial update whose halves
                 // have to stay consistent.
@@ -209,7 +210,7 @@ class VesselBlockResource extends Resource
                     // free a boat somebody paid for, or make a promise the next
                     // sync breaks.
                     ->visible(static fn (VesselBlock $record): bool => $record->reason->isOperatorOwned()),
-            ]);
+            ]));
     }
 
     /** @return array<int, string> */

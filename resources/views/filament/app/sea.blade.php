@@ -181,6 +181,7 @@
         background: transparent;
         box-shadow: none;
         overflow-x: auto;
+        scroll-padding-inline: 2.5rem;
         scrollbar-width: none;
         -ms-overflow-style: none;
     }
@@ -209,6 +210,85 @@
 
     .ka-line-tabs > nav.fi-tabs .fi-tabs-item.fi-active .fi-tabs-item-label {
         color: #15233A;
+    }
+
+    /*
+     * Where the row runs past the screen, its cut edge fades (phone audit,
+     * 2026-09-23): with no scrollbar, a row that ended flush on «Όρο» gave no
+     * sign that «Σελίδα» existed. The script at the end of this file says which
+     * edges have more behind them, and brings the open tab into view.
+     */
+    .ka-line-tabs > nav.fi-tabs[data-more-end] {
+        -webkit-mask-image: linear-gradient(to left, transparent, #000 3rem);
+        mask-image: linear-gradient(to left, transparent, #000 3rem);
+    }
+
+    .ka-line-tabs > nav.fi-tabs[data-more-start] {
+        -webkit-mask-image: linear-gradient(to right, transparent, #000 3rem);
+        mask-image: linear-gradient(to right, transparent, #000 3rem);
+    }
+
+    .ka-line-tabs > nav.fi-tabs[data-more-start][data-more-end] {
+        -webkit-mask-image: linear-gradient(to right, transparent, #000 3rem, #000 calc(100% - 3rem), transparent);
+        mask-image: linear-gradient(to right, transparent, #000 3rem, #000 calc(100% - 3rem), transparent);
+    }
+
+    .dark .ka-line-tabs > nav.fi-tabs {
+        border-block-end-color: rgba(255, 255, 255, .1);
+    }
+
+    .dark .ka-line-tabs > nav.fi-tabs .fi-tabs-item-label {
+        color: rgb(var(--gray-400));
+    }
+
+    .dark .ka-line-tabs > nav.fi-tabs .fi-tabs-item.fi-active {
+        border-block-end-color: rgb(var(--primary-400));
+    }
+
+    .dark .ka-line-tabs > nav.fi-tabs .fi-tabs-item.fi-active .fi-tabs-item-label {
+        color: #fff;
+    }
+
+    /*
+     * Filament's own tabs over a list («Όλες · Πρόχειρη · Σε πώληση …») wrap
+     * onto a second row on a phone rather than scrolling sideways out of
+     * sight: they are pills, and a second row of pills reads as more of the
+     * same.
+     */
+    @media (max-width: 639.98px) {
+        :not(.ka-line-tabs) > nav.fi-tabs {
+            flex-wrap: wrap;
+            overflow-x: visible;
+            justify-content: flex-start;
+        }
+    }
+
+    /*
+     * A page whose header ends in «⋯» ({@see \App\Filament\Support\MoreActions})
+     * keeps its buttons beside the title on a phone instead of on a row of
+     * their own under it; they drop below only when the two do not fit.
+     */
+    @media (max-width: 639.98px) {
+        .fi-header:has(.fi-ac-btn-group) {
+            flex-direction: row;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            justify-content: space-between;
+            column-gap: .75rem;
+            row-gap: .75rem;
+        }
+
+        .fi-header:has(.fi-ac-btn-group) > div:first-child {
+            flex: 1 1 10rem;
+            min-width: 0;
+        }
+    }
+
+    /* The «Μενού» button: the sidebar's navy all but vanished on the dark top
+       bar, so it takes the sidebar's lighter active blue there. */
+    .dark .ka-mobile-menu-btn {
+        background: var(--ka-sea-active);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
     }
 
     .ka-line-tabs > nav.fi-tabs .fi-badge {
@@ -261,6 +341,45 @@
     .ka-locale-switch-buttons button:focus-visible {
         outline: 2px solid var(--ka-sea-deep);
         outline-offset: -2px;
+    }
+
+    .dark .ka-locale-switch-label {
+        color: rgb(var(--gray-400));
+    }
+
+    .dark .ka-locale-switch-buttons {
+        border-color: rgba(255, 255, 255, .15);
+        background: rgba(255, 255, 255, .05);
+    }
+
+    .dark .ka-locale-switch-buttons button {
+        color: rgb(var(--gray-300));
+    }
+
+    .dark .ka-locale-switch-buttons button.ka-locale-on {
+        background: rgb(var(--primary-500));
+        color: rgb(var(--primary-950));
+    }
+
+    .dark .ka-locale-switch-buttons button:focus-visible {
+        outline-color: rgb(var(--primary-400));
+    }
+
+    /* On a phone the switch is a small pair at the right, not a row with a
+       sentence: the label is the buttons' accessible name already. */
+    @media (max-width: 639.98px) {
+        .ka-locale-switch-label {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
+        }
+
+        .ka-locale-switch-buttons button {
+            min-height: 2.75rem;
+        }
     }
 
     form[data-ka-locale="el"] .ka-locale--en,
@@ -399,6 +518,25 @@
         box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
     }
 
+    /* On a phone the well and the row inside it each gave a full inset, and
+       an age band's fields came out 60px narrower than the rest of the form
+       (phone audit, 2026-09-23). The well keeps a sliver; the rows keep a
+       little less of their own. */
+    @media (max-width: 639.98px) {
+        .ka-nest {
+            padding: .5rem .4rem;
+            border-radius: .6rem;
+        }
+
+        .ka-nest .fi-fo-repeater-item-content {
+            padding: .75rem !important;
+        }
+
+        .ka-nest .fi-fo-repeater-item-header {
+            padding-inline: .75rem !important;
+        }
+    }
+
     .dark .ka-nest .fi-input-wrp,
     .dark .ka-nest .fi-fo-repeater-item,
     .dark .ka-nest .fi-btn {
@@ -412,9 +550,62 @@
      * left in the value track, a hundred pixels wide, reading four words to
      * the line. A group header is not a field; it spans the card.
      */
-    tr:has(> td > .fi-ta-group-header),
-    td:has(> .fi-ta-group-header) {
-        display: block !important;
-        width: 100% !important;
+    /* Phone only (2026-09-23): unscoped, it turned the heading row of every
+       grouped table on a tablet or a desktop into a block a third of the
+       table wide. */
+    @media (max-width: 767.98px) {
+        tr:has(> td > .fi-ta-group-header),
+        td:has(> .fi-ta-group-header) {
+            display: block !important;
+            width: 100% !important;
+        }
     }
 </style>
+
+<script>
+    /*
+     * The line tabs' cut edges and the open tab (see the styles above). Runs on
+     * load, on every Livewire redraw and when a tab is chosen; a row that fits
+     * gets neither mark and so no fade.
+     */
+    (function () {
+        const mark = (nav) => {
+            const end = nav.scrollWidth - nav.clientWidth - nav.scrollLeft;
+
+            nav.toggleAttribute('data-more-start', nav.scrollLeft > 2);
+            nav.toggleAttribute('data-more-end', end > 2);
+        };
+
+        const reveal = (nav) => {
+            const active = nav.querySelector('.fi-tabs-item.fi-active');
+
+            if (active && nav.scrollWidth > nav.clientWidth) {
+                const left = active.getBoundingClientRect().left - nav.getBoundingClientRect().left + nav.scrollLeft;
+                const right = left + active.offsetWidth;
+
+                if (left < nav.scrollLeft + 40 || right > nav.scrollLeft + nav.clientWidth - 40) {
+                    nav.scrollLeft = left - (nav.clientWidth - active.offsetWidth) / 2;
+                }
+            }
+
+            mark(nav);
+        };
+
+        const run = () => document.querySelectorAll('.ka-line-tabs > nav.fi-tabs').forEach((nav) => {
+            if (! nav.dataset.kaTabs) {
+                nav.dataset.kaTabs = '1';
+                nav.addEventListener('scroll', () => mark(nav), { passive: true });
+                nav.addEventListener('click', () => setTimeout(() => reveal(nav), 60));
+            }
+
+            reveal(nav);
+        });
+
+        document.addEventListener('DOMContentLoaded', run);
+        document.addEventListener('livewire:navigated', run);
+        window.addEventListener('resize', run);
+        document.addEventListener('livewire:init', () => {
+            window.Livewire.hook('morph.updated', () => requestAnimationFrame(run));
+        });
+    })();
+</script>

@@ -243,6 +243,7 @@ return [
             'manual' => 'Χειροκίνητη',
             'generated' => 'Από δρομολόγιο',
             'dst_ambiguous' => 'Διπλή ώρα',
+            'from_today' => 'Από σήμερα',
         ],
 
         'validation' => [

@@ -8,6 +8,7 @@ use App\Filament\App\Pages\HomePage;
 use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\FaqResource\Pages;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\Faq;
 use App\Models\Product;
 use App\Policies\FaqPolicy;
@@ -170,10 +171,9 @@ class FaqResource extends Resource
                 TernaryFilter::make('is_published')
                     ->label(__('faq.form.is_published.label')),
             ])
-            ->actions([
-                EditAction::make(),
+            ->actions(MoreActions::row(EditAction::make(), [
                 DeleteAction::make(),
-            ])
+            ]))
             ->emptyStateHeading(__('faq.empty.heading'))
             ->emptyStateDescription(__('faq.empty.body'));
     }

@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources;
 use App\Domain\Catalog\Actions\SaveCancellationPolicy;
 use App\Filament\App\Resources\CancellationPolicyResource\Pages;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\CancellationPolicy;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Repeater;
@@ -236,11 +237,10 @@ class CancellationPolicyResource extends Resource
             ])
             ->defaultSort('is_default', 'desc')
             ->filters([TrashedFilter::make()])
-            ->actions([
-                EditAction::make(),
+            ->actions(MoreActions::row(EditAction::make(), [
                 DeleteAction::make(),
                 RestoreAction::make(),
-            ]);
+            ]));
     }
 
     /**

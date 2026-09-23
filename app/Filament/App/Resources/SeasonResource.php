@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources;
 use App\Domain\Catalog\Actions\SaveSeason;
 use App\Filament\App\Resources\SeasonResource\Pages;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\Season;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DatePicker;
@@ -210,7 +211,7 @@ class SeasonResource extends Resource
                     ->visible(static fn (): bool => RatePlanResource::hasNoTrips())
                     ->url(static fn (): string => ProductResource::getUrl('create')),
             ])
-            ->actions([EditAction::make(), DeleteAction::make(), RestoreAction::make()]);
+            ->actions(MoreActions::row(EditAction::make(), [DeleteAction::make(), RestoreAction::make()]));
     }
 
     /**

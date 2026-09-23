@@ -7,8 +7,10 @@ namespace App\Filament\App\Resources\ProductResource\Pages;
 use App\Domain\Catalog\Actions\SaveProduct;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource;
+use App\Filament\Support\MoreActions;
 use App\Models\Product;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Notifications\Notification;
@@ -41,10 +43,10 @@ class EditProduct extends EditRecord
         }
     }
 
-    /** @return array<int, Action> */
+    /** @return array<int, Action|ActionGroup> */
     protected function getHeaderActions(): array
     {
-        return [
+        return MoreActions::header([
             // The guest's own page, for the trip being edited. Absent while it
             // is a draft: there is nothing published to look at.
             Action::make('preview')
@@ -53,6 +55,7 @@ class EditProduct extends EditRecord
                 ->color('gray')
                 ->url(fn (): ?string => ProductResource::previewUrl($this->product()), shouldOpenInNewTab: true)
                 ->visible(fn (): bool => ProductResource::previewUrl($this->product()) !== null),
+        ], [
             Action::make('archive')
                 ->label(__('catalog.product.status_actions.archive'))
                 ->icon('heroicon-o-archive-box')
@@ -69,7 +72,7 @@ class EditProduct extends EditRecord
                 ->action(fn () => $this->setStatusOnly(ProductStatus::Draft, 'unarchived')),
             DeleteAction::make(),
             RestoreAction::make(),
-        ];
+        ]);
     }
 
     /**

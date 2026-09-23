@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources\WebhookEndpointResource\Pages;
 
 use App\Filament\App\Resources\WebhookEndpointResource;
+use App\Filament\Support\MoreActions;
 use App\Models\WebhookEndpoint;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -39,31 +41,10 @@ class EditWebhookEndpoint extends EditRecord
     #[Locked]
     public ?string $revealedSecret = null;
 
-    /** @return array<int, Action> */
+    /** @return array<int, Action|ActionGroup> */
     protected function getHeaderActions(): array
     {
-        return [
-            Action::make('rotate')
-                ->label(__('webhooks.actions.rotate.label'))
-                ->icon('heroicon-o-arrow-path')
-                ->color('warning')
-                ->requiresConfirmation()
-                ->modalHeading(__('webhooks.actions.rotate.heading'))
-                // Named consequence rather than "are you sure": the operator
-                // has to update their receiver, and saying so is the whole
-                // value of the confirmation.
-                ->modalDescription(__('webhooks.actions.rotate.description'))
-                ->action(function (): void {
-                    /** @var WebhookEndpoint $endpoint */
-                    $endpoint = $this->getRecord();
-
-                    $endpoint->forceFill(['signing_secret' => WebhookEndpoint::freshSecret()])->save();
-
-                    $this->revealedSecret = $endpoint->signing_secret;
-
-                    $this->replaceMountedAction('reveal');
-                }),
-
+        return MoreActions::header([
             Action::make('reenable')
                 ->label(__('webhooks.actions.reenable.label'))
                 ->icon('heroicon-o-play')
@@ -88,9 +69,30 @@ class EditWebhookEndpoint extends EditRecord
                         ->success()
                         ->send();
                 }),
+        ], [
+            Action::make('rotate')
+                ->label(__('webhooks.actions.rotate.label'))
+                ->icon('heroicon-o-arrow-path')
+                ->color('warning')
+                ->requiresConfirmation()
+                ->modalHeading(__('webhooks.actions.rotate.heading'))
+                // Named consequence rather than "are you sure": the operator
+                // has to update their receiver, and saying so is the whole
+                // value of the confirmation.
+                ->modalDescription(__('webhooks.actions.rotate.description'))
+                ->action(function (): void {
+                    /** @var WebhookEndpoint $endpoint */
+                    $endpoint = $this->getRecord();
+
+                    $endpoint->forceFill(['signing_secret' => WebhookEndpoint::freshSecret()])->save();
+
+                    $this->revealedSecret = $endpoint->signing_secret;
+
+                    $this->replaceMountedAction('reveal');
+                }),
 
             DeleteAction::make(),
-        ];
+        ]);
     }
 
     public function revealAction(): Action

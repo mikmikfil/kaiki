@@ -15,6 +15,7 @@ use App\Enums\DepartureStatus;
 use App\Enums\WeatherChoice;
 use App\Filament\App\Resources\DepartureResource\Actions\ManifestAction;
 use App\Filament\App\Resources\DepartureResource\Pages;
+use App\Filament\Support\MoreActions;
 use App\Models\Departure;
 use App\Models\Product;
 use App\Models\Tenant;
@@ -37,7 +38,9 @@ use Filament\Tables\Actions\BulkAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -185,11 +188,28 @@ class DepartureResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            /*
+             * One heading per day (phone audit, 2026-09-23). Three thousand
+             * rows read as a timetable once the day is said once above its
+             * sailings rather than on every one of them — so the date column
+             * starts hidden, and each phone card leads with its time.
+             */
+            ->defaultGroup(
+                Group::make('local_date')
+                    ->label(__('availability.departure.table.local_date'))
+                    ->titlePrefixedWithLabel(false)
+                    ->getTitleFromRecordUsing(static fn (Departure $record): string => self::dayHeading($record->local_date))
+                    ->collapsible(),
+            )
+            ->groupingSettingsHidden()
             ->columns([
                 TextColumn::make('local_date')
                     ->label(__('availability.departure.table.local_date'))
                     ->date()
-                    ->sortable(),
+                    ->sortable()
+                    // The day heading says it once per day; the column is one
+                    // tap away under «Στήλες» for anyone who wants it back.
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 // «07:30», not the column's «07:30:00» (product owner, 2026-09-17).
                 TextColumn::make('local_time')
@@ -237,17 +257,49 @@ class DepartureResource extends Resource
                 IconColumn::make('dst_ambiguous')
                     ->label(__('availability.departure.table.dst_ambiguous'))
                     ->boolean()
-                    ->toggleable()
+                    // A red cross on every row but two a year, and the column
+                    // that pushed «Κατάσταση επιβατών» off a 1440px screen.
+                    // One tap away under «Στήλες».
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->visibleFrom('md'),
             ])
             ->defaultSort('starts_at_utc')
             ->filters([
+                /*
+                 * «Από σήμερα», on by default (phone audit, 2026-09-23): the
+                 * list opened on 16/9, a week in the past, at the top of 3,609
+                 * rows. The past is one tap away — switch the filter off.
+                 */
+                Filter::make('from_today')
+                    ->label(__('availability.departure.table.from_today'))
+                    ->toggle()
+                    ->default()
+                    ->query(static fn (Builder $query): Builder => $query->whereDate(
+                        'local_date',
+                        '>=',
+                        Carbon::now(Tenancy::current()?->timezone ?: (string) config('app.timezone', 'UTC'))->toDateString(),
+                    )),
+
                 SelectFilter::make('status')
                     ->label(__('availability.departure.table.status'))
                     ->options(DepartureStatus::options()),
             ])
-            ->actions([ManifestAction::make(), EditAction::make()])
+            ->actions(MoreActions::row(ManifestAction::make(), [EditAction::make()]))
             ->bulkActions([self::weatherCancellation()]);
+    }
+
+    /** «Πέμπτη 24 Σεπτεμβρίου», with the year only when it is not this one. */
+    public static function dayHeading(?Carbon $date): string
+    {
+        if ($date === null) {
+            return '';
+        }
+
+        $date = $date->copy()->locale(app()->getLocale());
+
+        return $date->year === Carbon::now()->year
+            ? $date->translatedFormat('l j F')
+            : $date->translatedFormat('l j F Y');
     }
 
     /**
