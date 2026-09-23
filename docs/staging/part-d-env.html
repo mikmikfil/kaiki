@@ -126,6 +126,17 @@ MAIL_FROM_NAME="${APP_NAME}"</pre>
     αποτύχει. Όλα τα email προς πελάτες φεύγουν από την ουρά, άρα χωρίς worker δεν φεύγει τίποτα.
 </p>
 
+<p>
+    <strong>Ένα γραμματοκιβώτιο για όλους τους πλοιοκτήτες</strong> (απόφαση 23/9). Κάθε email φεύγει από
+    το <code>MAIL_FROM_ADDRESS</code> με <em>όνομα αποστολέα τον πλοιοκτήτη</em> — ο επισκέπτης βλέπει
+    «Aegean Blue» — και με <code>Reply-To</code> το email που έχει ο πλοιοκτήτης στα «Στοιχεία
+    επιχείρησης», οπότε η απάντηση πάει σε εκείνον. Το <code>MAIL_FROM_NAME</code> χρησιμοποιείται μόνο
+    όταν δεν υπάρχει πλοιοκτήτης. Δύο πράγματα πρέπει να ταιριάζουν: το <code>MAIL_FROM_ADDRESS</code>
+    να είναι <em>το ίδιο</em> γραμματοκιβώτιο με το <code>MAIL_USERNAME</code> (οι περισσότεροι
+    servers αρνούνται άλλον αποστολέα), και το domain του να έχει SPF και DKIM — αλλιώς οι
+    επιβεβαιώσεις πέφτουν στα spam.
+</p>
+
 <h2>Kaiki</h2>
 
 <pre class="copy"><span class="file">.env — Kaiki</span>KAIKI_HOSTED_HOST=book.kaiki.testing.gr

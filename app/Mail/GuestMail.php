@@ -8,6 +8,7 @@ use App\Domain\Booking\Support\BookingCalendarInvite;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Notifications\Actions\SendNotification;
 use App\Enums\NotificationTemplate;
+use App\Mail\Support\OperatorSender;
 use App\Models\Booking;
 use App\Models\Tenant;
 use App\Support\Tenancy;
@@ -56,7 +57,13 @@ class GuestMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $tenant = $this->tenant();
+
         return new Envelope(
+            // From the platform, in the operator's name; answered to the
+            // operator ({@see OperatorSender} says why not their own SMTP).
+            from: OperatorSender::from($tenant),
+            replyTo: OperatorSender::replyTo($tenant),
             subject: __("mail.{$this->template->value}.subject", [
                 'reference' => $this->booking->reference,
             ]),
@@ -144,9 +151,7 @@ class GuestMail extends Mailable
      */
     private function brand(): array
     {
-        $tenant = Tenancy::withoutTenancy(
-            fn (): ?Tenant => Tenant::query()->find($this->booking->tenant_id),
-        );
+        $tenant = $this->tenant();
 
         if (! $tenant instanceof Tenant) {
             return [];
@@ -156,5 +161,13 @@ class GuestMail extends Mailable
             $tenant,
             SendNotification::localeFor($this->booking),
         ));
+    }
+
+    /** The booking's operator, read past the tenant scope — a queue has none. */
+    private function tenant(): ?Tenant
+    {
+        return Tenancy::withoutTenancy(
+            fn (): ?Tenant => Tenant::query()->find($this->booking->tenant_id),
+        );
     }
 }
