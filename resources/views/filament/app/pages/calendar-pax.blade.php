@@ -94,7 +94,7 @@
             <p class="text-sm text-gray-500">{{ __('calendar.pax.nobody') }}</p>
         @else
             <table class="w-full text-sm">
-                <thead class="text-left text-xs uppercase text-gray-500">
+                <thead class="text-left text-xs text-gray-500">
                     <tr>
                         <th class="py-1">{{ __('calendar.pax.guest') }}</th>
                         <th class="py-1">{{ __('calendar.pax.people') }}</th>

@@ -75,7 +75,7 @@ class ViewBooking extends ViewRecord
                     TextEntry::make('reference')->label(__('bookings.table.reference'))->copyable(),
                     TextEntry::make('product.title')->label(__('bookings.table.product')),
                     TextEntry::make('local_date')->label(__('bookings.table.date'))->date(),
-                    TextEntry::make('local_time')->label(__('bookings.view.time')),
+                    TextEntry::make('local_time')->label(__('bookings.view.time'))->time(),
                     TextEntry::make('status')->label(__('bookings.table.status'))->badge(),
                     TextEntry::make('source')->label(__('bookings.table.source'))->badge(),
                 ])

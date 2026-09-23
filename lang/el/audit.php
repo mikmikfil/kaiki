@@ -23,4 +23,10 @@ return [
     'filter_actor' => 'Φίλτρο ανά άτομο',
     'filter_action' => 'Φίλτρο ανά ενέργεια',
     'filter_subject' => 'Φίλτρο ανά τύπο',
+    // What a row is about, where no panel resource names it (the rest come
+    // from the resource's own label; see AuditLogResource::subjectTypeLabel).
+    'subject_types' => [
+        'Tenant' => 'Λογαριασμός διοργανωτή',
+        'User' => 'Άτομο της ομάδας',
+    ],
 ];

@@ -39,6 +39,7 @@ return [
         'layout_standard' => 'Standard',
         'layout_harbour' => 'For the harbour (larger type)',
         'format' => 'Format',
+        'submit' => 'Download',
         'sensitive' => 'Including document numbers is recorded against your account, with the date and time. They appear nowhere else in the system.',
     ],
 ];

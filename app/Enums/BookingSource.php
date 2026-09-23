@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Enums;
 
 use App\Enums\Concerns\HasTranslatedLabel;
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasLabel;
 
 /**
  * Where a booking came from (`docs/data-model.md` §2.5).
@@ -18,7 +20,7 @@ use App\Enums\Concerns\HasTranslatedLabel;
  *
  * Shared with `enquiries`, which uses the same vocabulary.
  */
-enum BookingSource: string
+enum BookingSource: string implements HasColor, HasLabel
 {
     use HasTranslatedLabel;
 
@@ -27,6 +29,19 @@ enum BookingSource: string
     case Wordpress = 'wordpress';
     case Manual = 'manual';
     case Import = 'import';
+
+    /**
+     * The badge colour in the panel. BKG-34: what is worth noticing is a
+     * booking that is **not** ordinary — imported, or typed in by hand.
+     */
+    public function getColor(): string
+    {
+        return match ($this) {
+            self::Import => 'warning',
+            self::Manual => 'info',
+            self::Widget, self::Hosted, self::Wordpress => 'gray',
+        };
+    }
 
     /** Did a guest make this themselves? */
     public function isGuestInitiated(): bool

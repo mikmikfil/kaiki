@@ -32,10 +32,13 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Infolists\Infolist;
 use Filament\Navigation\NavigationGroup;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Resources\Resource;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Filesystem\FilesystemAdapter;
@@ -126,6 +129,30 @@ class AppPanelProvider extends PanelProvider
         );
 
         /*
+         * **Dates the way a Greek reads them** (2026-09-23): 16/09/2026,
+         * 16/09/2026 09:00, 09:00.
+         *
+         * Filament's defaults are American — «Σεπ 16, 2026», and a time with
+         * seconds nobody asked for, «09:00:00» — and they apply wherever a
+         * column, an entry or a picker says `->date()` without a format, which
+         * was thirty-one places. These are only the defaults: a call that
+         * names its own format keeps it.
+         */
+        foreach ([Table::class, Infolist::class, DateTimePicker::class] as $owner) {
+            $owner::$defaultDateDisplayFormat = 'd/m/Y';
+            $owner::$defaultDateTimeDisplayFormat = 'd/m/Y H:i';
+            $owner::$defaultTimeDisplayFormat = 'H:i';
+        }
+
+        DateTimePicker::$defaultDateTimeWithSecondsDisplayFormat = 'd/m/Y H:i:s';
+
+        // Greek does not capitalise every word of a label: «Πολιτική ακύρωσης»,
+        // not the «Πολιτική Ακύρωσης» Filament makes of it for headings and
+        // breadcrumbs by default. One switch on the base class covers every
+        // resource in both panels.
+        Resource::titleCaseModelLabel(false);
+
+        /*
          * A saved file is handed to FilePond as a root-relative URL.
          *
          * Filament's own callback returns `Storage::url()`, which is absolute
@@ -192,6 +219,9 @@ class AppPanelProvider extends PanelProvider
              */
             ->defaultAvatarProvider(InitialsAvatarProvider::class)
             ->path('app')
+            // Filament's CSS plus every utility our own views use, both panels
+            // alike (2026-09-23). See {@see PanelTheme}.
+            ->theme(PanelTheme::url())
             // Ours, for the phone (direction Α1, product owner, 2026-09-23): the
             // right keyboard and autofill on each field, the error said once
             // above the form, «Να με θυμάσαι» on by default on a phone. See

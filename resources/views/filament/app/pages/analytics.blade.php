@@ -269,7 +269,7 @@
                     @endphp
 
                     <table class="w-full text-sm">
-                        <thead class="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
+                        <thead class="text-left text-xs text-gray-500 dark:text-gray-400">
                             <tr>
                                 <th class="py-2">{{ $table['label'] }}</th>
                                 <th class="py-2 text-right">{{ __('analytics.columns.bookings') }}</th>
@@ -310,19 +310,19 @@
         @else
             <div class="grid gap-4 sm:grid-cols-4">
                 <div>
-                    <p class="text-xs uppercase text-gray-500 dark:text-gray-400">{{ __('analytics.occupancy.rate') }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('analytics.occupancy.rate') }}</p>
                     <p class="text-3xl font-semibold tracking-tight">{{ $percent($report['occupancy']['rate']) }}</p>
                 </div>
                 <div>
-                    <p class="text-xs uppercase text-gray-500 dark:text-gray-400">{{ __('analytics.occupancy.sold') }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('analytics.occupancy.sold') }}</p>
                     <p class="text-2xl font-semibold tabular-nums">{{ $report['occupancy']['sold'] }}</p>
                 </div>
                 <div>
-                    <p class="text-xs uppercase text-gray-500 dark:text-gray-400">{{ __('analytics.occupancy.capacity') }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('analytics.occupancy.capacity') }}</p>
                     <p class="text-2xl font-semibold tabular-nums">{{ $report['occupancy']['capacity'] }}</p>
                 </div>
                 <div>
-                    <p class="text-xs uppercase text-gray-500 dark:text-gray-400">{{ __('analytics.occupancy.departures') }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('analytics.occupancy.departures') }}</p>
                     <p class="text-2xl font-semibold tabular-nums">{{ $report['occupancy']['departures'] }}</p>
                 </div>
             </div>
@@ -465,7 +465,7 @@
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('analytics.quiet.none') }}</p>
         @else
             <table class="w-full text-sm">
-                <thead class="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
+                <thead class="text-left text-xs text-gray-500 dark:text-gray-400">
                     <tr>
                         <th class="py-2">{{ __('analytics.quiet.date') }}</th>
                         <th class="py-2">{{ __('analytics.quiet.time') }}</th>
@@ -562,7 +562,7 @@
             </div>
 
             <table class="w-full text-sm">
-                <thead class="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
+                <thead class="text-left text-xs text-gray-500 dark:text-gray-400">
                     <tr>
                         <th class="py-2">{{ __('analytics.sources.channel') }}</th>
                         <th class="py-2 text-right">{{ __('analytics.columns.bookings') }}</th>
@@ -680,7 +680,7 @@
             @php $widest = max(1, $report['funnel'][0]['count'] ?: 1); @endphp
 
             <table class="w-full text-sm">
-                <thead class="text-left text-xs uppercase text-gray-500 dark:text-gray-400">
+                <thead class="text-left text-xs text-gray-500 dark:text-gray-400">
                     <tr>
                         <th class="py-2">{{ __('analytics.funnel.step') }}</th>
                         <th class="py-2 text-right">{{ __('analytics.funnel.count') }}</th>
@@ -719,15 +719,15 @@
 
         <div class="grid gap-4 sm:grid-cols-3">
             <div>
-                <p class="text-xs uppercase text-gray-500 dark:text-gray-400">{{ __('analytics.cancellations.cancelled') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('analytics.cancellations.cancelled') }}</p>
                 <p class="text-2xl font-semibold tabular-nums">{{ $report['cancellations']['cancelled'] }}</p>
             </div>
             <div>
-                <p class="text-xs uppercase text-gray-500 dark:text-gray-400">{{ __('analytics.cancellations.no_show') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('analytics.cancellations.no_show') }}</p>
                 <p class="text-2xl font-semibold tabular-nums">{{ $report['cancellations']['no_show'] }}</p>
             </div>
             <div>
-                <p class="text-xs uppercase text-gray-500 dark:text-gray-400">{{ __('analytics.cancellations.rate') }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">{{ __('analytics.cancellations.rate') }}</p>
                 <p class="text-2xl font-semibold tabular-nums">
                     {{ $report['cancellations']['rate'] === null ? '—' : $percent($report['cancellations']['rate']) }}
                 </p>

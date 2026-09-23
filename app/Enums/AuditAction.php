@@ -6,6 +6,7 @@ namespace App\Enums;
 
 use App\Enums\Concerns\HasTranslatedLabel;
 use App\Events\BookingRefunded;
+use Filament\Support\Contracts\HasLabel;
 
 /**
  * What an audit row records (ADR-0025 §2, spec SEC-16).
@@ -33,7 +34,7 @@ use App\Events\BookingRefunded;
  * which are live — *"keeps every live action wired to something that fires
  * it"* — so the gap stays visible rather than becoming folklore.
  */
-enum AuditAction: string
+enum AuditAction: string implements HasLabel
 {
     use HasTranslatedLabel;
 

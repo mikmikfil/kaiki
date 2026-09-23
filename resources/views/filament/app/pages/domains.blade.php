@@ -58,15 +58,15 @@
 
             <dl class="mt-3 grid gap-2 text-sm sm:grid-cols-3">
                 <div>
-                    <dt class="text-xs uppercase tracking-wide text-gray-400">{{ __('domains.cname.type') }}</dt>
+                    <dt class="text-xs tracking-wide text-gray-400">{{ __('domains.cname.type') }}</dt>
                     <dd class="font-mono">CNAME</dd>
                 </div>
                 <div>
-                    <dt class="text-xs uppercase tracking-wide text-gray-400">{{ __('domains.cname.name') }}</dt>
+                    <dt class="text-xs tracking-wide text-gray-400">{{ __('domains.cname.name') }}</dt>
                     <dd class="font-mono">book</dd>
                 </div>
                 <div>
-                    <dt class="text-xs uppercase tracking-wide text-gray-400">{{ __('domains.cname.value') }}</dt>
+                    <dt class="text-xs tracking-wide text-gray-400">{{ __('domains.cname.value') }}</dt>
                     <dd class="font-mono">{{ $this->target() }}</dd>
                 </div>
             </dl>

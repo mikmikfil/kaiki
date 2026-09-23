@@ -11,6 +11,7 @@ use App\Filament\App\Navigation\SiblingScreens;
 use App\Filament\App\Pages\Analytics;
 use App\Filament\App\Pages\Settings;
 use App\Filament\App\Pages\Setup;
+use App\Filament\Support\DarkPrimary;
 use App\Models\PlatformAnnouncement;
 use App\Models\PlatformBrand;
 use App\Models\Tenant;
@@ -22,6 +23,7 @@ use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentColor;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 
@@ -258,6 +260,8 @@ final class PanelRenderHooks
      * `Color::hex()` turns one colour into the eleven shades Filament needs;
      * the two here are the only ones the screen lets anybody change, so nothing
      * else in the palette can be left in an unreadable state by a bad pair.
+     *
+     * Dark mode gets its own primary scale, derived from the same colour.
      */
     private static function platformColors(): void
     {
@@ -267,6 +271,14 @@ final class PanelRenderHooks
                 'accent' => Color::hex(PlatformBrand::accent()),
             ]);
         });
+
+        // The same primary, lighter, for dark mode: navy on near-black was
+        // unreadable (2026-09-23). Read at render, like the palette above.
+        // See {@see DarkPrimary}.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): Htmlable => DarkPrimary::style(PlatformBrand::primary()),
+        );
     }
 
     /**

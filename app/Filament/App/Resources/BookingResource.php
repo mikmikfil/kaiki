@@ -266,21 +266,16 @@ class BookingResource extends Resource
 
                 TextColumn::make('status')
                     ->label(__('bookings.table.status'))
-                    ->badge()
-                    ->formatStateUsing(static fn (BookingStatus $state): string => $state->label()),
+                    // Label and colour from the enum (`HasLabel`, `HasColor`).
+                    ->badge(),
 
                 // BKG-34: *"flagged as imported in the panel"*. A badge rather
                 // than a column of `widget` repeated four hundred times — the
                 // interesting fact is that a booking is **not** ordinary.
                 TextColumn::make('source')
                     ->label(__('bookings.table.source'))
+                    // Label and colour from the enum (`HasLabel`, `HasColor`).
                     ->badge()
-                    ->color(static fn (BookingSource $state): string => match ($state) {
-                        BookingSource::Import => 'warning',
-                        BookingSource::Manual => 'info',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(static fn (BookingSource $state): string => $state->label())
                     ->visibleFrom('md'),
 
                 TextColumn::make('total_cents')

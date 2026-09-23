@@ -22,6 +22,11 @@
         <div class="kd-top">
             {{-- 1. The next departure --}}
             <div class="kd-next">
+                {{-- A ship's helm, barely there, turning very slowly (Mike chose
+                     it from docs/mockups/nautical-icons.html, 2026-09-23: «ακόμα
+                     πιο αχνό, να γυρίζει πολύ αργά»). Only on this card — the one
+                     blue card, the one about the boat that is leaving. --}}
+                <img class="kd-helm" src="{{ asset('images/nautical/helm.svg') }}" alt="" aria-hidden="true">
                 @if ($next)
                     <div class="kd-next-when">{{ __('dashboard.home.next.label') }} · {{ $next['when'] }}</div>
 
@@ -188,7 +193,21 @@
         .kd-next {
             display: grid; gap: .5rem; padding: 1.1rem 1.15rem 1.15rem;
             border-radius: 1rem; background: #0F2E57; color: #fff;
+            position: relative; overflow: hidden; isolation: isolate;
         }
+        /* The helm: white line art at 5%, cut by the top-right corner, one
+           turn every four minutes. Still for anybody who asked for less motion. */
+        .kd-helm {
+            position: absolute; z-index: -1; pointer-events: none; user-select: none;
+            /* A little bigger than first drawn (Mike, 2026-09-23: «κάνε πιο
+               μεγάλο το τιμόνι» — and then «όχι τόσο» at 32rem). */
+            width: min(26rem, 95%); height: auto; max-width: none;
+            top: -8.75rem; right: -7.75rem;
+            filter: brightness(0) invert(1); opacity: .05;
+            animation: kd-helm-turn 240s linear infinite;
+        }
+        @keyframes kd-helm-turn { to { transform: rotate(360deg); } }
+        @media (prefers-reduced-motion: reduce) { .kd-helm { animation: none; } }
         .kd-next-when { font-size: .8125rem; font-weight: 600; color: #9FBBE0; }
         .kd-next-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; }
         .kd-next-time { font-size: 2.25rem; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }

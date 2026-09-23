@@ -10,6 +10,7 @@ use App\Filament\App\Resources\AuditLogResource\Pages;
 use App\Models\AuditLog;
 use App\Models\User;
 use App\Policies\AuditLogPolicy;
+use Filament\Facades\Filament;
 use Filament\Infolists\Components\KeyValueEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
@@ -19,6 +20,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Lang;
 
 /**
  * The operator's own audit trail (ADR-0025 §4, spec SEC-16).
@@ -123,7 +125,7 @@ class AuditLogResource extends Resource
 
                 TextColumn::make('subject_label')
                     ->label(__('audit.subject'))
-                    ->description(fn (AuditLog $record): ?string => $record->subject_type)
+                    ->description(fn (AuditLog $record): ?string => self::subjectTypeLabel($record->subject_type))
                     ->placeholder(__('audit.subject_none')),
 
                 TextColumn::make('reason')
@@ -156,7 +158,8 @@ class AuditLogResource extends Resource
                     ->options(fn (): array => AuditLog::query()
                         ->whereNotNull('subject_type')
                         ->distinct()
-                        ->pluck('subject_type', 'subject_type')
+                        ->pluck('subject_type')
+                        ->mapWithKeys(static fn (string $type): array => [$type => self::subjectTypeLabel($type)])
                         ->all()),
             ])
             // No bulk actions and no row actions: there is nothing to do to an
@@ -190,6 +193,38 @@ class AuditLogResource extends Resource
             // it would make the trail less useful than the log line it replaced.
             KeyValueEntry::make('context')->label(__('audit.context')),
         ]);
+    }
+
+    /**
+     * What kind of thing a row is about, in words (2026-09-23).
+     *
+     * `subject_type` is a short class name or morph alias — «Departure»,
+     * «Product» — which is right for a column kept seven years and wrong on
+     * an operator's screen. The name comes from `audit.subject_types` where
+     * one is written, then from whichever panel resource manages that model
+     * (the same «Αναχώρηση» the sidebar uses), and only then the raw value.
+     */
+    public static function subjectTypeLabel(?string $type): ?string
+    {
+        if ($type === null || $type === '') {
+            return null;
+        }
+
+        $key = "audit.subject_types.{$type}";
+
+        if (Lang::has($key)) {
+            return __($key);
+        }
+
+        foreach (Filament::getPanels() as $panel) {
+            foreach ($panel->getResources() as $resource) {
+                if (class_basename($resource::getModel()) === $type) {
+                    return $resource::getModelLabel();
+                }
+            }
+        }
+
+        return $type;
     }
 
     /** @return array<string, PageRegistration> */
