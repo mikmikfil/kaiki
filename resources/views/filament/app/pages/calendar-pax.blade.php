@@ -10,11 +10,13 @@
 @endphp
 
 @if ($departure === null)
-    <p class="text-sm text-gray-500">{{ __('calendar.pax.gone') }}</p>
+    <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('calendar.pax.gone') }}</p>
 @else
     <div class="space-y-3">
-        <p class="text-sm text-gray-500">
-            {{ $departure->product->title }} · {{ $departure->local_date->toDateString() }} {{ $departure->local_time }}
+        {{-- Day and time as a Greek reader writes them: «23/09/2026 09:00», not
+             «2026-09-23 09:00:00». --}}
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            {{ $departure->product->title }} · {{ $departure->local_date->format('d/m/Y') }} {{ substr((string) $departure->local_time, 0, 5) }}
             · {{ __('calendar.pax.seats', ['sold' => $departure->seats_sold, 'capacity' => $departure->capacity]) }}
         </p>
 
@@ -51,16 +53,16 @@
         <div class="rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-700">
             <div class="flex flex-wrap gap-x-4 gap-y-1">
                 @if ($boarding)
-                    <span><span class="text-gray-500">{{ __('calendar.pax.brief.boarding') }}</span> <strong class="font-mono">{{ $boarding }}</strong></span>
+                    <span><span class="text-gray-500 dark:text-gray-400">{{ __('calendar.pax.brief.boarding') }}</span> <strong class="font-mono">{{ $boarding }}</strong></span>
                 @endif
                 @if ($ends)
-                    <span><span class="text-gray-500">{{ __('calendar.pax.brief.returns') }}</span> <strong class="font-mono">{{ $ends }}</strong></span>
+                    <span><span class="text-gray-500 dark:text-gray-400">{{ __('calendar.pax.brief.returns') }}</span> <strong class="font-mono">{{ $ends }}</strong></span>
                 @endif
                 @if ($departure->vessel?->name)
-                    <span><span class="text-gray-500">{{ __('calendar.pax.brief.vessel') }}</span> <strong>{{ $departure->vessel->name }}</strong></span>
+                    <span><span class="text-gray-500 dark:text-gray-400">{{ __('calendar.pax.brief.vessel') }}</span> <strong>{{ $departure->vessel->name }}</strong></span>
                 @endif
                 @if ($port?->name)
-                    <span><span class="text-gray-500">{{ __('calendar.pax.brief.where') }}</span> <strong>{{ $port->name }}</strong></span>
+                    <span><span class="text-gray-500 dark:text-gray-400">{{ __('calendar.pax.brief.where') }}</span> <strong>{{ $port->name }}</strong></span>
                 @endif
             </div>
 
@@ -91,10 +93,10 @@
         </div>
 
         @if ($bookings->isEmpty())
-            <p class="text-sm text-gray-500">{{ __('calendar.pax.nobody') }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ __('calendar.pax.nobody') }}</p>
         @else
             <table class="w-full text-sm">
-                <thead class="text-left text-xs text-gray-500">
+                <thead class="text-left text-xs text-gray-500 dark:text-gray-400">
                     <tr>
                         <th class="py-1">{{ __('calendar.pax.guest') }}</th>
                         <th class="py-1">{{ __('calendar.pax.people') }}</th>

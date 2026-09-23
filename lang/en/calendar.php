@@ -23,6 +23,10 @@ return [
     'next' => 'Next day',
 
     'drag_hint' => 'Drag across empty time to block a boat. Click a trip to see who is on it.',
+    // The phone: a list per boat instead of the timeline (2026-09-23).
+    'list_hint' => 'Tap a trip to see who is on it.',
+    'free' => 'Free',
+    'all_day' => 'All day',
     'no_vessels' => 'Add a boat and it will appear here.',
     'turnaround' => ':minutes min turnaround',
     'buffer_hint' => 'Turnaround: the boat is not available for this long after the trip.',

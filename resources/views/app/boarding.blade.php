@@ -17,6 +17,9 @@
          in the sun with a cracked screen has every right to zoom. --}}
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#0B3D91">
+    {{-- The page follows the phone's own light or dark setting (Mike,
+         2026-09-23), and says so, so the text box and the scrollbar do too. --}}
+    <meta name="color-scheme" content="light dark">
     <title>{{ __('boarding.title') }}</title>
     <style>
         :root {
@@ -27,6 +30,38 @@
             --ok: #0E7C5A;
             --warn: #8A6410;
             --bad: #A8321F;
+            --bg: #F4F6FA;
+            --card: #fff;
+            --link: #0B3D91;
+            --btn: #0B3D91;
+            --ok-bg: #E4F5EE;
+            --warn-bg: #FFF6E0;
+            --bad-bg: #FDECE9;
+            --bad-line: #F6CFC7;
+        }
+
+        /* Dark, when the phone is. The header keeps its blue — it is the one
+           thing that says which page this is — and everything under it moves to
+           a dark ground with every pairing above 4.5:1: the names, the grey
+           detail line, the three result colours and the queue line. */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --ink: #E8EDF5;
+                --soft: #A3AFC2;
+                --line: #2A3548;
+                --ok: #5FD3A8;
+                --warn: #F2C45A;
+                --bad: #FF9B87;
+                --bg: #0E1420;
+                --card: #172031;
+                --link: #8DB7FF;
+                /* A lighter blue for the buttons, so they stand off the dark ground; white on it is 5:1. */
+                --btn: #2F6BD8;
+                --ok-bg: #0F3326;
+                --warn-bg: #3A2E0B;
+                --bad-bg: #3E1A14;
+                --bad-line: #6B2A20;
+            }
         }
 
         * { box-sizing: border-box; }
@@ -34,7 +69,7 @@
         body {
             margin: 0;
             font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            background: #F4F6FA;
+            background: var(--bg);
             color: var(--ink);
             /* The safe areas matter here more than anywhere: this is used one
                handed, on a phone, at the bottom of the screen. */
@@ -71,13 +106,15 @@
             font-size: 1.1rem; padding: .8rem;
             border: 2px solid var(--line); border-radius: 12px;
             font-family: ui-monospace, monospace;
+            background: var(--card); color: var(--ink);
         }
+        .scan input::placeholder { color: var(--soft); }
 
-        .scan input:focus { outline: none; border-color: var(--sea); }
+        .scan input:focus { outline: none; border-color: var(--link); }
 
         .scan button {
             font-size: 1rem; font-weight: 600; padding: .8rem 1.1rem;
-            background: var(--sea); color: #fff;
+            background: var(--btn); color: #fff;
             border: 0; border-radius: 12px;
             /* 44px is the smallest thing a thumb hits reliably. */
             min-height: 48px; min-width: 88px;
@@ -91,7 +128,7 @@
             display: flex; align-items: center; justify-content: center; gap: .6rem;
             width: 100%; min-height: 60px; margin-bottom: .9rem;
             font: inherit; font-size: 1.1rem; font-weight: 600;
-            background: var(--sea); color: #fff;
+            background: var(--btn); color: #fff;
             border: 0; border-radius: 14px;
             box-shadow: 0 6px 18px rgba(11, 61, 145, .22);
         }
@@ -100,10 +137,10 @@
 
         .cam-note {
             font-size: .85rem; color: var(--soft);
-            background: #fff; border: 1px solid var(--line); border-radius: 12px;
+            background: var(--card); border: 1px solid var(--line); border-radius: 12px;
             padding: .7rem .9rem; margin: 0 0 .9rem;
         }
-        .cam-note.bad { color: var(--bad); background: #FDECE9; border-color: #F6CFC7; }
+        .cam-note.bad { color: var(--bad); background: var(--bad-bg); border-color: var(--bad-line); }
 
         .cam-panel { margin-bottom: .9rem; }
 
@@ -137,8 +174,8 @@
             display: block; width: 100%; max-width: 26rem; margin: 0 auto;
             min-height: 48px;
             font: inherit; font-size: 1rem; font-weight: 600;
-            background: #fff; color: var(--sea);
-            border: 2px solid var(--sea); border-radius: 12px;
+            background: var(--card); color: var(--link);
+            border: 2px solid var(--link); border-radius: 12px;
         }
 
         .or-type { font-size: .8rem; color: var(--soft); margin: 0 0 .35rem; }
@@ -148,9 +185,9 @@
             font-size: 1rem; display: none;
         }
         #result.show { display: block; }
-        #result.ok { background: #E4F5EE; color: var(--ok); }
-        #result.already { background: #FFF6E0; color: var(--warn); }
-        #result.bad { background: #FDECE9; color: var(--bad); }
+        #result.ok { background: var(--ok-bg); color: var(--ok); }
+        #result.already { background: var(--warn-bg); color: var(--warn); }
+        #result.bad { background: var(--bad-bg); color: var(--bad); }
         #result strong { display: block; font-size: 1.05rem; }
 
         .queue {
@@ -177,7 +214,7 @@
             flex: none;
             font-size: .9rem; font-weight: 600;
             min-height: 44px; padding: .5rem .95rem;
-            background: var(--sea); color: #fff;
+            background: var(--btn); color: #fff;
             border: 0; border-radius: 10px;
         }
 
@@ -187,7 +224,7 @@
 
         .meta { font-size: .75rem; color: var(--soft); margin: 1.2rem 0 0; }
         /* Never underlined (Mike's standing rule), not even on hover. */
-        .meta a { color: var(--sea); font-weight: 600; text-decoration: none; }
+        .meta a { color: var(--link); font-weight: 600; text-decoration: none; }
     </style>
 </head>
 <body>
@@ -244,7 +281,7 @@
     <ul class="people" id="people"></ul>
 
     <p class="meta">
-        {{ __('boarding.loaded_at', ['time' => \Illuminate\Support\Carbon::parse($generatedAt)->timezone(config('app.timezone'))->format('H:i')]) }}
+        {{ __('boarding.loaded_at', ['time' => \Illuminate\Support\Carbon::parse($generatedAt)->timezone(\App\Support\Tenancy::current()?->timezone ?: config('app.timezone'))->format('H:i')]) }}
         &middot;
         <a href="{{ route('filament.app.pages.check-in') }}">{{ __('boarding.full_page') }}</a>
     </p>

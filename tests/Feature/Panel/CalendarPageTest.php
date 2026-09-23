@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Operations\Support\CalendarDay;
 use App\Enums\BlockReason;
 use App\Enums\BookingStatus;
+use App\Enums\DepartureStatus;
 use App\Enums\Role;
 use App\Filament\App\Pages\Calendar;
 use App\Models\Booking;
@@ -387,4 +388,30 @@ it('walks a day at a time from today', function (): void {
         ->assertSet('date', '2026-07-06')
         ->call('today')
         ->assertSet('date', '2026-07-08');
+});
+
+it('lists each boat and its departures for a phone, with the status in words', function (): void {
+    // Mike, 2026-09-23: on a phone the calendar is a list per boat. The status
+    // is the one thing a bar has no room for and a row does.
+    $user = OperatorUser::withRole(Role::Owner);
+
+    $uuid = Tenancy::forTenant($user->tenant, function (): string {
+        $boat = Vessel::factory()->create(['name' => 'Θάλασσα']);
+        Vessel::factory()->create(['name' => 'Ήσυχο']);
+
+        $sailing = Departure::factory()->for($boat)->at('2026-07-08', '09:00', 240)->withSeats(6)
+            ->create(['status' => DepartureStatus::Guaranteed]);
+        Departure::factory()->for($boat)->at('2026-07-08', '18:00', 120)
+            ->create(['status' => DepartureStatus::Cancelled]);
+
+        return (string) $sailing->uuid;
+    });
+
+    calendarAs($user)
+        ->assertSeeHtml('class="cal-list"')
+        ->assertSee(DepartureStatus::Guaranteed->label())
+        ->assertSee(DepartureStatus::Cancelled->label())
+        ->assertSee(__('calendar.free'))
+        // The row opens the same passenger list the bar does.
+        ->assertSeeHtml("mountAction('pax', { departure: '{$uuid}' })");
 });

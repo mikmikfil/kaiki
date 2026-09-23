@@ -136,6 +136,47 @@ class Calendar extends Page
     }
 
     /**
+     * Each departure's status on the day, keyed by uuid, for the phone's list.
+     *
+     * The timeline says "cancelled" with a strike and nothing more, which is
+     * all a bar has room for. A row on a phone has room for the word, so it
+     * asks for the status here — one query for the day, not one per row —
+     * rather than widening `CalendarDay`, whose bars every other caller shares.
+     *
+     * @return array<string, DepartureStatus>
+     */
+    public function departureStatuses(CalendarDay $day): array
+    {
+        $uuids = [];
+
+        foreach ($day->rows as $row) {
+            foreach ($row['bars'] as $bar) {
+                if ($bar['kind'] === 'departure') {
+                    $uuids[] = (string) $bar['uuid'];
+                }
+            }
+        }
+
+        if ($uuids === []) {
+            return [];
+        }
+
+        $statuses = [];
+
+        foreach (Departure::query()->whereIn('uuid', $uuids)->get(['uuid', 'status']) as $departure) {
+            $statuses[(string) $departure->uuid] = $departure->status;
+        }
+
+        return $statuses;
+    }
+
+    /** Whether a departure opens its passenger list — the same test as `paxAction`. */
+    public function canOpenPax(): bool
+    {
+        return self::userCan(Capability::ViewPaxList);
+    }
+
+    /**
      * Block a boat for a window the operator dragged out.
      *
      * The form is pre-filled from the drag and still editable: a drag on a track

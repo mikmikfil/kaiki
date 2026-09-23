@@ -52,7 +52,7 @@ return [
     'actions' => [
         'check_in' => 'Επιβίβαση',
         'undo' => 'Αναίρεση',
-        'mark_no_show' => 'Σήμανση ως μη εμφανισθείς',
+        'mark_no_show' => 'Δεν ήρθε',
         'clear_no_show' => 'Αναίρεση σήμανσης',
 
         'override' => [

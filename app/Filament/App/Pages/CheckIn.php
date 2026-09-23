@@ -257,6 +257,10 @@ class CheckIn extends Page
             ->label(__('checkin.actions.mark_no_show'))
             ->icon('heroicon-o-x-mark')
             ->color('danger')
+            // Outlined, so «Επιβίβαση» is the one filled button in the row —
+            // the tap that happens forty times — and the red is a border and a
+            // label rather than a second slab of colour beside it.
+            ->outlined()
             ->action(function (array $arguments): void {
                 $guest = $this->guestFromArguments($arguments);
 
