@@ -32,7 +32,11 @@
             <span class="kaiki-auth-brandmark-name">{{ $brandName }}</span>
         @endif
 
-        <p>{{ __('auth.intro.line') }}</p>
+        {{-- The long line in the desktop's column, the short one in the phone's
+             band (Α1, 2026-09-23). The stylesheet shows one, with `display:
+             none` on the other, so a screen reader reads exactly one. --}}
+        <p class="kaiki-auth-brandmark-line">{{ __('auth.intro.line') }}</p>
+        <p class="kaiki-auth-brandmark-line-short">{{ __('auth.intro.line_short') }}</p>
     </div>
 </div>
 

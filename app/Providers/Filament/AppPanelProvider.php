@@ -6,6 +6,8 @@ namespace App\Providers\Filament;
 
 use App\Domain\Hosted\Support\HostedAsset;
 use App\Filament\App\Auth\EditProfile;
+use App\Filament\App\Auth\Login;
+use App\Filament\App\Auth\RequestPasswordReset;
 use App\Filament\App\Pages\Settings;
 use App\Filament\Avatars\InitialsAvatarProvider;
 use App\Http\Controllers\App\BoardingController;
@@ -190,7 +192,11 @@ class AppPanelProvider extends PanelProvider
              */
             ->defaultAvatarProvider(InitialsAvatarProvider::class)
             ->path('app')
-            ->login()
+            // Ours, for the phone (direction Α1, product owner, 2026-09-23): the
+            // right keyboard and autofill on each field, the error said once
+            // above the form, «Να με θυμάσαι» on by default on a phone. See
+            // {@see Login}.
+            ->login(Login::class)
             /*
              * Password reset, which the panel did not have.
              *
@@ -202,8 +208,11 @@ class AppPanelProvider extends PanelProvider
              * password had no way back in at all: there was no reset route on
              * either panel, so the only recovery was somebody editing the
              * database.
+             *
+             * The request page is ours (2026-09-23) so it arrives with the
+             * email the sign-in form already had. See {@see RequestPasswordReset}.
              */
-            ->passwordReset()
+            ->passwordReset(RequestPasswordReset::class)
             // «Το προφίλ μου» in the user menu (product owner, 2026-09-17): every
             // person can set their own name, an optional «Προσφώνηση» the home
             // page greets them by, and their own password. Not a simple page, so
