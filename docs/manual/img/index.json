@@ -1,5 +1,5 @@
 {
-  "takenAt": "2026-09-14T17:13:57.143Z",
+  "takenAt": "2026-09-23T14:00:17.038Z",
   "shots": [
     {
       "name": "dashboard",
@@ -50,10 +50,6 @@
       "url": "/app/seasons"
     },
     {
-      "name": "schedule-rules",
-      "url": "/app/schedule-rules"
-    },
-    {
       "name": "cancellation-policies",
       "url": "/app/cancellation-policies"
     },
@@ -62,8 +58,8 @@
       "url": "/app/vessel-blocks"
     },
     {
-      "name": "vouchers",
-      "url": "/app/vouchers"
+      "name": "discount-codes",
+      "url": "/app/discount-codes/create"
     },
     {
       "name": "quotes",
@@ -122,6 +118,10 @@
       "url": "/app/search-settings"
     },
     {
+      "name": "review-settings",
+      "url": "/app/review-settings"
+    },
+    {
       "name": "payment-settings",
       "url": "/app/payment-settings"
     },
@@ -146,12 +146,60 @@
       "url": "/app/imports"
     },
     {
-      "name": "import-upload",
-      "url": "/app/imports"
+      "name": "dashboard-attention",
+      "url": "/app"
     },
     {
-      "name": "import-review",
-      "url": "/app/imports/6bcb1851-6905-4219-9b32-070ce1506c78"
+      "name": "analytics-charts",
+      "url": "/app/analytics?period=this_year"
+    },
+    {
+      "name": "setup-guide",
+      "url": "/app/setup?step=business"
+    },
+    {
+      "name": "setup-home-page",
+      "url": "/app/setup?step=home_page"
+    },
+    {
+      "name": "trip-new-basics",
+      "url": "/app/products/create"
+    },
+    {
+      "name": "trip-new-when",
+      "url": "/app/products/create"
+    },
+    {
+      "name": "trip-new-prices",
+      "url": "/app/products/create"
+    },
+    {
+      "name": "trip-new-publish",
+      "url": "/app/products/create"
+    },
+    {
+      "name": "trip-tab-basics",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit"
+    },
+    {
+      "name": "trip-tab-when",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit"
+    },
+    {
+      "name": "trip-tab-prices",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit"
+    },
+    {
+      "name": "trip-tab-terms",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit"
+    },
+    {
+      "name": "trip-tab-page",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit"
+    },
+    {
+      "name": "import-upload",
+      "url": "/app/imports"
     },
     {
       "name": "announcement-banner",
@@ -164,6 +212,10 @@
     {
       "name": "crew-dashboard-phone",
       "url": "/app"
+    },
+    {
+      "name": "crew-trip-summary",
+      "url": "/app/calendar"
     },
     {
       "name": "settings-phone",
@@ -179,11 +231,19 @@
     },
     {
       "name": "admin-tenant-edit",
-      "url": "/admin/tenants/eb060100-2484-498e-aec3-2083f12e7e89/edit?lang=el"
+      "url": "/admin/tenants/c330149a-b3a8-48aa-817c-84c66a712e0d/edit?lang=el"
+    },
+    {
+      "name": "admin-impersonate",
+      "url": "/admin/tenants?lang=el"
     },
     {
       "name": "admin-vat-rates",
       "url": "/admin/vat-rates?lang=el"
+    },
+    {
+      "name": "admin-policy-templates",
+      "url": "/admin/policy-templates?lang=el"
     },
     {
       "name": "admin-health",
@@ -208,6 +268,22 @@
     {
       "name": "guest-legal",
       "url": "/aegean-blue/legal"
+    },
+    {
+      "name": "guest-trip",
+      "url": "/aegean-blue/iliovasilema-aigina"
+    },
+    {
+      "name": "guest-checkout",
+      "url": "/c/rRPEGsl5nSTomdkeRsXdycXOlgfEjbnSOGjQIw3A"
+    },
+    {
+      "name": "guest-booking",
+      "url": "/b/qXNQbUVdnXMWHGY7VcamtLHZzfasLktYVOJFF3Rp"
+    },
+    {
+      "name": "guest-checkout-phone",
+      "url": "/c/rRPEGsl5nSTomdkeRsXdycXOlgfEjbnSOGjQIw3A"
     }
   ]
 }

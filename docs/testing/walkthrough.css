@@ -119,3 +119,15 @@ table.addresses td:first-child {
 table.addresses code {
     font-size: 8.4pt;
 }
+
+/* --- figures taller than a page -------------------------------------- */
+
+/* A whole checkout or booking page, captured from top to bottom, would take a
+   page of its own at full column width and push its caption onto the next one.
+   Held to a height that leaves room for the caption, centred. */
+figure.tall img {
+    width: auto;
+    max-width: 100%;
+    max-height: 175mm;
+    margin-inline: auto;
+}
