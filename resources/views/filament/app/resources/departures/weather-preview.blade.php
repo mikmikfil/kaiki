@@ -50,7 +50,9 @@
                                 <span class="block font-mono text-xs text-gray-400">{{ $row['reference'] }}</span>
                             </td>
                             <td class="py-1.5 pr-3">
-                                {{ $row['departure']->product->title }}
+                                {{-- With the bin: a departure of a trip that was binned still lists and can be
+                                     picked, and its title is still the right name for it (stress sweep, 2026-09-23). --}}
+                                {{ $row['departure']->product()->withTrashed()->first()?->title }}
                                 <span class="block text-xs text-gray-400">
                                     {{ $row['departure']->local_date->toDateString() }} {{ $row['departure']->local_time }}
                                 </span>

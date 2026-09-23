@@ -745,7 +745,17 @@ it('warns the operator about a published trip that cannot be priced', function (
 
     tenancy()->initialize(productTenantOf($owner));
 
+    $this->actingAs($owner);
+
     expect(UnsellableProducts::canView())->toBeTrue();
+
+    // Crew never see prices (TEN-8), so not this pricing warning either — the
+    // stress sweep found it on their home page (2026-09-23).
+    $crew = OperatorUser::withRole(Role::Crew, productTenantOf($owner));
+
+    $this->actingAs($crew);
+
+    expect(UnsellableProducts::canView())->toBeFalse();
 })->group('fast');
 
 it('stops warning once the trip has a plan', function (): void {

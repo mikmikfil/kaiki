@@ -36,6 +36,14 @@ class FirstSteps extends Widget
         return Steps::applies();
     }
 
+    /**
+     * Not `canView()` on every request: the first booking arriving while this
+     * is open is good news, not a reason to answer 403. Nothing here polls or
+     * posts today, which is the only reason it never showed; the stress sweep
+     * found it (2026-09-23, the fault {@see NeedsAttention} had).
+     */
+    public function hydrateCanAuthorizeAccess(): void {}
+
     /** @return list<string> */
     public function getOptional(): array
     {

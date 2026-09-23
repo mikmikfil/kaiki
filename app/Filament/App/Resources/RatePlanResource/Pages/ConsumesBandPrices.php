@@ -32,7 +32,9 @@ trait ConsumesBandPrices
         $rows = $data['band_prices'] ?? [];
         unset($data['band_prices']);
 
-        $product = Product::query()->findOrFail((int) $data['product_id']);
+        // With the bin: a rate plan whose trip was binned still opens, and saving
+        // it must not fail on the trip it belongs to (stress sweep, 2026-09-23).
+        $product = Product::query()->withTrashed()->findOrFail((int) $data['product_id']);
 
         $bandPrices = [];
 
