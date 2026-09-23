@@ -367,17 +367,17 @@
   <dl class="totals">
     <div class="total">
       <dt>Delivered</dt>
-      <dd>93<span class="unit">issues</span></dd>
-      <p style="margin:.5rem 0 0; font-size:.78rem; line-height:1.35; color:var(--ink-faint)">Not counting the 16–17 Sept UX round, Phase 1 for actionseaze (GitHub PRs #121 and #122), the 17 Sept afternoon work or the 18 Sept calendar entry (both PR #123), nor the rounds of 21–23 Sept, which had no issue numbers.</p>
+      <dd>95<span class="unit">issues</span></dd>
+      <p style="margin:.5rem 0 0; font-size:.78rem; line-height:1.35; color:var(--ink-faint)">Not counting the 16–17 Sept UX round, Phase 1 for actionseaze (GitHub PRs #121 and #122), the 17 Sept afternoon work or the 18 Sept calendar entry (both PR #123) or the rounds of 21–23 Sept, apart from #133–#135.</p>
     </div>
     <div class="total">
       <dt>Measured so far</dt>
-      <dd>~189<span class="unit">hours</span></dd>
+      <dd>~194<span class="unit">hours</span></dd>
     </div>
     <div class="total">
       <dt>Remaining</dt>
       <dd>24–32<span class="unit">hours</span></dd>
-      <p style="margin:.5rem 0 0; font-size:.78rem; line-height:1.35; color:var(--ink-faint)">Phase 2 sales channels are not in this figure: about 26–39 hours more, plus approvals.</p>
+      <p style="margin:.5rem 0 0; font-size:.78rem; line-height:1.35; color:var(--ink-faint)">Phase 2 sales channels are not in this figure: about 22–35 hours more, plus approvals.</p>
     </div>
     <div class="total">
       <dt>At 4 hours a day, 5 days a week</dt>
@@ -721,22 +721,50 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
     <summary>
       <span class="chev" aria-hidden="true"></span>
       <span class="m-code">&mdash;</span>
-      <span class="m-title">21–22 Σεπτεμβρίου &mdash; η νέα εκδρομή σε βήματα, ο οδηγός, τα στατιστικά</span>
+      <span class="m-title">21 Σεπτεμβρίου &mdash; η αρχή του GetYourGuide, και θέσεις που κρατούσε μια κράτηση που είχε λήξει</span>
       <span class="pill done">Complete</span>
-      <span class="m-days">~15 <span class="unit">h spent</span></span>
+      <span class="m-days">~7 <span class="unit">h spent</span></span>
     </summary>
     <div class="weight"><span style="width:100%"></span></div>
     <div class="m-body">
-      <p class="section-note" style="margin:1rem 0 0"><strong>Περίπου τριάντα commits στο <code>feat/ota-channel-getyourguide</code>, χωρίς αριθμούς issue</strong> (από <code>28afcc9</code> ως <code>b5ebc7b</code>). Δύο πραγματικά σφάλματα βρέθηκαν στο panel με το χέρι: μία αρχειοθετημένη εκδρομή έριχνε ολόκληρο το panel, και το «Αποθήκευση» της φόρμας εκδρομής δεν έστελνε κανένα αίτημα.</p>
+      <p class="section-note" style="margin:1rem 0 0"><strong>Δεκατρία commits στο <code>feat/ota-channel-getyourguide</code></strong>, τα τρία με αριθμό issue. Το ADR-0034 αποφάσισε ότι τα OTA συνδέονται απευθείας &mdash; και το OOS-2 σταμάτησε να λέει «όχι».</p>
       <ul class="tasks">
-        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Νέα εκδρομή σε πέντε βήματα, και ένας τυπωμένος οδηγός γι&rsquo; αυτήν</span><span class="h">4h</span><span class="d">Από την αρχή ως τη δημοσίευση, με τα «Στοιχεία επιβατών» μέσα. Το PDF «Πώς φτιάχνω μια εκδρομή» φτιάχνεται από τα ίδια στιγμιότυπα.</span></li>
-        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ο οδηγός πρώτης ρύθμισης κρατά το panel</span><span class="h">2h</span><span class="d">Ζητά μόνος του λιμάνι, σκάφος και περίοδο· τέσσερις ερωτήσεις· ο κατάλογος πήγε στον Πίνακα ελέγχου. Νέος διοργανωτής φτιάχνεται με ό,τι αποφασίζει η πλατφόρμα.</span></li>
-        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Τιμές ως σύνοψη, Περίοδοι και Πολιτικές ως δικά τους μενού</span><span class="h">2h</span><span class="d">Μία καρτέλα τιμών στη φόρμα, μετρητές στη λίστα εκδρομών, και άρνηση δεύτερου δρομολογίου για αναχώρηση που έχει ήδη.</span></li>
-        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Κανόνες που έλειπαν</span><span class="h">1.5h</span><span class="d">Το ταμείο αρνείται παιδιά χωρίς ενήλικα· μια σκέτη ημερομηνία δεν μετατρέπεται ποτέ σε ζώνη ώρας· το σκάφος λέει όταν είναι ήδη έξω σε άλλη εκδρομή.</span></li>
-        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Διαγραφή διοργανωτή από το /admin</span><span class="h">1h</span><span class="d">Με αιτιολογία και γραμμή στο ιστορικό· όχι οριστική διαγραφή, γιατί συγκρούεται με το ιστορικό και το myDATA.</span></li>
-        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Φωτογραφίες και σελίδα εκδρομής</span><span class="h">2h</span><span class="d">Ένα πεδίο για όλες τις φωτογραφίες, με την πρώτη ως κύρια (και μια που δεν ανέβαινε καθόλου). Πιο σύντομη κάρτα κράτησης, ένας σύνδεσμος από την εκδρομή στη σελίδα που βλέπει ο επισκέπτης, floating labels στο ταμείο.</span></li>
-        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">− και + σε κάθε αριθμό, γραφήματα στα στατιστικά</span><span class="h">2h</span><span class="d">Και στα 79 αριθμητικά πεδία. Στα στατιστικά: μπάρες, δακτύλιος καναλιών, «Ποιες μέρες ταξιδεύουν» και «Πόσο νωρίς κλείνουν». Η κεφαλίδα ακολουθεί την κατάσταση του ιστότοπου· το όριο των δέκα σκαφών είναι ο πελάτης, όχι όριο.</span></li>
-        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">«Πώς είναι φτιαγμένο»</span><span class="h">0.5h</span><span class="d">Η αρχιτεκτονική σε τυπωμένο φυλλάδιο.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #133</span><span class="t">Το συμβόλαιο των καναλιών (EXT-1), με το iCal μέσα</span><span class="h">1h</span><span class="d">Επτά ορόσημα αργότερα απ&rsquo; ό,τι έπρεπε.</span></li>
+        <li class="is-done"><span class="k tick">&#10003; #134</span><span class="t">Το GetYourGuide ως πάροχος, και ο διακόπτης που το επιτρέπει</span><span class="h">1.25h</span><span class="d">Το <code>channel_manager</code> του EXT-2 &mdash; η πρώτη από τις εννιά σημαίες του που συνδέθηκε με κάτι.</span></li>
+        <li class="is-done"><span class="k tick">½ #135</span><span class="t">Η διεύθυνση που καλεί το GetYourGuide</span><span class="h">1h</span><span class="d">Το πρώτο μισό: το endpoint και οι θέσεις που του επιτρέπεται να δει.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Θέσεις κρατημένες από κράτηση που είχε τελειώσει</span><span class="h">1h</span><span class="d">Βρέθηκε στην «Υγεία πλατφόρμας»: ένα πρόχειρο που ακυρώθηκε άφηνε τις θέσεις του κρατημένες για πάντα, και το <code>ReleaseHold</code> δεν μπορούσε πια να το διορθώσει. Ακριβώς το σχήμα που φτιάχνει το GetYourGuide σε κάθε εγκαταλελειμμένο checkout.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Η οθόνη του διοργανωτή στο /admin σε τρεις καρτέλες</span><span class="h">0.75h</span><span class="d">Τα κανάλια πώλησης βγήκαν από τη λίστα διακοπτών.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Τιμές ως σύνοψη, μία καρτέλα τιμών, μετρητές στη λίστα εκδρομών</span><span class="h">1.25h</span><span class="d">Και ο οδηγός δείχνει την πρόοδό του με μια ματιά. «Καλησπέρα» στις εννιά, με φεγγάρι, και η μέρα δίπλα στον χαιρετισμό.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Δύο hooks που έλεγαν ψέματα</span><span class="h">0.5h</span><span class="d">Το Pint δεν έτρεχε ποτέ (PHP 8.3 αντί για 8.4, σιωπηλά)· ο έλεγχος στο τέλος έγραφε πάντα «FAILED», γιατί το χρονικό του όριο ήταν το ένα τρίτο της σουίτας.</span></li>
+      </ul>
+    </div>
+  </details>
+
+  <details class="milestone" data-state="done" open>
+    <summary>
+      <span class="chev" aria-hidden="true"></span>
+      <span class="m-code">&mdash;</span>
+      <span class="m-title">22 Σεπτεμβρίου &mdash; ο κανόνας συνοδείας, ο οδηγός νέας εκδρομής, και έξι λάθη που βρέθηκαν οδηγώντας το προϊόν</span>
+      <span class="pill done">παραδόθηκε</span>
+      <span class="m-days">~13 <span class="unit">h</span></span>
+    </summary>
+    <div class="weight"><span style="width:100%"></span></div>
+    <div class="m-body">
+      <p class="section-note" style="margin:1rem 0 0"><strong>Χωρίς αριθμούς issue</strong> &mdash; δουλειά που ζητήθηκε προφορικά, μία-μία, σε δεκατρία commits. Το μοτίβο της ημέρας: <em>ό,τι βρέθηκε, βρέθηκε οδηγώντας το πραγματικό προϊόν σε φυλλομετρητή</em> &mdash; όχι από τα 3.000 τεστ, που όλα περνούσαν.</p>
+
+      <p class="section-note" style="margin:.6rem 0 0"><strong>Έξι πραγματικά λάθη.</strong> <em>Το κουμπί &laquo;Αποθήκευση&raquo; της εκδρομής δεν έστελνε τίποτα</em>: από τότε που οι τιμοκατάλογοι μπήκαν σε καρτέλες, η σελίδα εμφώλευε <code>&lt;form&gt;</code> μέσα σε <code>&lt;form&gt;</code> και το κουμπί έμενε εκτός &mdash; κάθε αλλαγή σε εκδρομή χανόταν σιωπηλά. <em>Κάθε ημερομηνία στον πίνακα αποθηκευόταν μία μέρα νωρίτερα</em>, γιατί τα πεδία ημερομηνίας κληρονομούσαν τη ζώνη ώρας του διοργανωτή και μια στήλη <code>date</code> δεν έχει ώρα για να την απορροφήσει. <em>Μία αρχειοθετημένη εκδρομή έριχνε ολόκληρο το πάνελ</em> ενός διοργανωτή &mdash; ο reconciler τρέχει μέσα σε widget που ζωγραφίζει το layout, οπότε έπεφταν και οι κρατήσεις και η αρχική. <em>Το logo στο styling δεν αποθηκευόταν ποτέ.</em> <em>Διπλό δρομολόγιο γινόταν δεκτό</em> και δεν παρήγαγε τίποτα. Και η νέα συλλογή φωτογραφιών <em>κρασάριζε στη μέση του ανεβάσματος</em>.</p>
+
+      <ul class="tasks">
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ο κανόνας συνοδείας ενηλίκου, επιτέλους σε ισχύ</span><span class="h">2h</span><span class="d">Ο διακόπτης &laquo;χρειάζεται συνοδεία ενήλικα&raquo; υπήρχε στη φόρμα από το M1 και <strong>δεν τον εφάρμοζε τίποτα</strong>: δύο παιδιά μπορούσαν να κλείσουν μόνα τους και να πληρώσουν. Τώρα το checkout αρνείται με 422 και το widget κρατάει τον επισκέπτη στο βήμα των ατόμων αντί να σκάσει στην πληρωμή.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Νέα εκδρομή σε πέντε βήματα, με όλα μέσα</span><span class="h">3h</span><span class="d">&laquo;Βήματα για να φτιάξεις, καρτέλες για να διορθώσεις.&raquo; Ο οδηγός παίρνει ολόκληρο το πρόγραμμα (γραμμή ανά δρομολόγιο, με ώρες και περίοδο ισχύος), τιμή ανά περίοδο κάτω από κάθε ηλικιακή κατηγορία, &laquo;μέχρι N άτομα +Y&nbsp;&euro;&raquo; για τις ναυλώσεις, όλα τα κείμενα και τις φωτογραφίες &mdash; και βγάζει δημοσιευμένη εκδρομή με αναχωρήσεις στο ημερολόγιο, όχι πρόχειρη με λίστα ελλείψεων.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Φωτογραφίες εκδρομής &mdash; η στήλη που καμία οθόνη δεν έγραφε</span><span class="h">1h</span><span class="d">Το <code>products.images</code> υπήρχε από τον κατάλογο και το σέρβιρε το API, οι σελίδες και το WordPress &mdash; αλλά <strong>κανένα πεδίο πουθενά δεν έγραφε σε αυτό</strong>. Ένα πεδίο, όλη η συλλογή μαζί, και η πρώτη είναι αυτή που βγαίνει στην κάρτα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Ο οδηγός πρώτης ρύθμισης: πόρτα, με δύο εξόδους</span><span class="h">2h</span><span class="d">Κρατάει το πάνελ μέχρι να απαντηθούν τέσσερις ερωτήσεις για τον λογαριασμό &mdash; με &laquo;θα το κάνω αργότερα&raquo; και πλήρες skip. Λιμάνια, σκάφος, περίοδοι και εκδρομή έφυγαν από τα βήματα: έχουν δικές τους οθόνες, και φαίνονται ως εκκρεμότητες στην αρχική.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Το checkout φοράει τα ρούχα του site</span><span class="h">1.5h</span><span class="d">Δίπλα στη σελίδα εκδρομής έμοιαζε με άλλο προϊόν. Τώρα έχει το ίδιο masthead &mdash; σήμα, όνομα, πόλη, τηλέφωνο που καλεί, ΕΛ/EN &mdash; και τη φωτογραφία της εκδρομής στη σύνοψη. Χωρίς μενού: σε σελίδα πληρωμής, μενού σημαίνει έξοδος.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Διαγραφή διοργανωτή από το /admin, και τα πάντα στη δημιουργία</span><span class="h">1.5h</span><span class="d">Soft delete με πληκτρολογημένο όνομα, αιτιολογία και καταγραφή. Και ο νέος διοργανωτής φτιάχνεται πλέον με όλα όσα αποφασίζει η πλατφόρμα &mdash; features, κανάλια, site mode &mdash; αντί να εμφανίζονται μόνο μετά τη δημιουργία.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">&laquo;Το σκάφος έχει ήδη εκδρομή τότε&raquo;</span><span class="h">0.75h</span><span class="d">Χειροκίνητη αναχώρηση ελεγχόταν από το M2· ένα <em>δρομολόγιο</em> δεν κοίταζε καθόλου το ημερολόγιο του σκάφους. Προειδοποίηση, όχι άρνηση: δύο εκδρομές στο ίδιο σκάφος την ίδια ώρα επιτρέπονται και αποφασίζουν οι κρατήσεις (AVL-11).</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Οδηγός PDF &laquo;Μια εκδρομή, από την αρχή ως τη δημοσίευση&raquo;</span><span class="h">1h</span><span class="d">Κάθε στιγμιότυπο τραβιέται από ζωντανό Kaiki, όπως στο εγχειρίδιο &mdash; οθόνη που δεν φτάνεται δεν μπαίνει στο βιβλίο. Στην επιφάνεια εργασίας.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Μενού, σχεδιασμός και μικροδιορθώσεις</span><span class="h">1.25h</span><span class="d">&laquo;Περίοδοι&raquo; και &laquo;Πολιτικές ακύρωσης&raquo; ως δικές τους επιλογές· &laquo;σκαμμένα&raquo; κουτιά όπου η φόρμα εμφωλεύει· κύματα και στο <code>/admin</code>· περιθώρια στο εισιτήριο· κουμπί προεπισκόπησης σε κάθε εκδρομή· ο οδηγός πιάνει όλο το πλάτος με τα πεδία ευθυγραμμισμένα.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Το απόγευμα: − και +, γραφήματα, σελίδα εκδρομής</span><span class="h">&mdash;</span><span class="d">Οριζόντια − και + στα 79 αριθμητικά πεδία αντί για τα βελάκια του browser· μπάρες, δακτύλιος καναλιών, «Ποιες μέρες ταξιδεύουν» και «Πόσο νωρίς κλείνουν» στα στατιστικά· πιο σύντομη κάρτα κράτησης και floating labels στο ταμείο· το logo ακολουθεί την κατάσταση του ιστότοπου· το φυλλάδιο «Πώς είναι φτιαγμένο». Μέσα στις 13 ώρες της μέρας.</span></li>
       </ul>
     </div>
   </details>
@@ -794,13 +822,13 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
       <span class="m-code">&mdash;</span>
       <span class="m-title">Φάση 2 &mdash; κανάλια πώλησης</span>
       <span class="pill est">5 items</span>
-      <span class="m-days">~26–39 <span class="unit">h + έγκριση</span></span>
+      <span class="m-days">~22–35 <span class="unit">h + έγκριση</span></span>
     </summary>
     <div class="weight"><span style="width:0%"></span></div>
     <div class="m-body">
       <p class="section-note" style="margin:1rem 0 0"><strong>Εκτός του «Remaining» στην κορυφή.</strong> Οι ώρες είναι το άθροισμα των GetYourGuide, Viator και λογαριασμών γραφείων· το Click&amp;Boat θέλει πρώτα έλεγχο, και οι εγκρίσεις των πλατφορμών δεν μετριούνται σε ώρες.</p>
       <ul class="tasks">
-        <li><span class="k">&mdash;</span><span class="t">GetYourGuide</span><span class="h">8–12h</span><span class="d">Συν την έγκριση από το GetYourGuide.</span></li>
+        <li><span class="k">&mdash;</span><span class="t">GetYourGuide</span><span class="h">~4.5–8h left</span><span class="d">Ξεκίνησε στις 21 Σεπτεμβρίου: #133, #134 και το μισό #135 (βλ. τη ζώνη της 21ης). Συν την έγκριση από το GetYourGuide.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Viator</span><span class="h">8–12h</span><span class="d">Συν την έγκριση από το Viator.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Click&amp;Boat</span><span class="h">&mdash;</span><span class="d">Πιθανώς μέσω iCal &mdash; θέλει έλεγχο.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Λογαριασμοί γραφείων</span><span class="h">10–15h</span><span class="d">Με δικές τους τιμές ή προμήθεια.</span></li>
