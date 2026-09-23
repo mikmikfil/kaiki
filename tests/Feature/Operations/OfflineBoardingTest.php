@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Booking\Support\TicketQr;
 use App\Enums\BookingStatus;
 use App\Enums\Role;
+use App\Http\Controllers\App\BoardingController;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Models\Tenant;
@@ -12,6 +13,7 @@ use App\Models\User;
 use App\Support\Authorization\Capability;
 use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Vite;
 
 use function Pest\Laravel\actingAs;
 
@@ -230,4 +232,106 @@ it('keeps every ticket already printed working', function (): void {
     actingAs($crew)
         ->get(route('filament.app.pages.check-in', ['ticket' => 'TCK-BOARDING-1']))
         ->assertOk();
+});
+
+/*
+|--------------------------------------------------------------------------
+| The camera in the page (Mike, 2026-09-23)
+|--------------------------------------------------------------------------
+|
+| «Σάρωση εισιτηρίων» opens the camera inside the boarding page and reads
+| passenger after passenger. The camera itself is the browser's, and the
+| decoding is JavaScript; what PHP can assert is what the page and its worker
+| promise: the button is there only for an operator who scans, the script is
+| served from this origin and precached for a quay with no signal, and the
+| home page's button arrives asking for the camera.
+|
+*/
+
+/** Vite pointed at a fixed dev-server address, so the script's URL is known. */
+function boardingViteAt(string $origin): string
+{
+    $hot = tempnam(sys_get_temp_dir(), 'kaiki-hot');
+    file_put_contents($hot, $origin);
+    Vite::useHotFile($hot);
+
+    return $origin . '/' . BoardingController::SCANNER_ENTRY;
+}
+
+it('offers the camera to an operator who scans, and precaches its script', function (): void {
+    [$tenant, $crew] = boardingCrew();
+    $script = boardingViteAt('http://vite.test');
+
+    $body = (string) actingAs($crew)->get(route('filament.app.boarding'))->assertOk()->getContent();
+
+    expect($body)->toContain('id="camOpen"')
+        ->and($body)->toContain(e(__('boarding.camera.open')))
+        ->and($body)->toContain(e(__('boarding.camera.close')))
+        ->and($body)->toContain('id="scannerScript" src="' . $script . '"')
+        // The text box stays: a torn QR is typed.
+        ->and($body)->toContain('id="scanForm"')
+        ->and($body)->toContain('data-auto="0"');
+
+    // The same URL in the worker, or the first scan on the boat finds no
+    // decoder. Not escaped: it is a JavaScript string, and `/` is plain.
+    $response = actingAs($crew)->get(route('filament.app.boarding.sw'))->assertOk();
+
+    expect((string) $response->getContent())->toContain('const ASSETS = ["' . $script . '"]');
+});
+
+it('lets the worker control the boarding page itself, and nothing wider', function (): void {
+    [$tenant, $crew] = boardingCrew();
+
+    // Served from `/app/boarding/sw.js`, a worker may only claim
+    // `/app/boarding/` by default — which the page, `/app/boarding`, is not
+    // under. Until this header the page was never controlled, and a reload
+    // with no signal found nothing.
+    $response = actingAs($crew)->get(route('filament.app.boarding.sw'))->assertOk();
+
+    expect($response->headers->get('Service-Worker-Allowed'))->toBe('/app/boarding');
+
+    $body = (string) actingAs($crew)->get(route('filament.app.boarding'))->assertOk()->getContent();
+
+    expect($body)->toContain('scope: "\/app\/boarding"');
+});
+
+it('offers no camera and loads no decoder when the operator does not scan', function (): void {
+    [$tenant, $crew] = boardingCrew();
+    $tenant->forceFill(['qr_check_in_enabled' => false])->save();
+    boardingViteAt('http://vite.test');
+
+    $body = (string) actingAs($crew)->get(route('filament.app.boarding', ['camera' => 1]))->assertOk()->getContent();
+
+    expect($body)->not->toContain('id="camOpen"')
+        ->and($body)->not->toContain('id="scannerScript"')
+        ->and($body)->not->toContain(e(__('boarding.camera.open')));
+});
+
+it('opens the camera straight away when the home page asks for it', function (): void {
+    [$tenant, $crew] = boardingCrew();
+    boardingViteAt('http://vite.test');
+
+    $body = (string) actingAs($crew)->get(route('filament.app.boarding', ['camera' => 1]))->assertOk()->getContent();
+
+    expect($body)->toContain('data-auto="1"');
+});
+
+it('still boards by typed code when the scripts were never built', function (): void {
+    [$tenant, $crew] = boardingCrew();
+
+    // No hot file and no manifest: a deploy that skipped `npm run build`.
+    Vite::useHotFile(sys_get_temp_dir() . '/kaiki-no-such-hot-file');
+    Vite::useBuildDirectory('kaiki-no-such-build');
+
+    expect(BoardingController::scannerScriptUrl())->toBeNull();
+
+    // A 500 here would take away the one boarding that works with no signal.
+    $body = (string) actingAs($crew)->get(route('filament.app.boarding'))->assertOk()->getContent();
+
+    expect($body)->toContain('id="scanForm"')
+        ->and($body)->not->toContain('id="scannerScript"');
+
+    $worker = (string) actingAs($crew)->get(route('filament.app.boarding.sw'))->assertOk()->getContent();
+
+    expect($worker)->toContain('const ASSETS = []');
 });

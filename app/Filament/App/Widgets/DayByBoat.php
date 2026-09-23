@@ -16,6 +16,7 @@ use App\Models\Departure;
 use App\Support\Tenancy;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Carbon;
+use Livewire\Attributes\On;
 
 /**
  * The home page: the day, by boat (product owner, 2026-09-16/17, «version 3»).
@@ -58,6 +59,13 @@ class DayByBoat extends Widget
 
         return ! FirstSteps::applies();
     }
+
+    /**
+     * An answer given in «Χρειάζονται προσοχή» redraws the box at the top, so
+     * its count drops with the row instead of a minute later.
+     */
+    #[On('attention-answered')]
+    public function attentionAnswered(): void {}
 
     /** @return array<string, mixed>|null */
     public function getNext(): ?array
@@ -134,7 +142,10 @@ class DayByBoat extends Widget
         $qr = CheckIn::qrEnabled();
 
         return [
-            'url' => CheckIn::getUrl(),
+            // «Σάρωση εισιτηρίων» opens the camera on the boarding page, which
+            // scans passenger after passenger and keeps working with no signal
+            // (Mike, 2026-09-23). The list is still the Filament page.
+            'url' => $qr ? route('filament.app.boarding', ['camera' => 1]) : CheckIn::getUrl(),
             'label' => $qr ? __('dashboard.home.next.scan') : __('dashboard.home.next.board'),
             'icon' => $qr ? 'heroicon-o-qr-code' : 'heroicon-o-list-bullet',
         ];
@@ -183,7 +194,9 @@ class DayByBoat extends Widget
             ];
         }
 
-        $pending = count((new AttentionItems($this->timezone()))->all());
+        // The real number, not the first page's: a box stuck on «8» while the
+        // operator answers row after row reads as a list that ignores them.
+        $pending = (new AttentionItems($this->timezone()))->count();
 
         $boxes[] = [
             'label' => __('dashboard.home.boxes.attention'),

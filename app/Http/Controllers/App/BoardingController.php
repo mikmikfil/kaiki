@@ -18,7 +18,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Vite;
 use Illuminate\View\View;
+use Throwable;
 
 /**
  * Boarding on a quay with no signal (spec OPS-12, BKG-20, OOS-6).
@@ -73,6 +75,9 @@ class BoardingController
 
     private const HOURS_FORWARD = 24;
 
+    /** The camera and QR decoder, a Vite entry of its own (vite.config.js). */
+    public const SCANNER_ENTRY = 'resources/js/boarding-scanner.js';
+
     /** The page, with today's manifest baked into it. */
     public function show(Request $request): View
     {
@@ -82,7 +87,12 @@ class BoardingController
             // Off (BKG-20, amended 2026-09-11): no scan box and no `?ticket=`,
             // and the page is the list with a button per name — which is what
             // a small operator on a quay with no signal needs most.
-            'qrEnabled' => CheckIn::qrEnabled(),
+            'qrEnabled' => $qr = CheckIn::qrEnabled(),
+            // The camera, and «Σάρωση εισιτηρίων» on the home page arriving
+            // with `?camera=1` to open it straight away. The page reads the
+            // query itself too, for the copy its service worker serves offline.
+            'scannerUrl' => $qr ? self::scannerScriptUrl() : null,
+            'autoCamera' => $qr && $request->boolean('camera'),
             'manifest' => $this->manifest(),
             'generatedAt' => Carbon::now()->toIso8601String(),
             'tenantId' => Tenancy::id(),
@@ -222,6 +232,24 @@ class BoardingController
         }
 
         return $rows;
+    }
+
+    /**
+     * Where the built camera script is, or null when there is no build.
+     *
+     * Null rather than an exception: a deploy that skipped `npm run build`
+     * must still leave a boarding page with a text box and a list — that page
+     * works with no signal and no camera, and a 500 in its place would take
+     * boarding away altogether. Without the script the page offers no camera
+     * button. The service worker precaches the same URL.
+     */
+    public static function scannerScriptUrl(): ?string
+    {
+        try {
+            return Vite::asset(self::SCANNER_ENTRY);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     /**
