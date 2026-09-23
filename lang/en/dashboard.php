@@ -116,6 +116,7 @@ return [
             'calendar' => 'Calendar',
             'seats' => ':count seat|:count seats',
             'free' => 'Free today',
+            'idle' => 'Free today|Free today',
         ],
     ],
 ];

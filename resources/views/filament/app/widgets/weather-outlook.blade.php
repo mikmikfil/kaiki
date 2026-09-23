@@ -114,14 +114,14 @@
         .kw-dow { display: block; font-size: .66rem; color: rgb(var(--gray-500)); }
         .kw-bft { display: block; font-size: 1rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
         .kw-day.is-over .kw-bft { color: rgb(var(--warning-700)); }
-        .kw-src { display: block; font-size: .6rem; color: rgb(var(--gray-400)); }
+        .kw-src { display: block; font-size: .6rem; color: rgb(var(--gray-600)); }
 
         /* Quiet on purpose: a credit line, not a row of the panel. */
-        .kw-source { margin-top: .9rem; font-size: .68rem; color: rgb(var(--gray-400)); }
+        .kw-source { margin-top: .9rem; font-size: .68rem; color: rgb(var(--gray-500)); }
         .kw-source a { color: inherit; font-weight: 600; text-decoration: none; }
 
         .kw-affected { font-size: .8rem; color: rgb(var(--gray-700)); }
-        .kw-clear { font-size: .8rem; color: rgb(var(--gray-400)); }
+        .kw-clear { font-size: .8rem; color: rgb(var(--gray-500)); }
 
         @media (max-width: 52rem) {
             .kw-row { grid-template-columns: 1fr; gap: .5rem; }
@@ -149,10 +149,13 @@
         .dark .kw-row { border-bottom-color: rgba(255, 255, 255, .08); }
         .dark .kw-name { color: rgb(var(--gray-200)); }
         .dark .kw-affected { color: rgb(var(--gray-300)); }
+        /* Quiet still, but readable: gray-500 on the dark card was ~4:1. */
         .dark .kw-limit,
-        .dark .kw-dow { color: rgb(var(--gray-400)); }
+        .dark .kw-dow,
         .dark .kw-src,
         .dark .kw-source,
-        .dark .kw-clear { color: rgb(var(--gray-500)); }
+        .dark .kw-clear { color: rgb(var(--gray-400)); }
+        .dark .kw-day.is-over .kw-dow,
+        .dark .kw-day.is-over .kw-src { color: rgb(var(--gray-300)); }
     </style>
 </x-filament-widgets::widget>

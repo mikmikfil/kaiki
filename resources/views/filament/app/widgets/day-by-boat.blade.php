@@ -108,9 +108,14 @@
             @elseif ($day->isEmpty())
                 <p class="kd-empty">{{ __('attention.today.nothing_out') }}</p>
             @else
-                {{-- A box per boat: the phone --}}
+                {{-- A box per boat: the phone. A boat with nothing on today
+                     gets one line in a shared box at the end instead of a card
+                     of its own — ten cards ran to ~1,900px on a phone, and the
+                     idle ones said the least (phone audit, 2026-09-23). --}}
+                @php($busy = array_values(array_filter($day->rows, fn ($row) => $row['bars'] !== [])))
+                @php($idle = array_values(array_filter($day->rows, fn ($row) => $row['bars'] === [])))
                 <div class="kd-boatboxes">
-                    @foreach ($day->rows as $row)
+                    @foreach ($busy as $row)
                         <div class="kd-boat">
                             <div class="kd-boat-head">
                                 <b>{{ $row['vessel']->name }}</b>
@@ -136,11 +141,23 @@
                                         <span class="kd-dep-pax">{{ $bar['pax'] !== null ? $bar['pax'] . '/' . $bar['capacity'] : '' }}</span>
                                     </{{ $url ? 'a' : 'div' }}>
                                 @empty
-                                    <div class="kd-dep is-muted"><span class="kd-dep-name">{{ __('dashboard.home.boats.free') }}</span></div>
+                                    <div class="kd-dep is-muted is-free"><span class="kd-dep-name">{{ __('dashboard.home.boats.free') }}</span></div>
                                 @endforelse
                             </div>
                         </div>
                     @endforeach
+
+                    @if ($idle !== [])
+                        <div class="kd-idle">
+                            <b class="kd-idle-title">{{ trans_choice('dashboard.home.boats.idle', count($idle)) }}</b>
+                            @foreach ($idle as $row)
+                                <div class="kd-idle-row">
+                                    <span>{{ $row['vessel']->name }}</span>
+                                    <small>{{ trans_choice('dashboard.home.boats.seats', (int) $row['vessel']->capacity_max, ['count' => (int) $row['vessel']->capacity_max]) }}</small>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 {{-- Lanes on a timeline: a tablet and up --}}
@@ -168,12 +185,17 @@
                                 @endif
                                 @foreach ($row['bars'] as $bar)
                                     @php($url = $bar['kind'] === 'departure' ? $this->getDepartureUrl($bar['uuid']) : null)
+                                    @php($time = $bar['detail'] ? substr((string) $bar['detail'], 0, 5) : '')
+                                    @php($pax = $bar['pax'] !== null ? $bar['pax'] . '/' . $bar['capacity'] : '')
+                                    {{-- A narrow bar (a tablet, a short trip) drops
+                                         the name for the time and seats, which
+                                         fit; the full line stays in the title. --}}
                                     <{{ $url ? 'a' : 'div' }} @if ($url) href="{{ $url }}" @endif
                                         @class(['kd-ev', 'is-block' => $bar['kind'] === 'block', 'is-cancelled' => $bar['cancelled']])
                                         style="left: {{ $bar['start'] * 100 }}%; width: calc({{ max(($bar['end'] - $bar['start']) * 100, 3) }}% - 3px)"
-                                        title="{{ $bar['label'] }}">
-                                        <b>{{ $bar['label'] }}</b>
-                                        <span>{{ $bar['detail'] ? substr((string) $bar['detail'], 0, 5) : '' }}{{ $bar['pax'] !== null ? ' · ' . $bar['pax'] . '/' . $bar['capacity'] : '' }}</span>
+                                        title="{{ collect([$time, $bar['label'], $pax])->filter()->implode(' · ') }}">
+                                        <b class="kd-ev-name">{{ $bar['label'] }}</b>
+                                        <span class="kd-ev-meta"><span class="kd-ev-time">{{ $time }}</span>@if ($pax !== '')<span class="kd-ev-pax">{{ $time !== '' ? ' · ' : '' }}{{ $pax }}</span>@endif</span>
                                     </{{ $url ? 'a' : 'div' }}>
                                 @endforeach
                             </div>
@@ -185,14 +207,78 @@
     </div>
 
     <style>
-        .kd { display: grid; gap: 1.25rem; }
+        /*
+         * Every colour is a variable on `.kd`, redefined once under `.dark .kd`
+         * (phone audit, 2026-09-23: fifty light-only colours, white boxes on
+         * the dark page and a section title at 1.26:1). The dark values lean on
+         * Filament's own scales, so they follow the panel's grey and the dark
+         * primary from `DarkPrimary`.
+         */
+        .kd {
+            --kd-card: #fff;
+            --kd-line: #E1E8F2;
+            --kd-line-hover: #B9CBE3;
+            --kd-rule: #EEF3F9;
+            --kd-ink: #15233A;
+            --kd-muted: #5B6B82;
+            --kd-faint: #64748B;
+            --kd-link: #1C4378;
+            --kd-soft: #EAF1FA;
+            --kd-soft-ink: #0F2E57;
+            --kd-alert: #FDECEC;
+            --kd-alert-ink: #B42318;
+            --kd-track: #EEF3F9;
+            --kd-lane: #F3F6FA;
+            --kd-bar: #1C4378;
+            --kd-bar-ink: #fff;
+            --kd-block: #64748B;
+            --kd-cancel: #CBD5E1;
+            --kd-cancel-ink: #475569;
+            --kd-now: #D97706;
+            /* The one blue card, in both themes. */
+            --kd-next: #0F2E57;
+            --kd-next-line: transparent;
+            --kd-btn: #fff;
+            --kd-btn-hover: #E8F0FB;
+            --kd-btn-ink: #0F2E57;
+
+            display: grid; gap: 1.25rem;
+        }
+        .dark .kd {
+            --kd-card: rgb(var(--gray-900));
+            --kd-line: rgba(255, 255, 255, .1);
+            --kd-line-hover: rgba(255, 255, 255, .22);
+            --kd-rule: rgba(255, 255, 255, .07);
+            --kd-ink: rgb(var(--gray-100));
+            --kd-muted: rgb(var(--gray-400));
+            --kd-faint: rgb(var(--gray-400));
+            --kd-link: rgb(var(--primary-400));
+            --kd-soft: rgba(var(--primary-400), .14);
+            --kd-soft-ink: rgb(var(--primary-300));
+            --kd-alert: rgba(var(--danger-500), .16);
+            --kd-alert-ink: rgb(var(--danger-400));
+            --kd-track: rgba(255, 255, 255, .08);
+            --kd-lane: rgba(255, 255, 255, .04);
+            --kd-bar: rgb(var(--primary-500));
+            --kd-bar-ink: rgb(var(--primary-950));
+            --kd-block: rgb(var(--gray-500));
+            --kd-cancel: rgb(var(--gray-700));
+            --kd-cancel-ink: rgb(var(--gray-200));
+            --kd-now: #F59E0B;
+            /* The card stays navy; a hairline keeps it off the black page, and
+               the button is a pale blue rather than a white slab at night. */
+            --kd-next-line: rgba(255, 255, 255, .1);
+            --kd-btn: #D6E4F7;
+            --kd-btn-hover: #fff;
+        }
         .kd a { text-decoration: none; }
 
         .kd-top { display: grid; gap: .875rem; }
 
         .kd-next {
             display: grid; gap: .5rem; padding: 1.1rem 1.15rem 1.15rem;
-            border-radius: 1rem; background: #0F2E57; color: #fff;
+            border-radius: 1rem; background: var(--kd-next); color: #fff;
+            border: 1px solid var(--kd-next-line);
             position: relative; overflow: hidden; isolation: isolate;
         }
         /* The helm: white line art at 5%, cut by the top-right corner, one
@@ -221,57 +307,68 @@
         .kd-bigbtn {
             display: flex; align-items: center; justify-content: center; gap: .55rem;
             min-height: 3.125rem; margin-top: .35rem; border-radius: .75rem;
-            background: #fff; color: #0F2E57; font-weight: 700; font-size: 1rem;
+            background: var(--kd-btn); color: var(--kd-btn-ink); font-weight: 700; font-size: 1rem;
         }
-        .kd-bigbtn:hover { background: #E8F0FB; }
+        .kd-bigbtn:hover { background: var(--kd-btn-hover); }
         .kd-ic { width: 1.25rem; height: 1.25rem; }
 
         .kd-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
         .kd-box {
             position: relative; display: flex; flex-direction: column; gap: .6rem;
             min-height: 6.5rem; padding: .9rem; border-radius: 1rem;
-            background: #fff; border: 1px solid #E1E8F2; color: #15233A;
+            background: var(--kd-card); border: 1px solid var(--kd-line); color: var(--kd-ink);
         }
-        .kd-box:hover { border-color: #B9CBE3; }
+        .kd-box:hover { border-color: var(--kd-line-hover); }
         .kd-box-ic {
             display: grid; place-items: center; width: 2.25rem; height: 2.25rem;
-            border-radius: .6rem; background: #EAF1FA; color: #0F2E57;
+            border-radius: .6rem; background: var(--kd-soft); color: var(--kd-soft-ink);
         }
-        .kd-box-ic.is-alert { background: #FDECEC; color: #B42318; }
+        .kd-box-ic.is-alert { background: var(--kd-alert); color: var(--kd-alert-ink); }
         .kd-box-text { display: grid; gap: .1rem; }
         .kd-box-text b { font-size: .975rem; }
-        .kd-box-text small { font-size: .8125rem; color: #5B6B82; }
+        .kd-box-text small { font-size: .8125rem; color: var(--kd-muted); }
         .kd-count {
             position: absolute; top: .7rem; right: .7rem; min-width: 1.4rem; padding: 0 .4rem;
-            border-radius: 99px; background: #EAF1FA; color: #0F2E57;
+            border-radius: 99px; background: var(--kd-soft); color: var(--kd-soft-ink);
             font-size: .75rem; font-weight: 700; line-height: 1.4rem; text-align: center;
         }
-        .kd-count.is-alert { background: #FDECEC; color: #B42318; }
+        .kd-count.is-alert { background: var(--kd-alert); color: var(--kd-alert-ink); }
 
         .kd-boats { display: grid; gap: .75rem; }
         .kd-section-title { display: flex; align-items: baseline; justify-content: space-between; }
-        .kd-section-title h3 { font-size: 1.0625rem; font-weight: 700; color: #15233A; }
-        .kd-section-title a { font-size: .875rem; font-weight: 600; color: #1C4378; }
-        .kd-empty { font-size: .9rem; color: #5B6B82; }
+        .kd-section-title h3 { font-size: 1.0625rem; font-weight: 700; color: var(--kd-ink); }
+        .kd-section-title a { font-size: .875rem; font-weight: 600; color: var(--kd-link); }
+        .kd-empty { font-size: .9rem; color: var(--kd-muted); }
 
         .kd-boatboxes { display: grid; gap: .75rem; }
-        .kd-boat { display: grid; gap: .6rem; padding: .9rem; border-radius: 1rem; background: #fff; border: 1px solid #E1E8F2; }
+        .kd-boat { display: grid; gap: .5rem; padding: .85rem .9rem .3rem; border-radius: 1rem; background: var(--kd-card); border: 1px solid var(--kd-line); }
         .kd-boat-head { display: flex; align-items: baseline; gap: .5rem; }
-        .kd-boat-head b { font-size: 1rem; color: #15233A; }
-        .kd-boat-head span { font-size: .8125rem; color: #5B6B82; }
-        .kd-mini { position: relative; height: .6rem; border-radius: 99px; background: #EEF3F9; }
-        .kd-mini i { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: #1C4378; }
-        .kd-mini i.is-block { background: #9AA8BA; }
-        .kd-mini i.is-cancelled { background: #CBD5E1; }
-        .kd-now { position: absolute; top: -.2rem; bottom: -.2rem; width: 2px; margin-left: -1px; background: #D97706; z-index: 1; }
+        .kd-boat-head b { font-size: 1rem; color: var(--kd-ink); }
+        .kd-boat-head span { font-size: .8125rem; color: var(--kd-muted); }
+        .kd-mini { position: relative; height: .6rem; border-radius: 99px; background: var(--kd-track); }
+        .kd-mini i { position: absolute; top: 0; bottom: 0; border-radius: 99px; background: var(--kd-bar); }
+        .kd-mini i.is-block { background: var(--kd-block); }
+        .kd-mini i.is-cancelled { background: var(--kd-cancel); }
+        .kd-now { position: absolute; top: -.2rem; bottom: -.2rem; width: 2px; margin-left: -1px; background: var(--kd-now); z-index: 1; }
         .kd-deps { display: grid; }
         .kd-dep {
             display: grid; grid-template-columns: 3.2rem 1fr auto; align-items: center; gap: .5rem;
-            min-height: 2.75rem; border-top: 1px solid #EEF3F9; color: #15233A; font-size: .925rem;
+            min-height: 2.6rem; border-top: 1px solid var(--kd-rule); color: var(--kd-ink); font-size: .925rem;
         }
         .kd-dep-time { font-variant-numeric: tabular-nums; font-weight: 700; }
-        .kd-dep-pax { font-variant-numeric: tabular-nums; color: #5B6B82; font-size: .85rem; }
-        .kd-dep.is-muted { color: #7B8BA1; }
+        .kd-dep-pax { font-variant-numeric: tabular-nums; color: var(--kd-muted); font-size: .85rem; }
+        .kd-dep.is-muted { color: var(--kd-faint); }
+        /* «Ελεύθερο σήμερα» is a sentence, not a trip name: the whole row. */
+        .kd-dep.is-free .kd-dep-name { grid-column: 1 / -1; }
+
+        /* The boats with nothing on today: one line each, in one box. */
+        .kd-idle { display: grid; padding: .75rem .9rem .35rem; border-radius: 1rem; background: var(--kd-card); border: 1px solid var(--kd-line); }
+        .kd-idle-title { font-size: .875rem; font-weight: 600; color: var(--kd-muted); padding-bottom: .35rem; }
+        .kd-idle-row {
+            display: flex; align-items: baseline; gap: .5rem; min-height: 2.5rem; align-content: center; flex-wrap: wrap;
+            padding: .55rem 0; border-top: 1px solid var(--kd-rule); color: var(--kd-ink); font-size: .95rem; font-weight: 600;
+        }
+        .kd-idle-row small { font-size: .8125rem; font-weight: 400; color: var(--kd-muted); }
 
         .kd-lanes { display: none; }
 
@@ -280,25 +377,41 @@
             .kd-boatboxes { display: none; }
             .kd-lanes {
                 position: relative; display: grid; gap: .45rem; padding: 1rem;
-                border-radius: 1rem; background: #fff; border: 1px solid #E1E8F2; overflow-x: auto;
+                border-radius: 1rem; background: var(--kd-card); border: 1px solid var(--kd-line); overflow-x: auto;
             }
             .kd-lane-row { display: grid; grid-template-columns: 7.5rem minmax(34rem, 1fr); gap: .75rem; align-items: center; }
             .kd-lane-name { display: grid; }
-            .kd-lane-name b { font-size: .925rem; color: #15233A; }
-            .kd-lane-name span { font-size: .775rem; color: #5B6B82; }
-            .kd-lane { position: relative; height: 3rem; border-radius: .6rem; background: #F3F6FA; }
+            .kd-lane-name b { font-size: .925rem; color: var(--kd-ink); }
+            .kd-lane-name span { font-size: .775rem; color: var(--kd-muted); }
+            .kd-lane { position: relative; height: 3rem; border-radius: .6rem; background: var(--kd-lane); }
             .kd-ruler .kd-lane { height: 1rem; background: transparent; }
-            .kd-tick { position: absolute; top: 0; font-size: .72rem; color: #7B8BA1; transform: translateX(-50%); }
+            .kd-tick { position: absolute; top: 0; font-size: .72rem; color: var(--kd-faint); transform: translateX(-50%); }
             .kd-ev {
                 position: absolute; top: .25rem; bottom: .25rem; display: grid; align-content: center;
                 padding: 0 .5rem; border-radius: .45rem; overflow: hidden; white-space: nowrap;
-                background: #1C4378; color: #fff; font-size: .75rem;
+                background: var(--kd-bar); color: var(--kd-bar-ink); font-size: .75rem;
+                container-type: inline-size;
             }
-            .kd-ev b { overflow: hidden; text-overflow: ellipsis; font-size: .8rem; }
-            .kd-ev span { opacity: .85; font-variant-numeric: tabular-nums; }
-            .kd-ev.is-block { background: #9AA8BA; }
-            .kd-ev.is-cancelled { background: #CBD5E1; color: #475569; }
+            .kd-ev-name { overflow: hidden; text-overflow: ellipsis; font-size: .8rem; }
+            .kd-ev-meta { overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+            .kd-ev.is-block { background: var(--kd-block); color: #fff; }
+            .kd-ev.is-cancelled { background: var(--kd-cancel); color: var(--kd-cancel-ink); }
             .kd-lane .kd-now { top: -.3rem; bottom: -.3rem; }
+
+            /* A bar too narrow for its name («Πρωινό κ…» at 768px): the time
+               and seats on one line instead, then the time alone. The name is
+               in the bar's title. */
+            @container (max-width: 7.5rem) {
+                .kd-ev-name { display: none; }
+                .kd-ev-meta { font-size: .8rem; font-weight: 700; }
+            }
+            @container (max-width: 4.25rem) {
+                .kd-ev-pax { display: none; }
+            }
+            /* Too narrow even for «07:30»: a plain bar, rather than «0…». */
+            @container (max-width: 2.5rem) {
+                .kd-ev-meta { display: none; }
+            }
         }
 
         @media (min-width: 1024px) {
