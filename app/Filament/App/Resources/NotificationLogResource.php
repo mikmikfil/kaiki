@@ -116,46 +116,64 @@ class NotificationLogResource extends Resource
     {
         return $table
             ->columns([
+                // Four columns, not eight (Mike, 2026-09-23: «χάλια εμφάνιση,
+                // προτάσεις κόβονται»). Eight pushed «Τι πήγε στραβά» and both
+                // buttons off the right edge of a laptop, and the explanation,
+                // wrapping inside a column a few words wide, made every row
+                // two hundred pixels tall. The recipient now sits under the
+                // message and the explanation under the status — the shape
+                // «Παραστατικά» already uses for a failed invoice.
                 TextColumn::make('created_at')
                     ->label(__('notifications.table.when'))
-                    ->dateTime()
+                    ->dateTime('d/m/Y H:i')
+                    ->description(static fn (NotificationLog $record): ?string => $record->booking?->reference)
                     ->sortable(),
 
+                // Under the date rather than a column of its own, so the two
+                // buttons still fit on a tablet; searchable all the same.
                 TextColumn::make('booking.reference')
                     ->label(__('notifications.table.booking'))
-                    ->searchable(),
+                    ->searchable()
+                    ->hidden(),
 
                 TextColumn::make('template')
                     ->label(__('notifications.table.message'))
-                    ->formatStateUsing(static fn (NotificationTemplate $state): string => $state->label()),
+                    ->formatStateUsing(static fn (NotificationTemplate $state): string => $state->label())
+                    ->description(static fn (NotificationLog $record): string => (string) $record->to),
 
-                TextColumn::make('channel')
-                    ->label(__('notifications.table.channel'))
-                    ->badge()
-                    ->formatStateUsing(static fn (NotificationChannel $state): string => $state->label()),
-
+                // Searchable on its own, since it is no longer a column: the
+                // question «did Maria get hers?» is asked by address.
                 TextColumn::make('to')
                     ->label(__('notifications.table.to'))
                     ->searchable()
-                    ->toggleable(),
+                    ->hidden(),
 
                 TextColumn::make('status')
                     ->label(__('notifications.table.status'))
                     ->badge()
                     ->color(static fn (NotificationStatus $state): string => $state->needsAttention() ? 'danger' : 'gray')
-                    ->formatStateUsing(static fn (NotificationStatus $state): string => $state->label()),
+                    ->formatStateUsing(static fn (NotificationStatus $state): string => $state->label())
+                    // CNV-11: the operator reads a sentence, not a provider's
+                    // code — and only where something went wrong.
+                    ->description(static fn (NotificationLog $record): ?string => $record->status->needsAttention()
+                        ? self::explain($record->error_message)
+                        : null)
+                    ->wrap()
+                    // The one column with a sentence in it takes the room the
+                    // others do not need, instead of wrapping to seven lines.
+                    ->grow()
+                    ->extraAttributes(['style' => 'min-width: 12rem']),
+
+                TextColumn::make('channel')
+                    ->label(__('notifications.table.channel'))
+                    ->badge()
+                    ->formatStateUsing(static fn (NotificationChannel $state): string => $state->label())
+                    ->visibleFrom('2xl'),
 
                 TextColumn::make('provider')
                     ->label(__('notifications.table.provider'))
                     ->formatStateUsing(static fn (?NotificationProvider $state): string => $state?->label() ?? '—')
-                    ->toggleable(),
-
-                // CNV-11: the operator reads a sentence, not a provider's code.
-                TextColumn::make('error_message')
-                    ->label(__('notifications.table.why'))
-                    ->formatStateUsing(static fn (?string $state): string => self::explain($state))
-                    ->wrap()
-                    ->toggleable(),
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->defaultSort('created_at', 'desc')
             ->filters([
@@ -182,7 +200,13 @@ class NotificationLogResource extends Resource
                     ->label(__('notifications.table.channel'))
                     ->options(NotificationChannel::options()),
             ])
-            ->actions([static::previewAction(), static::retryAction()]);
+            // As icons here, with the label as a tooltip: two worded buttons
+            // were wider than the message they act on. The same actions keep
+            // their words wherever else they are used.
+            ->actions([
+                static::previewAction()->iconButton()->tooltip(__('notifications.actions.preview.label')),
+                static::retryAction()->iconButton()->tooltip(__('notifications.actions.retry.label')),
+            ]);
         // No delete action anywhere — see the class docblock.
     }
 
