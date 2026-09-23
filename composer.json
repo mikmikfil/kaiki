@@ -12,6 +12,7 @@
     "license": "proprietary",
     "require": {
         "php": "^8.4",
+        "ext-gd": "*",
         "ext-intl": "*",
         "bacon/bacon-qr-code": "^3.1",
         "brick/money": "^0.11.2",

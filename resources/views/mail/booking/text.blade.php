@@ -67,6 +67,12 @@
 @if ($d->full && $d->ticketUrl !== null)
 
 {{ __('mail.common.ticket') }} — {{ __('mail.common.ticket_help') }}
+@if ($d->boardingPasses !== [])
+{{ trans_choice('mail.common.boarding_text', count($d->boardingPasses)) }}
+@endif
+@if ($ticketPdfAttached ?? false)
+{{ __('mail.common.ticket_attached') }}
+@endif
 {!! $d->ticketUrl !!}
 @endif
 @if ($d->calendarUrl !== null)

@@ -37,6 +37,16 @@ return [
         'check_in' => 'Be there by',
         'meeting_point' => 'Meeting point',
         'vessel' => 'Vessel',
+        'returns' => 'Back',
+    ],
+
+    // The rest of the trip, under the facts (2026-09-23): what the email says,
+    // so the PDF is enough on its own on a quay with no signal.
+    'more' => [
+        'how_to_find' => 'How to find us',
+        'open_map' => 'Open in maps',
+        'bring' => 'What to bring',
+        'contact' => 'Contact',
     ],
 
     'footer' => [

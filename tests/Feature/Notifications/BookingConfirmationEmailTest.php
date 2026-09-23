@@ -151,7 +151,9 @@ it('carries every fact of the trip in the confirmation, in both halves', functio
             ->toContain('16/7');
     }
 
-    expect($html)->not->toContain('<img')
+    // The boarding QR is the only image, and it is carried, never fetched
+    // (2026-09-23; see TemplateSnapshotTest and BoardingQrEmailTest).
+    expect($html)->not->toMatch('/<img\b[^>]*src="(https?:)?\/\//i')
         ->and(strtolower($html))->not->toContain('uppercase')
         ->and($html)->not->toContain('text-decoration:underline');
 })->group('fast');

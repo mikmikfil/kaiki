@@ -8,6 +8,7 @@ use App\Domain\Booking\Actions\ApplyGuestChoice;
 use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\GenerateETicket;
 use App\Domain\Booking\Actions\MintBalanceSession;
+use App\Domain\Booking\Support\BoardingPasses;
 use App\Domain\Booking\Support\BookingCalendarInvite;
 use App\Domain\Booking\Support\GuestTokenResolver;
 use App\Domain\Booking\Support\RefundEntitlement;
@@ -190,47 +191,25 @@ final class ManageBookingController extends GuestPageController
      * and a pinch-zoom between a guest and the thing the crew scans. They are
      * on the page now whenever there is one to show.
      *
-     * "Whenever there is one" is three conditions, and each of them is somebody
-     * else's decision rather than this page's: the platform has switched QR
-     * boarding on for this operator, the booking has a ticket, and the trip
-     * has not already sailed. A code for a cancelled booking would scan green
-     * at a gangway, which is the one outcome worth engineering against.
-     *
-     * «Has a ticket», not «is live»: a draft and a booking at the gateway are
-     * live to the seat engine and showed a code per passenger until the stress
-     * sweep of 2026-09-23 — codes the crew's scan then refuses.
+     * "Whenever there is one" is three conditions — QR boarding on for this
+     * operator, a booking that has a ticket, a trip not yet sailed — and they
+     * live in {@see BoardingPasses}, because the emails that carry the whole
+     * trip show the same codes (2026-09-23) and must stop at the same moment.
+     * A code for a cancelled booking would scan green at a gangway, which is
+     * the one outcome worth engineering against.
      *
      * @return list<array{name: string, code: string, svg: string}>
      */
     private static function boardingPassesFor(Booking $booking, Tenant $tenant): array
     {
-        if (! $tenant->usesQrCheckIn() || ! $booking->status->hasTicket() || $booking->starts_at_utc->isPast()) {
-            return [];
-        }
-
-        return Tenancy::forTenant($tenant, static function () use ($booking): array {
-            $passes = [];
-
-            foreach ($booking->guests()->orderBy('position')->get() as $guest) {
-                if (trim((string) $guest->ticket_code) === '') {
-                    continue;
-                }
-
-                $passes[] = [
-                    // A booking of four gets four codes, and the crew scans one
-                    // per person — so each has to say whose it is. The position
-                    // is the fallback for a passenger whose name has not been
-                    // given yet, because «Επιβάτης 3» is still an answer.
-                    'name' => trim((string) $guest->full_name) !== ''
-                        ? (string) $guest->full_name
-                        : __('guest.booking.passenger', ['position' => $guest->position]),
-                    'code' => (string) $guest->ticket_code,
-                    'svg' => TicketQr::svgFor($guest),
-                ];
-            }
-
-            return $passes;
-        });
+        return array_map(
+            static fn (array $pass): array => [
+                'name' => $pass['name'],
+                'code' => $pass['code'],
+                'svg' => TicketQr::svgFor($pass['guest']),
+            ],
+            BoardingPasses::for($booking, $tenant),
+        );
     }
 
     /**
