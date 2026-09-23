@@ -248,6 +248,7 @@ return [
         'payment.recorded' => ['label' => 'Καταχώριση πληρωμής με το χέρι'],
         'booking.cancelled' => ['label' => 'Ακύρωση κράτησης από τον διοργανωτή'],
         'manifest.generated' => ['label' => 'Έκδοση κατάστασης επιβατών με αριθμούς εγγράφων'],
+        'impersonation.started' => ['label' => 'Είσοδος διαχειριστή στον λογαριασμό'],
     ],
 
     'availability_rejection' => [

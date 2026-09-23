@@ -167,16 +167,6 @@ class ScheduleRuleResource extends Resource
                         ->validationMessages([
                             'after_or_equal' => __('availability.schedule_rule.validation.inverted_window'),
                         ]),
-
-                    TextInput::make('generate_days_ahead')
-                        ->label(__('availability.schedule_rule.form.generate_days_ahead.label'))
-                        ->helperText(__('availability.schedule_rule.form.generate_days_ahead.help'))
-                        ->suffix(__('availability.schedule_rule.form.generate_days_ahead.suffix'))
-                        ->integer()
-                        ->required()
-                        ->default(180)
-                        ->minValue(1)
-                        ->maxValue(730),
                 ])
                 ->columns(2),
 

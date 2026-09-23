@@ -22,7 +22,7 @@
     honest sentence. WGT-19's live timer belongs to the widget, which is where
     the seconds actually matter.
 --}}
-@extends('guest.layout', ['title' => __('guest.checkout.title'), 'wide' => true])
+@extends('guest.layout', ['title' => __('guest.checkout.title'), 'wide' => true, 'fullBleed' => true])
 
 @php
     use App\Support\Format\MoneyFormatter;
@@ -54,6 +54,27 @@
 
 @section('content')
 
+{{--
+    **Η ταινία: ο κωδικός και η εκδρομή, σε χρώμα** — κατεύθυνση Α
+    (Mike, 2026-09-23, https://claude.ai/artifact/RSFfLYRH1R212KQDRb3BeG).
+
+    Καμία εικόνα εδώ, κατόπιν αιτήματος: το ντεγκραντέ βγαίνει από το χρώμα του
+    πλοιοκτήτη στο `layout`, οπότε η κορυφή είναι η ίδια σε κάθε εκδρομή του
+    λογαριασμού, είτε έχει φωτογραφίες είτε όχι. Η φωτογραφία που έμπαινε εδώ
+    δοκιμάστηκε και βγήκε: οι μισές εκδρομές δεν έχουν, και η σελίδα αποκτούσε
+    δύο όψεις.
+
+    Ο `h1` είναι το όνομα της εκδρομής και όχι «Ολοκλήρωση κράτησης»: ο τίτλος
+    της σελίδας το λέει ήδη στην καρτέλα, και η επικεφαλίδα που διαβάζεται
+    δυνατά είναι καλύτερο να είναι αυτό που αγοράζεται.
+--}}
+<div class="checkout-hero">
+    <div class="inner">
+        <p class="reference">{{ __('guest.common.reference') }} {{ $booking->reference }}</p>
+        <h1>{{ $booking->product?->title }}</h1>
+    </div>
+</div>
+
 {{-- Decided by the controller (`backToSiteUrl()`): the page the guest came
      from, else the operator's hosted home, else nothing. --}}
 @if ($backUrl)
@@ -65,47 +86,15 @@
     <aside class="checkout-side">
 
     <div class="card">
-        {{--
-            **The trip's own photograph** (product owner, 2026-09-22). The
-            summary listed a title, a date and a number of people — the shape
-            of a receipt, on the page where somebody decides whether to pay. The
-            picture is the thing they chose, and it is already on the trip page
-            they came from.
-
-            `ImagePayload` hands the gallery back in the operator's order, so
-            `[0]` is the one that leads the card everywhere else too. Absent
-            rather than a grey box when the trip has no photograph yet.
-        --}}
-        @php
-            $cover = \App\Domain\Media\Support\ImagePayload::collection(
-                $booking->product?->images,
-                $locale,
-            )[0] ?? null;
-        @endphp
-
-        @if ($cover !== null)
-            <div class="trip-photo">
-                <img src="{{ $cover['url'] }}" alt="{{ $cover['alt'] ?? '' }}" loading="lazy">
-            </div>
-        @endif
-
-        <h1>{{ __('guest.checkout.title') }}</h1>
+        <h2>{{ __('guest.checkout.title') }}</h2>
         {{-- `dl.rows` is the layout's own two-column list, used by every other
              guest page. A second pattern here would be a second thing to keep
              in step.
 
-             The reference is the first row of it rather than a sentence above
-             it, which is where it used to be: on a phone that put one value
-             hard left while every value under it was right-aligned, and the
-             column of figures read as though the code had been left out of
-             it. --}}
+             Ο κωδικός και το όνομα της εκδρομής έφυγαν από εδώ στην ταινία
+             (2026-09-23): τα ίδια δύο πράγματα δύο φορές στην ίδια οθόνη
+             διαβάζονται ως δύο διαφορετικές κρατήσεις. --}}
         <dl class="rows">
-            <dt>{{ __('guest.common.reference') }}</dt>
-            <dd><strong>{{ $booking->reference }}</strong></dd>
-
-            <dt>{{ __('guest.checkout.trip') }}</dt>
-            <dd>{{ $booking->product?->title }}</dd>
-
             <dt>{{ __('guest.checkout.when') }}</dt>
             <dd>{{ $booking->local_date->format('d/m/Y') }} · {{ substr($booking->local_time, 0, 5) }}</dd>
 
@@ -546,6 +535,27 @@
 
     </div>
 
+</div>
+
+{{--
+    **Η γραμμή πληρωμής στον πάτο, σε κινητό** — κατεύθυνση Α.
+
+    Το κουμπί κάθεται στο τέλος της πλαϊνής στήλης, δηλαδή μετά από μια οθόνη
+    κύλισης· ο επισκέπτης που μόλις συμπλήρωσε τα στοιχεία του έπρεπε να ψάξει
+    τι πατάει. Εδώ το ποσό και το κουμπί μένουν ορατά.
+
+    `form="checkout-form"` και όχι δεύτερη φόρμα: η σελίδα δεν έχει script, και
+    δύο φόρμες με τα ίδια πεδία είναι δύο πράγματα που ξεσυγχρονίζονται. Το
+    κουμπί της στήλης κρύβεται στο ίδιο πλάτος που εμφανίζεται αυτό, ώστε να
+    υπάρχει πάντα ένα ορατό κουμπί πληρωμής και όχι δύο.
+--}}
+<div class="pay-dock">
+    <span class="amount">
+        <span class="label">{{ __('guest.checkout.total') }}</span>
+        <span class="value">{{ $money($dueNow) }}</span>
+    </span>
+
+    <button type="submit" form="checkout-form" class="btn">{{ __('guest.checkout.pay_short') }}</button>
 </div>
 
 @endsection

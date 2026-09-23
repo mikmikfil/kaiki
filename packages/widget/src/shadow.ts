@@ -306,7 +306,42 @@ const BASE_STYLES = `
   border-radius: var(--kaiki-radius, 10px);
   padding: .55rem .65rem; min-height: 44px; width: 100%;
 }
-.kaiki-inline { grid-template-columns: 1fr 5rem; align-items: center; }
+/* 9.5rem and not 5rem: the row now carries − field + rather than a bare
+   number, and the label keeps whatever is left. */
+.kaiki-inline { grid-template-columns: 1fr 9.5rem; align-items: center; }
+
+/* **− αριστερά, ο αριθμός στη μέση, + δεξιά** (Mike, 2026-09-23).
+
+   A phone shows no spinner on a number input, so the only way to change the
+   party was to raise the keyboard over the sheet and type. Three cells, with
+   the figure between the two buttons that change it, and each button a full
+   44px target.
+
+   The input keeps its own border rather than sitting in a shared pill: it is
+   still typeable, and a field that looks like a field says so. */
+.kaiki-stepper { display: grid; grid-template-columns: 44px 1fr 44px; gap: .35rem; align-items: center; }
+
+.kaiki-stepper button {
+  font: inherit; font-size: 1.15rem; line-height: 1;
+  min-height: 44px; min-width: 44px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--kaiki-text); background: var(--kaiki-background);
+  border: 1px solid color-mix(in srgb, var(--kaiki-text) 22%, transparent);
+  border-radius: var(--kaiki-radius, 10px);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.kaiki-stepper button:disabled { opacity: .35; cursor: default; }
+
+.kaiki-stepper input { text-align: center; padding-inline: .2rem; }
+
+/* The native spinner is a second, smaller pair of arrows next to the two real
+   ones, and on a phone it is not there at all — so it is nothing but a
+   misaligned decoration on a desktop. */
+.kaiki-stepper input::-webkit-outer-spin-button,
+.kaiki-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.kaiki-stepper input { -moz-appearance: textfield; appearance: textfield; }
 .kaiki-consent { grid-template-columns: auto 1fr; align-items: start; gap: .6rem; }
 .kaiki-consent input { min-height: 0; width: auto; }
 
@@ -606,9 +641,24 @@ const BASE_STYLES = `
   display: flex;
   flex-direction: column;
 
-  /* Not "vh". Safari's collapsing chrome makes "vh" taller than the screen, and
+  /* **A half sheet, not a cover** (Mike, 2026-09-23, direction Α of the mobile
+     mockups): the page stays visible above it, so a guest can still see which
+     trip they are booking and never loses their place.
+
+     90svh (Mike, 2026-09-23: *«κάνε μεγαλύτερο»*, then *«κάνε ακόμα πιο ψηλό
+     αυτό το popup»*). 68 was too mean — a whole month needs about 94% of a
+     664-pixel screen once the price, the steps and the button are counted — and
+     80 still left a long month one scroll short.
+
+     90 is the ceiling, not a step on the way to 100: a strip of the page has to
+     stay visible above the sheet or direction Α turns into the full-screen
+     cover it was chosen instead of, and the guest loses which trip they are
+     booking. About 66 pixels of a 664-pixel screen, which is a line of the
+     trip's title.
+
+     Not "vh". Safari's collapsing chrome makes "vh" taller than the screen, and
      the part that overflows is the bottom — which is where the button is. */
-  max-height: 85svh;
+  max-height: 90svh;
 
   background: var(--kaiki-background);
   border: 0;
@@ -742,6 +792,42 @@ const BASE_STYLES = `
   .kaiki-peek-tab svg { transition: none; }
 }
 
+/* Πού είσαι στα τρία βήματα (direction Α, 2026-09-23). Μία μπάρα ανά βήμα,
+   γεμάτες ως αυτό που βλέπεις. Λεπτές και ήσυχες: είναι προσανατολισμός, όχι
+   χειριστήριο — δεν πατιούνται και δεν διαβάζονται φωναχτά. */
+.kaiki-steps {
+  list-style: none;
+  display: flex;
+  /* Centred, not the default stretch: a flex item with flex:1 and a
+     three-pixel height still gets stretched wherever the row is taller than
+     its content, and the bars ended up sitting at different heights from one
+     another (Mike, 2026-09-23).
+
+     No backticks anywhere in this file: the whole stylesheet is a template
+     literal, and one in a comment ends it. That is how v0.4.21 was published
+     from a stale build — the compile failed and the publish step did not care. */
+  align-items: center;
+  gap: .3rem;
+  margin: 0;
+  /* Κάτω περιθώριο, γιατί χωρίς αυτό οι μπάρες κάθονταν κολλητά πάνω στο
+     ημερολόγιο και διαβάζονταν σαν μέρος του (Mike, ίδια μέρα). */
+  padding: .7rem 1rem .85rem;
+}
+
+.kaiki-steps li {
+  block-size: 3px;
+  /* Και ρητά, ώστε ούτε η στοίχιση ούτε ο γονιός να μπορούν να το αλλάξουν. */
+  min-block-size: 3px;
+  max-block-size: 3px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--kaiki-text) 12%, transparent);
+}
+
+.kaiki-steps li[data-done="true"] { background: var(--kaiki-primary); }
+
 /* The middle scrolls; the price above it and the buttons below it do not. The
    action never leaves the screen however far down the walk a guest reads. */
 .kaiki-booking[data-sheet="true"] .kaiki-sheet-scroll {
@@ -749,7 +835,11 @@ const BASE_STYLES = `
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   min-height: 0;
-  padding: 0 1rem;
+  /* Λίγο αέρα στην κορυφή: χωρίς αυτό το ημερολόγιο ξεκινούσε κολλητά στη
+     γραμμή κάτω από τις μπάρες των βημάτων, και οι δύο διαβάζονταν ως ένα
+     πράγμα (Mike, 2026-09-23). Το κενό είναι εδώ και όχι στις μπάρες, ώστε να
+     ισχύει για κάθε βήμα — και τα άτομα και τα πρόσθετα το χρειάζονται. */
+  padding: .8rem 1rem 0;
   border-top: 1px solid color-mix(in srgb, var(--kaiki-text) 9%, transparent);
 }
 
@@ -757,6 +847,30 @@ const BASE_STYLES = `
   flex: none;
   margin: 0;
   padding: .7rem 1rem calc(.8rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid color-mix(in srgb, var(--kaiki-text) 9%, transparent);
+}
+
+/* **Το πεδίο του κωδικού έκπτωσης κολλημένο δεξιά αριστερά** (Mike,
+   2026-09-23, τρίτη αναφορά).
+
+   Three sheet children, not two: the discount field is rendered *after*
+   kaiki-sheet-scroll closes, so it can stay above the buttons while a long
+   month scrolls behind it. That also puts it outside the only element carrying
+   a gutter. kaiki-actions right above had been given its own 1rem for exactly
+   this reason and the field never was, so it ran edge to edge on the one
+   screen where a guest types.
+
+   No backticks anywhere in this file: the whole stylesheet is one template
+   literal, and a pair of them in a comment ends it silently — the build
+   succeeds and the widget throws on load.
+
+   Measured, not guessed, after twice reporting a fix that was not one: the
+   checkout page's own field was never the one at fault — it sits at 23px on
+   every width from 320 to 1024. This is the field that was touching. */
+.kaiki-booking[data-sheet="true"] .kaiki-discount {
+  flex: none;
+  margin: 0;
+  padding: .7rem 1rem;
   border-top: 1px solid color-mix(in srgb, var(--kaiki-text) 9%, transparent);
 }
 

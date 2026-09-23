@@ -1399,8 +1399,21 @@
            `.crumbs` for what a child hard-coding its container's gap costs. */
         .trip-hero { display: flex; flex-direction: column; min-width: 0; }
         .trip-hero .crumbs { margin-block-end: 1rem; }
-        .trip-hero h1 { font-weight: 800; letter-spacing: -.03em; margin: 0 0 .6rem; }
-        .trip-hero .standfirst { color: var(--ink-soft); font-size: var(--step-1); max-width: 44rem; margin: 0 0 1.25rem; }
+
+        /* **Μικρότερος, και ακριβώς πάνω από τις φωτογραφίες** (Mike,
+           2026-09-23). Ο τίτλος της σελίδας δεν χρειάζεται το μέγεθος του
+           `--step-4` όταν αμέσως από κάτω του υπάρχει μια φωτογραφία που
+           τραβάει ούτως ή άλλως το μάτι — και ο τίτλος μιας εκδρομής είναι
+           συχνά μακρύς, οπότε στο `--step-4` έπιανε τρεις γραμμές σε τηλέφωνο
+           και έσπρωχνε τα πάντα κάτω από τη μέση. */
+        .trip-hero h1 { font-size: var(--step-3); font-weight: 800; letter-spacing: -.028em; margin: 0; }
+
+        /* Ο υπότιτλος και τα εικονίδια κατέβηκαν κάτω από το μωσαϊκό **και
+           μέσα στην αριστερή στήλη** — γι' αυτό ο επιλογέας δεν είναι πια
+           `.trip-hero`. Εκεί είναι που ανεβαίνει το κουτί κράτησης: οι δύο
+           στήλες ξεκινούν μόλις τελειώσουν οι φωτογραφίες. */
+        .trip-intro { display: flex; flex-direction: column; gap: .9rem; align-items: flex-start; }
+        .trip-intro .standfirst { color: var(--ink-soft); font-size: var(--step-1); max-width: 44rem; margin: 0; }
 
         /* The mosaic. One photograph large on the left across both rows, up to
            four beside it in a two-by-two block; with three photographs, one
@@ -1774,6 +1787,7 @@
 
         ul.facts .icon { inline-size: 1rem; block-size: 1rem; flex: none; color: var(--kaiki-primary); }
 
+
         @media (max-width: 48rem) {
             ul.facts { gap: .4rem; font-size: .85rem; }
             ul.facts li { padding: .38rem .7rem; }
@@ -1933,44 +1947,82 @@
         /* Printed, the tabs are meaningless — show every panel. */
         @media print { .tabpanel { display: block !important; } .tablist { display: none; } }
 
-        /* The boat's facts. A definition list because that is what it is, laid
-           out in columns so six short rows do not become six long ones. */
-        .boat-name { margin: 0 0 1rem; font-size: var(--step-1); }
+        /* **Το σκάφος: λωρίδα φωτογραφιών, μετά πινακάκι** (Mike, 2026-09-23 —
+           κατεύθυνση Ζ1, μετά από τρεις γύρους μακετών).
 
+           Η λωρίδα βγαίνει από το μέτρο ανάγνωσης και φτάνει ως την άκρη, με
+           τα αρνητικά περιθώρια να ακυρώνουν το padding του πίνακα. Το
+           `scroll-padding` βάζει την επόμενη φωτογραφία στη θέση που άφησε η
+           προηγούμενη αντί να την κολλάει στο μηδέν. */
+        .boat-rail {
+            list-style: none;
+            margin: 0 0 1.5rem;
+            padding: 0 0 .5rem;
+            display: flex;
+            gap: .75rem;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            /* Μια λωρίδα που κυλάει είναι χειριστήριο, άρα πρέπει να φτάνει
+               και από το πληκτρολόγιο· χωρίς αυτό οι φωτογραφίες μετά την
+               τρίτη είναι απρόσιτες χωρίς ποντίκι. */
+            scrollbar-width: thin;
+        }
+
+        .boat-rail:focus-visible { outline: 2px solid var(--kaiki-primary); outline-offset: 3px; border-radius: 4px; }
+
+        /* Μένει μέσα στη στήλη ανάγνωσης και δεν βγαίνει ως την άκρη της
+           σελίδας: το `.tabpanel` δεν έχει δικό του περιθώριο να ακυρωθεί, και
+           ένα αρνητικό περιθώριο «στο περίπου» είναι ακριβώς ο τρόπος που μια
+           σελίδα αποκτά οριζόντιο scroll σε ένα τηλέφωνο. */
+        .boat-rail > li { flex: none; width: min(17rem, 72vw); scroll-snap-align: start; }
+
+        .boat-rail img {
+            width: 100%; height: 100%;
+            border-radius: 10px;
+            object-fit: cover; object-position: center center;
+            aspect-ratio: 3 / 2;
+            display: block;
+        }
+
+        .boat-name { margin: 0 0 .85rem; font-size: var(--step-1); }
+
+        /* Ζ1: μία γραμμή ανά στοιχείο μέσα σε κουτί με λεπτό περίγραμμα.
+           Έξι σύντομα ζεύγη σε στήλες διαβάζονται ως δελτίο χαρακτηριστικών·
+           στοιβαγμένα με ετικέτα αριστερά και τιμή δεξιά διαβάζονται ως
+           απάντηση — και δεν αφήνουν μισή άδεια στήλη όταν ο διοργανωτής
+           συμπλήρωσε τρία πεδία από τα έξι. */
         .boat-facts {
             margin: 0 0 1.5rem; padding: 0;
-            display: grid; gap: .9rem 2rem;
-            grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+            border: 1px solid var(--hairline, color-mix(in srgb, var(--kaiki-text) 12%, transparent));
+            border-radius: 12px;
+            overflow: hidden;
         }
 
-        .boat-facts > div { display: grid; gap: .15rem; min-width: 0; }
+        .boat-facts > div {
+            display: flex; justify-content: space-between; gap: 1.5rem;
+            padding: .6rem .95rem;
+            border-block-start: 1px solid color-mix(in srgb, var(--kaiki-text) 10%, transparent);
+            min-width: 0;
+        }
 
-        /* Two columns on a phone, and said outright rather than left to
-           `auto-fit`.
+        .boat-facts > div:first-child { border-block-start: 0; }
 
-           The track above asks for 11rem before it will make a second column,
-           so with the 2rem gutter two of them need 384 pixels of content width
-           — four more than a 414-pixel phone has left after the page's own
-           margins. It therefore collapsed to one column on every handset made,
-           and «Τύπος», «Μήκος», «Πλήρωμα» went down the screen one under the
-           other, each a short label over a shorter value.
+        /* Πολύ ελαφριά εναλλαγή, ώστε το μάτι να μη χάνει σειρά σε έξι γραμμές
+           χωρίς να μοιάζει με λογιστικό φύλλο. */
+        .boat-facts > div:nth-child(odd) { background: color-mix(in srgb, var(--kaiki-text) 2.5%, transparent); }
 
-           `minmax(0, 1fr)` rather than `1fr`: a grid item refuses to shrink
-           below its content by default, and a captain with a long name would
-           otherwise push the row wider than the screen. */
+        /* Στο τηλέφωνο το κουτί μένει κουτί — αυτό είναι το κέρδος του Ζ1 σε
+           σχέση με το πλέγμα που ήταν πριν: δεν έχει στήλες να καταρρεύσουν.
+           Μόνο λίγο στενότερο, και το `anywhere` γιατί ένας καπετάνιος με
+           μακρύ όνομα θα έσπρωχνε τη γραμμή πιο πλατιά από την οθόνη. */
         @media (max-width: 48rem) {
-            .boat-facts {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: .8rem 1rem;
-                margin-block-end: 1.25rem;
-            }
-
-            .boat-facts dd { overflow-wrap: anywhere; }
+            .boat-facts { margin-block-end: 1.25rem; }
+            .boat-facts > div { padding-inline: .8rem; gap: 1rem; }
+            .boat-facts dd { overflow-wrap: anywhere; text-align: end; }
         }
-        .boat-facts dt { font-size: .72rem; font-weight: 600; letter-spacing: .08em; color: var(--ink-faint); }
-        .boat-facts dd { margin: 0; font-size: .98rem; font-weight: 600; }
 
-        .boat-shots { margin-top: 1.25rem; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); }
+        .boat-facts dt { font-size: .85rem; color: var(--ink-faint); }
+        .boat-facts dd { margin: 0; font-size: .9rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 
         .shots { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem;
                  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); }

@@ -317,6 +317,7 @@ class HomePage extends Page implements HasForms
         return [
             Select::make('type')
                 ->label(__('home_page.form.type.label'))
+                ->helperText(__('home_page.form.type.help'))
                 ->options(HomeBlockType::options())
                 ->required()
                 ->native(false)
@@ -566,6 +567,7 @@ class HomePage extends Page implements HasForms
 
             Select::make('settings.source')
                 ->label(__('home_page.form.source.label'))
+                ->helperText(__('home_page.form.source.help'))
                 ->options([
                     BlockSettings::SOURCE_ALL => __('home_page.form.source.options.all'),
                     BlockSettings::SOURCE_FEATURED => __('home_page.form.source.options.featured'),
@@ -602,6 +604,7 @@ class HomePage extends Page implements HasForms
 
             Select::make('settings.image_side')
                 ->label(__('home_page.form.image_side.label'))
+                ->helperText(__('home_page.form.image_side.help'))
                 ->options([
                     'left' => __('home_page.form.image_side.options.left'),
                     'right' => __('home_page.form.image_side.options.right'),
@@ -647,8 +650,12 @@ class HomePage extends Page implements HasForms
 
             // --- contact ---
 
+            // Το βοηθητικό κείμενο μπαίνει μόνο στο πρώτο από τα τρία: λέει
+            // από πού έρχονται τα στοιχεία, και τρεις φορές η ίδια πρόταση
+            // κάτω από τρεις διακόπτες διαβάζεται ως θόρυβος.
             Toggle::make('settings.show_phone')
                 ->label(__('home_page.form.show_phone.label'))
+                ->helperText(__('home_page.form.show_phone.help'))
                 ->default(true)
                 ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Contact->value),
 

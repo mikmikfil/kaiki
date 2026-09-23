@@ -6,6 +6,7 @@ namespace App\Filament\App\Resources\ProductResource\RelationManagers;
 
 use App\Domain\Catalog\Actions\SaveExtra;
 use App\Enums\ExtraPricing;
+use App\Filament\App\Resources\ProductResource;
 use App\Filament\Forms\MoneyInput;
 use App\Filament\Forms\TranslatableInput;
 use App\Models\Extra;
@@ -104,6 +105,29 @@ class ExtrasRelationManager extends RelationManager
             )
                 ->required(static fn (Get $get): bool => $get('kind') === 'paid' && $get('pricing_type') !== ExtraPricing::OnRequest->value)
                 ->visible(static fn (Get $get): bool => $get('kind') === 'paid' && $get('pricing_type') !== ExtraPricing::OnRequest->value),
+
+            /*
+             * **Ο ΦΠΑ της γραμμής, δίπλα στην τιμή της** (Mike, 23/9).
+             *
+             * Η στήλη `extras.vat_rate_id` υπήρχε από την αρχή, το μοντέλο τη
+             * δηλώνει *«overrides the product's rate for this line»* και φτάνει
+             * μέχρι το `OfferedExtra` — αλλά **καμία φόρμα δεν τη ζητούσε**,
+             * οπότε ένα γεύμα πάνω στο σκάφος δεν μπορούσε να πάρει δικό του
+             * συντελεστή. Είναι ακριβώς το παράδειγμα που δίνει το
+             * `docs/data-model.md` §2.3 για να δικαιολογήσει τη στήλη: η
+             * κρουαζιέρα είναι μεταφορά επιβατών, το γεύμα είναι εστίαση.
+             *
+             * **Κενό σημαίνει «ό,τι λέει η εκδρομή»**, γι' αυτό και το
+             * `default(null)` — σε αντίθεση με τη φόρμα της εκδρομής, που
+             * προσυμπληρώνει την απάντηση του λογαριασμού. Η εκδρομή απαντά μια
+             * φορά· το extra μιλάει μόνο όταν διαφέρει, και έτσι ακολουθεί την
+             * εκδρομή αν εκείνη αλλάξει αργότερα.
+             */
+            ProductResource::vatRateSelect()
+                ->label(__('catalog.extra.on_product.vat_rate.label'))
+                ->helperText(__('catalog.extra.on_product.vat_rate.help'))
+                ->default(null)
+                ->visible(static fn (Get $get): bool => $get('kind') === 'paid'),
 
             Toggle::make('is_required')
                 ->label(__('catalog.extra.on_product.is_required.label'))

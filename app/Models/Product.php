@@ -206,6 +206,23 @@ class Product extends Model implements TranslatableSearchable
     }
 
     /**
+     * The FAQ entries written **for this trip** (2026-09-23).
+     *
+     * Not every FAQ a guest sees on the trip page: `faqs.product_id` is
+     * nullable, and a null one belongs to the business rather than to a
+     * sailing, so it appears on every trip.
+     * `App\Domain\Hosted\Actions\BuildFaqList` answers "what shows here"; this
+     * relation is the trip-specific half, and the only half an operator edits
+     * from inside a trip.
+     *
+     * @return HasMany<Faq, $this>
+     */
+    public function faqs(): HasMany
+    {
+        return $this->hasMany(Faq::class);
+    }
+
+    /**
      * The extras this product names explicitly.
      *
      * Not the same as "the extras it offers" — a tenant-wide extra applies

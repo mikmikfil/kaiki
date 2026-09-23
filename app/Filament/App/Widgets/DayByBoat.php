@@ -12,6 +12,7 @@ use App\Filament\App\Pages\Calendar;
 use App\Filament\App\Pages\CheckIn;
 use App\Filament\App\Resources\BookingResource;
 use App\Filament\App\Resources\DepartureResource;
+use App\Models\Departure;
 use App\Support\Tenancy;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Carbon;
@@ -93,7 +94,23 @@ class DayByBoat extends Widget
             'aboard' => $next['aboard'],
             'expected' => $next['expected'],
             'percent' => $next['expected'] > 0 ? (int) round($next['aboard'] / $next['expected'] * 100) : 0,
-            'url' => DepartureResource::canViewAny() ? DepartureResource::getUrl('edit', ['record' => $departure]) : null,
+            /*
+             * **Ο έλεγχος είναι για τη σελίδα που ανοίγει, όχι για τη λίστα**
+             * (Mike, 23/9: *«ως πλήρωμα, πατάω πάνω σε ένα trip και μου βγάζει
+             * forbidden»*).
+             *
+             * Ήταν `canViewAny()`, που το πλήρωμα **το περνάει**: έχει
+             * `ViewDepartures` και βλέπει κανονικά τη λίστα αναχωρήσεων. Ο
+             * σύνδεσμος όμως πάει στη σελίδα *επεξεργασίας*, που θέλει
+             * `ManageCatalogue` — άρα ο τίτλος της επόμενης εκδρομής ήταν
+             * σύνδεσμος προς ένα 403, στην αρχική τους σελίδα.
+             *
+             * `canEdit()` ρωτάει ακριβώς αυτό που πρόκειται να συμβεί. Όποιος
+             * δεν μπορεί, βλέπει το όνομα ως κείμενο — το blade το χειρίζεται
+             * ήδη — και φτάνει στους επιβάτες από το ημερολόγιο, που είναι η
+             * οθόνη που του ανήκει.
+             */
+            'url' => DepartureResource::canEdit($departure) ? DepartureResource::getUrl('edit', ['record' => $departure]) : null,
         ];
     }
 
@@ -192,9 +209,26 @@ class DayByBoat extends Widget
         return Calendar::canAccess() ? Calendar::getUrl(['date' => Carbon::now($this->timezone())->toDateString()]) : null;
     }
 
+    /**
+     * Η μπάρα μιας αναχώρησης στο λωρίδιο του στόλου.
+     *
+     * Το ίδιο λάθος με τον σύνδεσμο της επόμενης εκδρομής, και μάλλον **αυτό**
+     * πατούσε ο Mike (23/9): `canViewAny()` για μια σελίδα επεξεργασίας. Το
+     * πλήρωμα βλέπει τον στόλο του, πατάει τη μπάρα με το όνομα της εκδρομής,
+     * και παίρνει 403.
+     *
+     * Εδώ ο έλεγχος γίνεται στο μοντέλο και όχι στο uuid, γιατί το `canEdit()`
+     * ρωτάει την πολιτική για **τη συγκεκριμένη** αναχώρηση. Αν δεν βρεθεί,
+     * κανένας σύνδεσμος — το blade ζωγραφίζει `div` αντί για `a` και η μπάρα
+     * μένει ακριβώς όπως είναι.
+     */
     public function getDepartureUrl(string $uuid): ?string
     {
-        return DepartureResource::canViewAny() ? DepartureResource::getUrl('edit', ['record' => $uuid]) : null;
+        $departure = Departure::query()->where('uuid', $uuid)->first();
+
+        return $departure instanceof Departure && DepartureResource::canEdit($departure)
+            ? DepartureResource::getUrl('edit', ['record' => $uuid])
+            : null;
     }
 
     private function home(): TodayHome

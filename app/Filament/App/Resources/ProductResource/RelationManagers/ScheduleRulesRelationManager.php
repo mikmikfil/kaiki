@@ -82,11 +82,6 @@ class ScheduleRulesRelationManager extends RelationManager
     {
         [$what, $when, $window, $capacity, $preview] = ScheduleRuleResource::formSchema();
 
-        $window->schema(array_values(array_filter(
-            $window->getChildComponents(),
-            static fn ($component): bool => ! ($component instanceof Field && $component->getName() === 'generate_days_ahead'),
-        )));
-
         $when->schema([
             ...array_map(
                 static fn (Component $component): Component => $component instanceof Field && $component->getName() === 'start_time'
@@ -110,6 +105,18 @@ class ScheduleRulesRelationManager extends RelationManager
                 ->defaultItems(1)
                 ->minItems(1)
                 ->reorderable(false)
+                /*
+                 * **Σε πλέγμα, όχι σε στοίβα** (Mike, 23/9: *«οι ώρες
+                 * αναχώρησης είναι λίγο πεταμένες ως design»*).
+                 *
+                 * Ένα repeater δίνει σε κάθε στοιχείο μια ολόκληρη γραμμή με το
+                 * δικό του κουμπί διαγραφής. Για ένα πεδίο πέντε χαρακτήρων
+                 * αυτό είναι τρεις σχεδόν άδειες σειρές για τρεις ώρες, και
+                 * διαβάζεται σαν φόρμα που ξέχασαν να στοιχίσουν. Τρεις ανά
+                 * σειρά τις κάνει να διαβάζονται ως ωράριο — που είναι και το
+                 * πράγμα που κοιτάζει ο διοργανωτής.
+                 */
+                ->grid(['default' => 1, 'sm' => 2, 'lg' => 3])
                 // «Σκαμμένο»: see `.ka-nest` in `sea.blade.php`.
                 ->extraFieldWrapperAttributes(['class' => 'ka-nest'])
                 ->visibleOn('create'),
@@ -129,7 +136,6 @@ class ScheduleRulesRelationManager extends RelationManager
 
         return $form->schema([
             Hidden::make('product_id'),
-            Hidden::make('generate_days_ahead')->default(180),
             $when,
             $window,
             $other,

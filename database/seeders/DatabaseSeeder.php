@@ -24,6 +24,12 @@ class DatabaseSeeder extends Seeder
         // explicit placeholder rather than a rate — see the seeder.
         $this->call(PlaceholderVatRateSeeder::class);
 
+        // Also before the tenants, and for the same reason: the cancellation
+        // ladders the setup guide offers are the platform's menu, not an
+        // operator's data. The guide reads this table, so an empty one leaves a
+        // new operator with a step and nothing to choose in it.
+        $this->call(PolicyTemplateSeeder::class);
+
         $this->call(DemoTenantSeeder::class);
 
         // After the tenants, and inside their context: ports and vessels are

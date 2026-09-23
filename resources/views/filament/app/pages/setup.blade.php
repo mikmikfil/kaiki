@@ -74,7 +74,7 @@
             @endforeach
         </nav>
 
-        <section class="ka-setup-card" aria-live="polite">
+        <section class="ka-setup-card @if ($isReady) is-ready @endif" aria-live="polite">
             @if ($isReady)
                 <div class="head">
                     <h2>{{ __('setup.steps.ready.question') }}</h2>
@@ -106,27 +106,39 @@
                             {{ __('setup.policy.existing', ['name' => $this->existingPolicyName()]) }}
                         </p>
                     @else
+                        {{-- The platform's own menu, maintained in /admin
+                             (2026-09-23). `selectedTemplate()` falls back to the
+                             first one offered, so the ladder below is never
+                             blank before the operator has clicked anything. --}}
+                        @php($templates = $this->policyTemplates())
+                        @php($selected = $this->selectedTemplate())
+
                         <div class="ka-setup-presets" role="radiogroup" aria-label="{{ __('setup.steps.cancellation.label') }}">
-                            @foreach (\App\Filament\App\Pages\Setup::PRESETS as $preset)
+                            @foreach ($templates as $template)
                                 <button
                                     type="button"
                                     role="radio"
-                                    aria-checked="{{ $policyPreset === $preset ? 'true' : 'false' }}"
-                                    wire:click="choosePreset('{{ $preset }}')"
-                                    @class(['ka-setup-preset', 'is-on' => $policyPreset === $preset])
+                                    aria-checked="{{ $selected?->code === $template->code ? 'true' : 'false' }}"
+                                    wire:click="choosePreset('{{ $template->code }}')"
+                                    @class(['ka-setup-preset', 'is-on' => $selected?->code === $template->code])
                                 >
-                                    <strong>{{ __('setup.policy.' . $preset . '.name') }}</strong>
-                                    <span>{{ __('setup.policy.' . $preset . '.summary') }}</span>
+                                    <strong>{{ $template->name }}</strong>
+                                    <span>{{ $template->summary }}</span>
                                 </button>
                             @endforeach
                         </div>
 
-                        <div class="ka-setup-ladder">
-                            @foreach (__('setup.policy.' . $policyPreset . '.ladder') as $line)
-                                <div><span>{{ $line['when'] }}</span><span class="pct">{{ $line['refund'] }}</span></div>
-                            @endforeach
-                            <div><span>{{ __('setup.policy.weather') }}</span><span class="pct">{{ __('setup.policy.weather_refund') }}</span></div>
-                        </div>
+                        @if ($selected)
+                            {{-- Built from the same numbers the policy will be
+                                 written with, so the lines an operator reads
+                                 here cannot promise something else. --}}
+                            <div class="ka-setup-ladder">
+                                @foreach ($selected->ladder() as $line)
+                                    <div><span>{{ $line['when'] }}</span><span class="pct">{{ $line['refund'] }}</span></div>
+                                @endforeach
+                                <div><span>{{ __('setup.policy.weather') }}</span><span class="pct">{{ __('setup.policy.weather_refund') }}</span></div>
+                            </div>
+                        @endif
                         <p class="ka-setup-hint">{{ __('setup.policy.later') }}</p>
                     @endif
                 @elseif ($handOff !== null)
@@ -201,6 +213,18 @@
         .ka-setup-card .count { font-size: .82rem; color: #5F6F86; }
         .ka-setup-card h2 { font-size: 1.35rem; font-weight: 700; color: #0F2E57; letter-spacing: -.01em; line-height: 1.25; }
         .ka-setup-card .head p { color: #5F6F86; font-size: .92rem; max-width: 62ch; }
+
+        /*
+         * **Το τελευταίο βήμα γράφει μέχρι την άκρη** (Mike, 23/9: *«στο είστε
+         * έτοιμοι, το κείμενο κόβεται, δεν πάει μέχρι την άκρη του container»*).
+         *
+         * Τα υπόλοιπα βήματα έχουν μία γραμμή «γιατί», και το μέτρο των 62ch
+         * είναι ακριβώς ό,τι χρειάζονται. Το «Είστε έτοιμοι» έχει τρεις με
+         * τέσσερις γραμμές πραγματικού κειμένου, και το ίδιο μέτρο μέσα σε μια
+         * κάρτα πιο φαρδιά από αυτό αφήνει κενό στα δεξιά που διαβάζεται ως
+         * κομμένο κείμενο, όχι ως άνετη στοίχιση.
+         */
+        .ka-setup-card.is-ready .head p { max-width: none; }
 
         /*
          * **Equal boxes in a row** (same note: *«πρόσεχε τα ύψη των κουτιών

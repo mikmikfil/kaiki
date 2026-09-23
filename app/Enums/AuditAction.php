@@ -134,6 +134,24 @@ enum AuditAction: string
     case TenantUpdated = 'tenant.updated';
 
     /**
+     * A super-admin signed in as one of an operator's people (TEN-7, SAA-2).
+     *
+     * The only action on this list that records somebody **reading** rather
+     * than changing. It earns that because of what it enables: for the next
+     * hour every row written looks exactly like the operator's own work, so the
+     * one thing that makes those rows explicable afterwards is this entry
+     * beside them.
+     *
+     * Written into the **operator's** trail, like `tenant.updated`, and for the
+     * same reason: «ποιος μπήκε στον λογαριασμό μου και γιατί» is a question
+     * about their account, and an answer they cannot see is not an answer.
+     *
+     * `context` carries who was impersonated and until when; `reason` is the
+     * sentence the super-admin had to type before the session would start.
+     */
+    case ImpersonationStarted = 'impersonation.started';
+
+    /**
      * The actions whose subjects exist and that are wired today.
      *
      * `booking.refunded` left this list in #84, which is the milestone that

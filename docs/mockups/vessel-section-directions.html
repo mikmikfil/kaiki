@@ -1,0 +1,333 @@
+<title>Το σκάφος, τρεις δρόμοι</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  /*
+    Φως μόνο, σκόπιμα: οι σελίδες του επισκέπτη είναι light-only (2026-09-04).
+    Καμία ελληνική λέξη με κεφαλαία — κλεισμένος κανόνας, και τον παρέβην στον
+    γύρο 2 χωρίς να το προσέξω.
+
+    Οι «φωτογραφίες» είναι βαθμώσεις, όχι εικόνες.
+  */
+  :root {
+    --hull: #0B4F4A;
+    --deep: #063733;
+    --ember: #B5511F;
+    --ink: #16211F;
+    --limewash: #F2F4F0;
+    --paper: #FFFFFF;
+    --hairline: #DDE3DF;
+    --muted: #5F6E6A;
+    --ground: #E7EBE6;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding-inline: 20px; padding-block: 56px 88px; }
+
+  a { color: var(--hull); text-decoration: none; }
+  a:hover { color: var(--deep); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+
+  .eyebrow { font-size: .75rem; font-weight: 600; letter-spacing: .08em; color: var(--muted); margin: 0 0 14px; }
+  h1 { font-size: 2.75rem; font-weight: 800; letter-spacing: -.025em; line-height: 1.08; margin: 0 0 20px; text-wrap: balance; }
+  .lede { font-size: 1.0625rem; color: var(--muted); margin: 0; max-width: 62ch; }
+  .lede + .lede { margin-top: 14px; }
+  .rule { height: 1px; background: var(--hairline); border: 0; margin-block: 52px; }
+
+  .round { font-size: .75rem; font-weight: 600; letter-spacing: .08em; color: var(--muted); display: flex; align-items: center; gap: 12px; margin: 0 0 24px; }
+  .round::after { content: ''; height: 1px; background: var(--hairline); flex: 1; }
+
+  .direction { margin-block: 0 64px; }
+  .direction-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .letter {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .8125rem; font-weight: 500; color: var(--paper); background: var(--hull);
+    width: 32px; height: 26px; display: grid; place-items: center; border-radius: 13px; flex: none;
+  }
+  .direction h2 { font-size: 1.375rem; font-weight: 600; letter-spacing: -.015em; margin: 0; }
+  .direction > p { color: var(--muted); margin: 0 0 24px; max-width: 62ch; }
+  .tradeoff { font-size: .875rem; color: var(--muted); margin: 20px 0 0; max-width: 62ch; }
+  .tradeoff b { color: var(--ink); font-weight: 600; }
+
+  .screen { background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; overflow: hidden; }
+  .chrome { display: flex; align-items: center; gap: 7px; padding: 11px 14px; background: var(--limewash); border-bottom: 1px solid var(--hairline); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--hairline); flex: none; }
+  .chrome span { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .6875rem; color: var(--muted); margin-left: 8px; }
+  .stage { padding: 30px 0; }
+  .stage > .gutter { margin-inline: 30px; }
+
+  .tabbar { display: flex; gap: 22px; border-bottom: 1px solid var(--hairline); margin-bottom: 24px; font-size: .875rem; color: var(--muted); }
+  .tabbar span { padding-bottom: 10px; }
+  .tabbar .on { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--hull); }
+
+  .shot { background: linear-gradient(150deg, #7FA9A3 0%, #0B4F4A 65%, #063733 100%); border-radius: 4px; }
+  .shot.b { background: linear-gradient(150deg, #9BBCC6 0%, #2E6E86 70%, #123C4C 100%); }
+  .shot.c { background: linear-gradient(150deg, #C9C2A8 0%, #8E8257 70%, #4E4626 100%); }
+  .shot.d { background: linear-gradient(150deg, #C7A9A0 0%, #8C5A4A 70%, #4C2A20 100%); }
+  .featured-tag {
+    position: absolute; left: 10px; top: 10px;
+    background: rgba(11, 79, 74, .92); color: var(--paper);
+    font-size: .6875rem; font-weight: 600; padding: 3px 8px; border-radius: 3px;
+  }
+
+  /* ---------- η λωρίδα, κοινή και στις τρεις ---------- */
+  .rail { display: flex; gap: 10px; overflow-x: auto; padding-inline: 30px; padding-bottom: 6px; scroll-snap-type: x mandatory; }
+  .rail .shot { flex: none; width: 250px; aspect-ratio: 3 / 2; scroll-snap-align: start; position: relative; }
+  .rail-note { margin: 10px 30px 22px; font-size: .8125rem; color: var(--muted); }
+  .boat-name { font-size: 1.25rem; font-weight: 800; letter-spacing: -.02em; margin: 0 0 14px; }
+
+  /* ---------- Ζ1: κουτί με λεπτές γραμμές ---------- */
+  .z1 { border: 1px solid var(--hairline); border-radius: 6px; overflow: hidden; }
+  .z1 div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 16px; border-top: 1px solid var(--hairline); font-size: .875rem; }
+  .z1 div:first-child { border-top: 0; }
+  .z1 div:nth-child(odd) { background: #FAFBFA; }
+  .z1 dt { color: var(--muted); }
+  .z1 dd { margin: 0; font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+  /* ---------- Ζ2: πλέγμα σε πλακέτα ---------- */
+  .z2 { background: var(--limewash); border-radius: 8px; padding: 20px 22px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 22px; }
+  .z2 div { display: grid; gap: 2px; }
+  .z2 dt { font-size: .75rem; color: var(--muted); }
+  .z2 dd { margin: 0; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1.0625rem; font-weight: 500; }
+
+  /* ---------- Ζ3: τρία μπροστά, τα υπόλοιπα πίσω ---------- */
+  .z3-top { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--hairline); border-radius: 6px 6px 0 0; }
+  .z3-top div { padding: 14px 4px; text-align: center; border-left: 1px solid var(--hairline); }
+  .z3-top div:first-child { border-left: 0; }
+  .z3-top dt { font-size: .75rem; color: var(--muted); margin-bottom: 2px; }
+  .z3-top dd { margin: 0; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1.375rem; font-weight: 500; }
+  .z3-rest { border: 1px solid var(--hairline); border-top: 0; border-radius: 0 0 6px 6px; }
+  .z3-rest div { display: flex; justify-content: space-between; gap: 16px; padding: 9px 16px; border-top: 1px solid var(--hairline); font-size: .875rem; }
+  .z3-rest div:first-child { border-top: 0; }
+  .z3-rest dt { color: var(--muted); }
+  .z3-rest dd { margin: 0; font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  /* ---------- rejected ---------- */
+  .rejected { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .rej { background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; padding: 14px 16px; opacity: .7; }
+  .rej strong { display: block; font-weight: 600; margin-bottom: 3px; font-size: .9375rem; }
+  .rej span { font-size: .8125rem; color: var(--muted); }
+
+  .note { background: var(--paper); border: 1px solid var(--hairline); border-left: 3px solid var(--ember); border-radius: 0 6px 6px 0; padding: 22px 26px; }
+  .note h2 { font-size: 1.125rem; font-weight: 600; margin: 0 0 10px; }
+  .note p { color: var(--muted); margin: 0 0 10px; max-width: 62ch; }
+  .note p:last-child { margin-bottom: 0; }
+
+  .picker { background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; padding: 30px; }
+  .picker h2 { font-size: 1.375rem; font-weight: 600; margin: 0 0 8px; letter-spacing: -.015em; }
+  .picker > p { color: var(--muted); margin: 0 0 24px; max-width: 58ch; }
+  .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .option { font: inherit; text-align: left; background: var(--limewash); border: 1px solid var(--hairline); border-radius: 5px; padding: 16px; cursor: pointer; color: var(--ink); }
+  .option:hover { border-color: var(--hull); }
+  .option[aria-pressed="true"] { background: var(--hull); border-color: var(--hull); color: var(--paper); }
+  .option[aria-pressed="true"] .option-name { color: var(--paper); }
+  .option[aria-pressed="true"] .option-why { color: #BFD6D2; }
+  .option-letter { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .75rem; font-weight: 500; display: block; margin-bottom: 6px; opacity: .7; }
+  .option-name { font-weight: 600; display: block; margin-bottom: 4px; }
+  .option-why { font-size: .8125rem; color: var(--muted); display: block; line-height: 1.5; }
+  .chosen { margin: 22px 0 0; padding: 15px 18px; background: var(--limewash); border-left: 3px solid var(--ember); border-radius: 0 4px 4px 0; font-size: .9375rem; }
+  .chosen b { font-weight: 600; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  @media (max-width: 820px) {
+    .z2 { grid-template-columns: repeat(2, 1fr); }
+    .options, .rejected { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 560px) {
+    .wrap { padding-inline: 16px; padding-block: 36px 64px; }
+    h1 { font-size: 2rem; }
+    .picker, .note { padding: 20px; }
+    .stage { padding: 20px 0; }
+    .stage > .gutter { margin-inline: 20px; }
+    .rail { padding-inline: 20px; }
+    .rail-note { margin-inline: 20px; }
+    .z3-top dd { font-size: 1.125rem; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Kaiki · μακέτες, 23 Σεπτεμβρίου 2026 · γύρος 3</p>
+    <h1>Το σκάφος, τρεις δρόμοι</h1>
+    <p class="lede"><strong>Η λωρίδα κλείδωσε.</strong> Φωτογραφίες που κυλάνε από άκρη σε άκρη, χωρίς κάρτα και χωρίς πλαίσιο — το Ζ του δεύτερου γύρου. Αυτό που έλειπε ήταν ένα πινακάκι με τα στοιχεία από κάτω, και αυτό είναι η μόνη ερώτηση εδώ.</p>
+    <p class="lede">Η λωρίδα είναι ίδια και στις τρεις. Αλλάζει μόνο το πινακάκι.</p>
+  </header>
+
+  <hr class="rule">
+
+  <!-- ============ Ζ1 ============ -->
+  <section class="direction">
+    <div class="direction-head"><span class="letter" aria-hidden="true">Ζ1</span><h2>Γραμμές</h2></div>
+    <p>Ένα κουτί με λεπτό περίγραμμα και μια γραμμή ανά στοιχείο, με πολύ ελαφριά εναλλαγή φόντου ώστε το μάτι να μη χάνει σειρά. Η πιο ήσυχη και η πιο αναγνωρίσιμη: όλοι ξέρουν να διαβάσουν αυτό το σχήμα, και τα κενά πεδία απλώς λείπουν χωρίς να αφήνουν τρύπα.</p>
+
+    <div class="screen">
+      <div class="chrome"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>aegean-blue.gr/iliovasilema-stin-aigina</span></div>
+      <div class="stage">
+        <div class="tabbar gutter"><span>Η εκδρομή</span><span class="on">Το σκάφος</span><span>Συχνές ερωτήσεις</span></div>
+
+        <div class="rail">
+          <div class="shot"><span class="featured-tag">Πρώτη</span></div>
+          <div class="shot b"></div><div class="shot c"></div><div class="shot d"></div>
+        </div>
+        <p class="rail-note">→ κυλάει πλάγια, και στο κινητό με το δάχτυλο</p>
+
+        <div class="gutter">
+          <p class="boat-name">Ποσειδώνας</p>
+          <dl class="z1">
+            <div><dt>Τύπος</dt><dd>Παραδοσιακό καΐκι</dd></div>
+            <div><dt>Επιβάτες</dt><dd>42</dd></div>
+            <div><dt>Μήκος</dt><dd>18,5 m</dd></div>
+            <div><dt>Πλήρωμα</dt><dd>3</dd></div>
+            <div><dt>Καπετάνιος</dt><dd>Νίκος Βλάχος</dd></div>
+            <div><dt>Νηολόγιο</dt><dd>ΠΕΙΡ 1234</dd></div>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> με έξι γραμμές γίνεται ψηλό, και σε κινητό η λωρίδα φεύγει από την οθόνη πριν τελειώσει ο πίνακας. Είναι επίσης το πιο συμβατικό από τα τρία — δεν χαλάει τίποτα, δεν κερδίζει τίποτα.</p>
+  </section>
+
+  <!-- ============ Ζ2 ============ -->
+  <section class="direction">
+    <div class="direction-head"><span class="letter" aria-hidden="true">Ζ2</span><h2>Πλακέτα</h2></div>
+    <p>Χωρίς γραμμές και χωρίς περίγραμμα: μια ανοιχτόχρωμη πλακέτα με τα στοιχεία σε πλέγμα, ετικέτα από πάνω και τιμή από κάτω. Χαμηλό και πλατύ αντί για ψηλό, οπότε κάθεται κάτω από τη λωρίδα χωρίς να την σπρώχνει εκτός οθόνης. Τα νούμερα είναι το πρώτο που βλέπεις.</p>
+
+    <div class="screen">
+      <div class="chrome"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>aegean-blue.gr/iliovasilema-stin-aigina</span></div>
+      <div class="stage">
+        <div class="tabbar gutter"><span>Η εκδρομή</span><span class="on">Το σκάφος</span><span>Συχνές ερωτήσεις</span></div>
+
+        <div class="rail">
+          <div class="shot"><span class="featured-tag">Πρώτη</span></div>
+          <div class="shot b"></div><div class="shot c"></div><div class="shot d"></div>
+        </div>
+        <p class="rail-note">→ κυλάει πλάγια, και στο κινητό με το δάχτυλο</p>
+
+        <div class="gutter">
+          <p class="boat-name">Ποσειδώνας</p>
+          <dl class="z2">
+            <div><dt>Τύπος</dt><dd>Καΐκι</dd></div>
+            <div><dt>Επιβάτες</dt><dd>42</dd></div>
+            <div><dt>Μήκος</dt><dd>18,5 m</dd></div>
+            <div><dt>Πλήρωμα</dt><dd>3</dd></div>
+            <div><dt>Καπετάνιος</dt><dd>Ν. Βλάχος</dd></div>
+            <div><dt>Νηολόγιο</dt><dd>ΠΕΙΡ 1234</dd></div>
+            <div><dt>Ταχύτητα</dt><dd>9 kn</dd></div>
+            <div><dt>Πλάτος</dt><dd>5,2 m</dd></div>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> το πλέγμα θέλει να γεμίζει. Ένας διοργανωτής που συμπλήρωσε τρία πεδία αφήνει μισή πλακέτα κενή, και τα μακριά ονόματα («Παραδοσιακό καΐκι», «Νίκος Βλάχος») θέλουν συντόμευση για να μη σπάνε σε δύο γραμμές.</p>
+  </section>
+
+  <!-- ============ Ζ3 ============ -->
+  <section class="direction">
+    <div class="direction-head"><span class="letter" aria-hidden="true">Ζ3</span><h2>Τρία μπροστά</h2></div>
+    <p>Τα τρία που ρωτάει κανείς πραγματικά — πόσοι χωράνε, πόσο μεγάλο, πόσοι το δουλεύουν — σε μεγάλα νούμερα στην κορυφή του πίνακα, και τα υπόλοιπα ως ήσυχες γραμμές από κάτω, στο ίδιο κουτί. Μια ιεραρχία μέσα στο πινακάκι αντί για έξι ισότιμες γραμμές.</p>
+
+    <div class="screen">
+      <div class="chrome"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>aegean-blue.gr/iliovasilema-stin-aigina</span></div>
+      <div class="stage">
+        <div class="tabbar gutter"><span>Η εκδρομή</span><span class="on">Το σκάφος</span><span>Συχνές ερωτήσεις</span></div>
+
+        <div class="rail">
+          <div class="shot"><span class="featured-tag">Πρώτη</span></div>
+          <div class="shot b"></div><div class="shot c"></div><div class="shot d"></div>
+        </div>
+        <p class="rail-note">→ κυλάει πλάγια, και στο κινητό με το δάχτυλο</p>
+
+        <div class="gutter">
+          <p class="boat-name">Ποσειδώνας</p>
+          <dl class="z3-top">
+            <div><dt>Επιβάτες</dt><dd>42</dd></div>
+            <div><dt>Μήκος</dt><dd>18,5 m</dd></div>
+            <div><dt>Πλήρωμα</dt><dd>3</dd></div>
+          </dl>
+          <dl class="z3-rest">
+            <div><dt>Τύπος</dt><dd>Παραδοσιακό καΐκι</dd></div>
+            <div><dt>Καπετάνιος</dt><dd>Νίκος Βλάχος</dd></div>
+            <div><dt>Νηολόγιο</dt><dd>ΠΕΙΡ 1234</dd></div>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> η κορυφή προϋποθέτει ότι και τα τρία συμπληρώθηκαν. Με μόνο τη χωρητικότητα, η σειρά δείχνει αραιή — οπότε χρειάζεται κανόνας: δύο ή τρία γεμάτα δίνουν την κορυφή, ένα μόνο πέφτει στις γραμμές από κάτω.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <p class="round">Τι έχει αποκλειστεί</p>
+    <div class="rejected">
+      <div class="rej"><strong>Γύρος 1 · Α, Β, Γ</strong><span>Φωτογραφία συν πίνακας, τρεις φορές η ίδια ιδέα σε άλλη θέση.</span></div>
+      <div class="rej"><strong>Γύρος 2 · Δ</strong><span>Τρία νούμερα με τα υπόλοιπα διπλωμένα πίσω από «Περισσότερα».</span></div>
+      <div class="rej"><strong>Γύρος 2 · Ε</strong><span>Η ιστορία του σκάφους ως κύριο κείμενο, οι μετρήσεις υποσημείωση.</span></div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section class="note">
+    <h2>Και στα σκάφη, gallery με την πρώτη κύρια</h2>
+    <p>Δεν είναι επιλογή, είναι δουλειά — και με τη λωρίδα μετράει διπλά, γιατί η σειρά των φωτογραφιών <em>είναι</em> η ενότητα. Σήμερα το σκάφος παίρνει φωτογραφίες από repeater, μία-μία. Οι εκδρομές πήραν στις 22 Σεπτεμβρίου uploader πολλών αρχείων: σέρνεις τον φάκελο μέσα, η σειρά ορίζει την κύρια.</p>
+    <p>Το σκάφος παίρνει το ίδιο, και η <strong>πρώτη γίνεται η κύρια</strong> — αυτή που ανοίγει τη λωρίδα.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section class="picker">
+    <h2>Ποιο πινακάκι;</h2>
+    <p>Πατήστε για να το δείτε σημειωμένο, και πείτε μου τον κωδικό στη συζήτηση.</p>
+
+    <div class="options">
+      <button type="button" class="option" aria-pressed="false" data-letter="Ζ1" data-name="Γραμμές">
+        <span class="option-letter">Ζ1</span><span class="option-name">Γραμμές</span>
+        <span class="option-why">Κουτί με μια γραμμή ανά στοιχείο. Το πιο ήσυχο και το πιο συμβατικό.</span>
+      </button>
+      <button type="button" class="option" aria-pressed="false" data-letter="Ζ2" data-name="Πλακέτα">
+        <span class="option-letter">Ζ2</span><span class="option-name">Πλακέτα</span>
+        <span class="option-why">Πλέγμα σε ανοιχτόχρωμο φόντο. Χαμηλό και πλατύ, τα νούμερα μπροστά.</span>
+      </button>
+      <button type="button" class="option" aria-pressed="false" data-letter="Ζ3" data-name="Τρία μπροστά">
+        <span class="option-letter">Ζ3</span><span class="option-name">Τρία μπροστά</span>
+        <span class="option-why">Ιεραρχία μέσα στον πίνακα: τρία μεγάλα, τα υπόλοιπα από κάτω.</span>
+      </button>
+    </div>
+
+    <p class="chosen" id="chosen">Δεν έχετε διαλέξει ακόμη.</p>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var options = Array.prototype.slice.call(document.querySelectorAll('.option'));
+    var out = document.getElementById('chosen');
+
+    options.forEach(function (option) {
+      option.addEventListener('click', function () {
+        options.forEach(function (other) { other.setAttribute('aria-pressed', String(other === option)); });
+        out.innerHTML = 'Διαλέξατε <b>' + option.dataset.letter + ' — ' + option.dataset.name + '</b>. Πείτε μου τον κωδικό στη συζήτηση για να χτιστεί.';
+      });
+    });
+  })();
+</script>

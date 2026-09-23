@@ -55,8 +55,9 @@ return new class extends Migration
 
             $table->date('valid_from');
 
-            // Inclusive; null is open-ended, and generation still only reaches
-            // `generate_days_ahead`.
+            // Inclusive; null is open-ended, and generation then reaches only
+            // the horizon in `config('kaiki.departures.horizon_days')`.
+            // (`generate_days_ahead` was dropped on 2026-09-23 — nothing read it.)
             $table->date('valid_until')->nullable();
 
             $table->unsignedSmallInteger('capacity_override')->nullable();

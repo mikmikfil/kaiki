@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources\ProductResource\Pages;
 use App\Domain\Catalog\Actions\SaveAgeBands;
 use App\Domain\Catalog\Actions\SaveProduct;
 use App\Domain\Catalog\Support\TripPageContent;
+use App\Domain\Media\Support\GalleryField;
 use App\Enums\BookingMode;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource;
@@ -103,7 +104,7 @@ trait ConsumesAgeBands
         // the form leaves the stored photographs alone.
         if (array_key_exists(ProductResource::GALLERY_FIELD, $data)) {
             $existing = $record instanceof Product && $record->exists ? $record->images : null;
-            $data['images'] = TripPageContent::galleryFromForm($data[ProductResource::GALLERY_FIELD], $existing);
+            $data['images'] = GalleryField::fromForm($data[ProductResource::GALLERY_FIELD], $existing);
         }
 
         unset($data[ProductResource::GALLERY_FIELD]);
@@ -150,7 +151,7 @@ trait ConsumesAgeBands
         $data[TripPageContent::ITINERARY_FIELD] = TripPageContent::itineraryToRows($record);
         unset($data['itinerary_stops']);
 
-        $data[ProductResource::GALLERY_FIELD] = TripPageContent::galleryToForm($record->images);
+        $data[ProductResource::GALLERY_FIELD] = GalleryField::toForm($record->images);
         unset($data['images']);
 
         return $data;

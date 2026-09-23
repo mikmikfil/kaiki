@@ -27,11 +27,11 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
 use Filament\Support\Enums\FontFamily;
 use Filament\Support\Enums\FontWeight;
+use Filament\Tables\Actions\Action as TableAction;
 use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
@@ -121,22 +121,28 @@ class RatePlanResource extends Resource
         return [
             Section::make(__('pricing.rate_plan.sections.identity'))
                 ->schema([
+                    /*
+                     * **Shown, never changed** (Mike, 2026-09-23).
+                     *
+                     * Since «Προσθήκη Τιμοκαταλόγου» went away this schema is
+                     * only ever an *edit* form, and moving a saved plan to
+                     * another trip is not an edit — it would point every price
+                     * row at another trip's age bands and silently reprice
+                     * whatever the old trip was selling. The field stays
+                     * visible because a price list with no trip on it reads as
+                     * belonging to nothing.
+                     *
+                     * `dehydrated()` because the Action still expects the key
+                     * in the payload; a disabled field is dropped from it
+                     * otherwise.
+                     */
                     Select::make('product_id')
                         ->label(__('pricing.rate_plan.form.product.label'))
                         ->helperText(__('pricing.rate_plan.form.product.help'))
                         ->options(static::productOptions(...))
                         ->required()
-                        ->searchable()
-                        ->preload()
-                        ->live()
-                        // Changing the product changes which bands exist, so
-                        // the price rows are rebuilt rather than left pointing
-                        // at another product's bands.
-                        ->afterStateUpdated(static function (Set $set, mixed $state): void {
-                            $set('band_prices', static::bandPriceRows(
-                                is_numeric($state) ? (int) $state : null,
-                            ));
-                        }),
+                        ->disabled()
+                        ->dehydrated(),
 
                     Select::make('season_id')
                         ->label(__('pricing.rate_plan.form.season.label'))
@@ -216,8 +222,11 @@ class RatePlanResource extends Resource
                         ->content(static function (Get $get): HtmlString {
                             $product = static::productOf($get);
 
+                            // Not "pick a trip" any more: the field above is
+                            // disabled, so the only way to stand here without
+                            // a product is a plan whose trip is in the bin.
                             if (! $product instanceof Product) {
-                                return new HtmlString(e(__('pricing.rate_plan.form.prices.pick_product')));
+                                return new HtmlString(e(__('pricing.rate_plan.form.prices.trip_gone')));
                             }
 
                             return new HtmlString(__('pricing.rate_plan.form.prices.no_bands', [
@@ -422,11 +431,51 @@ class RatePlanResource extends Resource
             // as the exceptions to it.
             ->defaultSort('season_id')
             ->filters([TrashedFilter::make()])
+            /*
+             * **Μια άδεια οθόνη που λέει τι λείπει** (Mike, 2026-09-23).
+             *
+             * An account with no trips has no prices, and the generic «Δεν
+             * υπάρχουν εγγραφές» reads as a fault on a screen the sidebar sent
+             * the operator to. The answer here cannot be «φτιάξε τιμοκατάλογο»
+             * — that is no longer a thing anyone can do from this screen — so
+             * it is «φτιάξε πρώτα εκδρομή», with the button that does it.
+             *
+             * Closures, because the two cases are different questions: no trips
+             * at all, versus trips that simply have no plan yet. Once trips
+             * exist, `UnsellableProducts` above the table already names the
+             * published ones that cannot be sold.
+             */
+            ->emptyStateIcon('heroicon-o-currency-euro')
+            ->emptyStateHeading(static fn (): string => static::hasNoTrips()
+                ? __('pricing.rate_plan.empty.no_trips.heading')
+                : __('pricing.rate_plan.empty.none.heading'))
+            ->emptyStateDescription(static fn (): string => static::hasNoTrips()
+                ? __('pricing.rate_plan.empty.no_trips.body')
+                : __('pricing.rate_plan.empty.none.body'))
+            ->emptyStateActions([
+                TableAction::make('create-trip')
+                    ->label(__('pricing.rate_plan.empty.no_trips.action'))
+                    ->icon('heroicon-m-plus')
+                    ->visible(static fn (): bool => static::hasNoTrips())
+                    ->url(static fn (): string => ProductResource::getUrl('create')),
+            ])
             // Folded away: two labelled buttons on every row were taking a
             // fifth of a table whose whole point is the price column.
             ->actions([
                 ActionGroup::make([EditAction::make(), DeleteAction::make(), RestoreAction::make()]),
             ]);
+    }
+
+    /**
+     * Has this operator no trip at all — not even one in the bin?
+     *
+     * Trashed ones count: an account whose only trip is deleted is not an
+     * account that never made one, and «φτιάξτε πρώτα μια εκδρομή» would be
+     * the wrong sentence to put in front of somebody who needs to restore one.
+     */
+    public static function hasNoTrips(): bool
+    {
+        return ! Product::query()->withTrashed()->exists();
     }
 
     /** @return array<int, string> */
@@ -508,7 +557,6 @@ class RatePlanResource extends Resource
     {
         return [
             'index' => Pages\ListRatePlans::route('/'),
-            'create' => Pages\CreateRatePlan::route('/create'),
             'edit' => Pages\EditRatePlan::route('/{record}/edit'),
         ];
     }

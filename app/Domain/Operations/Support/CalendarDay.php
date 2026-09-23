@@ -163,7 +163,13 @@ final class CalendarDay
         return [
             'kind' => 'departure',
             'uuid' => $departure->uuid,
-            'label' => (string) $departure->product->title,
+            // The `??` is load-bearing, not decoration. `VesselCalendar` loads
+            // trashed trips so an archived one keeps its name, but this class
+            // renders inside the panel layout — reading `title` off a null trip
+            // here costs the operator every page, not this one bar, which is
+            // exactly what it cost them on 2026-09-23. A departure with no trip
+            // left at all is drawn as an occupied slot rather than a 500.
+            'label' => (string) ($departure->product->title ?? __('calendar.trip_gone')),
             'detail' => $departure->local_time,
             'start' => self::fraction($departure->starts_at_utc, $day, $minutes),
             'end' => self::fraction($departure->ends_at_utc, $day, $minutes),

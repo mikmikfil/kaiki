@@ -852,9 +852,8 @@ Generates `departures` for `per_seat` products.
 | `weekday_mask` | tinyint unsigned | no | — | bitmask, Monday = bit 0 … Sunday = bit 6. `0b1111111` = 127 = daily |
 | `start_time` | time | no | — | tenant-local |
 | `valid_from` | date | no | — | local date, inclusive |
-| `valid_until` | date | yes | null | local date, inclusive; null = open-ended (generation still only reaches `generate_days_ahead`) |
+| `valid_until` | date | yes | null | local date, inclusive; null = open-ended, and generation then reaches only the horizon |
 | `capacity_override` | smallint unsigned | yes | null | null = `products.max_pax` |
-| `generate_days_ahead` | smallint unsigned | no | `180` | rolling horizon the nightly job maintains |
 | `is_active` | boolean | no | `true` | |
 | `last_generated_on` | date | yes | null | watermark so the job is incremental, not a full rescan |
 | timestamps | | | | hard delete — deleting a rule does **not** delete generated departures |

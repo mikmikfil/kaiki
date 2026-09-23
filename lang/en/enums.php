@@ -259,6 +259,7 @@ return [
         'payment.recorded' => ['label' => 'Payment recorded by hand'],
         'booking.cancelled' => ['label' => 'Booking cancelled by the operator'],
         'manifest.generated' => ['label' => 'Passenger list with document numbers generated'],
+        'impersonation.started' => ['label' => 'Admin signed in to the account'],
     ],
 
     'availability_rejection' => [

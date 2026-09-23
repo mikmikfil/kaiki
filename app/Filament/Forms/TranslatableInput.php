@@ -72,14 +72,22 @@ final class TranslatableInput
 
     /**
      * A tab per locale, each holding one multi-line input.
+     *
+     * `maxLength` brings a live character count with it (2026-09-23): a limit
+     * an operator only meets by being refused is a limit that costs them the
+     * sentence they had just finished writing.
      */
-    public static function textarea(string $name, string $label, ?string $helperText = null, bool $required = false, int $rows = 4): Component
+    public static function textarea(string $name, string $label, ?string $helperText = null, bool $required = false, int $rows = 4, ?int $maxLength = null): Component
     {
-        return self::tabs($name, $label, $helperText, static fn (string $path, string $locale): Textarea => self::applyRequired(
-            Textarea::make($path)->rows($rows),
-            $locale,
-            $required,
-        ));
+        return self::tabs($name, $label, $helperText, static function (string $path, string $locale) use ($required, $rows, $maxLength): Textarea {
+            $input = Textarea::make($path)->rows($rows);
+
+            if ($maxLength !== null) {
+                $input->maxLength($maxLength)->live(onBlur: true);
+            }
+
+            return self::applyRequired($input, $locale, $required);
+        });
     }
 
     /**

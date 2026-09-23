@@ -87,6 +87,16 @@ return [
             'question' => 'What do you refund when a guest cancels?',
             'why' => 'Pick one. You can change it whenever you like, and bookings already made keep the terms they were made under. A trip cannot be published without a cancellation policy.',
         ],
+        // Only for operators who get a home page from us (2026-09-23). A
+        // bookings-only account never sees this step at all.
+        'home_page' => [
+            'label' => 'Your home page',
+            'description' => 'What a visitor reads',
+            'question' => 'What should your home page say?',
+            'why' => 'It is the page your address points at — the first one anybody looking you up will see. You build it from sections in whatever order you like: a large photograph, your trips, a few words about you, your FAQ. All optional; the ones you leave out simply do not appear.',
+            'done' => 'You have already built your home page.',
+            'action' => 'Build your home page',
+        ],
         'port' => [
             'label' => 'Ports',
             'description' => 'Where you sail from',
@@ -159,6 +169,10 @@ return [
             'label' => 'Your logo',
             'help' => 'PNG, JPG or SVG. It sits top left on your pages and in your emails. Without one, your name is written instead.',
         ],
+        'logo_dark' => [
+            'label' => 'Logo for dark backgrounds',
+            'help' => 'Optional. If your logo disappears on a dark background, upload the light version of it here.',
+        ],
         'legal_name' => [
             'label' => 'Legal name',
             'help' => 'Exactly as registered with the tax office — not your trading name, if they differ.',
@@ -188,32 +202,23 @@ return [
         ],
     ],
 
-    // The three ready policies on the «Cancellation policy» step (2026-09-17).
+    /*
+     * The «Cancellation policy» step (2026-09-17).
+     *
+     * **The names and ladders are no longer here** (2026-09-23): they are rows
+     * under «Policy templates» in /admin, editable without a deploy. What is
+     * left is the wording around them, next to the lines
+     * `PolicyTemplate::ladder()` builds out of the numbers.
+     *
+     * Why they moved: the numbers lived in one file and the words in another,
+     * and nothing kept them in step. A card could promise a full refund at
+     * seven days while the policy written behind it said something else.
+     */
     'policy' => [
-        'flexible' => [
-            'name' => 'Flexible',
-            'summary' => 'Full refund up to 24 hours before',
-            'ladder' => [
-                ['when' => '24 hours or more before', 'refund' => '100%'],
-                ['when' => 'Less than 24 hours', 'refund' => '0%'],
-            ],
-        ],
-        'standard' => [
-            'name' => 'Standard',
-            'summary' => 'Full up to 7 days, half up to 2 days',
-            'ladder' => [
-                ['when' => '7 days or more before', 'refund' => '100%'],
-                ['when' => '2 to 6 days before', 'refund' => '50%'],
-                ['when' => 'Less than 2 days', 'refund' => '0%'],
-            ],
-        ],
-        'strict' => [
-            'name' => 'Strict',
-            'summary' => 'Half up to 14 days, nothing after',
-            'ladder' => [
-                ['when' => '14 days or more before', 'refund' => '50%'],
-                ['when' => 'Less than 14 days', 'refund' => '0%'],
-            ],
+        'ladder' => [
+            'free_hours' => '{1} 1 hour or more before|[2,*] :hours hours or more before',
+            'days_before' => '{1} 1 day or more before|[2,*] :days days or more before',
+            'after' => 'After that',
         ],
         'weather' => 'Cancelled for weather',
         'weather_refund' => '100%',

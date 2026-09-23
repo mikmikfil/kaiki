@@ -13,6 +13,7 @@ use App\Http\Resources\Api\V1\ProductDetailResource;
 use App\Models\Extra;
 use App\Models\Product;
 use App\Models\Tenant;
+use App\Models\VatRate;
 use App\Support\Tenancy;
 use Illuminate\Http\Request;
 use Livewire\Livewire;
@@ -28,6 +29,49 @@ use Tests\Support\OperatorUser;
 | on every booking whether or not the client sent it.
 |
 */
+
+it('gives a meal on board its own VAT, and leaves the rest on the trip\'s', function (): void {
+    // Mike, 2026-09-23: *«ένα trip με πλοίο και ένα γεύμα πάνω στο πλοίο δηλαδή
+    // έχουν ξεχωριστό vat?»* — yes, and `extras.vat_rate_id` existed for exactly
+    // that from the first migration («a cruise is passenger transport and a
+    // barbecue extra is catering», data-model §2.3). No form ever asked for it,
+    // so the column could only ever be null.
+    //
+    // Both halves are asserted: the extra that overrides, and the one that does
+    // not. Null is not a missing answer here — it means «whatever the trip
+    // says», and an extra that silently inherited a *copy* would stop following
+    // the trip the day the trip's own rate changed.
+    $owner = OperatorUser::withRole(Role::Owner);
+    tenancy()->initialize(Tenant::query()->findOrFail($owner->tenant_id));
+
+    $product = Product::factory()->create();
+    $catering = VatRate::factory()->create();
+
+    $manager = Livewire::actingAs($owner)
+        ->test(ExtrasRelationManager::class, ['ownerRecord' => $product, 'pageClass' => EditProduct::class]);
+
+    $manager->callTableAction('create', data: [
+        'name' => ['el' => 'Γεύμα στο σκάφος', 'en' => 'Lunch on board'],
+        'kind' => 'paid',
+        'pricing_type' => ExtraPricing::PerPerson->value,
+        'price_cents' => '25,00',
+        'vat_rate_id' => $catering->getKey(),
+        'is_active' => true,
+    ])->assertHasNoTableActionErrors();
+
+    $manager->callTableAction('create', data: [
+        'name' => ['el' => 'Πετσέτα', 'en' => 'Towel'],
+        'kind' => 'paid',
+        'pricing_type' => ExtraPricing::PerPerson->value,
+        'price_cents' => '5,00',
+        'is_active' => true,
+    ])->assertHasNoTableActionErrors();
+
+    $extras = $product->extras()->get();
+
+    expect($extras->firstWhere('price_cents', 2500)?->vat_rate_id)->toBe($catering->getKey())
+        ->and($extras->firstWhere('price_cents', 500)?->vat_rate_id)->toBeNull();
+})->group('fast');
 
 it('lists a free extra with what the trip includes and never prices it', function (): void {
     Tenancy::forTenant(Tenant::factory()->create(), function (): void {

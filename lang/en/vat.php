@@ -62,6 +62,14 @@ return [
         ],
     ],
 
+    // The only way out of a screen where the percentage is locked: the rate is
+    // not edited, the next one is created under the same code.
+    'actions' => [
+        'supersede' => [
+            'label' => 'New rate under this code',
+        ],
+    ],
+
     'table' => [
         'code' => 'Code',
         'rate' => 'Rate',

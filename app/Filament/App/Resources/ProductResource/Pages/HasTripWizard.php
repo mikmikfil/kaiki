@@ -10,6 +10,7 @@ use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Resources\RatePlanResource;
 use App\Filament\Forms\MoneyInput;
 use App\Filament\Forms\TranslatableInput;
+use App\Rules\MaxPaxWithinVesselCapacity;
 use App\Support\Tenancy;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
@@ -156,13 +157,20 @@ trait HasTripWizard
                     ->preload()
                     ->required(),
 
+                // The same CAT-5 ceiling the edit form enforces (Mike,
+                // 2026-09-23). It matters more here: the boat was chosen a step
+                // ago, its certificate is not on screen, and a trip made in the
+                // guide is the first one an operator ever publishes.
                 TextInput::make('max_pax')
                     ->label(__('catalog.product.form.max_pax.label'))
-                    ->helperText(__('catalog.product.form.max_pax.help'))
+                    ->helperText(static fn (Get $get): string => ProductResource::maxPaxHelp($get))
                     ->integer()
                     ->minValue(1)
                     ->maxValue(2000)
-                    ->required(),
+                    ->required()
+                    ->rules(static fn (Get $get): array => [
+                        new MaxPaxWithinVesselCapacity(ProductResource::vesselIdOf($get)),
+                    ]),
 
                 /*
                  * **The timetable, all of it** (product owner, 2026-09-22:
@@ -184,6 +192,14 @@ trait HasTripWizard
                     ->label(__('catalog.product.wizard.when.schedules'))
                     ->helperText(__('catalog.product.wizard.when.schedules_help'))
                     ->addActionLabel(__('catalog.product.wizard.when.add_schedule'))
+                    /*
+                     * «Δρομολόγιο 2 — Τετάρτη, Πέμπτη» (Mike, 23/9).
+                     *
+                     * Τρία κλειστά δρομολόγια που λένε όλα «Δρομολόγιο» δεν
+                     * είναι λίστα, είναι τρεις ίδιες γραμμές: για να βρει
+                     * κανείς εκείνο της Τετάρτης πρέπει να τα ανοίξει ένα ένα.
+                     * Ο αριθμός λέει πού βρίσκεται, οι μέρες λένε ποιο είναι.
+                     */
                     ->schema([
                         CheckboxList::make('days')
                             ->label(__('catalog.product.wizard.when.days'))
@@ -212,6 +228,11 @@ trait HasTripWizard
                             )
                             ->defaultItems(1)
                             ->reorderable(false)
+                            // Τρεις ανά σειρά, όπως και στην καρτέλα
+                            // «Δρομολόγια» (Mike, 23/9): μια ώρα είναι πέντε
+                            // χαρακτήρες, και μία ανά γραμμή διαβάζεται σαν
+                            // φόρμα που ξέχασαν να στοιχίσουν αντί για ωράριο.
+                            ->grid(['default' => 1, 'sm' => 2, 'lg' => 3])
                             // Full width so the two dates below sit side by
                             // side: the times grow downwards as they are added,
                             // and a column that grows beside a date field
@@ -236,7 +257,19 @@ trait HasTripWizard
                                 'after_or_equal' => __('availability.schedule_rule.validation.inverted_window'),
                             ]),
                     ])
-                    ->itemLabel(static fn (array $state): ?string => self::scheduleLabel($state))
+                    /*
+                     * «Δρομολόγιο 2 — Τετάρτη, Πέμπτη · 11:00» (Mike, 23/9).
+                     *
+                     * Η ετικέτα υπήρχε ήδη με τις μέρες και τις ώρες, αλλά
+                     * **χωρίς αριθμό** — και επέστρεφε null σε άδειο δρομολόγιο,
+                     * οπότε το φρέσκο κουτί δεν είχε καθόλου κεφαλίδα και τα
+                     * τρία μαζί διαβάζονταν σαν ένα. Ο αριθμός λέει πού
+                     * βρίσκεσαι, οι μέρες λένε ποιο είναι.
+                     */
+                    ->itemLabel(static fn (array $state, Repeater $component, string $uuid): string => self::scheduleLabel(
+                        $state,
+                        self::positionOf($component, $uuid),
+                    ))
                     ->defaultItems(1)
                     ->collapsible()
                     ->columns(2)
@@ -286,6 +319,17 @@ trait HasTripWizard
                 Repeater::make('age_bands')
                     ->label(__('catalog.product.sections.bands'))
                     ->addActionLabel(__('catalog.product.form.bands.add'))
+                    /*
+                     * Η κατηγορία γράφει το όνομά της στην κεφαλίδα της (Mike,
+                     * 23/9). Κλειστές, οι κατηγορίες είναι τρία πανομοιότυπα
+                     * πλαίσια — και εδώ η διαφορά μεταξύ τους είναι ακριβώς το
+                     * πεδίο που δεν φαινόταν.
+                     *
+                     * Από το `label` που μόλις πληκτρολογήθηκε και όχι από τον
+                     * κωδικό: ο διοργανωτής που μετονόμασε το «Παιδί» σε «Παιδί
+                     * 3–11» περιμένει να το δει έτσι αμέσως.
+                     */
+                    ->itemLabel(fn (array $state): string => self::bandName($state))
                     ->schema([
                         Hidden::make('code'),
                         Hidden::make('pricing_mode'),
@@ -542,14 +586,9 @@ trait HasTripWizard
      *
      * @param  array<string, mixed>  $state
      */
-    private static function scheduleLabel(array $state): ?string
+    private static function scheduleLabel(array $state, int $position): string
     {
-        $weekdays = self::weekdays();
-
-        $days = array_map(
-            static fn (mixed $day): string => $weekdays[(int) $day] ?? '',
-            array_values((array) ($state['days'] ?? [])),
-        );
+        $days = self::daysInWords((array) ($state['days'] ?? []));
 
         $times = array_values(array_filter(array_map(
             // The picker holds «2026-09-22 09:00:00» in the browser and «09:00»
@@ -560,9 +599,13 @@ trait HasTripWizard
             array_values((array) ($state['times'] ?? [])),
         )));
 
-        $line = trim(implode(', ', array_filter($days)) . ' · ' . implode(', ', $times), ' ·');
+        $line = trim($days . ' · ' . implode(', ', $times), ' ·');
 
-        return $line === '' ? null : $line;
+        // Always a header, even on the empty box a fresh «Κι άλλο δρομολόγιο»
+        // opens: three unlabelled cards read as one.
+        return $line === ''
+            ? __('catalog.product.wizard.when.schedule_item_empty', ['n' => $position])
+            : __('catalog.product.wizard.when.schedule_item', ['n' => $position, 'days' => $line]);
     }
 
     /**
@@ -580,5 +623,100 @@ trait HasTripWizard
         }
 
         return $days;
+    }
+
+    /**
+     * Which row of the repeater this is, counting from one.
+     *
+     * Filament hands `itemLabel` the item's uuid and not its position, so the
+     * position is looked up among the repeater's own child containers — the
+     * same array the template is iterating when it asks for the label, and
+     * already built by then. Not `getState()`: dehydrating a repeater while
+     * rendering one of its own item headers is a loop.
+     */
+    private static function positionOf(Repeater $component, string $uuid): int
+    {
+        // Cast both sides to string before comparing. The keys are uuids in
+        // the browser but plain integers when a test fills the form, and a
+        // strict search for the string "0" in `[0, 1]` finds nothing at all —
+        // which silently numbered every row 1.
+        $keys = array_map(static fn (mixed $key): string => (string) $key, array_keys($component->getChildComponentContainers()));
+
+        $position = array_search($uuid, $keys, true);
+
+        return is_int($position) ? $position + 1 : 1;
+    }
+
+    /**
+     * «Δευτέρα–Παρασκευή, Κυριακή» — the days a rule sails, short enough for a
+     * collapsed header.
+     *
+     * Runs of three or more consecutive days are written as a range, which is
+     * how an operator says it and what keeps a daily trip from spelling out all
+     * seven. Two in a row stay listed, because «Δευτέρα–Τρίτη» is longer than
+     * «Δευτέρα, Τρίτη» and reads as though something were left out.
+     *
+     * @param  list<mixed>|array<array-key, mixed>  $days
+     */
+    private static function daysInWords(array $days): string
+    {
+        $names = self::weekdays();
+
+        $chosen = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $day): int => (int) $day, $days),
+            static fn (int $day): bool => $day >= 1 && $day <= 7,
+        )));
+
+        sort($chosen);
+
+        if ($chosen === []) {
+            return '';
+        }
+
+        $parts = [];
+        $run = [array_shift($chosen)];
+
+        $flush = static function (array $run) use ($names, &$parts): void {
+            $parts[] = count($run) >= 3
+                ? $names[$run[0]] . '–' . $names[$run[count($run) - 1]]
+                : implode(', ', array_map(static fn (int $day): string => $names[$day], $run));
+        };
+
+        foreach ($chosen as $day) {
+            if ($day === $run[count($run) - 1] + 1) {
+                $run[] = $day;
+
+                continue;
+            }
+
+            $flush($run);
+            $run = [$day];
+        }
+
+        $flush($run);
+
+        return implode(', ', $parts);
+    }
+
+    /**
+     * An age band's own name, for its collapsed header.
+     *
+     * `label` is translatable, so the state is a map of locales. The panel's
+     * locale first, then anything that was typed — a band named only in English
+     * on a Greek panel should still say its name rather than «Κατηγορία».
+     *
+     * @param  array<string, mixed>  $state
+     */
+    private static function bandName(array $state): string
+    {
+        $label = $state['label'] ?? null;
+
+        $written = is_array($label)
+            ? array_filter($label, static fn (mixed $value): bool => is_string($value) && trim($value) !== '')
+            : (is_string($label) && trim($label) !== '' ? [$label] : []);
+
+        $name = $written[app()->getLocale()] ?? (reset($written) ?: null);
+
+        return is_string($name) ? $name : __('catalog.product.sections.bands');
     }
 }

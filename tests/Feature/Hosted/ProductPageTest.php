@@ -100,7 +100,12 @@ it('renders every section HOS-1 lists', function (): void {
         // out of the booking card on 22 September, and what a child pays is
         // now answered where the party is chosen, inside the widget.
         ->assertSee('Kalypso', escape: false)
-        ->assertSee('Flexible', escape: false)
+        // The terms, but **not** the policy's name (Mike, 2026-09-23). «Flexible»
+        // is the operator's own label for the row in their catalogue, and the
+        // question above the box already asks what it was answering. What a guest
+        // needs is what they get back and by when — the summary and the hours.
+        ->assertDontSee('Flexible', escape: false)
+        ->assertSee('Cancel up to two days before.', escape: false)
         ->assertSee(__('hosted.product.free_cancellation', ['hours' => 48], 'en'), escape: false);
 
     // A real departure, still server-rendered — but as structured data only

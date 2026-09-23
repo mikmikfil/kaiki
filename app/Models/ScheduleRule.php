@@ -33,7 +33,6 @@ use Illuminate\Support\Carbon;
  * @property Carbon $valid_from
  * @property Carbon|null $valid_until null = open-ended
  * @property int|null $capacity_override
- * @property int $generate_days_ahead
  * @property bool $is_active
  * @property Carbon|null $last_generated_on
  * @property-read Product|null $product null once the trip is soft-deleted —
@@ -58,7 +57,6 @@ class ScheduleRule extends Model
             'valid_from' => 'date',
             'valid_until' => 'date',
             'capacity_override' => 'integer',
-            'generate_days_ahead' => 'integer',
             'is_active' => 'boolean',
             'last_generated_on' => 'date',
         ];
@@ -90,7 +88,6 @@ class ScheduleRule extends Model
      *
      * Three conditions, all local dates: the rule is on, the date is inside the
      * validity window, and the weekday is in the mask. `valid_until` null means
-     * open-ended — generation is still bounded by `generate_days_ahead`, which
      * is #27's concern rather than this method's.
      */
     public function coversDate(Carbon $date): bool

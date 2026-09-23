@@ -32,6 +32,7 @@ return [
 
         'type' => [
             'label' => 'Kind of section',
+            'help' => 'Your home page is built from sections, one under the other. Choose what this one does; the fields below change with it.',
         ],
 
         'is_visible' => [
@@ -76,6 +77,7 @@ return [
 
         'source' => [
             'label' => 'Which trips',
+            'help' => '«Featured» means the ones you marked as featured inside each trip. The list keeps itself up to date as you add or retire trips.',
             'options' => [
                 'all' => 'All of them',
                 'featured' => 'Only the ones marked featured',
@@ -99,6 +101,7 @@ return [
 
         'image_side' => [
             'label' => 'Image position',
+            'help' => 'On a desktop. On a phone the photograph always sits above the text, whichever side you pick.',
             'options' => [
                 'left' => 'Left of the text',
                 'right' => 'Right of the text',
@@ -115,6 +118,9 @@ return [
 
         'show_phone' => [
             'label' => 'Show the phone number',
+            // An operator looks for where to type the phone number; it is not
+            // typed here, so say it once, on the first of the three.
+            'help' => 'These are not written here: they come from your business details. This only chooses which of them appear.',
         ],
 
         'show_email' => [

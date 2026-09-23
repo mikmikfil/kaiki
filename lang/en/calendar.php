@@ -14,6 +14,10 @@ declare(strict_types=1);
 return [
     'title' => 'Calendar',
 
+    // A departure whose trip has been deleted. Drawn as an occupied slot
+    // rather than taking the whole panel down.
+    'trip_gone' => 'Deleted trip',
+
     'previous' => 'Previous day',
     'today' => 'Today',
     'next' => 'Next day',
@@ -51,5 +55,18 @@ return [
         'people' => 'People',
         'reference' => 'Reference',
         'owed' => 'Still owed',
+
+        // The brief above the names (2026-09-23, direction Β). For whoever is
+        // standing on the quay: times, boat, where from, and what to tell
+        // anybody who asks. No prices — TEN-8 does not move.
+        'brief' => [
+            'boarding' => 'Boarding',
+            'returns' => 'Back at',
+            'vessel' => 'Boat',
+            'where' => 'From',
+            'more' => 'What is included and what to bring',
+            'includes' => 'Included',
+            'bring' => 'To bring',
+        ],
     ],
 ];

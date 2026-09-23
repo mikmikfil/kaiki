@@ -14,6 +14,7 @@ use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource\Pages;
 use App\Filament\App\Resources\ProductResource\RelationManagers\ExtrasRelationManager;
+use App\Filament\App\Resources\ProductResource\RelationManagers\FaqsRelationManager;
 use App\Filament\App\Resources\ProductResource\RelationManagers\QuestionsRelationManager;
 use App\Filament\App\Resources\ProductResource\RelationManagers\RatePlansRelationManager;
 use App\Filament\App\Resources\ProductResource\RelationManagers\ScheduleRulesRelationManager;
@@ -24,6 +25,7 @@ use App\Models\Product;
 use App\Models\Tenant;
 use App\Models\VatRate;
 use App\Models\Vessel;
+use App\Rules\MaxPaxWithinVesselCapacity;
 use App\Support\Format\MoneyFormatter;
 use App\Support\Locale\LocaleResolver;
 use App\Support\Tenancy;
@@ -257,6 +259,15 @@ class ProductResource extends Resource
             return null;
         }
 
+        // No badge at all on a trip that has no repeating timetable by design.
+        // A charter is sold as a whole boat on a date the guest names, and a
+        // «κατόπιν προσφοράς» trip is agreed one request at a time — the tab
+        // does not offer either of them a schedule, so «κανένα» in amber was an
+        // alarm about something that cannot be fixed.
+        if ($record->mode !== BookingMode::PerSeat) {
+            return null;
+        }
+
         $active = $record->scheduleRules()->where('is_active', true)->count();
 
         return $active === 0
@@ -377,7 +388,14 @@ class ProductResource extends Resource
                 ->schema([
                     Placeholder::make('schedule_where')
                         ->hiddenLabel()
-                        ->content(__('catalog.product.form.schedule_where'))
+                        // «Δρομολόγια» is the section at the foot of this same
+                        // tab, not a tab of its own — it stopped being one when
+                        // the form went to five tabs (2026-09-22). It is only
+                        // there once the trip is saved, so say which of the two
+                        // the operator is looking at.
+                        ->content(static fn (?Product $record): string => $record instanceof Product && $record->exists
+                            ? __('catalog.product.form.schedule_where')
+                            : __('catalog.product.form.schedule_where_unsaved'))
                         ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat)
                         ->columnSpanFull(),
 
@@ -455,11 +473,17 @@ class ProductResource extends Resource
                 ->schema([
                     TextInput::make('max_pax')
                         ->label(__('catalog.product.form.max_pax.label'))
-                        ->helperText(__('catalog.product.form.max_pax.help'))
+                        // The boat's own ceiling, in the line under the field
+                        // (Mike, 2026-09-23). Being told the number *before*
+                        // typing is worth more than being refused after.
+                        ->helperText(static fn (Get $get): string => static::maxPaxHelp($get))
                         ->integer()
                         ->required()
                         ->minValue(1)
-                        ->maxValue(65535),
+                        ->maxValue(65535)
+                        ->rules(static fn (Get $get): array => [
+                            new MaxPaxWithinVesselCapacity(static::vesselIdOf($get)),
+                        ]),
 
                     // `min_pax` is the guaranteed-departure threshold and only
                     // means anything when seats are counted (CAT-5).
@@ -711,11 +735,33 @@ class ProductResource extends Resource
         return [
             Section::make(__('catalog.product.sections.content'))
                 ->schema([
+                    /*
+                     * **The line under the title** (Mike, 2026-09-23: *«κάτω
+                     * από τον τίτλο να υπάρχει πεδίο υπότιτλος»* — and he was
+                     * not sure which of the two existing fields was which).
+                     *
+                     * It already was the subtitle: the trip page renders it as
+                     * the standfirst directly under the `<h1>`. What it did not
+                     * do is *say* so — it was labelled «Περίληψη» with help
+                     * about lists and search results, so it read as an abstract
+                     * and got written like one. Renamed, and the help now names
+                     * all three places it appears.
+                     *
+                     * **140 characters**, not the 100 he floated, because this
+                     * one string does three jobs: the standfirst, the line on a
+                     * card, and the `description` a search engine reads from the
+                     * JSON-LD. A hundred is about one short Greek sentence,
+                     * which is enough to say what a trip *is* and not enough to
+                     * say why anybody would go. Two rows rather than three, so
+                     * the shape of the box argues for brevity before the counter
+                     * has to.
+                     */
                     TranslatableInput::textarea(
                         'summary',
                         __('catalog.product.form.summary.label'),
                         __('catalog.product.form.summary.help'),
-                        rows: 3,
+                        rows: 2,
+                        maxLength: 140,
                     ),
 
                     // The pill on a card's photograph («Δημοφιλές»). Short on
@@ -874,6 +920,33 @@ class ProductResource extends Resource
                         __('catalog.product.form.meta_description.help'),
                         rows: 2,
                     ),
+                ]),
+
+            /*
+             * **Οι συχνές ερωτήσεις της εκδρομής** (Mike, 23/9: *«όταν φτιάχνω
+             * εκδρομή δεν υπάρχει FAQ»*).
+             *
+             * Στην καρτέλα «Σελίδα» και όχι δίπλα στις «Ερωτήσεις»: εκείνες
+             * είναι ερωτήσεις *προς* τον επισκέπτη στο ταμείο και όρος του
+             * ταξιδιού· αυτές είναι απαντήσεις *σε* αυτόν και εμφανίζονται στη
+             * σελίδα της εκδρομής, μαζί με τα υπόλοιπα που διαβάζει.
+             *
+             * Σε αποθηκευμένη εκδρομή μόνο, όπως και τα δρομολόγια και τα
+             * πρόσθετα: δεν υπάρχει τίποτα να κρεμάσει μια ερώτηση πριν την
+             * πρώτη αποθήκευση.
+             */
+            Section::make(__('faq.on_product.title'))
+                ->description(__('faq.on_product.help'))
+                ->collapsible()
+                ->visible(static fn (?Product $record): bool => $record instanceof Product && $record->exists)
+                ->schema([
+                    Livewire::make(
+                        FaqsRelationManager::class,
+                        static fn (?Product $record): array => [
+                            'ownerRecord' => $record,
+                            'pageClass' => Pages\EditProduct::class,
+                        ],
+                    )->key('trip-faqs'),
                 ]),
         ];
     }
@@ -1331,6 +1404,43 @@ class ProductResource extends Resource
             ->default(static::defaultVatRateId(...))
             ->searchable()
             ->preload();
+    }
+
+    /**
+     * The boat currently chosen in the form, as an id.
+     *
+     * Read from the form rather than the record, because the operator may have
+     * just picked a different boat and not saved yet — validating «Μέγιστα
+     * άτομα» against the boat that *was* selected would refuse or allow the
+     * wrong number.
+     */
+    public static function vesselIdOf(Get $get): ?int
+    {
+        $id = $get('vessel_id');
+
+        return is_numeric($id) ? (int) $id : null;
+    }
+
+    /**
+     * «Μέγιστα άτομα», with the boat's certified ceiling spelled out.
+     *
+     * CAT-5 refuses a trip that oversells its boat, and
+     * {@see MaxPaxWithinVesselCapacity} has enforced that since M1 — except no
+     * form ever attached it, so until 2026-09-23 the refusal existed and never
+     * fired. It fires now, and this line is the half that comes first: a
+     * certificate number an operator is being judged against is one they should
+     * be able to read without going to look it up.
+     */
+    public static function maxPaxHelp(Get $get): string
+    {
+        $vessel = ($id = static::vesselIdOf($get)) === null ? null : Vessel::query()->find($id);
+
+        return $vessel instanceof Vessel
+            ? __('catalog.product.form.max_pax.help_vessel', [
+                'vessel' => (string) $vessel->name,
+                'capacity' => $vessel->capacity_max,
+            ])
+            : __('catalog.product.form.max_pax.help');
     }
 
     /** @return array<int, string> */

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources;
 
+use App\Domain\Media\Support\GalleryField;
 use App\Enums\VesselAmenity;
 use App\Enums\VesselStatus;
 use App\Enums\VesselType;
@@ -52,6 +53,13 @@ use Illuminate\Validation\Rules\Unique;
 class VesselResource extends Resource
 {
     protected static ?string $model = Vessel::class;
+
+    /**
+     * The uploader's own field, mapped to the `images` column it stores into
+     * ({@see GalleryField}). Named apart from the column because the two are
+     * different shapes: a list of paths on the form, `{path, alt}` in the row.
+     */
+    public const GALLERY_FIELD = 'gallery';
 
     protected static ?string $navigationIcon = 'heroicon-o-lifebuoy';
 
@@ -283,13 +291,12 @@ class VesselResource extends Resource
                         // (ADR-0027).
                         ->suffix('Bft'),
 
-                    TextInput::make('sort_order')
-                        ->label(__('catalog.shared.sort_order.label'))
-                        ->helperText(__('catalog.shared.sort_order.help'))
-                        ->integer()
-                        ->minValue(0)
-                        ->maxValue(65535)
-                        ->default(0),
+                    // «Σειρά εμφάνισης» δεν πληκτρολογείται πια (Mike, 23/9,
+                    // όπως και στις εκδρομές την προηγούμενη μέρα): η σειρά
+                    // ορίζεται σέρνοντας τις γραμμές στη λίστα, όπου ο
+                    // διοργανωτής βλέπει τι μετακινεί. Η στήλη μένει — απλώς
+                    // τη γράφει το drop αντί για ένα πεδίο με νούμερα που
+                    // έπρεπε να τα κρατάει κανείς στο μυαλό του.
                 ])
                 ->columns(2),
 
@@ -344,40 +351,43 @@ class VesselResource extends Resource
 
             Section::make(__('catalog.vessel.sections.media'))
                 ->schema([
-                    // §3.15: an ordered array of `{path, alt: {el, en}}`. A
-                    // Repeater rather than a multiple FileUpload because the
-                    // alt text is per image and belongs beside it — a gallery
-                    // with no alt text is one no screen reader can describe.
-                    //
-                    // Paths only. Resizing and conversions arrive with
-                    // StoreUploadedImage in #17 (ADR-0021).
-                    Repeater::make('images')
+                    /*
+                     * **Ένας uploader, και η πρώτη είναι η κύρια** (Mike,
+                     * 23/9) — ακριβώς ό,τι πήραν οι εκδρομές στις 22/9.
+                     *
+                     * Ήταν Repeater, μία φωτογραφία ανά γραμμή, με το alt
+                     * δίπλα της. Το σκεπτικό ήταν σωστό — το alt ανήκει στην
+                     * εικόνα — αλλά «πρόσθεσε γραμμή, διάλεξε αρχείο» δώδεκα
+                     * φορές δεν είναι τρόπος να ανεβάσει κανείς gallery. Και
+                     * τώρα η σειρά μετράει διπλά: η καρτέλα «Το σκάφος» είναι
+                     * λωρίδα φωτογραφιών, και η πρώτη την ανοίγει.
+                     *
+                     * Η στήλη κρατά το σχήμα `{path, alt}` της §3.15· το alt
+                     * μιας φωτογραφίας που μένει επιβιώνει ενός νέου ανεβάσματος
+                     * ({@see GalleryField}). Αυτό που χάνεται είναι η συγγραφή
+                     * alt από εδώ — συνειδητά, όπως και στις εκδρομές: το
+                     * ανέβασμα είναι η συχνή πράξη, η περιγραφή η σπάνια, και
+                     * ένα gallery που δεν ανεβαίνει δεν έχει τι να περιγράψει.
+                     */
+                    FileUpload::make(self::GALLERY_FIELD)
                         ->label(__('catalog.vessel.form.images.label'))
                         ->helperText(__('catalog.vessel.form.images.help'))
-                        ->addActionLabel(__('catalog.vessel.form.images.add'))
-                        ->schema([
-                            FileUpload::make('path')
-                                ->label(__('catalog.vessel.form.images.file.label'))
-                                ->image()
-                                // The disk `GET /api/v1/products` builds URLs from (#36).
-                                // Filament's default follows `FILESYSTEM_DISK`, which is
-                                // `local` — a disk that cannot produce a URL at all, so the
-                                // API returned nothing for every image the panel uploaded.
-                                ->disk((string) config('kaiki.catalog.uploads.disk'))
-                                ->directory('vessels')
-                                ->maxSize(5120)
-                                ->required(),
-
-                            TranslatableInput::text(
-                                'alt',
-                                __('catalog.vessel.form.images.alt.label'),
-                                __('catalog.vessel.form.images.alt.help'),
-                                required: false,
-                            ),
-                        ])
+                        ->image()
+                        ->multiple()
                         ->reorderable()
-                        ->collapsible()
-                        ->defaultItems(0)
+                        // Τα νέα αρχεία πάνε στο τέλος, ώστε ένα επιπλέον
+                        // ανέβασμα να μη μετακινεί ποτέ την πρώτη.
+                        ->appendFiles()
+                        ->panelLayout('grid')
+                        ->imagePreviewHeight('120')
+                        // The disk `GET /api/v1/products` builds URLs from (#36).
+                        // Filament's default follows `FILESYSTEM_DISK`, which is
+                        // `local` — a disk that cannot produce a URL at all, so the
+                        // API returned nothing for every image the panel uploaded.
+                        ->disk((string) config('kaiki.catalog.uploads.disk'))
+                        ->directory('vessels')
+                        ->maxSize(5120)
+                        ->maxFiles(40)
                         ->columnSpanFull(),
                 ])
                 ->collapsed(),
@@ -438,6 +448,22 @@ class VesselResource extends Resource
                     ->sortable(),
             ])
             ->defaultSort('sort_order')
+            /*
+             * Σέρνοντας, όχι πληκτρολογώντας (Mike, 23/9) — το ίδιο που έγινε
+             * στις εκδρομές στις 22/9, και για τον ίδιο λόγο.
+             *
+             * Το `reorderable()` βάζει τη λαβή και γράφει το `sort_order` στο
+             * drop. Δύο πράγματα που πρέπει να ειπωθούν:
+             *
+             * - Ταξινομεί μόνο ό,τι είναι στην οθόνη, οπότε προσφέρεται πάνω
+             *   στην προεπιλεγμένη ταξινόμηση. Σύρσιμο μιας γραμμής ενώ η λίστα
+             *   είναι ταξινομημένη κατ' όνομα θα έγραφε θέσεις που η επόμενη
+             *   επίσκεψη δεν δείχνει.
+             * - Το ίδιο `sort_order` διαβάζεται και στην πλευρά του επισκέπτη,
+             *   άρα ο διοργανωτής τακτοποιεί τη δική του βιτρίνα, δεν ρυθμίζει
+             *   το panel του.
+             */
+            ->reorderable('sort_order')
             ->filters([
                 SelectFilter::make('status')
                     ->label(__('catalog.vessel.table.status'))

@@ -82,7 +82,12 @@ function productFormState(array $overrides = []): array
         // both of these before it will make a trip: its promise is a trip that
         // can be published, and neither of them can be filled in later without
         // the publish checklist stopping the operator anyway.
-        'vessel_id' => Vessel::factory()->create()->getKey(),
+        // **The capacity is stated, not left to the factory.** `capacity_max`
+        // defaults to a random 8–90, and `max_pax` below is a fixed 12 — so
+        // once CAT-5 was actually wired to the form (2026-09-23) this fixture
+        // started refusing itself on roughly one run in three. A number a rule
+        // is checked against does not belong to the dice.
+        'vessel_id' => Vessel::factory()->create(['capacity_max' => 12])->getKey(),
         'meeting_point_id' => Port::factory()->create()->getKey(),
         // …and what the last step asks. Draft here, so the tests that are about
         // creating stay about creating; the two that are about publishing say
@@ -131,6 +136,63 @@ it('lists only the signed-in operator trips', function (): void {
     productPageAs($owner, ListProducts::class)
         ->assertCanSeeTableRecords([$mine])
         ->assertCanNotSeeTableRecords([$theirs]);
+})->group('fast');
+
+it('refuses a trip that carries more people than its boat is certified for', function (): void {
+    // Mike, 2026-09-23. CAT-5 and `MaxPaxWithinVesselCapacity` have existed
+    // since M1, with their own tests — but **no form ever attached the rule**,
+    // so the refusal was written, proven against the rule object, and never
+    // fired at an operator. `capacity_max` is a legal ceiling: a trip that
+    // oversells it gets discovered by the port authority, not by a test.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    tenancy()->initialize(productTenantOf($owner));
+    $small = Vessel::factory()->create(['name' => 'Μικρή', 'capacity_max' => 8]);
+
+    productPageAs($owner, CreateProduct::class)
+        ->fillForm(productFormState(['vessel_id' => $small->getKey(), 'max_pax' => 12]))
+        ->call('create')
+        ->assertHasFormErrors(['max_pax']);
+
+    // The passing counterpart, because a rule that refuses everything passes a
+    // test that only checks refusal — and the boundary is inclusive.
+    productPageAs($owner, CreateProduct::class)
+        ->fillForm(productFormState(['vessel_id' => $small->getKey(), 'max_pax' => 8]))
+        ->call('create')
+        ->assertHasNoFormErrors();
+})->group('fast');
+
+it('names each schedule and each age band in its own header', function (): void {
+    // Mike, 2026-09-23. Collapsed, every schedule said «Δρομολόγιο» and every
+    // band said «Κατηγορίες» — to find Wednesday's you opened all of them.
+    //
+    // This also exercises the part most likely to break: `itemLabel` looks the
+    // row's position up in the repeater's **raw** state, because dehydrating a
+    // repeater while rendering one of its own item headers is a loop. A test
+    // that only checked the string would pass against an infinite one.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    productPageAs($owner, CreateProduct::class)
+        ->fillForm(productFormState([
+            'wizard_schedules' => [
+                ['days' => [1, 2, 3, 4, 5], 'times' => [['time' => '10:00']], 'valid_from' => '2026-06-01', 'valid_until' => '2026-09-15'],
+                ['days' => [6, 7], 'times' => [['time' => '12:00']], 'valid_from' => '2026-06-01', 'valid_until' => '2026-09-15'],
+            ],
+        ]))
+        // The guide renders one step at a time, so «Πότε φεύγει» has to be the
+        // step on screen before its repeater exists in the markup at all.
+        ->goToWizardStep(2)
+        // Asserted in English because that is the locale a panel test runs in;
+        // the label is built from the weekday lang keys, so «Δρομολόγιο 1 —
+        // Δευτέρα–Παρασκευή» is the same code path on a Greek panel.
+        //
+        // A run of three or more becomes a range, the way an operator says it;
+        // two in a row stay listed, because «Saturday–Sunday» is longer than
+        // naming both and reads as though something were missing.
+        ->assertSee('Schedule 1 — Monday–Friday', escape: false)
+        ->assertSee('Schedule 2 — Saturday, Sunday', escape: false)
+        // And the band writes the name that was just typed into it.
+        ->assertSee('Adult', escape: false);
 })->group('fast');
 
 it('creates a trip and its age bands in one submit', function (): void {

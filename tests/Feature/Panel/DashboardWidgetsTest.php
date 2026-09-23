@@ -6,6 +6,8 @@ use App\Domain\Operations\Support\FirstSteps;
 use App\Enums\BookingStatus;
 use App\Enums\DepartureStatus;
 use App\Enums\Role;
+use App\Filament\App\Resources\DepartureResource;
+use App\Filament\App\Widgets\DayByBoat;
 use App\Filament\App\Widgets\NeedsAttention;
 use App\Filament\App\Widgets\OperationsOverview;
 use App\Filament\App\Widgets\TodayAtSea;
@@ -16,6 +18,9 @@ use App\Models\Vessel;
 use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
 use Livewire\Livewire;
+
+use function Pest\Laravel\actingAs;
+
 use Tests\Support\OperatorUser;
 
 /*
@@ -68,6 +73,44 @@ it('draws today\'s boats on the dashboard', function (): void {
         ->assertOk()
         ->assertSee('Θάλασσα');
 });
+
+it('never links crew to a page they are refused', function (): void {
+    // Mike, 2026-09-23: *«ως πλήρωμα, πατάω πάνω σε ένα trip και μου βγάζει
+    // forbidden»*. The next sailing's title was a link guarded by
+    // `canViewAny()` — which crew pass, because TEN-8 lets them read departures
+    // — pointing at the **edit** page, which needs `ManageCatalogue`, which they
+    // do not have. Their own home page led to a 403.
+    //
+    // Asserted against the question the widget now asks — `canEdit`, on the
+    // record, rather than `canViewAny` on the resource. Both roles are checked,
+    // because a guard that refuses everybody would satisfy the crew half on its
+    // own and take the link away from the people who need it.
+    $owner = tradingOperator();
+    $crew = OperatorUser::withRole(Role::Crew, tenant: $owner->tenant);
+
+    $departure = Tenancy::forTenant($owner->tenant, fn (): Departure => Departure::query()->sole());
+
+    tenancy()->initialize($owner->tenant);
+
+    actingAs($crew);
+    expect(DepartureResource::canEdit($departure))->toBeFalse()
+        // …and the list itself stays open to them: this is about where a link
+        // points, not about taking departures away from crew.
+        ->and(DepartureResource::canViewAny())->toBeTrue();
+
+    actingAs($owner);
+    expect(DepartureResource::canEdit($departure))->toBeTrue();
+
+    // And the widget itself: `DayByBoat` is the one that draws the next
+    // sailing's name, and it is where the link was. Both roles again — the
+    // owner's half is what proves the assertion is reading the right markup.
+    $editUrl = DepartureResource::getUrl('edit', ['record' => $departure]);
+
+    expect((string) Livewire::actingAs($crew)->test(DayByBoat::class)->assertOk()->html())
+        ->not->toContain($editUrl)
+        ->and((string) Livewire::actingAs($owner)->test(DayByBoat::class)->assertOk()->html())
+        ->toContain($editUrl);
+})->group('fast');
 
 it('hides both widgets from an operator who has not started', function (): void {
     // No vessel, no product, no booking — `FirstSteps` owns this screen.

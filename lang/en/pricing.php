@@ -211,6 +211,18 @@ return [
             'plural' => 'Seasons',
         ],
 
+        'empty' => [
+            'no_trips' => [
+                'heading' => 'Make a trip first',
+                'body' => 'A period is a range of dates that changes a price. With no trip there is no price to change.',
+                'action' => 'New trip',
+            ],
+            'none' => [
+                'heading' => 'No periods yet',
+                'body' => 'Make a period — «August», say — then give it a price from the trip’s «Prices» tab.',
+            ],
+        ],
+
         'form' => [
             'name' => [
                 'label' => 'Name',
@@ -309,7 +321,9 @@ return [
                 // Ages belong to the trip, not to the price list, which only
                 // carries the amount for each band. Without these two lines the
                 // «Prices» section was an empty box (2026-09-22).
-                'pick_product' => 'Choose a trip first. Its categories appear here, one price each.',
+                // The trip is no longer chosen here (2026-09-23): the only case
+                // left is a price list whose trip went to the bin.
+                'trip_gone' => 'The trip this price list belongs to has been deleted. Restore it to see its age bands.',
                 'no_bands' => '“:trip” has no age bands. Categories and their ages are set on the trip itself: <a href=":url">open its «Prices» tab</a> and add them.',
             ],
             'deposit_type' => [
@@ -368,6 +382,25 @@ return [
             'includes_pax' => 'up to 1 person|up to :count people',
             'extra_pax' => '+:price per person',
             'extra_hour' => '+:price per hour',
+        ],
+
+        /*
+         * The empty screen names what is missing (Mike, 2026-09-23).
+         *
+         * An account with no trips has no prices, and the generic "no records"
+         * reads as a fault. The answer is not "add a price list" — that cannot
+         * be done — but "make a trip first".
+         */
+        'empty' => [
+            'no_trips' => [
+                'heading' => 'Make a trip first',
+                'body' => 'Prices belong to a trip: the first price list is written with it, and periods are added from its «Prices» tab.',
+                'action' => 'New trip',
+            ],
+            'none' => [
+                'heading' => 'No prices yet',
+                'body' => 'Open a trip and add a price list from its «Prices» tab.',
+            ],
         ],
 
         'validation' => [

@@ -214,18 +214,24 @@
            wider measure than the pages that are a single column of facts. */
         .wrap.wide { max-width: 66rem; }
 
-        .checkout-grid { display: grid; gap: 1.6rem; }
+        /* **Το περιθώριο ανήκει στο πλέγμα, όχι στις ενότητες** (2026-09-23).
+           Κατεύθυνση Α: οι ενότητες έγιναν φύλλο και έχασαν το οριζόντιο
+           padding τους — που ήταν όμως το **μόνο** περιθώριο της σελίδας, αφού
+           το `.wrap` δεν έχει δικό του.
+           Έτσι, ανάμεσα στα 896px και τα 1056px — όπου το `.wrap` πιάνει όλη
+           την οθόνη χωρίς ακόμη να έχει φτάσει το `max-width` του — το ταμείο
+           κολλούσε και στις δύο άκρες. Στα 390px φαινόταν σωστό, γιατί εκεί το
+           padding της κάρτας υπήρχε ακόμη· το βρήκε ο Mike, όχι η μέτρησή μου.
+           Ένα περιθώριο, στο πλέγμα, σε κάθε πλάτος. */
+        .checkout-grid { display: grid; gap: 1.6rem; padding-inline: 1.4rem; }
 
-        /* The trip's photograph, at the head of the summary. Full bleed inside
-           the card: a picture with a margin round it reads as an attachment,
-           and this is the thing being bought. */
-        .trip-photo {
-            margin: -1.35rem -1.4rem 1.05rem;
-            aspect-ratio: 16 / 9;
-            overflow: hidden;
-            background: #eef3f9;
-        }
-        .trip-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        /* Και οι ενότητες δεν βάζουν δεύτερο από μέσα, σε κανένα πλάτος. */
+        .checkout-grid .card { padding-inline: 0; }
+
+        /* Η `.trip-photo` έφυγε μαζί με τη φωτογραφία στην κορυφή του ταμείου
+           (Mike, 2026-09-23: ντεγκραντέ, όχι εικόνα). Καμία σελίδα του
+           επισκέπτη δεν έγραφε πια αυτή την κλάση, και κανόνες που δεν τους
+           καλεί κανείς είναι ακριβώς ό,τι ψάχναμε όλη μέρα να βγάλουμε. */
 
         /* ---- the order a phone reads this in ---------------------------
 
@@ -317,6 +323,7 @@
                wide screen without a second copy of the markup. */
             .checkout-main { order: 1; }
             .checkout-side { order: 2; position: sticky; top: 1rem; }
+
         }
 
         /* ---- the masthead (2026-09-22) ----------------------------------
@@ -362,15 +369,24 @@
 
         .card:last-child { border-bottom: 0; }
 
-        /* Inside the checkout's two columns a card is a box again: a sticky
-           price panel beside a form needs an edge of its own to sit in. */
-        .checkout-grid .card {
-            border: 1px solid var(--hair);
-            border-radius: var(--kaiki-radius, 8px);
-            background: #fff;
-            /* So the photograph's square corners take the card's. */
-            overflow: hidden;
-        }
+        /* **Ήσυχες γραμμές** — κατεύθυνση Α των μακετών (Mike, 2026-09-23,
+           https://claude.ai/artifact/FtgPVNxXNxxijExizrNKxU).
+
+           Μέσα στις δύο στήλες του ταμείου μια ενότητα ήταν πάλι κουτί: δικό
+           της περίγραμμα, δική της γωνία, δικό της λευκό. Οι υπόλοιπες σελίδες
+           του επισκέπτη είναι ήδη ένα φύλλο χωρισμένο με λεπτές γραμμές, οπότε
+           το ταμείο ήταν η εξαίρεση — και είναι η σελίδα όπου τα κουτιά
+           κοστίζουν περισσότερο, γιατί εκεί ο επισκέπτης πληρώνει.
+
+           Δεν προστίθεται τίποτα εδώ πια: η `.card` από πάνω δίνει ήδη διάφανο
+           φόντο και μια λεπτή γραμμή από κάτω, και το περιθώριο το κρατά το
+           `.checkout-grid` παραπάνω. */
+
+        /* Η τελευταία ενότητα κάθε στήλης δεν κρεμάει γραμμή στο κενό. Δύο
+           επιλογείς και όχι ένας, γιατί οι δύο στήλες τελειώνουν σε
+           διαφορετικά σημεία. */
+        .checkout-grid .checkout-main > .card:last-child,
+        .checkout-grid .checkout-side > .card:last-child { border-bottom: 0; }
 
         h1 { font-size: 1.6rem; line-height: 1.18; margin: 0 0 .5rem; letter-spacing: -.01em; }
         h2 { font-size: 1.08rem; margin: 0 0 .8rem; }
@@ -656,10 +672,168 @@
            back to the email to find out who to ring. */
         footer.brand .contact { display: flex; flex-wrap: wrap; gap: .3rem .9rem; }
         footer.brand a { color: var(--kaiki-primary, #123a5e); font-weight: 600; }
+
+        /* ================================================================
+           ΤΟ ΤΑΜΕΙΟ: κατεύθυνση Α — «Ταινία»
+           (Mike, 2026-09-23, https://claude.ai/artifact/RSFfLYRH1R212KQDRb3BeG,
+           «header footer να ειναι full screen»)
+           ================================================================
+
+           Η κεφαλίδα και το υποσέλιδο κόβονταν στο max-width του .wrap, οπότε
+           σε μεγάλη οθόνη το ταμείο ήταν μια στήλη στη μέση με γκρι δεξιά κι
+           αριστερά — η σελίδα όπου ο επισκέπτης πληρώνει έμοιαζε στενότερη από
+           τη σελίδα της εκδρομής απ' όπου ήρθε.
+
+           Αντί να βγουν οι δύο ταινίες έξω από το .wrap — που θα άλλαζε τη δομή
+           και των πέντε σελίδων του επισκέπτη — το .wrap ανοίγει σε όλο το
+           πλάτος και το ΠΕΡΙΕΧΟΜΕΝΟ κρατά το όριο. Μία γραμμή το κάνει:
+
+               padding-inline: max(1.4rem, calc((100% - 66rem) / 2))
+
+           σε στενή οθόνη δίνει το περιθώριο του κινητού, σε πλατιά κεντράρει
+           στα 66rem. Καμία media query, κανένα δεύτερο max-width να ξεφύγει
+           από το πρώτο. */
+        .wrap.full-bleed { max-width: none; padding: 0; }
+        .wrap.full-bleed > .sheet { border: 0; border-radius: 0; box-shadow: none; }
+
+        .wrap.full-bleed > .sheet > header.brand,
+        .wrap.full-bleed > .sheet > footer.brand,
+        .wrap.full-bleed .checkout-hero > .inner,
+        .wrap.full-bleed .checkout-grid,
+        .wrap.full-bleed .back-to-site {
+            padding-inline: max(1.4rem, calc((100% - 66rem) / 2));
+        }
+
+        /* Η ταινία της κεφαλίδας, στο χρώμα του πλοιοκτήτη. Σκούρα και όχι
+           λευκή: είναι η κορυφή της σελίδας και πρέπει να μοιάζει με εκείνον,
+           όχι με φόρμα. */
+        .wrap.full-bleed > .sheet > header.brand {
+            background: var(--kaiki-primary, #123a5e);
+            color: #fff;
+            border-bottom: 0;
+            padding-block: 1rem;
+        }
+
+        .wrap.full-bleed > .sheet > header.brand .mark { background: #fff; color: var(--kaiki-primary, #123a5e); }
+        .wrap.full-bleed > .sheet > header.brand .tag { color: rgba(255, 255, 255, .72); }
+        .wrap.full-bleed > .sheet > header.brand .phone { color: #fff; }
+        .wrap.full-bleed > .sheet > header.brand .langs a { color: rgba(255, 255, 255, .72); }
+        .wrap.full-bleed > .sheet > header.brand .langs a[aria-current="true"] { background: #fff; color: var(--kaiki-primary, #123a5e); }
+
+        /* **Χρώμα, όχι φωτογραφία** (Mike, 2026-09-23: *«θέλω να υπάρχει κάτι
+           στάνταρ στο header image εκεί πάνω· ίσως ένα απλό χρώμα, ένα
+           ντεγκραντέ; όχι εικόνα»*).
+
+           Πρώτα δοκιμάστηκε με τη φωτογραφία της εκδρομής. Δύο πράγματα δεν
+           δούλευαν: οι μισές εκδρομές δεν έχουν φωτογραφία, οπότε η σελίδα είχε
+           δύο όψεις και η μία ήταν ένα σκούρο μπλοκ με 130 νεκρά pixel· και μια
+           φωτογραφία στην κορυφή της σελίδας πληρωμής πουλάει κάτι που έχει ήδη
+           αγοραστεί.
+
+           Το ντεγκραντέ βγαίνει από το ίδιο το χρώμα του πλοιοκτήτη με
+           `color-mix`, οπότε είναι το ίδιο σε κάθε εκδρομή και διαφορετικό σε
+           κάθε λογαριασμό — χωρίς δεύτερη ρύθμιση να συμπληρώσει κανείς. Η
+           διαγώνιος είναι ό,τι χρειάζεται για να μη διαβάζεται ως συνέχεια της
+           κεφαλίδας από πάνω· η λεπτή γραμμή κάνει το υπόλοιπο. */
+        .checkout-hero {
+            position: relative;
+            display: flex; align-items: flex-end;
+            color: #fff;
+            border-top: 1px solid rgba(255, 255, 255, .14);
+            background:
+                linear-gradient(
+                    118deg,
+                    color-mix(in srgb, var(--kaiki-primary, #123a5e) 88%, #0a1620) 0%,
+                    color-mix(in srgb, var(--kaiki-primary, #123a5e) 62%, #0a1620) 46%,
+                    color-mix(in srgb, var(--kaiki-primary, #123a5e) 92%, #000) 100%
+                );
+        }
+
+        /* Πιο ψηλή ταινία απ' όσο χρειάζεται το κείμενο (Mike, 2026-09-23:
+           *«λίγο πιο πολύ padding πάνω κάτω»*): σφιχτή γύρω από δύο γραμμές
+           διάβαζε σαν μπάρα συστήματος και όχι σαν η κορυφή της σελίδας. */
+        .checkout-hero > .inner {
+            position: relative; z-index: 1;
+            width: 100%;
+            padding-block: 2rem 2.15rem;
+        }
+
+        .checkout-hero .reference {
+            margin: 0 0 .25rem;
+            font-size: .72rem; letter-spacing: .09em;
+            color: rgba(255, 255, 255, .88);
+        }
+
+        .checkout-hero h1 {
+            margin: 0;
+            font-size: 1.45rem; line-height: 1.16;
+            color: #fff;
+            text-wrap: balance;
+        }
+
+        @media (min-width: 56rem) {
+            .checkout-hero > .inner { padding-block: 2.7rem 2.9rem; }
+            .checkout-hero h1 { font-size: 1.9rem; }
+        }
+
+        .wrap.full-bleed .back-to-site { padding-block: .8rem 0; margin: 0; }
+
+        /* Πιο σφιχτό από το 1.6rem που είχε: οι ενότητες χωρίζονται ήδη με
+           λεπτή γραμμή και το δικό τους padding, οπότε το κενό του πλέγματος
+           προστίθεται σε ό,τι υπάρχει ήδη και άνοιγε τρύπα ανάμεσα σε μια
+           γραμμή και την επόμενη επικεφαλίδα. */
+        .wrap.full-bleed .checkout-grid { padding-block: 1.2rem 0; gap: 1rem; }
+
+        /* Η ταινία του υποσέλιδου, ίδια λογική με την κεφαλίδα. */
+        .wrap.full-bleed > .sheet > footer.brand {
+            background: var(--kaiki-primary, #123a5e);
+            color: rgba(255, 255, 255, .72);
+            padding-block: 1.25rem 1.45rem;
+            margin-block-start: 2rem;
+        }
+
+        .wrap.full-bleed > .sheet > footer.brand a { color: #fff; }
+
+        /* Η γραμμή πληρωμής στον πάτο, μόνο σε κινητό.
+
+           Το κουμπί ήταν στο τέλος της πλαϊνής στήλης, δηλαδή μετά από μια
+           οθόνη κύλισης· ο επισκέπτης που είχε συμπληρώσει τα στοιχεία του
+           έπρεπε να ψάξει τι πατάει. Η μπάρα δείχνει το ποσό και το κουμπί
+           μόνιμα, και υποβάλλει την ίδια φόρμα με το form= — χωρίς δεύτερο
+           αντίγραφο της φόρμας και χωρίς script, που αυτή η σελίδα δεν έχει.
+
+           Το κουμπί μέσα στη στήλη κρύβεται όταν υπάρχει η μπάρα: δύο ορατά
+           κουμπιά πληρωμής είναι δύο ερωτήσεις. */
+        .pay-dock { display: none; }
+
+        @media (max-width: 55.99rem) {
+            .pay-dock {
+                display: flex; align-items: center; gap: .9rem;
+                position: fixed; inset-inline: 0; bottom: 0; z-index: 30;
+                background: #fff;
+                border-top: 1px solid var(--hair);
+                padding: .7rem 1.4rem calc(.85rem + env(safe-area-inset-bottom, 0px));
+                box-shadow: 0 -6px 20px rgba(10, 22, 32, .07);
+            }
+
+            .pay-dock .amount { flex: none; line-height: 1.1; }
+            .pay-dock .amount .label { display: block; font-size: .7rem; color: rgba(15, 32, 43, .55); }
+            .pay-dock .amount .value { display: block; font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+            .pay-dock .btn { flex: 1 1 auto; margin: 0; }
+
+            /* Χώρος από κάτω, αλλιώς η μπάρα σκεπάζει το υποσέλιδο. */
+            .wrap.full-bleed > .sheet > footer.brand { padding-bottom: calc(5.6rem + env(safe-area-inset-bottom, 0px)); }
+
+            .checkout-grid .btn.pay { display: none; }
+        }
     </style>
 </head>
 <body>
-<div class="wrap @if ($wide ?? false) wide @endif @if ($wideBooking ?? false) wide-booking @endif">
+{{-- `full-bleed` is the checkout's alone (Mike, 2026-09-23): it drops the
+     wrapper's own width so the masthead and the footer span the screen, and
+     hands the width limit to the content instead. Every other guest page keeps
+     the sheet it has. --}}
+<div class="wrap @if ($wide ?? false) wide @endif @if ($wideBooking ?? false) wide-booking @endif @if ($fullBleed ?? false) full-bleed @endif">
     <div class="sheet">
         {{--
             The masthead the rest of the operator's site wears (product owner,

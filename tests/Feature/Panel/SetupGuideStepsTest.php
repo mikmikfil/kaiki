@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 use App\Domain\Tenancy\Support\SetupChecklist;
 use App\Enums\AuditAction;
+use App\Enums\HomeBlockType;
+use App\Enums\HostedSiteMode;
 use App\Enums\Role;
 use App\Filament\Admin\Resources\TenantResource\Pages\EditTenant;
 use App\Filament\App\Pages\Setup;
 use App\Models\AuditLog;
 use App\Models\CancellationPolicy;
+use App\Models\HomePageBlock;
+use App\Models\PolicyTemplate;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Tenancy;
@@ -46,11 +50,15 @@ it('asks the questions in the order each answer is needed', function (): void {
     // εκδρομή και περίοδοι»). Each of those has a real screen of its own, and
     // asking for them here was either a hand-off out of the guide or a
     // shortened copy of a form that already exists.
+    // Five since 2026-09-23, and the fifth is conditional: an operator who
+    // gets a home page from us is asked to build it, last, once the logo and
+    // the colours it uses are already chosen.
     expect(SetupChecklist::questions())->toBe([
         SetupChecklist::BUSINESS,
         SetupChecklist::BRANDING,
         SetupChecklist::VAT,
         SetupChecklist::CANCELLATION,
+        SetupChecklist::HOME_PAGE,
     ]);
 
     // Still owed, still reported — just not questions here.
@@ -67,12 +75,26 @@ it('saves the chosen ladder as the default policy and moves on', function (): vo
     $owner = guideOwner();
     actingAs($owner);
 
+    // The ladders on offer are platform rows since 2026-09-23, so the test
+    // states the one it chooses rather than leaning on a `const`. These are the
+    // shipped «Αυστηρή» numbers, and the copy written into the operator's own
+    // account is asserted against them below.
+    PolicyTemplate::factory()->create([
+        'code' => 'strict',
+        'name' => ['el' => 'Αυστηρή', 'en' => 'Strict'],
+        'free_cancellation_hours' => null,
+        'tiers' => [['days_before' => 14, 'refund_percent' => 50]],
+    ]);
+
     Tenancy::forTenant($owner->tenant, function (): void {
         Livewire::test(Setup::class)
             ->set('step', SetupChecklist::CANCELLATION)
             ->call('choosePreset', 'strict')
             ->call('continue')
-            ->assertSet('step', SetupChecklist::READY);
+            // The home page step sits between this and the close since
+            // 2026-09-23, for an operator who gets a home page from us — which
+            // the factory's default site mode does.
+            ->assertSet('step', SetupChecklist::HOME_PAGE);
 
         $policy = CancellationPolicy::query()->with('tiers')->sole();
 
@@ -110,8 +132,10 @@ it('sets a step aside with «Αργότερα» and goes forward to the next ope
             ->call('back')
             ->assertSet('step', SetupChecklist::BUSINESS);
 
+        // Five questions since the home page step joined them (2026-09-23), so
+        // the figure moved with it rather than being a number typed here.
         expect(SetupChecklist::skipped())->toBe([SetupChecklist::BUSINESS])
-            ->and(SetupChecklist::progress())->toBe(['done' => 1, 'total' => 4]);
+            ->and(SetupChecklist::progress())->toBe(['done' => 1, 'total' => 5]);
     });
 })->group('fast');
 
@@ -231,4 +255,40 @@ it('restarts the guide from /admin without losing what was filled in', function 
     expect($tenant->onboarding_completed_at)->toBeNull()
         ->and($tenant->onboarding_skipped_steps)->toBeNull()
         ->and($tenant->legal_name)->toBe('Webflow Ι.Κ.Ε.');
+})->group('fast');
+
+it('asks for a home page only from the operators who get one', function (): void {
+    // Mike, 2026-09-23: *«στο first time config, σε αυτούς που έχουν full
+    // website να υπάρχει και για εκεί βήμα τελευταίο να σε στέλνει να φτιάχνεις
+    // την σελίδα»*.
+    //
+    // The conditional half is the point. A `bookings_only` account has no
+    // marketing home page from us — their pages are one per trip — so the step
+    // would hand them to a screen that governs nothing they have, and the
+    // dashboard would report a step they were never offered as outstanding.
+    $owner = guideOwner();
+    actingAs($owner);
+
+    Tenancy::forTenant($owner->tenant, function (): void {
+        expect(SetupChecklist::questions())->toContain(SetupChecklist::HOME_PAGE)
+            // Not done until there is something on the page: a home page an
+            // operator opened and left empty is the one the guide most needs to
+            // keep asking about.
+            ->and(SetupChecklist::state()[SetupChecklist::HOME_PAGE])->toBeFalse();
+
+        HomePageBlock::factory()->ofType(HomeBlockType::Faq)->create();
+
+        expect(SetupChecklist::state()[SetupChecklist::HOME_PAGE])->toBeTrue();
+
+    });
+
+    $bookingsOnly = $owner->tenant;
+    $bookingsOnly->forceFill(['hosted_site_mode' => HostedSiteMode::BookingsOnly])->save();
+
+    Tenancy::forTenant($bookingsOnly, function (): void {
+        expect(SetupChecklist::questions())->not->toContain(SetupChecklist::HOME_PAGE)
+            // …and reported as settled rather than outstanding, so the
+            // dashboard does not chase them for it.
+            ->and(SetupChecklist::state()[SetupChecklist::HOME_PAGE])->toBeTrue();
+    });
 })->group('fast');

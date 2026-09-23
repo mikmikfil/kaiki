@@ -1,0 +1,520 @@
+<title>Η κράτηση στο κινητό</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  /* Φως μόνο, σκόπιμα. Καμία ελληνική λέξη με κεφαλαία. */
+  :root {
+    --hull: #0B4F4A;
+    --deep: #063733;
+    --ember: #B5511F;
+    --ink: #16211F;
+    --limewash: #F2F4F0;
+    --paper: #FFFFFF;
+    --hairline: #DDE3DF;
+    --muted: #5F6E6A;
+    --ground: #E7EBE6;
+    --scrim: rgba(11, 33, 31, .45);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: .9375rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1060px; margin: 0 auto; padding-inline: 20px; padding-block: 56px 88px; }
+
+  a { color: var(--hull); text-decoration: none; }
+  a:hover { color: var(--deep); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+
+  .eyebrow { font-size: .75rem; font-weight: 600; letter-spacing: .08em; color: var(--muted); margin: 0 0 14px; }
+  h1 { font-size: 2.75rem; font-weight: 800; letter-spacing: -.025em; line-height: 1.08; margin: 0 0 20px; text-wrap: balance; }
+  .lede { font-size: 1.0625rem; color: var(--muted); margin: 0; max-width: 62ch; }
+  .lede + .lede { margin-top: 14px; }
+  .rule { height: 1px; background: var(--hairline); border: 0; margin-block: 52px; }
+
+  .direction { margin-block: 0 60px; }
+  .direction-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .letter {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .8125rem; font-weight: 500; color: var(--paper); background: var(--hull);
+    width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; flex: none;
+  }
+  .direction h2 { font-size: 1.375rem; font-weight: 600; letter-spacing: -.015em; margin: 0; }
+  .direction > p { color: var(--muted); margin: 0 0 22px; max-width: 62ch; }
+  .tradeoff { font-size: .875rem; color: var(--muted); margin: 18px 0 0; max-width: 62ch; }
+  .tradeoff b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- τα τηλέφωνα δίπλα δίπλα ---------- */
+  .phones { display: flex; gap: 18px; flex-wrap: wrap; }
+
+  .phone {
+    width: 290px; height: 590px; flex: none;
+    position: relative; overflow: hidden;
+    background: var(--paper);
+    border: 1px solid var(--hairline);
+    border-radius: 26px;
+  }
+
+  .phone-cap {
+    position: absolute; inset-inline: 0; top: 0; z-index: 4;
+    display: flex; justify-content: space-between;
+    padding: 9px 16px 7px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .625rem; color: var(--muted);
+    background: var(--paper);
+  }
+
+  .phone-label {
+    font-family: Inter, sans-serif; font-size: .75rem; font-weight: 600;
+    color: var(--muted); margin: 0 0 8px; text-align: center;
+  }
+
+  .scroll { position: absolute; inset: 26px 0 0; overflow: hidden; }
+
+  /* Ψεύτικο περιεχόμενο σελίδας πίσω από το φύλλο */
+  .page { padding: 12px 16px 120px; }
+  .page .shot { aspect-ratio: 16 / 10; border-radius: 8px; background: linear-gradient(150deg, #7FA9A3 0%, #0B4F4A 65%, #063733 100%); margin-bottom: 12px; }
+  .page h3 { font-size: 1.0625rem; font-weight: 800; letter-spacing: -.015em; margin: 0 0 4px; }
+  .page .sub { color: var(--muted); font-size: .8125rem; margin: 0 0 12px; }
+  .page .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .page .chips span { background: var(--limewash); border-radius: 999px; padding: 4px 10px; font-size: .75rem; }
+  .page p.body { font-size: .8125rem; color: var(--muted); margin: 0 0 8px; }
+
+  .dim::after { content: ''; position: absolute; inset: 0; background: var(--scrim); z-index: 5; }
+
+  /* ---------- η μπάρα ---------- */
+  .bar {
+    position: absolute; inset-inline: 0; bottom: 0; z-index: 6;
+    background: var(--paper);
+    border-top: 1px solid var(--hairline);
+    padding: 11px 14px 14px;
+    display: flex; align-items: center; gap: 12px;
+    box-shadow: 0 -8px 24px rgba(11, 33, 31, .07);
+  }
+
+  .bar .price { min-width: 0; line-height: 1.25; }
+  .bar .from { display: block; font-size: .6875rem; color: var(--muted); }
+  .bar .amount { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 500; font-size: 1.0625rem; }
+  .bar .hint { display: block; font-size: .6875rem; color: var(--muted); }
+
+  .cta {
+    margin-inline-start: auto; flex: none;
+    background: var(--ember); color: var(--paper);
+    border: 0; border-radius: 8px;
+    padding: 10px 16px; font: inherit; font-size: .875rem; font-weight: 600;
+    cursor: pointer;
+  }
+
+  .grab { position: absolute; inset-inline: 0; top: 7px; display: flex; justify-content: center; }
+  .grab i { display: block; width: 36px; height: 4px; border-radius: 2px; background: var(--hairline); }
+
+  /* ---------- το φύλλο ---------- */
+  .sheet {
+    position: absolute; inset-inline: 0; bottom: 0; z-index: 6;
+    background: var(--paper);
+    border-radius: 18px 18px 0 0;
+    border: 1px solid var(--hairline);
+    border-bottom: 0;
+    padding: 20px 16px 16px;
+    box-shadow: 0 -10px 30px rgba(11, 33, 31, .12);
+  }
+
+  .sheet.tall { top: 54px; overflow: hidden; }
+  .sheet.full { top: 26px; border-radius: 0; border: 0; }
+
+  .sheet h4 { font-size: .9375rem; font-weight: 600; margin: 0 0 3px; }
+  .sheet .lead { font-size: .75rem; color: var(--muted); margin: 0 0 14px; }
+
+  /* ημερολόγιο */
+  .cal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: .8125rem; font-weight: 600; }
+  .cal-head button { background: none; border: 0; color: var(--hull); font: inherit; cursor: pointer; padding: 2px 6px; }
+  .cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+  .cal .dow { text-align: center; font-size: .625rem; color: var(--muted); padding-bottom: 3px; }
+  .cal button {
+    aspect-ratio: 1; border: 0; border-radius: 7px; background: var(--limewash);
+    font: inherit; font-size: .8125rem; font-family: "IBM Plex Mono", ui-monospace, monospace;
+    color: var(--ink); cursor: pointer; padding: 0;
+  }
+  .cal button.out { background: transparent; color: #C4CCC9; }
+  .cal button.gone { background: transparent; color: #C4CCC9; text-decoration: line-through; }
+  .cal button.on { background: var(--hull); color: var(--paper); font-weight: 600; }
+
+  .times { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 14px; }
+  .times button {
+    border: 1px solid var(--hairline); background: var(--paper); border-radius: 999px;
+    padding: 7px 14px; font: inherit; font-size: .8125rem;
+    font-family: "IBM Plex Mono", ui-monospace, monospace; cursor: pointer; color: var(--ink);
+  }
+  .times button.on { border-color: var(--hull); background: var(--hull); color: var(--paper); font-weight: 600; }
+
+  .party { margin-top: 14px; display: grid; gap: 8px; }
+  .party-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--hairline); }
+  .party-row:first-child { border-top: 0; }
+  .party-row .who { font-size: .875rem; }
+  .party-row .who span { display: block; font-size: .6875rem; color: var(--muted); }
+  .stepper { display: flex; align-items: center; gap: 10px; }
+  .stepper button { inline-size: 28px; block-size: 28px; border: 1px solid var(--hairline); background: var(--paper); border-radius: 7px; font: inherit; cursor: pointer; color: var(--ink); }
+  .stepper .n { font-family: "IBM Plex Mono", ui-monospace, monospace; min-inline-size: 1.2rem; text-align: center; }
+
+  .sheet-foot { border-top: 1px solid var(--hairline); margin-top: 14px; padding-top: 12px; display: flex; align-items: center; gap: 12px; }
+  .sheet-foot .total { line-height: 1.2; }
+  .sheet-foot .total b { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1.0625rem; font-weight: 500; }
+  .sheet-foot .total span { display: block; font-size: .6875rem; color: var(--muted); }
+
+  .steps { display: flex; gap: 6px; margin-bottom: 12px; }
+  .steps i { height: 3px; border-radius: 2px; background: var(--hairline); flex: 1; }
+  .steps i.on { background: var(--hull); }
+
+  .backline { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: .8125rem; }
+  .backline button { background: none; border: 0; color: var(--hull); font: inherit; cursor: pointer; padding: 0; }
+
+  /* ---------- picker & note ---------- */
+  .note { background: var(--paper); border: 1px solid var(--hairline); border-left: 3px solid var(--ember); border-radius: 0 6px 6px 0; padding: 22px 26px; }
+  .note h2 { font-size: 1.125rem; font-weight: 600; margin: 0 0 10px; }
+  .note p { color: var(--muted); margin: 0 0 10px; max-width: 62ch; }
+  .note p:last-child { margin-bottom: 0; }
+
+  .picker { background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; padding: 30px; }
+  .picker h2 { font-size: 1.375rem; font-weight: 600; margin: 0 0 8px; letter-spacing: -.015em; }
+  .picker > p { color: var(--muted); margin: 0 0 24px; max-width: 58ch; }
+  .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .option { font: inherit; text-align: left; background: var(--limewash); border: 1px solid var(--hairline); border-radius: 5px; padding: 16px; cursor: pointer; color: var(--ink); }
+  .option:hover { border-color: var(--hull); }
+  .option[aria-pressed="true"] { background: var(--hull); border-color: var(--hull); color: var(--paper); }
+  .option[aria-pressed="true"] .option-name { color: var(--paper); }
+  .option[aria-pressed="true"] .option-why { color: #BFD6D2; }
+  .option-letter { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .75rem; font-weight: 500; display: block; margin-bottom: 6px; opacity: .7; }
+  .option-name { font-weight: 600; display: block; margin-bottom: 4px; }
+  .option-why { font-size: .8125rem; color: var(--muted); display: block; line-height: 1.5; }
+  .chosen { margin: 22px 0 0; padding: 15px 18px; background: var(--limewash); border-left: 3px solid var(--ember); border-radius: 0 4px 4px 0; font-size: .9375rem; }
+  .chosen b { font-weight: 600; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  @media (max-width: 860px) { .options { grid-template-columns: 1fr; } }
+
+  @media (max-width: 560px) {
+    .wrap { padding-inline: 16px; padding-block: 36px 64px; }
+    h1 { font-size: 2rem; }
+    .picker, .note { padding: 20px; }
+    .phone { width: 100%; max-width: 320px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Kaiki · μακέτες, 23 Σεπτεμβρίου 2026</p>
+    <h1>Η κράτηση στο κινητό</h1>
+    <p class="lede">Στο τηλέφωνο η κράτηση δεν είναι στήλη στο πλάι — είναι μια μπάρα καρφιτσωμένη κάτω που δείχνει την τιμή, και ό,τι ανοίγει όταν την πατήσεις. Το πρώτο μισό υπάρχει ήδη· το ερώτημα είναι <strong>τι ανοίγει</strong>.</p>
+    <p class="lede">Και στις τρεις η μπάρα είναι ίδια: «από 65,00 €», μια γραμμή που λέει τι λείπει, και το κουμπί. Αλλάζει μόνο τι συμβαίνει μετά το πάτημα. Τα τρία βήματα είναι πάντα ημερομηνία, ώρα, άτομα.</p>
+  </header>
+
+  <hr class="rule">
+
+  <!-- ============ Α ============ -->
+  <section class="direction">
+    <div class="direction-head"><span class="letter" aria-hidden="true">Α</span><h2>Μισό φύλλο, ένα βήμα τη φορά</h2></div>
+    <p>Το φύλλο ανοίγει ως τη μέση και δείχνει <strong>ένα</strong> πράγμα: το ημερολόγιο. Διαλέγεις μέρα, το φύλλο αντικαθιστά το περιεχόμενό του με τις ώρες, μετά με τα άτομα. Η σελίδα φαίνεται από πάνω όλη την ώρα, οπότε δεν χάνεις πού είσαι.</p>
+
+    <div class="phones">
+      <div>
+        <p class="phone-label">1 · κλειστό</p>
+        <div class="phone">
+          <div class="phone-cap"><span>9:41</span><span>aegean-blue.gr</span></div>
+          <div class="scroll">
+            <div class="page">
+              <div class="shot"></div>
+              <h3>Ηλιοβασίλεμα στην Αίγινα</h3>
+              <p class="sub">Τρίωρη κρουαζιέρα με παραδοσιακό καΐκι.</p>
+              <div class="chips"><span>3 ώρες</span><span>18:30</span><span>Μαρίνα Ζέας</span></div>
+              <p class="body">Φεύγουμε από τη Μαρίνα Ζέας και κόβουμε προς την Αίγινα όσο ο ήλιος είναι ακόμη ψηλά…</p>
+              <p class="body">Σταματάμε σε δύο όρμους για βουτιές πριν το ηλιοβασίλεμα.</p>
+            </div>
+          </div>
+          <div class="bar">
+            <span class="price">
+              <span class="from">από</span>
+              <span class="amount">65,00 €</span>
+              <span class="hint">Διαλέξτε ημερομηνία</span>
+            </span>
+            <button type="button" class="cta">Κράτηση</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="phone-label">2 · ημερολόγιο</p>
+        <div class="phone dim">
+          <div class="phone-cap"><span>9:41</span><span>aegean-blue.gr</span></div>
+          <div class="scroll">
+            <div class="page">
+              <div class="shot"></div>
+              <h3>Ηλιοβασίλεμα στην Αίγινα</h3>
+              <p class="sub">Τρίωρη κρουαζιέρα με παραδοσιακό καΐκι.</p>
+            </div>
+          </div>
+          <div class="sheet">
+            <div class="grab"><i></i></div>
+            <div class="steps"><i class="on"></i><i></i><i></i></div>
+            <h4>Πότε θέλετε να πάτε;</h4>
+            <p class="lead">Οι γκρίζες μέρες δεν έχουν αναχώρηση.</p>
+
+            <div class="cal-head"><button type="button">←</button><span>Δεκέμβριος 2026</span><button type="button">→</button></div>
+            <div class="cal">
+              <span class="dow">Δ</span><span class="dow">Τ</span><span class="dow">Τ</span><span class="dow">Π</span><span class="dow">Π</span><span class="dow">Σ</span><span class="dow">Κ</span>
+              <button class="out">30</button><button class="gone">1</button><button class="gone">2</button><button>3</button><button>4</button><button>5</button><button class="gone">6</button>
+              <button class="gone">7</button><button class="gone">8</button><button class="gone">9</button><button>10</button><button>11</button><button>12</button><button class="gone">13</button>
+              <button class="gone">14</button><button class="gone">15</button><button class="gone">16</button><button>17</button><button>18</button><button>19</button><button class="gone">20</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="phone-label">3 · άτομα</p>
+        <div class="phone dim">
+          <div class="phone-cap"><span>9:41</span><span>aegean-blue.gr</span></div>
+          <div class="scroll"><div class="page"><div class="shot"></div><h3>Ηλιοβασίλεμα στην Αίγινα</h3></div></div>
+          <div class="sheet">
+            <div class="grab"><i></i></div>
+            <div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i></div>
+            <p class="backline"><button type="button">← Πέμπτη 17 Δεκ · 18:30</button></p>
+            <h4>Πόσα άτομα;</h4>
+
+            <div class="party">
+              <div class="party-row">
+                <span class="who">Ενήλικας<span>65,00 € ο καθένας</span></span>
+                <span class="stepper"><button type="button">−</button><span class="n">2</span><button type="button">+</button></span>
+              </div>
+              <div class="party-row">
+                <span class="who">Παιδί 3–11<span>32,50 € ο καθένας</span></span>
+                <span class="stepper"><button type="button">−</button><span class="n">1</span><button type="button">+</button></span>
+              </div>
+              <div class="party-row">
+                <span class="who">Βρέφος<span>Χωρίς χρέωση</span></span>
+                <span class="stepper"><button type="button">−</button><span class="n">0</span><button type="button">+</button></span>
+              </div>
+            </div>
+
+            <div class="sheet-foot">
+              <span class="total"><b>162,50 €</b><span>Στην τιμή περιλαμβάνεται ΦΠΑ</span></span>
+              <button type="button" class="cta">Συνέχεια</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> τρία ανοίγματα για να φτάσεις στην τιμή. Κάποιος που θέλει μόνο να δει «πόσο κάνει για δύο την Παρασκευή» το μαθαίνει στο τρίτο βήμα, και κάθε βήμα είναι μια ευκαιρία να τα παρατήσει.</p>
+  </section>
+
+  <!-- ============ Β ============ -->
+  <section class="direction">
+    <div class="direction-head"><span class="letter" aria-hidden="true">Β</span><h2>Ένα φύλλο, όλα μέσα</h2></div>
+    <p>Το φύλλο ανοίγει ψηλά και έχει και τα τρία: ημερολόγιο, ώρες, άτομα, το ένα κάτω από το άλλο, με κύλιση. Το σύνολο ενημερώνεται στον πάτο καθώς αλλάζεις κάτι. Κανένα «επόμενο» — μόνο «Συνέχεια» όταν είσαι έτοιμος.</p>
+
+    <div class="phones">
+      <div>
+        <p class="phone-label">1 · κλειστό</p>
+        <div class="phone">
+          <div class="phone-cap"><span>9:41</span><span>aegean-blue.gr</span></div>
+          <div class="scroll">
+            <div class="page">
+              <div class="shot"></div>
+              <h3>Ηλιοβασίλεμα στην Αίγινα</h3>
+              <p class="sub">Τρίωρη κρουαζιέρα με παραδοσιακό καΐκι.</p>
+              <div class="chips"><span>3 ώρες</span><span>18:30</span><span>Μαρίνα Ζέας</span></div>
+              <p class="body">Φεύγουμε από τη Μαρίνα Ζέας και κόβουμε προς την Αίγινα…</p>
+            </div>
+          </div>
+          <div class="bar">
+            <span class="price">
+              <span class="from">από</span>
+              <span class="amount">65,00 €</span>
+              <span class="hint">Διαλέξτε ημερομηνία</span>
+            </span>
+            <button type="button" class="cta">Κράτηση</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="phone-label">2 · ανοιχτό, όλα μαζί</p>
+        <div class="phone dim">
+          <div class="phone-cap"><span>9:41</span><span>aegean-blue.gr</span></div>
+          <div class="scroll"><div class="page"><div class="shot"></div></div></div>
+          <div class="sheet tall">
+            <div class="grab"><i></i></div>
+            <h4>Ηλιοβασίλεμα στην Αίγινα</h4>
+            <p class="lead">Διαλέξτε μέρα, ώρα και άτομα.</p>
+
+            <div class="cal-head"><button type="button">←</button><span>Δεκέμβριος 2026</span><button type="button">→</button></div>
+            <div class="cal">
+              <span class="dow">Δ</span><span class="dow">Τ</span><span class="dow">Τ</span><span class="dow">Π</span><span class="dow">Π</span><span class="dow">Σ</span><span class="dow">Κ</span>
+              <button class="gone">14</button><button class="gone">15</button><button class="gone">16</button><button class="on">17</button><button>18</button><button>19</button><button class="gone">20</button>
+            </div>
+
+            <div class="times">
+              <button type="button" class="on">18:30</button>
+              <button type="button">19:30</button>
+            </div>
+
+            <div class="party">
+              <div class="party-row">
+                <span class="who">Ενήλικας<span>65,00 €</span></span>
+                <span class="stepper"><button type="button">−</button><span class="n">2</span><button type="button">+</button></span>
+              </div>
+              <div class="party-row">
+                <span class="who">Παιδί 3–11<span>32,50 €</span></span>
+                <span class="stepper"><button type="button">−</button><span class="n">1</span><button type="button">+</button></span>
+              </div>
+            </div>
+
+            <div class="sheet-foot">
+              <span class="total"><b>162,50 €</b><span>3 άτομα · ΦΠΑ μέσα</span></span>
+              <button type="button" class="cta">Συνέχεια</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> πυκνό. Σε μικρό τηλέφωνο το ημερολόγιο και τα άτομα δεν χωράνε μαζί, οπότε ο πάτος με το σύνολο πρέπει να μείνει καρφιτσωμένος ενώ το υπόλοιπο κυλάει — αλλιώς η τιμή που αλλάζει είναι εκτός οθόνης τη στιγμή που αλλάζει.</p>
+  </section>
+
+  <!-- ============ Γ ============ -->
+  <section class="direction">
+    <div class="direction-head"><span class="letter" aria-hidden="true">Γ</span><h2>Πλήρης οθόνη</h2></div>
+    <p>Το πάτημα δεν ανοίγει φύλλο — ανοίγει οθόνη. Η σελίδα φεύγει, η κράτηση παίρνει όλο το τηλέφωνο, και υπάρχει ένα καθαρό «←» για να γυρίσεις. Είναι ο τρόπος που δουλεύουν οι εφαρμογές αεροπορικών και ξενοδοχείων, και για τον ίδιο λόγο: η κράτηση αξίζει όλη την οθόνη.</p>
+
+    <div class="phones">
+      <div>
+        <p class="phone-label">1 · κλειστό</p>
+        <div class="phone">
+          <div class="phone-cap"><span>9:41</span><span>aegean-blue.gr</span></div>
+          <div class="scroll">
+            <div class="page">
+              <div class="shot"></div>
+              <h3>Ηλιοβασίλεμα στην Αίγινα</h3>
+              <p class="sub">Τρίωρη κρουαζιέρα με παραδοσιακό καΐκι.</p>
+              <div class="chips"><span>3 ώρες</span><span>18:30</span><span>Μαρίνα Ζέας</span></div>
+              <p class="body">Φεύγουμε από τη Μαρίνα Ζέας…</p>
+            </div>
+          </div>
+          <div class="bar">
+            <span class="price">
+              <span class="from">από</span>
+              <span class="amount">65,00 €</span>
+              <span class="hint">Διαλέξτε ημερομηνία</span>
+            </span>
+            <button type="button" class="cta">Κράτηση</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p class="phone-label">2 · όλη η οθόνη</p>
+        <div class="phone">
+          <div class="phone-cap"><span>9:41</span><span>aegean-blue.gr</span></div>
+          <div class="sheet full">
+            <p class="backline"><button type="button">← Πίσω στην εκδρομή</button></p>
+            <h4>Ηλιοβασίλεμα στην Αίγινα</h4>
+            <p class="lead">Διαλέξτε μέρα, ώρα και άτομα.</p>
+
+            <div class="cal-head"><button type="button">←</button><span>Δεκέμβριος 2026</span><button type="button">→</button></div>
+            <div class="cal">
+              <span class="dow">Δ</span><span class="dow">Τ</span><span class="dow">Τ</span><span class="dow">Π</span><span class="dow">Π</span><span class="dow">Σ</span><span class="dow">Κ</span>
+              <button class="gone">7</button><button class="gone">8</button><button class="gone">9</button><button>10</button><button>11</button><button>12</button><button class="gone">13</button>
+              <button class="gone">14</button><button class="gone">15</button><button class="gone">16</button><button class="on">17</button><button>18</button><button>19</button><button class="gone">20</button>
+              <button class="gone">21</button><button class="gone">22</button><button class="gone">23</button><button>24</button><button>25</button><button>26</button><button class="gone">27</button>
+            </div>
+
+            <div class="times">
+              <button type="button" class="on">18:30</button>
+              <button type="button">19:30</button>
+            </div>
+
+            <div class="party">
+              <div class="party-row">
+                <span class="who">Ενήλικας<span>65,00 € ο καθένας</span></span>
+                <span class="stepper"><button type="button">−</button><span class="n">2</span><button type="button">+</button></span>
+              </div>
+              <div class="party-row">
+                <span class="who">Παιδί 3–11<span>32,50 € ο καθένας</span></span>
+                <span class="stepper"><button type="button">−</button><span class="n">1</span><button type="button">+</button></span>
+              </div>
+              <div class="party-row">
+                <span class="who">Βρέφος<span>Χωρίς χρέωση</span></span>
+                <span class="stepper"><button type="button">−</button><span class="n">0</span><button type="button">+</button></span>
+              </div>
+            </div>
+
+            <div class="sheet-foot">
+              <span class="total"><b>162,50 €</b><span>3 άτομα · ΦΠΑ μέσα</span></span>
+              <button type="button" class="cta">Συνέχεια</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> ο επισκέπτης χάνει τη σελίδα από τα μάτια του. Αν θέλει να ξαναδεί «τι περιλαμβάνεται» πριν πληρώσει, πρέπει να βγει και να ξαναμπεί — και το «πίσω» του τηλεφώνου πρέπει να κλείνει την οθόνη αντί να φεύγει από τον ιστότοπο, που είναι δουλειά.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section class="note">
+    <h2>Τι είναι ήδη εκεί</h2>
+    <p>Η μπάρα με την τιμή υπάρχει και δουλεύει, σε δύο εκδοχές: μία που ζωγραφίζει ο διακομιστής και μία που την αντικαθιστά το widget μόλις φορτώσει — σκόπιμα ίδιου σχήματος, ώστε να μην αλλάζει μέγεθος μπροστά στα μάτια του επισκέπτη. Το φύλλο είναι η ADR-0033.</p>
+    <p>Άρα καμία από τις τρεις δεν ξεκινά από το μηδέν: αλλάζει <strong>τι ανοίγει η μπάρα</strong>, όχι η μπάρα.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section class="picker">
+    <h2>Ποια από τις τρεις;</h2>
+    <p>Πατήστε για να τη δείτε σημειωμένη, και πείτε μου το γράμμα στη συζήτηση.</p>
+
+    <div class="options">
+      <button type="button" class="option" aria-pressed="false" data-letter="Α" data-name="Ένα βήμα τη φορά">
+        <span class="option-letter">Α</span><span class="option-name">Ένα βήμα τη φορά</span>
+        <span class="option-why">Μισό φύλλο, η σελίδα φαίνεται. Το πιο ήρεμο, το πιο αργό.</span>
+      </button>
+      <button type="button" class="option" aria-pressed="false" data-letter="Β" data-name="Όλα σε ένα φύλλο">
+        <span class="option-letter">Β</span><span class="option-name">Όλα σε ένα φύλλο</span>
+        <span class="option-why">Ένα άνοιγμα ως την τιμή. Πυκνό σε μικρή οθόνη.</span>
+      </button>
+      <button type="button" class="option" aria-pressed="false" data-letter="Γ" data-name="Πλήρης οθόνη">
+        <span class="option-letter">Γ</span><span class="option-name">Πλήρης οθόνη</span>
+        <span class="option-why">Σαν εφαρμογή. Χώρος άφθονος, αλλά η σελίδα φεύγει.</span>
+      </button>
+    </div>
+
+    <p class="chosen" id="chosen">Δεν έχετε διαλέξει ακόμη.</p>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var options = Array.prototype.slice.call(document.querySelectorAll('.option'));
+    var out = document.getElementById('chosen');
+
+    options.forEach(function (option) {
+      option.addEventListener('click', function () {
+        options.forEach(function (other) { other.setAttribute('aria-pressed', String(other === option)); });
+        out.innerHTML = 'Διαλέξατε <b>' + option.dataset.letter + ' — ' + option.dataset.name + '</b>. Πείτε μου το γράμμα στη συζήτηση για να χτιστεί.';
+      });
+    });
+  })();
+</script>

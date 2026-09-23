@@ -70,11 +70,15 @@ class AppServiceProvider extends ServiceProvider
         // SaveProduct can refuse a `mode` change after the first booking
         // (data-model §2.3).
         //
-        // **Deliberately empty**, exactly like the vessel capacity claims
-        // above: `bookings` does not exist until M2, so nothing can hold one
-        // and the guard correctly refuses nothing. M2 adds one implementation
-        // of ProductBookingCount and one entry here — the refusal, its Greek
-        // message and its tests are already built and proven against a fake.
+        // **Empty here, and filled elsewhere.** M2 added the implementation it
+        // was waiting for: `BookingProductCount`, tagged in
+        // {@see BookingServiceProvider}, because the catalogue asks the question
+        // and must not know that `bookings` is where the answer comes from. The
+        // guard is enforced — `tag()` appends, so this line only declares the
+        // tag for the `tagged()` below and refuses nothing on its own.
+        //
+        // Kept because that declaration is what lets the singleton resolve when
+        // the Booking provider is absent, as it is in a container built by hand.
         $this->app->tag([], SaveProduct::TAG);
 
         $this->app->singleton(

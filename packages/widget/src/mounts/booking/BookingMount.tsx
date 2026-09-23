@@ -18,6 +18,7 @@ import {
   initialStateOn,
   isLastStep,
   next,
+  stepsFor,
   type BookingState,
   type MachineOptions,
   countedPax,
@@ -496,8 +497,42 @@ export function BookingMount({
           />
         ) : null}
 
+        {/*
+          **Πού είσαι στα τρία βήματα** (direction Α, 2026-09-23).
+
+          One bar per step, filled up to the one on screen. It exists because
+          direction Α shows a *half* sheet whose content is replaced in place:
+          without it the calendar becomes a party picker and nothing says
+          whether that was step two of two or two of three.
+
+          `aria-hidden`, because it is not the accessible answer — the heading
+          of each step already names it, and a row of bars read aloud is noise.
+          Rendered only in sheet mode: the desktop card shows every step in one
+          column and has nothing to indicate.
+        */}
+        {sheet && open ? (
+          <ol class="kaiki-steps" aria-hidden="true">
+            {stepsFor(options).map((step) => (
+              <li key={step} data-done={stepsFor(options).indexOf(step) <= stepsFor(options).indexOf(state.step)} />
+            ))}
+          </ol>
+        ) : null}
+
         <div class="kaiki-sheet-scroll">
-          {showDetails ? <FourLines product={product} t={t} showVessel={showVessel} /> : null}
+          {/*
+            **Not inside the sheet** (Mike, 2026-09-23, direction Α of the
+            mobile mockups). The four lines give the trip's name, its duration
+            and its port — which is exactly what the page immediately above the
+            sheet already says, and in direction Α that page stays visible.
+
+            Dropping them is also what makes a half sheet possible: at 85svh the
+            sheet covered the page, and these lines were most of the reason it
+            needed the room.
+
+            Untouched on a desktop, where there is no page above the card
+            because the card *is* the column.
+          */}
+          {showDetails && !sheet ? <FourLines product={product} t={t} showVessel={showVessel} /> : null}
 
           {draft !== null ? <Hold hold={hold} t={t} /> : null}
 

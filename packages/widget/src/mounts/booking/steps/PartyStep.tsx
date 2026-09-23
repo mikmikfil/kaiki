@@ -61,32 +61,68 @@ export function PartyStep({
         // the other seated bands have taken theirs.
         const ceiling = seats === null || free ? undefined : Math.max(qty, seats - (taken - (free ? 0 : qty)));
 
+        // Keyed by uuid, which is what the contract's `PaxSelection` carries.
+        // The code is the operator's label for it.
+        //
+        // Clamped here as well as in `max`, because `max` on a number input is
+        // advice to the spinner and no obstacle at all to a typed digit or a
+        // paste.
+        const set = (asked: number) =>
+          onChange({
+            pax: {
+              ...state.pax,
+              [band.uuid]: ceiling === undefined
+                ? Math.max(0, asked)
+                : Math.min(Math.max(0, asked), ceiling),
+            },
+          });
+
         return (
           <label class="kaiki-field kaiki-inline" key={band.uuid}>
             <span>{band.label}</span>
-            <input
-              type="number"
-              min="0"
-              max={ceiling === undefined ? undefined : String(ceiling)}
-              inputMode="numeric"
-              value={String(qty)}
-              onInput={(event) => {
-                const asked = Math.max(0, Number((event.currentTarget as HTMLInputElement).value) || 0);
 
-                onChange({
-                  pax: {
-                    ...state.pax,
-                    // Keyed by uuid, which is what the contract's `PaxSelection`
-                    // carries. The code is the operator's label for it.
-                    //
-                    // Clamped here as well as in `max`, because `max` on a
-                    // number input is advice to the spinner and no obstacle at
-                    // all to a typed digit or a paste.
-                    [band.uuid]: ceiling === undefined ? asked : Math.min(asked, ceiling),
-                  },
-                });
-              }}
-            />
+            {/*
+              **− αριστερά, ο αριθμός στη μέση, + δεξιά** (Mike, 2026-09-23).
+
+              A bare `type="number"` has no spinner on a phone, so the only way
+              to go from one adult to two was to raise the keyboard, which
+              covers the sheet, and type. The two buttons put the whole
+              adjustment under a thumb, on either side of the figure they
+              change, and the field stays typeable for the party of eleven.
+
+              The buttons are `type="button"`: inside a form, a bare button
+              submits.
+            */}
+            <span class="kaiki-stepper">
+              <button
+                type="button"
+                class="kaiki-step-down"
+                aria-label={`${t('booking.party.fewer')} — ${band.label}`}
+                disabled={qty <= 0}
+                onClick={() => set(qty - 1)}
+              >
+                &minus;
+              </button>
+
+              <input
+                type="number"
+                min="0"
+                max={ceiling === undefined ? undefined : String(ceiling)}
+                inputMode="numeric"
+                value={String(qty)}
+                onInput={(event) => set(Number((event.currentTarget as HTMLInputElement).value) || 0)}
+              />
+
+              <button
+                type="button"
+                class="kaiki-step-up"
+                aria-label={`${t('booking.party.more')} — ${band.label}`}
+                disabled={ceiling !== undefined && qty >= ceiling}
+                onClick={() => set(qty + 1)}
+              >
+                +
+              </button>
+            </span>
           </label>
         );
       })}

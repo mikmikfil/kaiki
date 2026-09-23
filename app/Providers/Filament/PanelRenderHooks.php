@@ -39,6 +39,23 @@ final class PanelRenderHooks
     {
         self::platformColors();
 
+        /*
+         * **«Βλέπετε ως …»** — TEN-7's persistent banner (2026-09-23).
+         *
+         * `BODY_START`, so it sits above the whole panel rather than inside a
+         * page: a super-admin signed in as somebody else must never reach a
+         * screen where the banner has scrolled out of view, because every row
+         * written from here is recorded as that person's own work.
+         *
+         * Registered globally and decided inside the view, like the frontend
+         * link below and for the same reason: the condition is a fact about the
+         * session rather than about a page.
+         */
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_START,
+            static fn (): View => view('filament.impersonation-banner'),
+        );
+
         // The topbar, for every authenticated panel page.
         FilamentView::registerRenderHook(
             PanelsRenderHook::TOPBAR_END,

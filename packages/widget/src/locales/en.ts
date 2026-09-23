@@ -43,6 +43,8 @@ export const en = {
   'booking.date.which_departure': 'Which departure?',
   'booking.date.departure_time': 'Departure time',
   'booking.party.heading': 'How many of you?',
+  'booking.party.more': 'One more',
+  'booking.party.fewer': 'One fewer',
   'booking.discount.label': 'Discount code (if you have one)',
   'booking.discount.refused': 'That code is not valid for this booking.',
   'booking.peek.from': 'from :amount',

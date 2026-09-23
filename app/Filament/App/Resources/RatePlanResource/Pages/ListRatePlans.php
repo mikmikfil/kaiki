@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources\RatePlanResource\Pages;
 
+use App\Filament\App\Resources\ProductResource\Pages\CreateProduct;
+use App\Filament\App\Resources\ProductResource\RelationManagers\RatePlansRelationManager;
 use App\Filament\App\Resources\RatePlanResource;
 use App\Filament\App\Widgets\UnsellableProducts;
 use Filament\Actions\Action;
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Widgets\Widget;
 
@@ -15,10 +16,25 @@ class ListRatePlans extends ListRecords
 {
     protected static string $resource = RatePlanResource::class;
 
-    /** @return array<int, Action> */
+    /**
+     * **No «Προσθήκη Τιμοκαταλόγου»** (Mike, 2026-09-23).
+     *
+     * A price cannot exist before the trip it prices, and both ways of making
+     * one already run through the trip: the first plan is written by
+     * {@see CreateProduct},
+     * and further periods are added from the trip's own Τιμές tab
+     * ({@see RatePlansRelationManager}).
+     *
+     * A standalone create button was a third door into the same room whose
+     * first question was «ποια εκδρομή;» — an operator who can answer that is
+     * already on the trip. This screen is now what its heading says it is: a
+     * summary of every price in the account, and a way in to edit one.
+     *
+     * @return array<int, Action>
+     */
     protected function getHeaderActions(): array
     {
-        return [CreateAction::make()];
+        return [];
     }
 
     /**

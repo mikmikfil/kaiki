@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\HostedSiteMode;
+use App\Models\Product;
 use App\Models\Tenant;
 
 use function Pest\Laravel\get;
@@ -28,7 +29,11 @@ use Tests\Support\Hosted\TripPage;
 |
 */
 
-/** The trip page of an operator in one mode or the other. */
+/**
+ * The trip page of an operator in one mode or the other.
+ *
+ * @return array{0: Tenant, 1: Product}
+ */
 function siteModePage(HostedSiteMode $mode): array
 {
     $tenant = OperatorPage::operator('mode-header');

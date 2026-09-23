@@ -7,6 +7,7 @@ namespace App\Domain\Availability;
 use App\Domain\Availability\Support\Window;
 use App\Enums\DepartureStatus;
 use App\Models\Departure;
+use App\Models\Product;
 use App\Models\Vessel;
 use App\Models\VesselBlock;
 use Illuminate\Support\Collection;
@@ -226,20 +227,60 @@ final class VesselCalendar
 
         $ids = $vessels->map(static fn (Vessel $vessel): int => (int) $vessel->getKey())->all();
 
+        $departures = Departure::query()
+            ->whereIn('vessel_id', $ids)
+            ->where('starts_at_utc', '<', $window->endUtc)
+            ->where('ends_at_utc', '>', $window->startUtc)
+            ->orderBy('starts_at_utc')
+            ->get();
+
         return [
-            'departures' => Departure::query()
-                ->whereIn('vessel_id', $ids)
-                ->where('starts_at_utc', '<', $window->endUtc)
-                ->where('ends_at_utc', '>', $window->startUtc)
-                ->with('product')
-                ->orderBy('starts_at_utc')
-                ->get(),
+            'departures' => self::withTrips($departures),
             'blocks' => VesselBlock::query()
                 ->whereIn('vessel_id', $ids)
                 ->overlapping($window)
                 ->orderBy('starts_at_utc')
                 ->get(),
         ];
+    }
+
+    /**
+     * Attach each departure's trip, **including a trashed one**.
+     *
+     * Deleting a trip is a soft delete and the FK is `restrictOnDelete`, so its
+     * departures outlive it: a plain `with('product')` hands back null for every
+     * one of them, and `CalendarDay` read `->title` straight off that and took
+     * the whole panel down with it — the same shape as the archived trip that
+     * broke `DepartureReconciler` (2026-09-22).
+     *
+     * The bar still has to be drawn. A departure with seats already sold sails
+     * on the morning the operator archived the trip, whatever the catalogue now
+     * says, and the boat's day is what this picture is for.
+     *
+     * Attached by hand rather than through an eager-load constraint because
+     * `Departure::product()` is nullable for everyone else on purpose —
+     * `Manifest`, `AttentionItems` and `WebhookPayload` all read it as
+     * `product?->` — and widening the relation itself would quietly put deleted
+     * trips into a manifest and a webhook payload. One extra query either way.
+     *
+     * @param  Collection<int, Departure>  $departures
+     * @return Collection<int, Departure>
+     */
+    private static function withTrips(Collection $departures): Collection
+    {
+        if ($departures->isEmpty()) {
+            return $departures;
+        }
+
+        $trips = Product::query()
+            ->withTrashed()
+            ->whereIn('id', $departures->pluck('product_id')->unique()->all())
+            ->get()
+            ->keyBy('id');
+
+        return $departures->each(static function (Departure $departure) use ($trips): void {
+            $departure->setRelation('product', $trips->get($departure->product_id));
+        });
     }
 
     /**

@@ -107,6 +107,9 @@ return [
         'errors_heading' => 'Some details are missing or wrong:',
         'policy_heading' => 'Cancellation',
         'pay' => 'Pay :amount',
+        // The phone's bar shows the amount beside it, so the button does not
+        // repeat it — and without it the label fits on one line.
+        'pay_short' => 'Pay',
         'secure' => 'Payment is taken on Viva Wallet\'s own secure checkout. Your card details never pass through us and are never stored here.',
         'refused' => 'We could not start the payment. Please try again, or contact the operator.',
         'payment_failed' => 'The payment did not go through. You were not charged — please try again.',

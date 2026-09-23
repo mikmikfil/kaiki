@@ -56,8 +56,13 @@ use Illuminate\Support\Carbon;
  */
 class DemoBookableSeeder extends Seeder
 {
-    /** Three months of sailings — enough to page through a calendar. */
-    private const DAYS_AHEAD = 90;
+    /*
+     * `DAYS_AHEAD` lived here and was written into every schedule rule's
+     * `generate_days_ahead`. That column was dropped on 2026-09-23 — nothing
+     * ever read it — and how far ahead the demo's departures actually reach is
+     * decided, as it always really was, by
+     * `config('kaiki.departures.horizon_days')`.
+     */
 
     public function run(): void
     {
@@ -320,7 +325,6 @@ class DemoBookableSeeder extends Seeder
                 'weekday_mask' => 127,
                 'valid_from' => Carbon::now()->subMonth()->toDateString(),
                 'valid_until' => null,
-                'generate_days_ahead' => self::DAYS_AHEAD,
                 'is_active' => true,
             ],
         );

@@ -36,7 +36,11 @@ function ruleConflictTenant(callable $callback): mixed
     return Tenancy::forTenant(Tenant::factory()->create(['timezone' => 'Europe/Athens']), $callback);
 }
 
-/** A per-seat trip on `$vessel` with a rule on `$days` at `$time`, departures generated. */
+/**
+ * A per-seat trip on `$vessel` with a rule on `$days` at `$time`, departures generated.
+ *
+ * @param  list<int>  $days  ISO weekdays, Monday 1 to Sunday 7
+ */
 function ruleTripSailing(Vessel $vessel, array $days, string $time, int $minutes = 180): ScheduleRule
 {
     $product = Product::factory()->create([

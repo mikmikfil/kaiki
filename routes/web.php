@@ -17,6 +17,7 @@ use App\Http\Controllers\Hosted\RootController;
 use App\Http\Controllers\Hosted\SearchPageController;
 use App\Http\Controllers\IcalFeedController;
 use App\Http\Controllers\SandboxCheckoutController;
+use App\Http\Controllers\StopImpersonationController;
 use App\Http\Controllers\TlsAskController;
 use App\Http\Controllers\Webhooks\GatewayWebhookController;
 use App\Http\Controllers\WidgetBundleController;
@@ -211,6 +212,24 @@ Route::post('/sandbox/checkout/{reference}/pay', [SandboxCheckoutController::cla
     ->name('sandbox.checkout.pay');
 Route::post('/sandbox/checkout/{reference}/fail', [SandboxCheckoutController::class, 'fail'])
     ->name('sandbox.checkout.fail');
+
+/*
+|--------------------------------------------------------------------------
+| The way out of an impersonation (TEN-7, SAA-2)
+|--------------------------------------------------------------------------
+|
+| A plain POST rather than a Livewire action, because the banner it belongs to
+| has to keep working on a page whose Livewire component has already broken —
+| which is one of the reasons somebody signs in as an operator in the first
+| place.
+|
+| Outside both panels' groups so it exists whichever one is on screen, and
+| behind `auth` because ending a session nobody has is not a thing to offer.
+| **Starting** one lives in `/admin`, where the gates are.
+*/
+Route::post('/impersonation/stop', StopImpersonationController::class)
+    ->middleware('auth')
+    ->name('impersonation.stop');
 
 /*
 |--------------------------------------------------------------------------

@@ -4,14 +4,23 @@ declare(strict_types=1);
 
 namespace App\Filament\Admin\Resources;
 
+use App\Domain\Tenancy\Actions\StartImpersonation;
+use App\Domain\Tenancy\Support\ImpersonationSession;
 use App\Enums\Plan;
 use App\Enums\TenantStatus;
 use App\Enums\TenantVertical;
+use App\Exceptions\ImpersonationRefused;
 use App\Filament\Admin\Resources\TenantResource\Pages;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Policies\TenantPolicy;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Notifications\Notification;
+use Filament\Pages\Dashboard as AppDashboard;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\Action;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -213,8 +222,85 @@ class TenantResource extends Resource
             // deliberate act with a reason attached (SEC-16); a bulk version of
             // that would be one reason covering forty accounts, which is the
             // same as no reason.
-            ->actions([EditAction::make()])
+            ->actions([EditAction::make(), static::impersonateAction()])
             ->bulkActions([]);
+    }
+
+    /**
+     * «Σύνδεση ως» — TEN-7 and SAA-2 (Mike, 2026-09-23).
+     *
+     * On the merchant list rather than inside the edit screen, because this is
+     * something done *to get to work*, not a change to the account: the person
+     * reaching for it is usually answering «δεν μου βγάζει τιμή σε αυτή την
+     * εκδρομή», and making them open a settings form first is a detour.
+     *
+     * ## Both answers are asked for before anything happens
+     *
+     * **Which person**, because an operator has several and what a session can
+     * do depends entirely on which one it is — signing in as crew to debug an
+     * owner's screen would fail in a way that looks like the bug being chased.
+     * The list is that operator's own users, so the tenancy boundary is a
+     * property of the options rather than a check on the answer.
+     *
+     * **Why**, required. SAA-2 wants the reason in the trail, and a box that
+     * can be left empty is a box everybody leaves empty.
+     *
+     * The refusal comes back as a notification rather than a stack trace
+     * (CNV-11): every sentence {@see ImpersonationRefused} carries is one a
+     * super-admin can act on.
+     */
+    public static function impersonateAction(): Action
+    {
+        return Action::make('impersonate')
+            ->label(__('tenants.impersonation.action.label'))
+            ->icon('heroicon-m-arrow-right-end-on-rectangle')
+            ->color('warning')
+            ->modalHeading(__('tenants.impersonation.action.heading'))
+            ->modalDescription(__('tenants.impersonation.action.description', [
+                'minutes' => ImpersonationSession::MINUTES,
+            ]))
+            ->modalSubmitActionLabel(__('tenants.impersonation.action.submit'))
+            ->form([
+                Select::make('user_id')
+                    ->label(__('tenants.impersonation.action.user.label'))
+                    ->helperText(__('tenants.impersonation.action.user.help'))
+                    ->options(static fn (Tenant $record): array => User::query()
+                        ->where('tenant_id', $record->getKey())
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->all())
+                    ->searchable()
+                    ->required(),
+
+                Textarea::make('reason')
+                    ->label(__('tenants.impersonation.action.reason.label'))
+                    ->helperText(__('tenants.impersonation.action.reason.help'))
+                    ->rows(2)
+                    ->required()
+                    ->maxLength(500),
+            ])
+            // Hidden rather than merely refused on a soft-deleted operator: the
+            // resolvers stop finding them, so the session would open onto a
+            // panel with nothing in it.
+            ->visible(static fn (Tenant $record): bool => $record->deleted_at === null)
+            ->action(function (Tenant $record, array $data): void {
+                $actor = auth()->user();
+                $target = User::query()->find($data['user_id'] ?? null);
+
+                if (! $actor instanceof User || ! $target instanceof User) {
+                    return;
+                }
+
+                try {
+                    app(StartImpersonation::class)($actor, $target, $record, (string) ($data['reason'] ?? ''));
+                } catch (ImpersonationRefused $refused) {
+                    Notification::make()->title($refused->getMessage())->danger()->send();
+
+                    return;
+                }
+
+                redirect()->to(AppDashboard::getUrl(panel: 'app'));
+            });
     }
 
     /**

@@ -106,7 +106,6 @@ it('stores a schedule window on the day the operator typed', function (): void {
             'start_time' => '09:00',
             'valid_from' => '2027-06-01',
             'valid_until' => '2027-09-30',
-            'generate_days_ahead' => 180,
         ])
         ->call('create')
         ->assertHasNoFormErrors();

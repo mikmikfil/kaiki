@@ -78,16 +78,67 @@
                 <a href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}"><span aria-hidden="true">←</span> {{ __('hosted.product.all_trips') }}</a>
             </nav>
 
+            {{-- **Τίτλος, φωτογραφίες, μετά τα λόγια** (Mike, 2026-09-23).
+
+                 Ήταν τίτλος → υπότιτλος → εικονίδια → φωτογραφίες: τέσσερις
+                 γραμμές κειμένου πριν ο επισκέπτης δει τι αγοράζει. Ο τίτλος
+                 μένει πάνω, γιατί είναι η ταυτότητα της σελίδας — και μίκρυνε,
+                 γιατί δεν χρειάζεται να φωνάζει όταν έχει μια φωτογραφία από
+                 κάτω του να το κάνει για αυτόν. --}}
             <h1>{{ $product->title }}</h1>
 
+            @if ($shotCount > 0)
+                <div class="mosaic mosaic-{{ $tiles }}" id="gallery">
+                    <ul>
+                        @foreach (array_slice($shots, 0, $tiles) as $i => $shot)
+                            <li>
+                                <a class="shot-open" href="#shot-{{ $i }}" aria-label="{{ $shot['alt'] ?: ($i === 0 ? $product->title : __('hosted.product.gallery')) }}">
+                                    <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($shot['url']) }}"
+                                         alt="{{ $shot['alt'] ?? ($i === 0 ? $product->title : '') }}"
+                                         @if ($i === 0) fetchpriority="high" @endif>
+                                </a>
+                            </li>
+                        @endforeach
+                    </ul>
+
+                    {{-- More photographs than tiles. On a phone only three tiles
+                         show, so the button appears there from four photographs;
+                         on a desktop, from six. --}}
+                    @if ($shotCount > 3)
+                        <a class="mosaic-all{{ $shotCount <= 5 ? ' mosaic-all-narrow' : '' }}" href="#shot-0">
+                            {{ __('hosted.product.all_photos', ['count' => $shotCount]) }}
+                        </a>
+                    @endif
+                </div>
+            @endif
+
+        </header>
+
+        <div class="product-body">
+            <div class="product-main">
+
+            {{-- Ένα παιδί του `.product-main`, όχι δύο: η στήλη έχει δικό της
+                 `gap` 2–3rem ανάμεσα στα παιδιά της, και ο υπότιτλος με τα
+                 εικονίδια ανήκουν μαζί — χωρισμένα από τρία rem θα διαβάζονταν
+                 ως δύο ενότητες. --}}
+            <div class="trip-intro">
             @if ($product->summary)
                 <p class="standfirst">{{ $product->summary }}</p>
             @endif
 
-            {{-- The facts, as chips. Every icon is `aria-hidden` and sits beside
-                 a value that already says what it is, so nothing here is
-                 announced twice. The guest count stays off a quote trip, as it
-                 always has: a charter priced by asking is sized by asking. --}}
+            {{-- **Κάτω από τις φωτογραφίες, και μέσα στην αριστερή στήλη**
+                 (Mike, 2026-09-23: *«το box με το booking να ξεκινάει από πιο
+                 πάνω, από το ύψος του υπότιτλου»*).
+
+                 Το ότι είναι εδώ και όχι στο `<header>` είναι ακριβώς αυτό που
+                 ανεβάζει το κουτί κράτησης: οι δύο στήλες ξεκινούν μόλις
+                 τελειώσει το μωσαϊκό, οπότε η κράτηση ευθυγραμμίζεται με τον
+                 υπότιτλο αντί να αρχίζει κάτω από όλη την κεφαλίδα.
+
+                 Κάθε εικονίδιο είναι `aria-hidden` και κάθεται δίπλα σε τιμή
+                 που ήδη λέει τι είναι, ώστε τίποτα να μην ανακοινώνεται δύο
+                 φορές. Ο αριθμός ατόμων λείπει από εκδρομή «κατόπιν
+                 προσφοράς», όπως πάντα. --}}
             <ul class="facts">
                 <li>
                     @include('hosted.partials.icon', ['name' => 'clock'])
@@ -118,36 +169,7 @@
                     </li>
                 @endif
             </ul>
-
-            @if ($shotCount > 0)
-                <div class="mosaic mosaic-{{ $tiles }}" id="gallery">
-                    <ul>
-                        @foreach (array_slice($shots, 0, $tiles) as $i => $shot)
-                            <li>
-                                <a class="shot-open" href="#shot-{{ $i }}" aria-label="{{ $shot['alt'] ?: ($i === 0 ? $product->title : __('hosted.product.gallery')) }}">
-                                    <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($shot['url']) }}"
-                                         alt="{{ $shot['alt'] ?? ($i === 0 ? $product->title : '') }}"
-                                         @if ($i === 0) fetchpriority="high" @endif>
-                                </a>
-                            </li>
-                        @endforeach
-                    </ul>
-
-                    {{-- More photographs than tiles. On a phone only three tiles
-                         show, so the button appears there from four photographs;
-                         on a desktop, from six. --}}
-                    @if ($shotCount > 3)
-                        <a class="mosaic-all{{ $shotCount <= 5 ? ' mosaic-all-narrow' : '' }}" href="#shot-0">
-                            {{ __('hosted.product.all_photos', ['count' => $shotCount]) }}
-                        </a>
-                    @endif
-                </div>
-            @endif
-        </header>
-
-        <div class="product-body">
-            <div class="product-main">
-
+            </div>
 
         {{-- Not when it repeats the standfirst word for word.
 
@@ -207,9 +229,15 @@
         @if ($highlights !== [])
             <section class="section trip-content">
                 <h2>{{ __('hosted.product.highlights') }}</h2>
-                <ul class="trip-list trip-list-star">
+                {{-- **Τικ, όχι αστέρι** (Mike, 2026-09-23). Δύο λίστες με
+                     θετικά στοιχεία, η μία κάτω από την άλλη, με δύο
+                     διαφορετικά σύμβολα, έμοιαζαν να λένε κάτι διαφορετικό η
+                     καθεμία — ενώ και οι δύο λένε απλώς «ναι, αυτό». Το ίδιο
+                     τικ με τα «Περιλαμβάνονται», και ο επισκέπτης σταματά να
+                     ψάχνει τη διαφορά. --}}
+                <ul class="trip-list trip-list-yes">
                     @foreach ($highlights as $line)
-                        <li><span class="trip-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg></span>{{ $line }}</li>
+                        <li><span class="trip-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" focusable="false"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span>{{ $line }}</li>
                     @endforeach
                 </ul>
             </section>

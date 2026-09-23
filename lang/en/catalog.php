@@ -297,8 +297,8 @@ return [
                 'help' => 'The name of the trip, as a guest sees it.',
             ],
             'summary' => [
-                'label' => 'Summary',
-                'help' => 'A sentence or two for lists and search results.',
+                'label' => 'Subtitle',
+                'help' => 'The line directly under the title on the trip page. The same words go on the trip card and into search results, so keep it to a sentence or two.',
             ],
             'badge' => [
                 'label' => 'Label',
@@ -306,9 +306,12 @@ return [
             ],
             'description' => [
                 'label' => 'Description',
-                'help' => 'The whole story of the trip.',
+                'help' => 'The whole story of the trip, further down the page. As long as you like — the subtitle above is the short version.',
             ],
-            'schedule_where' => 'Departure days and times are set on the «Schedule» tab, once the trip is saved.',
+            // Two wordings, because «Schedule» is further down this same screen
+            // but only appears on a trip that has been saved.
+            'schedule_where' => 'Departure days and times are set below, under «Schedule».',
+            'schedule_where_unsaved' => 'Departure days and times are set below, under «Schedule», once the trip is saved.',
             'duration_minutes' => [
                 'label' => 'Duration',
                 'help' => 'In minutes, from departure to return.',
@@ -342,6 +345,9 @@ return [
             'max_pax' => [
                 'label' => 'Maximum passengers',
                 'help' => 'Never above the vessel certificate.',
+                // With a boat chosen, say the number rather than allude to it:
+                // it is the figure the operator is judged against.
+                'help_vessel' => ':vessel is certified for :capacity passengers. You cannot set more.',
             ],
             'min_booking_pax' => [
                 'label' => 'Minimum per booking',
@@ -428,6 +434,11 @@ return [
                 'schedules' => 'Schedules',
                 'schedules_help' => 'The departures come from these. Add as many as you need: daily at 10:00 and 18:00, say, plus weekends at 12:00 for August only.',
                 'add_schedule' => 'Another schedule',
+                // The collapsed header of each schedule. `:days` is empty until
+                // a day is picked, and the dash must not be left hanging — hence
+                // two keys.
+                'schedule_item' => 'Schedule :n — :days',
+                'schedule_item_empty' => 'Schedule :n',
                 'times' => 'Departure times',
                 'times_help' => 'One or more, on the same days.',
                 'valid_from_help' => 'Empty means from today.',
@@ -633,6 +644,10 @@ return [
             'price' => [
                 'label' => 'Price',
                 'help' => 'In euros, VAT included.',
+            ],
+            'vat_rate' => [
+                'label' => 'VAT for this extra',
+                'help' => 'Leave empty to use the trip\'s VAT. Fill it in only when this extra belongs to a different category — a meal on board is not the same as carrying passengers.',
             ],
             'is_required' => [
                 'label' => 'Required',

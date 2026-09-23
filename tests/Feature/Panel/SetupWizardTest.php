@@ -165,11 +165,12 @@ it('counts a skipped step as settled so the progress figure is not stuck', funct
     actingAs($owner);
 
     Tenancy::forTenant($owner->tenant, function (): void {
-        expect(SetupChecklist::progress())->toBe(['done' => 0, 'total' => 4]);
+        // Five questions since the home page joined them (2026-09-23).
+        expect(SetupChecklist::progress())->toBe(['done' => 0, 'total' => 5]);
 
         Livewire::test(Setup::class)->call('skip', SetupChecklist::VAT);
 
-        expect(SetupChecklist::progress())->toBe(['done' => 1, 'total' => 4]);
+        expect(SetupChecklist::progress())->toBe(['done' => 1, 'total' => 5]);
     });
 });
 

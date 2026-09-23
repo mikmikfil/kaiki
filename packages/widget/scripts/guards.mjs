@@ -86,7 +86,39 @@ for (const file of sources(srcDir)) {
   });
 }
 
-// --- 3. The two locale bundles agree (WGT-14) --------------------------------
+// --- 3. No backtick inside the stylesheet literal ----------------------------
+//
+// `shadow.ts` holds the whole stylesheet as one template literal, so a backtick
+// anywhere between its delimiters ends it early. Nothing catches that: the
+// TypeScript that follows still parses, the build succeeds, and the widget
+// throws `ReferenceError` on load — in front of guests, on the operator's own
+// site. It cost two publishes on 2026-09-23 alone, both times from a comment
+// that quoted a class name the way the rest of the file's prose does.
+{
+  const file = join(srcDir, 'shadow.ts');
+  const code = readFileSync(file, 'utf8');
+  const open = code.indexOf('const BASE_STYLES = `');
+
+  if (open === -1) {
+    failures.push('shadow.ts no longer declares BASE_STYLES as a template literal — this guard needs rewriting.');
+  } else {
+    const from = open + 'const BASE_STYLES = `'.length;
+    const close = code.indexOf('`', from);
+    const before = code.slice(0, close);
+    const line = before.split('\n').length;
+    const isEnd = /^\s*;/.test(code.slice(close + 1));
+
+    if (!isEnd) {
+      failures.push(
+        `shadow.ts: a backtick on line ${line} ends the stylesheet literal early.\n` +
+          '  The build will still succeed and the widget will throw on load. Quote class names\n' +
+          '  in comments without backticks.',
+      );
+    }
+  }
+}
+
+// --- 4. The two locale bundles agree (WGT-14) --------------------------------
 
 const keysOf = (file) => {
   const code = readFileSync(join(srcDir, 'locales', file), 'utf8');

@@ -60,7 +60,12 @@
                 <details class="faq-item">
                     <summary>{{ __('hosted.product.cancellation_question') }}</summary>
                     <div class="prose">
-                        <p><strong>{{ $policy->name }}</strong></p>
+                        {{-- The policy's **name** is not printed (Mike,
+                             2026-09-23). «Ευέλικτη» / «Αυστηρή» is what the
+                             operator calls the row in their own catalogue, and
+                             the `<summary>` above has already asked the question
+                             it was answering — so it read as a heading inside a
+                             heading and told a guest nothing about the terms. --}}
                         @if ($policy->summary)
                             <p>{{ $policy->summary }}</p>
                         @endif

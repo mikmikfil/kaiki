@@ -15,6 +15,7 @@ use App\Filament\App\Resources\VesselResource;
 use App\Http\Middleware\RequireSetupFirst;
 use App\Models\BrandProfile;
 use App\Models\CancellationPolicy;
+use App\Models\PolicyTemplate;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Rules\HexColor;
@@ -34,6 +35,7 @@ use Filament\Pages\Page;
 use Filament\Support\Enums\MaxWidth;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\Url;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -58,9 +60,12 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
  * and tick themselves from the data when they come back.
  *
  * The business details, the VAT default and the cancellation policy are asked
- * here. The policy is offered as three ready ladders because a new operator
- * does not yet think in tiers; it is saved through {@see SaveCancellationPolicy}
- * like any other, becomes the default, and is edited later on its own screen.
+ * here. The policy is offered as ready ladders because a new operator does not
+ * yet think in tiers; it is saved through {@see SaveCancellationPolicy} like any
+ * other, becomes the default, and is edited later on its own screen. Which
+ * ladders are offered is the platform's to decide and lives in
+ * {@see PolicyTemplate} — maintained in `/admin` since 2026-09-23, rather than
+ * in a `const` here and a lang file over there.
  *
  * ## Every step writes as it goes
  *
@@ -95,9 +100,6 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 class Setup extends Page implements HasForms
 {
     use InteractsWithForms;
-
-    /** The three ready ladders, in the order they are offered. */
-    public const PRESETS = ['flexible', 'standard', 'strict'];
 
     protected static ?string $navigationIcon = 'heroicon-o-rocket-launch';
 
@@ -134,8 +136,14 @@ class Setup extends Page implements HasForms
     #[Url(as: 'step')]
     public ?string $step = null;
 
-    /** The ladder chosen on the cancellation step. */
-    public string $policyPreset = 'standard';
+    /**
+     * The template chosen on the cancellation step, by `code`.
+     *
+     * Empty until the step is reached, and then whatever the platform put
+     * first — there is no hard-coded «standard» any more, because the admin can
+     * retire or reorder every row. {@see self::defaultPreset()}.
+     */
+    public string $policyPreset = '';
 
     /** None, so it sits above the three groups rather than inside one. */
     public static function getNavigationGroup(): ?string
@@ -358,8 +366,31 @@ class Setup extends Page implements HasForms
                             ->acceptedFileTypes((array) config('kaiki.branding.uploads.mime_types'))
                             ->maxSize((int) config('kaiki.branding.uploads.max_kilobytes'))
                             ->image()
-                            ->columnSpanFull()
-                            ->saveUploadedFileUsing(fn (TemporaryUploadedFile $file): ?string => $this->storeLogo($file)),
+                            ->saveUploadedFileUsing(fn (TemporaryUploadedFile $file): ?string => $this->storeLogo(BrandAsset::LogoLight, $file)),
+
+                        /*
+                         * And the dark one (Mike, 2026-09-23: *«στο logo, δώσε
+                         * μου και το πεδίο για dark logo»*).
+                         *
+                         * Optional, and its help line says so. A logo drawn for
+                         * a pale header vanishes against a dark one, and the
+                         * operator who has a second file has it to hand on the
+                         * afternoon they are uploading the first — coming back
+                         * for it later means first noticing it is wrong, which
+                         * happens on somebody else's phone.
+                         *
+                         * Side by side rather than full width now that there are
+                         * two of them, which is what the grid was already for.
+                         */
+                        FileUpload::make('logo_dark_path')
+                            ->label(__('setup.fields.logo_dark.label'))
+                            ->helperText(__('setup.fields.logo_dark.help'))
+                            ->disk((string) config('kaiki.branding.uploads.disk'))
+                            ->visibility('private')
+                            ->acceptedFileTypes((array) config('kaiki.branding.uploads.mime_types'))
+                            ->maxSize((int) config('kaiki.branding.uploads.max_kilobytes'))
+                            ->image()
+                            ->saveUploadedFileUsing(fn (TemporaryUploadedFile $file): ?string => $this->storeLogo(BrandAsset::LogoDark, $file)),
 
                         ColorPicker::make('color_primary')
                             ->label(__('branding.form.color_primary.label'))
@@ -520,11 +551,52 @@ class Setup extends Page implements HasForms
         }
     }
 
+    /**
+     * The ladders on offer, in the order the platform arranged them.
+     *
+     * A table since 2026-09-23, not a `const` — these are maintained in
+     * `/admin`, and adding a fourth or moving a percentage used to mean editing
+     * three files and deploying. {@see PolicyTemplate::ladder()} also builds the
+     * printed lines from the same numbers that get written, which the old split
+     * between `presetLadder()` and `lang/setup.php` could not promise.
+     *
+     * @return Collection<int, PolicyTemplate>
+     */
+    public function policyTemplates(): Collection
+    {
+        return PolicyTemplate::query()->offered()->get();
+    }
+
     public function choosePreset(string $preset): void
     {
-        if (in_array($preset, self::PRESETS, true)) {
+        // Checked against what is actually on offer, not against a fixed list:
+        // a retired template must not be selectable by a stale click.
+        if ($this->policyTemplates()->contains('code', $preset)) {
             $this->policyPreset = $preset;
         }
+    }
+
+    /**
+     * The template selected when the operator has not chosen yet — the first
+     * one the platform offers.
+     *
+     * Empty string when the admin has retired every row. The step then has
+     * nothing to show and {@see self::persistCancellation()} writes nothing,
+     * which is the honest outcome: better a skipped step than a policy the
+     * platform no longer stands behind.
+     */
+    public function defaultPreset(): string
+    {
+        return (string) ($this->policyTemplates()->first()->code ?? '');
+    }
+
+    /** The template currently selected on the cancellation step, if any. */
+    public function selectedTemplate(): ?PolicyTemplate
+    {
+        $templates = $this->policyTemplates();
+        $code = $this->policyPreset !== '' ? $this->policyPreset : $this->defaultPreset();
+
+        return $templates->firstWhere('code', $code);
     }
 
     /**
@@ -637,10 +709,15 @@ class Setup extends Page implements HasForms
             }
         }
 
-        $logo = $state['logo_light_path'] ?? null;
+        // Both logos, each only when it actually changed — an unchanged path
+        // would be written back over itself, and a cleared field must not
+        // silently wipe a logo the operator uploaded on the branding screen.
+        foreach (['logo_light_path', 'logo_dark_path'] as $column) {
+            $logo = $state[$column] ?? null;
 
-        if (is_string($logo) && $logo !== '' && $logo !== $profile->logo_light_path) {
-            $attributes['logo_light_path'] = $logo;
+            if (is_string($logo) && $logo !== '' && $logo !== $profile->{$column}) {
+                $attributes[$column] = $logo;
+            }
         }
 
         if ($attributes === []) {
@@ -664,6 +741,7 @@ class Setup extends Page implements HasForms
         if (! $profile instanceof BrandProfile) {
             return [
                 'logo_light_path' => null,
+                'logo_dark_path' => null,
                 'color_primary' => (string) config('kaiki.branding.defaults.colors.primary'),
                 'color_secondary' => (string) config('kaiki.branding.defaults.colors.secondary'),
                 'color_accent' => (string) config('kaiki.branding.defaults.colors.accent'),
@@ -672,6 +750,7 @@ class Setup extends Page implements HasForms
 
         return [
             'logo_light_path' => $profile->logo_light_path,
+            'logo_dark_path' => $profile->logo_dark_path,
             'color_primary' => $profile->color_primary,
             'color_secondary' => $profile->color_secondary,
             'color_accent' => $profile->color_accent,
@@ -692,11 +771,14 @@ class Setup extends Page implements HasForms
      * Filament would write the file itself, which skips the magic-byte check,
      * the SVG sanitiser, the EXIF strip and the variants — every part of BRD-7
      * and SEC-13. A refusal is a sentence the operator can act on, not a 500.
+     *
+     * Takes the asset rather than assuming the light logo, since the step asks
+     * for both (2026-09-23).
      */
-    private function storeLogo(TemporaryUploadedFile $file): ?string
+    private function storeLogo(BrandAsset $asset, TemporaryUploadedFile $file): ?string
     {
         try {
-            return app(UploadBrandAsset::class)($this->brandProfile(), BrandAsset::LogoLight, $file);
+            return app(UploadBrandAsset::class)($this->brandProfile(), $asset, $file);
         } catch (UploadRefused $refused) {
             Notification::make()->title($refused->getMessage())->danger()->send();
 
@@ -732,40 +814,32 @@ class Setup extends Page implements HasForms
             return;
         }
 
-        $preset = in_array($this->policyPreset, self::PRESETS, true) ? $this->policyPreset : 'standard';
-        $ladder = self::presetLadder($preset);
+        $template = $this->selectedTemplate();
 
+        // Nothing offered, nothing written. The admin has retired every ladder,
+        // and inventing one here would put terms on an operator's trips that
+        // the platform deliberately stopped standing behind.
+        if (! $template instanceof PolicyTemplate) {
+            return;
+        }
+
+        // **A copy, not a link.** The operator owns what is written here from
+        // this moment: editing the template later must never reach backwards
+        // into terms already shown to a guest and emailed to them. Both names
+        // are taken because a policy is read in whichever language the guest
+        // booked in, not the one the operator set up in.
         app(SaveCancellationPolicy::class)(
             new CancellationPolicy,
             [
                 'name' => [
-                    'el' => __('setup.policy.' . $preset . '.name', locale: 'el'),
-                    'en' => __('setup.policy.' . $preset . '.name', locale: 'en'),
+                    'el' => $template->getTranslation('name', 'el', true),
+                    'en' => $template->getTranslation('name', 'en', true),
                 ],
-                'free_cancellation_hours' => $ladder['free_cancellation_hours'],
+                'free_cancellation_hours' => $template->free_cancellation_hours,
                 'is_default' => true,
             ],
-            $ladder['tiers'],
+            $template->sortedTiers(),
         );
-    }
-
-    /**
-     * What each ready ladder means, as the policy columns store it.
-     *
-     * @return array{free_cancellation_hours: int|null, tiers: list<array{days_before: int, refund_percent: int}>}
-     */
-    public static function presetLadder(string $preset): array
-    {
-        return match ($preset) {
-            'flexible' => ['free_cancellation_hours' => 24, 'tiers' => []],
-            'strict' => ['free_cancellation_hours' => null, 'tiers' => [
-                ['days_before' => 14, 'refund_percent' => 50],
-            ]],
-            default => ['free_cancellation_hours' => null, 'tiers' => [
-                ['days_before' => 7, 'refund_percent' => 100],
-                ['days_before' => 2, 'refund_percent' => 50],
-            ]],
-        };
     }
 
     public function skip(string $step): void
@@ -827,16 +901,18 @@ class Setup extends Page implements HasForms
      */
     public static function handOffUrls(): array
     {
-        // Nothing any more. The guide asks four questions about the account and
-        // none of them lives on another screen; the catalogue left it entirely
-        // (product owner, 2026-09-22), so there is no door to hold open.
-        return [];
+        // The home page is the one step whose work lives elsewhere (Mike,
+        // 2026-09-23). The four account questions are asked here, as they have
+        // been since the catalogue left the guide on 2026-09-22; a home page is
+        // blocks, their order and their photographs, and {@see HomePage} owns
+        // all of that already.
+        return [HomePage::getUrl()];
     }
 
     /** Where a step whose work lives on another screen sends the operator. */
     public function handOffUrl(string $step): ?string
     {
-        return null;
+        return $step === SetupChecklist::HOME_PAGE ? HomePage::getUrl() : null;
     }
 
     /**

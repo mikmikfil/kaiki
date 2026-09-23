@@ -53,7 +53,6 @@ it('adds a schedule to the trip it is opened on, without asking which trip', fun
 
     expect($rule->weekday_mask)->toBe(WeekdayMask::fromDays([2, 4]))
         ->and(substr((string) $rule->start_time, 0, 5))->toBe('09:00')
-        ->and($rule->generate_days_ahead)->toBe(180)
         ->and(ProductResource::scheduleBadge($product))->toBe(trans_choice('catalog.product.tabs.active_schedules', 1, ['count' => 1]));
 })->group('fast');
 
@@ -97,6 +96,37 @@ it('says «none» on a trip nobody can book on any day', function (): void {
         expect(ProductResource::scheduleBadge($product))->toBe(__('catalog.product.tabs.no_schedule'));
     });
 })->group('fast');
+
+it('puts no schedule badge on a trip that cannot have one', function (): void {
+    // «κανένα» in amber is an alarm: nobody can book this on any day. A charter
+    // and a «κατόπιν προσφοράς» trip have no repeating timetable by design — the
+    // tab does not even offer one — so the same amber badge was telling the
+    // operator to go and fix something that cannot exist.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    Tenancy::forTenant(Tenant::query()->findOrFail($owner->tenant_id), function (): void {
+        $charter = Product::factory()->create(['mode' => BookingMode::PerVessel]);
+        $quote = Product::factory()->create(['mode' => BookingMode::Quote]);
+
+        expect(ProductResource::scheduleBadge($charter))->toBeNull()
+            ->and(ProductResource::scheduleBadge($quote))->toBeNull();
+    });
+})->group('fast');
+
+it('does not send the operator to a tab that no longer exists', function (): void {
+    // The «Δρομολόγια» tab became a section of «Πότε φεύγει» when the form went
+    // to five tabs (2026-09-22), and this line was left pointing at it. Pinned
+    // in both locales because it is the kind of sentence nobody re-reads.
+    foreach (['schedule_where', 'schedule_where_unsaved'] as $key) {
+        foreach (['el', 'en'] as $locale) {
+            $copy = trans("catalog.product.form.{$key}", [], $locale);
+
+            expect($copy)->not->toContain('καρτέλα')
+                ->and($copy)->not->toContain('tab')
+                ->and($copy)->not->toBe("catalog.product.form.{$key}");
+        }
+    }
+})->group('fast', 'i18n');
 
 it('offers no timetable to a whole-boat charter', function (): void {
     $owner = OperatorUser::withRole(Role::Owner);

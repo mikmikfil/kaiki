@@ -62,11 +62,6 @@ return [
                 'label' => 'Seats',
                 'help' => "Empty means whatever the trip says. Never above the vessel's certificate.",
             ],
-            'generate_days_ahead' => [
-                'label' => 'Horizon',
-                'help' => 'How many days ahead departures are created.',
-                'suffix' => 'days',
-            ],
             'is_active' => [
                 'label' => 'Active',
                 'help' => 'An inactive schedule creates no new departures. The ones already created stay.',

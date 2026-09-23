@@ -44,6 +44,8 @@ export const el: Record<MessageKey, string> = {
   'booking.date.which_departure': 'Διαλέξτε ώρα αναχώρησης',
   'booking.date.departure_time': 'Ώρα αναχώρησης',
   'booking.party.heading': 'Πόσα άτομα είστε;',
+  'booking.party.more': 'Ένα παραπάνω',
+  'booking.party.fewer': 'Ένα λιγότερο',
   'booking.discount.label': 'Κωδικός έκπτωσης (αν έχετε)',
   'booking.discount.refused': 'Αυτός ο κωδικός δεν ισχύει για αυτή την κράτηση.',
   'booking.peek.from': 'από :amount',

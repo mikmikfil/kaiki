@@ -13,6 +13,7 @@ use App\Http\Controllers\App\BoardingServiceWorkerController;
 use App\Http\Controllers\App\DismissAnnouncementController;
 use App\Http\Controllers\ExportDownloadController;
 use App\Http\Middleware\AddSecurityHeaders;
+use App\Http\Middleware\EndExpiredImpersonation;
 use App\Http\Middleware\EnsureTenantIsWritable;
 use App\Http\Middleware\RequireSetupFirst;
 use App\Http\Middleware\ResolveTenant;
@@ -348,6 +349,12 @@ class AppPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
+                // The sixty minutes, enforced before anything reads the session
+                // as live (TEN-7, SAA-2). Straight after `Authenticate` and
+                // before the tenant is resolved: an expired impersonation has
+                // to end rather than go on to resolve an operator and render
+                // their panel to somebody whose hour is up.
+                EndExpiredImpersonation::class,
                 // After authentication, so the session user exists to resolve from.
                 ResolveTenant::class,
                 EnsureTenantIsWritable::class,

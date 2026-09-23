@@ -162,4 +162,43 @@ return [
         'invited' => 'An invitation has been sent to the owner to set their password.',
     ],
 
+    /*
+     * «Sign in as» — TEN-7, SAA-2 (2026-09-23).
+     *
+     * The wording says the two things an administrator has to know before
+     * pressing it: that everything they do will look like the operator's own
+     * work, and that it is written into the **operator's** log — so they will
+     * see it.
+     */
+    'impersonation' => [
+        'action' => [
+            'label' => 'Sign in as',
+            'heading' => 'Sign in to the operator\'s account',
+            'description' => 'You will work as this person for :minutes minutes, with full access. Anything you change is written into the operator\'s log with your name and the reason you give — and the operator can read it.',
+            'submit' => 'Sign in',
+            'user' => [
+                'label' => 'As whom',
+                'help' => 'Their role decides what you can do: crew see neither the catalogue nor the prices.',
+            ],
+            'reason' => [
+                'label' => 'Why',
+                'help' => 'One sentence, for the log. E.g. "Reported that the sunset trip will not quote a price".',
+            ],
+        ],
+
+        'banner' => [
+            'viewing' => 'You are signed in as :name',
+            'as' => '· really :admin',
+            'minutes' => '{0} ending now|{1} 1 minute left|[2,*] :count minutes left',
+            'stop' => 'Leave',
+        ],
+
+        'refused' => [
+            'not_permitted' => 'Only a platform administrator can sign in as an operator.',
+            'wrong_tenant' => 'That person belongs to a different operator.',
+            'no_reason' => 'Give the reason. It is written into the operator\'s log.',
+            'yourself' => 'You are already signed in as yourself.',
+        ],
+    ],
+
 ];
