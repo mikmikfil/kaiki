@@ -372,16 +372,16 @@
     </div>
     <div class="total">
       <dt>Measured so far</dt>
-      <dd>~194<span class="unit">hours</span></dd>
+      <dd>~196<span class="unit">hours</span></dd>
     </div>
     <div class="total">
       <dt>Remaining</dt>
-      <dd>24–32<span class="unit">hours</span></dd>
+      <dd>21–28<span class="unit">hours</span></dd>
       <p style="margin:.5rem 0 0; font-size:.78rem; line-height:1.35; color:var(--ink-faint)">Phase 2 sales channels are not in this figure: about 22–35 hours more, plus approvals.</p>
     </div>
     <div class="total">
       <dt>At 4 hours a day, 5 days a week</dt>
-      <dd>~1¼–1½<span class="unit">weeks</span></dd>
+      <dd>~1–1½<span class="unit">weeks</span></dd>
     </div>
   </dl>
 
@@ -797,8 +797,8 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
       <span class="chev" aria-hidden="true"></span>
       <span class="m-code">&mdash;</span>
       <span class="m-title">Μένουν από τον γύρο της 16–17 Σεπτεμβρίου και τη Φάση 1</span>
-      <span class="pill est">6 μένουν &middot; 3 έγιναν</span>
-      <span class="m-days">~6–7 <span class="unit">h + εξωτερικά</span></span>
+      <span class="pill est">5 μένουν &middot; 4 έγιναν</span>
+      <span class="m-days">~3 <span class="unit">h + εξωτερικά</span></span>
     </summary>
     <div class="weight"><span style="width:35%"></span></div>
     <div class="m-body">
@@ -811,7 +811,7 @@ Every band opens — click one for its task list. <strong>M7 is next</strong>, a
         <li><span class="k">&mdash;</span><span class="t">Οι πραγματικοί συντελεστές ΦΠΑ από τον λογιστή</span><span class="h">&mdash;</span><span class="d">Εξωτερικό: μπαίνουν στο <code>/admin</code> όταν έρθουν. Σήμερα υπάρχει προσωρινή τιμή.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Δικηγόρος για την κατάσταση επιβατών και το ναυλοσύμφωνο</span><span class="h">&mdash;</span><span class="d">Εξωτερικό.</span></li>
         <li><span class="k">&mdash;</span><span class="t">Το MySQL schema snapshot, ξανά</span><span class="h">0.25h</span><span class="d">Δύο νέα migrations στις 23 Σεπτεμβρίου. Ξαναπαράγεται από το CI (<code>docs/ci.md</code>) &mdash; τοπικά δεν υπάρχει MySQL 8.</span></li>
-        <li><span class="k">&mdash;</span><span class="t">Stress test &mdash; κάθε διαδρομή &times; κάθε ρόλος, πάνω σε «βρόμικο» λογαριασμό</span><span class="h">3–4h</span><span class="d">Ποτέ 500, ποτέ διαρροή ανάμεσα σε λογαριασμούς. Ο λογαριασμός με τα μισοτελειωμένα: εκδρομή χωρίς τιμή, τιμή χωρίς ηλικίες, σκάφος χωρίς λιμάνι, ληγμένη δέσμευση θέσεων, εκδρομή στον κάδο με ζωντανό τιμοκατάλογο. Ξεκίνησε στις 23 Σεπτεμβρίου.</span></li>
+        <li class="is-done"><span class="k tick">&#10003;</span><span class="t">Stress test &mdash; κάθε διαδρομή &times; κάθε ρόλος, πάνω σε «βρόμικο» λογαριασμό</span><span class="h">1.5h</span><span class="d">Παραδόθηκε στις 23 Σεπτεμβρίου (<code>d98784b</code>) και μένει ως τεστ. 598 αιτήματα: κάθε σελίδα του <code>/app</code> ως ιδιοκτήτης, διαχειριστής και πλήρωμα, το <code>/admin</code>, οι σελίδες του επισκέπτη και το API. <strong>Κανένα 500, καμία διαρροή.</strong> Βρήκε όμως τρία πράγματα: ακυρωμένη κράτηση κατέβαζε ακόμη το εισιτήριό της· απλήρωτη κράτηση είχε εισιτήριο και QR· και το API έλεγε «η διεύθυνση δεν υπάρχει» για εκδρομή που δεν βρέθηκε. Και η αιτία του τεστ που αποτύγχανε μία φορά στις δεκαπέντε: σκάφη των 8 θέσεων στα δεδομένα των τεστ.</span></li>
       </ul>
     </div>
   </details>
