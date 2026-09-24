@@ -131,9 +131,9 @@
            sliver; 78 gave three narrow ones and a 22rem aside that had to be
            argued with. Prose keeps its own measure below — widening the page is
            not the same as widening the paragraph. */
-        /* 1450px of content, the gutters on top (Mike, 2026-09-24: «πήγαινε στα
-           1450 το content width»; it was 86rem, then 92). */
-        .wrap { max-width: calc(1450px + 5rem); margin: 0 auto; padding: 0 clamp(1.25rem, 3vw, 2.5rem); }
+        /* 1400px of content, the gutters on top (Mike, 2026-09-24; it was 86rem,
+           then 92, then 1450px). Every hosted page shares it. */
+        .wrap { max-width: calc(1400px + 5rem); margin: 0 auto; padding: 0 clamp(1.25rem, 3vw, 2.5rem); }
 
         /* The reading measure, for blocks that are words rather than layout. */
         .prose, .standfirst { max-width: 44rem; }
@@ -994,7 +994,7 @@
                it is the form that decides the floor. */
             --hero-measure: min(56rem, 100%);
             width: 100%;
-            max-width: calc(1450px + 5rem);
+            max-width: calc(1400px + 5rem);
             margin: 0 auto;
             padding: 3.5rem clamp(1.25rem, 3vw, 2.5rem);
             position: relative;
@@ -2773,7 +2773,7 @@
             position: relative; z-index: 2;
             /* The page column's own width and gutters (`.wrap`), so the words
                and the card line up with the trips below them. */
-            inline-size: 100%; max-width: calc(1450px + 5rem); margin: 0 auto;
+            inline-size: 100%; max-width: calc(1400px + 5rem); margin: 0 auto;
             padding: clamp(3rem, 7vw, 5.5rem) clamp(1.25rem, 3vw, 2.5rem);
             display: grid; gap: clamp(2rem, 4vw, 3.5rem); align-items: center;
         }
@@ -3409,10 +3409,14 @@
            way with an ellipsis rather than wrapping under it. The full text is
            still there for a screen reader.
            ================================================================== */
-        li.trip .facts { display: flex; flex-wrap: nowrap; align-items: center; gap: .9rem; white-space: nowrap; min-width: 0; overflow: hidden; }
-        li.trip .facts span { flex: none; }
-        li.trip .facts span:nth-child(2) { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; }
-        li.trip .facts span:nth-child(2) .icon { display: inline-block; vertical-align: -.15em; margin-inline-end: .45rem; }
+        /* Three facts now (duration, port, boat), closer together (Mike, 24/9):
+           the boat gives way first, then the port, each with an ellipsis. */
+        li.trip .facts { display: flex; flex-wrap: nowrap; align-items: center; gap: .65rem; white-space: nowrap; min-width: 0; overflow: hidden; }
+        li.trip .facts span { flex: none; gap: .3rem; }
+        li.trip .facts .fact-port, li.trip .facts .fact-boat { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        li.trip .facts .fact-port { flex: 0 1 auto; }
+        li.trip .facts .fact-boat { flex: 0 3 auto; }
+        li.trip .facts .fact-port .icon, li.trip .facts .fact-boat .icon { display: inline-block; vertical-align: -.15em; margin-inline-end: .3rem; }
 
         /* ==================================================================
            The trip card's foot (Mike, 2026-09-24, from the first home mockup):
