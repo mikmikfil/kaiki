@@ -8,6 +8,7 @@ use App\Domain\Catalog\Actions\SaveCancellationPolicy;
 use App\Domain\Catalog\Support\ProductPublishChecklist;
 use App\Domain\Catalog\Support\TripPageContent;
 use App\Domain\Hosted\Support\HostedUrl;
+use App\Enums\AgeBandKind;
 use App\Enums\AgeBandPricing;
 use App\Enums\BookingMode;
 use App\Enums\ProductCategory;
@@ -45,6 +46,7 @@ use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Components\View as ViewField;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
@@ -572,20 +574,33 @@ class ProductResource extends Resource
                                 maxLength: 60,
                             ),
 
+                            // By age («Παιδί», 3 έως 11) or by status («ΑμεΑ»,
+                            // «Φοιτητής»), product owner 2026-09-24. A status
+                            // group has no ages, and may ask for proof instead.
+                            ToggleButtons::make('kind')
+                                ->label(__('catalog.product.form.bands.kind.label'))
+                                ->options(AgeBandKind::class)
+                                ->default(AgeBandKind::Age->value)
+                                ->inline()
+                                ->grouped()
+                                ->live(),
+
                             TextInput::make('min_age')
                                 ->label(__('catalog.product.form.bands.min_age.label'))
                                 ->integer()
                                 ->required()
                                 ->default(0)
                                 ->minValue(0)
-                                ->maxValue(120),
+                                ->maxValue(120)
+                                ->visible(static fn (Get $get): bool => ! static::bandIsByStatus($get('kind'))),
 
                             TextInput::make('max_age')
                                 ->label(__('catalog.product.form.bands.max_age.label'))
                                 ->helperText(__('catalog.product.form.bands.max_age.help'))
                                 ->integer()
                                 ->minValue(0)
-                                ->maxValue(120),
+                                ->maxValue(120)
+                                ->visible(static fn (Get $get): bool => ! static::bandIsByStatus($get('kind'))),
 
                             // No «ποσοστό της βασικής» any more (product owner,
                             // 2026-09-17): every band's price is euros, typed in
@@ -617,6 +632,16 @@ class ProductResource extends Resource
                                 Toggle::make('no_document')
                                     ->label(__('catalog.product.form.bands.no_document.label'))
                                     ->helperText(__('catalog.product.form.bands.no_document.help')),
+
+                                // What stands in for an age check: the crew see
+                                // the card at boarding, told so on the boarding
+                                // list. No card number is asked
+                                // at checkout (Mike, 2026-09-24: it proves
+                                // nothing online and is data we would keep).
+                                Toggle::make('requires_proof')
+                                    ->label(__('catalog.product.form.bands.requires_proof.label'))
+                                    ->helperText(__('catalog.product.form.bands.requires_proof.help'))
+                                    ->visible(static fn (Get $get): bool => static::bandIsByStatus($get('kind'))),
                             ])
                                 ->columns(['default' => 1, 'md' => 2])
                                 ->columnSpanFull()
@@ -639,7 +664,7 @@ class ProductResource extends Resource
                         // operator edits, removes or adds to — e.g. ΑΜΕΑ, which
                         // may share ages with «Ενήλικας» (2026-09-17).
                         ->default(static::defaultAgeBands(...))
-                        ->columns(['default' => 1, 'md' => 3])
+                        ->columns(['default' => 1, 'md' => 2, 'xl' => 4])
                         ->columnSpanFull(),
                 ]),
 
@@ -674,15 +699,32 @@ class ProductResource extends Resource
                 ],
             )
                 ->key('trip-rate-plans')
-                ->visible(static fn (?Product $record): bool => $record instanceof Product
+                // Per seat, the price lists are gone from the trip (product
+                // owner, 2026-09-24): periods are ticked below and the terms
+                // are set once. A whole-boat charter still prices here — it has
+                // no groups for a table to have rows.
+                ->visible(static fn (?Product $record, Get $get): bool => $record instanceof Product
                     && $record->exists
+                    && static::modeOf($get) !== BookingMode::PerSeat
                     && RatePlansRelationManager::canViewForRecord($record, Pages\EditProduct::class))
                 ->columnSpanFull(),
 
-            // Every band, every period, in euros (product owner, 2026-09-17).
-            // The table prices saved bands, so on a trip being created the
-            // section is there but says, in one line, that it appears after
-            // the first save: a missing section reads as "no prices here".
+            // «Περίοδοι»: the operator's periods, ticked for this trip, and
+            // «Νέα περίοδος» without leaving it (2026-09-24).
+            Section::make(__('pricing.periods.heading'))
+                ->icon('heroicon-o-calendar-days')
+                ->description(__('pricing.periods.intro'))
+                ->visible(static fn (Get $get, mixed $livewire): bool => $livewire instanceof Pages\EditProduct
+                    && static::modeOf($get) === BookingMode::PerSeat)
+                ->schema([
+                    ViewField::make('filament.app.product-price-periods'),
+                ]),
+
+            // Every group, every ticked period, in euros (product owner,
+            // 2026-09-17). The table prices saved groups, so on a trip being
+            // created the section is there but says, in one line, that it
+            // appears after the first save: a missing section reads as "no
+            // prices here".
             Section::make(__('pricing.price_table.heading'))
                 ->icon('heroicon-o-currency-euro')
                 // The create page lands here after «Συνέχεια στις τιμές».
@@ -696,6 +738,17 @@ class ProductResource extends Resource
                         ->visible(static fn (mixed $livewire): bool => ! $livewire instanceof Pages\EditProduct),
                     ViewField::make('filament.app.product-price-table')
                         ->visible(static fn (mixed $livewire): bool => $livewire instanceof Pages\EditProduct),
+                ]),
+
+            // «Προκαταβολή και προθεσμίες», once for the trip; a period that
+            // differs says so from the «⋯» on its column (2026-09-24).
+            Section::make(__('pricing.periods.terms.section'))
+                ->icon('heroicon-o-banknotes')
+                ->description(__('pricing.periods.terms.intro'))
+                ->visible(static fn (Get $get, mixed $livewire): bool => $livewire instanceof Pages\EditProduct
+                    && static::modeOf($get) === BookingMode::PerSeat)
+                ->schema([
+                    ViewField::make('filament.app.product-price-terms'),
                 ]),
 
             // «Πρόσθετα» (2026-09-17), beside the prices rather than in a tab of
@@ -1496,6 +1549,12 @@ class ProductResource extends Resource
             ->all();
     }
 
+    /** The form's `kind` value, as a string from the browser or an enum from a fill. */
+    public static function bandIsByStatus(mixed $kind): bool
+    {
+        return $kind === AgeBandKind::Status || $kind === AgeBandKind::Status->value;
+    }
+
     /**
      * A closed band's row: «Παιδί · 3 έως 11 ετών · δεν πιάνει θέση».
      *
@@ -1518,12 +1577,19 @@ class ProductResource extends Resource
         $min = is_numeric($state['min_age'] ?? null) ? (int) $state['min_age'] : 0;
         $max = is_numeric($state['max_age'] ?? null) ? (int) $state['max_age'] : null;
 
-        $parts = [
-            $name,
-            $max === null
+        $parts = [$name];
+
+        if (static::bandIsByStatus($state['kind'] ?? null)) {
+            $parts[] = __('catalog.product.form.bands.summary.by_status');
+
+            if ((bool) ($state['requires_proof'] ?? false)) {
+                $parts[] = __('catalog.product.form.bands.summary.proof');
+            }
+        } else {
+            $parts[] = $max === null
                 ? __('pricing.price_table.ages_from', ['min' => $min])
-                : __('pricing.price_table.ages_between', ['min' => $min, 'max' => $max]),
-        ];
+                : __('pricing.price_table.ages_between', ['min' => $min, 'max' => $max]);
+        }
 
         if ((bool) ($state['is_base'] ?? false)) {
             $parts[] = __('pricing.price_table.base');

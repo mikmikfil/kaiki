@@ -52,6 +52,7 @@ return [
     'guest' => [
         'unnamed' => 'Name not supplied yet',
         'checked_in_at' => 'Aboard at :time',
+        'proof' => 'Ask for proof: :group',
         'no_show' => 'No-show',
     ],
 

@@ -114,6 +114,11 @@ return [
         'free' => ['label' => 'Δωρεάν'],
     ],
 
+    'age_band_kind' => [
+        'age' => ['label' => 'Με ηλικία'],
+        'status' => ['label' => 'Με ιδιότητα'],
+    ],
+
     'age_band_pricing' => [
         'multiplier' => ['label' => 'Ποσοστό της βασικής τιμής'],
         'fixed' => ['label' => 'Δική της τιμή'],

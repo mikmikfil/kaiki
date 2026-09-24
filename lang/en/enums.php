@@ -125,6 +125,11 @@ return [
         'free' => ['label' => 'Free'],
     ],
 
+    'age_band_kind' => [
+        'age' => ['label' => 'By age'],
+        'status' => ['label' => 'By status'],
+    ],
+
     'age_band_pricing' => [
         'multiplier' => ['label' => 'Share of the base price'],
         'fixed' => ['label' => 'Its own price'],
