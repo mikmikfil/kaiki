@@ -22,6 +22,8 @@ return [
     ],
 
     'form' => [
+        'specialty' => ['label' => 'Specialty', 'help' => 'What they do on the boat. A departure’s «Captain» list offers the captains.'],
+        'phone' => ['label' => 'Mobile', 'help' => 'Optional. For you to call them.'],
         'name' => ['label' => 'Full name'],
         'salutation' => [
             'label' => 'What the platform calls them',
@@ -29,7 +31,7 @@ return [
         ],
         'email' => [
             'label' => 'Email',
-            'help' => 'Where the invitation goes, and what they sign in with. It cannot be changed later.',
+            'help' => 'Optional. With an email they get an invitation to sign in and notices about their schedules. Without one they appear on the lists but do not sign in.',
         ],
         'locale' => [
             'label' => 'Language',
@@ -42,6 +44,8 @@ return [
     ],
 
     'table' => [
+        'offline' => 'No sign-in',
+        'specialty' => 'Specialty',
         'name' => 'Name',
         'email' => 'Email',
         'roles' => 'Role',
@@ -57,6 +61,8 @@ return [
 
     'actions' => [
         'invite' => [
+            'done_offline' => ':name was added to the team, without sign-in.',
+            'done_offline_body' => 'They appear in the captain and crew lists. Add an email later and they get an invitation.',
             'label' => 'Invite',
             'heading' => 'Invite to the team',
             'description' => 'They will get an email with a link to choose their own password. You do not set one for them.',

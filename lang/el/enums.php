@@ -124,6 +124,12 @@ return [
         'professional_pleasure' => ['label' => 'Επαγγελματικό πλοίο αναψυχής'],
     ],
 
+    'crew_specialty' => [
+        'captain' => ['label' => 'Κυβερνήτης'],
+        'deckhand' => ['label' => 'Ναύτης'],
+        'other' => ['label' => 'Άλλο'],
+    ],
+
     'age_band_kind' => [
         'age' => ['label' => 'Με ηλικία'],
         'status' => ['label' => 'Με ιδιότητα'],

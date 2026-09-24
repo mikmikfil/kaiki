@@ -10,6 +10,7 @@ use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\CancelDeparture;
 use App\Domain\Operations\Support\WeatherCancellationPreview;
 use App\Enums\BookingMode;
+use App\Enums\CrewSpecialty;
 use App\Enums\DepartureCancelReason;
 use App\Enums\DepartureStatus;
 use App\Enums\WeatherChoice;
@@ -108,7 +109,7 @@ class DepartureResource extends Resource
      *
      * @return array<int, string>
      */
-    public static function peopleOptions(): array
+    public static function peopleOptions(bool $captainsOnly = false): array
     {
         $tenant = Tenancy::current();
 
@@ -116,10 +117,25 @@ class DepartureResource extends Resource
             return [];
         }
 
-        return User::query()
+        $people = User::query()
             ->where('tenant_id', $tenant->getKey())
             ->orderBy('name')
-            ->pluck('name', 'id')
+            ->get(['id', 'name', 'email', 'specialty']);
+
+        // Only the captains, once anybody is marked as one (2026-09-24). Until
+        // then everybody, so a team set up before «Ειδικότητα» existed is not
+        // left with an empty list.
+        if ($captainsOnly && $people->contains(static fn (User $user): bool => $user->specialty === CrewSpecialty::Captain)) {
+            $people = $people->filter(static fn (User $user): bool => $user->specialty === CrewSpecialty::Captain);
+        }
+
+        // «χωρίς email»: nobody will tell them but you.
+        return $people
+            ->mapWithKeys(static fn (User $user): array => [
+                (int) $user->getKey() => blank($user->email)
+                    ? $user->name . ' · ' . __('availability.departure.crew.no_email')
+                    : $user->name,
+            ])
             ->all();
     }
 
@@ -202,7 +218,7 @@ class DepartureResource extends Resource
                         ->helperText(static fn (?Departure $record): string => __('availability.departure.crew.captain.help', [
                             'boat' => (string) ($record?->vessel->captain_name ?? '—'),
                         ]))
-                        ->options(static fn (): array => static::peopleOptions())
+                        ->options(static fn (): array => static::peopleOptions(captainsOnly: true))
                         ->searchable()
                         ->live(),
 

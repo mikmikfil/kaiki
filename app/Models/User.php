@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\CrewSpecialty;
 use App\Enums\Role;
 use App\Models\Concerns\HasUuid;
 use App\Support\Authorization\Capability;
@@ -36,7 +37,8 @@ use Illuminate\Notifications\Notifiable;
  * @property string $uuid
  * @property int|null $tenant_id
  * @property string $name
- * @property string $email
+ * @property string|null $email null for «Χωρίς σύνδεση»: crew who never sign in (2026-09-24)
+ * @property CrewSpecialty|null $specialty what they do on the boat
  * @property string|null $locale
  * @property bool $is_super_admin
  */
@@ -70,6 +72,7 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
             'two_factor_secret' => 'encrypted',
             'two_factor_recovery_codes' => 'encrypted',
             'is_super_admin' => 'boolean',
+            'specialty' => CrewSpecialty::class,
         ];
     }
 

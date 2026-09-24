@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 use App\Domain\Availability\Actions\AssignDepartureCrew;
 use App\Domain\Operations\Support\Manifest;
+use App\Domain\Tenancy\Actions\InviteStaffMember;
 use App\Enums\ManifestColumn;
 use App\Enums\Role;
+use App\Mail\CrewAssignedMail;
 use App\Models\Departure;
 use App\Models\Tenant;
 use App\Models\Vessel;
 use App\Support\Tenancy;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 use Tests\Support\OperatorUser;
 
@@ -67,4 +70,61 @@ it('refuses somebody from another operator', function (): void {
 
         expect($departure->refresh()->captain_user_id)->toBeNull();
     });
+})->group('fast');
+
+it('refuses the same person on two departures at the same time', function (): void {
+    // Mike, 2026-09-24: «not allowed».
+    $captain = OperatorUser::withRole(Role::Crew);
+    $tenant = Tenant::query()->findOrFail($captain->tenant_id);
+
+    Tenancy::forTenant($tenant, function () use ($captain): void {
+        $morning = Departure::factory()->at('2026-07-09', '09:00', 240)->create();
+        $clash = Departure::factory()->at('2026-07-09', '11:00', 120)->create();
+        $later = Departure::factory()->at('2026-07-09', '15:00', 120)->create();
+
+        app(AssignDepartureCrew::class)($morning, $captain->getKey(), null, []);
+
+        expect(fn () => app(AssignDepartureCrew::class)($clash, null, null, [$captain->getKey()]))
+            ->toThrow(ValidationException::class);
+
+        app(AssignDepartureCrew::class)($later, $captain->getKey(), null, []);
+
+        expect($later->refresh()->captain_user_id)->toBe((int) $captain->getKey());
+    });
+})->group('fast');
+
+it('emails whoever is newly added, once, and nobody without an email', function (): void {
+    Mail::fake();
+
+    $captain = OperatorUser::withRole(Role::Crew);
+    $offline = OperatorUser::withRole(Role::Crew, $captain->tenant);
+    $offline->forceFill(['email' => null])->save();
+    $tenant = Tenant::query()->findOrFail($captain->tenant_id);
+
+    Tenancy::forTenant($tenant, function () use ($captain, $offline): void {
+        $departure = Departure::factory()->at('2026-07-09', '09:00')->create();
+
+        app(AssignDepartureCrew::class)($departure, $captain->getKey(), null, [$offline->getKey()]);
+        app(AssignDepartureCrew::class)($departure->refresh(), $captain->getKey(), null, [$offline->getKey()]);
+    });
+
+    Mail::assertQueued(CrewAssignedMail::class, 1);
+    Mail::assertQueued(CrewAssignedMail::class, fn ($mail): bool => $mail->asCaptain && $mail->member->is($captain));
+})->group('fast');
+
+it('adds a person with no email to the team without inviting them', function (): void {
+    // «Not everyone uses email» (Mike, 2026-09-24).
+    Mail::fake();
+
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    Tenancy::forTenant(Tenant::query()->findOrFail($owner->tenant_id), function () use ($owner): void {
+        $person = app(InviteStaffMember::class)('Σταύρος Ναύτης', null, [Role::Crew], $owner);
+
+        expect($person->email)->toBeNull()
+            ->and($person->hasRole(Role::Crew))->toBeTrue();
+    });
+
+    Mail::assertNothingSent();
+    Mail::assertNothingQueued();
 })->group('fast');

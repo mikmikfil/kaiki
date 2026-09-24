@@ -135,6 +135,12 @@ return [
         'professional_pleasure' => ['label' => 'Professional pleasure boat'],
     ],
 
+    'crew_specialty' => [
+        'captain' => ['label' => 'Captain'],
+        'deckhand' => ['label' => 'Deckhand'],
+        'other' => ['label' => 'Other'],
+    ],
+
     'age_band_kind' => [
         'age' => ['label' => 'By age'],
         'status' => ['label' => 'By status'],

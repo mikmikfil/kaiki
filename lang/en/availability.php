@@ -203,10 +203,20 @@ return [
 
         'crew' => [
             'intro' => 'Who takes her out today. Printed on the passenger list.',
+            'no_email' => 'no email · tell them yourself',
             'captain' => ['label' => 'Captain', 'help' => 'Empty: the boat’s usual captain (:boat).'],
             'captain_name' => ['label' => 'Or the captain’s name', 'help' => 'If they have no Kaiki account.'],
             'members' => ['label' => 'Crew', 'help' => 'Those of your people sailing with it.'],
-            'validation' => ['not_ours' => 'Someone you chose does not belong to your business.'],
+            'validation' => ['not_ours' => 'Someone you chose does not belong to your business.', 'overlap' => ':name is already on «:trip» (:boat, :time), at the same time.'],
+            'mail' => [
+                'subject' => 'You are on the crew: :date, :time',
+                'subject_captain' => 'You are the captain: :date, :time',
+                'heading' => 'You are on the crew',
+                'heading_captain' => 'You are the captain',
+                'body' => 'Hello :name, :operator has put you on the crew of «:trip» with :boat, :date at :time. Captain: :captain.',
+                'body_captain' => 'Hello :name, :operator has made you the captain of «:trip» with :boat, :date at :time.',
+                'action' => 'Open the departure',
+            ],
         ],
         'sections' => [
             'crew' => 'Captain and crew',
