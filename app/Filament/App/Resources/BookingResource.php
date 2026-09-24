@@ -115,6 +115,7 @@ class BookingResource extends Resource
     {
         return $form->schema([
             Section::make(__('bookings.form.trip.heading'))
+                ->icon('heroicon-o-map')
                 ->schema([
                     Select::make('product_id')
                         ->label(__('bookings.form.trip.product'))
@@ -166,6 +167,7 @@ class BookingResource extends Resource
                 ->columns(2),
 
             Section::make(__('bookings.form.guest.heading'))
+                ->icon('heroicon-o-user')
                 ->schema([
                     TextInput::make('guest_name')
                         ->label(__('bookings.form.guest.name'))
@@ -189,6 +191,7 @@ class BookingResource extends Resource
                 ->columns(2),
 
             Section::make(__('bookings.form.price.heading'))
+                ->icon('heroicon-o-currency-euro')
                 ->description(__('bookings.form.price.help'))
                 ->schema([
                     TextInput::make('discount_cents')
@@ -219,6 +222,7 @@ class BookingResource extends Resource
                 ->visible(fn (): bool => auth()->user()?->hasCapability(Capability::ManagePricing) ?? false),
 
             Section::make(__('bookings.form.settle.heading'))
+                ->icon('heroicon-o-banknotes')
                 ->schema([
                     Select::make('paid_by')
                         ->label(__('bookings.form.settle.method'))

@@ -103,6 +103,7 @@ class SearchSettings extends Page implements HasForms
     {
         return $form->schema([
             Section::make(__('search_settings.sections.filters'))
+                ->icon('heroicon-o-funnel')
                 ->description(__('search_settings.sections.filters_help'))
                 ->schema($this->toggles())
                 ->columns(2),

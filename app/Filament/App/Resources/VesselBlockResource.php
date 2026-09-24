@@ -94,6 +94,7 @@ class VesselBlockResource extends Resource
     {
         return [
             Section::make(__('availability.block.sections.what'))
+                ->icon('heroicon-o-no-symbol')
                 ->schema([
                     Select::make('vessel_id')
                         ->label(__('availability.block.form.vessel.label'))
@@ -119,6 +120,7 @@ class VesselBlockResource extends Resource
                 ->columns(2),
 
             Section::make(__('availability.block.sections.when'))
+                ->icon('heroicon-o-clock')
                 ->schema([
                     Toggle::make('is_all_day')
                         ->label(__('availability.block.form.is_all_day.label'))

@@ -119,6 +119,7 @@ class QuoteResource extends Resource
     {
         return [
             Section::make(__('quotes.quote.sections.lines'))
+                ->icon('heroicon-o-list-bullet')
                 ->schema([
                     Repeater::make('lineItems')
                         ->relationship()
@@ -170,6 +171,7 @@ class QuoteResource extends Resource
                 ]),
 
             Section::make(__('quotes.quote.sections.terms'))
+                ->icon('heroicon-o-document-check')
                 ->schema([
                     DateTimePicker::make('valid_until')
                         ->label(__('quotes.quote.form.valid_until.label'))

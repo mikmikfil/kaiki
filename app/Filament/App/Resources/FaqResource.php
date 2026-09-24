@@ -59,6 +59,8 @@ class FaqResource extends Resource
 {
     protected static ?string $model = Faq::class;
 
+    protected static ?string $recordTitleAttribute = 'question';
+
     protected static ?string $navigationIcon = 'heroicon-o-question-mark-circle';
 
     /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
@@ -96,6 +98,7 @@ class FaqResource extends Resource
     {
         return [
             Section::make(__('faq.sections.entry'))
+                ->icon('heroicon-o-question-mark-circle')
                 ->schema([
                     TranslatableInput::text(
                         'question',
@@ -117,6 +120,7 @@ class FaqResource extends Resource
                 ]),
 
             Section::make(__('faq.sections.where'))
+                ->icon('heroicon-o-map-pin')
                 ->schema([
                     // Null is the default and the common case. The placeholder
                     // says what null means in the operator's own terms, because

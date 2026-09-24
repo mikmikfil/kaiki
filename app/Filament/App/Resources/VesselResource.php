@@ -55,6 +55,8 @@ class VesselResource extends Resource
 {
     protected static ?string $model = Vessel::class;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     /**
      * The uploader's own field, mapped to the `images` column it stores into
      * ({@see GalleryField}). Named apart from the column because the two are
@@ -115,6 +117,7 @@ class VesselResource extends Resource
     {
         return [
             Section::make(__('catalog.vessel.sections.identity'))
+                ->icon('heroicon-o-identification')
                 ->schema([
                     TextInput::make('name')
                         ->label(__('catalog.vessel.form.name.label'))
@@ -178,6 +181,7 @@ class VesselResource extends Resource
                 ->columns(2),
 
             Section::make(__('catalog.vessel.sections.capacity'))
+                ->icon('heroicon-o-user-group')
                 ->schema([
                     TextInput::make('capacity_max')
                         ->label(__('catalog.vessel.form.capacity_max.label'))
@@ -221,6 +225,7 @@ class VesselResource extends Resource
                 ->columns(2),
 
             Section::make(__('catalog.vessel.sections.operations'))
+                ->icon('heroicon-o-wrench-screwdriver')
                 ->schema([
                     Select::make('home_port_id')
                         ->label(__('catalog.vessel.form.home_port.label'))
@@ -302,6 +307,7 @@ class VesselResource extends Resource
                 ->columns(2),
 
             Section::make(__('catalog.vessel.sections.specs'))
+                ->icon('heroicon-o-clipboard-document-list')
                 ->schema([
                     // The §3.9 key list. Unknown keys already in the column are
                     // preserved by EditVessel rather than dropped, because §3.9
@@ -351,6 +357,7 @@ class VesselResource extends Resource
                 ->collapsed(),
 
             Section::make(__('catalog.vessel.sections.media'))
+                ->icon('heroicon-o-photo')
                 ->schema([
                     /*
                      * **Ένας uploader, και η πρώτη είναι η κύρια** (Mike,

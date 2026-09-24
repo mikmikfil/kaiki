@@ -110,6 +110,7 @@ class DepartureResource extends Resource
     {
         return [
             Section::make(__('availability.departure.sections.what'))
+                ->icon('heroicon-o-flag')
                 ->schema([
                     Select::make('product_id')
                         ->label(__('availability.departure.form.product.label'))
@@ -156,6 +157,7 @@ class DepartureResource extends Resource
                 ->columns(2),
 
             Section::make(__('availability.departure.sections.seats'))
+                ->icon('heroicon-o-user-group')
                 ->schema([
                     TextInput::make('capacity')
                         ->label(__('availability.departure.form.capacity.label'))
@@ -166,6 +168,7 @@ class DepartureResource extends Resource
                 ]),
 
             Section::make(__('availability.departure.sections.notes'))
+                ->icon('heroicon-o-pencil-square')
                 ->schema([
                     Textarea::make('notes')
                         ->label(__('availability.departure.form.notes.label'))
