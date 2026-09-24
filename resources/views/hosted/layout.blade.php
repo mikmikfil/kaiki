@@ -3724,6 +3724,48 @@
         @keyframes route-fill-dark {
             to { background: var(--kaiki-accent); color: #fff; box-shadow: 0 0 0 6px rgba(255, 255, 255, .08); }
         }
+        /* ==================================================================
+           The story with a photograph, half the screen each (Mike, 2026-09-24,
+           direction Γ of docs/mockups/story-sections.html): the photograph
+           runs to the edge of the screen on its side, the words sit on a soft
+           tint on the other, and two stories in a row touch, so they read as
+           one band that zig-zags. On a phone the photograph goes on top.
+           ================================================================== */
+        .story.has-image {
+            margin-inline: calc(50% - 50vw); gap: 0; align-items: stretch;
+            grid-template-columns: minmax(0, 1fr);
+        }
+        .story.has-image .story-image {
+            inline-size: 100%; block-size: 100%; min-block-size: 18rem; max-block-size: none;
+            aspect-ratio: auto; border-radius: 0; object-fit: cover;
+        }
+        .story.has-image .story-copy {
+            display: flex; flex-direction: column; justify-content: center;
+            padding: clamp(2.5rem, 6vw, 6rem) clamp(1.25rem, 5vw, 5.5rem);
+            background: var(--mist);
+        }
+        .story.has-image.side-right .story-copy { background: var(--sand); }
+        .story.has-image .story-copy > * { max-width: 34rem; }
+        .story.has-image + .story.has-image { margin-block-start: calc(-1 * var(--section-gap)); }
+        @media (min-width: 62rem) {
+            .story.has-image, .story.side-left.has-image { grid-template-columns: 1fr 1fr; min-block-size: 34rem; }
+            .story.has-image .story-image { min-block-size: 34rem; }
+        }
+        @media (max-width: 61.99rem) {
+            .story.has-image .story-image { order: -1; max-block-size: 26rem; }
+        }
+
+        /* A slow Ken Burns on the photographed masthead (Mike, 2026-09-24):
+           up to 8% closer and a little drift, 22 seconds one way and back.
+           Still for reduced motion; a video masthead is left alone. */
+        .hero.has-image { overflow: hidden; }
+        @media (prefers-reduced-motion: no-preference) {
+            .hero.has-image img.hero-image { animation: ken-burns 22s ease-in-out infinite alternate; transform-origin: 60% 45%; will-change: transform; }
+        }
+        @keyframes ken-burns {
+            from { transform: scale(1) translate3d(0, 0, 0); }
+            to   { transform: scale(1.08) translate3d(-1.5%, -1%, 0); }
+        }
     </style>
 
     {{-- The booking bundle, fetched from the first byte of the page.
