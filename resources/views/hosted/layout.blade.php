@@ -131,8 +131,9 @@
            sliver; 78 gave three narrow ones and a 22rem aside that had to be
            argued with. Prose keeps its own measure below — widening the page is
            not the same as widening the paragraph. */
-        /* 92rem, was 86 (Mike, 2026-09-24: «δοκίμασε λίγο μεγαλύτερο content width»). */
-        .wrap { max-width: 92rem; margin: 0 auto; padding: 0 clamp(1.25rem, 3vw, 2.5rem); }
+        /* 1450px of content, the gutters on top (Mike, 2026-09-24: «πήγαινε στα
+           1450 το content width»; it was 86rem, then 92). */
+        .wrap { max-width: calc(1450px + 5rem); margin: 0 auto; padding: 0 clamp(1.25rem, 3vw, 2.5rem); }
 
         /* The reading measure, for blocks that are words rather than layout. */
         .prose, .standfirst { max-width: 44rem; }
@@ -993,7 +994,7 @@
                it is the form that decides the floor. */
             --hero-measure: min(56rem, 100%);
             width: 100%;
-            max-width: 92rem;
+            max-width: calc(1450px + 5rem);
             margin: 0 auto;
             padding: 3.5rem clamp(1.25rem, 3vw, 2.5rem);
             position: relative;
@@ -2772,7 +2773,7 @@
             position: relative; z-index: 2;
             /* The page column's own width and gutters (`.wrap`), so the words
                and the card line up with the trips below them. */
-            inline-size: 100%; max-width: 92rem; margin: 0 auto;
+            inline-size: 100%; max-width: calc(1450px + 5rem); margin: 0 auto;
             padding: clamp(3rem, 7vw, 5.5rem) clamp(1.25rem, 3vw, 2.5rem);
             display: grid; gap: clamp(2rem, 4vw, 3.5rem); align-items: center;
         }
@@ -3108,6 +3109,11 @@
            than two stretched ones. The cards are already equal in height with
            the price row pinned to the bottom (`.trip-foot`). */
         ul.trips, .trips.results { grid-template-columns: repeat(3, minmax(0, 1fr)); justify-content: stretch; }
+        /* Four to a row on a wide screen (Mike, 2026-09-24), three from a
+           tablet up to 80rem. The featured rail keeps its own three. */
+        @media (min-width: 80rem) {
+            ul.trips, .trips.results { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
         /* `ul.` again: the rule above outweighs a bare `.trips-rail`, and a
            rail with three explicit columns squeezed three cards and stretched
            the fourth. */
