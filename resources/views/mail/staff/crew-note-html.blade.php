@@ -1,13 +1,14 @@
 {{--
-    «Είστε στο πλήρωμα», the HTML half — the staff invitation's construction:
-    one centred table, inline styles, no image.
+    A note to the crew, the HTML half — the staff invitation's construction:
+    one centred table, inline styles, no image. Put on a schedule, put on one
+    departure, or the 24-hours-before reminder (2026-09-24).
 --}}
 <!doctype html>
 <html lang="{{ app()->getLocale() }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ __($asCaptain ? 'availability.departure.crew.mail.subject_captain' : 'availability.departure.crew.mail.subject', $facts) }}</title>
+    <title>{{ $heading }}</title>
 </head>
 <body style="margin:0;padding:0;background:#f2f5f7;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f5f7;">
@@ -18,23 +19,19 @@
                 <tr>
                     <td style="padding:20px 24px;border-bottom:3px solid {{ $accent }};
                                font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;color:#14202b;">
-                        {{ $facts['operator'] }}
+                        {{ $operator }}
                     </td>
                 </tr>
                 <tr>
                     <td style="padding:24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#14202b;">
-                        <p style="margin:0 0 14px;font-size:19px;font-weight:bold;">
-                            {{ __($asCaptain ? 'availability.departure.crew.mail.heading_captain' : 'availability.departure.crew.mail.heading', $facts) }}
-                        </p>
-                        <p style="margin:0 0 18px;">
-                            {{ __($asCaptain ? 'availability.departure.crew.mail.body_captain' : 'availability.departure.crew.mail.body', $facts) }}
-                        </p>
+                        <p style="margin:0 0 14px;font-size:19px;font-weight:bold;">{{ $heading }}</p>
+                        <p style="margin:0 0 18px;">{{ $body }}</p>
                         <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 6px;">
                             <tr>
                                 <td style="background:{{ $accent }};">
                                     <a href="{{ $url }}"
                                        style="display:inline-block;padding:12px 20px;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;">
-                                        {{ __('availability.departure.crew.mail.action') }}
+                                        {{ $action }}
                                     </a>
                                 </td>
                             </tr>

@@ -69,6 +69,9 @@ final class AssignDepartureCrew
             'captain_user_id' => $captainUserId,
             'captain_name' => $captainUserId === null && $name !== '' ? $name : null,
             'crew_user_ids' => $crew === [] ? null : $crew,
+            // Changed by hand for this one day: the schedule's crew no longer
+            // reaches it.
+            'crew_from_rule' => false,
         ])->save();
 
         foreach (array_diff($ids, $before) as $newcomer) {

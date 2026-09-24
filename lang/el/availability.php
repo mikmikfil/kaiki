@@ -15,6 +15,18 @@ declare(strict_types=1);
 return [
 
     'schedule_rule' => [
+        'crew' => [
+            'section' => 'Κυβερνήτης και πλήρωμα',
+            'intro' => 'Για όλες τις αναχωρήσεις αυτού του δρομολογίου. Μία μέρα αλλάζει από την ίδια την αναχώρηση.',
+            'overlap' => 'Ο/Η :name είναι ήδη στο «:trip» (:boat, :time) σε μία μέρα που πέφτει την ίδια ώρα.|Ο/Η :name είναι ήδη στο «:trip» (:boat, :time) σε :count μέρες που πέφτουν την ίδια ώρα.',
+            'mail' => [
+                'subject' => 'Είστε στο πλήρωμα: :trip, :days :time',
+                'subject_captain' => 'Είστε ο κυβερνήτης: :trip, :days :time',
+                'body' => 'Γεια σας :name, η :operator σας έβαλε στο πλήρωμα του «:trip», :days στις :time, από :from.',
+                'body_captain' => 'Γεια σας :name, η :operator σας όρισε κυβερνήτη του «:trip», :days στις :time, από :from.',
+                'action' => 'Το ημερολόγιο',
+            ],
+        ],
         'nav' => 'Δρομολόγια',
 
         'model' => [
@@ -215,6 +227,11 @@ return [
                 'body' => 'Γεια σας :name, η :operator σας έβαλε στο πλήρωμα του «:trip» με το :boat, :date στις :time. Κυβερνήτης: :captain.',
                 'body_captain' => 'Γεια σας :name, η :operator σας όρισε κυβερνήτη του «:trip» με το :boat, :date στις :time.',
                 'action' => 'Άνοιγμα αναχώρησης',
+            ],
+            'reminder' => [
+                'subject' => 'Αύριο :time: :trip',
+                'body' => 'Αύριο :date στις :time, «:trip» με το :boat από :port. Κυβερνήτης: :captain. Επιβάτες μέχρι στιγμής: :pax.',
+                'body_captain' => 'Αύριο :date στις :time είστε ο κυβερνήτης στο «:trip» με το :boat από :port. Επιβάτες μέχρι στιγμής: :pax.',
             ],
         ],
         'sections' => [

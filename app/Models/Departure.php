@@ -67,6 +67,8 @@ use Illuminate\Support\Carbon;
  * @property int|null $captain_user_id today's captain, when they have an account
  * @property string|null $captain_name today's captain, typed, when they do not
  * @property list<int>|null $crew_user_ids the operator's people sailing with it
+ * @property bool $crew_from_rule still follows its schedule's crew; false once changed by hand
+ * @property Carbon|null $crew_reminded_at when the 24-hours-before reminder went out
  */
 class Departure extends Model
 {
@@ -104,6 +106,8 @@ class Departure extends Model
             'ends_at_utc' => 'datetime',
             'dst_ambiguous' => 'boolean',
             'crew_user_ids' => 'array',
+            'crew_from_rule' => 'boolean',
+            'crew_reminded_at' => 'datetime',
             'capacity' => 'integer',
             'min_pax' => 'integer',
             'seats_sold' => 'integer',

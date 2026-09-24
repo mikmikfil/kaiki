@@ -193,6 +193,12 @@ final class GenerateDepartures
             'product_id' => $productId,
             'vessel_id' => $vesselId,
             'schedule_rule_id' => $rule->getKey(),
+            // The schedule's captain and crew (2026-09-24), copied like the
+            // capacity: a departure made today carries who sails it.
+            'captain_user_id' => $rule->captain_user_id,
+            'captain_name' => $rule->captain_name,
+            'crew_user_ids' => $rule->crew_user_ids === null || $rule->crew_user_ids === [] ? null : json_encode(array_values($rule->crew_user_ids)),
+            'crew_from_rule' => true,
             'local_date' => LocalDateTimeResolver::localDate($starts, $timezone),
             'local_time' => LocalDateTimeResolver::localTime($starts, $timezone),
             'starts_at_utc' => $starts->toDateTimeString(),

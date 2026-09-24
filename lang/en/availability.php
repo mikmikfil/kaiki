@@ -16,6 +16,18 @@ declare(strict_types=1);
 return [
 
     'schedule_rule' => [
+        'crew' => [
+            'section' => 'Captain and crew',
+            'intro' => 'For every departure of this schedule. One day is changed from the departure itself.',
+            'overlap' => ':name is already on «:trip» (:boat, :time) on one day at the same time.|:name is already on «:trip» (:boat, :time) on :count days at the same time.',
+            'mail' => [
+                'subject' => 'You are on the crew: :trip, :days :time',
+                'subject_captain' => 'You are the captain: :trip, :days :time',
+                'body' => 'Hello :name, :operator has put you on the crew of «:trip», :days at :time, from :from.',
+                'body_captain' => 'Hello :name, :operator has made you the captain of «:trip», :days at :time, from :from.',
+                'action' => 'The calendar',
+            ],
+        ],
         'nav' => 'Schedules',
 
         'model' => [
@@ -216,6 +228,11 @@ return [
                 'body' => 'Hello :name, :operator has put you on the crew of «:trip» with :boat, :date at :time. Captain: :captain.',
                 'body_captain' => 'Hello :name, :operator has made you the captain of «:trip» with :boat, :date at :time.',
                 'action' => 'Open the departure',
+            ],
+            'reminder' => [
+                'subject' => 'Tomorrow :time: :trip',
+                'body' => 'Tomorrow :date at :time, «:trip» with :boat from :port. Captain: :captain. Passengers so far: :pax.',
+                'body_captain' => 'Tomorrow :date at :time you are the captain of «:trip» with :boat from :port. Passengers so far: :pax.',
             ],
         ],
         'sections' => [

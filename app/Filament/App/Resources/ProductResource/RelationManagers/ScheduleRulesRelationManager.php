@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources\ProductResource\RelationManagers;
 
+use App\Domain\Availability\Actions\AssignScheduleCrew;
 use App\Domain\Availability\Support\WeekdayMask;
 use App\Domain\Catalog\Actions\SaveScheduleRule;
 use App\Enums\BookingMode;
+use App\Filament\App\Resources\DepartureResource;
 use App\Filament\App\Resources\ScheduleRuleResource;
 use App\Filament\App\Support\ScheduleConflictNotice;
 use App\Models\Product;
@@ -17,8 +19,10 @@ use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Actions\DeleteAction;
@@ -134,10 +138,39 @@ class ScheduleRulesRelationManager extends RelationManager
             ->collapsible()
             ->collapsed();
 
+        // Who sails it, set once for every departure it makes (Mike,
+        // 2026-09-24). The same fields as a single departure's.
+        $crew = Section::make(__('availability.schedule_rule.crew.section'))
+            ->icon('heroicon-o-user')
+            ->description(__('availability.schedule_rule.crew.intro'))
+            ->schema([
+                Select::make('captain_user_id')
+                    ->label(__('availability.departure.crew.captain.label'))
+                    ->options(static fn (): array => DepartureResource::peopleOptions(captainsOnly: true))
+                    ->searchable()
+                    ->live(),
+
+                TextInput::make('captain_name')
+                    ->label(__('availability.departure.crew.captain_name.label'))
+                    ->helperText(__('availability.departure.crew.captain_name.help'))
+                    ->maxLength(120)
+                    ->visible(static fn (Get $get): bool => blank($get('captain_user_id'))),
+
+                Select::make('crew_user_ids')
+                    ->label(__('availability.departure.crew.members.label'))
+                    ->helperText(__('availability.departure.crew.members.help'))
+                    ->options(static fn (): array => DepartureResource::peopleOptions())
+                    ->multiple()
+                    ->searchable()
+                    ->columnSpanFull(),
+            ])
+            ->columns(2);
+
         return $form->schema([
             Hidden::make('product_id'),
             $when,
             $window,
+            $crew,
             $other,
             $preview,
         ]);
@@ -248,8 +281,15 @@ class ScheduleRulesRelationManager extends RelationManager
             }
         }
 
+        // Captain and crew are theirs to write (2026-09-24), after the rule.
+        $captain = $data['captain_user_id'] ?? null;
+        $captainName = $data['captain_name'] ?? null;
+        $crew = (array) ($data['crew_user_ids'] ?? []);
+        unset($data['captain_user_id'], $data['captain_name'], $data['crew_user_ids']);
+
         try {
             $rule = app(SaveScheduleRule::class)($record, $product, $data);
+            app(AssignScheduleCrew::class)($rule, $captain, $captainName, $crew);
 
             ScheduleConflictNotice::sendFor($rule);
 

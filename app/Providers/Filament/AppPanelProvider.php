@@ -273,6 +273,11 @@ class AppPanelProvider extends PanelProvider
             ->darkModeBrandLogo(fn (): ?string => PlatformBrand::logoUrl(dark: true))
             ->favicon(fn (): string => PlatformBrand::faviconUrl() ?? asset('favicon.svg'))
             ->brandName(config('app.name'))
+            // No global search. Filament switches it on by itself the moment a
+            // resource names its records (`$recordTitleAttribute`, 2026-09-24),
+            // and on a phone the box sat on top of «Μενού» (Mike, same day).
+            // Nobody asked for it; each list has its own search.
+            ->globalSearch(false)
             ->discoverResources(in: app_path('Filament/App/Resources'), for: 'App\\Filament\\App\\Resources')
             ->discoverPages(in: app_path('Filament/App/Pages'), for: 'App\\Filament\\App\\Pages')
             ->discoverWidgets(in: app_path('Filament/App/Widgets'), for: 'App\\Filament\\App\\Widgets')
