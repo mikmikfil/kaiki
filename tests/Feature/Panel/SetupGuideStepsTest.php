@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Domain\Tenancy\Support\SetupChecklist;
 use App\Enums\AuditAction;
+use App\Enums\CrewSpecialty;
 use App\Enums\HomeBlockType;
 use App\Enums\HostedSiteMode;
 use App\Enums\Role;
@@ -66,6 +67,8 @@ it('asks the questions in the order each answer is needed', function (): void {
         SetupChecklist::PORT,
         SetupChecklist::VESSEL,
         SetupChecklist::SEASON,
+        // Second to last (Mike, 2026-09-24).
+        SetupChecklist::CREW,
         SetupChecklist::PRODUCT,
     ])
         ->and(array_keys(SetupChecklist::state()))->toContain(SetupChecklist::VESSEL);
@@ -290,5 +293,28 @@ it('asks for a home page only from the operators who get one', function (): void
             // …and reported as settled rather than outstanding, so the
             // dashboard does not chase them for it.
             ->and(SetupChecklist::state()[SetupChecklist::HOME_PAGE])->toBeTrue();
+    });
+})->group('fast');
+
+it('ticks «Πλήρωμα» once there is a captain or a deckhand, and not for anyone else', function (): void {
+    // Mike, 2026-09-24: crew in the dashboard's list, second to last, not as
+    // a question in the guide.
+    $owner = guideOwner();
+    actingAs($owner);
+
+    Tenancy::forTenant($owner->tenant, function () use ($owner): void {
+        expect(SetupChecklist::questions())->not->toContain(SetupChecklist::CREW)
+            ->and(SetupChecklist::state()[SetupChecklist::CREW])->toBeFalse();
+
+        // The owner alone, and somebody whose specialty is «Άλλο», are not crew.
+        User::factory()->create(['tenant_id' => $owner->tenant_id, 'specialty' => CrewSpecialty::Other]);
+        expect(SetupChecklist::state()[SetupChecklist::CREW])->toBeFalse();
+
+        // Another operator's captain does not count here.
+        User::factory()->create(['tenant_id' => Tenant::factory()->create()->getKey(), 'specialty' => CrewSpecialty::Captain]);
+        expect(SetupChecklist::state()[SetupChecklist::CREW])->toBeFalse();
+
+        User::factory()->create(['tenant_id' => $owner->tenant_id, 'email' => null, 'specialty' => CrewSpecialty::Deckhand]);
+        expect(SetupChecklist::state()[SetupChecklist::CREW])->toBeTrue();
     });
 })->group('fast');

@@ -12,6 +12,8 @@ use App\Models\Port;
 use App\Models\Product;
 use App\Models\Season;
 use App\Models\Tenant;
+use App\Enums\CrewSpecialty;
+use App\Models\User;
 use App\Models\Vessel;
 use App\Observers\TenantObserver;
 use App\Support\Tenancy;
@@ -99,6 +101,16 @@ final class SetupChecklist
      * step says so rather than implying a period is required.
      */
     public const SEASON = 'season';
+
+    /**
+     * The people on the boat (Mike, 2026-09-24): at least one captain or
+     * deckhand in «Ομάδα».
+     *
+     * In the catalogue list, not the guide's questions — Mike: «στη λίστα που
+     * φαίνεται μετά, όχι μαζί με ΦΠΑ και styling», second to last. Just before
+     * the trip, because a departure asks who its captain is.
+     */
+    public const CREW = 'crew';
 
     /** Something to sell on it. Delegated to {@see FirstSteps}. */
     public const PRODUCT = 'product';
@@ -190,6 +202,7 @@ final class SetupChecklist
             self::PORT,
             self::VESSEL,
             self::SEASON,
+            self::CREW,
             self::PRODUCT,
         ];
     }
@@ -253,6 +266,12 @@ final class SetupChecklist
             // an optional step: one query, and one definition of «has this
             // operator set up a period».
             self::SEASON => $catalogue[FirstSteps::SEASON] ?? Season::query()->exists(),
+            // `User` is not tenant-scoped, so the tenant is named here.
+            self::CREW => User::query()
+                ->where('tenant_id', $tenant->getKey())
+                ->where('is_super_admin', false)
+                ->whereIn('specialty', [CrewSpecialty::Captain->value, CrewSpecialty::Deckhand->value])
+                ->exists(),
             self::PRODUCT => $catalogue[FirstSteps::PRODUCT] ?? Product::query()->exists(),
             // **Done when there is a block on the page**, not when the screen
             // has been opened (2026-09-23). A home page an operator looked at

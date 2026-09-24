@@ -121,6 +121,14 @@ return [
             'done' => 'You have already set up a period.',
             'action' => 'Add a period',
         ],
+        'crew' => [
+            'label' => 'Crew',
+            'description' => 'Captains and deckhands',
+            'question' => 'Who is on the boat?',
+            'why' => 'Add your captains and deckhands under «Team». They do not need an email.',
+            'done' => 'You have already added crew.',
+            'action' => 'Add crew',
+        ],
         'product' => [
             'label' => 'Your first trip',
             'description' => 'What you sell on it',
