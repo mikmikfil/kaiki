@@ -3747,6 +3747,10 @@
         .story.has-image.side-right .story-copy { background: var(--sand); }
         .story.has-image .story-copy > * { max-width: 34rem; }
         .story.has-image + .story.has-image { margin-block-start: calc(-1 * var(--section-gap)); }
+        /* An edge-to-edge story and an edge-to-edge band touch, as two bands do:
+           the white gap between them read as a hole (Mike, 24/9). */
+        .story.has-image + .band, .band + .story.has-image,
+        .story.has-image + .steps-route:not(.has-image), .steps-route:not(.has-image) + .story.has-image { margin-block-start: calc(-1 * var(--section-gap)); }
         @media (min-width: 62rem) {
             .story.has-image, .story.side-left.has-image { grid-template-columns: 1fr 1fr; min-block-size: 34rem; }
             .story.has-image .story-image { min-block-size: 34rem; }
