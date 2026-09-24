@@ -3404,6 +3404,17 @@
         .cta-band.has-image .lead { font-size: 1rem; }
 
         /* ==================================================================
+           The card's facts on one line, side by side (Mike, 2026-09-24, point 3
+           of his reference): the duration, then the port and boat, which gives
+           way with an ellipsis rather than wrapping under it. The full text is
+           still there for a screen reader.
+           ================================================================== */
+        li.trip .facts { display: flex; flex-wrap: nowrap; align-items: center; gap: .9rem; white-space: nowrap; min-width: 0; overflow: hidden; }
+        li.trip .facts span { flex: none; }
+        li.trip .facts span:nth-child(2) { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; display: block; }
+        li.trip .facts span:nth-child(2) .icon { display: inline-block; vertical-align: -.15em; margin-inline-end: .45rem; }
+
+        /* ==================================================================
            The trip card's foot (Mike, 2026-09-24, from the first home mockup):
            the price on the left in the accent, what it is for beside it, and a
            round arrow on the right instead of a full-width button.
@@ -3651,6 +3662,8 @@
             background: linear-gradient(155deg, var(--deep) 0%, color-mix(in srgb, var(--deep) 62%, var(--kaiki-primary)) 100%);
         }
         .band-dark > *, .cta-band.has-image > *, .steps-route:not(.has-image) > * { position: relative; z-index: 1; }
+        /* More room above and below (Mike, 24/9), as the steps band has. */
+        .band-dark { padding-block: clamp(4.5rem, 9vw, 7.5rem); }
         .band-dark::before,
         .cta-band.has-image::before,
         .steps-route:not(.has-image)::before {
@@ -3687,7 +3700,7 @@
            the page's column. */
         .steps-route:not(.has-image) {
             margin-inline: calc(50% - 50vw); border-radius: 0;
-            padding-block: clamp(3rem, 7vw, 5.5rem); padding-inline: calc(50vw - 50%);
+            padding-block: clamp(4.5rem, 9vw, 7.5rem); padding-inline: calc(50vw - 50%);
             color: rgba(255, 255, 255, .78);
         }
         .steps-route:not(.has-image) .section-head h2 { color: #fff; }
