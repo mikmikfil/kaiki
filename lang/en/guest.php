@@ -117,6 +117,7 @@ return [
         'payment_failed' => 'The payment did not go through. You were not charged — please try again.',
     ],
     'booking' => [
+        'resume_refused' => 'We could not restart this booking: there are no longer enough seats, or something about the trip has changed. See the other dates on our page.',
         'title' => 'Your booking',
         'when' => 'When',
         'meeting_point' => 'Meeting point',

@@ -15,6 +15,7 @@ use App\Jobs\PurgeExpiredExportsJob;
 use App\Jobs\PurgeGuestDocumentsJob;
 use App\Jobs\Reminders\SendCrewRemindersJob;
 use App\Jobs\Reminders\SendDueRemindersJob;
+use App\Jobs\Reminders\SendPaymentUnfinishedJob;
 use App\Jobs\SendVoucherRemindersJob;
 use App\Jobs\SweepWebhookRetriesJob;
 use App\Models\NotificationLog;
@@ -217,6 +218,20 @@ Schedule::job(new SendCrewRemindersJob)
     ->withoutOverlapping()
     ->onOneServer()
     ->name('crew:reminders');
+
+/*
+|--------------------------------------------------------------------------
+| «Η κράτησή σας για … δεν ολοκληρώθηκε» (2026-09-24)
+|--------------------------------------------------------------------------
+|
+| Once, after an abandoned checkout has expired. Every five minutes, the same
+| beat as the expiry sweep it follows.
+*/
+Schedule::job(new SendPaymentUnfinishedJob)
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('notifications:payment-unfinished');
 
 /*
 |--------------------------------------------------------------------------
