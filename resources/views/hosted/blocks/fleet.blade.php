@@ -57,8 +57,17 @@
                             <p class="boat-licence">{{ $vessel->licence_type->label() }}</p>
                         @endif
 
+                        {{-- Its trips, each straight to its own page: up to three,
+                             and how many more there are. --}}
                         @if ($vessel->trips_on_sale > 0)
-                            <a class="boat-trips" href="{{ route('hosted.search', ['operator' => $tenant->slug, 'vessel' => $vessel->getKey(), 'lang' => $locale]) }}">{{ trans_choice('hosted.about.fleet.trips', $vessel->trips_on_sale, ['count' => $vessel->trips_on_sale]) }} →</a>
+                            <ul class="boat-trips" aria-label="{{ trans_choice('hosted.about.fleet.trips', $vessel->trips_on_sale, ['count' => $vessel->trips_on_sale]) }}">
+                                @foreach ($vessel->trips_list->take(3) as $trip)
+                                    <li><a href="{{ route('hosted.product', ['operator' => $tenant->slug, 'product' => $trip->slug, 'lang' => $locale]) }}">{{ $trip->title }} <span aria-hidden="true">→</span></a></li>
+                                @endforeach
+                                @if ($vessel->trips_on_sale > 3)
+                                    <li class="more">{{ trans_choice('hosted.about.fleet.more', $vessel->trips_on_sale - 3, ['count' => $vessel->trips_on_sale - 3]) }}</li>
+                                @endif
+                            </ul>
                         @endif
                     </div>
                 </article>

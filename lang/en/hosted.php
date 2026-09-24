@@ -318,6 +318,7 @@ return [
             'capacity' => 'People',
             'length' => 'Length',
             'metres' => ':value m',
+            'more' => '{1} and 1 more|[2,*] and :count more',
             'trips' => '{1} 1 trip on this boat|[2,*] :count trips on this boat',
         ],
         'credentials' => [

@@ -260,12 +260,17 @@ class BuildHomePage
      */
     public function vessels(): Collection
     {
+        // The trips on sale that use each boat, in the catalogue's order. The
+        // card links each one straight to its page (2026-09-24): a search link
+        // filtered by boat found nothing when the operator's vessel filter was
+        // off, and it passed the boat's id where the search reads a uuid.
         $trips = Product::query()
             ->where('status', ProductStatus::Active)
             ->whereNotNull('vessel_id')
-            ->selectRaw('vessel_id, count(*) as trips')
-            ->groupBy('vessel_id')
-            ->pluck('trips', 'vessel_id');
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get(['id', 'uuid', 'slug', 'title', 'vessel_id', 'sort_order'])
+            ->groupBy('vessel_id');
 
         return Vessel::query()
             ->where('status', VesselStatus::Active)
@@ -273,7 +278,8 @@ class BuildHomePage
             ->orderBy('id')
             ->get()
             ->each(static function (Vessel $vessel) use ($trips): void {
-                $vessel->setAttribute('trips_on_sale', (int) ($trips[$vessel->getKey()] ?? 0));
+                $vessel->setAttribute('trips_list', $trips->get($vessel->getKey(), collect())->values());
+                $vessel->setAttribute('trips_on_sale', $vessel->getAttribute('trips_list')->count());
                 // Relative, like every other picture on these pages: the panel's host is
                 // not in the hosted page's policy.
                 $vessel->setAttribute('photo_url', HostedAsset::url(is_string($vessel->images[0]['path'] ?? null) ? $vessel->images[0]['path'] : null));

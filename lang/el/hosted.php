@@ -306,6 +306,7 @@ return [
             'capacity' => 'Άτομα',
             'length' => 'Μήκος',
             'metres' => ':value μ.',
+            'more' => '{1} και 1 ακόμα|[2,*] και :count ακόμα',
             'trips' => '{1} 1 εκδρομή με αυτό|[2,*] :count εκδρομές με αυτό',
         ],
         'credentials' => [

@@ -2784,10 +2784,14 @@
         /* 750px (Mike, 2026-09-24: «το hero να πάει στα 750px ύψος»). */
         .hero.has-image { min-height: 750px; }
         .hero.has-image .hero-copy { padding: 0; }
+        /* Lighter (Mike, 24/9: «μήπως είναι έντονο το black overlay;»): .5 at
+           the words' edge, was .7, fading to nothing on the right, so the
+           photograph keeps its colour; the headline's text-shadow carries the
+           rest of the contrast. */
         .hero.has-image::after {
             background:
-                linear-gradient(90deg, rgba(6, 16, 20, .7) 0%, rgba(6, 16, 20, .36) 55%, rgba(6, 16, 20, .2) 100%),
-                linear-gradient(to bottom, rgba(6, 16, 20, 0) 60%, rgba(6, 16, 20, .25) 100%);
+                linear-gradient(90deg, rgba(6, 16, 20, .5) 0%, rgba(6, 16, 20, .22) 50%, rgba(6, 16, 20, .04) 100%),
+                linear-gradient(to bottom, rgba(6, 16, 20, 0) 62%, rgba(6, 16, 20, .18) 100%);
         }
         .hero.has-image h1 { font-size: clamp(2.4rem, 5vw, 3.9rem); line-height: 1.05; letter-spacing: -.03em; text-wrap: balance; }
         .hero.has-image .standfirst { font-size: clamp(1.05rem, 1.5vw, 1.25rem); max-width: 36rem; text-wrap: pretty; }
@@ -3580,7 +3584,11 @@
         .boat-specs dt { font-size: .78rem; color: var(--ink-faint); }
         .boat-specs dd { margin: 0; font-weight: 700; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
         .boat-licence { margin: 0; font-size: .88rem; color: var(--ink-soft); }
-        .boat-trips { font-weight: 600; font-size: .95rem; border-block-start: 1px solid var(--line); padding-block-start: .75rem; margin-block-start: auto; }
+        .boat-trips { list-style: none; margin: auto 0 0; padding: .75rem 0 0; border-block-start: 1px solid var(--line); display: grid; gap: .35rem; }
+        .boat-trips a { display: flex; justify-content: space-between; gap: .75rem; font-weight: 600; font-size: .95rem; color: var(--kaiki-accent); }
+        .boat-trips a span { flex: none; transition: transform .15s ease; }
+        .boat-trips a:hover span { transform: translateX(2px); }
+        .boat-trips .more { font-size: .88rem; color: var(--ink-faint); }
 
         /* --- people --- */
         .crew { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.5rem; }
