@@ -3550,6 +3550,49 @@
         .timeline-year { display: block; font-weight: 700; color: var(--kaiki-accent); font-variant-numeric: tabular-nums; margin-block-end: .15rem; }
         .timeline h3 { margin: 0 0 .2rem; font-size: 1.05rem; color: var(--kaiki-primary); }
         .timeline p { margin: 0; color: var(--ink-soft); max-width: 32rem; }
+        /* --- the timeline travelled (Mike, 2026-09-24), as «Πώς λειτουργεί»:
+           the track is dashed, a solid line runs from each dot to the next,
+           and each dot fills as the line reaches it. Complete by default;
+           route.js empties it ("ready") and travels it ("on"), .8s a year. */
+        .timeline li { border-inline-start-style: dashed; border-inline-start-color: color-mix(in srgb, var(--kaiki-accent) 28%, #fff); }
+        .timeline li:last-child { border-inline-start-color: transparent; }
+        .timeline li::before { background: var(--kaiki-accent); z-index: 1; }
+        .timeline li:not(:last-child)::after {
+            content: ""; position: absolute; z-index: 0; background: var(--kaiki-accent); border-radius: 3px;
+            inset-inline-start: -2.5px; inset-block: .7rem -.3rem; inline-size: 3px; transform-origin: top;
+        }
+        @media (min-width: 48rem) {
+            ol.timeline { border-block-start-style: dashed; border-block-start-color: color-mix(in srgb, var(--kaiki-accent) 28%, #fff); }
+            .timeline li:not(:last-child)::after {
+                inset-inline: .8rem calc(-1.5rem); inset-block: calc(-1.9rem - 2.5px) auto; inline-size: auto; block-size: 3px; transform-origin: left;
+            }
+        }
+        .timeline[data-animate="ready"] li::before,
+        .timeline[data-animate="on"] li::before { background: #fff; }
+        .timeline[data-animate="ready"] li::after { transform: scaleY(0); }
+        .timeline[data-animate="on"] li::before { animation: timeline-dot .4s ease forwards; }
+        .timeline[data-animate="on"] li::after { transform: scaleY(0); animation: route-grow-y .7s ease-in-out forwards; }
+        @media (min-width: 48rem) {
+            .timeline[data-animate="ready"] li::after { transform: scaleX(0); }
+            .timeline[data-animate="on"] li::after { transform: scaleX(0); animation-name: route-grow-x; }
+        }
+        .timeline[data-animate="on"] li:nth-child(1)::before { animation-delay: .1s; }
+        .timeline[data-animate="on"] li:nth-child(1)::after { animation-delay: .3s; }
+        .timeline[data-animate="on"] li:nth-child(2)::before { animation-delay: 1s; }
+        .timeline[data-animate="on"] li:nth-child(2)::after { animation-delay: 1.1s; }
+        .timeline[data-animate="on"] li:nth-child(3)::before { animation-delay: 1.8s; }
+        .timeline[data-animate="on"] li:nth-child(3)::after { animation-delay: 1.9s; }
+        .timeline[data-animate="on"] li:nth-child(4)::before { animation-delay: 2.6s; }
+        .timeline[data-animate="on"] li:nth-child(4)::after { animation-delay: 2.7s; }
+        .timeline[data-animate="on"] li:nth-child(5)::before { animation-delay: 3.4s; }
+        .timeline[data-animate="on"] li:nth-child(5)::after { animation-delay: 3.5s; }
+        .timeline[data-animate="on"] li:nth-child(6)::before { animation-delay: 4.2s; }
+        .timeline[data-animate="on"] li:nth-child(6)::after { animation-delay: 4.3s; }
+        .timeline[data-animate="on"] li:nth-child(7)::before { animation-delay: 5s; }
+        .timeline[data-animate="on"] li:nth-child(7)::after { animation-delay: 5.1s; }
+        .timeline[data-animate="on"] li:nth-child(8)::before { animation-delay: 5.8s; }
+        @keyframes timeline-dot { to { background: var(--kaiki-accent); box-shadow: 0 0 0 5px color-mix(in srgb, var(--kaiki-accent) 12%, #fff); } }
+
         @media (min-width: 48rem) {
             .timeline { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1.5rem; border-block-start: 2px solid var(--line); padding-block-start: 1.9rem; }
             .timeline li { border: 0; padding: 0; margin: 0; }

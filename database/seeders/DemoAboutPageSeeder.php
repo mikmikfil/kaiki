@@ -241,25 +241,7 @@ class DemoAboutPageSeeder extends Seeder
                 'heading' => $both('Οι άνθρωποί μας', 'Our people'),
                 'settings' => ['photos' => true],
             ],
-            [
-                'type' => HomeBlockType::Testimonials->value,
-                'eyebrow' => $both('Κριτικές', 'Reviews'),
-                'heading' => $both('Τι λένε όσοι ήρθαν', 'What our guests say'),
-                'items' => [
-                    [
-                        'quote' => $both('Ο Γιώργος μάς πήγε σε έναν όρμο που δεν θα βρίσκαμε ποτέ μόνοι μας. Τα παιδιά ακόμα μιλάνε για τα ψάρια.', 'Giorgos took us to a cove we would never have found on our own. The children still talk about the fish.'),
-                        'name' => 'Katrin M.',
-                        'trip' => $both('Οικογενειακή εκδρομή, Αύγουστος 2026', 'Family trip, August 2026'),
-                        'rating' => 5,
-                    ],
-                    [
-                        'quote' => $both('Μικρή παρέα, καθαρό σκάφος, και ένα ηλιοβασίλεμα που δεν ξεχνιέται.', 'A small group, a spotless boat and a sunset we will not forget.'),
-                        'name' => 'Νίκος Π.',
-                        'trip' => $both('Ηλιοβασίλεμα στην Αίγινα', 'Sunset at Aegina'),
-                        'rating' => 5,
-                    ],
-                ],
-            ],
+            $this->homeReviews(),
             [
                 'type' => HomeBlockType::Credentials->value,
                 'eyebrow' => $both('Άδειες και ασφάλεια', 'Licences and insurance'),
@@ -269,21 +251,31 @@ class DemoAboutPageSeeder extends Seeder
                     'Every boat is licensed by the Piraeus Port Authority, and every passenger is insured on every trip.',
                 ),
             ],
-            [
-                'type' => HomeBlockType::MeetingPoint->value,
-                'eyebrow' => $both('Σημείο συνάντησης', 'Meeting point'),
-                'heading' => $both('Μαρίνα Ζέας, προβλήτα Β', 'Zea Marina, pier B'),
-            ],
-            [
-                'type' => HomeBlockType::Cta->value,
-                'eyebrow' => $both('Κάντε κράτηση', 'Book'),
-                'heading' => $both('Ελάτε μαζί μας', 'Come sailing with us'),
-                'body' => $both('Διαλέξτε εκδρομή και κλείστε θέση σε ένα λεπτό.', 'Choose a trip and book your seat in a minute.'),
-                'image_path' => $photo('romantiko-dilino.jpg', 'cta.jpg'),
-                'buttons' => [
-                    ['label' => $both('Δείτε τις εκδρομές', 'See our trips'), 'target' => 'search'],
-                ],
-            ],
+        ];
+    }
+
+    /**
+     * The reviews section, exactly as on the home page (Mike, 24/9): the same
+     * heading and the same reviews, copied from the home page's own section
+     * when it has one.
+     *
+     * @return array<string, mixed>
+     */
+    private function homeReviews(): array
+    {
+        $home = HomePageBlock::query()->onPage(HomePageBlock::PAGE_HOME)->where('type', HomeBlockType::Testimonials->value)->orderBy('sort_order')->first();
+
+        if (! $home instanceof HomePageBlock) {
+            return ['type' => HomeBlockType::Testimonials->value, 'is_visible' => false];
+        }
+
+        return [
+            'type' => HomeBlockType::Testimonials->value,
+            'eyebrow' => $home->getTranslations('eyebrow'),
+            'heading' => $home->getTranslations('heading'),
+            'body' => $home->getTranslations('body'),
+            'items' => $home->entries(),
+            'settings' => $home->settings(),
         ];
     }
 

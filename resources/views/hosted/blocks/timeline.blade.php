@@ -25,7 +25,10 @@
             'lead' => null,
         ])
 
-        <ol @class(['timeline', 'timeline-' . min($years->count(), 5)])>
+        {{-- Travelled like «Πώς λειτουργεί» (Mike, 2026-09-24): `/hosted/route.js`
+             empties the dots and the line, then fills them year by year when
+             the timeline comes into view. Complete without the script. --}}
+        <ol @class(['timeline', 'timeline-' . min($years->count(), 5), 'timeline-n' . min($years->count(), 8)]) data-animate>
             @foreach ($years as $year)
                 <li @class(['is-now' => $loop->last])>
                     <span class="timeline-year">{{ $year['year'] }}</span>
@@ -36,5 +39,6 @@
                 </li>
             @endforeach
         </ol>
+        <script src="{{ url('/hosted/route.js') }}" defer></script>
     </section>
 @endif

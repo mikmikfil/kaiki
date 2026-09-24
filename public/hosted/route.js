@@ -1,7 +1,7 @@
 /**
  * «Από την οθόνη σας στο κατάστρωμα»: the route travelled, once, when the
  * section comes into view (Mike, 2026-09-24: four seconds from the first stop
- * to the last).
+ * to the last). The about page's «Χρονολόγιο» travels the same way.
  *
  * ## A file, not an inline script
  *
@@ -19,7 +19,7 @@
 (function () {
     'use strict';
 
-    var routes = Array.prototype.slice.call(document.querySelectorAll('.route[data-animate]'));
+    var routes = Array.prototype.slice.call(document.querySelectorAll('.route[data-animate], .timeline[data-animate]'));
 
     if (routes.length === 0 || !('IntersectionObserver' in window)) {
         return;
