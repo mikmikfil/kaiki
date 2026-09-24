@@ -2781,7 +2781,8 @@
         .hero-copy { text-align: left; padding: 0; max-width: 42rem; margin: 0; }
         .hero-copy h1 { max-width: none; margin-inline: 0; }
         .hero-copy .standfirst { max-width: 36rem; margin-inline: 0; }
-        .hero.has-image { min-height: min(80vh, 44rem); }
+        /* Taller (Mike, 2026-09-24: «ψήλωσε λίγο το hero»): 50rem, was 44. */
+        .hero.has-image { min-height: min(88vh, 50rem); }
         .hero.has-image .hero-copy { padding: 0; }
         .hero.has-image::after {
             background:
@@ -3077,9 +3078,11 @@
            A lift on hover this time, as the WordPress cards have: those are the
            cards Mike pointed at. The label over the photograph is the operator's
            own, and white so it reads on any picture. */
-        li.trip { position: relative; border-radius: 16px; border: 1px solid var(--line); box-shadow: var(--shadow-sm); transition: box-shadow .2s ease, transform .2s ease; }
-        @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-            li.trip:hover { box-shadow: var(--shadow); transform: translateY(-3px); }
+        /* No lift any more (Mike, 2026-09-24: the card that moves under the
+           pointer went). The deeper shadow stays, so the card still answers. */
+        li.trip { position: relative; border-radius: 16px; border: 1px solid var(--line); box-shadow: var(--shadow-sm); transition: box-shadow .2s ease; }
+        @media (hover: hover) {
+            li.trip:hover { box-shadow: var(--shadow); }
         }
         li.trip h3 { font-size: 1.15rem; letter-spacing: -.015em; color: var(--deep); }
         .trip-badge {
@@ -3211,6 +3214,43 @@
         @media (min-width: 60rem) {
             .product-aside { padding: .25rem 1.5rem 2.5rem; margin-inline: -1.5rem; }
         }
+
+        /* ==================================================================
+           The call-to-action band with a photograph, split (Mike, 2026-09-24,
+           «Ιδιωτικές ναυλώσεις» from the first home mockup): the words on the
+           operator's deep colour on the left, the photograph beside them on the
+           right, rounded, inside the page's width rather than edge to edge.
+           On a phone the photograph goes under the words.
+           ================================================================== */
+        .cta-band.has-image {
+            display: grid; grid-template-columns: minmax(0, 1fr);
+            margin-inline: 0; padding: 0;
+            border-radius: clamp(18px, 2vw, 26px); overflow: hidden;
+            background: var(--deep);
+        }
+        .cta-band.has-image::before { display: none; }
+        .cta-band.has-image .cta-image {
+            position: static; z-index: auto; order: 2;
+            inline-size: 100%; block-size: 100%; min-block-size: 15rem;
+            object-fit: cover; object-position: center center;
+        }
+        .cta-band.has-image .cta-copy {
+            max-width: 34rem; align-self: center;
+            padding: clamp(1.75rem, 4.5vw, 3.5rem);
+        }
+        @media (min-width: 62rem) {
+            .cta-band.has-image { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); min-block-size: 22rem; }
+        }
+        /* The first button in the accent, as on every other solid button; the
+           second stays the outlined one. */
+        .cta-band.has-image .buttons .button-light {
+            background: var(--kaiki-accent); border-color: var(--kaiki-accent); color: #fff;
+        }
+        .cta-band.has-image .buttons .button-light:hover,
+        .cta-band.has-image .buttons .button-light:focus-visible {
+            background: color-mix(in srgb, var(--kaiki-accent) 86%, #000); color: #fff;
+        }
+        .band + .cta-band.has-image, .cta-band.has-image + .band { margin-block-start: 0; }
 
         /* ==================================================================
            The trip card's foot (Mike, 2026-09-24, from the first home mockup):
