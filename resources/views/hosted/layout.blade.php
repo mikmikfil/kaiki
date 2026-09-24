@@ -3216,6 +3216,26 @@
         }
 
         /* ==================================================================
+           The footer's first row (Mike, 2026-09-24): «Έχετε ερώτηση;» with a
+           support icon, and phone, WhatsApp and email as plain links, on the
+           operator's secondary colour, flush with the top of the footer.
+           ================================================================== */
+        footer.site:has(> .foot-reach) { padding-block-start: 0; }
+        .foot-reach { background: var(--kaiki-secondary); margin-block-end: clamp(2.5rem, 6vw, 4rem); }
+        .foot-reach .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem 2rem; padding-block: 1.25rem; }
+        .foot-reach-title { display: inline-flex; align-items: center; gap: .65rem; margin: 0 auto 0 0 !important; color: #fff; font-weight: 700; font-size: 1.05rem; letter-spacing: -.01em; }
+        .foot-reach-title .icon { inline-size: 1.35rem; block-size: 1.35rem; color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+        .foot-reach ul { display: flex; flex-wrap: wrap; gap: .6rem 1.75rem; }
+        .foot-reach li { margin: 0 !important; }
+        .foot-reach a { display: inline-flex; align-items: center; gap: .55rem; color: #fff !important; font-weight: 600; overflow-wrap: anywhere; }
+        .foot-reach a:hover { color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff) !important; }
+        .foot-reach a .icon { inline-size: 1.15rem; block-size: 1.15rem; flex: none; color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+        @media (max-width: 40rem) {
+            .foot-reach .wrap { flex-direction: column; align-items: flex-start; }
+            .foot-reach ul { flex-direction: column; gap: .7rem; }
+        }
+
+        /* ==================================================================
            The call-to-action band with a photograph, split (Mike, 2026-09-24,
            «Ιδιωτικές ναυλώσεις» from the first home mockup): the words on the
            operator's deep colour on the left, the photograph beside them on the
@@ -3588,6 +3608,34 @@
 </main>
 
 <footer class="site">
+    {{-- «Έχετε ερώτηση; Είμαστε εδώ.» (Mike, 2026-09-24): one quiet row at the
+         top of the footer, on the operator's secondary colour, with the three
+         ways to reach them as plain links. It replaced the contact panel that
+         sat above the footer on the home page. Each link only when the
+         operator has that way to be reached. --}}
+    @php
+        $reachWhatsApp = data_get($tenant->settings, 'social.whatsapp');
+        $reachWhatsApp = is_string($reachWhatsApp) && str_starts_with($reachWhatsApp, 'https://') ? $reachWhatsApp : null;
+    @endphp
+    @if ($tenant->phone || $tenant->email || $reachWhatsApp)
+        <div class="foot-reach">
+            <div class="wrap">
+                <p class="foot-reach-title">@include('hosted.partials.icon', ['name' => 'support']){{ __('hosted.footer.reach') }}</p>
+                <ul>
+                    @if ($tenant->phone)
+                        <li><a href="tel:{{ preg_replace('/[^0-9+]/', '', (string) $tenant->phone) }}">@include('hosted.partials.icon', ['name' => 'phone']){{ $tenant->phone }}</a></li>
+                    @endif
+                    @if ($reachWhatsApp)
+                        <li><a href="{{ $reachWhatsApp }}" rel="noopener noreferrer" target="_blank">@include('hosted.partials.icon', ['name' => 'social-whatsapp']){{ __('hosted.footer.whatsapp') }}</a></li>
+                    @endif
+                    @if ($tenant->email)
+                        <li><a href="mailto:{{ $tenant->email }}">@include('hosted.partials.icon', ['name' => 'mail']){{ $tenant->email }}</a></li>
+                    @endif
+                </ul>
+            </div>
+        </div>
+    @endif
+
     <div class="wrap">
         {{-- A deep band in the operator's own primary colour since 16 September,
              the footer of their WordPress site: their mark and a way to follow

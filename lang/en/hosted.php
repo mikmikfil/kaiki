@@ -264,6 +264,8 @@ return [
     'read_only' => 'Online booking is unavailable just now. Please contact us at :email and we will take your booking directly.',
 
     'footer' => [
+        'reach' => 'A question? We are here.',
+        'whatsapp' => 'WhatsApp',
         'operator' => 'Operator',
         'contact' => 'Contact',
         'legal' => 'Legal',
