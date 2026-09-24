@@ -189,6 +189,15 @@ class Calendar extends Page
             ->label(__('calendar.block.title'))
             ->modalHeading(__('calendar.block.title'))
             ->visible(fn (): bool => self::userCan(Capability::ManageBookings))
+            // What the drag measured — or, from the phone's «Δέσμευση σκάφους»
+            // on a boat's card, only the boat. The drag always sent its times;
+            // until 2026-09-24 nothing put them into the form.
+            ->fillForm(fn (array $arguments): array => [
+                'vessel' => $arguments['vessel'] ?? null,
+                'starts_at' => $arguments['starts_at'] ?? null,
+                'ends_at' => $arguments['ends_at'] ?? null,
+                'reason' => BlockReason::Manual->value,
+            ])
             ->form([
                 Select::make('vessel')
                     ->label(__('calendar.block.vessel'))

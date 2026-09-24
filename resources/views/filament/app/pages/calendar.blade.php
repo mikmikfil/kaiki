@@ -51,6 +51,7 @@
             --}}
             @php($statuses = $this->departureStatuses($day))
             @php($opens = $this->canOpenPax())
+            @php($canBlock = $this->blockAction->isVisible())
             <div class="cal-list">
                 @foreach ($day->rows as $row)
                     <section @class(['cal-boat', 'is-idle' => $row['bars'] === []])>
@@ -58,6 +59,14 @@
                             <b>{{ $row['vessel']->name }}</b>
                             @if ($row['bars'] === [])
                                 <span class="cal-boat-free">{{ __('calendar.free') }}</span>
+                            @endif
+                            {{-- The phone has no track to drag on, so each boat
+                                 carries the button instead (Mike, 2026-09-24). --}}
+                            @if ($canBlock)
+                                <button type="button" class="cal-boat-block"
+                                    wire:click="mountAction('block', { vessel: '{{ $row['vessel']->uuid }}' })">
+                                    {{ __('calendar.block.title') }}
+                                </button>
                             @endif
                         </header>
 
@@ -274,15 +283,26 @@
         .cal-hint, .cal-empty { font-size: .82rem; color: rgb(var(--gray-500)); margin: 0; }
 
         /* --- the phone: a list per boat -------------------------------------- */
-        .cal-list { display: grid; gap: .75rem; }
+        /* `min-width: 0`: a grid item is as wide as its widest line by default,
+           and a boat name next to its button pushed every card 23px past the
+           right-hand edge of a phone. */
+        .cal-list { display: grid; gap: .75rem; min-width: 0; }
+        .cal-boat { min-width: 0; }
         .cal-boat {
             display: grid; padding: .35rem .9rem; border-radius: 1rem;
             background: var(--cal-card); border: 1px solid var(--cal-line); color: var(--cal-ink);
         }
-        .cal-boat-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; min-height: 2.5rem; padding-top: .55rem; }
+        .cal-boat-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; min-height: 2.5rem; padding-top: .55rem; }
         .cal-boat-head b { font-size: 1rem; }
         .cal-boat.is-idle .cal-boat-head { padding-bottom: .55rem; }
-        .cal-boat-free { font-size: .85rem; color: var(--cal-muted); }
+        .cal-boat-free { font-size: .85rem; color: var(--cal-muted); margin-left: auto; }
+        .cal-boat-block {
+            min-height: 2.25rem; padding: 0 .75rem; border-radius: .6rem; white-space: nowrap;
+            font-size: .8125rem; font-weight: 600; color: rgb(var(--primary-600));
+            border: 1px solid var(--cal-line); background: transparent;
+        }
+        .cal-boat-block:hover { background: var(--cal-hover); }
+        .dark .cal-boat-block { color: rgb(var(--primary-400)); }
         .cal-dep {
             display: grid; grid-template-columns: 3.4rem minmax(0, 1fr) auto; align-items: center; gap: .6rem;
             width: 100%; min-height: 3.25rem; padding: .45rem 0; text-align: left;

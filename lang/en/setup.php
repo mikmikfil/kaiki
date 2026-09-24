@@ -67,7 +67,7 @@ return [
             'why' => 'These are printed on your receipts and invoices and sent to the tax authority. Without a legal name and a VAT number no document can be issued — everything else here can wait.',
         ],
         'branding' => [
-            'label' => 'Styling',
+            'label' => 'Appearance',
             'description' => 'Logo and colours',
             'question' => 'How should your pages look?',
             'why' => 'Your logo and colours go on your booking pages and on the emails guests receive. Optional: the pages work without them.',

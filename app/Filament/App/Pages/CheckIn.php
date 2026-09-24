@@ -226,7 +226,7 @@ class CheckIn extends Page
      */
     public function overrideAction(): Action
     {
-        return Action::make('checkInEarly')
+        return Action::make('override')
             ->label(__('checkin.actions.override.label'))
             ->icon('heroicon-o-clock')
             ->color('warning')
@@ -253,10 +253,17 @@ class CheckIn extends Page
     /** BKG-23, per guest, reversible, and nothing else follows from it. */
     public function noShowAction(): Action
     {
-        return Action::make('markNoShow')
-            ->label(__('checkin.actions.mark_no_show'))
-            ->icon('heroicon-o-x-mark')
-            ->color('danger')
+        // Once a guest is marked, the same button undoes it and says so — Mike,
+        // 2026-09-24: «Αναίρεση». Before that it read «Δεν ήρθε» either way, and
+        // pressing it a second time to take the mark off was a guess.
+        $marked = fn (array $arguments): bool => (bool) BookingGuest::query()
+            ->whereKey($arguments['guest'] ?? null)
+            ->value('no_show');
+
+        return Action::make('noShow')
+            ->label(fn (array $arguments): string => __($marked($arguments) ? 'checkin.actions.clear_no_show' : 'checkin.actions.mark_no_show'))
+            ->icon(fn (array $arguments): string => $marked($arguments) ? 'heroicon-o-arrow-uturn-left' : 'heroicon-o-x-mark')
+            ->color(fn (array $arguments): string => $marked($arguments) ? 'gray' : 'danger')
             // Outlined, so «Επιβίβαση» is the one filled button in the row —
             // the tap that happens forty times — and the red is a border and a
             // label rather than a second slab of colour beside it.

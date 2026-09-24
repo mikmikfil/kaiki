@@ -53,7 +53,7 @@ return [
         'check_in' => 'Επιβίβαση',
         'undo' => 'Αναίρεση',
         'mark_no_show' => 'Δεν ήρθε',
-        'clear_no_show' => 'Αναίρεση σήμανσης',
+        'clear_no_show' => 'Αναίρεση',
 
         'override' => [
             'label' => 'Πρόωρη επιβίβαση',
