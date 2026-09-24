@@ -105,9 +105,16 @@ export function brandProperties(brand: BrandPayload): string {
 
   const family = brand.font?.family;
 
-  declarations.push(
-    `--kaiki-font: ${family === undefined || family === '' ? SYSTEM_STACK : `${quote(family)}, ${SYSTEM_STACK}`}`,
-  );
+  // No family, no declaration (2026-09-24). It used to write the system stack
+  // here, and on Kaiki's own trip page — which skips the branding call and
+  // passes an empty payload — that shadowed the page's own `--kaiki-font`
+  // (Inter) with system-ui, so the booking box was the one thing on the page
+  // in a different face. Absent, the property inherits from the page; the
+  // shadow root's `var(--kaiki-font, <system stack>)` is the fallback when the
+  // page has none either.
+  if (family !== undefined && family !== '') {
+    declarations.push(`--kaiki-font: ${quote(family)}, ${SYSTEM_STACK}`);
+  }
 
   return declarations.join(';\n  ');
 }

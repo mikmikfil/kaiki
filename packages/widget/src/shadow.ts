@@ -1,4 +1,4 @@
-import { brandProperties, type BrandPayload } from './branding';
+import { brandProperties, SYSTEM_STACK, type BrandPayload } from './branding';
 
 /**
  * The boundary between the widget and somebody else's page (WGT-1, WGT-22).
@@ -144,7 +144,7 @@ const BASE_STYLES = `
      the root would make the whole widget ten pixels tall. */
   font-size: 16px;
   line-height: 1.5;
-  font-family: var(--kaiki-font);
+  font-family: var(--kaiki-font, ${SYSTEM_STACK});
   color: var(--kaiki-text);
   text-align: start;
 }
@@ -177,8 +177,11 @@ const BASE_STYLES = `
      rendered the entire booking form in Comic Sans that way.
      Nothing in the operator's stylesheet can match an element inside a shadow
      root, so restating them on this element is the fix rather than an
-     escalation — there is no war of important flags to lose. */
-  font-family: var(--kaiki-font);
+     escalation — there is no war of important flags to lose.
+     The page's '--kaiki-font' when it sets one (Kaiki's own pages set Inter),
+     else the branding's family, else the system's — never whatever the
+     operator's theme put on '*'. */
+  font-family: var(--kaiki-font, ${SYSTEM_STACK});
   font-size: 16px;
   font-weight: 400;
   font-style: normal;
@@ -971,6 +974,42 @@ const BASE_STYLES = `
 @media (prefers-reduced-motion: reduce) {
   .kaiki-root * { transition: none !important; animation: none !important; }
 }
+
+/* ------------------------------------------------------------------
+   The type system of the guest pages (2026-09-24, the typography review in
+   docs/mockups/typo): the same nine steps as the operator's site, so the
+   booking box stops being the one thing on a trip page set to its own scale.
+     caption 13 · small 15 · body 16 · title 18
+   Labels 13 / 600 / +0.02em in the secondary ink (was 11.2–12.5px at .06em);
+   every field 16px, because iOS zooms the page into any field smaller than
+   that the moment it is tapped; the optional marker in the secondary ink
+   rather than 55% (3.9:1). Last in the sheet, so it wins over the rules above.
+   ------------------------------------------------------------------ */
+.kaiki-heading { font-size: 1.125rem; }
+.kaiki-muted { font-size: .9375rem; }
+.kaiki-four-lines dt,
+.kaiki-summary dt,
+.kaiki-enquiry-cell > span { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; color: var(--kaiki-secondary-text); }
+.kaiki-field { font-size: .9375rem; }
+.kaiki-field input,
+.kaiki-field textarea,
+.kaiki-enquiry-cell input { font-size: 1rem; }
+.kaiki-enquiry-step { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; }
+.kaiki-enquiry-optional { color: var(--kaiki-secondary-text); }
+.kaiki-enquiry-note { font-size: .8125rem; }
+.kaiki-weekdays { font-size: .8125rem; }
+.kaiki-day { font-size: .9375rem; }
+.kaiki-legend { font-size: .8125rem; }
+.kaiki-button,
+.kaiki-enquiry-actions .kaiki-button { font-size: .9375rem; font-weight: 600; }
+.kaiki-hold,
+.kaiki-total .kaiki-muted,
+.kaiki-time-left,
+.kaiki-card .kaiki-facts,
+.kaiki-peek-summary { font-size: .8125rem; }
+.kaiki-lines,
+.kaiki-peek-action { font-size: .9375rem; }
+.kaiki-peek-price { font-size: 1.125rem; }
 `;
 
 /** Test seam: the instance counter is module state, and a test needs it reset. */
