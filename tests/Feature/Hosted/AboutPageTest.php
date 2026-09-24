@@ -36,10 +36,16 @@ use Tests\Support\OperatorUser;
 |
 */
 
-/** Save one about page for an operator. */
+/**
+ * Save one about page for an operator.
+ *
+ * @param  list<array<string, mixed>>  $blocks
+ */
 function aboutPage(Tenant $tenant, array $blocks): void
 {
-    OperatorPage::as($tenant, fn () => app(SaveHomePage::class)($blocks, HomePageBlock::PAGE_ABOUT));
+    OperatorPage::as($tenant, function () use ($blocks): void {
+        app(SaveHomePage::class)($blocks, HomePageBlock::PAGE_ABOUT);
+    });
 }
 
 it('is not there, and not in the menu, until the operator saves one', function (): void {
@@ -62,9 +68,10 @@ it('serves the saved page and puts it in the menu', function (): void {
     get(HostedRequest::url('/with-about/about'))->assertOk()->assertSee('Πώς ξεκινήσαμε')->assertSee('Με μια ψαρόβαρκα.');
 
     // The home page links to it, and does not show its sections.
-    expect(get(HostedRequest::url('/with-about'))->assertOk()->getContent())
-        ->toContain('/with-about/about')
-        ->not->toContain('Πώς ξεκινήσαμε');
+    $home = (string) get(HostedRequest::url('/with-about'))->assertOk()->getContent();
+
+    expect($home)->toContain('/with-about/about')
+        ->and($home)->not->toContain('Πώς ξεκινήσαμε');
 });
 
 it('keeps it out of the menu when every section on it is switched off', function (): void {
@@ -96,11 +103,12 @@ it('leaves the search out of the masthead on the about page', function (): void 
 
     aboutPage($tenant, [OperatorPage::input(HomeBlockType::Hero, ['heading' => ['el' => 'Τρεις γενιές', 'en' => 'Three generations']])]);
 
-    expect(get(HostedRequest::url('/about-hero/about'))->assertOk()->getContent())
-        ->toContain('Τρεις γενιές')
+    $about = (string) get(HostedRequest::url('/about-hero/about'))->assertOk()->getContent();
+
+    expect($about)->toContain('Τρεις γενιές')
         ->toContain('hero-plain')
         // The markup, not the stylesheet, which styles it for the home page.
-        ->not->toContain('class="hero-search"');
+        ->and($about)->not->toContain('class="hero-search"');
 });
 
 it('shows the years of the timeline in the order written, the last as now', function (): void {
@@ -195,7 +203,9 @@ it('opens the editor on a starting layout, and saves it to the about page only',
 
     $component = Livewire::actingAs($user)->test(AboutPage::class);
 
-    $types = collect($component->get('data.blocks'))->pluck('type')->values()->all();
+    /** @var array<array-key, array<string, mixed>> $blocks */
+    $blocks = (array) $component->get('data.blocks');
+    $types = array_values(array_map(static fn (array $block): mixed => $block['type'] ?? null, $blocks));
 
     expect($types)->toBe(array_map(static fn (HomeBlockType $type): string => $type->value, HomeBlockType::aboutLayout()))
         ->and(HomePageBlock::query()->count())->toBe(0);

@@ -46,7 +46,10 @@ function flowTrip(): array
     ];
 }
 
-/** @param  array<string, int>  $byColumn  column key => adult cents; the child pays half */
+/**
+ * @param  array<string, int>  $byColumn  column key => adult cents; the child pays half
+ * @return array<string, array<string, int>>
+ */
 function flowCents(AgeBand $adult, AgeBand $child, array $byColumn): array
 {
     $cents = [];

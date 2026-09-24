@@ -15,6 +15,7 @@ use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
 
 use function Pest\Laravel\actingAs;
+use function Pest\Laravel\get;
 
 use Tests\Support\OperatorUser;
 
@@ -173,11 +174,11 @@ it('keeps the operator signed in on the next page, and the platform owner on the
 
     app(StartImpersonation::class)($admin, $owner, $owner->tenant, 'Υποστήριξη');
 
-    $this->get('/app')->assertSuccessful();
+    get('/app')->assertSuccessful();
     expect(auth()->id())->toBe($owner->getKey());
 
     app(StopImpersonation::class)();
 
-    $this->get('/admin')->assertSuccessful();
+    get('/admin')->assertSuccessful();
     expect(auth()->id())->toBe($admin->getKey());
 })->group('fast');

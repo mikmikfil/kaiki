@@ -769,7 +769,7 @@ it('warns the operator about a published trip that cannot be priced', function (
 
     tenancy()->initialize(productTenantOf($owner));
 
-    $this->actingAs($owner);
+    actingAs($owner);
 
     expect(UnsellableProducts::canView())->toBeTrue();
 
@@ -777,7 +777,7 @@ it('warns the operator about a published trip that cannot be priced', function (
     // stress sweep found it on their home page (2026-09-23).
     $crew = OperatorUser::withRole(Role::Crew, productTenantOf($owner));
 
-    $this->actingAs($crew);
+    actingAs($crew);
 
     expect(UnsellableProducts::canView())->toBeFalse();
 })->group('fast');

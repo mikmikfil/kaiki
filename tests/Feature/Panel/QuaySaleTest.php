@@ -53,6 +53,7 @@ function quayScenario(Role $role = Role::Crew, int $capacity = 12): array
     return [$fixture, OperatorUser::withRole($role, $fixture['tenant'])];
 }
 
+/** @param  array<string, mixed>  $form */
 function sellOnQuay(User $user, string $departureUuid, string $paidBy, array $form = []): void
 {
     tenancy()->initialize(Tenant::query()->findOrFail($user->tenant_id));
