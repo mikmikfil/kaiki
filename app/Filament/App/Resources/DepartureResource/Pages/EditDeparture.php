@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources\DepartureResource\Pages;
 
+use App\Domain\Availability\Actions\AssignDepartureCrew;
 use App\Domain\Availability\Actions\UpdateDeparture;
 use App\Filament\App\Resources\DepartureResource;
 use App\Models\Departure;
@@ -39,9 +40,21 @@ class EditDeparture extends EditRecord
     {
         unset($data['confirm_conflict']);
 
+        // Captain and crew are theirs to write (2026-09-24), not the
+        // timetable's: `UpdateDeparture` guards times and seats.
+        $captain = $data['captain_user_id'] ?? null;
+        $captainName = $data['captain_name'] ?? null;
+        $crew = (array) ($data['crew_user_ids'] ?? []);
+        unset($data['captain_user_id'], $data['captain_name'], $data['crew_user_ids']);
+
+        if (! $record instanceof Departure) {
+            return $record;
+        }
+
         try {
-            /** @var Departure $record */
-            return app(UpdateDeparture::class)($record, $data);
+            $record = app(UpdateDeparture::class)($record, $data);
+
+            return app(AssignDepartureCrew::class)($record, $captain, $captainName, $crew);
         } catch (ValidationException $exception) {
             throw $this->attachToForm($exception);
         }

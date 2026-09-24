@@ -201,7 +201,15 @@ return [
             'plural' => 'Departures',
         ],
 
+        'crew' => [
+            'intro' => 'Who takes her out today. Printed on the passenger list.',
+            'captain' => ['label' => 'Captain', 'help' => 'Empty: the boat’s usual captain (:boat).'],
+            'captain_name' => ['label' => 'Or the captain’s name', 'help' => 'If they have no Kaiki account.'],
+            'members' => ['label' => 'Crew', 'help' => 'Those of your people sailing with it.'],
+            'validation' => ['not_ours' => 'Someone you chose does not belong to your business.'],
+        ],
         'sections' => [
+            'crew' => 'Captain and crew',
             'what' => 'Which trip, and when',
             'seats' => 'Seats',
             'notes' => 'Notes',

@@ -19,6 +19,7 @@ use App\Filament\Support\MoreActions;
 use App\Models\Departure;
 use App\Models\Product;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Support\Authorization\Capability;
 use App\Support\Authorization\CrewWindow;
 use App\Support\Tenancy;
@@ -31,6 +32,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
@@ -100,6 +102,27 @@ class DepartureResource extends Resource
         return __('availability.departure.model.plural');
     }
 
+    /**
+     * The operator's own people, by name — the ones a departure can be
+     * crewed by.
+     *
+     * @return array<int, string>
+     */
+    public static function peopleOptions(): array
+    {
+        $tenant = Tenancy::current();
+
+        if ($tenant === null) {
+            return [];
+        }
+
+        return User::query()
+            ->where('tenant_id', $tenant->getKey())
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema(static::formSchema());
@@ -166,6 +189,38 @@ class DepartureResource extends Resource
                         ->minValue(0)
                         ->maxValue(65535),
                 ]),
+
+            // Who takes her out today (the 24/9 list, #3). On a saved
+            // departure: the list printed for the Λιμεναρχείο names them.
+            Section::make(__('availability.departure.sections.crew'))
+                ->icon('heroicon-o-user')
+                ->description(__('availability.departure.crew.intro'))
+                ->visible(static fn (?Departure $record): bool => $record instanceof Departure && $record->exists)
+                ->schema([
+                    Select::make('captain_user_id')
+                        ->label(__('availability.departure.crew.captain.label'))
+                        ->helperText(static fn (?Departure $record): string => __('availability.departure.crew.captain.help', [
+                            'boat' => (string) ($record?->vessel->captain_name ?? '—'),
+                        ]))
+                        ->options(static fn (): array => static::peopleOptions())
+                        ->searchable()
+                        ->live(),
+
+                    TextInput::make('captain_name')
+                        ->label(__('availability.departure.crew.captain_name.label'))
+                        ->helperText(__('availability.departure.crew.captain_name.help'))
+                        ->maxLength(120)
+                        ->visible(static fn (Get $get): bool => blank($get('captain_user_id'))),
+
+                    Select::make('crew_user_ids')
+                        ->label(__('availability.departure.crew.members.label'))
+                        ->helperText(__('availability.departure.crew.members.help'))
+                        ->options(static fn (): array => static::peopleOptions())
+                        ->multiple()
+                        ->searchable()
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
 
             Section::make(__('availability.departure.sections.notes'))
                 ->icon('heroicon-o-pencil-square')

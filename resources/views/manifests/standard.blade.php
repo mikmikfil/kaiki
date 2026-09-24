@@ -68,7 +68,7 @@
     <h1>{{ __('manifest.title') }}</h1>
 
     <table class="meta">
-        @foreach (['trip', 'vessel', 'licence', 'date', 'time', 'port', 'landing_port', 'captain'] as $key)
+        @foreach (['trip', 'vessel', 'licence', 'date', 'time', 'port', 'landing_port', 'captain', 'crew'] as $key)
             @if ($manifest->shown($key) !== null)
                 <tr>
                     <td class="k">{{ __('manifest.header.' . $key) }}</td>

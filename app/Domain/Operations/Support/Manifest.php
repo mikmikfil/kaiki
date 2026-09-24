@@ -106,7 +106,8 @@ final class Manifest
             'port' => self::portName($departure->product?->meetingPoint, $departure->vessel?->homePort),
             'landing_port' => self::landingPortName($departure->product, $departure->vessel?->homePort),
             'licence' => $departure->vessel?->licence_type?->label(),
-            'captain' => $departure->vessel?->captain_name,
+            'captain' => $departure->captainName(),
+            'crew' => implode(', ', $departure->crewNames()) ?: null,
         ], $departure->vessel?->capacity_max);
     }
 
@@ -123,7 +124,8 @@ final class Manifest
             'port' => self::portName($booking->product?->meetingPoint, $booking->vessel?->homePort),
             'landing_port' => self::landingPortName($booking->product, $booking->vessel?->homePort),
             'licence' => $booking->vessel?->licence_type?->label(),
-            'captain' => $booking->vessel?->captain_name,
+            'captain' => $booking->departure?->captainName() ?? $booking->vessel?->captain_name,
+            'crew' => $booking->departure === null ? null : (implode(', ', $booking->departure->crewNames()) ?: null),
         ], $booking->vessel?->capacity_max);
     }
 

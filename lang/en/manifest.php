@@ -22,6 +22,7 @@ return [
         'landing_port' => 'Landing port',
         'licence' => 'Licence',
         'captain' => 'Captain',
+        'crew' => 'Crew',
     ],
 
     'on_board' => 'People on board:',

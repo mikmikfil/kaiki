@@ -74,6 +74,9 @@
         @if (($manifest->header['captain'] ?? null) !== null)
             <p class="line">{{ __('manifest.header.captain') }}: {{ $manifest->header['captain'] }}</p>
         @endif
+        @if (($manifest->header['crew'] ?? null) !== null)
+            <p class="line">{{ __('manifest.header.crew') }}: {{ $manifest->header['crew'] }}</p>
+        @endif
     </div>
 
     <p class="count">
