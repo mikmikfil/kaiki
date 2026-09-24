@@ -343,6 +343,63 @@ const BASE_STYLES = `
 .kaiki-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .kaiki-stepper input { -moz-appearance: textfield; appearance: textfield; }
 .kaiki-consent { grid-template-columns: auto 1fr; align-items: start; gap: .6rem; }
+
+/* The enquiry form in two steps (Mike, 2026-09-24): a numbered line per step,
+   the day and the people side by side in one bordered box, email and phone on
+   one row, the optional line marked as such, and the button in the accent. */
+.kaiki-enquiry .kaiki-enquiry-sub { margin-top: -.5rem; }
+.kaiki-enquiry-step { display: flex; align-items: center; gap: .55rem; margin: .4rem 0 -.1rem; font-size: .82rem; font-weight: 700; color: var(--kaiki-accent); }
+.kaiki-enquiry-step i {
+  font-style: normal; inline-size: 1.4rem; block-size: 1.4rem; border-radius: 50%;
+  display: grid; place-items: center; font-size: .75rem;
+  background: color-mix(in srgb, var(--kaiki-accent) 12%, var(--kaiki-background));
+}
+.kaiki-enquiry-pick {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border: 1.5px solid color-mix(in srgb, var(--kaiki-text) 16%, transparent);
+  border-radius: calc(var(--kaiki-radius, 10px) + 4px); overflow: hidden;
+}
+.kaiki-enquiry-cell { display: grid; gap: .15rem; padding: .6rem .8rem; min-width: 0; }
+.kaiki-enquiry-cell + .kaiki-enquiry-cell { border-inline-start: 1.5px solid color-mix(in srgb, var(--kaiki-text) 16%, transparent); }
+.kaiki-enquiry-cell > span { font-size: .78rem; font-weight: 600; color: color-mix(in srgb, var(--kaiki-text) 65%, transparent); }
+.kaiki-enquiry-cell input[type="date"] { font: inherit; color: inherit; border: 0; background: transparent; padding: 0; min-height: 30px; width: 100%; }
+.kaiki-enquiry-stepper { display: grid; grid-template-columns: 30px 1fr 30px; align-items: center; gap: .25rem; }
+.kaiki-enquiry-stepper button {
+  inline-size: 30px; block-size: 30px; border-radius: 50%; padding: 0; cursor: pointer;
+  font: inherit; font-weight: 700; line-height: 1; color: var(--kaiki-primary);
+  background: var(--kaiki-background); border: 1.5px solid color-mix(in srgb, var(--kaiki-text) 16%, transparent);
+}
+.kaiki-enquiry-stepper button:disabled { opacity: .35; cursor: default; }
+.kaiki-enquiry-stepper input {
+  font: inherit; font-weight: 700; text-align: center; border: 0; background: transparent; padding: 0; min-height: 30px; width: 100%; color: inherit;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.kaiki-enquiry-stepper input::-webkit-outer-spin-button,
+.kaiki-enquiry-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.kaiki-enquiry-cell:focus-within { background: color-mix(in srgb, var(--kaiki-accent) 6%, var(--kaiki-background)); }
+.kaiki-enquiry-cell input:focus-visible { outline: none; }
+.kaiki-enquiry-two { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+.kaiki-enquiry-two > * { min-width: 0; }
+@media (max-width: 22rem) { .kaiki-enquiry-two { grid-template-columns: 1fr; } }
+.kaiki-enquiry .kaiki-field input, .kaiki-enquiry .kaiki-field textarea { border-width: 1.5px; border-radius: calc(var(--kaiki-radius, 10px) + 2px); }
+.kaiki-enquiry .kaiki-field input:focus, .kaiki-enquiry .kaiki-field textarea:focus {
+  outline: none; border-color: var(--kaiki-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--kaiki-accent) 14%, transparent);
+}
+.kaiki-enquiry-optional { font-style: normal; font-weight: 400; color: color-mix(in srgb, var(--kaiki-text) 55%, transparent); }
+.kaiki-enquiry-actions { display: grid; gap: .5rem; }
+.kaiki-enquiry-actions .kaiki-button {
+  inline-size: 100%; justify-content: center; min-height: 50px; font-size: 1rem; font-weight: 700;
+  background: var(--kaiki-accent); border-color: var(--kaiki-accent); color: var(--kaiki-on-primary, var(--kaiki-background));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--kaiki-accent) 25%, transparent);
+}
+.kaiki-enquiry-actions .kaiki-button:hover { background: color-mix(in srgb, var(--kaiki-accent) 86%, var(--kaiki-text)); }
+.kaiki-enquiry-note { font-size: .8rem; margin: 0; }
+/* In the phone sheet too: the button full width, the note under it. The sheet's
+   own row rule (nowrap, side by side) is for back + continue. */
+.kaiki-booking.kaiki-enquiry[data-sheet="true"] .kaiki-enquiry-actions { display: grid; gap: .4rem; }
+.kaiki-booking.kaiki-enquiry[data-sheet="true"] .kaiki-enquiry-actions .kaiki-button { inline-size: 100%; white-space: nowrap; }
+.kaiki-booking.kaiki-enquiry[data-sheet="true"] .kaiki-enquiry-note { text-align: center; }
 .kaiki-consent input { min-height: 0; width: auto; }
 
 .kaiki-summary { display: grid; gap: .4rem; margin: 0 0 .9rem; }
