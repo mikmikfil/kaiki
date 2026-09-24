@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:fa3843034e6a2fe6d5d06925637a95871540ca010bc30d7591a5e05f63396a43
+-- migrations-fingerprint: sha256:9e39de1d9ed2837e47d1a71efbeec607c28fad3b4e000d74c21a4f08cd321434
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -28,6 +28,8 @@ CREATE TABLE `age_bands` (
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `no_document` tinyint(1) DEFAULT NULL,
+  `kind` varchar(8) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'age',
+  `requires_proof` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `age_bands_tenant_product_code_uq` (`tenant_id`,`product_id`,`code`),
   UNIQUE KEY `age_bands_uuid_unique` (`uuid`),
@@ -170,6 +172,7 @@ CREATE TABLE `booking_guests` (
   `notes` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `sex` varchar(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `bguests_tenant_booking_pos_uq` (`tenant_id`,`booking_id`,`position`),
   UNIQUE KEY `booking_guests_uuid_unique` (`uuid`),
@@ -449,6 +452,11 @@ CREATE TABLE `departures` (
   `completed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `captain_user_id` bigint unsigned DEFAULT NULL,
+  `captain_name` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `crew_user_ids` json DEFAULT NULL,
+  `crew_from_rule` tinyint(1) NOT NULL DEFAULT '1',
+  `crew_reminded_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `departures_tenant_prod_start_uq` (`tenant_id`,`product_id`,`starts_at_utc`),
   UNIQUE KEY `departures_uuid_unique` (`uuid`),
@@ -461,7 +469,9 @@ CREATE TABLE `departures` (
   KEY `departures_at_risk_idx` (`tenant_id`,`status`,`starts_at_utc`),
   KEY `departures_tenant_date_idx` (`tenant_id`,`local_date`,`status`),
   KEY `departures_schedule_rule_idx` (`tenant_id`,`schedule_rule_id`),
+  KEY `departures_captain_user_id_foreign` (`captain_user_id`),
   CONSTRAINT `departures_cancelled_by_user_id_foreign` FOREIGN KEY (`cancelled_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `departures_captain_user_id_foreign` FOREIGN KEY (`captain_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `departures_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `departures_schedule_rule_id_foreign` FOREIGN KEY (`schedule_rule_id`) REFERENCES `schedule_rules` (`id`) ON DELETE SET NULL,
   CONSTRAINT `departures_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
@@ -664,6 +674,7 @@ CREATE TABLE `home_page_blocks` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `tenant_id` bigint unsigned NOT NULL,
+  `page` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'home',
   `type` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
   `sort_order` int unsigned NOT NULL DEFAULT '0',
   `is_visible` tinyint(1) NOT NULL DEFAULT '1',
@@ -683,6 +694,7 @@ CREATE TABLE `home_page_blocks` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `home_page_blocks_uuid_unique` (`uuid`),
   KEY `home_page_blocks_render_index` (`tenant_id`,`is_visible`,`sort_order`),
+  KEY `home_page_blocks_tenant_id_page_sort_order_index` (`tenant_id`,`page`,`sort_order`),
   CONSTRAINT `home_page_blocks_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `ical_feeds`;
@@ -1145,6 +1157,7 @@ CREATE TABLE `products` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `landing_port_id` bigint unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `products_tenant_slug_unique` (`tenant_id`,`slug`),
   UNIQUE KEY `products_uuid_unique` (`uuid`),
@@ -1158,7 +1171,9 @@ CREATE TABLE `products` (
   KEY `products_tenant_mode_idx` (`tenant_id`,`mode`),
   KEY `products_tenant_title_sort_el_idx` (`tenant_id`,`title_sort_el`),
   KEY `products_tenant_title_sort_en_idx` (`tenant_id`,`title_sort_en`),
+  KEY `products_landing_port_id_foreign` (`landing_port_id`),
   CONSTRAINT `products_cancellation_policy_id_foreign` FOREIGN KEY (`cancellation_policy_id`) REFERENCES `cancellation_policies` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `products_landing_port_id_foreign` FOREIGN KEY (`landing_port_id`) REFERENCES `ports` (`id`) ON DELETE SET NULL,
   CONSTRAINT `products_meeting_point_id_foreign` FOREIGN KEY (`meeting_point_id`) REFERENCES `ports` (`id`) ON DELETE SET NULL,
   CONSTRAINT `products_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
   CONSTRAINT `products_vat_rate_id_foreign` FOREIGN KEY (`vat_rate_id`) REFERENCES `vat_rates` (`id`) ON DELETE RESTRICT,
@@ -1261,6 +1276,7 @@ CREATE TABLE `rate_plans` (
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `balance_due_days_before_departure` smallint unsigned DEFAULT NULL,
+  `follows_trip_terms` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   UNIQUE KEY `rate_plans_tenant_prod_season_uq` (`tenant_id`,`product_id`,`season_id`),
   KEY `rate_plans_product_id_foreign` (`product_id`),
@@ -1303,11 +1319,16 @@ CREATE TABLE `schedule_rules` (
   `last_generated_on` date DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `captain_user_id` bigint unsigned DEFAULT NULL,
+  `captain_name` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `crew_user_ids` json DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `schedule_rules_product_id_foreign` (`product_id`),
   KEY `schedule_rules_vessel_id_foreign` (`vessel_id`),
   KEY `schedule_rules_tenant_active_idx` (`tenant_id`,`is_active`,`valid_from`),
   KEY `schedule_rules_tenant_product_idx` (`tenant_id`,`product_id`),
+  KEY `schedule_rules_captain_user_id_foreign` (`captain_user_id`),
+  CONSTRAINT `schedule_rules_captain_user_id_foreign` FOREIGN KEY (`captain_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `schedule_rules_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
   CONSTRAINT `schedule_rules_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
   CONSTRAINT `schedule_rules_vessel_id_foreign` FOREIGN KEY (`vessel_id`) REFERENCES `vessels` (`id`) ON DELETE SET NULL
@@ -1485,7 +1506,7 @@ CREATE TABLE `users` (
   `tenant_id` bigint unsigned DEFAULT NULL,
   `name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
   `salutation` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `email` varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `email_verified_at` timestamp NULL DEFAULT NULL,
   `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `phone` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -1499,6 +1520,9 @@ CREATE TABLE `users` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `specialty` varchar(16) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `photo_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bio` json DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `users_uuid_unique` (`uuid`),
   UNIQUE KEY `users_email_unique` (`email`),
@@ -1578,6 +1602,7 @@ CREATE TABLE `vessels` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `licence_type` varchar(24) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `vessels_tenant_name_unique` (`tenant_id`,`name`),
   UNIQUE KEY `vessels_uuid_unique` (`uuid`),
@@ -1770,3 +1795,9 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (82,'2026_09_21_140
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (83,'2026_09_22_100000_add_setup_exits_to_tenants',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (84,'2026_09_23_100000_drop_generate_days_ahead_from_schedule_rules',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (85,'2026_09_23_110000_create_policy_templates_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (86,'2026_09_24_100000_add_group_kind_and_trip_terms',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (87,'2026_09_24_110000_add_harbour_manifest_fields',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (88,'2026_09_24_120000_add_captain_and_crew_to_departures',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (89,'2026_09_24_130000_add_specialty_and_optional_email_to_users',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (90,'2026_09_24_140000_add_crew_to_schedule_rules',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (91,'2026_09_24_150000_add_about_page',1);
