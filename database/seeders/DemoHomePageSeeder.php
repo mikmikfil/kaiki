@@ -146,6 +146,24 @@ class DemoHomePageSeeder extends Seeder
                 'image_alt' => ['el' => 'Το καΐκι μας δεμένο στη μαρίνα', 'en' => 'Our kaiki moored in the marina'],
                 'settings' => ['image_side' => 'left'],
             ],
+            // A second story under the first, photograph on the other side, so
+            // the two read as a zig-zag (Mike, 2026-09-24).
+            $full ? [
+                'type' => HomeBlockType::Story->value,
+                'eyebrow' => ['el' => 'Πώς ταξιδεύουμε', 'en' => 'How we sail'],
+                'heading' => ['el' => 'Μικρές παρέες, μεγάλη θάλασσα', 'en' => 'Small groups, a big sea'],
+                'body' => [
+                    'el' => "Δεν βάζουμε ποτέ πάνω από δώδεκα άτομα στο σκάφος. Έτσι χωράνε όλοι στην πλώρη, ο κυβερνήτης ξέρει τα ονόματά σας, και σταματάμε όπου η παρέα θέλει να κολυμπήσει.
+
+Το πρόγραμμα το κανονίζει ο καιρός, όχι το ρολόι: αν φυσάει βοριάς πάμε στην απάνεμη πλευρά, αν η θάλασσα είναι λάδι μένουμε λίγο παραπάνω.",
+                    'en' => "We never take more than twelve people aboard. Everyone fits on the bow, the captain knows your names, and we stop wherever the group wants to swim.
+
+The weather sets the plan, not the clock: if the north wind blows we go to the sheltered side, and if the sea is like glass we stay a little longer.",
+                ],
+                'image_path' => $this->productImageOrNull('istioploia-me-pania'),
+                'image_alt' => ['el' => 'Τα πανιά ανοιχτά στο ηλιοβασίλεμα', 'en' => 'Sails up at sunset'],
+                'settings' => ['image_side' => 'right'],
+            ] : null,
             $full ? [
                 'type' => HomeBlockType::Features->value,
                 'eyebrow' => ['el' => 'Γιατί Aegean Blue', 'en' => 'Why Aegean Blue'],

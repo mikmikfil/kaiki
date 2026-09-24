@@ -131,7 +131,8 @@
            sliver; 78 gave three narrow ones and a 22rem aside that had to be
            argued with. Prose keeps its own measure below — widening the page is
            not the same as widening the paragraph. */
-        .wrap { max-width: 86rem; margin: 0 auto; padding: 0 clamp(1.25rem, 3vw, 2.5rem); }
+        /* 92rem, was 86 (Mike, 2026-09-24: «δοκίμασε λίγο μεγαλύτερο content width»). */
+        .wrap { max-width: 92rem; margin: 0 auto; padding: 0 clamp(1.25rem, 3vw, 2.5rem); }
 
         /* The reading measure, for blocks that are words rather than layout. */
         .prose, .standfirst { max-width: 44rem; }
@@ -992,7 +993,7 @@
                it is the form that decides the floor. */
             --hero-measure: min(56rem, 100%);
             width: 100%;
-            max-width: 86rem;
+            max-width: 92rem;
             margin: 0 auto;
             padding: 3.5rem clamp(1.25rem, 3vw, 2.5rem);
             position: relative;
@@ -2771,7 +2772,7 @@
             position: relative; z-index: 2;
             /* The page column's own width and gutters (`.wrap`), so the words
                and the card line up with the trips below them. */
-            inline-size: 100%; max-width: 86rem; margin: 0 auto;
+            inline-size: 100%; max-width: 92rem; margin: 0 auto;
             padding: clamp(3rem, 7vw, 5.5rem) clamp(1.25rem, 3vw, 2.5rem);
             display: grid; gap: clamp(2rem, 4vw, 3.5rem); align-items: center;
         }
@@ -3677,9 +3678,12 @@
 
         /* «Πώς λειτουργεί» as a box: inside the page's width, rounded like the
            private trips band, the words and the route in the middle. */
+        /* Edge to edge (Mike, 24/9: «full width το background»): the band
+           reaches both sides of the screen, the words and the route stay in
+           the page's column. */
         .steps-route:not(.has-image) {
-            margin-inline: 0; border-radius: clamp(18px, 2vw, 26px);
-            padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.25rem, 4vw, 3.5rem);
+            margin-inline: calc(50% - 50vw); border-radius: 0;
+            padding-block: clamp(3rem, 7vw, 5.5rem); padding-inline: calc(50vw - 50%);
             color: rgba(255, 255, 255, .78);
         }
         .steps-route:not(.has-image) .section-head h2 { color: #fff; }
