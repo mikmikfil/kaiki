@@ -107,6 +107,12 @@
                     <p class="trip-price">
                         <span class="from">{{ __('hosted.index.from') }}</span>
                         <strong>{{ MoneyFormatter::format($product->price_from_cents, $locale, MoneyFormatter::currency()) }}</strong>
+                        {{-- What the price is for (2026-09-24): a seat, or the whole boat. --}}
+                        @if ($product->mode === \App\Enums\BookingMode::PerSeat)
+                            <span class="per">{{ __('hosted.index.per_person') }}</span>
+                        @elseif ($product->mode === \App\Enums\BookingMode::PerVessel)
+                            <span class="per">{{ __('hosted.index.per_boat') }}</span>
+                        @endif
                     </p>
                 @elseif ($product->mode === \App\Enums\BookingMode::Quote)
                     {{-- Said in words, where the price would be (Mike,
@@ -124,7 +130,15 @@
                 </p>
             @endif
 
-            <a class="button button-small arrow" href="{{ $url }}">{{ __('hosted.index.view') }}</a>
+            {{-- A round arrow beside the price (Mike, 2026-09-24, from the first
+                 home mockup) rather than a full-width button under it. The words
+                 are still there for a screen reader, with the trip's name, so
+                 twelve identical «Δείτε την εκδρομή» links are twelve different
+                 ones. --}}
+            <a class="trip-go" href="{{ $url }}">
+                <span class="sr-only">{{ __('hosted.index.view') }}: {{ $product->title }}</span>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
         </div>
     </div>
 </li>

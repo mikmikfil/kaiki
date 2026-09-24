@@ -40,6 +40,8 @@ return [
         'all_trips' => 'All our trips',
         'search_prompt' => 'When would you like to sail?',
         'from' => 'from',
+        'per_person' => '/ person',
+        'per_boat' => '/ boat',
     ],
 
     // HOS-10. It says who to contact rather than what went wrong — the visitor

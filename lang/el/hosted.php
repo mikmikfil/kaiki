@@ -41,6 +41,8 @@ return [
         'all_trips' => 'Όλες οι εκδρομές',
         'search_prompt' => 'Πότε θέλετε να βγείτε;',
         'from' => 'από',
+        'per_person' => '/ άτομο',
+        'per_boat' => '/ σκάφος',
     ],
 
     'blocks' => [

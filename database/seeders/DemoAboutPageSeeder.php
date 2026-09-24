@@ -10,6 +10,7 @@ use App\Enums\CrewSpecialty;
 use App\Enums\HomeBlockType;
 use App\Enums\Role;
 use App\Enums\VesselLicence;
+use App\Models\BrandProfile;
 use App\Models\HomePageBlock;
 use App\Models\Port;
 use App\Models\Tenant;
@@ -57,6 +58,9 @@ class DemoAboutPageSeeder extends Seeder
 
                 return is_file($from) ? $this->copy($disk, $from, "{$dir}/{$as}") : null;
             };
+
+            // The button colour Mike picked on 24/9, from the home mockup.
+            BrandProfile::query()->first()?->forceFill(['color_accent' => '#1B5FD1'])->save();
 
             $boats = $this->boats($photo);
             $this->crew($tenant, $photo);

@@ -1221,8 +1221,11 @@
         .button {
             display: inline-flex; align-items: center; gap: .5rem;
             text-decoration: none;
-            background: var(--kaiki-primary); color: #fff;
-            border: 1px solid var(--kaiki-primary);
+            /* The accent, on every solid button (Mike, 2026-09-24: «αυτό το
+               χρώμα για τα buttons παντού»). It was the primary navy, with the
+               accent kept for the two or three calls to book. */
+            background: var(--kaiki-accent); color: #fff;
+            border: 1px solid var(--kaiki-accent);
             padding: .8rem 1.5rem; border-radius: var(--kaiki-radius);
             font-weight: 600; font-size: .97rem; line-height: 1;
             transition: background-color .15s ease, border-color .15s ease, color .15s ease;
@@ -1233,7 +1236,7 @@
            the pointer reads as a warning on a page where the accent is used for
            «sold out» and «not included». */
         .button:hover, .button:focus-visible {
-            background: color-mix(in srgb, var(--kaiki-primary) 88%, var(--kaiki-text));
+            background: color-mix(in srgb, var(--kaiki-accent) 86%, #000);
             border-color: transparent;
         }
 
@@ -3210,6 +3213,28 @@
         }
 
         /* ==================================================================
+           The trip card's foot (Mike, 2026-09-24, from the first home mockup):
+           the price on the left in the accent, what it is for beside it, and a
+           round arrow on the right instead of a full-width button.
+           ================================================================== */
+        .trip-foot { flex-direction: row; align-items: center; justify-content: space-between; gap: .75rem; min-height: 0; }
+        .trip-foot.is-party-price { min-height: 0; }
+        .trip-foot .trip-price { min-width: 0; }
+        .trip-price strong { color: var(--kaiki-accent); }
+        .trip-price .per { font-size: .85rem; color: var(--ink-soft); }
+        .trip-price .on-request { color: var(--kaiki-accent); font-weight: 700; }
+        .trip-go {
+            flex: none; margin-left: auto;
+            display: grid; place-items: center; inline-size: 2.6rem; block-size: 2.6rem; border-radius: 50%;
+            border: 1.5px solid var(--kaiki-accent); color: var(--kaiki-accent);
+            transition: background-color .15s ease, color .15s ease;
+        }
+        .trip-go .icon { inline-size: 1.1rem; block-size: 1.1rem; transition: transform .15s ease; }
+        .trip-go:hover, .trip-go:focus-visible { background: var(--kaiki-accent); color: #fff; }
+        .trip-go:hover .icon { transform: translateX(2px); }
+        @media (prefers-reduced-motion: reduce) { .trip-go, .trip-go .icon { transition: none; } }
+
+        /* ==================================================================
            The search under the masthead (Mike, 2026-09-24): one horizontal
            white bar, overlapping the photograph's lower edge by about 3.5rem,
            as wide as the page column so it lines up with the trips below.
@@ -3238,8 +3263,11 @@
             .hero-search.hero-search-below .search-form { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 0; }
             .hero-search.hero-search-below .field { flex: 1 1 0; min-width: 0; padding: .65rem 1.2rem; border-block-start: 0 !important; border-inline-start: 1px solid var(--rule) !important; }
             .hero-search.hero-search-below .field:first-child { border-inline-start: 0 !important; }
-            .hero-search.hero-search-below .search-form > :last-child { flex: 0 0 auto; display: flex; align-items: center; padding: 0 0 0 .6rem; }
-            .hero-search.hero-search-below .search-form button { inline-size: auto; block-size: 100%; min-block-size: 3.4rem; padding-inline: 2.2rem; }
+            /* `align-self: center`: the base `.search-form .submit` pins the
+               button to the row's floor, which in a bar of two-line fields put
+               it visibly below the middle (Mike, 24/9). */
+            .hero-search.hero-search-below .search-form > :last-child { flex: 0 0 auto; display: flex; align-items: center; align-self: center; padding: 0 0 0 .6rem; }
+            .hero-search.hero-search-below .search-form button { inline-size: auto; block-size: auto; min-block-size: 3.4rem; padding-inline: 2.2rem; }
         }
         @media (max-width: 40rem) {
             .hero-search.hero-search-below { margin-inline: 0; }
