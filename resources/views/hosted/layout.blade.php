@@ -3081,8 +3081,10 @@
         /* No lift any more (Mike, 2026-09-24: the card that moves under the
            pointer went). The deeper shadow stays, so the card still answers. */
         li.trip { position: relative; border-radius: 16px; border: 1px solid var(--line); box-shadow: var(--shadow-sm); transition: box-shadow .2s ease; }
+        /* Much lighter than `--shadow` (Mike, 24/9): the card answers the
+           pointer, it does not lift off the page. */
         @media (hover: hover) {
-            li.trip:hover { box-shadow: var(--shadow); }
+            li.trip:hover { box-shadow: 0 1px 2px rgba(11, 39, 64, .05), 0 4px 12px rgba(11, 39, 64, .06); }
         }
         li.trip h3 { font-size: 1.15rem; letter-spacing: -.015em; color: var(--deep); }
         .trip-badge {
@@ -3213,6 +3215,67 @@
            card's shadow at the column's edge; the room is given back inside. */
         @media (min-width: 60rem) {
             .product-aside { padding: .25rem 1.5rem 2.5rem; margin-inline: -1.5rem; }
+        }
+
+        /* ==================================================================
+           A soft gradient on the two dark bands (Mike, 2026-09-24): «Γιατί
+           Aegean Blue» and the private-trips band. The deep colour, lifting
+           towards the primary, with a faint glow of the accent from the top
+           right corner — enough to give the flat navy some depth, not enough
+           to read as a decoration.
+           ================================================================== */
+        .band-dark,
+        .cta-band.has-image {
+            background:
+                radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--kaiki-accent) 34%, transparent) 0%, transparent 60%),
+                linear-gradient(155deg, var(--deep) 0%, color-mix(in srgb, var(--deep) 70%, var(--kaiki-primary)) 100%);
+        }
+        /* The split band's photograph covers its right half, so the glow comes
+           from the words' side. */
+        .cta-band.has-image {
+            background:
+                radial-gradient(90% 110% at 0% 0%, color-mix(in srgb, var(--kaiki-accent) 38%, transparent) 0%, transparent 62%),
+                linear-gradient(155deg, var(--deep) 0%, color-mix(in srgb, var(--deep) 70%, var(--kaiki-primary)) 100%);
+        }
+        /* And the glow drifts, slightly (Mike, 24/9): the light layer is drawn
+           larger than the band and wanders a little across it, nine seconds one
+           way and back (was fourteen; «λίγο πιο γρήγορη»). Still for anybody who asked for reduced motion. */
+        @media (prefers-reduced-motion: no-preference) {
+            .band-dark, .cta-band.has-image {
+                background-size: 150% 150%, 100% 100%;
+                animation: glow-drift 9s ease-in-out infinite alternate;
+            }
+            .band-dark { background-position: 100% 0%, 0 0; }
+            .cta-band.has-image { background-position: 0% 0%, 0 0; animation-name: glow-drift-left; }
+        }
+        @keyframes glow-drift { from { background-position: 100% 0%, 0 0; } to { background-position: 55% 35%, 0 0; } }
+        @keyframes glow-drift-left { from { background-position: 0% 0%, 0 0; } to { background-position: 40% 45%, 0 0; } }
+
+        /* ==================================================================
+           The header's layout (Mike, 2026-09-24, from the first home mockup):
+           the name on the left, the links in the middle, the language switch
+           as two plain words and the button on the right. Name and end take
+           equal shares, so the links sit in the true centre.
+           ================================================================== */
+        header.site .brand { flex: 1 1 0; min-width: 0; }
+        /* Closer and a little bolder (Mike, 24/9): 1.9rem at 500 read as loose. */
+        header.site .site-nav { margin-inline: auto; gap: 1.35rem; font-size: .95rem; font-weight: 600; }
+        header.site .site-nav a { color: var(--kaiki-text); white-space: nowrap; font-weight: 600; }
+        header.site .site-nav a:hover, header.site .site-nav a[aria-current] { color: var(--kaiki-accent); }
+        .header-end { flex: 1 1 0; display: flex; align-items: center; justify-content: flex-end; gap: 1.1rem; }
+        .header-end .langs { gap: 0; font-weight: 600; font-size: .85rem; }
+        .header-end .langs a { border: 0; border-radius: 0; background: none; padding: .15rem .55rem; color: var(--ink-faint); }
+        .header-end .langs a + a { border-inline-start: 1px solid var(--rule); }
+        .header-end .langs a[aria-current="true"] { background: none; color: var(--kaiki-primary); }
+        /* Below a laptop the equal shares squeeze the name onto three lines;
+           there the name keeps its own width and the links take what is left. */
+        @media (min-width: 40.01rem) and (max-width: 64rem) {
+            header.site .brand, .header-end { flex: none; }
+            header.site .site-nav { gap: .85rem; font-size: .86rem; }
+            .header-end { gap: .5rem; }
+            .header-end .langs a { padding-inline: .4rem; }
+            .header-end .header-book { padding-inline: .85rem; }
+            .header-end .header-book::after { display: none; }
         }
 
         /* ==================================================================
@@ -3628,24 +3691,21 @@
             @include('hosted.partials.nav-links')
         </nav>
 
-        {{-- A telephone number a guest can tap, and the one button the header
-             exists for. Both leave the row on a narrow screen and reappear in
-             the burger's panel. --}}
-        @if ($tenant->phone)
-            <a class="header-phone" href="tel:{{ $tenant->phone }}" aria-label="{{ __('hosted.nav.call', ['phone' => $tenant->phone]) }}">
-                @include('hosted.partials.icon', ['name' => 'phone']){{ $tenant->phone }}
-            </a>
-        @endif
+        {{-- The right-hand end (Mike, 2026-09-24, the first home mockup's
+             header): the language switch as two words, then the one button the
+             header exists for. The telephone left the row the same day — it is
+             in the footer's first row, and in the burger's panel on a phone. --}}
+        <div class="header-end">
+            <nav class="langs" aria-label="{{ __('hosted.nav.language') }}">
+                @foreach (['el' => 'ΕΛ', 'en' => 'EN'] as $code => $label)
+                    <a href="{{ $alternates[$code] }}"
+                       hreflang="{{ $code }}"
+                       @if ($code === $locale) aria-current="true" @endif>{{ $label }}</a>
+                @endforeach
+            </nav>
 
-        <a class="button button-accent header-book" href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.nav.book') }}</a>
-
-        <nav class="langs" aria-label="{{ __('hosted.nav.language') }}">
-            @foreach (['el' => 'ΕΛ', 'en' => 'EN'] as $code => $label)
-                <a href="{{ $alternates[$code] }}"
-                   hreflang="{{ $code }}"
-                   @if ($code === $locale) aria-current="true" @endif>{{ $label }}</a>
-            @endforeach
-        </nav>
+            <a class="button button-accent arrow header-book" href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.nav.book') }}</a>
+        </div>
 
         {{-- The same links behind a burger, on a phone only.
 
