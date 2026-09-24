@@ -20,6 +20,15 @@
             · {{ __('calendar.pax.seats', ['sold' => $departure->seats_sold, 'capacity' => $departure->capacity]) }}
         </p>
 
+        {{-- «Πώληση τώρα» from the passenger list too (24/9): on a wide screen
+             the timeline's bar opens this, so this is where the quay sale is. --}}
+        @if (($canSell ?? false) && $departure->status->isSellable())
+            <x-filament::button size="sm" icon="heroicon-m-banknotes"
+                wire:click="replaceMountedAction('sell', { departure: '{{ $departure->uuid }}' })">
+                {{ __('calendar.sell.title') }}
+            </x-filament::button>
+        @endif
+
         {{-- Who takes her out, above the names (2026-09-24). --}}
         @php $crewNames = $departure->crewNames(); @endphp
         <p class="text-sm">

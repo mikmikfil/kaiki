@@ -228,6 +228,7 @@ class BookingResource extends Resource
                         ->label(__('bookings.form.settle.method'))
                         ->options([
                             PaymentGatewayName::Cash->value => PaymentGatewayName::Cash->label(),
+                            PaymentGatewayName::Pos->value => PaymentGatewayName::Pos->label(),
                             PaymentGatewayName::BankTransfer->value => PaymentGatewayName::BankTransfer->label(),
                         ])
                         // BKG-33: neither of these calls anything, and both are
@@ -363,6 +364,9 @@ class BookingResource extends Resource
                 guestPhone: isset($data['guest_phone']) ? (string) $data['guest_phone'] : null,
                 locale: app()->getLocale(),
                 paxByCode: $pax,
+                // The picked departure's own time (2026-09-24): without it, a day
+                // with two sailings of the same trip put the booking on the first.
+                startTime: $departure instanceof Departure ? (string) $departure->local_time : null,
                 specialRequests: isset($data['special_requests']) ? (string) $data['special_requests'] : null,
             ),
             adjustment: $adjustment,

@@ -53,6 +53,7 @@
             @php($opens = $this->canOpenPax())
             @php($canBlock = $this->blockAction->isVisible())
             @php($canAssign = \App\Filament\App\Pages\Calendar::canAssign())
+            @php($canSell = $this->sellAction->isVisible())
             <div class="cal-list">
                 @foreach ($day->rows as $row)
                     <section @class(['cal-boat', 'is-idle' => $row['bars'] === []])>
@@ -106,12 +107,23 @@
                                     <span class="cal-dep-pax">{{ $bar['pax'] }}/{{ $bar['capacity'] }}</span>
                                 @endif
                             </{{ $tappable ? 'button' : 'div' }}>
-                            {{-- Captain and crew in two taps (owner, manager). --}}
-                            @if ($canAssign && $bar['kind'] === 'departure' && ! $bar['cancelled'])
-                                <button type="button" class="cal-assign"
-                                    wire:click="mountAction('assign', { departure: '{{ $bar['uuid'] }}' })">
-                                    {{ __('calendar.assign.title') }}
-                                </button>
+                            {{-- Captain and crew in two taps (owner, manager), and
+                                 «Πώληση τώρα» on the quay for everyone (24/9). --}}
+                            @if ($bar['kind'] === 'departure' && ! $bar['cancelled'] && ($canAssign || $canSell))
+                                <div class="cal-dep-actions">
+                                    @if ($canSell)
+                                        <button type="button" class="cal-assign cal-sell"
+                                            wire:click="mountAction('sell', { departure: '{{ $bar['uuid'] }}' })">
+                                            {{ __('calendar.sell.title') }}
+                                        </button>
+                                    @endif
+                                    @if ($canAssign)
+                                        <button type="button" class="cal-assign"
+                                            wire:click="mountAction('assign', { departure: '{{ $bar['uuid'] }}' })">
+                                            {{ __('calendar.assign.title') }}
+                                        </button>
+                                    @endif
+                                </div>
                             @endif
                         @endforeach
                     </section>
@@ -322,6 +334,11 @@
             border: 1px solid var(--cal-line); background: transparent;
         }
         .cal-assign:hover { background: var(--cal-hover); }
+        .cal-dep-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin: -.2rem 0 .4rem 4rem; }
+        .cal-dep-actions .cal-assign { margin: 0; }
+        .cal-sell { background: rgb(var(--primary-600)); border-color: rgb(var(--primary-600)); color: #fff; }
+        .cal-sell:hover { background: rgb(var(--primary-700)); }
+        .dark .cal-sell { color: #fff; }
         .dark .cal-assign { color: rgb(var(--primary-400)); }
         .cal-dep {
             display: grid; grid-template-columns: 3.4rem minmax(0, 1fr) auto; align-items: center; gap: .6rem;

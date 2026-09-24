@@ -77,4 +77,22 @@ return [
         'title' => 'Assign',
         'saved' => 'Saved',
     ],
+    // «Sell now» on the quay (24/9, option Β).
+    'sell' => [
+        'title' => 'Sell now',
+        'which' => ':trip · :time · :left seats left',
+        'total' => 'Total',
+        'no_price' => 'Choose the people',
+        'name' => 'Guest name',
+        'email' => 'Email (optional)',
+        'phone' => 'Phone (optional)',
+        'pos' => 'Card on my POS',
+        'cash' => 'Cash',
+        'done' => 'Paid · :pax people · :amount',
+        'done_body' => ':how · booking :reference',
+        'no_pax' => 'Add at least one person',
+        'full' => 'There are not that many seats left',
+        'refused' => 'The sale did not go through',
+        'unavailable' => 'This departure cannot be sold now',
+    ],
 ];

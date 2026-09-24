@@ -195,6 +195,7 @@ class ViewBooking extends ViewRecord
                         ->label(__('bookings.payment.how'))
                         ->options([
                             PaymentGatewayName::Cash->value => PaymentGatewayName::Cash->label(),
+                            PaymentGatewayName::Pos->value => PaymentGatewayName::Pos->label(),
                             PaymentGatewayName::BankTransfer->value => PaymentGatewayName::BankTransfer->label(),
                         ])
                         ->default(PaymentGatewayName::Cash->value)

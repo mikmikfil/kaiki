@@ -14,6 +14,7 @@ use App\Filament\App\Resources\BookingResource;
 use App\Filament\App\Resources\DepartureResource;
 use App\Models\Departure;
 use App\Models\User;
+use App\Support\Authorization\Capability;
 use App\Support\Tenancy;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Carbon;
@@ -133,7 +134,19 @@ class DayByBoat extends Widget
              * οθόνη που του ανήκει.
              */
             'url' => DepartureResource::canEdit($departure) ? DepartureResource::getUrl('edit', ['record' => $departure]) : null,
+            // «Πώληση τώρα» (2026-09-24): straight into the calendar's sale for
+            // this departure, for anyone who may sell and while it is on sale.
+            'sell_url' => $this->canSell() && $departure->status->isSellable()
+                ? Calendar::getUrl(['action' => 'sell', 'actionArguments' => ['departure' => (string) $departure->uuid]])
+                : null,
         ];
+    }
+
+    private function canSell(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && Calendar::canAccess() && $user->hasCapability(Capability::SellOnQuay);
     }
 
     /**

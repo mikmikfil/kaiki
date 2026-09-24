@@ -517,6 +517,7 @@ final class AttentionItems
             ->whereIn('gateway', [
                 PaymentGatewayName::Cash->value,
                 PaymentGatewayName::BankTransfer->value,
+                PaymentGatewayName::Pos->value,
             ]);
     }
 

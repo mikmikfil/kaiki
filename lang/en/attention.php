@@ -69,6 +69,7 @@ return [
         'detail' => 'To :guest, :method. The booking was cancelled and this money does not go back on its own.',
         'cash' => 'in cash',
         'bank_transfer' => 'by bank transfer',
+        'pos' => 'back on their card, from your POS',
     ],
 
     'quote' => [

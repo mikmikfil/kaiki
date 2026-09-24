@@ -70,6 +70,10 @@
                         @endif
                     </div>
 
+                    @if ($next['sell_url'])
+                        <a class="kd-sell" href="{{ $next['sell_url'] }}">{{ __('calendar.sell.title') }} →</a>
+                    @endif
+
                     @if ($next['boards'] && $next['expected'] > 0)
                         <div class="kd-progress" role="progressbar" aria-valuenow="{{ $next['percent'] }}" aria-valuemin="0" aria-valuemax="100">
                             <i style="width: {{ $next['percent'] }}%"></i>
@@ -320,6 +324,13 @@
         .kd-progress { height: .4rem; border-radius: 99px; background: #23497D; overflow: hidden; }
         .kd-progress i { display: block; height: 100%; border-radius: inherit; background: #7FB0EE; }
 
+        /* «Πώληση τώρα» on the next departure's card (24/9): a white pill on the blue. */
+        .kd-sell {
+            position: relative; z-index: 1; display: inline-flex; align-items: center; min-height: 2.5rem; margin-top: .9rem;
+            padding: 0 1rem; border-radius: 999px; background: #fff; color: rgb(var(--primary-700));
+            font-weight: 700; font-size: .9rem;
+        }
+        .kd-sell:hover { background: rgba(255, 255, 255, .9); }
         .kd-bigbtn {
             display: flex; align-items: center; justify-content: center; gap: .55rem;
             min-height: 3.125rem; margin-top: .35rem; border-radius: .75rem;

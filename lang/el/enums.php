@@ -439,6 +439,7 @@ return [
         'wordpress' => ['label' => 'WordPress'],
         'manual' => ['label' => 'Καταχωρήθηκε από εσάς'],
         'import' => ['label' => 'Εισαγωγή'],
+        'quay' => ['label' => 'Προβλήτα'],
     ],
 
     'guest_details_status' => [
@@ -527,6 +528,7 @@ return [
         'viva' => ['label' => 'Viva Wallet'],
         'cash' => ['label' => 'Μετρητά'],
         'bank_transfer' => ['label' => 'Τραπεζικό έμβασμα'],
+        'pos' => ['label' => 'Κάρτα (POS)'],
     ],
 
     /*

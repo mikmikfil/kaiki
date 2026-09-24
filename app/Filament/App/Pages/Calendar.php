@@ -9,11 +9,17 @@ use App\Domain\Availability\Actions\CreateVesselBlock;
 use App\Domain\Availability\Support\LocalDay;
 use App\Domain\Availability\Support\Window;
 use App\Domain\Availability\VesselCalendar;
+use App\Domain\Booking\Actions\CreateManualBooking;
+use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Operations\Support\CalendarDay;
+use App\Domain\Pricing\Actions\ComputePrice;
 use App\Enums\BlockReason;
+use App\Enums\BookingSource;
 use App\Enums\BookingStatus;
 use App\Enums\DepartureStatus;
+use App\Enums\PaymentGatewayName;
 use App\Enums\Role;
+use App\Exceptions\HoldRefused;
 use App\Filament\App\Resources\DepartureResource;
 use App\Models\Booking;
 use App\Models\Departure;
@@ -21,9 +27,11 @@ use App\Models\User;
 use App\Models\Vessel;
 use App\Support\Authorization\Capability;
 use App\Support\Authorization\CrewWindow;
+use App\Support\Format\MoneyFormatter;
 use App\Support\Tenancy;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -32,6 +40,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 /**
  * The fleet's day, as a timeline (spec OPS-3, OPS-4).
@@ -364,8 +373,227 @@ class Calendar extends Page
                 return view('filament.app.pages.calendar-pax', [
                     'departure' => $departure,
                     'bookings' => $bookings,
+                    'canSell' => self::userCan(Capability::SellOnQuay),
                 ]);
             });
+    }
+
+    /**
+     * «Πώληση τώρα» on the quay (Mike, 2026-09-24, option Β).
+     *
+     * A seat on this departure, sold and paid on the spot: how many of each age
+     * band, the price that comes to, the guest's name (email and phone only if
+     * they give them), then «Κάρτα στο POS μου» or «Μετρητά». The guest pays on
+     * the operator's own terminal or in cash; Kaiki records the booking as
+     * confirmed and paid, issues no receipt (their cash register does) and
+     * sends no text message.
+     *
+     * Every role may sell ({@see Capability::SellOnQuay}), crew included, and
+     * within their window only. The booking goes through
+     * {@see CreateManualBooking}, so the price is the website's and the seats
+     * are held under the same lock; a full boat is refused in words.
+     */
+    public function sellAction(): Action
+    {
+        return Action::make('sell')
+            ->label(__('calendar.sell.title'))
+            ->modalHeading(__('calendar.sell.title'))
+            ->modalWidth('md')
+            ->visible(fn (): bool => self::userCan(Capability::SellOnQuay))
+            ->fillForm(function (array $arguments): array {
+                $departure = $this->sellable($arguments);
+                $bands = $departure?->product->ageBands ?? collect();
+                $fill = ['guest_name' => null, 'guest_email' => null, 'guest_phone' => null];
+
+                foreach ($bands->values() as $i => $band) {
+                    $fill['pax_' . $band->code] = $i === 0 ? 1 : 0;
+                }
+
+                return $fill;
+            })
+            ->form(function (array $arguments): array {
+                $departure = $this->sellable($arguments);
+
+                if (! $departure instanceof Departure) {
+                    return [Placeholder::make('gone')->hiddenLabel()->content(__('calendar.sell.unavailable'))];
+                }
+
+                $fields = [
+                    Placeholder::make('which')
+                        ->hiddenLabel()
+                        ->content(fn (): string => __('calendar.sell.which', [
+                            'trip' => (string) $departure->product?->title,
+                            'time' => substr((string) $departure->local_time, 0, 5),
+                            'left' => $departure->seatsAvailable(),
+                        ])),
+                ];
+
+                foreach ($departure->product->ageBands as $band) {
+                    $fields[] = TextInput::make('pax_' . $band->code)
+                        ->label((string) $band->label)
+                        ->numeric()
+                        ->integer()
+                        ->minValue(0)
+                        ->maxValue(max(0, $departure->seatsAvailable()))
+                        ->default(0)
+                        ->live(debounce: 300);
+                }
+
+                $fields[] = Placeholder::make('total')
+                    ->label(__('calendar.sell.total'))
+                    ->content(function (Get $get) use ($departure): string {
+                        $cents = $this->priceFor($departure, $this->paxFrom($departure, $get));
+
+                        return $cents === null
+                            ? __('calendar.sell.no_price')
+                            : MoneyFormatter::format($cents, app()->getLocale(), MoneyFormatter::currency());
+                    });
+
+                $fields[] = TextInput::make('guest_name')->label(__('calendar.sell.name'))->required()->maxLength(120);
+                $fields[] = TextInput::make('guest_email')->label(__('calendar.sell.email'))->email()->maxLength(190);
+                $fields[] = TextInput::make('guest_phone')->label(__('calendar.sell.phone'))->tel()->maxLength(32);
+
+                return $fields;
+            })
+            // Two ways to have been paid, one button each, and no third
+            // «Υποβολή» that would not know which.
+            ->modalSubmitAction(false)
+            ->extraModalFooterActions(fn (Action $action): array => [
+                $action->makeModalSubmitAction('pos', arguments: ['paid_by' => PaymentGatewayName::Pos->value])
+                    ->label(__('calendar.sell.pos')),
+                $action->makeModalSubmitAction('cash', arguments: ['paid_by' => PaymentGatewayName::Cash->value])
+                    ->label(__('calendar.sell.cash'))
+                    ->color('gray'),
+            ])
+            ->action(function (array $data, array $arguments, Action $action): void {
+                $departure = $this->sellable($arguments);
+                $paidBy = PaymentGatewayName::tryFrom((string) ($arguments['paid_by'] ?? ''));
+
+                if (! $departure instanceof Departure || ! in_array($paidBy, [PaymentGatewayName::Pos, PaymentGatewayName::Cash], true)) {
+                    Notification::make()->title(__('calendar.sell.unavailable'))->danger()->send();
+                    $action->halt();
+
+                    return;
+                }
+
+                $pax = [];
+
+                foreach ($departure->product->ageBands as $band) {
+                    $qty = (int) ($data['pax_' . $band->code] ?? 0);
+
+                    if ($qty > 0) {
+                        $pax[$band->code] = $qty;
+                    }
+                }
+
+                if ($pax === []) {
+                    Notification::make()->title(__('calendar.sell.no_pax'))->warning()->send();
+                    $action->halt();
+
+                    return;
+                }
+
+                try {
+                    $booking = app(CreateManualBooking::class)(
+                        new BookingDraftData(
+                            product: $departure->product,
+                            date: Carbon::parse($departure->local_date->toDateString()),
+                            guestName: trim((string) $data['guest_name']),
+                            guestEmail: filled($data['guest_email'] ?? null) ? trim((string) $data['guest_email']) : null,
+                            guestPhone: filled($data['guest_phone'] ?? null) ? trim((string) $data['guest_phone']) : null,
+                            locale: app()->getLocale(),
+                            paxByCode: $pax,
+                            // This departure, at its own time: a day with two
+                            // sailings of the trip must not sell the other one.
+                            startTime: (string) $departure->local_time,
+                        ),
+                        paidBy: $paidBy,
+                        source: BookingSource::Quay,
+                    );
+                } catch (HoldRefused) {
+                    Notification::make()->title(__('calendar.sell.full'))->danger()->send();
+                    $action->halt();
+
+                    return;
+                } catch (ValidationException $exception) {
+                    Notification::make()
+                        ->title(__('calendar.sell.refused'))
+                        ->body(collect($exception->errors())->flatten()->first())
+                        ->danger()
+                        ->send();
+                    $action->halt();
+
+                    return;
+                }
+
+                Notification::make()
+                    ->title(__('calendar.sell.done', [
+                        'pax' => array_sum($pax),
+                        'amount' => MoneyFormatter::format((int) $booking->total_cents, app()->getLocale(), MoneyFormatter::currency()),
+                    ]))
+                    ->body(__('calendar.sell.done_body', ['how' => $paidBy->label(), 'reference' => (string) $booking->reference]))
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /**
+     * The departure a sale is for, if it may be sold now: this tenant's, not
+     * cancelled or closed, and — for crew — inside their window.
+     *
+     * @param  array<string, mixed>  $arguments
+     */
+    private function sellable(array $arguments): ?Departure
+    {
+        $departure = Departure::query()
+            ->where('uuid', (string) ($arguments['departure'] ?? ''))
+            ->with(['product.ageBands' => static fn ($query) => $query->orderBy('sort_order')])
+            ->first();
+
+        if (! $departure instanceof Departure || $departure->product === null || ! $departure->status->isSellable()) {
+            return null;
+        }
+
+        if (CrewWindow::applies() && ! CrewWindow::covers(CarbonImmutable::parse($departure->local_date->toDateString(), $this->timezone()))) {
+            return null;
+        }
+
+        return $departure;
+    }
+
+    /** @return array<string, int> */
+    private function paxFrom(Departure $departure, Get $get): array
+    {
+        $pax = [];
+
+        foreach ($departure->product->ageBands as $band) {
+            $qty = (int) $get('pax_' . $band->code);
+
+            if ($qty > 0) {
+                $pax[$band->code] = $qty;
+            }
+        }
+
+        return $pax;
+    }
+
+    /**
+     * What the party comes to, from the same {@see ComputePrice} the website
+     * asks; null when there is nobody yet or the trip cannot be priced that day.
+     *
+     * @param  array<string, int>  $pax
+     */
+    private function priceFor(Departure $departure, array $pax): ?int
+    {
+        if ($pax === [] || $departure->product === null) {
+            return null;
+        }
+
+        try {
+            return app(ComputePrice::class)($departure->product, Carbon::parse($departure->local_date->toDateString()), $pax)->totalCents;
+        } catch (ValidationException) {
+            return null;
+        }
     }
 
     /**

@@ -450,6 +450,7 @@ return [
         'wordpress' => ['label' => 'WordPress'],
         'manual' => ['label' => 'Entered by you'],
         'import' => ['label' => 'Imported'],
+        'quay' => ['label' => 'Quay'],
     ],
 
     'guest_details_status' => [
@@ -536,6 +537,7 @@ return [
         'viva' => ['label' => 'Viva Wallet'],
         'cash' => ['label' => 'Cash'],
         'bank_transfer' => ['label' => 'Bank transfer'],
+        'pos' => ['label' => 'Card (POS)'],
     ],
 
     /*
