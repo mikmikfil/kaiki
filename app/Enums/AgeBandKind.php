@@ -6,6 +6,7 @@ namespace App\Enums;
 
 use App\Enums\Concerns\HasTranslatedLabel;
 use App\Models\AgeBand;
+use Filament\Support\Contracts\HasLabel;
 
 /**
  * What puts a passenger in a group (product owner, 2026-09-24).
@@ -16,7 +17,7 @@ use App\Models\AgeBand;
  * what stands in for it is the crew seeing the card at boarding, when the group
  * asks for proof ({@see AgeBand::$requires_proof}).
  */
-enum AgeBandKind: string
+enum AgeBandKind: string implements HasLabel
 {
     use HasTranslatedLabel;
 

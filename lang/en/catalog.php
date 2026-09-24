@@ -449,7 +449,7 @@ return [
             'prices' => [
                 'label' => 'Prices',
                 'description' => 'What each person pays',
-                'intro' => 'The three usual categories to start with. Change the ages and names, remove any you do not need.',
+                'intro' => 'First the passenger groups: Adult, Child and Infant are ready; add disabled passengers, students or whatever else you sell. Then tick the periods that have another price and fill in the prices.',
                 'price' => 'Price per person',
                 'price_help' => 'Applies all year, whenever no period does.',
                 'seasons' => 'Prices per period',

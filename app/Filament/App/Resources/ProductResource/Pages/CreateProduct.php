@@ -8,14 +8,15 @@ use App\Domain\Availability\Actions\GenerateDepartures;
 use App\Domain\Availability\Support\WeekdayMask;
 use App\Domain\Catalog\Actions\SaveProduct;
 use App\Domain\Catalog\Actions\SaveScheduleRule;
+use App\Domain\Pricing\Actions\SavePriceTable;
 use App\Domain\Pricing\Actions\SaveRatePlan;
+use App\Domain\Pricing\Support\PriceTable;
 use App\Enums\BookingMode;
 use App\Enums\DepositType;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Support\ScheduleConflictNotice;
 use App\Filament\Forms\MoneyInput;
-use App\Models\AgeBand;
 use App\Models\Product;
 use App\Models\RatePlan;
 use App\Models\ScheduleRule;
@@ -26,7 +27,6 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -120,37 +120,34 @@ class CreateProduct extends CreateRecord
         );
 
         /*
-         * Prices travel on the band rows so an operator types a name and its
-         * price in one place; they are not columns on `age_bands`.
+         * The price table of the edit page, asked in the wizard (2026-09-24):
+         * the periods ticked, a price per group and column, the terms once.
          *
-         * **Keyed by the repeater's own keys, with the position counted on the
-         * side.** A Filament repeater's state is keyed by a generated id, not
-         * by 0..n, so an `unset()` after an `array_values()` walk removes
-         * nothing and `wizard_price` travels on to `SaveAgeBands` as an
-         * attribute no band has. The position is still what the saved bands are
-         * matched on afterwards, so it is counted separately.
+         * **Keyed by the repeater's own keys, matched by position.** A
+         * Filament repeater's state is keyed by a generated id; `SaveAgeBands`
+         * writes the set in the order given and hands back nothing to key on,
+         * so the row an operator typed into is the band at the same position.
          */
-        $prices = [];
-        $seasonPrices = [];
-        $position = 0;
+        $seasonIds = array_values(array_map('intval', (array) ($data['wizard_seasons'] ?? [])));
+        $typed = (array) ($data['wizard_prices'] ?? []);
+        $terms = (array) ($data['wizard_terms'] ?? []);
 
-        foreach ($data['age_bands'] ?? [] as $key => $band) {
-            $prices[$position] = $band['wizard_price'] ?? null;
+        unset($data['wizard_seasons'], $data['wizard_prices'], $data['wizard_terms']);
 
-            foreach ((array) ($band['wizard_season_prices'] ?? []) as $row) {
-                $season = $row['season_id'] ?? null;
+        $columns = [PriceTable::NEW_DEFAULT, ...array_map(static fn (int $id): string => 's' . $id, $seasonIds)];
+        $grid = [];
 
-                if ($season === null || $season === '') {
-                    continue;
-                }
+        foreach (array_keys($data['age_bands'] ?? []) as $key) {
+            $row = [];
 
-                $seasonPrices[(int) $season][$position] = $row['price'] ?? null;
+            foreach ($columns as $column) {
+                $row[$column] = $this->cents($typed[$key][$column] ?? null);
             }
 
-            unset($data['age_bands'][$key]['wizard_price'], $data['age_bands'][$key]['wizard_season_prices']);
-
-            $position++;
+            $grid[] = $row;
         }
+
+        $this->guardWizardPrices($grid);
 
         // Always created as a draft, whatever the operator asked for: the
         // checklist cannot be judged before the bands and the prices exist.
@@ -158,7 +155,11 @@ class CreateProduct extends CreateRecord
 
         $product = $this->saveProductWithBands(new Product, $data);
 
-        $this->createRatePlans($product, $prices, $seasonPrices, $vesselPrice, $vesselSeasonPrices, $includedPax, $extraPaxPrice);
+        if ($product->mode === BookingMode::PerSeat) {
+            $this->createSeatPrices($product, $grid, $seasonIds, $terms);
+        }
+
+        $this->createRatePlans($product, $vesselPrice, $vesselSeasonPrices, $includedPax, $extraPaxPrice);
         $this->createSchedules($product, $schedules);
 
         if ($wants === 'publish') {
@@ -169,24 +170,13 @@ class CreateProduct extends CreateRecord
     }
 
     /**
-     * The trip's price lists: «Όλο τον χρόνο», and one for every period the
-     * operator gave a different price for.
+     * A whole-boat charter's price lists: the boat's price all year and per
+     * period. Per seat is {@see createSeatPrices()}.
      *
-     * The all-year list is the one every trip needs and nobody thinks to make —
-     * it is what applies when no period matches, and without it a trip outside
-     * its seasons has no price at all. So it is made first and from it the
-     * period lists are filled in: **a period list inherits every band the
-     * operator did not price separately** (PRC-4 wants every band covered, and
-     * «το καλοκαίρι ο ενήλικας 55» is not a statement about children).
-     *
-     * @param  array<int, int|string|null>  $prices  band position => the price
-     * @param  array<int, array<int, int|string|null>>  $seasonPrices  season id => band position => the price
      * @param  array<array-key, array<string, mixed>>  $vesselSeasonPrices
      */
     private function createRatePlans(
         Product $product,
-        array $prices,
-        array $seasonPrices,
         mixed $vesselPrice,
         array $vesselSeasonPrices,
         mixed $includedPax = null,
@@ -194,36 +184,58 @@ class CreateProduct extends CreateRecord
     ): void {
         if ($product->mode === BookingMode::PerVessel) {
             $this->createVesselPlans($product, $vesselPrice, $vesselSeasonPrices, $includedPax, $extraPaxPrice);
+        }
+    }
 
+    /**
+     * Refused before anything is written when a price is typed and another
+     * left empty: a trip half-priced is one the table would refuse to save,
+     * and by then the trip itself would exist. Nothing typed at all is fine —
+     * the trip is a draft and the table is on its edit page.
+     *
+     * @param  list<array<string, int|null>>  $grid  band position => column => cents
+     */
+    private function guardWizardPrices(array $grid): void
+    {
+        $cells = array_merge(...array_map('array_values', $grid ?: [[]]));
+        $empty = count(array_filter($cells, static fn (?int $cents): bool => $cents === null));
+
+        if ($empty > 0 && $empty < count($cells)) {
+            throw ValidationException::withMessages([
+                'data.wizard_prices' => trans_choice('pricing.price_table.missing_banner', $empty, ['count' => $empty]),
+            ]);
+        }
+    }
+
+    /**
+     * Per seat: the same {@see SavePriceTable} as the edit page, with the same
+     * column keys — «Όλο τον χρόνο» as `new`, a ticked period as `s{id}`.
+     *
+     * @param  list<array<string, int|null>>  $grid
+     * @param  list<int>  $seasonIds
+     * @param  array<string, mixed>  $terms
+     */
+    private function createSeatPrices(Product $product, array $grid, array $seasonIds, array $terms): void
+    {
+        $bands = $product->ageBands()->orderBy('sort_order')->get()->values();
+        $cells = array_merge(...array_map('array_values', $grid ?: [[]]));
+
+        if ($cells === [] || in_array(null, $cells, true)) {
             return;
         }
 
-        if ($product->mode !== BookingMode::PerSeat) {
-            return;
+        $cents = [];
+
+        foreach ($bands as $position => $band) {
+            $cents[PriceTable::rowKey($band)] = $grid[$position] ?? [];
         }
 
-        // Matched by position: `SaveAgeBands` writes the set in the order it
-        // was given and hands back nothing this page can key on, so the row an
-        // operator typed a price into is the row at the same index.
-        $bands = $product->ageBands()->orderBy('sort_order')->get();
-        $base = $this->bandRows($bands, $prices);
-
-        if ($base === []) {
-            return;
-        }
-
-        // The prices are a fourth argument, not an attribute: they are rows in
-        // `rate_plan_prices`, and `SaveRatePlan` is the only thing that writes
-        // them (PRC-4's band coverage is checked in there).
-        $this->savePlan($product, $this->planAttributes(null), $base);
-
-        foreach ($seasonPrices as $seasonId => $typed) {
-            // Union rather than spread: both sides are keyed by band id, and
-            // `[...$a, ...$b]` renumbers integer keys — which would hand
-            // `SaveRatePlan` prices for bands 0, 1, 2.
-            $rows = $this->bandRows($bands, $typed) + $base;
-
-            $this->savePlan($product, $this->planAttributes($seasonId), $rows, $seasonId);
+        try {
+            app(SavePriceTable::class)($product, $cents, $seasonIds, EditProduct::termsFromForm($terms));
+        } catch (ValidationException $exception) {
+            throw ValidationException::withMessages([
+                'data.wizard_prices' => array_merge(...array_values($exception->errors())),
+            ]);
         }
     }
 
@@ -291,30 +303,6 @@ class CreateProduct extends CreateRecord
             'deposit_type' => DepositType::None->value,
             'min_lead_time_hours' => 0,
         ];
-    }
-
-    /**
-     * Typed prices onto the bands that were saved, by position.
-     *
-     * @param  Collection<int, AgeBand>  $bands
-     * @param  array<int, int|string|null>  $prices  band position => the price
-     * @return array<int, int> age band id => cents, the shape `SaveRatePlan` reads
-     */
-    private function bandRows(Collection $bands, array $prices): array
-    {
-        $rows = [];
-
-        foreach ($bands as $index => $band) {
-            $cents = $this->cents($prices[$index] ?? null);
-
-            if ($cents === null) {
-                continue;
-            }
-
-            $rows[$band->getKey()] = $cents;
-        }
-
-        return $rows;
     }
 
     /**

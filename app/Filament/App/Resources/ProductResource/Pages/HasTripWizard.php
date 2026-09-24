@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources\ProductResource\Pages;
 
+use App\Domain\Pricing\Support\PriceTable;
+use App\Enums\AgeBandKind;
 use App\Enums\BookingMode;
 use App\Enums\ProductCategory;
 use App\Filament\App\Resources\ProductResource;
@@ -13,7 +15,11 @@ use App\Filament\Forms\TranslatableInput;
 use App\Rules\MaxPaxWithinVesselCapacity;
 use App\Support\Tenancy;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
@@ -21,6 +27,8 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Components\Wizard\Step;
 use Filament\Forms\Get;
 use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
@@ -346,71 +354,73 @@ trait HasTripWizard
                             maxLength: 60,
                         ),
 
+                        // By age or by status («ΑμεΑ», «Φοιτητής»), as on the
+                        // edit page (2026-09-24).
+                        ToggleButtons::make('kind')
+                            ->label(__('catalog.product.form.bands.kind.label'))
+                            ->options(AgeBandKind::class)
+                            ->default(AgeBandKind::Age->value)
+                            ->inline()
+                            ->grouped()
+                            ->live(),
+
                         TextInput::make('min_age')
                             ->label(__('catalog.product.form.bands.min_age.label'))
                             ->integer()
                             ->minValue(0)
                             ->maxValue(120)
-                            ->required(),
+                            ->required()
+                            ->visible(static fn (Get $get): bool => ! ProductResource::bandIsByStatus($get('kind'))),
 
                         TextInput::make('max_age')
                             ->label(__('catalog.product.form.bands.max_age.label'))
                             ->helperText(__('catalog.product.form.bands.max_age.help'))
                             ->integer()
                             ->minValue(0)
-                            ->maxValue(120),
+                            ->maxValue(120)
+                            ->visible(static fn (Get $get): bool => ! ProductResource::bandIsByStatus($get('kind'))),
 
-                        MoneyInput::make(
-                            'wizard_price',
-                            __('catalog.product.wizard.prices.price'),
-                            __('catalog.product.wizard.prices.price_help'),
-                        ),
+                        Toggle::make('requires_proof')
+                            ->label(__('catalog.product.form.bands.requires_proof.label'))
+                            ->helperText(__('catalog.product.form.bands.requires_proof.help'))
+                            ->visible(static fn (Get $get): bool => ProductResource::bandIsByStatus($get('kind'))),
 
-                        /*
-                         * **A period's own price, beside the band it prices**
-                         * (product owner, 2026-09-22: *«και τιμές περίοδοι
-                         * κλπ»*).
-                         *
-                         * A price list is a period and a price for every band,
-                         * which on a form is a grid — and a grid of fields whose
-                         * columns are rows of another repeater is exactly the
-                         * thing that breaks the moment a band is renamed. So the
-                         * question is turned around and asked per band, which is
-                         * also how an operator says it: *«ο ενήλικας 45, το
-                         * καλοκαίρι 55»*. The rows are gathered back into one
-                         * list per period on save.
-                         *
-                         * Hidden when the operator has no periods yet: a select
-                         * with nothing in it is a question with no answer.
-                         */
-                        Repeater::make('wizard_season_prices')
-                            ->label(__('catalog.product.wizard.prices.seasons'))
-                            ->helperText(__('catalog.product.wizard.prices.seasons_help'))
-                            ->addActionLabel(__('catalog.product.wizard.prices.add_season'))
-                            ->schema([
-                                Select::make('season_id')
-                                    ->label(__('pricing.rate_plan.form.season.label'))
-                                    ->options(RatePlanResource::seasonOptions(...))
-                                    ->required()
-                                    // One price per period per band; a second row
-                                    // for the same period is two answers to one
-                                    // question.
-                                    ->distinct(),
-
-                                MoneyInput::make(
-                                    'price',
-                                    __('catalog.product.wizard.prices.price'),
-                                    null,
-                                ),
-                            ])
-                            ->columns(2)
-                            ->defaultItems(0)
-                            ->columnSpanFull()
-                            ->extraFieldWrapperAttributes(['class' => 'ka-nest'])
-                            ->visible(static fn (): bool => RatePlanResource::seasonOptions() !== []),
                     ])
                     ->default(ProductResource::defaultAgeBands(...))
+                    ->live()
                     ->columns(2)
+                    ->columnSpanFull()
+                    ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value),
+
+                /*
+                 * The pricing flow of the edit page (2026-09-24, Mike: «όταν
+                 * φτιάχνω νέα εκδρομή δεν το έχεις κάνει έτσι όμως ε;»):
+                 * groups above, then the periods ticked, then a price per group
+                 * for «Όλο τον χρόνο» and each ticked period, then the deposit
+                 * and deadlines once. Saved by the same SavePriceTable as the
+                 * edit page, so the two screens cannot drift apart again.
+                 *
+                 * The rows are keyed by the group's repeater item, which does
+                 * not change when the group is renamed.
+                 */
+                CheckboxList::make('wizard_seasons')
+                    ->label(__('pricing.periods.heading'))
+                    ->helperText(__('pricing.periods.intro'))
+                    ->options(RatePlanResource::seasonOptions(...))
+                    ->columns(['default' => 1, 'md' => 3])
+                    ->live()
+                    ->columnSpanFull()
+                    ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value
+                        && RatePlanResource::seasonOptions() !== []),
+
+                Grid::make(['default' => 1])
+                    ->schema(static fn (Get $get): array => self::wizardPriceRows($get))
+                    ->columnSpanFull()
+                    ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value),
+
+                Group::make(ManagesPriceTable::termFields())
+                    ->statePath('wizard_terms')
+                    ->columns(['default' => 1, 'md' => 3])
                     ->columnSpanFull()
                     ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value),
 
@@ -696,6 +706,49 @@ trait HasTripWizard
         $flush($run);
 
         return implode(', ', $parts);
+    }
+
+    /**
+     * «Τιμές σε ευρώ» in the wizard: a line per group, a field per column —
+     * «Όλο τον χρόνο» and every ticked period. `wizard_prices.{item}.{column}`,
+     * with the columns keyed as the edit page's table keys them.
+     *
+     * @return list<Component>
+     */
+    private static function wizardPriceRows(Get $get): array
+    {
+        $bands = (array) ($get('age_bands') ?? []);
+        $options = RatePlanResource::seasonOptions();
+        $ticked = array_values(array_filter(
+            array_map('intval', (array) ($get('wizard_seasons') ?? [])),
+            static fn (int $id): bool => array_key_exists($id, $options),
+        ));
+
+        $columns = [PriceTable::NEW_DEFAULT => __('pricing.on_product.season.default')];
+
+        foreach ($ticked as $id) {
+            $columns['s' . $id] = (string) $options[$id];
+        }
+
+        $rows = [
+            Placeholder::make('wizard_prices_heading')
+                ->hiddenLabel()
+                ->content(__('pricing.price_table.heading') . ' · ' . __('pricing.price_table.intro')),
+        ];
+
+        foreach ($bands as $item => $band) {
+            $fields = [];
+
+            foreach ($columns as $key => $label) {
+                $fields[] = MoneyInput::make("wizard_prices.{$item}.{$key}", $label, null);
+            }
+
+            $rows[] = Fieldset::make(self::bandName((array) $band))
+                ->schema($fields)
+                ->columns(['default' => 1, 'md' => min(4, count($columns))]);
+        }
+
+        return $rows;
     }
 
     /**

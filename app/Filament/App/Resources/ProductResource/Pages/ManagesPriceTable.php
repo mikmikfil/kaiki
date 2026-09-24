@@ -360,8 +360,9 @@ trait ManagesPriceTable
             ToggleButtons::make('deposit_type')
                 ->label(__('pricing.periods.terms.deposit'))
                 ->options(DepositType::class)
+                // Not grouped: three Greek labels side by side are wider than
+                // a phone, and a grouped row cannot wrap.
                 ->inline()
-                ->grouped()
                 ->live(),
             TextInput::make('deposit_percent')
                 ->label(__('pricing.periods.terms.deposit_percent'))
@@ -394,7 +395,7 @@ trait ManagesPriceTable
      * @param  array<string, mixed>  $form
      * @return array<string, mixed>
      */
-    private static function termsFromForm(array $form): array
+    public static function termsFromForm(array $form): array
     {
         $type = DepositType::tryFrom((string) ($form['deposit_type'] ?? '')) ?? DepositType::None;
         $int = static fn (mixed $value): ?int => $value === null || $value === '' ? null : (int) $value;
