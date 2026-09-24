@@ -3766,6 +3766,29 @@
             from { transform: scale(1) translate3d(0, 0, 0); }
             to   { transform: scale(1.08) translate3d(-1.5%, -1%, 0); }
         }
+        /* The search bar's fields (Mike, 2026-09-24):
+           - no calendar icon at the end of the date: the browser's picker
+             button is stretched, invisible, over the whole field, so a click
+             anywhere on «Ημερομηνία» opens the calendar;
+           - focus lights the whole field, a soft tint with a rounded ring,
+             instead of a square outline around the bare control. */
+        .hero-search-below .field:not(.submit) input[type="date"] { position: static; }
+        .hero-search-below .field:not(.submit) { position: relative; border-radius: 12px; transition: background-color .15s ease, box-shadow .15s ease; }
+        .hero-search-below .field:not(.submit) input[type="date"]::-webkit-calendar-picker-indicator {
+            position: absolute; inset: 0; inline-size: auto; block-size: auto; margin: 0; padding: 0;
+            opacity: 0; cursor: pointer; background: none;
+        }
+        .hero-search-below .search-form input:focus-visible,
+        .hero-search-below .search-form select:focus-visible { outline: none; box-shadow: none; }
+        .hero-search-below .field:not(.submit):focus-within {
+            background: color-mix(in srgb, var(--kaiki-accent) 6%, #fff);
+            box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--kaiki-accent) 42%, #fff);
+        }
+        .hero-search-below .field:not(.submit):hover { background: color-mix(in srgb, var(--kaiki-accent) 3%, #fff); }
+        /* And no spinner arrows on «Πόσα άτομα»: the number is typed, and a phone shows its number pad. */
+        .hero-search-below input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+        .hero-search-below input[type="number"]::-webkit-inner-spin-button,
+        .hero-search-below input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     </style>
 
     {{-- The booking bundle, fetched from the first byte of the page.
