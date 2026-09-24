@@ -12,6 +12,7 @@ use App\Enums\VesselLicence;
 use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Resources\ProductResource\RelationManagers\ExtrasRelationManager;
 use App\Filament\App\Resources\RatePlanResource;
+use App\Filament\Forms\DepartureTimes;
 use App\Filament\Forms\MoneyInput;
 use App\Filament\Forms\TranslatableInput;
 use App\Rules\MaxPaxWithinVesselCapacity;
@@ -432,35 +433,12 @@ trait HasTripWizard
                                 // Several a day, the way the «Δρομολόγια» tab takes them
                                 // (2026-09-17): one rule per time, sharing the days and
                                 // the window, so 13:00 can be paused on its own later.
-                                Repeater::make('times')
+                                // Chips since 24/9 (#11), the same field as the tab.
+                                DepartureTimes::make('times')
                                     ->label(__('catalog.product.wizard.when.times'))
                                     ->helperText(__('catalog.product.wizard.when.times_help'))
-                                    ->addActionLabel(__('availability.schedule_rule.form.start_times.add'))
-                                    ->simple(
-                                        TimePicker::make('time')
-                                            // A clock time on the quay, not an instant.
-                                            // Without this the panel's tenant-timezone
-                                            // conversion stores 19:00 as 16:00
-                                            // (2026-09-17, `ClockTimePickerTest`).
-                                            ->timezone('UTC')
-                                            ->seconds(false)
-                                            ->native(false)
-                                            ->distinct(),
-                                    )
-                                    ->defaultItems(1)
-                                    ->reorderable(false)
-                                    // Τρεις ανά σειρά, όπως και στην καρτέλα
-                                    // «Δρομολόγια» (Mike, 23/9): μια ώρα είναι πέντε
-                                    // χαρακτήρες, και μία ανά γραμμή διαβάζεται σαν
-                                    // φόρμα που ξέχασαν να στοιχίσουν αντί για ωράριο.
-                                    ->grid(['default' => 1, 'sm' => 2, 'lg' => 3])
-                                    // Full width so the two dates below sit side by
-                                    // side: the times grow downwards as they are added,
-                                    // and a column that grows beside a date field
-                                    // leaves «Ισχύει έως» stranded on its own row.
-                                    ->columnSpanFull()
-                                    // «Σκαμμένο»: see `.ka-nest` in `sea.blade.php`.
-                                    ->extraFieldWrapperAttributes(['class' => 'ka-nest']),
+                                    ->daysField('days')
+                                    ->columnSpanFull(),
 
                                 DatePicker::make('valid_from')
                                     ->label(__('availability.schedule_rule.form.valid_from.label'))

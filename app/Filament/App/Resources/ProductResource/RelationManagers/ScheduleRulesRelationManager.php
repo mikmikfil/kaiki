@@ -11,16 +11,15 @@ use App\Enums\BookingMode;
 use App\Filament\App\Resources\DepartureResource;
 use App\Filament\App\Resources\ScheduleRuleResource;
 use App\Filament\App\Support\ScheduleConflictNotice;
+use App\Filament\Forms\DepartureTimes;
 use App\Models\Product;
 use App\Models\ScheduleRule;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -93,36 +92,14 @@ class ScheduleRulesRelationManager extends RelationManager
                     : $component,
                 $when->getChildComponents(),
             ),
-            Repeater::make('start_times')
+            // Chips since 24/9 (#11, `docs/mockups/departure-times.html`):
+            // three times in one row rather than three boxes with three bins.
+            DepartureTimes::make('start_times')
                 ->label(__('availability.schedule_rule.form.start_times.label'))
                 ->helperText(__('availability.schedule_rule.form.start_times.help'))
-                ->simple(
-                    TimePicker::make('time')
-                        // Tenant-local, like `start_time`; see the resource.
-                        ->timezone('UTC')
-                        ->seconds(false)
-                        ->native(false)
-                        ->required()
-                        ->distinct(),
-                )
-                ->addActionLabel(__('availability.schedule_rule.form.start_times.add'))
-                ->defaultItems(1)
-                ->minItems(1)
-                ->reorderable(false)
-                /*
-                 * **Σε πλέγμα, όχι σε στοίβα** (Mike, 23/9: *«οι ώρες
-                 * αναχώρησης είναι λίγο πεταμένες ως design»*).
-                 *
-                 * Ένα repeater δίνει σε κάθε στοιχείο μια ολόκληρη γραμμή με το
-                 * δικό του κουμπί διαγραφής. Για ένα πεδίο πέντε χαρακτήρων
-                 * αυτό είναι τρεις σχεδόν άδειες σειρές για τρεις ώρες, και
-                 * διαβάζεται σαν φόρμα που ξέχασαν να στοιχίσουν. Τρεις ανά
-                 * σειρά τις κάνει να διαβάζονται ως ωράριο — που είναι και το
-                 * πράγμα που κοιτάζει ο διοργανωτής.
-                 */
-                ->grid(['default' => 1, 'sm' => 2, 'lg' => 3])
-                // «Σκαμμένο»: see `.ka-nest` in `sea.blade.php`.
-                ->extraFieldWrapperAttributes(['class' => 'ka-nest'])
+                ->daysField('weekdays')
+                ->required()
+                ->columnSpanFull()
                 ->visibleOn('create'),
         ]);
 
