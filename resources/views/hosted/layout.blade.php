@@ -3210,6 +3210,48 @@
         }
 
         /* ==================================================================
+           The search under the masthead (Mike, 2026-09-24): one horizontal
+           white bar, overlapping the photograph's lower edge by about 3.5rem,
+           as wide as the page column so it lines up with the trips below.
+           ================================================================== */
+        .hero:has(+ .hero-search-below) .hero-inner { grid-template-columns: minmax(0, 1fr); }
+        .hero.has-image:has(+ .hero-search-below) .hero-inner { padding-block-end: clamp(5.5rem, 9vw, 7.5rem); }
+        .hero-search.hero-search-below {
+            position: relative; z-index: 3;
+            inline-size: auto; max-width: none;
+            margin: calc(-1 * var(--section-gap) - 3.5rem) clamp(0rem, 2vw, 2rem) 0;
+            padding: .6rem; border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(11, 39, 64, .06), 0 24px 56px rgba(11, 39, 64, .18);
+        }
+        .hero-search.hero-search-below .search-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; align-items: stretch; }
+        .hero-search.hero-search-below .search-form > * { grid-column: auto; }
+        .hero-search.hero-search-below .search-form > :last-child { grid-column: 1 / -1; padding: .5rem .35rem .35rem; }
+        .hero-search.hero-search-below .field { padding: .6rem 1rem; }
+        .hero-search.hero-search-below .field:nth-child(odd) { border-inline-start: 0; }
+        .hero-search.hero-search-below .field:nth-child(even) { border-inline-start: 1px solid var(--rule); }
+        .hero-search.hero-search-below .field:nth-child(n+3) { border-block-start: 1px solid var(--rule); }
+        .hero-search.hero-search-below .search-form input,
+        .hero-search.hero-search-below .search-form select { border: 0; background: transparent; padding-inline: 0; min-block-size: 2.2rem; box-shadow: none; }
+        .hero-search.hero-search-below .search-form button { inline-size: 100%; min-block-size: 3.25rem; border-radius: 12px; }
+        @media (min-width: 64rem) {
+            .hero-search.hero-search-below .search-form { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 0; }
+            .hero-search.hero-search-below .field { flex: 1 1 0; min-width: 0; padding: .65rem 1.2rem; border-block-start: 0 !important; border-inline-start: 1px solid var(--rule) !important; }
+            .hero-search.hero-search-below .field:first-child { border-inline-start: 0 !important; }
+            .hero-search.hero-search-below .search-form > :last-child { flex: 0 0 auto; display: flex; align-items: center; padding: 0 0 0 .6rem; }
+            .hero-search.hero-search-below .search-form button { inline-size: auto; block-size: 100%; min-block-size: 3.4rem; padding-inline: 2.2rem; }
+        }
+        @media (max-width: 40rem) {
+            .hero-search.hero-search-below { margin-inline: 0; }
+            .hero-search.hero-search-below .search-form { grid-template-columns: minmax(0, 1fr); }
+            .hero-search.hero-search-below .field { border-inline-start: 0 !important; }
+            .hero-search.hero-search-below .field:nth-child(n+2) { border-block-start: 1px solid var(--rule); }
+        }
+        /* The figures card, when a page has one, sits under the bar rather than
+           climbing over the photograph beside it. */
+        .hero-search-below + .stats-block { margin-block-start: 0; }
+
+        /* ==================================================================
            «Σχετικά με εμάς» (2026-09-24): the timeline, the boats, the people,
            the licences and the meeting point. Mockup approved by Mike the same
            day (docs/mockups/about-page.html). They work on the home page too.

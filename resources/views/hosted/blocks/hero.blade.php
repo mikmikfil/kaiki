@@ -161,16 +161,24 @@
              operator enabled — not a cut-down version of it, because a visitor
              who filters by port on one page and cannot on the other has learnt
              something untrue about the site. --}}
-        {{-- The home page's only. On «Σχετικά με εμάς» the visitor came to read
-             about the operator, and the search is one menu link away. --}}
-        @if (($pageName ?? 'home') === 'home')
-            <div class="hero-search">
-                <h2 class="hero-search-title">{{ __('hosted.blocks.hero.search_title') }}</h2>
-                @include('hosted.partials.search-form', [
-                    'action' => route('hosted.search', ['operator' => $tenant->slug]),
-                    'idPrefix' => 'hero',
-                ])
-            </div>
-        @endif
     </div>
 </section>
+
+{{-- The search: a horizontal bar under the photograph, overlapping its lower
+     edge (Mike, 2026-09-24, option Α of the home-page mockup). It used to be a
+     card inside the photograph on the right, which hid half of it.
+
+     The home page's only. On «Σχετικά με εμάς» the visitor came to read about
+     the operator, and the search is one menu link away.
+
+     The title is kept for screen readers: a form landmark needs a name, and the
+     bar is plain enough to a sighted visitor without one. --}}
+@if (($pageName ?? 'home') === 'home')
+    <div class="hero-search hero-search-below">
+        <h2 class="hero-search-title sr-only">{{ __('hosted.blocks.hero.search_title') }}</h2>
+        @include('hosted.partials.search-form', [
+            'action' => route('hosted.search', ['operator' => $tenant->slug]),
+            'idPrefix' => 'hero',
+        ])
+    </div>
+@endif
