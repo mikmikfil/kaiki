@@ -3288,7 +3288,8 @@
         .hero-search.hero-search-below {
             position: relative; z-index: 3;
             inline-size: auto; max-width: none;
-            margin: calc(-1 * var(--section-gap) - 3.5rem) clamp(0rem, 2vw, 2rem) 0;
+            /* Exactly the column's width, the trips' below it (Mike, 24/9). */
+            margin: calc(-1 * var(--section-gap) - 3.5rem) 0 0;
             padding: .6rem; border-radius: 18px;
             background: #fff;
             box-shadow: 0 2px 6px rgba(11, 39, 64, .06), 0 24px 56px rgba(11, 39, 64, .18);
