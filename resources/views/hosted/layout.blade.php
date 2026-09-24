@@ -2781,8 +2781,8 @@
         .hero-copy { text-align: left; padding: 0; max-width: 42rem; margin: 0; }
         .hero-copy h1 { max-width: none; margin-inline: 0; }
         .hero-copy .standfirst { max-width: 36rem; margin-inline: 0; }
-        /* Taller (Mike, 2026-09-24: «ψήλωσε λίγο το hero»): 50rem, was 44. */
-        .hero.has-image { min-height: min(88vh, 50rem); }
+        /* 750px (Mike, 2026-09-24: «το hero να πάει στα 750px ύψος»). */
+        .hero.has-image { min-height: 750px; }
         .hero.has-image .hero-copy { padding: 0; }
         .hero.has-image::after {
             background:
