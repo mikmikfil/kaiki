@@ -76,9 +76,16 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="{{ $fontCss }}">
+    @else
+        {{-- Inter is ours and same-origin (2026-09-24): the two scripts every
+             Greek page needs, asked for before the stylesheet is parsed. --}}
+        <link rel="preload" href="/fonts/inter/inter-greek-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="/fonts/inter/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
     @endif
 
     <style nonce="{{ $nonce }}">
+        @include('partials.inter-font-face')
+
         :root {
             --kaiki-primary: {{ $primary }};
             --kaiki-secondary: {{ $secondary }};

@@ -37,6 +37,10 @@
 
     @if (! empty($brand['font']['css_url']))
         <link rel="stylesheet" href="{{ $brand['font']['css_url'] }}">
+    @else
+        {{-- Inter, same-origin, the same files as the operator's site (2026-09-24). --}}
+        <link rel="preload" href="/fonts/inter/inter-greek-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="/fonts/inter/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
     @endif
 
     {{-- The operator's own icon, else Kaiki's rather than none (2026-09-17). --}}
@@ -44,6 +48,8 @@
 
 
     <style>
+        @include('partials.inter-font-face')
+
         :root {
             @foreach ($colors as $name => $value)
                 {{ $name }}: {{ $value }};
@@ -69,7 +75,10 @@
             margin: 0;
             background: var(--kaiki-background, #f1f3f6);
             color: var(--kaiki-text, #14202b);
-            font-family: var(--kaiki-font-family, system-ui), system-ui, -apple-system, sans-serif;
+            /* The operator's face, then Inter (now actually loaded), then the
+               system's. It was system-ui straight after the brand's family,
+               so a brand that said «Inter» without installing it got Segoe UI. */
+            font-family: var(--kaiki-font-family, Inter), Inter, "Helvetica Neue", Arial, sans-serif;
             font-size: 16px;
             line-height: 1.55;
             -webkit-font-smoothing: antialiased;
