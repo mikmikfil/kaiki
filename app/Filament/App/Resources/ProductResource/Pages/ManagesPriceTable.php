@@ -7,7 +7,6 @@ namespace App\Filament\App\Resources\ProductResource\Pages;
 use App\Domain\Pricing\Actions\SavePriceTable;
 use App\Domain\Pricing\Support\PriceTable;
 use App\Enums\BookingMode;
-use App\Enums\PriceQuickFill;
 use App\Filament\Forms\MoneyInput;
 use App\Models\Product;
 use App\Support\Format\MoneyFormatter;
@@ -25,28 +24,18 @@ use Illuminate\Validation\ValidationException;
  * in a table built before it existed. So the table saves on its own button,
  * says when it has unsaved changes, and is rebuilt after the trip is saved.
  *
- * ## The quick buttons are arithmetic on the server
+ * ## Every price is typed
  *
- * «Μισή τιμή» runs {@see PriceQuickFill::apply()} on each period's base price,
- * so the cents are the engine's cents, rounded the engine's way, and a test can
- * hold them. Alpine could do it faster and would be a second rounding rule.
- *
- * ## A changed adult price asks, never pushes
- *
- * The button last pressed on a row is remembered for this visit only. When the
- * base price then changes, the row offers «Ενημέρωση» instead of rewriting the
- * child's fare behind the operator's back. Typing into the row forgets it.
+ * There were quick buttons beside each age band — «Ίδια», «Μισή τιμή», «−30%»,
+ * «Δωρεάν» — and a prompt to redo them when the adult price changed. Mike took
+ * them out on 2026-09-24: *«ας το βάζουν κατευθείαν στον πίνακα την τιμή που
+ * θέλουν»*. A cell is the price, in euros, and nothing fills it but the
+ * operator.
  */
 trait ManagesPriceTable
 {
     /** @var array<string, array<string, string|null>> row key => column key => euros as typed */
     public array $priceCells = [];
-
-    /** @var array<string, string> row key => the quick-fill last pressed on it */
-    public array $priceFills = [];
-
-    /** @var array<string, bool> row key => the base changed since its quick-fill */
-    public array $priceStale = [];
 
     /** @var array<string, int> row key => how many, for «Τι πληρώνει ο επισκέπτης» */
     public array $pricePax = [];
@@ -72,8 +61,6 @@ trait ManagesPriceTable
         }
 
         $this->pricePreviewColumn = $table->columns[0]['key'] ?? '';
-        $this->priceFills = [];
-        $this->priceStale = [];
         $this->priceDirty = false;
     }
 
@@ -121,63 +108,10 @@ trait ManagesPriceTable
         return $product->mode === BookingMode::PerSeat && $product->ageBands()->exists();
     }
 
-    /** One quick-fill button: that row, every period, in euros. */
-    public function fillPriceRow(string $rowKey, string $fill): void
-    {
-        $quickFill = PriceQuickFill::tryFrom($fill);
-        $base = $this->priceTable()->baseRowKey();
-
-        if ($quickFill === null || $base === null || $base === $rowKey || ! isset($this->priceCells[$rowKey])) {
-            return;
-        }
-
-        foreach (array_keys($this->priceCells[$rowKey]) as $column) {
-            $baseCents = MoneyInput::toCents($this->priceCells[$base][$column] ?? null);
-
-            // A period with no adult price yet has nothing to take half of.
-            if ($baseCents === null) {
-                continue;
-            }
-
-            $this->priceCells[$rowKey][$column] = self::priceText($quickFill->apply($baseCents));
-        }
-
-        $this->priceFills[$rowKey] = $quickFill->value;
-        unset($this->priceStale[$rowKey]);
-        $this->priceDirty = true;
-    }
-
-    /** «Ενημέρωση»: press the row's last quick-fill again, from the new base. */
-    public function refreshPriceRow(string $rowKey): void
-    {
-        $fill = $this->priceFills[$rowKey] ?? null;
-
-        if ($fill !== null) {
-            $this->fillPriceRow($rowKey, $fill);
-        }
-    }
-
     /** Livewire's hook for a typed cell: `priceCells.b12.p5`. */
-    public function updatedPriceCells(mixed $value, string $key): void
+    public function updatedPriceCells(): void
     {
         $this->priceDirty = true;
-
-        [$rowKey] = explode('.', $key) + [null];
-
-        if ($rowKey === null) {
-            return;
-        }
-
-        if ($rowKey === $this->priceTable()->baseRowKey()) {
-            foreach (array_keys($this->priceFills) as $filled) {
-                $this->priceStale[$filled] = true;
-            }
-
-            return;
-        }
-
-        // Typed by hand: the row is no longer «half of the adult».
-        unset($this->priceFills[$rowKey], $this->priceStale[$rowKey]);
     }
 
     public function changePricePax(string $rowKey, int $by): void

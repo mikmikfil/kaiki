@@ -9,7 +9,6 @@ use App\Domain\Pricing\Actions\SavePriceTable;
 use App\Domain\Pricing\Support\PriceTable;
 use App\Enums\AgeBandPricing;
 use App\Enums\BookingMode;
-use App\Enums\PriceQuickFill;
 use App\Enums\Role;
 use App\Filament\App\Resources\ProductResource\Pages\EditProduct;
 use App\Models\AgeBand;
@@ -31,7 +30,7 @@ use Tests\Support\OperatorUser;
 |--------------------------------------------------------------------------
 |
 | «Κανείς δεν σκέφτεται 5000. Σκέφτεται: το παιδί πληρώνει 22,50 €.» Every band,
-| every period, typed in euros; the quick buttons write euros; the old
+| every period, typed in euros, and nothing fills a cell but the operator; the old
 | percentages are converted once, to exactly the fare a guest pays today, and
 | a booking already taken does not move by a cent.
 |
@@ -62,18 +61,6 @@ function percentTrip(int $defaultAdult = 4500, int $summerAdult = 6501): array
 
     return compact('product', 'adult', 'child', 'default', 'summer');
 }
-
-it('writes euros from the quick buttons, rounded half up to the cent', function (): void {
-    // 6501 is the fractional cent: half is 3250.5, and the engine charges 3251.
-    expect(PriceQuickFill::Half->apply(6501))->toBe(3251)
-        ->and(PriceQuickFill::Same->apply(4500))->toBe(4500)
-        ->and(PriceQuickFill::LessThirty->apply(4500))->toBe(3150)
-        // 70% of 4999 is 3499.3: down, not up.
-        ->and(PriceQuickFill::LessThirty->apply(4999))->toBe(3499)
-        // 70% of 4995 is 3496.5: half up.
-        ->and(PriceQuickFill::LessThirty->apply(4995))->toBe(3497)
-        ->and(PriceQuickFill::Free->apply(4500))->toBe(0);
-})->group('fast');
 
 it('shows a percentage band as the euros the engine charges, marked as still derived', function (): void {
     tableTenant(function (): void {
@@ -140,7 +127,9 @@ it('refuses a blank cell, naming the band and the period, and writes nothing', f
     });
 })->group('fast');
 
-it('fills, asks after an adult change, and saves from the trip page', function (): void {
+it('saves what the operator types, and offers no quick buttons', function (): void {
+    // Mike, 2026-09-24: «βγάλε τα Ίδια, Μισή τιμή, Δωρεάν κλπ — ας το βάζουν
+    // κατευθείαν στον πίνακα την τιμή που θέλουν».
     $owner = OperatorUser::withRole(Role::Owner);
     $tenant = Tenant::query()->findOrFail($owner->tenant_id);
 
@@ -156,15 +145,11 @@ it('fills, asks after an adult change, and saves from the trip page', function (
         ->test(EditProduct::class, ['record' => $trip['product']->uuid])
         // Loaded as the engine's euros, the percentage already worked out.
         ->assertSet("priceCells.{$childRow}.{$summer}", '32,51')
-        ->call('fillPriceRow', $childRow, PriceQuickFill::LessThirty->value)
-        ->assertSet("priceCells.{$childRow}.{$default}", '31,50')
-        // The adult goes up: the child is not rewritten, it is offered.
+        ->assertDontSeeHtml('kpt-fill')
+        ->assertDontSeeHtml('class="kpt-derived"')
         ->set("priceCells.{$adultRow}.{$default}", '50,00')
-        ->assertSet("priceCells.{$childRow}.{$default}", '31,50')
-        ->assertSet("priceStale.{$childRow}", true)
-        ->assertSee(__('pricing.price_table.stale_action'))
-        ->call('refreshPriceRow', $childRow)
-        ->assertSet("priceCells.{$childRow}.{$default}", '35,00')
+        ->set("priceCells.{$childRow}.{$default}", '35,00')
+        ->assertSet('priceDirty', true)
         ->call('savePrices')
         ->assertHasNoErrors()
         ->assertNotified(__('pricing.price_table.saved'));

@@ -119,13 +119,6 @@ return [
         'fixed' => ['label' => 'Δική της τιμή'],
     ],
 
-    'price_quick_fill' => [
-        'same' => ['label' => 'Ίδια'],
-        'half' => ['label' => 'Μισή τιμή'],
-        'less_thirty' => ['label' => '−30%'],
-        'free' => ['label' => 'Δωρεάν'],
-    ],
-
     'booking_mode' => [
         'per_seat' => ['label' => 'Ανά θέση'],
         'per_vessel' => ['label' => 'Ολόκληρο το σκάφος'],

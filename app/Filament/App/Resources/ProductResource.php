@@ -505,7 +505,9 @@ class ProductResource extends Resource
                         ->minValue(1)
                         ->maxValue(65535),
                 ])
-                ->columns(2),
+                // All three on one line on a large screen (Mike, 2026-09-24);
+                // two on a tablet, one under the other on a phone.
+                ->columns(['default' => 1, 'md' => 2, 'lg' => 3]),
 
             // The trip's own timetable (2026-09-17), which used to be a screen
             // of its own in the menu. On a saved trip sold per seat only: there
