@@ -3216,6 +3216,94 @@
         }
 
         /* ==================================================================
+           «Πώς λειτουργεί» as a route (Mike, 2026-09-24, mockup version Ε).
+           Numbered circles on a dashed line, each with its step under it; on
+           a phone the line runs down the left. The complete route (circles
+           filled, lines solid) is the default; `/hosted/route.js` sets
+           data-animate="ready" to empty it and "on" to travel it in four
+           seconds, once, when it comes into view.
+           ================================================================== */
+        .steps-route .section-head { margin-block-end: clamp(2rem, 4vw, 2.75rem); }
+        .route { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); position: relative; }
+        .route .stop { position: relative; display: grid; grid-template-columns: 3rem minmax(0, 1fr); column-gap: 1rem; padding-block-end: 1.75rem; }
+        .route .stop:last-child { padding-block-end: 0; }
+        /* the dashed track, from this circle to the next */
+        .route .stop:not(:last-child)::before {
+            content: ""; position: absolute; inset-inline-start: calc(1.5rem - 1px); inset-block: 3rem 0;
+            border-inline-start: 2px dashed color-mix(in srgb, var(--kaiki-accent) 28%, #fff);
+        }
+        /* the solid line over it, which is what travels */
+        .route .stop:not(:last-child)::after {
+            content: ""; position: absolute; z-index: 0; inset-inline-start: calc(1.5rem - 1.5px); inset-block: 3rem 0; inline-size: 3px;
+            border-radius: 3px; background: var(--kaiki-accent); transform-origin: top;
+        }
+        .stop-dot {
+            position: relative; z-index: 1; display: grid; place-items: center;
+            inline-size: 3rem; block-size: 3rem; border-radius: 50%;
+            border: 2px solid var(--kaiki-accent); background: var(--kaiki-accent); color: #fff;
+            font-weight: 800; font-size: 1.05rem; font-variant-numeric: tabular-nums;
+            box-shadow: 0 0 0 6px color-mix(in srgb, var(--kaiki-accent) 10%, #fff);
+        }
+        .stop-dot .icon { inline-size: 1.3rem; block-size: 1.3rem; stroke-width: 2.4; }
+        .stop-copy h3 { margin: .7rem 0 .3rem; font-size: 1.12rem; letter-spacing: -.01em; color: var(--deep); }
+        .stop-copy p { margin: 0; color: var(--ink-soft); font-size: .97rem; line-height: 1.6; max-width: 24rem; }
+        @media (min-width: 48rem) {
+            .route-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .route-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .route-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .route .stop { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; padding: 0 .75rem; }
+            .route .stop-copy { display: flex; flex-direction: column; align-items: center; }
+            .route .stop-copy h3 { margin-block-start: 1.1rem; }
+            .route .stop:not(:last-child)::before {
+                inset-inline: calc(50% + 1.5rem) calc(-50% + 1.5rem); inset-block: calc(1.5rem - 1px) auto;
+                border-inline-start: 0; border-block-start: 2px dashed color-mix(in srgb, var(--kaiki-accent) 28%, #fff);
+            }
+            .route .stop:not(:last-child)::after {
+                inset-inline: calc(50% + 1.5rem) calc(-50% + 1.5rem); inset-block: calc(1.5rem - 1.5px) auto;
+                inline-size: auto; block-size: 3px; transform-origin: left;
+            }
+        }
+        @media (min-width: 62rem) {
+            .steps-route.has-image .band-inner { grid-template-columns: 1.1fr 1fr; }
+            .steps-route.has-image .route { grid-template-columns: minmax(0, 1fr); }
+            .steps-route.has-image .route .stop { grid-template-columns: 3rem minmax(0, 1fr); justify-items: start; text-align: start; padding: 0 0 1.75rem; }
+            .steps-route.has-image .route .stop-copy { align-items: flex-start; }
+            .steps-route.has-image .route .stop:not(:last-child)::before { inset-inline: calc(1.5rem - 1px) auto; inset-block: 3rem 0; border-block-start: 0; border-inline-start: 2px dashed color-mix(in srgb, var(--kaiki-accent) 28%, #fff); }
+            .steps-route.has-image .route .stop:not(:last-child)::after { inset-inline: calc(1.5rem - 1.5px) auto; inset-block: 3rem 0; inline-size: 3px; block-size: auto; transform-origin: top; }
+        }
+
+        /* Ready: emptied, waiting to be travelled. */
+        .route[data-animate="ready"] .stop-dot,
+        .route[data-animate="on"] .stop-dot { background: #fff; color: var(--kaiki-accent); box-shadow: none; }
+        .route[data-animate="ready"] .stop::after { transform: scaleY(0); }
+        @media (min-width: 48rem) { .route[data-animate="ready"] .stop::after { transform: scaleX(0); } }
+
+        /* On: four seconds, the first circle to the last. */
+        .route[data-animate="on"] .stop-dot { animation: route-fill .5s ease forwards; }
+        .route[data-animate="on"] .stop::after { transform: scaleY(0); animation: route-grow-y 1.3s ease-in-out forwards; }
+        .route[data-animate="on"] .stop:nth-child(1) .stop-dot { animation-delay: .1s; }
+        .route[data-animate="on"] .stop:nth-child(1)::after { animation-delay: .5s; }
+        .route[data-animate="on"] .stop:nth-child(2) .stop-dot { animation-delay: 1.8s; }
+        .route[data-animate="on"] .stop:nth-child(2)::after { animation-delay: 2.2s; }
+        .route[data-animate="on"] .stop:nth-child(3) .stop-dot { animation-delay: 3.5s; }
+        .route[data-animate="on"] .stop:nth-child(3)::after { animation-delay: 3.9s; }
+        .route[data-animate="on"] .stop:nth-child(4) .stop-dot { animation-delay: 5.2s; }
+        .route-4[data-animate="on"] .stop-dot { animation-duration: .4s; }
+        @media (min-width: 48rem) {
+            .route[data-animate="on"] .stop::after { transform: scaleX(0); animation-name: route-grow-x; }
+        }
+        @media (min-width: 62rem) {
+            .steps-route.has-image .route[data-animate="ready"] .stop::after,
+            .steps-route.has-image .route[data-animate="on"] .stop::after { transform: scaleY(0); animation-name: route-grow-y; }
+            .steps-route.has-image .route[data-animate="ready"] .stop::after { animation: none; }
+        }
+        @keyframes route-grow-x { to { transform: scaleX(1); } }
+        @keyframes route-grow-y { to { transform: scaleY(1); } }
+        @keyframes route-fill {
+            to { background: var(--kaiki-accent); color: #fff; box-shadow: 0 0 0 6px color-mix(in srgb, var(--kaiki-accent) 10%, #fff); }
+        }
+
+        /* ==================================================================
            The footer's first row (Mike, 2026-09-24): «Έχετε ερώτηση;» with a
            support icon, and phone, WhatsApp and email as plain links, on the
            operator's secondary colour, flush with the top of the footer.
