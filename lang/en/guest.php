@@ -80,6 +80,7 @@ return [
         'full_name' => 'Full name',
         'document' => 'Document number',
         'date_of_birth' => 'Date of birth',
+        'sex' => 'Sex',
         'nationality' => 'Nationality',
         'document_type' => 'Document',
         'document_expires_on' => 'Passport expiry date',
@@ -88,6 +89,7 @@ return [
         'passenger_unknown' => 'The passenger list has changed. Reload the page and try again.',
         'fields' => [
             'full_name' => 'full name',
+            'sex' => 'sex',
             'nationality' => 'nationality',
             'date_of_birth' => 'date of birth',
             'document_type' => 'document',
@@ -206,6 +208,7 @@ return [
         'guest' => 'Passenger :position',
         'full_name' => 'Full name, as on the document',
         'date_of_birth' => 'Date of birth',
+        'sex' => 'Sex',
         'nationality' => 'Nationality',
         'document_type' => 'Document type',
         'document_number' => 'Document number',

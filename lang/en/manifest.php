@@ -18,7 +18,9 @@ return [
         'vessel' => 'Boat',
         'date' => 'Date',
         'time' => 'Departs',
-        'port' => 'From',
+        'port' => 'Boarding port',
+        'landing_port' => 'Landing port',
+        'licence' => 'Licence',
         'captain' => 'Captain',
     ],
 
@@ -26,7 +28,12 @@ return [
     'of_capacity' => 'of :capacity licensed',
     // Counted per person, including anybody who does not take a seat.
     'missing' => ':count passenger(s) have no details recorded yet.',
-    'signature' => 'Signature',
+    'sign' => [
+        'captain' => 'The captain',
+        'name' => 'Full name',
+        'signature' => 'Signature',
+        'at' => 'Date and time',
+    ],
 
     'yes' => 'Yes',
     'blank' => '—',

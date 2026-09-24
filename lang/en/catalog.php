@@ -46,6 +46,10 @@ return [
                 'label' => 'Status',
                 'help' => 'Only active boats can be sold. Maintenance hides the boat without retiring it.',
             ],
+            'licence_type' => [
+                'label' => 'Licence',
+                'help' => 'Day passenger boat or professional pleasure boat. Printed on the passenger list.',
+            ],
             'registration_number' => [
                 'label' => 'Registration number',
                 'help' => 'The ΑΛΣ registration. It is printed on the manifest and the charter agreement.',
@@ -270,6 +274,7 @@ return [
             // Ο ένας διακόπτης γλώσσας της φόρμας (2026-09-18).
             'locale_switch' => 'Form language',
             'vessel' => [
+                'pleasure_per_seat' => 'This boat is licensed as a professional pleasure boat. Those are usually chartered whole and do not sell seats. Ask your lawyer before publishing.',
                 'label' => 'Vessel',
                 'help' => 'The boat that runs this trip. Its passenger certificate is a legal ceiling and is never exceeded.',
             ],
@@ -331,6 +336,10 @@ return [
                 'label' => 'Check in before',
                 'help' => 'How many minutes before departure you expect the guest at the quay.',
                 'suffix' => 'minutes',
+            ],
+            'landing_port' => [
+                'label' => 'Landing port',
+                'help' => 'If the passengers get off elsewhere. Empty: they come back to the same port.',
             ],
             'meeting_point' => [
                 'label' => 'Meeting point',

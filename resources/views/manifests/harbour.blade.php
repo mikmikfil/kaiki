@@ -47,8 +47,11 @@
         tr { page-break-inside: avoid; }
         .num { width: 9mm; }
 
-        .sign { margin: 16mm 0 0; font-size: 12pt; }
-        .sign .line { display: inline-block; border-bottom: 0.4mm solid #000; width: 70mm; margin-left: 4mm; }
+        .signblock { margin: 14mm 0 0; font-size: 12pt; page-break-inside: avoid; }
+        .signblock-title { font-weight: 700; margin-bottom: 4mm; }
+        .signblock-row { margin: 0 0 6mm; }
+        .signblock-row span:first-child { display: inline-block; width: 55mm; }
+        .signblock-row .line { display: inline-block; min-width: 95mm; border-bottom: 0.4mm solid #000; padding-bottom: .5mm; }
     </style>
 </head>
 <body>
@@ -56,9 +59,17 @@
         <h1>{{ __('manifest.title') }}</h1>
         <div class="boat">{{ $manifest->header['vessel'] ?? '' }}</div>
         <p class="line">
-            {{ $manifest->header['date'] ?? '' }}
-            @if (($manifest->header['time'] ?? null) !== null) · {{ $manifest->header['time'] }} @endif
-            @if (($manifest->header['port'] ?? null) !== null) · {{ $manifest->header['port'] }} @endif
+            {{ $manifest->shown('date') ?? '' }}
+            @if ($manifest->shown('time') !== null) · {{ $manifest->shown('time') }} @endif
+        </p>
+        @if (($manifest->header['licence'] ?? null) !== null)
+            <p class="line">{{ __('manifest.header.licence') }}: {{ $manifest->header['licence'] }}</p>
+        @endif
+        {{-- Both ports, always: the list asks where they got on and where
+             they got off, and on a round trip the answer is the same port. --}}
+        <p class="line">
+            {{ __('manifest.header.port') }}: {{ $manifest->header['port'] ?? '' }}
+            · {{ __('manifest.header.landing_port') }}: {{ $manifest->header['landing_port'] ?? '' }}
         </p>
         @if (($manifest->header['captain'] ?? null) !== null)
             <p class="line">{{ __('manifest.header.captain') }}: {{ $manifest->header['captain'] }}</p>
@@ -93,6 +104,6 @@
         </tbody>
     </table>
 
-    <p class="sign">{{ __('manifest.signature') }}<span class="line"></span></p>
+    @include('manifests.sign')
 </body>
 </html>

@@ -125,6 +125,16 @@ return [
         'free' => ['label' => 'Free'],
     ],
 
+    'guest_sex' => [
+        'm' => ['label' => 'Male', 'letter' => 'M'],
+        'f' => ['label' => 'Female', 'letter' => 'F'],
+    ],
+
+    'vessel_licence' => [
+        'day_cruise' => ['label' => 'Day passenger boat'],
+        'professional_pleasure' => ['label' => 'Professional pleasure boat'],
+    ],
+
     'age_band_kind' => [
         'age' => ['label' => 'By age'],
         'status' => ['label' => 'By status'],
@@ -234,6 +244,7 @@ return [
 
     'manifest_column' => [
         'full_name' => ['label' => 'Full name'],
+        'sex' => ['label' => 'Sex'],
         'date_of_birth' => ['label' => 'Date of birth'],
         'nationality' => ['label' => 'Nationality'],
         'document_type' => ['label' => 'Document'],

@@ -76,6 +76,7 @@ return [
         'full_name' => 'Ονοματεπώνυμο',
         'document' => 'Αριθμός εγγράφου',
         'date_of_birth' => 'Ημερομηνία γέννησης',
+        'sex' => 'Φύλο',
         'nationality' => 'Υπηκοότητα',
         'document_type' => 'Έγγραφο',
         'document_expires_on' => 'Λήξη διαβατηρίου',
@@ -84,6 +85,7 @@ return [
         'passenger_unknown' => 'Η λίστα επιβατών άλλαξε. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.',
         'fields' => [
             'full_name' => 'ονοματεπώνυμο',
+            'sex' => 'φύλο',
             'nationality' => 'υπηκοότητα',
             'date_of_birth' => 'ημερομηνία γέννησης',
             'document_type' => 'έγγραφο',
@@ -196,6 +198,7 @@ return [
         'guest' => 'Επιβάτης :position',
         'full_name' => 'Ονοματεπώνυμο, όπως στο έγγραφο',
         'date_of_birth' => 'Ημερομηνία γέννησης',
+        'sex' => 'Φύλο',
         'nationality' => 'Υπηκοότητα',
         'document_type' => 'Τύπος εγγράφου',
         'document_number' => 'Αριθμός εγγράφου',

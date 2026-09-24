@@ -6,6 +6,7 @@ namespace App\Filament\App\Resources;
 
 use App\Domain\Media\Support\GalleryField;
 use App\Enums\VesselAmenity;
+use App\Enums\VesselLicence;
 use App\Enums\VesselStatus;
 use App\Enums\VesselType;
 use App\Filament\App\Navigation\SiblingScreens;
@@ -171,6 +172,13 @@ class VesselResource extends Resource
                         ->label(__('catalog.vessel.form.registration_number.label'))
                         ->helperText(__('catalog.vessel.form.registration_number.help'))
                         ->maxLength(40),
+
+                    // Printed on the passenger list (ν. 4926/2022, 2026-09-24).
+                    Select::make('licence_type')
+                        ->label(__('catalog.vessel.form.licence_type.label'))
+                        ->helperText(__('catalog.vessel.form.licence_type.help'))
+                        ->options(VesselLicence::class)
+                        ->native(false),
 
                     TranslatableInput::textarea(
                         'description',

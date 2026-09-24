@@ -497,6 +497,20 @@
         background: rgba(255, 255, 255, .03);
     }
 
+    /* A warning said in the form rather than a refusal (the licence note). */
+    .ka-warning-note {
+        padding: .7rem .9rem;
+        border-radius: .6rem;
+        background: rgb(var(--warning-50));
+        color: rgb(var(--warning-800));
+        font-size: .875rem;
+    }
+
+    .dark .ka-warning-note {
+        background: rgb(var(--warning-400) / .12);
+        color: rgb(var(--warning-300));
+    }
+
     /* Rule Ε: the trip's name and its state on one line. */
     .ka-title-with-state {
         display: inline-flex;

@@ -114,6 +114,16 @@ return [
         'free' => ['label' => 'Δωρεάν'],
     ],
 
+    'guest_sex' => [
+        'm' => ['label' => 'Άνδρας', 'letter' => 'Α'],
+        'f' => ['label' => 'Γυναίκα', 'letter' => 'Θ'],
+    ],
+
+    'vessel_licence' => [
+        'day_cruise' => ['label' => 'Ημερόπλοιο'],
+        'professional_pleasure' => ['label' => 'Επαγγελματικό πλοίο αναψυχής'],
+    ],
+
     'age_band_kind' => [
         'age' => ['label' => 'Με ηλικία'],
         'status' => ['label' => 'Με ιδιότητα'],
@@ -223,6 +233,7 @@ return [
 
     'manifest_column' => [
         'full_name' => ['label' => 'Ονοματεπώνυμο'],
+        'sex' => ['label' => 'Φύλο'],
         'date_of_birth' => ['label' => 'Ημερομηνία γέννησης'],
         'nationality' => ['label' => 'Υπηκοότητα'],
         'document_type' => ['label' => 'Έγγραφο'],

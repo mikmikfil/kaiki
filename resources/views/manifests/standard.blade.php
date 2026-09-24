@@ -57,19 +57,22 @@
         .count { margin: 5mm 0 0; font-size: 10pt; }
         .count strong { font-size: 12pt; }
         .warn { margin: 2mm 0 0; font-size: 9pt; color: #a33; }
-        .sign { margin: 14mm 0 0; font-size: 9.5pt; color: #555; }
-        .sign .line { display: inline-block; border-bottom: 0.3mm solid #111; width: 60mm; margin-left: 3mm; }
+        .signblock { margin: 12mm 0 0; font-size: 9.5pt; page-break-inside: avoid; }
+        .signblock-title { font-weight: 700; margin-bottom: 3mm; }
+        .signblock-row { margin: 0 0 4mm; }
+        .signblock-row span:first-child { display: inline-block; width: 42mm; color: #555; }
+        .signblock-row .line { display: inline-block; min-width: 80mm; border-bottom: 0.3mm solid #111; padding-bottom: .5mm; }
     </style>
 </head>
 <body>
     <h1>{{ __('manifest.title') }}</h1>
 
     <table class="meta">
-        @foreach (['trip', 'vessel', 'date', 'time', 'port', 'captain'] as $key)
-            @if (($manifest->header[$key] ?? null) !== null && $manifest->header[$key] !== '')
+        @foreach (['trip', 'vessel', 'licence', 'date', 'time', 'port', 'landing_port', 'captain'] as $key)
+            @if ($manifest->shown($key) !== null)
                 <tr>
                     <td class="k">{{ __('manifest.header.' . $key) }}</td>
-                    <td>{{ $manifest->header[$key] }}</td>
+                    <td>{{ $manifest->shown($key) }}</td>
                 </tr>
             @endif
         @endforeach
@@ -110,6 +113,6 @@
         <p class="warn">{{ __('manifest.missing', ['count' => $manifest->missingDetails]) }}</p>
     @endif
 
-    <p class="sign">{{ __('manifest.signature') }}<span class="line"></span></p>
+    @include('manifests.sign')
 </body>
 </html>

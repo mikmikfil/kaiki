@@ -13,6 +13,7 @@ use App\Enums\AgeBandPricing;
 use App\Enums\BookingMode;
 use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
+use App\Enums\VesselLicence;
 use App\Filament\App\Resources\ProductResource\Pages;
 use App\Filament\App\Resources\ProductResource\RelationManagers\ExtrasRelationManager;
 use App\Filament\App\Resources\ProductResource\RelationManagers\FaqsRelationManager;
@@ -326,7 +327,19 @@ class ProductResource extends Resource
                         ->helperText(__('catalog.product.form.vessel.help'))
                         ->options(static::vesselOptions(...))
                         ->searchable()
+                        ->live()
                         ->preload(),
+
+                    // A professional pleasure boat is chartered whole, on the
+                    // reading of ν. 4926/2022 the lawyer is still to confirm —
+                    // so selling one per seat is said, not refused (2026-09-24).
+                    Placeholder::make('licence_warning')
+                        ->hiddenLabel()
+                        ->content(__('catalog.product.form.vessel.pleasure_per_seat'))
+                        ->extraAttributes(['class' => 'ka-warning-note'])
+                        ->columnSpanFull()
+                        ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat
+                            && static::vesselLicence($get) === VesselLicence::ProfessionalPleasure),
 
                     Select::make('category')
                         ->label(__('catalog.product.form.category.label'))
@@ -444,6 +457,15 @@ class ProductResource extends Resource
                     Select::make('meeting_point_id')
                         ->label(__('catalog.product.form.meeting_point.label'))
                         ->helperText(__('catalog.product.form.meeting_point.help'))
+                        ->options(static::portOptions(...))
+                        ->searchable()
+                        ->preload(),
+
+                    // «Λιμάνι αποβίβασης» on the passenger list (2026-09-24).
+                    // Empty on a round trip, which is almost every trip.
+                    Select::make('landing_port_id')
+                        ->label(__('catalog.product.form.landing_port.label'))
+                        ->helperText(__('catalog.product.form.landing_port.help'))
                         ->options(static::portOptions(...))
                         ->searchable()
                         ->preload(),
@@ -1502,6 +1524,14 @@ class ProductResource extends Resource
      * άτομα» against the boat that *was* selected would refuse or allow the
      * wrong number.
      */
+    /** The chosen boat's licence, for the per-seat warning. */
+    public static function vesselLicence(Get $get): ?VesselLicence
+    {
+        $id = static::vesselIdOf($get);
+
+        return $id === null ? null : Vessel::query()->whereKey($id)->first()?->licence_type;
+    }
+
     public static function vesselIdOf(Get $get): ?int
     {
         $id = $get('vessel_id');
