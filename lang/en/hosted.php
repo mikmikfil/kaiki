@@ -346,4 +346,13 @@ return [
         'privacy_body' => 'We hold the details you give us in order to run your trip: your name, your contact details, and the passenger information the coastguard requires. We do not sell them and we do not use them for marketing. Write to :email to see, correct or delete what we hold.',
     ],
 
+    /* The dark band at the top of the search and contact pages (2026-09-24,
+       direction A of docs/mockups/page-tops.html). */
+    'page_top' => [
+        'breadcrumb' => 'Breadcrumb',
+        'home' => 'Home',
+        'search_eyebrow' => 'All our trips',
+        'contact_eyebrow' => 'Contact',
+    ],
+
 ];

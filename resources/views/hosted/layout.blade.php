@@ -3999,6 +3999,46 @@
             .hero .cta { display: inline-grid; grid-template-columns: minmax(0, 1fr); }
             .hero .cta .button { justify-content: center; }
         }
+
+        /* The footer's own room (Mike, 24/9): more above the columns and below
+           the legal line. The «Έχετε ερώτηση;» row keeps its padding; the
+           space under it is its bottom margin. */
+        .foot-reach { margin-block-end: clamp(3.5rem, 7vw, 5.5rem); }
+        footer.site { padding-block-end: clamp(2.5rem, 5vw, 3.5rem); }
+        footer.site:not(:has(> .foot-reach)) { padding-block-start: clamp(3.5rem, 7vw, 5.5rem); }
+
+        /* ==================================================================
+           The top of «Βρείτε εκδρομή» and «Επικοινωνήστε μαζί μας» (Mike,
+           2026-09-24, direction Α of docs/mockups/page-tops.html). The band is
+           `.band.band-dark` — full bleed, and the dark boxes' gradient and
+           drifting glow come from their rules above, not a copy of them. What
+           follows it climbs over its lower edge: the home page's white search
+           bar, or the contact form and the «Ή βρείτε μας απευθείας» card.
+           ================================================================== */
+        /* Flush under the header: the column's own top padding is taken back. */
+        main .wrap > .page-top:first-child { margin-block-start: -2rem; }
+        .page-top.band-dark { padding-block: clamp(2.5rem, 5vw, 4.25rem) clamp(5.5rem, 9vw, 7.75rem); }
+        .page-top .crumbs { margin: 0 0 1.25rem; font-size: var(--t-cap); color: rgba(255, 255, 255, .7); }
+        .page-top .crumbs a { font-size: var(--t-cap); font-weight: 600; color: #fff; }
+        .page-top h1 {
+            font-size: var(--t-h1-page); font-weight: 700; line-height: 1.12; letter-spacing: -.025em;
+            color: #fff; margin: 0 0 .75rem; text-wrap: balance;
+        }
+        .page-top .lede { font-size: var(--t-lead); line-height: 1.5; color: rgba(255, 255, 255, .86); max-width: 36rem; margin: 0; }
+        /* The overlap: less on a phone, where the band is short already. The
+           column's 1.75rem gap is taken back first. */
+        .page-top-over,
+        .hero-search.hero-search-below.page-top-over {
+            position: relative; z-index: 3;
+            margin: calc(-1.75rem - clamp(2.5rem, 5.5vw, 4.75rem)) 0 0;
+        }
+        .page-top-over .contact-form-card,
+        .page-top-over .contact-details {
+            background: #fff; border: 0; border-radius: 18px;
+            box-shadow: 0 2px 6px rgba(11, 39, 64, .06), 0 24px 56px rgba(11, 39, 64, .16);
+        }
+        .page-top-over .contact-details { padding: clamp(1.4rem, 2.4vw, 1.9rem); }
+        .page-top-over .contact-details h2 { margin-block-start: 0; }
     </style>
 
     {{-- The booking bundle, fetched from the first byte of the page.
