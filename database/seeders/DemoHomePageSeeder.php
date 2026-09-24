@@ -209,7 +209,10 @@ The weather sets the plan, not the clock: if the north wind blows we go to the s
                     'el' => 'Γενέθλια, πρόταση γάμου, εταιρική εκδρομή ή απλώς μια μέρα χωρίς αγνώστους. Πείτε μας ημερομηνία και άτομα, και σας στέλνουμε προσφορά μέσα στη μέρα.',
                     'en' => 'A birthday, a proposal, a company outing or simply a day without strangers. Tell us the date and how many of you, and we send a quote the same day.',
                 ],
-                'image_path' => $this->productImageOrNull('idiotiki-imera-skafos'),
+                // Friends on deck at sunset (Mike, 24/9): the private-trips band's
+                // photograph, from the pool the demo images seeder copies.
+                'image_path' => $this->publicFileOrNull(sprintf('products/%d/ilioyasilema-me-krasi.jpg', $tenant->getKey()))
+                    ?? $this->productImageOrNull('idiotiki-imera-skafos'),
                 'image_alt' => ['el' => 'Ιστιοφόρο στη θάλασσα', 'en' => 'A sailing boat at sea'],
                 'buttons' => array_values(array_filter([
                     ['label' => ['el' => 'Ζητήστε προσφορά', 'en' => 'Ask for a quote'], 'target' => 'contact'],
@@ -254,6 +257,12 @@ The weather sets the plan, not the clock: if the north wind blows we go to the s
 
         $path = sprintf('branding/%d/%s', $tenant->getKey(), $file);
 
+        return Storage::disk('public')->exists($path) ? $path : null;
+    }
+
+    /** A file already on the public disk, or null. */
+    private function publicFileOrNull(string $path): ?string
+    {
         return Storage::disk('public')->exists($path) ? $path : null;
     }
 
