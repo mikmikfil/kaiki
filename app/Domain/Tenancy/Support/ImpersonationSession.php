@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Tenancy\Support;
 
 use App\Models\User;
+use Illuminate\Auth\SessionGuard;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 
 /**
@@ -57,6 +59,30 @@ final class ImpersonationSession
         Session::put(self::IMPERSONATOR, $impersonator->getKey());
         Session::put(self::TENANT, $tenantId);
         Session::put(self::EXPIRES, Carbon::now()->addMinutes(self::MINUTES)->toIso8601String());
+    }
+
+    /**
+     * Put the new person's password fingerprint in the session after a switch.
+     *
+     * Both panels run `AuthenticateSession`, which signs a session out when the
+     * `password_hash_web` it carries is not the signed-in person's. It refreshes
+     * that value at the end of every request it wraps — but the switch happens
+     * inside a Livewire action, and `/livewire/update` does not run it. So the
+     * session kept the platform owner's fingerprint, the very next page compared
+     * it with the operator's password, and «Σύνδεση ως» landed on `/app/login`
+     * (found 2026-09-23, fixed 2026-09-24). The way back had the same flaw the
+     * other way round.
+     */
+    public static function rememberPasswordOf(User $user): void
+    {
+        $guard = Auth::guard();
+        $hash = (string) $user->getAuthPassword();
+
+        if ($guard instanceof SessionGuard) {
+            $hash = $guard->hashPasswordForCookie($hash);
+        }
+
+        Session::put('password_hash_'.Auth::getDefaultDriver(), $hash);
     }
 
     public static function forget(): void

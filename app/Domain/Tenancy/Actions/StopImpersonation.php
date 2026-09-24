@@ -52,6 +52,7 @@ final class StopImpersonation
 
         Session::regenerate();
         Auth::login($impersonator);
+        ImpersonationSession::rememberPasswordOf($impersonator);
 
         return $impersonator;
     }

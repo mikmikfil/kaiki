@@ -155,3 +155,29 @@ it('lets the platform owner reach the operator panel, which it refused before', 
 
     actingAs(auth()->user())->get('/app')->assertSuccessful();
 })->group('fast');
+
+it('keeps the operator signed in on the next page, and the platform owner on the way back', function (): void {
+    // Found by Mike on 2026-09-23: «Σύνδεση ως» landed on /app/login. The test
+    // above signs in again with `actingAs()` after the switch, which hid it —
+    // this one carries the session exactly as the browser does.
+    //
+    // Visiting /admin first puts the platform owner's password fingerprint in
+    // the session, the way AuthenticateSession does in real use. The switch
+    // happens inside a Livewire action, where that middleware does not run, so
+    // unless the switch replaces the fingerprint itself the next page compares
+    // it with the operator's password and signs the session out.
+    $owner = OperatorUser::withRole(Role::Owner);
+    $admin = User::factory()->superAdmin()->create();
+
+    actingAs($admin)->get('/admin')->assertSuccessful();
+
+    app(StartImpersonation::class)($admin, $owner, $owner->tenant, 'Υποστήριξη');
+
+    $this->get('/app')->assertSuccessful();
+    expect(auth()->id())->toBe($owner->getKey());
+
+    app(StopImpersonation::class)();
+
+    $this->get('/admin')->assertSuccessful();
+    expect(auth()->id())->toBe($admin->getKey());
+})->group('fast');
