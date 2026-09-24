@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Pages;
 
+use App\Domain\Availability\Actions\AssignDepartureCrew;
 use App\Domain\Availability\Actions\CreateVesselBlock;
 use App\Domain\Availability\Support\LocalDay;
 use App\Domain\Availability\Support\Window;
@@ -12,6 +13,8 @@ use App\Domain\Operations\Support\CalendarDay;
 use App\Enums\BlockReason;
 use App\Enums\BookingStatus;
 use App\Enums\DepartureStatus;
+use App\Enums\Role;
+use App\Filament\App\Resources\DepartureResource;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\User;
@@ -24,6 +27,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
@@ -263,6 +267,64 @@ class Calendar extends Page
 
                 $notification->send();
             });
+    }
+
+    /**
+     * «Ανάθεση»: captain and crew from the phone's day list, without opening the
+     * departure (Mike, 2026-09-24: owner and manager only). Written through
+     * {@see AssignDepartureCrew}, so the overlap refusal and the emails are the
+     * departure page's own.
+     */
+    public function assignAction(): Action
+    {
+        return Action::make('assign')
+            ->label(__('calendar.assign.title'))
+            ->modalHeading(__('calendar.assign.title'))
+            ->visible(fn (): bool => self::canAssign())
+            ->fillForm(function (array $arguments): array {
+                $departure = Departure::query()->where('uuid', $arguments['departure'] ?? '')->first();
+
+                return [
+                    'captain_user_id' => $departure?->captain_user_id,
+                    'captain_name' => $departure?->captain_name,
+                    'crew_user_ids' => $departure === null ? [] : ($departure->crew_user_ids ?? []),
+                ];
+            })
+            ->form([
+                Select::make('captain_user_id')
+                    ->label(__('availability.departure.crew.captain.label'))
+                    ->options(static fn (): array => DepartureResource::peopleOptions(captainsOnly: true))
+                    ->searchable()
+                    ->live(),
+                TextInput::make('captain_name')
+                    ->label(__('availability.departure.crew.captain_name.label'))
+                    ->maxLength(120)
+                    ->visible(static fn (Get $get): bool => blank($get('captain_user_id'))),
+                Select::make('crew_user_ids')
+                    ->label(__('availability.departure.crew.members.label'))
+                    ->options(static fn (): array => DepartureResource::peopleOptions())
+                    ->multiple()
+                    ->searchable(),
+            ])
+            ->action(function (array $data, array $arguments): void {
+                $departure = Departure::query()->where('uuid', $arguments['departure'] ?? '')->firstOrFail();
+
+                app(AssignDepartureCrew::class)(
+                    $departure,
+                    $data['captain_user_id'] ?? null,
+                    $data['captain_name'] ?? null,
+                    $data['crew_user_ids'] ?? [],
+                );
+
+                Notification::make()->title(__('calendar.assign.saved'))->success()->send();
+            });
+    }
+
+    public static function canAssign(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && ($user->hasRole(Role::Owner) || $user->hasRole(Role::Manager));
     }
 
     /**

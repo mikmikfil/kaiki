@@ -38,7 +38,7 @@
                      blue card, the one about the boat that is leaving. --}}
                 <img class="kd-helm" src="{{ asset('images/nautical/helm.svg') }}" alt="" aria-hidden="true">
                 @if ($next)
-                    <div class="kd-next-when">{{ __('dashboard.home.next.label') }} · {{ $next['when'] }}</div>
+                    <div class="kd-next-when">{{ $next['mine'] ? __('dashboard.home.next.mine') : __('dashboard.home.next.label') }} · {{ $next['when'] }}</div>
 
                     <div class="kd-next-row">
                         <div>
@@ -49,6 +49,9 @@
                                 <div class="kd-next-trip">{{ $next['trip'] }}</div>
                             @endif
                             <div class="kd-next-where">{{ $next['where'] }}</div>
+                            @if ($next['role'] !== null)
+                                <span class="kd-role">{{ $next['role'] }}</span>
+                            @endif
                         </div>
 
                         {{-- Nobody booked yet: "0/0 aboard" would be a number
@@ -311,6 +314,7 @@
         .kd-next-time { font-size: 2.25rem; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
         .kd-next-trip { display: block; margin-top: .3rem; font-size: 1.0625rem; font-weight: 700; color: #fff; }
         .kd-next-where { font-size: .8125rem; color: #C4D3E8; }
+        .kd-role { display: inline-block; margin-top: .45rem; padding: .1rem .6rem; border-radius: 999px; background: #23497D; color: #fff; font-size: .75rem; font-weight: 700; }
         .kd-next-aboard { text-align: right; flex: none; }
         .kd-next-count { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
         .kd-progress { height: .4rem; border-radius: 99px; background: #23497D; overflow: hidden; }

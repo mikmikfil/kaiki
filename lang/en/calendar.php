@@ -73,4 +73,8 @@ return [
             'bring' => 'To bring',
         ],
     ],
+    'assign' => [
+        'title' => 'Assign',
+        'saved' => 'Saved',
+    ],
 ];

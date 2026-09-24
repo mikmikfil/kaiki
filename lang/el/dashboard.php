@@ -86,6 +86,9 @@ return [
             'evening_named' => 'Καλησπέρα, :name',
         ],
         'next' => [
+            'mine' => 'Η επόμενη δική μου',
+            'role_captain' => 'Είστε ο κυβερνήτης',
+            'role_crew' => 'Είστε στο πλήρωμα',
             'label' => 'Επόμενη αναχώρηση',
             'underway' => 'εν πλω τώρα',
             'in_minutes' => 'σε :count λεπτό|σε :count λεπτά',

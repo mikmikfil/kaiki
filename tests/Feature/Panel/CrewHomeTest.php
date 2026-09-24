@@ -7,6 +7,8 @@ use App\Filament\App\Pages\Dashboard;
 use App\Filament\App\Resources\BookingResource;
 use App\Filament\App\Widgets\DayByBoat;
 use App\Filament\App\Widgets\NeedsAttention;
+use App\Models\Departure;
+use Illuminate\Support\Carbon;
 use Livewire\Livewire;
 
 use function Pest\Laravel\actingAs;
@@ -60,4 +62,22 @@ it('leaves the owner their home, and adds the scan to their menu too', function 
     Livewire::actingAs($owner)->test(DayByBoat::class)
         ->assertDontSeeHtml('class="kd-scan"')
         ->assertSeeHtml('class="kd-box"');
+})->group('fast');
+
+it('shows crew the next departure they sail, with their role, ahead of an earlier one', function (): void {
+    $crew = OperatorUser::withRole(Role::Crew);
+
+    tenancy()->initialize($crew->tenant);
+    actingAs($crew);
+
+    // Two tomorrow, so the clock never pushes either out of the week.
+    $day = Carbon::now('Europe/Athens')->addDay()->toDateString();
+    Departure::factory()->at($day, '09:00')->create();
+    Departure::factory()->at($day, '14:00')->create(['crew_user_ids' => [(int) $crew->getKey()]]);
+
+    $next = Livewire::actingAs($crew)->test(DayByBoat::class)->instance()->getNext();
+
+    expect($next['mine'])->toBeTrue()
+        ->and($next['role'])->toBe(__('dashboard.home.next.role_crew'))
+        ->and($next['time'])->toBe('14:00');
 })->group('fast');

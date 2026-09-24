@@ -5,10 +5,12 @@ declare(strict_types=1);
 use App\Domain\Availability\Actions\AssignDepartureCrew;
 use App\Domain\Availability\Actions\AssignScheduleCrew;
 use App\Domain\Availability\Actions\SendCrewReminders;
+use App\Domain\Operations\Support\AttentionItems;
 use App\Domain\Operations\Support\Manifest;
 use App\Domain\Tenancy\Actions\InviteStaffMember;
 use App\Enums\ManifestColumn;
 use App\Enums\Role;
+use App\Filament\App\Pages\Calendar;
 use App\Mail\CrewAssignedMail;
 use App\Mail\CrewReminderMail;
 use App\Mail\CrewScheduleMail;
@@ -160,7 +162,7 @@ it('sets the crew once on the schedule, for its future departures, but not a day
     });
 
     Mail::assertQueued(CrewScheduleMail::class, 2);
-    Illuminate\Support\Carbon::setTestNow();
+    Carbon::setTestNow();
 })->group('fast');
 
 it('reminds the crew once, 24 hours before, and nobody without an email', function (): void {
@@ -187,5 +189,60 @@ it('reminds the crew once, 24 hours before, and nobody without an email', functi
     Mail::assertQueued(CrewReminderMail::class, 1);
     expect(Tenancy::forTenant($tenant, fn () => $tomorrow->refresh()->crew_reminded_at))->not->toBeNull();
 
-    Illuminate\Support\Carbon::setTestNow();
+    Carbon::setTestNow();
+})->group('fast');
+
+it('lets an owner assign from the calendar, and gives crew no button for it', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+    $captain = OperatorUser::withRole(Role::Crew, $owner->tenant);
+    $departure = Tenancy::forTenant($owner->tenant, fn (): Departure => Departure::factory()->at(Carbon::now('Europe/Athens')->toDateString(), '18:00')->create());
+
+    tenancy()->initialize($owner->tenant);
+    Livewire\Livewire::actingAs($owner)->test(Calendar::class)
+        ->assertSeeHtml('class="cal-assign"')
+        ->callAction('assign', ['captain_user_id' => $captain->getKey(), 'crew_user_ids' => []], ['departure' => $departure->uuid])
+        ->assertHasNoActionErrors();
+
+    expect(Tenancy::forTenant($owner->tenant, fn (): ?int => Departure::query()->find($departure->getKey())?->captain_user_id))
+        ->toBe((int) $captain->getKey());
+
+    Livewire\Livewire::actingAs($captain)->test(Calendar::class)
+        ->assertDontSeeHtml('class="cal-assign"');
+})->group('fast');
+
+it('asks for a captain once per schedule, and not when the boat has a usual one', function (): void {
+    $tenant = Tenant::factory()->create(['timezone' => 'Europe/Athens']);
+
+    $items = Tenancy::forTenant($tenant, function () use ($tenant): array {
+        $bare = Vessel::factory()->create(['captain_name' => null]);
+        $skippered = Vessel::factory()->create(['captain_name' => 'Γιώργος']);
+        $rule = ScheduleRule::factory()->create();
+        $day = Carbon::now('Europe/Athens')->addDay();
+
+        foreach ([0, 1, 2] as $offset) {
+            Departure::factory()->for($bare)->at($day->copy()->addDays($offset)->toDateString(), '10:00')->create(['schedule_rule_id' => $rule->getKey()]);
+        }
+        Departure::factory()->for($skippered)->at($day->toDateString(), '12:00')->create();
+
+        return array_values(array_filter(
+            (new AttentionItems($tenant->timezone))->everything(),
+            static fn ($item): bool => str_starts_with($item->key, 'captain:'),
+        ));
+    });
+
+    expect($items)->toHaveCount(1)
+        ->and($items[0]->detail)->toContain('2');
+})->group('fast');
+
+it('never asks an operator who does not record captains at all', function (): void {
+    $tenant = Tenant::factory()->create(['timezone' => 'Europe/Athens']);
+
+    $items = Tenancy::forTenant($tenant, function () use ($tenant): array {
+        Departure::factory()->for(Vessel::factory()->create(['captain_name' => null]))
+            ->at(Carbon::now('Europe/Athens')->addDay()->toDateString(), '10:00')->create();
+
+        return (new AttentionItems($tenant->timezone))->everything();
+    });
+
+    expect(array_filter($items, static fn ($item): bool => str_starts_with($item->key, 'captain:')))->toBe([]);
 })->group('fast');

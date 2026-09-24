@@ -71,7 +71,10 @@ class DayByBoat extends Widget
     /** @return array<string, mixed>|null */
     public function getNext(): ?array
     {
-        $next = $this->home()->nextDeparture();
+        // A crew member sees the next one they sail, with their role, and the
+        // operator's next one only when they are on none this week (2026-09-24).
+        $mine = $this->isCrew() ? $this->home()->nextDeparture(sailingUserId: (int) auth()->id()) : null;
+        $next = $mine ?? $this->home()->nextDeparture();
 
         if ($next === null) {
             return null;
@@ -92,8 +95,18 @@ class DayByBoat extends Widget
         // count: the box says how full the sailing is instead.
         $boards = Tenancy::current()?->usesCheckIn() === true;
 
+        $role = null;
+
+        if ($mine !== null) {
+            $role = (int) $departure->captain_user_id === (int) auth()->id()
+                ? __('dashboard.home.next.role_captain')
+                : __('dashboard.home.next.role_crew');
+        }
+
         return [
             'when' => $when,
+            'role' => $role,
+            'mine' => $mine !== null,
             'boards' => $boards,
             'booked' => (int) $departure->seats_sold,
             'capacity' => (int) $departure->capacity,

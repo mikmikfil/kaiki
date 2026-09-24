@@ -8,6 +8,7 @@ use App\Domain\Availability\Actions\SailBelowMinimum;
 use App\Domain\Booking\Actions\ConfirmManualRefund;
 use App\Domain\Booking\Actions\RefundBooking;
 use App\Enums\BookingStatus;
+use App\Enums\CrewSpecialty;
 use App\Enums\DepartureStatus;
 use App\Enums\GuestDetailsStatus;
 use App\Enums\PaymentGatewayName;
@@ -19,9 +20,13 @@ use App\Models\Departure;
 use App\Models\IcalSource;
 use App\Models\Payment;
 use App\Models\Quote;
+use App\Models\User;
+use App\Models\Vessel;
 use App\Support\Format\MoneyFormatter;
+use App\Support\Tenancy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * The things an operator has to decide today (spec OPS-1, OPS-2).
@@ -92,6 +97,9 @@ final class AttentionItems
      */
     private const SOURCE_LIMIT = 50;
 
+    /** How far ahead a sailing with nobody to take her out is worth a row. */
+    public const CAPTAIN_DAYS = 7;
+
     public function __construct(private readonly string $timezone) {}
 
     /**
@@ -109,7 +117,8 @@ final class AttentionItems
             + $this->overdueBalancesQuery($now)->count()
             + $this->expiringQuotesQuery($now)->count()
             + $this->owedRefundsQuery()->count()
-            + $this->brokenCalendarsQuery()->count();
+            + $this->brokenCalendarsQuery()->count()
+            + count($this->captainlessGroups($now));
     }
 
     /**
@@ -141,6 +150,7 @@ final class AttentionItems
             ...$this->expiringQuotes($now),
             ...$this->owedRefunds(),
             ...$this->brokenCalendars(),
+            ...$this->withoutCaptain($now),
         ];
 
         usort(
@@ -189,6 +199,76 @@ final class AttentionItems
             deadline: $this->local($departure->starts_at_utc),
             subject: $departure,
         ))->all();
+    }
+
+    /**
+     * Sailings this week with nobody to take her out (2026-09-24).
+     *
+     * Only when the departure, its schedule and the boat all name no captain —
+     * a boat with a usual captain is covered, and a captain is not required
+     * (Mike: «όχι»). One row per schedule, not one per day: a new daily
+     * schedule would otherwise fill the list with seven identical rows. The
+     * row opens the soonest of them.
+     *
+     * @return list<AttentionItem>
+     */
+    private function withoutCaptain(Carbon $now): array
+    {
+        $items = [];
+
+        foreach ($this->captainlessGroups($now) as $departures) {
+            $first = $departures->first();
+
+            $items[] = new AttentionItem(
+                key: 'captain:' . $first->getKey(),
+                severity: AttentionSeverity::Warning,
+                title: (string) __('attention.no_captain.title', [
+                    'trip' => (string) $first->product?->title,
+                    'time' => $first->local_date->toDateString() . ' ' . substr($first->local_time, 0, 5),
+                ]),
+                detail: $departures->count() > 1
+                    ? (string) trans_choice('attention.no_captain.more', $departures->count() - 1, ['count' => $departures->count() - 1, 'vessel' => (string) $first->vessel?->name])
+                    : (string) __('attention.no_captain.detail', ['vessel' => (string) $first->vessel?->name]),
+                deadline: $this->local($first->starts_at_utc),
+                subject: $first,
+            );
+        }
+
+        return $items;
+    }
+
+    /**
+     * The captainless sailings, grouped by the schedule that made them; a
+     * one-off is a group of its own.
+     *
+     * @return list<Collection<int, Departure>>
+     */
+    private function captainlessGroups(Carbon $now): array
+    {
+        // A captain is not required (Mike, 2026-09-24). An operator who has
+        // never named one — no usual captain on a boat, nobody marked
+        // «Κυβερνήτης» — would get a row they can never clear, so they get none.
+        if (! $this->recordsCaptains()) {
+            return [];
+        }
+
+        return Departure::query()
+            ->with(['product', 'vessel'])
+            ->where('status', '!=', DepartureStatus::Cancelled->value)
+            ->where('starts_at_utc', '>=', $now)
+            ->where('starts_at_utc', '<', $now->copy()->addDays(self::CAPTAIN_DAYS))
+            ->whereNull('captain_user_id')
+            ->where(static fn (Builder $query) => $query->whereNull('captain_name')->orWhere('captain_name', ''))
+            ->whereDoesntHave('vessel', static fn (Builder $query) => $query->whereNotNull('captain_name')->where('captain_name', '!=', ''))
+            ->orderBy('starts_at_utc')
+            ->limit(self::SOURCE_LIMIT * 7)
+            ->get()
+            ->groupBy(static fn (Departure $departure): string => $departure->schedule_rule_id !== null
+                ? 'rule:' . $departure->schedule_rule_id
+                : 'departure:' . $departure->getKey())
+            ->take(self::SOURCE_LIMIT)
+            ->values()
+            ->all();
     }
 
     /**
@@ -445,6 +525,18 @@ final class AttentionItems
     {
         return IcalSource::query()
             ->where('consecutive_failures', '>=', IcalSource::ATTENTION_THRESHOLD);
+    }
+
+    private function recordsCaptains(): bool
+    {
+        $tenant = Tenancy::current();
+
+        if ($tenant === null) {
+            return false;
+        }
+
+        return Vessel::query()->whereNotNull('captain_name')->where('captain_name', '!=', '')->exists()
+            || User::query()->where('tenant_id', $tenant->getKey())->where('specialty', CrewSpecialty::Captain->value)->exists();
     }
 
     private function local(?Carbon $at): ?Carbon

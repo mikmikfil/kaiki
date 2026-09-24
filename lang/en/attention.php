@@ -46,6 +46,12 @@ return [
         'detail' => ':sold booked, minimum :minimum · :vessel',
     ],
 
+    'no_captain' => [
+        'title' => 'No captain · :trip, :time',
+        'detail' => ':vessel · the boat has no usual captain either',
+        'more' => ':vessel · and :count more departure on the same schedule|:vessel · and :count more departures on the same schedule',
+    ],
+
     'guest_details' => [
         'title' => 'Passenger details missing · :reference',
         'detail' => ':guest, :trip — the manifest has to exist before the boat leaves.',
@@ -84,6 +90,7 @@ return [
 
     // Every row leads to where it is fixed (2026-09-17).
     'actions' => [
+        'captain' => 'Assign a captain',
         'departure' => 'Open departure',
         'details' => 'Open booking',
         'balance' => 'Record payment',

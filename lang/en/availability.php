@@ -217,6 +217,7 @@ return [
             'intro' => 'Who takes her out today. Printed on the passenger list.',
             'no_email' => 'no email · tell them yourself',
             'captain' => ['label' => 'Captain', 'help' => 'Empty: the boat’s usual captain (:boat).'],
+            'from_rule' => 'From the schedule. A change here applies to this departure only.',
             'captain_name' => ['label' => 'Or the captain’s name', 'help' => 'If they have no Kaiki account.'],
             'members' => ['label' => 'Crew', 'help' => 'Those of your people sailing with it.'],
             'validation' => ['not_ours' => 'Someone you chose does not belong to your business.', 'overlap' => ':name is already on «:trip» (:boat, :time), at the same time.'],
@@ -267,6 +268,10 @@ return [
         ],
 
         'table' => [
+            'captain' => 'Captain',
+            'usual' => 'usual',
+            'no_captain' => 'No captain',
+            'mine' => 'Mine',
             'product' => 'Trip',
             'local_date' => 'Date',
             'local_time' => 'Time',

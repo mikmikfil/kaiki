@@ -64,8 +64,8 @@ return [
             ],
             'crew_count' => ['label' => 'Crew'],
             'captain_name' => [
-                'label' => 'Captain',
-                'help' => 'Shown on the passenger manifest.',
+                'label' => 'Usual captain',
+                'help' => 'Printed on the passenger list when the departure or its schedule names nobody else.',
             ],
             'home_port' => [
                 'label' => 'Home port',

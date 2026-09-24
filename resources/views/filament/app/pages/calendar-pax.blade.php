@@ -20,6 +20,20 @@
             · {{ __('calendar.pax.seats', ['sold' => $departure->seats_sold, 'capacity' => $departure->capacity]) }}
         </p>
 
+        {{-- Who takes her out, above the names (2026-09-24). --}}
+        @php $crewNames = $departure->crewNames(); @endphp
+        <p class="text-sm">
+            <span class="text-gray-500 dark:text-gray-400">{{ __('availability.departure.crew.captain.label') }}:</span>
+            @if ($departure->captainName() !== null)
+                <b>{{ $departure->captainName() }}</b>
+            @else
+                <b class="text-danger-600 dark:text-danger-400">{{ __('availability.departure.table.no_captain') }}</b>
+            @endif
+            @if ($crewNames !== [])
+                <br><span class="text-gray-500 dark:text-gray-400">{{ __('availability.departure.crew.members.label') }}:</span> {{ implode(', ', $crewNames) }}
+            @endif
+        </p>
+
         {{--
             **Η περίληψη της εκδρομής, πάνω από τα ονόματα** — κατεύθυνση Β
             (Mike, 2026-09-23: *«ως πλήρωμα, πατάω πάνω σε ένα trip και μου
