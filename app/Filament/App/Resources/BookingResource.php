@@ -14,6 +14,7 @@ use App\Filament\App\Resources\BookingResource\Pages;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Product;
+use App\Models\User;
 use App\Support\Authorization\Capability;
 use App\Support\Authorization\CrewWindow;
 use App\Support\Format\MoneyFormatter;
@@ -68,6 +69,19 @@ class BookingResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
 
     protected static ?int $navigationSort = 10;
+
+    /**
+     * Off the crew's menu (Mike, 2026-09-24): scan, today, the calendar. Crew
+     * keep what TEN-8 gives them — a booking opened from a departure's list
+     * still opens — only the list of every booking stops being a menu entry.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+
+        return parent::shouldRegisterNavigation()
+            && ! ($user instanceof User && $user->isCrewOnly());
+    }
 
     public static function getNavigationGroup(): ?string
     {

@@ -123,6 +123,17 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
         return $this->hasRole(Role::Owner);
     }
 
+    /**
+     * Crew and nothing more — the deckhand's panel: scan, today, the calendar
+     * (Mike, 2026-09-24). One role per person (decision of 2026-09-18), but
+     * asked as "no role above crew" so a second assignment can never shrink an
+     * owner's screen.
+     */
+    public function isCrewOnly(): bool
+    {
+        return Role::highest($this->roles()) === Role::Crew;
+    }
+
     /** A platform super-admin has no tenant and no role assignments. */
     public function isSuperAdmin(): bool
     {

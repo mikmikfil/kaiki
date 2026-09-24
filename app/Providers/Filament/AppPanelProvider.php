@@ -8,6 +8,7 @@ use App\Domain\Hosted\Support\HostedAsset;
 use App\Filament\App\Auth\EditProfile;
 use App\Filament\App\Auth\Login;
 use App\Filament\App\Auth\RequestPasswordReset;
+use App\Filament\App\Pages\CheckIn;
 use App\Filament\App\Pages\Settings;
 use App\Filament\Avatars\InitialsAvatarProvider;
 use App\Http\Controllers\App\BoardingController;
@@ -37,6 +38,7 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Infolists\Infolist;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Resources\Resource;
@@ -320,6 +322,22 @@ class AppPanelProvider extends PanelProvider
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.sales')),
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.catalogue')),
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.fleet')),
+            ])
+            /*
+             * «Σάρωση εισιτηρίων» alone at the top of the menu, above every
+             * group (Mike, 2026-09-24): it is the one thing done forty times a
+             * morning on the quay. The same place the home page's button goes —
+             * the camera on the boarding page — and only where there is
+             * scanning at all: boarding on, QR on, and somebody allowed to board.
+             */
+            ->navigationItems([
+                NavigationItem::make('scan')
+                    ->label(fn (): string => __('panel.nav.scan'))
+                    ->icon('heroicon-o-qr-code')
+                    ->url(fn (): string => route('filament.app.boarding', ['camera' => 1]))
+                    ->isActiveWhen(fn (): bool => request()->routeIs('filament.app.boarding'))
+                    ->sort(-100)
+                    ->visible(fn (): bool => CheckIn::canAccess() && CheckIn::qrEnabled()),
             ])
             /*
              * The panel as an app on a phone (PWA, 2026-09-23): its manifest,

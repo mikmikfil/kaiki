@@ -13,6 +13,7 @@ use App\Filament\App\Pages\CheckIn;
 use App\Filament\App\Resources\BookingResource;
 use App\Filament\App\Resources\DepartureResource;
 use App\Models\Departure;
+use App\Models\User;
 use App\Support\Tenancy;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Carbon;
@@ -151,9 +152,25 @@ class DayByBoat extends Widget
         ];
     }
 
+    /**
+     * The crew's home is the scan button, the next boat and today by boat —
+     * nothing else (Mike, 2026-09-24). The boxes were bookings to chase and a
+     * «Προσοχή» full of decisions crew are not the ones to take.
+     */
+    public function isCrew(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && $user->isCrewOnly();
+    }
+
     /** @return list<array{label: string, detail: string, url: string, icon: string, count: int|null, alert: bool}> */
     public function getBoxes(): array
     {
+        if ($this->isCrew()) {
+            return [];
+        }
+
         $home = $this->home();
         $boxes = [];
 

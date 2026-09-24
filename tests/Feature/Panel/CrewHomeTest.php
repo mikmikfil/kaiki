@@ -1,0 +1,63 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Enums\Role;
+use App\Filament\App\Pages\Dashboard;
+use App\Filament\App\Resources\BookingResource;
+use App\Filament\App\Widgets\DayByBoat;
+use App\Filament\App\Widgets\NeedsAttention;
+use Livewire\Livewire;
+
+use function Pest\Laravel\actingAs;
+
+use Tests\Support\OperatorUser;
+
+/*
+|--------------------------------------------------------------------------
+| The crew's panel: scan first, then today — Mike, 2026-09-24
+|--------------------------------------------------------------------------
+|
+| «Σάρωση εισιτηρίων» alone at the top of the menu, and first on the crew's
+| home. Their home is the scan button, the next boat and today by boat; the
+| owner's list of decisions, the weather and the bookings list are not theirs.
+| Owners and managers keep everything they had, plus the scan item.
+|
+*/
+
+it('gives crew a home of the scan button, the next boat and today by boat', function (): void {
+    $crew = OperatorUser::withRole(Role::Crew);
+
+    tenancy()->initialize($crew->tenant);
+    actingAs($crew);
+
+    expect((new Dashboard)->getWidgets())->toBe([DayByBoat::class])
+        ->and(BookingResource::shouldRegisterNavigation())->toBeFalse();
+
+    actingAs($crew)->get('/app')
+        ->assertSuccessful()
+        ->assertSee(__('panel.nav.scan'));
+
+    // The widget loads after the page, so it is asked on its own.
+    Livewire::actingAs($crew)->test(DayByBoat::class)
+        ->assertSeeHtml('class="kd-scan"')
+        ->assertDontSeeHtml('class="kd-box"');
+})->group('fast');
+
+it('leaves the owner their home, and adds the scan to their menu too', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    tenancy()->initialize($owner->tenant);
+    actingAs($owner);
+
+    expect((new Dashboard)->getWidgets())->toContain(NeedsAttention::class)
+        ->and(BookingResource::shouldRegisterNavigation())->toBeTrue();
+
+    actingAs($owner)->get('/app')
+        ->assertSuccessful()
+        ->assertSee(__('panel.nav.scan'));
+
+    Livewire::actingAs($owner)->test(DayByBoat::class)
+        ->assertDontSeeHtml('class="kd-scan"')
+        ->assertSeeHtml('class="kd-box"');
+})->group('fast');

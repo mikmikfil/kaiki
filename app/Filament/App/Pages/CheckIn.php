@@ -91,10 +91,14 @@ class CheckIn extends Page
         return __('panel.groups.today');
     }
 
-    /** A QR in the menu of an operator who has none would be a promise the page does not keep. */
+    /**
+     * The list, whatever the operator's QR setting. The QR belongs to
+     * «Σάρωση εισιτηρίων» at the top of the menu since 2026-09-24, and two
+     * identical icons one above the other read as the same screen twice.
+     */
     public static function getNavigationIcon(): string
     {
-        return self::qrEnabled() ? 'heroicon-o-qr-code' : 'heroicon-o-clipboard-document-check';
+        return 'heroicon-o-clipboard-document-check';
     }
 
     /**

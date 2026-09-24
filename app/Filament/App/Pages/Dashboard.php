@@ -10,6 +10,7 @@ use App\Filament\App\Widgets\NeedsAttention;
 use App\Filament\App\Widgets\SetupProgress;
 use App\Filament\App\Widgets\UnsellableProducts;
 use App\Filament\App\Widgets\WeatherOutlook;
+use App\Models\User;
 use App\Support\Tenancy;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Illuminate\Contracts\Support\Htmlable;
@@ -216,6 +217,15 @@ class Dashboard extends BaseDashboard
     /** @return array<class-string> */
     public function getWidgets(): array
     {
+        // Crew see the scan button, the next boat and today by boat — and not
+        // the owner's list of decisions, the weather or the unsellable trips
+        // (Mike, 2026-09-24).
+        $user = auth()->user();
+
+        if ($user instanceof User && $user->isCrewOnly()) {
+            return [DayByBoat::class];
+        }
+
         return [
             SetupProgress::class,
             FirstSteps::class,

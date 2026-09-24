@@ -82,7 +82,7 @@ final class ImpersonationSession
             $hash = $guard->hashPasswordForCookie($hash);
         }
 
-        Session::put('password_hash_'.Auth::getDefaultDriver(), $hash);
+        Session::put('password_hash_' . Auth::getDefaultDriver(), $hash);
     }
 
     public static function forget(): void

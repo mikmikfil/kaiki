@@ -15,10 +15,20 @@
     $day = $this->getDay();
     $now = $day->nowFraction();
     $calendarUrl = $this->getCalendarUrl();
+    $crew = $this->isCrew();
 @endphp
 
 <x-filament-widgets::widget>
-    <div class="kd">
+    <div @class(['kd', 'is-crew' => $crew])>
+        {{-- Crew: the scan comes first and alone, above everything (Mike,
+             2026-09-24: «πρώτο πράγμα στην οθόνη του πληρώματος»). --}}
+        @if ($crew && $boarding)
+            <a class="kd-scan" href="{{ $boarding['url'] }}">
+                <x-filament::icon :icon="$boarding['icon']" class="kd-scan-ic" />
+                <span>{{ $boarding['label'] }}</span>
+            </a>
+        @endif
+
         <div class="kd-top">
             {{-- 1. The next departure --}}
             <div class="kd-next">
@@ -67,7 +77,7 @@
                     <div class="kd-next-trip">{{ __('dashboard.home.next.none') }}</div>
                 @endif
 
-                @if ($boarding)
+                @if ($boarding && ! $crew)
                     <a class="kd-bigbtn" href="{{ $boarding['url'] }}">
                         <x-filament::icon :icon="$boarding['icon']" class="kd-ic" />
                         <span>{{ $boarding['label'] }}</span>
@@ -76,6 +86,7 @@
             </div>
 
             {{-- 2. Four boxes, one question each --}}
+            @if ($boxes !== [])
             <div class="kd-boxes">
                 @foreach ($boxes as $box)
                     <a class="kd-box" href="{{ $box['url'] }}">
@@ -92,6 +103,7 @@
                     </a>
                 @endforeach
             </div>
+            @endif
         </div>
 
         {{-- 3. Today, by boat --}}
@@ -311,6 +323,21 @@
         }
         .kd-bigbtn:hover { background: var(--kd-btn-hover); }
         .kd-ic { width: 1.25rem; height: 1.25rem; }
+
+        /* Crew: one big button, the width of the page, before anything else.
+           Navy like the departure card, so the two read as one thing: the boat
+           that is leaving, and the way to put people on it. */
+        .kd.is-crew > .kd-scan { margin-bottom: .875rem; }
+        /* No boxes beside it, so the departure card takes the whole row. */
+        .kd.is-crew .kd-top { grid-template-columns: minmax(0, 1fr); }
+        .kd-scan {
+            display: flex; align-items: center; justify-content: center; gap: .75rem;
+            min-height: 4.5rem; border-radius: 1rem; padding: 0 1.25rem;
+            background: var(--kd-next); color: #fff; font-weight: 700; font-size: 1.2rem;
+            border: 1px solid var(--kd-next-line);
+        }
+        .kd-scan:hover { filter: brightness(1.12); }
+        .kd-scan-ic { width: 1.75rem; height: 1.75rem; }
 
         .kd-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
         .kd-box {
