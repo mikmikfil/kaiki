@@ -3222,7 +3222,7 @@
            ================================================================== */
         footer.site:has(> .foot-reach) { padding-block-start: 0; }
         .foot-reach { background: var(--kaiki-secondary); margin-block-end: clamp(2.5rem, 6vw, 4rem); }
-        .foot-reach .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem 2rem; padding-block: 1.25rem; }
+        .foot-reach .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem 2rem; padding-block: clamp(1.75rem, 3vw, 2.4rem); }
         .foot-reach-title { display: inline-flex; align-items: center; gap: .65rem; margin: 0 auto 0 0 !important; color: #fff; font-weight: 700; font-size: 1.05rem; letter-spacing: -.01em; }
         .foot-reach-title .icon { inline-size: 1.35rem; block-size: 1.35rem; color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
         .foot-reach ul { display: flex; flex-wrap: wrap; gap: .6rem 1.75rem; }

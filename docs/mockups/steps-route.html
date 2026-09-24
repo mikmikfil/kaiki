@@ -87,30 +87,25 @@ h3{font-size:18px;letter-spacing:-.01em;color:var(--primary);margin:0 0 6px}
    is travelled: each dot fills in turn, and the line to the next grows solid
    and thicker over the dashes. Plays once; the button replays it. With reduced
    motion it shows the end state straight away. ---- */
-.vE .stop{--t:1s}
+.vE .stop{--t:2.2s}
 .vE .stop:not(:last-child)::after{content:"";position:absolute;z-index:0;background:var(--accent);border-radius:3px;
   left:23px;top:48px;bottom:0;width:3px;transform-origin:top;transform:scaleY(0);animation:grow-y var(--t) ease-in-out forwards}
 @container site (min-width:760px){
   .vE .stop:not(:last-child)::after{left:calc(50% + 24px);right:calc(-50% + 24px);top:22px;bottom:auto;width:auto;height:3px;transform-origin:left;transform:scaleX(0);animation-name:grow-x}
 }
-.vE .stop:nth-child(1)::after{animation-delay:.5s}
-.vE .stop:nth-child(2)::after{animation-delay:1.9s}
-.vE .dot{animation:fill .45s ease forwards}
-.vE .stop:nth-child(1) .dot{animation-delay:.1s}
-.vE .stop:nth-child(2) .dot{animation-delay:1.5s}
-.vE .stop:nth-child(3) .dot{animation-delay:2.9s}
+.vE .stop:nth-child(1)::after{animation-delay:.8s}
+.vE .stop:nth-child(2)::after{animation-delay:3.5s}
+.vE .dot{animation:fill .6s ease forwards}
+.vE .stop:nth-child(1) .dot{animation-delay:.2s}
+.vE .stop:nth-child(2) .dot{animation-delay:2.9s}
+.vE .stop:nth-child(3) .dot{animation-delay:5.6s}
 .vE .stop.end .dot{background:#fff;color:var(--accent)}
-.vE .stop .txt{opacity:.45;animation:lit .45s ease forwards}
-.vE .stop:nth-child(1) .txt{animation-delay:.1s}
-.vE .stop:nth-child(2) .txt{animation-delay:1.5s}
-.vE .stop:nth-child(3) .txt{animation-delay:2.9s}
-.vE .stop.end .dot svg{opacity:0;animation:lit .3s ease forwards 3.1s}
 @keyframes grow-x{to{transform:scaleX(1)}}
 @keyframes grow-y{to{transform:scaleY(1)}}
 @keyframes fill{to{background:var(--accent);color:#fff;box-shadow:0 0 0 6px var(--accent-soft)}}
 @keyframes lit{to{opacity:1}}
 @media (prefers-reduced-motion:reduce){
-  .vE .stop::after,.vE .dot,.vE .stop .txt,.vE .stop.end .dot svg{animation-duration:1ms!important;animation-delay:0s!important}
+  .vE .stop::after,.vE .dot{animation-duration:1ms!important;animation-delay:0s!important}
 }
 .replay{display:none;margin:28px auto 0;font-weight:600;font-size:14px;color:var(--accent);border:1.5px solid var(--rule);border-radius:99px;padding:7px 16px;background:#fff}
 .vE .replay{display:flex;align-items:center;gap:8px}
@@ -168,7 +163,7 @@ h3{font-size:18px;letter-spacing:-.01em;color:var(--primary);margin:0 0 6px}
     B: '<b>Β. Χωρίς κάρτα.</b> Μόνο η διαδρομή πάνω στη σελίδα. Το πιο ήσυχο: η γραμμή και οι κύκλοι κάνουν όλη τη δουλειά.',
     C: '<b>Γ. Γαλάζιο εισιτήριο.</b> Πολύ ανοιχτό γαλάζιο στη θέση του μπεζ, με τις δύο τρύπες στα πλάγια για να θυμίζει εισιτήριο.',
     D: '<b>Δ. Διαδρομή που «προχωράει».</b> Χωρίς κάρτα, όπως το Β, αλλά η γραμμή είναι γεμάτη από το 1 στο 2 και διακεκομμένη μετά. Λέει «ξεκινάτε εδώ».',
-    E: '<b>Ε. Δ με κίνηση.</b> Όλες οι γραμμές ξεκινούν διακεκομμένες. Γεμίζει το 1, η γραμμή ως το 2 γίνεται σιγά σιγά γεμάτη και πιο χοντρή, γεμίζει το 2, το ίδιο ως το 3, και τελειώνει με το ✓. Στο live θα παίζει όταν η ενότητα έρχεται στην οθόνη, μία φορά.'
+    E: '<b>Ε. Δ με κίνηση.</b> Όλες οι γραμμές ξεκινούν διακεκομμένες. Οι αριθμοί και το ✓ φαίνονται από την αρχή. Η γραμμή γεμίζει αργά από το 1 στο 2 και από το 2 στο 3, γίνεται πιο χοντρή, και κάθε κύκλος γεμίζει μπλε μόλις φτάσει εκεί. Στο live θα παίζει όταν η ενότητα έρχεται στην οθόνη, μία φορά.'
   };
   var sec = document.getElementById('sec'), device = document.getElementById('device');
   function press(sel, b) { document.querySelectorAll(sel).forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); }); }
