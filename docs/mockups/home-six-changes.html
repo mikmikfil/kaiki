@@ -1,92 +1,16 @@
-{{--
-    The hosted page shell (spec HOS-1, HOS-4, HOS-5, HOS-8, HOS-9, HOS-10).
-
-    ## No script tag, anywhere in this file
-
-    HOS-4: everything renders server-side. The widget arrives in M3's later
-    issues and mounts into one named region; until then, and whenever a visitor
-    blocks scripts, the page is complete without it.
-
-    ## The brand block carries a nonce
-
-    HOS-8's policy has no `unsafe-inline`, so the operator's colours reach the
-    page through a `<style>` element with the per-response nonce the middleware
-    minted. That is the whole reason the nonce exists, and why it is on the
-    request rather than generated here — two generators would disagree.
-
-    ## No `text-transform: uppercase`
-
-    I18N-2. Greek capitals drop their accents and browsers disagree about the
-    final sigma. Small labels use letter-spacing and weight in normal case.
-
-    ## Light only
-
-    Settled on 4 September: guest-facing surfaces are light, and light/dark is a
-    dashboard concern. So there is no `prefers-color-scheme` block here — the
-    colours are the operator's, and they chose them against white.
---}}
-@php
-    /** @var \App\Models\Tenant $tenant */
-    /** @var array<string, mixed> $brand */
-    $colors = $brand['colors'] ?? [];
-    $primary = $colors['primary'] ?? '#123A5E';
-    $accent = $colors['accent'] ?? '#B5511F';
-    $text = $colors['text'] ?? '#131A22';
-    // The other two of WGT-9's five. The page had no use for them itself —
-    // its own surfaces are `--surface` and `--paper` — so it never printed
-    // them, and that was harmless until `data-branding="inherit"` made the
-    // widget read its colours from here instead of fetching them. Missing,
-    // `--kaiki-background` left every surface inside the widget transparent.
-    $secondary = $colors['secondary'] ?? $primary;
-    $background = $colors['background'] ?? '#FFFFFF';
-    $radius = $brand['button_radius_px'] ?? 10;
-    $fontCss = $brand['font']['css_url'] ?? null;
-    $fontFamily = $brand['font']['family'] ?? 'Inter';
-    $logo = $brand['logo']['light_url'] ?? null;
-@endphp
-<!doctype html>
-<html lang="{{ $locale }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    {{-- The operator's own icon from «Εμφάνιση», else Kaiki's. The page had
-         none, so browsers showed whatever `/favicon.ico` held (2026-09-17). --}}
-    <link rel="icon" href="{{ $brand['logo']['favicon_url'] ?? null ?: asset('favicon.svg') }}">
-
-    <title>@yield('title', $tenant->name)</title>
-    <meta name="description" content="@yield('description', $tenant->name)">
-
-    {{-- HOS-5: one canonical per locale, and each alternate points at the other.
-
-         The current URL is the right canonical for every page whose only
-         address is the one being read. The product page overrides it, because
-         `PublicProductQuery::find()` also answers a uuid — two URLs for one
-         page, which is the duplicate-content problem this tag exists for. --}}
-    <link rel="canonical" href="@yield('canonical', $alternates[$locale])">
-    @foreach ($alternates as $alternate => $url)
-        <link rel="alternate" hreflang="{{ $alternate }}" href="{{ $url }}">
-    @endforeach
-    <link rel="alternate" hreflang="x-default" href="{{ $alternates['en'] }}">
-
-    {{-- WGT-10's rule, applied to the page: a third-party request only when the
-         operator actually chose a font. The CSP omits the host otherwise, so an
-         accidental link here would be blocked rather than silently allowed. --}}
-    @if ($fontCss)
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="{{ $fontCss }}">
-    @endif
-
-    <style nonce="{{ $nonce }}">
+<title>Αρχική με έξι αλλαγές</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
         :root {
-            --kaiki-primary: {{ $primary }};
-            --kaiki-secondary: {{ $secondary }};
-            --kaiki-accent: {{ $accent }};
-            --kaiki-background: {{ $background }};
-            --kaiki-text: {{ $text }};
-            --kaiki-radius: {{ $radius }}px;
-            --kaiki-font: {{ $fontFamily }}, Inter, "Helvetica Neue", Arial, sans-serif;
+            --kaiki-primary: #123A5E;
+            --kaiki-secondary: #0B2740;
+            --kaiki-accent: #1F8BD8;
+            --kaiki-background: #FFFFFF;
+            --kaiki-text: #131A22;
+            --kaiki-radius: 8px;
+            --kaiki-font: Inter, Inter, "Helvetica Neue", Arial, sans-serif;
 
             --paper: #F7F9F8;
             --surface: #FFFFFF;
@@ -2939,11 +2863,9 @@
             transition: background-color .15s ease, border-color .15s ease;
         }
         .block.contact .contact-list li:hover { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .24); }
-        /* Line icons, no tile (2026-09-24), the same drawing as the reasons
-           band's so the two panels read as one family. */
         .block.contact .contact-list .icon {
-            inline-size: 1.6rem; block-size: 1.6rem; margin: 0 0 .85rem;
-            color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff);
+            box-sizing: content-box; inline-size: 1.2rem; block-size: 1.2rem; padding: .65rem; margin: 0 0 .9rem;
+            border-radius: 12px; color: #fff; background: rgba(255, 255, 255, .1);
         }
         .block.contact .contact-label { grid-column: 1; font-size: .8rem; font-weight: 500; letter-spacing: .02em; color: rgba(255, 255, 255, .62); }
         .block.contact .contact-list li > a,
@@ -3018,16 +2940,16 @@
 
         .features { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
         .feature { padding: 1.75rem; border-radius: 16px; background: #fff; border: 1px solid var(--line); }
-        /* The icon on its own, no tile behind it (Mike, 2026-09-24): the card
-           is already the box, and a box in a box was one frame too many. */
         .feature-icon {
-            display: block; margin-bottom: 1rem; color: var(--kaiki-primary);
+            display: grid; place-items: center; inline-size: 3rem; block-size: 3rem; margin-bottom: 1.1rem;
+            border-radius: 13px; background: var(--mist); color: var(--kaiki-primary);
         }
-        .feature-icon .icon { inline-size: 1.9rem; block-size: 1.9rem; display: block; }
+        .feature-icon .icon { inline-size: 1.5rem; block-size: 1.5rem; }
+        .band-mist .feature-icon { background: var(--sand); }
         .band-dark .feature { background: rgba(255, 255, 255, .05); border-color: rgba(255, 255, 255, .1); }
         .band-dark .feature h3 { color: #fff; }
         .band-dark .feature p { color: rgba(255, 255, 255, .7); }
-        .band-dark .feature-icon { color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+        .band-dark .feature-icon { background: rgba(255, 255, 255, .08); color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
 
         /* --- reviews ------------------------------------------------------ */
 
@@ -3293,128 +3215,164 @@
         .meeting-hint p { margin: 0; }
         .meeting-cta { margin: 0 !important; }
     </style>
+<style>
+/* ===== the mockup's own bar ===== */
+.mk-bar{position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;padding:10px 16px;background:#0F1B2D;color:#C9D4E3;font:500 13px/1.4 Inter,system-ui,sans-serif}
+.mk-bar b{color:#fff;font-weight:700}
+.mk-seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:#1C2B42;border-radius:9px;padding:3px}
+.mk-seg button{font:600 13px Inter,system-ui,sans-serif;color:#C9D4E3;background:none;border:0;border-radius:7px;padding:6px 11px;cursor:pointer}
+.mk-seg button[aria-pressed="true"]{background:#fff;color:#0F1B2D}
+.mk-grp{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+#mk:not(.m-new) .mk-only-new{display:none}
+.new-t{display:none}
+#mk.m-new .now-t{display:none}
+#mk.m-new .new-t{display:inline-flex;align-items:center;gap:.45rem}
+.hdr-right{display:contents}
 
-    {{-- The booking bundle, fetched from the first byte of the page.
+/* ===== 6. header, as in the reference ===== */
+/* As wide as the hero under it: its edges line up with the photograph's. */
+#mk.m-new header.site .wrap{max-width:1500px;padding-inline:clamp(1rem,1.6vw,1.5rem);box-sizing:content-box}
+#mk.m-new header.site .brand{flex:1 1 0;min-width:0}
+#mk.m-new header.site .site-nav{margin:0 auto;gap:1.9rem;font-size:.95rem;font-weight:500}
+#mk.m-new header.site .site-nav a{color:var(--kaiki-text)}
+#mk.m-new .hdr-right{display:flex;align-items:center;justify-content:flex-end;gap:1.1rem;flex:1 1 0}
+#mk.m-new .header-phone{display:none}
+#mk.m-new .langs{order:-1;gap:0;font-weight:600}
+#mk.m-new .langs a{border:0;padding:.2rem .5rem;background:none!important;color:var(--ink-faint)}
+#mk.m-new .langs a[aria-current="true"]{color:var(--kaiki-primary)}
+#mk.m-new .langs a + a{border-left:1px solid var(--rule);border-radius:0}
+#mk.m-new .header-book{border-radius:10px;padding-inline:1.2rem}
+@media (max-width:40rem){#mk.m-new .hdr-right{flex:none}}
 
-         The `<script defer>` that loads it sits inside the booking card, which
-         is most of a trip page below the top of the document — and `defer`
-         starts the download when the *parser reaches the tag*, not when the
-         page starts. So on a phone the bundle queued behind the whole
-         itinerary, the FAQ and every photograph, and the real booking bar could
-         not exist until all of that had been read off the wire.
+/* ===== 1. hero: inset, rounded, not the full width ===== */
+/* Wide (Mike, 24/9: «πολύ πιο wide»): the whole screen less a small gutter,
+   up to 1500px (Mike, 24/9), so the rounded corners still show. --bleed is how far past the
+   page column it reaches, and the content inside is pushed back by the same
+   amount, so it still lines up with the column. */
+#mk.m-new main .wrap > :is(.hero,.band,.cta-band,.hero-search){--gutter:clamp(10px,1.2vw,20px);--bleed:max(0px,min(calc(50vw - 50% - var(--gutter)),calc(750px - 50%)))}
+#mk.m-new .hero{margin-inline:calc(-1 * var(--bleed));margin-top:clamp(.4rem,1vw,.8rem);border-radius:clamp(20px,2.2vw,34px);overflow:hidden}
+#mk.m-new .hero.has-image{min-height:min(78vh,40rem)}
 
-         A preload in the head starts the same request immediately and hands the
-         finished script to the tag below, which executes it in exactly the same
-         place and order. Nothing about the page's behaviour changes; only when
-         the bytes arrive does.
+/* ===== 2. search: three places ===== */
+/* Β is today's: inside the photograph, on the right. */
+/* Α: a white bar overlapping the bottom of the photograph */
+/* Wide too (24/9): the photograph's width less a small inset each side. */
+#mk.m-new[data-search="below"] .hero-search.moved{position:relative;z-index:5;margin-block:calc(-1 * var(--section-gap) - 3.4rem) 0;margin-inline:calc(-1 * var(--bleed) + clamp(1rem,4vw,4rem));width:auto;max-width:none;padding:.6rem;border-radius:18px}
+#mk.m-new[data-search="below"] .hero-search.moved .hero-search-title{display:none}
+#mk.m-new[data-search="below"] .hero-search.moved .search-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto!important;gap:0;align-items:stretch}
+#mk.m-new[data-search="below"] .hero-search.moved .search-form > *{grid-column:auto!important}
+#mk.m-new[data-search="below"] .hero-search.moved .field{padding:.55rem .9rem;border-left:1px solid var(--rule)}
+#mk.m-new[data-search="below"] .hero-search.moved .field:first-child{border-left:0}
+#mk.m-new[data-search="below"] .hero-search.moved .field input,
+#mk.m-new[data-search="below"] .hero-search.moved .field select{border:0;padding-inline:0;background:transparent;box-shadow:none;min-block-size:2rem}
+#mk.m-new[data-search="below"] .hero-search.moved .search-form > :last-child{display:flex;align-items:center;padding-left:.6rem}
+#mk.m-new[data-search="below"] .hero-search.moved button{height:100%;min-block-size:3.4rem;padding-inline:2.4rem;border-radius:12px}
+#mk.m-new[data-search="below"] .hero-search.moved .field{padding:.7rem 1.2rem}
+#mk.m-new[data-search="below"] .hero-inner{grid-template-columns:minmax(0,1fr)}
+#mk.m-new[data-search="below"] .hero.has-image .hero-inner{padding-block-end:clamp(5rem,8vw,6.5rem)}
+@media (max-width:62rem){
+  #mk.m-new[data-search="below"] .hero-search.moved .search-form{grid-template-columns:1fr 1fr!important}
+  #mk.m-new[data-search="below"] .hero-search.moved .field:nth-child(odd){border-left:0}
+  #mk.m-new[data-search="below"] .hero-search.moved .field:nth-child(n+3){border-top:1px solid var(--rule)}
+  #mk.m-new[data-search="below"] .hero-search.moved .search-form > :last-child{grid-column:1/-1!important;padding:.6rem 0 0}
+  #mk.m-new[data-search="below"] .hero-search.moved button{width:100%}
+}
+/* Γ: no form; the hero's own buttons carry it */
+#mk.m-new[data-search="none"] .hero-search{display:none}
+#mk.m-new[data-search="none"] .hero-inner{grid-template-columns:minmax(0,1fr)}
 
-         `@stack` because only the trip page has a widget: preloading a bundle
-         the page never runs is a wasted request charged to somebody's data. --}}
-    @stack('head')
-</head>
-<body>
+/* ===== 3. trip cards: the facts on one line ===== */
+#mk.m-new li.trip .facts{display:flex;flex-wrap:nowrap;gap:1rem;white-space:nowrap;overflow:hidden}
+#mk.m-new li.trip .facts span:last-child{overflow:hidden;text-overflow:ellipsis;display:inline-block}
+#mk.m-new li.trip .facts span:last-child .icon{vertical-align:-.15em;margin-right:.4rem}
 
-@php
-    /*
-     * Does this operator have a home page for a link to go to?
-     *
-     * ADR-0029: a «bookings only» operator serves trip pages, the search page,
-     * the contact page and the legal pages — and `/{operator}` 404s. The header
-     * hung the logo on that URL regardless, so the one thing every visitor
-     * presses to «go back to the start» led to a not-found page on every
-     * booking-only site (Mike, 2026-09-22).
-     *
-     * Read from the tenant on every render rather than baked in anywhere, which
-     * is what makes it follow the switch in both directions: an operator
-     * promoted to the full site gets the home link on their next page view, and
-     * one moved back to booking pages loses it just as fast. Nothing is cached
-     * per mode; there is nothing to invalidate.
-     */
-    $servesHome = \App\Domain\Hosted\Support\HostedUrl::homeEnabledFor($tenant);
+/* ===== 4. «Από την κράτηση στο κατάστρωμα»: steps joined by a line ===== */
+#mk.m-new .steps-block{background:transparent;padding-block:clamp(1rem,3vw,2rem)}
+#mk.m-new .steps-block .section-head{margin-bottom:2rem}
+#mk.m-new .steps-block .eyebrow-line{display:none}
+#mk.m-new .steps{gap:1.5rem}
+#mk.m-new .step{background:none;box-shadow:none;padding:0;display:grid;grid-template-columns:3.25rem minmax(0,1fr);column-gap:1rem;align-items:start;position:relative}
+#mk.m-new .step-number{grid-row:span 2;inline-size:3.25rem;block-size:3.25rem;margin:0;background:color-mix(in srgb,var(--kaiki-accent) 12%,#fff);color:var(--kaiki-accent);font-size:1.05rem;font-weight:800;position:relative;z-index:1}
+#mk.m-new .step h3{margin:.35rem 0 .2rem}
+@media (min-width:48rem){
+  #mk.m-new .step:not(:last-child)::after{content:"";position:absolute;top:1.62rem;left:4rem;right:-1.5rem;height:2px;background:linear-gradient(90deg,color-mix(in srgb,var(--kaiki-accent) 20%,#fff),var(--line));z-index:0}
+  #mk.m-new .step h3,#mk.m-new .step p{position:relative;z-index:1;background:#fff;padding-right:.75rem;width:fit-content}
+}
 
-    // Where «the start of this site» is. The search page is the honest answer
-    // for an operator with no home page: it is the list of everything they
-    // sell, which is what a visitor pressing a logo is looking for.
-    $siteStart = $servesHome
-        ? route('hosted.index', ['operator' => $tenant->slug, 'lang' => $locale])
-        : route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]);
+/* ===== 5. the bands: inside the page's width, rounded ===== */
+#mk.m-new main .band,#mk.m-new main .cta-band{margin-inline:calc(-1 * var(--bleed));padding-inline:max(var(--bleed),1.5rem);border-radius:clamp(20px,2.2vw,34px);overflow:hidden}
+#mk.m-new main .band + .band,#mk.m-new main .band + .cta-band,#mk.m-new main .cta-band + .band{margin-block-start:0}
+#mk.m-new main:has(.wrap > .band:last-child){padding-block-end:4.5rem}
 
-    // The routes above rather than `HostedUrl::siteStart()` on purpose: these
-    // are links inside the page, and on a custom domain (HOS-3) the route
-    // helper keeps the visitor on the host they are already on, while
-    // `HostedUrl` always builds the platform's own. The decision — which of
-    // the two pages is the start — is the same one, and it is `$servesHome`.
-@endphp
+/* ===== 24/9: icons without their inner boxes, inside boxes ===== */
+#mk.m-new .feature-icon{background:none!important;inline-size:auto;block-size:auto;place-items:start;border-radius:0}
+#mk.m-new .feature-icon .icon{inline-size:1.9rem;block-size:1.9rem}
+#mk.m-new .block.contact .contact-list .icon{background:none;padding:0;border-radius:0;inline-size:1.5rem;block-size:1.5rem}
+</style>
+
+<div class="mk-bar">
+  <span><b>Αρχική σελίδα</b> · η σημερινή, με μόνο τις 6 αλλαγές σου</span>
+  <div class="mk-grp">
+    <div class="mk-seg" role="group" aria-label="Έκδοση">
+      <button type="button" id="mk-now" aria-pressed="false" data-mode="now">Όπως σήμερα</button>
+      <button type="button" id="mk-new" aria-pressed="true" data-mode="new">Με τις 6 αλλαγές</button>
+    </div>
+    <span class="mk-only-new">Αναζήτηση:</span>
+    <div class="mk-seg mk-only-new" role="group" aria-label="Θέση αναζήτησης">
+      <button type="button" id="mk-sa" aria-pressed="true" data-search="below">Α. Κάτω από τη φωτογραφία</button>
+      <button type="button" id="mk-sb" aria-pressed="false" data-search="inside">Β. Μέσα, δεξιά (σήμερα)</button>
+      <button type="button" id="mk-sc" aria-pressed="false" data-search="none">Γ. Χωρίς φόρμα</button>
+    </div>
+  </div>
+</div>
+<div id="mk" class="m-new" data-search="below">
+
 
 <header class="site">
     <div class="wrap">
-        {{-- The operator's logo, or — for the operator who has not uploaded
-             one — a mark in their own colours beside their name and the town
-             they sail from, the masthead of their WordPress site (2026-09-16).
-             The mark is drawing and hidden; the name is the link text. --}}
-        <a class="brand" href="{{ $siteStart }}">
-            @if ($logo)
-                <img src="{{ $logo }}" alt="{{ $tenant->name }}">
-            @else
-                <span class="brand-mark" aria-hidden="true">@include('hosted.partials.icon', ['name' => 'boat'])</span>
+        
+        <a class="brand" href="#">
+                            <span class="brand-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.6 15.4h16.8l-2 3.7a2 2 0 0 1-1.7 1H7.3a2 2 0 0 1-1.8-1l-1.9-3.7Z"/><path d="M12 15.4V3.3"/><path d="M13.4 4.4 19 13.2h-5.6"/></svg>
+    </span>
                 <span class="brand-text">
-                    <span class="name">{{ $tenant->name }}</span>
-                    @if ($tenant->city)
-                        <span class="brand-tag">{{ $tenant->city }}</span>
-                    @endif
-                </span>
-            @endif
-        </a>
+                    <span class="name">Aegean Blue Cruises</span>
+                                            <span class="brand-tag">Πειραιάς</span>
+                                    </span>
+                    </a>
 
-        {{-- The search of #105 and the contact page, reachable from every hosted
-             page. A feature a guest cannot find is a feature the operator paid
-             for and nobody uses — and "how do I reach a person" is the question
-             a visitor asks on whichever page they happen to be standing on. --}}
+        
         <nav class="site-nav">
-            @include('hosted.partials.nav-links')
-        </nav>
+            <a href="#">Βρείτε εκδρομή</a>
 
-        {{-- A telephone number a guest can tap, and the one button the header
-             exists for. Both leave the row on a narrow screen and reappear in
-             the burger's panel. --}}
-        @if ($tenant->phone)
-            <a class="header-phone" href="tel:{{ $tenant->phone }}" aria-label="{{ __('hosted.nav.call', ['phone' => $tenant->phone]) }}">
-                @include('hosted.partials.icon', ['name' => 'phone']){{ $tenant->phone }}
+    <a href="#" >Σχετικά με εμάς</a>
+<a href="#">Επικοινωνία</a>
+        </nav>
+        <div class="hdr-right">
+
+        
+                    <a class="header-phone" href="#" aria-label="Τηλέφωνο: +30 210 4123456">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8.4 4.2 10 7.4a1.4 1.4 0 0 1-.3 1.6l-1.1 1a12.6 12.6 0 0 0 4.4 4.4l1-1.1a1.4 1.4 0 0 1 1.6-.3l3.2 1.6a1.4 1.4 0 0 1 .7 1.6 3.9 3.9 0 0 1-4.2 2.9A14.6 14.6 0 0 1 4.1 6.4 3.9 3.9 0 0 1 7 2.2a1.4 1.4 0 0 1 1.4.7Z"/></svg>
+    +30 210 4123456
             </a>
-        @endif
+        
+        <a class="button button-accent header-book" href="#"><span class="now-t">Κλείστε θέση</span><span class="new-t">Κράτηση <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
 
-        <a class="button button-accent header-book" href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.nav.book') }}</a>
+        <nav class="langs" aria-label="Γλώσσα">
+                            <a href="#"
+                   hreflang="el"
+                    aria-current="true" >ΕΛ</a>
+                            <a href="#"
+                   hreflang="en"
+                   >EN</a>
+                    </nav>
+        </div>
 
-        <nav class="langs" aria-label="{{ __('hosted.nav.language') }}">
-            @foreach (['el' => 'ΕΛ', 'en' => 'EN'] as $code => $label)
-                <a href="{{ $alternates[$code] }}"
-                   hreflang="{{ $code }}"
-                   @if ($code === $locale) aria-current="true" @endif>{{ $label }}</a>
-            @endforeach
-        </nav>
-
-        {{-- The same links behind a burger, on a phone only.
-
-             ## Why `<details>` and not a button
-
-             The hosted pages run with no JavaScript at all (HOS-2), so the
-             toggle has to be markup. `<details>` is the only element that opens
-             and closes on its own: it is focusable, it answers the space bar and
-             the enter key, it reports itself as expanded or collapsed to a
-             screen reader, and none of that is code anybody here has to keep
-             working.
-
-             The alternative — a hidden checkbox with a `<label>` — needs three
-             extra elements and an `aria-expanded` that nothing updates, which is
-             a burger that lies to the people who most need it to be honest.
-
-             It comes last in the row and last in the markup, so a tab key
-             visits the header in the order a thumb crosses it. --}}
+        
         <details class="menu">
-            <summary aria-label="{{ __('hosted.nav.menu') }}" title="{{ __('hosted.nav.menu') }}">
-                {{-- Two states in one drawing: three bars, and the cross they
-                     become when the panel is open. CSS swaps them, so the icon
-                     needs no script either. --}}
+            <summary aria-label="Μενού" title="Μενού">
+                
                 <svg class="icon burger" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false">
                     <line class="bar top" x1="3" y1="6" x2="21" y2="6"/>
@@ -3423,12 +3381,15 @@
                 </svg>
             </summary>
 
-            <nav class="menu-panel" aria-label="{{ __('hosted.nav.menu') }}">
-                @include('hosted.partials.nav-links')
-                @if ($tenant->phone)
-                    <a class="menu-phone" href="tel:{{ $tenant->phone }}">@include('hosted.partials.icon', ['name' => 'phone']){{ $tenant->phone }}</a>
-                @endif
-                <a class="button button-accent menu-book" href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.nav.book') }}</a>
+            <nav class="menu-panel" aria-label="Μενού">
+                <a href="#">Βρείτε εκδρομή</a>
+
+    <a href="#" >Σχετικά με εμάς</a>
+<a href="#">Επικοινωνία</a>
+                                    <a class="menu-phone" href="#"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8.4 4.2 10 7.4a1.4 1.4 0 0 1-.3 1.6l-1.1 1a12.6 12.6 0 0 0 4.4 4.4l1-1.1a1.4 1.4 0 0 1 1.6-.3l3.2 1.6a1.4 1.4 0 0 1 .7 1.6 3.9 3.9 0 0 1-4.2 2.9A14.6 14.6 0 0 1 4.1 6.4 3.9 3.9 0 0 1 7 2.2a1.4 1.4 0 0 1 1.4.7Z"/></svg>
+    +30 210 4123456</a>
+                                <a class="button button-accent menu-book" href="#">Κλείστε θέση</a>
             </nav>
         </details>
 
@@ -3437,117 +3398,940 @@
 
 <main>
     <div class="wrap">
-        @yield('content')
+            
+    <section class="block hero  has-image  ">
+                        <img class="hero-image" data-now="home2-img/demo-hero.jpg" data-new="home2-img/hero-new.jpg"
+                 src="home2-img/demo-hero.jpg"
+                 alt=""
+                 
+                 loading="eager">
+        
+            
+    
+    <div class="hero-inner">
+        
+        <div class="hero-copy">
+                            <p class="eyebrow-line">Εκδρομές με σκάφος από τον Πειραιά</p>
+            
+                            <h1>Το Αιγαίο, μια μέρα τη φορά</h1>
+            
+                            <div class="standfirst"><p>Μικρές παρέες, έμπειροι καπετάνιοι και θάλασσα που τη γνωρίζουμε από παιδιά.</p></div>
+            
+                            <p class="cta">
+                                            <a class="button button-accent" href="#">Δείτε τις εκδρομές</a>
+                                            <a class="button button-glass" href="#">Ιδιωτική ναύλωση</a>
+                                    </p>
+            
+                            <ul class="hero-badges">
+                                            <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m12 3.6 2.5 5.2 5.7.8-4.1 4 1 5.7L12 16.6l-5.1 2.7 1-5.7-4.1-4 5.7-.8L12 3.6Z"/></svg>
+    4,9 / 5 από 1.200+ κριτικές</li>
+                                            <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4 7 7M17 17l1.6 1.6M5.4 18.6 7 17M17 7l1.6-1.6"/></svg>
+    Εγγύηση καιρού</li>
+                                            <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20 6.4 9.2 17.6 4 12.4"/></svg>
+    Άμεση επιβεβαίωση</li>
+                                    </ul>
+            
+        </div>
+
+        
+        
+                    <div class="hero-search">
+                <h2 class="hero-search-title">Βρείτε την εκδρομή σας</h2>
+                <form class="search-form" method="get"  action="#" >
+    <div class="field">
+        <label for="hero-date"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="3.2" y="5" width="17.6" height="15.8" rx="2.6"/><path d="M16 3.2v3.6M8 3.2v3.6M3.2 10.6h17.6"/></svg>
+    Ημερομηνία</label>
+        <input type="date" id="hero-date" name="date" value="2026-09-24">
+    </div>
+
+    <div class="field">
+        <label for="hero-pax"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9.4" cy="8.2" r="3.5"/><path d="M3.2 20a6.2 6.2 0 0 1 12.4 0"/><path d="M16.6 5.1a3.3 3.3 0 0 1 0 6.2"/><path d="M18 14.6a5.4 5.4 0 0 1 3 4.9"/></svg>
+    Πόσα άτομα</label>
+        <input type="number" id="hero-pax" name="pax" min="1" max="500" value="2">
+    </div>
+
+            <div class="field">
+            <label for="hero-port"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+    Αναχώρηση από</label>
+            <select id="hero-port" name="port">
+                <option value="">Όλα</option>
+                                    <option value="bd654f81-55c7-4b0d-93ed-80589542b24f" >Μαρίνα Ζέας</option>
+                                    <option value="0131aaa9-9f6d-41e3-be58-ac68ebc421f2" >Παλιό Λιμάνι Αίγινας</option>
+                            </select>
+        </div>
+    
+            <div class="field">
+            <label for="hero-type"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M11.4 3.6H19a1.4 1.4 0 0 1 1.4 1.4v7.6a1.4 1.4 0 0 1-.4 1l-7.4 7.4a1.4 1.4 0 0 1-2 0l-7.6-7.6a1.4 1.4 0 0 1 0-2l7.4-7.4a1.4 1.4 0 0 1 1-.4Z"/><circle cx="16" cy="8" r="1.5"/></svg>
+    Είδος εκδρομής</label>
+            <select id="hero-type" name="type">
+                <option value="">Όλα</option>
+                                    <option value="shared_full_day" >Ημερήσια κοινή εκδρομή</option>
+                                    <option value="shared_half_day" >Ημιήμερη κοινή εκδρομή</option>
+                                    <option value="private_full_day" >Ημερήσια ιδιωτική ναύλωση</option>
+                                    <option value="private_half_day" >Ημιήμερη ιδιωτική ναύλωση</option>
+                                    <option value="sunset" >Ηλιοβασίλεμα</option>
+                                    <option value="custom" >Άλλο</option>
+                            </select>
+        </div>
+    
+    
+    
+    
+    
+    <input type="hidden" name="lang" value="el">
+
+    <div class="field submit">
+        <button type="submit" class="button"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="10.8" cy="10.8" r="7"/><path d="m20.2 20.2-4.4-4.4"/></svg>
+    Αναζήτηση</button>
+    </div>
+</form>
+            </div>
+            </div>
+</section>
+    <section class="block trips-block"  id="trips" >
+    
+    
+            <div class="block-head">
+            <div>
+                                    <p class="eyebrow-line">Εκδρομές</p>
+                                <h2>Διαλέξτε τη δική σας μέρα στη θάλασσα</h2>
+            </div>
+            <a class="see-all" href="#">Δείτε όλες τις εκδρομές</a>
+        </div>
+    
+            
+        
+                    <div class="trips-rail-frame">
+            <ul class="trips trips-rail"
+                tabindex="0"
+                aria-label="Διαλέξτε τη δική σας μέρα στη θάλασσα">
+                                    <li class="trip">
+    
+    <a class="trip-image "
+       href="#"
+       aria-hidden="true"
+       tabindex="-1">
+                    <img src="home2-img/proino-kolymvitiko.jpg" alt="" loading="lazy">
+            </a>
+
+    
+            <p class="trip-badge">Δημοφιλές</p>
+    
+    <div class="trip-body">
+        
+        <h3><a href="#">Πρωινό κολυμβητικό</a></h3>
+
+                    <p class="summary">Τρεις όρμοι πριν ζεστάνει η μέρα.</p>
+        
+        
+        <p class="facts">
+            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.6"/><path d="M12 6.9v5.4l3.6 2.1"/></svg>
+    4 ώρες</span>
+                            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+    Μαρίνα Ζέας · Οδυσσέας</span>
+            
+            
+                    </p>
+
+        
+        <div class="trip-foot">
+                                                <p class="trip-price">
+                        <span class="from">από</span>
+                        <strong>50,00 €</strong>
+                    </p>
+                            
+            <a class="button button-small arrow" href="#">Δείτε την εκδρομή</a>
+        </div>
+    </div>
+</li>
+                                    <li class="trip">
+    
+    <a class="trip-image "
+       href="#"
+       aria-hidden="true"
+       tabindex="-1">
+                    <img src="home2-img/romantiko-dilino.jpg" alt="" loading="lazy">
+            </a>
+
+    
+            <p class="trip-badge">Για δύο</p>
+    
+    <div class="trip-body">
+        
+        <h3><a href="#">Ρομαντικό δείπνο εν πλω</a></h3>
+
+                    <p class="summary">Δύο άτομα, ένα τραπέζι στην πλώρη.</p>
+        
+        
+        <p class="facts">
+            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.6"/><path d="M12 6.9v5.4l3.6 2.1"/></svg>
+    3 ώρες 30 λεπτά</span>
+                            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+    Μαρίνα Ζέας · Ποσειδώνας</span>
+            
+            
+                    </p>
+
+        
+        <div class="trip-foot">
+                                                <p class="trip-price">
+                        <span class="from">από</span>
+                        <strong>50,00 €</strong>
+                    </p>
+                            
+            <a class="button button-small arrow" href="#">Δείτε την εκδρομή</a>
+        </div>
+    </div>
+</li>
+                                    <li class="trip">
+    
+    <a class="trip-image "
+       href="#"
+       aria-hidden="true"
+       tabindex="-1">
+                    <img src="home2-img/idiotiki-imera-skafos.jpg" alt="" loading="lazy">
+            </a>
+
+    
+    
+    <div class="trip-body">
+        
+        <h3><a href="#">Ιδιωτική ημέρα με σκάφος</a></h3>
+
+                    <p class="summary">Το σκάφος δικό σας, η διαδρομή δική σας.</p>
+        
+        
+        <p class="facts">
+            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.6"/><path d="M12 6.9v5.4l3.6 2.1"/></svg>
+    8 ώρες</span>
+                            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+    Μαρίνα Ζέας · Αμφιτρίτη</span>
+            
+            
+                    </p>
+
+        
+        <div class="trip-foot">
+                                                
+                    <p class="trip-price"><span class="on-request">Τιμή κατόπιν ζήτησης</span></p>
+                            
+            <a class="button button-small arrow" href="#">Δείτε την εκδρομή</a>
+        </div>
+    </div>
+</li>
+                            </ul>
+            </div>
+        
+                    
+            
+                            <h3 class="trips-more">Όλες οι εκδρομές</h3>
+            
+            <ul class="trips">
+                                    <li class="trip">
+    
+    <a class="trip-image "
+       href="#"
+       aria-hidden="true"
+       tabindex="-1">
+                    <img src="home2-img/iliovasilema-aigina.jpg" alt="" loading="lazy">
+            </a>
+
+    
+            <p class="trip-badge">Ρομαντικό</p>
+    
+    <div class="trip-body">
+        
+        <h3><a href="#">Ηλιοβασίλεμα στην Αίγινα</a></h3>
+
+                    <p class="summary">Τρίωρη κρουαζιέρα με παραδοσιακό καΐκι.</p>
+        
+        
+        <p class="facts">
+            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.6"/><path d="M12 6.9v5.4l3.6 2.1"/></svg>
+    3 ώρες</span>
+                            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+    Μαρίνα Ζέας · Οδυσσέας</span>
+            
+            
+                    </p>
+
+        
+        <div class="trip-foot">
+                                                <p class="trip-price">
+                        <span class="from">από</span>
+                        <strong>50,00 €</strong>
+                    </p>
+                            
+            <a class="button button-small arrow" href="#">Δείτε την εκδρομή</a>
+        </div>
+    </div>
+</li>
+                                    <li class="trip">
+    
+    <a class="trip-image "
+       href="#"
+       aria-hidden="true"
+       tabindex="-1">
+                    <img src="home2-img/idiotiki-naulosi-imeras.jpg" alt="" loading="lazy">
+            </a>
+
+    
+    
+    <div class="trip-body">
+        
+        <h3><a href="#">Ιδιωτική ναύλωση ημέρας</a></h3>
+
+                    <p class="summary">Ολόκληρο το σκάφος, δικό σας για μια μέρα.</p>
+        
+        
+        <p class="facts">
+            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.6"/><path d="M12 6.9v5.4l3.6 2.1"/></svg>
+    8 ώρες</span>
+                            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+    Μαρίνα Ζέας · Ποσειδών</span>
+            
+            
+                    </p>
+
+        
+        <div class="trip-foot">
+                                                <p class="trip-price">
+                        <span class="from">από</span>
+                        <strong>50,00 €</strong>
+                    </p>
+                            
+            <a class="button button-small arrow" href="#">Δείτε την εκδρομή</a>
+        </div>
+    </div>
+</li>
+                                    <li class="trip">
+    
+    <a class="trip-image "
+       href="#"
+       aria-hidden="true"
+       tabindex="-1">
+                    <img src="home2-img/apogevmatino-psarema.jpg" alt="" loading="lazy">
+            </a>
+
+    
+    
+    <div class="trip-body">
+        
+        <h3><a href="#">Απογευματινό ψάρεμα</a></h3>
+
+                    <p class="summary">Με τον καπετάνιο και τα σύνεργά του.</p>
+        
+        
+        <p class="facts">
+            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.6"/><path d="M12 6.9v5.4l3.6 2.1"/></svg>
+    5 ώρες</span>
+                            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+    Μαρίνα Ζέας · Γαλήνη</span>
+            
+            
+                    </p>
+
+        
+        <div class="trip-foot">
+                                                <p class="trip-price">
+                        <span class="from">από</span>
+                        <strong>50,00 €</strong>
+                    </p>
+                            
+            <a class="button button-small arrow" href="#">Δείτε την εκδρομή</a>
+        </div>
+    </div>
+</li>
+                                    <li class="trip">
+    
+    <a class="trip-image "
+       href="#"
+       aria-hidden="true"
+       tabindex="-1">
+                    <img src="home2-img/spilies-kai-ormoi.jpg" alt="" loading="lazy">
+            </a>
+
+    
+    
+    <div class="trip-body">
+        
+        <h3><a href="#">Σπηλιές και όρμοι</a></h3>
+
+                    <p class="summary">Με ταχύπλοο εκεί που δεν φτάνουν τα μεγάλα.</p>
+        
+        
+        <p class="facts">
+            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.6"/><path d="M12 6.9v5.4l3.6 2.1"/></svg>
+    3 ώρες</span>
+                            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+    Μαρίνα Ζέας · Θαλασσινός</span>
+            
+            
+                    </p>
+
+        
+        <div class="trip-foot">
+                                                <p class="trip-price">
+                        <span class="from">από</span>
+                        <strong>50,00 €</strong>
+                    </p>
+                            
+            <a class="button button-small arrow" href="#">Δείτε την εκδρομή</a>
+        </div>
+    </div>
+</li>
+                                    <li class="trip">
+    
+    <a class="trip-image "
+       href="#"
+       aria-hidden="true"
+       tabindex="-1">
+                    <img src="home2-img/istioploia-me-pania.jpg" alt="" loading="lazy">
+            </a>
+
+    
+    
+    <div class="trip-body">
+        
+        <h3><a href="#">Ιστιοπλοΐα με πανιά</a></h3>
+
+                    <p class="summary">Χωρίς μηχανή, μόνο αέρας.</p>
+        
+        
+        <p class="facts">
+            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.6"/><path d="M12 6.9v5.4l3.6 2.1"/></svg>
+    7 ώρες</span>
+                            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+    Μαρίνα Ζέας · Ναυσικά</span>
+            
+            
+                    </p>
+
+        
+        <div class="trip-foot">
+                                                <p class="trip-price">
+                        <span class="from">από</span>
+                        <strong>50,00 €</strong>
+                    </p>
+                            
+            <a class="button button-small arrow" href="#">Δείτε την εκδρομή</a>
+        </div>
+    </div>
+</li>
+                                    <li class="trip">
+    
+    <a class="trip-image "
+       href="#"
+       aria-hidden="true"
+       tabindex="-1">
+                    <img src="home2-img/metafora-sto-nisi.jpg" alt="" loading="lazy">
+            </a>
+
+    
+    
+    <div class="trip-body">
+        
+        <h3><a href="#">Μεταφορά στο νησί</a></h3>
+
+                    <p class="summary">Απευθείας, χωρίς στάσεις.</p>
+        
+        
+        <p class="facts">
+            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.6"/><path d="M12 6.9v5.4l3.6 2.1"/></svg>
+    1 ώρα 30 λεπτά</span>
+                            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+    Μαρίνα Ζέας · Αίολος</span>
+            
+            
+                    </p>
+
+        
+        <div class="trip-foot">
+                                                
+                    <p class="trip-price"><span class="on-request">Τιμή κατόπιν ζήτησης</span></p>
+                            
+            <a class="button button-small arrow" href="#">Δείτε την εκδρομή</a>
+        </div>
+    </div>
+</li>
+                                    <li class="trip">
+    
+    <a class="trip-image  is-empty "
+       href="#"
+       aria-hidden="true"
+       tabindex="-1">
+            </a>
+
+    
+    
+    <div class="trip-body">
+        
+        <h3><a href="#">To the Moon and Back</a></h3>
+
+        
+        
+        <p class="facts">
+            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="8.6"/><path d="M12 6.9v5.4l3.6 2.1"/></svg>
+    5 ώρες</span>
+                            <span><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Z"/><circle cx="12" cy="10.6" r="2.3"/></svg>
+    Μαρίνα Αλίμου · Αίολος</span>
+            
+            
+                    </p>
+
+        
+        <div class="trip-foot">
+                                                <p class="trip-price">
+                        <span class="from">από</span>
+                        <strong>20,00 €</strong>
+                    </p>
+                            
+            <a class="button button-small arrow" href="#">Δείτε την εκδρομή</a>
+        </div>
+    </div>
+</li>
+                            </ul>
+
+                        </section>
+    <section class="block band band-sand steps-block">
+        <div class="band-inner">
+            <div class="band-copy">
+                <div class="section-head is-center">
+                    <p class="eyebrow-line">Πώς λειτουργεί</p>
+        
+                    <h2><span class="now-t">Από την οθόνη σας στο κατάστρωμα</span><span class="new-t">Από την κράτηση στο κατάστρωμα</span></h2>
+        
+            </div>
+
+                                    <ol class="steps steps-3">
+                                                    <li class="step">
+                                <span class="step-number" aria-hidden="true">1</span>
+                                <h3>Διαλέξτε εκδρομή</h3>
+                                                                    <p>Δείτε τις ελεύθερες θέσεις κάθε μέρας και την τιμή για την παρέα σας.</p>
+                                                            </li>
+                                                    <li class="step">
+                                <span class="step-number" aria-hidden="true">2</span>
+                                <h3>Πληρώστε online</h3>
+                                                                    <p>Με κάρτα, με ασφάλεια. Το εισιτήριο έρχεται αμέσως στο email σας.</p>
+                                                            </li>
+                                                    <li class="step">
+                                <span class="step-number" aria-hidden="true">3</span>
+                                <h3>Ελάτε στη Μαρίνα Ζέας</h3>
+                                                                    <p>15 λεπτά πριν. Εμείς φέρνουμε τον καφέ, εσείς το μαγιό.</p>
+                                                            </li>
+                                            </ol>
+                            </div>
+
+                    </div>
+    </section>
+    <section class="block story side-left  has-image ">
+    <div class="story-copy">
+                    
+            
+            <p class="eyebrow eyebrow-line" >Ποιοι είμαστε</p>
+            <h2>Ένα ξύλινο καΐκι και δύο αδέρφια</h2>
+        
+                    <div class="prose"><p>Ξεκινήσαμε με ένα ξύλινο καΐκι και δύο αδέρφια που δεν ήθελαν να δουλέψουν σε γραφείο.</p><p>Τριάντα χρόνια μετά, ο στόλος μεγάλωσε αλλά η μέρα έμεινε ίδια: φεύγουμε νωρίς, σταματάμε εκεί που το νερό είναι καθαρό, και γυρνάμε πριν πέσει ο ήλιος. Δεν παίρνουμε ποτέ περισσότερους από όσους χωράει άνετα το σκάφος.</p></div>
+            </div>
+
+            <img class="story-image"
+             src="home2-img/demo-story.jpg"
+             alt="Το καΐκι μας δεμένο στη μαρίνα"
+             loading="lazy">
+    </section>
+    <section class="block band features-block band-dark">
+        <div class="band-inner">
+            <div class="band-copy">
+                <div class="section-head is-center">
+                    <p class="eyebrow-line">Γιατί Aegean Blue</p>
+        
+                    <h2>Όλα όσα χρειάζεστε για μια ήσυχη μέρα</h2>
+        
+            </div>
+
+                                    <ul class="features features-4">
+                                                    <li class="feature">
+                                <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="9.4" cy="8.2" r="3.5"/><path d="M3.2 20a6.2 6.2 0 0 1 12.4 0"/><path d="M16.6 5.1a3.3 3.3 0 0 1 0 6.2"/><path d="M18 14.6a5.4 5.4 0 0 1 3 4.9"/></svg>
+    </span>
+                                <h3>Μικρές παρέες</h3>
+                                                                    <p>Ποτέ περισσότεροι απ’ όσους χωράει άνετα το σκάφος.</p>
+                                                            </li>
+                                                    <li class="feature">
+                                <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="5.2" r="2.2"/><path d="M12 7.4v13.4"/><path d="M8.4 11h7.2"/><path d="M4.4 13.6a7.6 7.6 0 0 0 15.2 0"/></svg>
+    </span>
+                                <h3>Τριάντα χρόνια εμπειρίας</h3>
+                                                                    <p>Καπετάνιοι που ξέρουν κάθε όρμο του Σαρωνικού.</p>
+                                                            </li>
+                                                    <li class="feature">
+                                <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3.2 19.2 6v5.4c0 4.6-3 8.2-7.2 9.6-4.2-1.4-7.2-5-7.2-9.6V6L12 3.2Z"/><path d="m8.8 12.2 2.2 2.2 4.2-4.4"/></svg>
+    </span>
+                                <h3>Εγγύηση καιρού</h3>
+                                                                    <p>Αν δεν βγούμε λόγω καιρού, άλλη μέρα ή τα χρήματά σας πίσω.</p>
+                                                            </li>
+                                                    <li class="feature">
+                                <span class="feature-icon"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="4.6" y="10.4" width="14.8" height="10.2" rx="2.4"/><path d="M8 10.4V7.6a4 4 0 0 1 8 0v2.8"/><path d="M12 14.4v2.2"/></svg>
+    </span>
+                                <h3>Ασφαλής πληρωμή</h3>
+                                                                    <p>Πληρώνετε online και το εισιτήριο έρχεται αμέσως στο email.</p>
+                                                            </li>
+                                            </ul>
+                            </div>
+
+                    </div>
+    </section>
+    <section class="block testimonials-block">
+        <div class="section-head is-center">
+                    <p class="eyebrow-line">Κριτικές</p>
+        
+                    <h2>Τι λένε όσοι ταξίδεψαν μαζί μας</h2>
+        
+            </div>
+
+                    <ul class="quotes">
+                                    <li>
+                        <figure class="quote">
+                            <p class="quote-stars">
+                                <span aria-hidden="true">★★★★★</span>
+                                <span class="sr-only">5 αστέρια στα πέντε</span>
+                            </p>
+
+                            <blockquote>Η καλύτερη μέρα των διακοπών μας. Ο καπετάνιος ήξερε όρμους που δεν θα βρίσκαμε ποτέ μόνοι μας, και τα παιδιά δεν ήθελαν να κατέβουν.</blockquote>
+
+                                                            <figcaption>
+                                                                            <span class="avatar" aria-hidden="true">Ε</span>
+                                                                        <span>
+                                                                                    <b>Ελένη Π.</b>
+                                                                                                                            Ολοήμερη στα τρία νησιά
+                                                                            </span>
+                                </figcaption>
+                                                    </figure>
+                    </li>
+                                    <li>
+                        <figure class="quote">
+                            <p class="quote-stars">
+                                <span aria-hidden="true">★★★★★</span>
+                                <span class="sr-only">5 αστέρια στα πέντε</span>
+                            </p>
+
+                            <blockquote>Κλείσαμε το ηλιοβασίλεμα για την επέτειό μας. Κρασί, μεζέδες και η Αίγινα να βάφεται πορτοκαλί. Άψογη οργάνωση από την αρχή ως το τέλος.</blockquote>
+
+                                                            <figcaption>
+                                                                            <span class="avatar" aria-hidden="true">Ν</span>
+                                                                        <span>
+                                                                                    <b>Νίκος &amp; Μαρία</b>
+                                                                                                                            Ηλιοβασίλεμα στην Αίγινα
+                                                                            </span>
+                                </figcaption>
+                                                    </figure>
+                    </li>
+                                    <li>
+                        <figure class="quote">
+                            <p class="quote-stars">
+                                <span aria-hidden="true">★★★★★</span>
+                                <span class="sr-only">5 αστέρια στα πέντε</span>
+                            </p>
+
+                            <blockquote>We booked in two minutes on our phone and got the ticket straight away. Small group, friendly crew, crystal water. Highly recommended!</blockquote>
+
+                                                            <figcaption>
+                                                                            <span class="avatar" aria-hidden="true">S</span>
+                                                                        <span>
+                                                                                    <b>Sarah K.</b>
+                                                                                                                            Πρωινό κολυμβητικό
+                                                                            </span>
+                                </figcaption>
+                                                    </figure>
+                    </li>
+                            </ul>
+            </section>
+    <section class="block cta-band has-image">
+            <img class="cta-image" src="home2-img/idiotiki-imera-skafos.jpg" alt="Ιστιοφόρο στη θάλασσα" loading="lazy">
+    
+    <div class="cta-copy">
+                    <p class="eyebrow-line">Ιδιωτικές ναυλώσεις</p>
+        
+                    <h2>Όλο το σκάφος, μόνο για την παρέα σας</h2>
+        
+                    <div class="lead"><p>Γενέθλια, πρόταση γάμου, εταιρική εκδρομή ή απλώς μια μέρα χωρίς αγνώστους. Πείτε μας ημερομηνία και άτομα, και σας στέλνουμε προσφορά μέσα στη μέρα.</p></div>
+        
+                    <p class="buttons">
+                                    <a class="button button-light" href="#">Ζητήστε προσφορά</a>
+                                    <a class="button button-glass" href="#">Δείτε την ιδιωτική ημέρα</a>
+                            </p>
+            </div>
+</section>
+    <section class="block faq"  id="faq" >
+                    <h2>Συχνές ερωτήσεις</h2>
+        
+        <div class="faq-list">
+                            <details class="faq-item">
+                    <summary>Πού συναντιόμαστε;</summary>
+                    
+                    <div class="prose"><p>Στο μπλε περίπτερο της Μαρίνας Ζέας, δίπλα στον προβλήτα Δ.</p><p>Ελάτε 15 λεπτά νωρίτερα για να προλάβουμε την επιβίβαση με την ησυχία μας.</p></div>
+                </details>
+                            <details class="faq-item">
+                    <summary>Τι γίνεται αν έχει κακοκαιρία;</summary>
+                    
+                    <div class="prose"><p>Αν το λιμεναρχείο απαγορεύσει τον απόπλου, σας ειδοποιούμε το πρωί και επιλέγετε: άλλη ημερομηνία ή πλήρης επιστροφή χρημάτων.</p></div>
+                </details>
+                            <details class="faq-item">
+                    <summary>Χρειάζεται να ξέρω κολύμπι;</summary>
+                    
+                    <div class="prose"><p>Όχι. Δίνουμε σωσίβια σε όλους και η στάση για μπάνιο είναι προαιρετική.</p></div>
+                </details>
+            
+                    </div>
+
+                    
+            
+            </section>
+    <section class="block contact  has-image "  id="contact" >
+            
+        <img class="contact-image"
+             src="home2-img/demo-contact.jpg"
+             alt=""
+             loading="lazy">
+    
+    
+    <div class="contact-inner">
+        <div>
+                            
+                <p class="eyebrow" aria-hidden="true">Aegean Blue Cruises</p>
+                <h2>Επικοινωνήστε μαζί μας</h2>
+            
+            
+            
+            <p class="contact-cta">
+                <a class="button arrow button-small" href="#">Στείλτε μας μήνυμα</a>
+            </p>
+        </div>
+
+        
+        <ul class="contact-list">
+                            <li>
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+             aria-hidden="true" focusable="false"><path d="M8.4 4.2 10 7.4a1.4 1.4 0 0 1-.3 1.6l-1.1 1a12.6 12.6 0 0 0 4.4 4.4l1-1.1a1.4 1.4 0 0 1 1.6-.3l3.2 1.6a1.4 1.4 0 0 1 .7 1.6 3.9 3.9 0 0 1-4.2 2.9A14.6 14.6 0 0 1 4.1 6.4 3.9 3.9 0 0 1 7 2.2a1.4 1.4 0 0 1 1.4.7Z"/></svg>
+                    <span class="contact-label">Τηλέφωνο</span>
+                <a href="#">+30 210 4123456</a>
+                </li>
+            
+                            <li>
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+             aria-hidden="true" focusable="false"><path d="M2.8 8.3v8.5a2.4 2.4 0 0 0 2.4 2.4h13.6a2.4 2.4 0 0 0 2.4-2.4V8.3l-8.4 5.3a1.6 1.6 0 0 1-1.6 0L2.8 8.3Z"/><path d="M21 6.2a2.4 2.4 0 0 0-2.2-1.4H5.2A2.4 2.4 0 0 0 3 6.2l9 5.7 9-5.7Z"/></svg>
+                    <span class="contact-label">Email</span>
+                <a href="mailto:info@aegean-blue.example">info@aegean-blue.example</a>
+                </li>
+            
+                            <li>
+                <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+             aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M12 21.2c4.1-4.6 6.2-8.1 6.2-10.6a6.2 6.2 0 1 0-12.4 0c0 2.5 2.1 6 6.2 10.6Zm0-8.3a2.3 2.3 0 1 0 0-4.6 2.3 2.3 0 0 0 0 4.6Z"/></svg>
+                    <span class="contact-label">Διεύθυνση</span>
+                
+                                <a href="https://www.google.com/maps/search/?api=1&query=%CE%91%CE%BA%CF%84%CE%AE%20%CE%98%CE%B5%CE%BC%CE%B9%CF%83%CF%84%CE%BF%CE%BA%CE%BB%CE%AD%CE%BF%CF%85%CF%82%2042%2C%2018538%20%CE%A0%CE%B5%CE%B9%CF%81%CE%B1%CE%B9%CE%AC%CF%82"
+                   rel="noopener noreferrer"
+                   target="_blank">Ακτή Θεμιστοκλέους 42, 18538 Πειραιάς</a>
+                </li>
+            
+                    </ul>
+
+            
+                            
+                <ul class="social">
+                                            <li>
+                            
+                            <a href="https://instagram.com/aegeanbluecruises"
+                               rel="noopener noreferrer me"
+                               target="_blank"
+                               aria-label="Instagram"
+                               title="Instagram">
+                                <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+             aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M8.2 3.4h7.6a4.8 4.8 0 0 1 4.8 4.8v7.6a4.8 4.8 0 0 1-4.8 4.8H8.2a4.8 4.8 0 0 1-4.8-4.8V8.2a4.8 4.8 0 0 1 4.8-4.8Zm3.8 4.5a4.1 4.1 0 1 0 0 8.2 4.1 4.1 0 0 0 0-8.2Zm0 2a2.1 2.1 0 1 1 0 4.2 2.1 2.1 0 0 1 0-4.2Zm5.1-4.1a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2Z"/></svg>
+                                </a>
+                        </li>
+                                            <li>
+                            
+                            <a href="https://facebook.com/aegeanbluecruises"
+                               rel="noopener noreferrer me"
+                               target="_blank"
+                               aria-label="Facebook"
+                               title="Facebook">
+                                <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+             aria-hidden="true" focusable="false"><path d="M14.6 21.4v-8.3h2.8l.5-3.3h-3.3V7.7c0-.9.3-1.6 1.7-1.6h1.7V3.2A22 22 0 0 0 15.4 3c-2.6 0-4.3 1.5-4.3 4.3v2.5H8.2v3.3h2.9v8.3h3.5Z"/></svg>
+                                </a>
+                        </li>
+                                            <li>
+                            
+                            <a href="https://wa.me/302104123456"
+                               rel="noopener noreferrer me"
+                               target="_blank"
+                               aria-label="WhatsApp"
+                               title="WhatsApp">
+                                <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+             aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M12 3a9 9 0 0 0-7.7 13.7l-1.1 3.9 4-1.2A9 9 0 1 0 12 3Zm-2.9 5.3c.2-.5.4-.5.6-.5h.5c.2 0 .4 0 .6.5l.7 1.7c.1.2.1.4 0 .6l-.4.5c-.1.2-.3.3-.1.6a6 6 0 0 0 2.8 2.4c.3.1.5.1.6-.1l.5-.6c.2-.2.3-.2.6-.1l1.6.8c.3.1.4.3.4.5a1.9 1.9 0 0 1-1.3 1.6c-.5.2-1.2.3-3.5-.8a8.4 8.4 0 0 1-3.5-3.6c-.6-1.2-.5-2.1-.4-2.6a2 2 0 0 1 .3-.9Z"/></svg>
+                                </a>
+                        </li>
+                                    </ul>
+                </div>
+</section>
     </div>
 </main>
 
 <footer class="site">
     <div class="wrap">
-        {{-- A deep band in the operator's own primary colour since 16 September,
-             the footer of their WordPress site: their mark and a way to follow
-             them first, then where to go, how to reach them and who they are
-             legally — and the legal links in a row of their own underneath. --}}
+        
         <div class="cols">
             <div class="foot-brand">
-                @if ($logo)
-                    <img class="foot-logo" src="{{ $logo }}" alt="{{ $tenant->name }}">
-                @else
-                    <p class="foot-wordmark">
-                        <span class="brand-mark" aria-hidden="true">@include('hosted.partials.icon', ['name' => 'boat'])</span>
+                                    <p class="foot-wordmark">
+                        <span class="brand-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M3.6 15.4h16.8l-2 3.7a2 2 0 0 1-1.7 1H7.3a2 2 0 0 1-1.8-1l-1.9-3.7Z"/><path d="M12 15.4V3.3"/><path d="M13.4 4.4 19 13.2h-5.6"/></svg>
+    </span>
                         <span class="brand-text">
-                            <span class="name">{{ $tenant->name }}</span>
-                            @if ($tenant->city)
-                                <span class="brand-tag">{{ $tenant->city }}</span>
-                            @endif
-                        </span>
+                            <span class="name">Aegean Blue Cruises</span>
+                                                            <span class="brand-tag">Πειραιάς</span>
+                                                    </span>
                     </p>
-                @endif
-
-                @php
-                    $footSocial = collect((array) data_get($tenant->settings, 'social', []))
-                        ->filter(static fn (mixed $url, mixed $key): bool => is_string($key) && is_string($url) && str_starts_with($url, 'https://'))
-                        ->all();
-                @endphp
-
-                @if ($footSocial !== [])
-                    <ul class="social">
-                        @foreach ($footSocial as $network => $url)
-                            <li>
-                                <a href="{{ $url }}"
+                
+                
+                                    <ul class="social">
+                                                    <li>
+                                <a href="https://instagram.com/aegeanbluecruises"
                                    rel="noopener noreferrer me"
                                    target="_blank"
-                                   aria-label="{{ __('hosted.blocks.contact.social.' . $network) }}"
-                                   title="{{ __('hosted.blocks.contact.social.' . $network) }}">
-                                    @include('hosted.partials.icon', ['name' => 'social-' . $network . '-solid'])
-                                </a>
+                                   aria-label="Instagram"
+                                   title="Instagram">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+             aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M8.2 3.4h7.6a4.8 4.8 0 0 1 4.8 4.8v7.6a4.8 4.8 0 0 1-4.8 4.8H8.2a4.8 4.8 0 0 1-4.8-4.8V8.2a4.8 4.8 0 0 1 4.8-4.8Zm3.8 4.5a4.1 4.1 0 1 0 0 8.2 4.1 4.1 0 0 0 0-8.2Zm0 2a2.1 2.1 0 1 1 0 4.2 2.1 2.1 0 0 1 0-4.2Zm5.1-4.1a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2Z"/></svg>
+                                    </a>
                             </li>
-                        @endforeach
-                    </ul>
-                @endif
-            </div>
+                                                    <li>
+                                <a href="https://facebook.com/aegeanbluecruises"
+                                   rel="noopener noreferrer me"
+                                   target="_blank"
+                                   aria-label="Facebook"
+                                   title="Facebook">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+             aria-hidden="true" focusable="false"><path d="M14.6 21.4v-8.3h2.8l.5-3.3h-3.3V7.7c0-.9.3-1.6 1.7-1.6h1.7V3.2A22 22 0 0 0 15.4 3c-2.6 0-4.3 1.5-4.3 4.3v2.5H8.2v3.3h2.9v8.3h3.5Z"/></svg>
+                                    </a>
+                            </li>
+                                                    <li>
+                                <a href="https://wa.me/302104123456"
+                                   rel="noopener noreferrer me"
+                                   target="_blank"
+                                   aria-label="WhatsApp"
+                                   title="WhatsApp">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"
+             aria-hidden="true" focusable="false"><path fill-rule="evenodd" d="M12 3a9 9 0 0 0-7.7 13.7l-1.1 3.9 4-1.2A9 9 0 1 0 12 3Zm-2.9 5.3c.2-.5.4-.5.6-.5h.5c.2 0 .4 0 .6.5l.7 1.7c.1.2.1.4 0 .6l-.4.5c-.1.2-.3.3-.1.6a6 6 0 0 0 2.8 2.4c.3.1.5.1.6-.1l.5-.6c.2-.2.3-.2.6-.1l1.6.8c.3.1.4.3.4.5a1.9 1.9 0 0 1-1.3 1.6c-.5.2-1.2.3-3.5-.8a8.4 8.4 0 0 1-3.5-3.6c-.6-1.2-.5-2.1-.4-2.6a2 2 0 0 1 .3-.9Z"/></svg>
+                                    </a>
+                            </li>
+                                            </ul>
+                            </div>
 
             <div>
-                <h3>{{ __('hosted.footer.explore') }}</h3>
+                <h3>Η σελίδα μας</h3>
                 <ul>
-                    {{-- «Αρχική» only where there is one. The other two are
-                         served in both modes. --}}
-                    @if ($servesHome)
-                        <li><a href="{{ route('hosted.index', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.footer.home') }}</a></li>
-                    @endif
-                    <li><a href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.search.nav') }}</a></li>
-                    <li><a href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.contact.nav') }}</a></li>
+                    
+                                            <li><a href="#">Αρχική</a></li>
+                                        <li><a href="#">Βρείτε εκδρομή</a></li>
+                    <li><a href="#">Επικοινωνία</a></li>
                 </ul>
             </div>
 
             <div>
-                <h3>{{ __('hosted.footer.contact') }}</h3>
+                <h3>Επικοινωνία</h3>
                 <ul class="foot-contact">
-                    @if ($tenant->phone)
-                        <li>@include('hosted.partials.icon', ['name' => 'phone'])<a href="tel:{{ $tenant->phone }}">{{ $tenant->phone }}</a></li>
-                    @endif
-                    <li>@include('hosted.partials.icon', ['name' => 'mail'])<a href="mailto:{{ $tenant->email }}">{{ $tenant->email }}</a></li>
+                                            <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M8.4 4.2 10 7.4a1.4 1.4 0 0 1-.3 1.6l-1.1 1a12.6 12.6 0 0 0 4.4 4.4l1-1.1a1.4 1.4 0 0 1 1.6-.3l3.2 1.6a1.4 1.4 0 0 1 .7 1.6 3.9 3.9 0 0 1-4.2 2.9A14.6 14.6 0 0 1 4.1 6.4 3.9 3.9 0 0 1 7 2.2a1.4 1.4 0 0 1 1.4.7Z"/></svg>
+    <a href="#">+30 210 4123456</a></li>
+                                        <li><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="2.8" y="5.2" width="18.4" height="13.6" rx="2.6"/><path d="m3.6 7 7.5 5.3a1.6 1.6 0 0 0 1.8 0L20.4 7"/></svg>
+    <a href="mailto:info@aegean-blue.example">info@aegean-blue.example</a></li>
                 </ul>
             </div>
 
-            {{-- HOS-9: the operator's legal identity, in both locales. --}}
+            
             <div>
-                <h3>{{ __('hosted.footer.operator') }}</h3>
-                <p><strong>{{ $tenant->legal_name ?? $tenant->name }}</strong></p>
-                @if ($tenant->address_line1)
-                    <p>{{ $tenant->address_line1 }}</p>
-                @endif
-                @if ($tenant->city || $tenant->postcode)
-                    <p>{{ trim($tenant->postcode . ' ' . $tenant->city) }}</p>
-                @endif
-                @if ($tenant->vat_number)
-                    <p>{{ __('hosted.footer.vat_number') }}: {{ $tenant->vat_number }}</p>
-                @endif
-                @if ($tenant->tax_office)
-                    {{-- No label of its own: `taxOfficeName()` already reads «ΔΟΥ Πειραιά», and the footer was printing «ΔΟΥ: ΔΟΥ Πειραιά». --}}
-                    <p>{{ $tenant->taxOfficeName() }}</p>
-                @endif
-            </div>
+                <h3>Διοργανωτής</h3>
+                <p><strong>AEGEAN BLUE CRUISES ΙΚΕ</strong></p>
+                                    <p>Ακτή Θεμιστοκλέους 42</p>
+                                                    <p>18538 Πειραιάς</p>
+                                                    <p>ΑΦΜ: 801234567</p>
+                                                    
+                    <p>ΔΟΥ Πειραιά</p>
+                            </div>
         </div>
 
         <div class="foot-bottom">
-            <p>© {{ now()->year }} {{ $tenant->legal_name ?? $tenant->name }}</p>
+            <p>© 2026 AEGEAN BLUE CRUISES ΙΚΕ</p>
 
-            <nav aria-label="{{ __('hosted.footer.legal') }}">
+            <nav aria-label="Νομικά">
                 <ul class="foot-legal">
-                    <li><a href="{{ route('hosted.legal', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.footer.terms') }}</a></li>
-                    <li><a href="{{ route('hosted.legal', ['operator' => $tenant->slug, 'lang' => $locale]) }}#privacy">{{ __('hosted.footer.privacy') }}</a></li>
-                    <li><a href="{{ route('hosted.legal', ['operator' => $tenant->slug, 'lang' => $locale]) }}#cancellation">{{ __('hosted.footer.cancellation') }}</a></li>
+                    <li><a href="#">Όροι</a></li>
+                    <li><a href="#">Απόρρητο</a></li>
+                    <li><a href="#">Πολιτική ακύρωσης</a></li>
                 </ul>
             </nav>
 
-            @if ($poweredBy)
-                {{-- Brand decision 6: always, custom domains included. From a flag,
-                     so a white-label tier is a config change rather than an edit. --}}
-                <p class="powered">{{ __('hosted.footer.powered_by') }}</p>
-            @endif
-        </div>
+                            
+                <p class="powered">Powered by Kaiki</p>
+                    </div>
     </div>
 </footer>
 
-</body>
-</html>
+</div>
+<script>
+(function () {
+  var mk = document.getElementById('mk');
+  var search = document.querySelector('.hero-search');
+  var home = search.parentNode, next = search.nextSibling;
+  var hero = document.querySelector('.hero');
+  var img = document.querySelector('.hero-image');
+  function place() {
+    var below = mk.classList.contains('m-new') && mk.dataset.search === 'below';
+    if (below && !search.classList.contains('moved')) { hero.after(search); search.classList.add('moved'); }
+    if (!below && search.classList.contains('moved')) { home.insertBefore(search, next); search.classList.remove('moved'); }
+    img.src = mk.classList.contains('m-new') ? img.dataset.new : img.dataset.now;
+  }
+  function press(sel, b) { document.querySelectorAll(sel).forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); }); }
+  document.querySelectorAll('[data-mode]').forEach(function (b) {
+    b.addEventListener('click', function () { press('[data-mode]', b); mk.classList.toggle('m-new', b.dataset.mode === 'new'); place(); });
+  });
+  document.querySelectorAll('button[data-search]').forEach(function (b) {
+    b.addEventListener('click', function () { press('button[data-search]', b); mk.dataset.search = b.dataset.search; place(); });
+  });
+  document.querySelectorAll('form').forEach(function (f) { f.addEventListener('submit', function (e) { e.preventDefault(); }); });
+  document.querySelectorAll('a[href="#"]').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); }); });
+  place();
+})();
+</script>
