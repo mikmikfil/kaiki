@@ -3416,14 +3416,13 @@
            way with an ellipsis rather than wrapping under it. The full text is
            still there for a screen reader.
            ================================================================== */
-        /* Three facts now (duration, port, boat), closer together (Mike, 24/9):
-           the boat gives way first, then the port, each with an ellipsis. */
+        /* Two facts (duration, port), one line, never wrapping (Mike, 24/9:
+           the boat is off the card). The duration never shrinks; the port
+           gives way with an ellipsis only if a card is too narrow for both. */
         li.trip .facts { display: flex; flex-wrap: nowrap; align-items: center; gap: .65rem; white-space: nowrap; min-width: 0; overflow: hidden; }
         li.trip .facts span { flex: none; gap: .3rem; }
-        li.trip .facts .fact-port, li.trip .facts .fact-boat { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-        li.trip .facts .fact-port { flex: 0 1 auto; }
-        li.trip .facts .fact-boat { flex: 0 3 auto; }
-        li.trip .facts .fact-port .icon, li.trip .facts .fact-boat .icon { display: inline-block; vertical-align: -.15em; margin-inline-end: .3rem; }
+        li.trip .facts .fact-port { display: block; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        li.trip .facts .fact-port .icon { display: inline-block; vertical-align: -.15em; margin-inline-end: .3rem; }
 
         /* ==================================================================
            The trip card's foot (Mike, 2026-09-24, from the first home mockup):
@@ -3767,7 +3766,10 @@
         }
 
         /* A slow Ken Burns on the photographed masthead (Mike, 2026-09-24):
-           up to 8% closer and a little drift, 22 seconds one way and back.
+           up to 15% closer and some drift, 22 seconds one way and back (made
+           stronger the same evening). With the origin at 60% / 45% the scaled
+           photograph overhangs every edge by more than the drift at every
+           point of the way, so no edge of it ever shows.
            Still for reduced motion; a video masthead is left alone. */
         .hero.has-image { overflow: hidden; }
         @media (prefers-reduced-motion: no-preference) {
@@ -3775,7 +3777,7 @@
         }
         @keyframes ken-burns {
             from { transform: scale(1) translate3d(0, 0, 0); }
-            to   { transform: scale(1.08) translate3d(-1.5%, -1%, 0); }
+            to   { transform: scale(1.15) translate3d(-3%, -2%, 0); }
         }
         /* The search bar's fields (Mike, 2026-09-24):
            - no calendar icon at the end of the date: the browser's picker
@@ -3828,6 +3830,174 @@
             }
             .timeline-n1 { --n: 1; } .timeline-n2 { --n: 2; } .timeline-n3 { --n: 3; } .timeline-n4 { --n: 4; }
             .timeline-n5 { --n: 5; } .timeline-n6 { --n: 6; } .timeline-n7 { --n: 7; } .timeline-n8 { --n: 8; }
+        }
+
+        /* ==================================================================
+           ONE TYPE SYSTEM for every guest page (Mike, 2026-09-24: «κάνε όλες
+           τις προτάσεις του designer»; docs/mockups/typo/index.html).
+
+           Last in the sheet on purpose: it restates sizes that earlier rules
+           set one page at a time, and the later rule wins. Nine steps and
+           nothing between them:
+
+             caption 13 · small 15 · body 16 · title 18 · lead 17→20
+             sub 20→24 · panel 24→32 · h2 28→40 · page h1 32→44 · hero h1 40→60
+
+           800 only on the hero's title; 700 for every other heading and price;
+           600 for navigation, buttons, labels and links. Letter-spacing no more
+           than +0.02em on small labels (lower-case Greek spaced wider reads
+           letter by letter), negative only from 18px up. Greys: #4A5D5A for
+           secondary text (7:1), #5F716E for labels (5.1:1), replacing #7B8D8A
+           (3.5:1, below AA). Paragraphs no wider than about 65 characters.
+           ================================================================== */
+        :root {
+            --ink-faint: #5F716E;
+            --t-cap: .8125rem;
+            --t-sm: .9375rem;
+            --t-title: 1.125rem;
+            --t-lead: clamp(1.0625rem, 1.4vw, 1.25rem);
+            --t-sub: clamp(1.25rem, 1.6vw, 1.5rem);
+            --t-panel: clamp(1.5rem, 2.3vw, 2rem);
+            --t-h2: clamp(1.75rem, 3vw, 2.5rem);
+            --t-h1-page: clamp(2rem, 3.2vw, 2.75rem);
+            --t-h1-hero: clamp(2.5rem, 4.6vw, 3.75rem);
+            --measure: min(65ch, 32rem);
+        }
+        /* A <button> does not inherit the page's font by default: the contact
+           form's «Αποστολή μηνύματος» was Arial on an Inter page. */
+        button, input, select, textarea { font-family: inherit; }
+
+        /* ---- titles ---- */
+        .hero h1, .hero.has-image h1, .hero.hero-plain h1 {
+            font-size: var(--t-h1-hero); font-weight: 800; line-height: 1.1; letter-spacing: -.025em;
+        }
+        main .wrap > h1, .page-head h1, .search-head h1, .trip-hero h1 {
+            font-size: var(--t-h1-page); font-weight: 700; line-height: 1.12; letter-spacing: -.025em; color: var(--deep);
+        }
+        .section-head h2, .block-head h2, .trips-block .block-head h2, .story-copy > h2, .block.faq > h2,
+        .block.contact h2, .block.contact.has-image h2 {
+            font-size: var(--t-h2); font-weight: 700; line-height: 1.15; letter-spacing: -.022em;
+        }
+        .cta-band h2, .cta-band.has-image h2 { font-size: var(--t-panel); font-weight: 700; line-height: 1.18; letter-spacing: -.02em; }
+        .trips-more { font-size: var(--t-sub); font-weight: 700; line-height: 1.25; letter-spacing: -.015em; color: var(--deep); }
+        /* The trip page's sections: one style (they were 18/700 ink, 18/800 navy and 16/700). */
+        .product-main .section > h2, .product-main .block > h2, .product-main .lists h2, .product-main .block.faq > h2 {
+            font-size: var(--t-sub); font-weight: 700; line-height: 1.2; letter-spacing: -.015em; color: var(--deep);
+        }
+        .ask h2 { font-size: var(--t-title); font-weight: 700; letter-spacing: -.012em; }
+        .contact-details h2 { font-size: var(--t-title); font-weight: 700; letter-spacing: -.012em; color: var(--deep); }
+        /* One card title: trips, route stops, features, timeline, boats, crew
+           (16.8, 17.6, 17.9, 18.4 and 19.2 before). */
+        li.trip h3, .step h3, .feature h3, .stop-copy h3, .timeline h3, .boat-body h3, .person-copy h3 {
+            font-size: var(--t-title); font-weight: 700; line-height: 1.3; letter-spacing: -.012em;
+        }
+        ol.trip-timeline h3 { font-size: 1rem; }
+
+        /* ---- eyebrows and labels ---- */
+        .eyebrow, .eyebrow-line, .eyebrow.eyebrow-line, .block.contact .eyebrow {
+            font-size: var(--t-cap); font-weight: 600; letter-spacing: .02em; line-height: 1.4;
+        }
+        .person-role { font-size: var(--t-cap); font-weight: 600; letter-spacing: .02em; }
+        .search-form label { font-size: var(--t-cap); font-weight: 600; letter-spacing: .02em; color: var(--ink-soft); }
+        .contact-form-card label { font-size: var(--t-sm); font-weight: 600; letter-spacing: 0; color: var(--kaiki-text); }
+        .contact-form-card .optional { font-size: var(--t-cap); color: var(--ink-faint); }
+        /* The search bar under the hero: the values a guest has chosen are not
+           placeholders, and were set in the placeholder grey. */
+        .hero-search.hero-search-below .field:not(.submit) :is(input, select) { font-size: var(--t-sm); color: var(--ink-soft); }
+
+        /* ---- cards and prices: the name first, the price second ---- */
+        .trip-price strong { font-size: var(--t-title); font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+        .trip-price .from, .trip-price .per { font-size: var(--t-cap); color: var(--ink-soft); }
+        .trip-price .on-request { font-size: var(--t-sm); font-weight: 600; }
+        .trip-badge { font-size: var(--t-cap); font-weight: 600; }
+        li.trip .summary { font-size: var(--t-sm); line-height: 1.55; }
+        li.trip .facts { font-size: var(--t-cap); color: var(--ink-faint); }
+        .result-count { font-size: var(--t-sm); color: var(--ink-soft); }
+        .price strong { font-size: var(--t-panel); font-weight: 700; color: var(--kaiki-accent); font-variant-numeric: tabular-nums; }
+        .price .from, .price .vat { font-size: var(--t-cap); color: var(--ink-faint); }
+        .quote-stars { color: #B7791F; }
+        .quote figcaption { font-size: var(--t-cap); }
+        .quote figcaption b { font-size: var(--t-sm); }
+        .stats strong, .hero + .stats-block .stats strong { font-weight: 700; font-variant-numeric: tabular-nums; }
+        .stat-label, .hero + .stats-block .stat-label { font-size: var(--t-sm); }
+        .boat-reg, .boat-specs dt { font-size: var(--t-cap); color: var(--ink-faint); }
+        .boat-specs dd { font-size: var(--t-title); }
+        .boat-licence, .boat-trips a { font-size: var(--t-sm); }
+        .timeline-year { font-size: 1rem; }
+
+        /* ---- running text and UI on the one small step ---- */
+        .site-nav a, .button, .see-all, .hero-badges, .tab-label, ul.facts li, .trip-time,
+        .step p, .feature p, .stop-copy p, .ask p, .contact-details a, .ask-actions .button {
+            font-size: var(--t-sm);
+        }
+        .muted { font-size: var(--t-sm); color: var(--ink-soft); }
+        .brand-tag, header.site .langs a { font-size: var(--t-cap); }
+        .mosaic-all, .tiers li, .map-open .button { font-size: var(--t-sm); }
+        .contact-details a, .contact-details .contact-list a { font-size: 1rem; }
+        .menu-panel a, .menu-panel .button { font-size: var(--t-title); }
+        .hero.has-image .standfirst { font-size: var(--t-lead); }
+        .crumbs a { font-size: var(--t-sm); font-weight: 600; color: var(--kaiki-accent); }
+        .page-head .lede, .search-head .standfirst, .trip-intro .standfirst { font-size: var(--t-lead); line-height: 1.5; }
+
+        /* ---- measure ---- */
+        .story-copy .prose, .product-main .prose, .faq-item .prose, .page-head .lede { max-width: var(--measure); }
+
+        /* ---- the legal page: prose, not sections ----
+           It is the one page whose column holds its h1, h2 and paragraphs
+           directly, so the column's gap put ~85px between the lines of an
+           address, and nothing held the lines to a readable width. */
+        main .wrap:not(:has(> .block)):has(> h1) { gap: 0; }
+        main .wrap:not(:has(> .block)):has(> h1) > h1 { margin: 0 0 1rem; }
+        main .wrap:not(:has(> .block)):has(> h1) > h2 {
+            font-size: var(--t-sub); font-weight: 700; line-height: 1.2; letter-spacing: -.015em; color: var(--deep);
+            margin: 2.25rem 0 .6rem;
+        }
+        main .wrap:not(:has(> .block)):has(> h1) > :is(p, ul, ol) { max-width: var(--measure); margin: 0 0 .6rem; }
+
+        /* ---- the trip's schedule: a row without a time still lines up ---- */
+        ol.trip-timeline li:not(:has(.trip-time)) h3 { margin-inline-start: 3.7rem; }
+
+        /* ---- footer ---- */
+        footer.site { font-size: var(--t-sm); }
+        footer.site h3 { font-size: var(--t-cap); font-weight: 600; letter-spacing: .02em; line-height: 1.4; color: rgba(255, 255, 255, .62); margin: .25rem 0 .9rem; }
+        .foot-bottom, .foot-bottom .powered { font-size: var(--t-cap); }
+        .foot-reach-title { font-size: var(--t-title); }
+        footer.site .brand-tag { color: rgba(255, 255, 255, .62); }
+
+        /* ==================================================================
+           Two more of 24/9, kept here with the rest of the day.
+           ================================================================== */
+        /* The white hairline between «Πώς λειτουργεί» and the story under it.
+           The scroll reveal slid the story's two halves up 10px as they came
+           in, and for that distance the page's white showed through between
+           two sections that are meant to touch. The edge-to-edge halves stay
+           put; the words inside the tinted half rise instead. */
+        @supports (animation-timeline: view()) {
+            @media (prefers-reduced-motion: no-preference) {
+                .story.has-image .story-image,
+                .story.has-image .story-copy { animation: none; }
+                .story.has-image .story-copy > * {
+                    animation: kaiki-rise linear both;
+                    animation-timeline: view();
+                    animation-range: entry 0% entry 32%;
+                }
+            }
+        }
+
+        /* The private-trips band's two buttons (Mike): one under the other and
+           one width — both as wide as the wider, left-aligned in the text
+           column; the whole column on a phone. */
+        .cta-band.has-image .buttons { display: inline-grid; grid-template-columns: minmax(0, 1fr); justify-items: stretch; }
+        .cta-band.has-image .buttons .button { justify-content: center; text-align: center; }
+        @media (max-width: 40rem) {
+            .cta-band.has-image .buttons { display: grid; }
+        }
+        /* The hero's two buttons had the same fault on a phone only: stacked
+           there, at 185 and 179px. One width when one is above the other;
+           side by side on a wider screen they keep their own size. */
+        @media (max-width: 40rem) {
+            .hero .cta { display: inline-grid; grid-template-columns: minmax(0, 1fr); }
+            .hero .cta .button { justify-content: center; }
         }
     </style>
 

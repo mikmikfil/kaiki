@@ -84,13 +84,12 @@
              where three dot-separated values wrapped. --}}
         <p class="facts">
             <span>@include('hosted.partials.icon', ['name' => 'clock']){{ \App\Domain\Hosted\Support\TripDuration::format((int) $product->duration_minutes) }}</span>
-            {{-- The port and the boat, each behind its own icon (Mike, 2026-09-24),
-                 on the one line the duration is on. --}}
+            {{-- The port behind its pin, on the one line the duration is on.
+                 No boat (Mike, 2026-09-24: «ας βγει το πλοίο από τα icons»):
+                 the vessel is on the trip page, and a third fact is what made
+                 the row cut the port to «Μαρίνα…». --}}
             @if ($product->meetingPoint)
                 <span class="fact-port">@include('hosted.partials.icon', ['name' => 'pin']){{ $product->meetingPoint->name }}</span>
-            @endif
-            @if ($product->vessel)
-                <span class="fact-boat">@include('hosted.partials.icon', ['name' => 'boat']){{ $product->vessel->name }}</span>
             @endif
 
             {{-- Search only. The date is already the guest's own choice in the
