@@ -1,0 +1,531 @@
+<title>Πληρωμές: τρεις προτάσεις</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Same tokens as the other Kaiki mockups: light only, blue panel, Inter. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57; --active:#1C4378;
+  --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --line2:#CFDAE8; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA; --strip:#F1F5FA;
+  --warn:#9A5B0C; --warnbg:#FBF0DF; --good:#1F7A4D; --goodbg:#E3F2EA; --bad:#B42318; --badbg:#FDECEA;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-block:32px 72px;padding-inline:16px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+a{color:var(--blue);text-decoration:none;font-weight:600}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:22px}
+.intro h1{font-size:28px;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.intro p{margin:0;color:var(--muted);max-width:70ch}
+
+/* Top switcher */
+.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line2);position:sticky;top:env(safe-area-inset-top,0px);background:var(--ground);z-index:5}
+.tab{padding:12px 14px 11px;font-weight:600;font-size:15px;color:#4F607A;border-bottom:3px solid transparent;white-space:nowrap;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--deep);border-bottom-color:var(--deep)}
+.chip{font-size:12px;font-weight:600;padding:1px 8px;border-radius:99px;background:#E8EEF6;color:#4F607A;margin-left:6px}
+
+.panel{display:grid;gap:18px}
+.lead{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.lead h2{margin:0 0 6px;font-size:20px}
+.lead p{margin:0;color:var(--muted);max-width:75ch}
+
+.sec{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.sec-h{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--strip);border-bottom:1px solid var(--line)}
+.sec-h h3{margin:0;font-size:17px}
+.sec-h p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.sec-b{padding:18px;display:grid;gap:16px}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--card);border:1px solid var(--line2);border-radius:10px;padding:3px}
+.seg button{padding:6px 12px;border-radius:7px;font-weight:600;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--deep);color:#fff}
+.cols{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:900px){.cols.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.cols.side{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}}
+.note{font-size:13px;color:var(--muted)}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--wash);color:var(--blue)}
+.tag.good{background:var(--goodbg);color:var(--good)}.tag.warn{background:var(--warnbg);color:var(--warn)}.tag.bad{background:var(--badbg);color:var(--bad)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 14px;border-radius:9px;font-weight:600;font-size:14px;border:1px solid var(--line2);background:var(--card)}
+.btn.primary{background:var(--deep);border-color:var(--deep);color:#fff}
+.btn.block{width:100%;min-height:48px;font-size:15px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.field{display:grid;gap:5px}
+.field label{font-size:13px;font-weight:600}
+.field input,.field select,.field textarea{font:inherit;font-size:14px;border:1px solid var(--line2);border-radius:9px;padding:9px 11px;background:#fff;color:var(--ink);width:100%}
+.row{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:560px){.row.two{grid-template-columns:1fr 1fr}.row.three{grid-template-columns:1fr 1fr 1fr}}
+.list{margin:0;padding-left:18px;display:grid;gap:6px}
+.q{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.q li{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--paper)}
+.q b{display:block;font-size:14px}
+.q span{font-size:13px;color:var(--muted)}
+.est{display:grid;gap:8px}
+.est div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.est div:last-child{border-bottom:0;font-weight:700}
+.num{font-variant-numeric:tabular-nums}
+
+/* Email previews */
+.mailwrap{display:flex;justify-content:center}
+.mail{width:100%;max-width:600px;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:15px}
+.mail.phone{max-width:360px}
+.mail-meta{padding:10px 14px;background:var(--paper);border-bottom:1px solid var(--line);font-size:12.5px;color:var(--muted);display:grid;gap:2px}
+.mail-meta b{color:var(--ink);font-weight:600}
+.mail-head{background:var(--deep);color:#fff;padding:18px 22px;font-weight:700;font-size:17px}
+.mail-body{padding:22px;display:grid;gap:14px}
+.mail-body h4{margin:0;font-size:20px;line-height:1.25}
+.mail-body p{margin:0}
+.trip{border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:grid;gap:4px;font-size:14px}
+.trip b{font-size:15px}
+.mail-cta{display:block;text-align:center;background:var(--blue);color:#fff;border-radius:10px;padding:13px;font-weight:700}
+.mail-foot{padding:14px 22px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+
+/* Timeline */
+.tl{display:grid;gap:0;position:relative}
+.tl div{display:grid;grid-template-columns:86px 1fr;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.tl div:last-child{border-bottom:0}
+.tl b{font-variant-numeric:tabular-nums;color:var(--deep)}
+
+/* Phone frame */
+.phone{max-width:360px;margin:0 auto;width:100%}
+.frame{border:10px solid #13233B;border-radius:34px;background:var(--paper);overflow:hidden;box-shadow:0 18px 40px -22px rgba(15,46,87,.5)}
+.screen{padding:14px;display:grid;gap:12px;min-height:560px;align-content:start}
+.scr-top{display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.scr-top small{font-weight:500;color:var(--muted)}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px}
+.dep{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;text-align:left;width:100%}
+.dep[aria-pressed="true"]{border-color:var(--blue);background:var(--wash)}
+.dep b{display:block}
+.dep small{color:var(--muted)}
+.ctr{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 0}
+.ctr span:first-child small{display:block;color:var(--muted);font-size:12px}
+.cnt{display:inline-flex;align-items:center;gap:10px}
+.cnt button{width:34px;height:34px;border-radius:99px;border:1px solid var(--line2);background:#fff;font-size:18px;line-height:1}
+.cnt b{min-width:18px;text-align:center}
+.total{display:flex;justify-content:space-between;font-weight:700;font-size:17px;padding-top:8px;border-top:1px solid var(--line)}
+.qr{width:170px;height:170px;margin:4px auto;background:
+  conic-gradient(from 90deg at 16% 16%,#13233B 25%,transparent 0) 0 0/33.33% 33.33%,
+  repeating-linear-gradient(90deg,#13233B 0 7px,transparent 7px 12px),
+  repeating-linear-gradient(0deg,rgba(255,255,255,.85) 0 5px,transparent 5px 11px);
+  border:8px solid #fff;outline:1px solid var(--line);border-radius:8px}
+.status{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;font-weight:600}
+.status.wait{background:var(--warnbg);color:var(--warn)}
+.status.paid{background:var(--goodbg);color:var(--good)}
+.dot{width:10px;height:10px;border-radius:50%;background:currentColor}
+.wait .dot{animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){.wait .dot{animation:none}}
+.steps{display:flex;gap:6px}
+.steps i{flex:1;height:4px;border-radius:99px;background:var(--line2)}
+.steps i.on{background:var(--blue)}
+.link-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+/* Gift card */
+.gcard{border-radius:16px;padding:20px;color:#fff;background:linear-gradient(135deg,#0F2E57 0%,#1E5AA8 70%,#3C7BC9 100%);display:grid;gap:10px;min-height:190px;position:relative;overflow:hidden}
+.gcard .amt{font-size:34px;font-weight:800;letter-spacing:-.02em}
+.gcard .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:15px;background:rgba(255,255,255,.14);padding:6px 10px;border-radius:8px;justify-self:start;letter-spacing:.06em}
+.gcard small{opacity:.85}
+.amounts{display:flex;flex-wrap:wrap;gap:8px}
+.amounts button{padding:8px 14px;border:1px solid var(--line2);border-radius:99px;font-weight:600;background:#fff}
+.amounts button[aria-pressed="true"]{background:var(--deep);color:#fff;border-color:var(--deep)}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{text-align:left;font-size:12.5px;color:var(--muted);font-weight:600;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+.applied{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;background:var(--goodbg);color:var(--good);font-weight:600;font-size:14px}
+.sum div{display:flex;justify-content:space-between;padding:4px 0;font-size:14px}
+.sum .t{font-weight:700;font-size:16px;border-top:1px solid var(--line);padding-top:8px;margin-top:4px}
+.err{color:var(--bad);font-size:13px;font-weight:600}
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>Πληρωμές: τρεις προτάσεις</h1>
+    <p>Τρία κενά από τη μελέτη ανταγωνισμού της 23/9, ως σχέδια για να δείτε πριν γραφτεί κώδικας. Όλα πατιούνται. Κάτω από το καθένα: τι χρειάζεται και τι πρέπει να αποφασίσετε.</p>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Προτάσεις">
+    <button class="tab" role="tab" aria-selected="true" data-p="p1" id="t1">Πληρωμή στη μέση <span class="chip">1–2 ώρες</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-p="p2" id="t2">Κάρτα στην προβλήτα <span class="chip">4–6 ώρες</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-p="p3" id="t3">Δωροκάρτες <span class="chip">4–6 ώρες</span></button>
+  </nav>
+
+  <!-- ============ 1. Abandoned payment ============ -->
+  <section class="panel" id="p1" role="tabpanel" aria-labelledby="t1">
+    <div class="lead">
+      <h2>Email όταν η πληρωμή μένει στη μέση</h2>
+      <p>Ο επισκέπτης γράφει στοιχεία, πάει στη σελίδα της Viva και κλείνει την καρτέλα. Σήμερα η κράτηση λήγει σιωπηλά μετά από 60 λεπτά και οι θέσεις ξαναβγαίνουν. Η πρόταση: ένα μόνο email, με σύνδεσμο που τον γυρίζει στο ίδιο checkout, με τα ίδια άτομα και την ίδια αναχώρηση.</p>
+    </div>
+
+    <div class="cols side">
+      <div class="sec">
+        <div class="sec-h">
+          <div><h3>Το email</h3><p>Από το όνομα του διοργανωτή, απάντηση στο δικό του email.</p></div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <div class="seg" role="group" aria-label="Συσκευή">
+              <button type="button" aria-pressed="true" data-dev="phone">Κινητό</button>
+              <button type="button" aria-pressed="false" data-dev="desk">Υπολογιστής</button>
+            </div>
+            <div class="seg" role="group" aria-label="Θέμα">
+              <button type="button" aria-pressed="true" data-subj="a">Θέμα Α</button>
+              <button type="button" aria-pressed="false" data-subj="b">Θέμα Β</button>
+            </div>
+            <div class="seg" role="group" aria-label="Γλώσσα">
+              <button type="button" aria-pressed="true" data-lang="el">Ελληνικά</button>
+              <button type="button" aria-pressed="false" data-lang="en">English</button>
+            </div>
+          </div>
+        </div>
+        <div class="sec-b">
+          <div class="mailwrap">
+            <div class="mail phone" id="mail">
+              <div class="mail-meta">
+                <span><b id="m-from">Aegean Blue Cruises</b> &lt;bookings@kaiki.gr&gt;</span>
+                <span id="m-subj-line">Θέμα: <b id="m-subj">Η κράτησή σας για το Απογευματινό ψάρεμα δεν ολοκληρώθηκε</b></span>
+              </div>
+              <div class="mail-head" id="m-brand">Aegean Blue Cruises</div>
+              <div class="mail-body">
+                <h4 id="m-h">Η πληρωμή σας δεν ολοκληρώθηκε</h4>
+                <p id="m-p1">Γεια σας Μαρία, ξεκινήσατε μια κράτηση αλλά η πληρωμή δεν έγινε. Αν θέλετε ακόμα να έρθετε, συνεχίστε από εκεί που σταματήσατε.</p>
+                <div class="trip">
+                  <b id="m-trip">Απογευματινό ψάρεμα</b>
+                  <span id="m-when">Σάββατο 27 Σεπτεμβρίου · 15:00 · Μαρίνα Ζέας</span>
+                  <span id="m-pax">2 ενήλικες, 1 παιδί · 125,00 €</span>
+                </div>
+                <a class="mail-cta" href="#p1" id="m-cta">Ολοκλήρωση πληρωμής</a>
+                <p class="note" id="m-p2">Οι θέσεις δεν είναι κρατημένες. Θα ελέγξουμε ξανά τη διαθεσιμότητα όταν πατήσετε το κουμπί.</p>
+              </div>
+              <div class="mail-foot" id="m-foot">Λάβατε αυτό το email επειδή ξεκινήσατε κράτηση στο aegean-blue.gr. Δεν θα λάβετε άλλη υπενθύμιση για αυτή την κράτηση.</div>
+            </div>
+          </div>
+          <p class="note">Στα αγγλικά το ίδιο κείμενο, στη γλώσσα που είχε το checkout. Τα δύο θέματα είναι για να διαλέξετε ένα.</p>
+        </div>
+      </div>
+
+      <div style="display:grid;gap:18px;align-content:start">
+        <div class="sec">
+          <div class="sec-h"><div><h3>Πότε φεύγει</h3><p>Ένα email, ποτέ δεύτερο.</p></div></div>
+          <div class="sec-b">
+            <div class="tl">
+              <div><b>15:02</b><span>Ο επισκέπτης πάει στη Viva. Η κράτηση περιμένει πληρωμή.</span></div>
+              <div><b>16:02</b><span>Λήγει (όπως σήμερα, 60 λεπτά). Οι θέσεις ξαναβγαίνουν.</span></div>
+              <div><b id="send-at">16:02</b><span>Φεύγει το email, <span id="delay-txt">αμέσως μόλις λήξει</span>.</span></div>
+              <div><b>—</b><span>Δεν φεύγει αν: πλήρωσε με άλλη κράτηση, η αναχώρηση γέμισε, ή είναι σε λιγότερο από 3 ώρες.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="sec">
+          <div class="sec-h"><div><h3>Στο panel του διοργανωτή</h3><p>Ρυθμίσεις → Email</p></div></div>
+          <div class="sec-b">
+            <label style="display:flex;gap:10px;align-items:flex-start">
+              <input type="checkbox" id="ab-on" checked style="margin-top:4px">
+              <span><b>Email όταν η πληρωμή μένει στη μέση</b><br><span class="note">Ανοιχτό από προεπιλογή.</span></span>
+            </label>
+            <div class="field">
+              <label for="ab-delay">Πότε</label>
+              <select id="ab-delay">
+                <option value="0">Μόλις λήξει η κράτηση</option>
+                <option value="120">2 ώρες αργότερα</option>
+                <option value="1440">Την επόμενη μέρα, 10:00</option>
+              </select>
+            </div>
+            <p class="note" id="ab-off-note" hidden>Κλειστό: οι κρατήσεις λήγουν σιωπηλά, όπως σήμερα.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cols two">
+      <div class="sec">
+        <div class="sec-h"><div><h3>Τι χρειάζεται για να γίνει</h3></div></div>
+        <div class="sec-b est">
+          <div><span>Ένα νέο email (ελληνικά, αγγλικά) στο ίδιο πρότυπο με τα άλλα</span><span class="num">0,5 ώρα</span></div>
+          <div><span>Αποστολή από τη λήξη της κράτησης, με τους τρεις κανόνες «δεν φεύγει»</span><span class="num">0,5 ώρα</span></div>
+          <div><span>Σύνδεσμος πίσω στο checkout που ξαναελέγχει θέσεις και τιμή</span><span class="num">0,5 ώρα</span></div>
+          <div><span>Ρύθμιση στο panel, τεστ</span><span class="num">0,5 ώρα</span></div>
+          <div><span>Σύνολο</span><span class="num">1–2 ώρες</span></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-h"><div><h3>Ερωτήσεις</h3></div></div>
+        <div class="sec-b">
+          <ul class="q">
+            <li><b>Θέμα Α ή Θέμα Β;</b><span>Α: «Η κράτησή σας για … δεν ολοκληρώθηκε». Β: «Κρατήσαμε τα στοιχεία σας, μένει μόνο η πληρωμή».</span></li>
+            <li><b>Αμέσως ή αργότερα;</b><span>Προτείνουμε αμέσως μόλις λήξει: ο επισκέπτης είναι ακόμα ζεστός. Ο διοργανωτής το αλλάζει.</span></li>
+            <li><b>Θέλει συγκατάθεση;</b><span>Το προτείνουμε ως email της κράτησης, όχι διαφήμιση: μόνο σε όποιον έδωσε email και ξεκίνησε πληρωμή, ένα και μόνο. Να το επιβεβαιώσει ο δικηγόρος.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2. Card on the quay ============ -->
+  <section class="panel" id="p2" role="tabpanel" aria-labelledby="t2" hidden>
+    <div class="lead">
+      <h2>Πώληση με κάρτα στην προβλήτα</h2>
+      <p>Κάποιος έρχεται στο σκάφος χωρίς κράτηση και θέλει να πληρώσει με κάρτα. Το πλήρωμα φτιάχνει την κράτηση από το κινητό, ο επισκέπτης σκανάρει ένα QR και πληρώνει στο δικό του κινητό μέσω Viva. Μόλις πληρώσει, βγαίνει το εισιτήριο και μπαίνει στη λίστα επιβατών.</p>
+    </div>
+
+    <div class="cols two">
+      <div class="phone">
+        <div class="frame"><div class="screen" id="quay">
+          <div class="scr-top"><span>Πώληση τώρα</span><small id="q-step-txt">1 από 4</small></div>
+          <div class="steps"><i class="on"></i><i></i><i></i><i></i></div>
+
+          <div data-q="1" style="display:grid;gap:10px">
+            <span class="note">Αναχωρήσεις σήμερα</span>
+            <button type="button" class="dep" aria-pressed="true" data-dep="Απογευματινό ψάρεμα · 15:00" data-left="9"><span><b>15:00 · Απογευματινό ψάρεμα</b><small>Γαλήνη · 9 θέσεις ελεύθερες</small></span><span class="tag">επιλογή</span></button>
+            <button type="button" class="dep" aria-pressed="false" data-dep="Ηλιοβασίλεμα στην Αίγινα · 18:30" data-left="4"><span><b>18:30 · Ηλιοβασίλεμα στην Αίγινα</b><small>Οδυσσέας · 4 θέσεις ελεύθερες</small></span><span class="tag">επιλογή</span></button>
+            <div class="card">
+              <div class="ctr"><span>Ενήλικας<small>50,00 €</small></span><span class="cnt"><button type="button" data-c="a" data-d="-1" aria-label="Λιγότεροι ενήλικες">−</button><b id="ca">2</b><button type="button" data-c="a" data-d="1" aria-label="Περισσότεροι ενήλικες">+</button></span></div>
+              <div class="ctr"><span>Παιδί<small>25,00 €</small></span><span class="cnt"><button type="button" data-c="c" data-d="-1" aria-label="Λιγότερα παιδιά">−</button><b id="cc">1</b><button type="button" data-c="c" data-d="1" aria-label="Περισσότερα παιδιά">+</button></span></div>
+              <div class="total"><span>Σύνολο</span><span class="num" id="q-total">125,00 €</span></div>
+            </div>
+            <button type="button" class="btn primary block" data-go="2">Συνέχεια</button>
+          </div>
+
+          <div data-q="2" style="display:none;gap:10px">
+            <span class="note">Για τη λίστα επιβατών. Τα υπόλοιπα τα συμπληρώνει ο ίδιος από το εισιτήριο.</span>
+            <div class="card" id="q-guests"></div>
+            <div class="field"><label for="q-email">Email ή κινητό (για το εισιτήριο)</label><input id="q-email" value="maria@example.com"></div>
+            <button type="button" class="btn primary block" data-go="3">Πληρωμή με κάρτα · <span id="q-total2">125,00 €</span></button>
+            <button type="button" class="btn block">Πληρώθηκε με μετρητά</button>
+          </div>
+
+          <div data-q="3" style="display:none;gap:10px">
+            <span class="note" style="text-align:center">Δώστε το κινητό να σκανάρει ο επισκέπτης</span>
+            <div class="qr" role="img" aria-label="QR πληρωμής Viva"></div>
+            <div class="status wait" id="q-status"><span class="dot"></span><span id="q-status-txt">Περιμένει πληρωμή · <span class="num" id="q-total3">125,00 €</span></span></div>
+            <div class="link-row"><button type="button" class="btn">Αποστολή με SMS</button><button type="button" class="btn">Αποστολή με email</button></div>
+            <button type="button" class="btn primary block" id="q-sim">Δείγμα: ο επισκέπτης πλήρωσε</button>
+            <span class="note">Ο σύνδεσμος λήγει σε 15 λεπτά. Οι θέσεις κρατιούνται ως τότε.</span>
+          </div>
+
+          <div data-q="4" style="display:none;gap:10px">
+            <div class="status paid"><span class="dot"></span><span>Πληρώθηκε με κάρτα · <span class="num" id="q-total4">125,00 €</span></span></div>
+            <div class="card">
+              <b>Κράτηση KA-7Q2F</b>
+              <span class="note" id="q-sum">Απογευματινό ψάρεμα · 15:00 · 3 άτομα</span>
+              <span class="tag good" style="justify-self:start">Στη λίστα επιβατών</span>
+              <span class="tag" style="justify-self:start">Εισιτήριο στάλθηκε στο maria@example.com</span>
+            </div>
+            <button type="button" class="btn primary block">Επιβίβαση τώρα</button>
+            <button type="button" class="btn block" data-go="1">Νέα πώληση</button>
+          </div>
+        </div></div>
+      </div>
+
+      <div style="display:grid;gap:18px;align-content:start">
+        <div class="sec">
+          <div class="sec-h"><div><h3>Πώς δουλεύει</h3></div></div>
+          <div class="sec-b">
+            <ol class="list">
+              <li>Μπαίνει ως «Πώληση τώρα» στη σελίδα «Σάρωση εισιτηρίων», για όποιον επιτρέπεται να κάνει κρατήσεις.</li>
+              <li>Η κράτηση γίνεται όπως όταν τη φτιάχνει ο διοργανωτής στο τηλέφωνο: ίδιες τιμές, ίδια όρια θέσεων.</li>
+              <li>Η πληρωμή είναι σύνδεσμος Viva για αυτή την κράτηση, σε QR. Δεν χρειάζεται POS ή εφαρμογή.</li>
+              <li>Η Viva ειδοποιεί το Kaiki όπως σε κάθε online πληρωμή: η οθόνη γίνεται πράσινη μόνη της.</li>
+              <li>Για τη λίστα επιβατών ζητάμε μόνο όνομα, φύλο και υπηκοότητα ανά άτομο. Τα υπόλοιπα τα συμπληρώνει ο επισκέπτης από το εισιτήριο.</li>
+            </ol>
+          </div>
+        </div>
+        <div class="sec">
+          <div class="sec-h"><div><h3>Τι χρειάζεται για να γίνει</h3></div></div>
+          <div class="sec-b est">
+            <div><span>Η οθόνη «Πώληση τώρα» στο κινητό (4 βήματα)</span><span class="num">2 ώρες</span></div>
+            <div><span>Σύνδεσμος Viva ανά κράτηση ως QR, αποστολή με SMS ή email</span><span class="num">1 ώρα</span></div>
+            <div><span>Κράτηση θέσεων 15 λεπτά, ζωντανή ενημέρωση της οθόνης</span><span class="num">1 ώρα</span></div>
+            <div><span>Τεστ, ρόλοι, κινητό</span><span class="num">1 ώρα</span></div>
+            <div><span>Σύνολο</span><span class="num">4–6 ώρες</span></div>
+          </div>
+        </div>
+        <div class="sec">
+          <div class="sec-h"><div><h3>Ερωτήσεις</h3></div></div>
+          <div class="sec-b">
+            <ul class="q">
+              <li><b>Ποιος πουλάει;</b><span>Μόνο ιδιοκτήτης και διαχειριστής, ή και το πλήρωμα; Σήμερα το πλήρωμα δεν βλέπει τιμές.</span></li>
+              <li><b>SMS;</b><span>Η αποστολή με SMS θέλει πάροχο SMS (κόστος ανά μήνυμα). Αλλιώς μόνο QR και email.</span></li>
+              <li><b>Ανοιχτό για τον λογιστή:</b><span>Σύνδεση καρτών με την ταμειακή μηχανή (POS και φορολογικός μηχανισμός). Περιμένουμε την απάντησή του πριν το χτίσουμε.</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. Gift cards ============ -->
+  <section class="panel" id="p3" role="tabpanel" aria-labelledby="t3" hidden>
+    <div class="lead">
+      <h2>Δωροκάρτες</h2>
+      <p>Ο επισκέπτης αγοράζει δωροκάρτα από τη σελίδα του διοργανωτή, για ποσό ή για συγκεκριμένη εκδρομή, και τη στέλνει σε κάποιον. Ο παραλήπτης βάζει τον κωδικό στο checkout. Το Kaiki έχει ήδη κουπόνια με υπόλοιπο και λήξη: η δωροκάρτα είναι ένα κουπόνι που το αγόρασε ο επισκέπτης.</p>
+    </div>
+
+    <div class="cols two">
+      <div class="sec">
+        <div class="sec-h"><div><h3>1. Η σελίδα «Δωροκάρτα»</h3><p>aegean-blue.gr/dorokarta</p></div></div>
+        <div class="sec-b">
+          <div class="seg" role="group" aria-label="Είδος">
+            <button type="button" aria-pressed="true" data-gk="amt">Ποσό</button>
+            <button type="button" aria-pressed="false" data-gk="trip">Εκδρομή</button>
+          </div>
+          <div id="gk-amt" style="display:grid;gap:10px">
+            <div class="amounts" role="group" aria-label="Ποσό">
+              <button type="button" aria-pressed="false" data-amt="50">50 €</button>
+              <button type="button" aria-pressed="true" data-amt="100">100 €</button>
+              <button type="button" aria-pressed="false" data-amt="150">150 €</button>
+              <button type="button" aria-pressed="false" data-amt="250">250 €</button>
+            </div>
+          </div>
+          <div id="gk-trip" style="display:none">
+            <div class="field"><label for="g-trip">Εκδρομή</label>
+              <select id="g-trip"><option value="Ηλιοβασίλεμα στην Αίγινα|90">Ηλιοβασίλεμα στην Αίγινα · 2 ενήλικες · 90 €</option><option value="Ολοήμερη στα τρία νησιά|160">Ολοήμερη στα τρία νησιά · 2 ενήλικες · 160 €</option></select>
+            </div>
+          </div>
+          <div class="row two">
+            <div class="field"><label for="g-to">Για</label><input id="g-to" value="Ελένη"></div>
+            <div class="field"><label for="g-to-mail">Email παραλήπτη</label><input id="g-to-mail" value="eleni@example.com"></div>
+          </div>
+          <div class="field"><label for="g-msg">Μήνυμα</label><textarea id="g-msg" rows="2">Χρόνια πολλά! Για ένα απόγευμα στη θάλασσα.</textarea></div>
+          <div class="row two">
+            <div class="field"><label for="g-from">Από</label><input id="g-from" value="Νίκος"></div>
+            <div class="field"><label for="g-date">Να σταλεί</label><select id="g-date"><option>Αμέσως</option><option>Στις 12 Οκτωβρίου, 09:00</option></select></div>
+          </div>
+          <button type="button" class="btn primary block">Πληρωμή · <span id="g-pay">100,00 €</span></button>
+          <span class="note">Πληρώνεται μέσω Viva, όπως οι κρατήσεις.</span>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h"><div><h3>2. Τι λαμβάνει ο παραλήπτης</h3><p>Email με τη δωροκάρτα και PDF για εκτύπωση.</p></div></div>
+        <div class="sec-b">
+          <div class="gcard">
+            <small>Aegean Blue Cruises · Δωροκάρτα</small>
+            <span class="amt num" id="gc-amt">100 €</span>
+            <span id="gc-for">Για την Ελένη, από τον Νίκο</span>
+            <small id="gc-msg">«Χρόνια πολλά! Για ένα απόγευμα στη θάλασσα.»</small>
+            <span class="code">KAIKI-GIFT-7Q2F-M4XA</span>
+            <small>Ισχύει έως 24/09/2027 · Χρησιμοποιείται σε όποια εκδρομή θέλετε</small>
+          </div>
+          <p class="note">Το PDF έχει και QR που ανοίγει τη σελίδα κράτησης με τον κωδικό ήδη γραμμένο.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="cols two">
+      <div class="sec">
+        <div class="sec-h"><div><h3>3. Εξαργύρωση στο checkout</h3><p>Νέο πεδίο «Κωδικός δωροκάρτας ή κουπονιού».</p></div></div>
+        <div class="sec-b">
+          <div class="row two" style="align-items:end">
+            <div class="field"><label for="g-code">Κωδικός δωροκάρτας ή κουπονιού</label><input id="g-code" value="KAIKI-GIFT-7Q2F-M4XA"></div>
+            <button type="button" class="btn" id="g-apply">Εφαρμογή</button>
+          </div>
+          <div id="g-applied" hidden class="applied"><span>Δωροκάρτα: −100,00 €</span><span>Υπόλοιπο 0,00 €</span></div>
+          <p class="err" id="g-err" hidden>Ο κωδικός δεν βρέθηκε. Ελέγξτε τα γράμματα και τους αριθμούς.</p>
+          <div class="sum">
+            <div><span>Ηλιοβασίλεμα στην Αίγινα · 2 ενήλικες</span><span class="num">90,00 €</span></div>
+            <div><span>Παιδί</span><span class="num">35,00 €</span></div>
+            <div id="g-line" hidden><span>Δωροκάρτα</span><span class="num">−100,00 €</span></div>
+            <div class="t"><span>Πληρωμή τώρα</span><span class="num" id="g-total">125,00 €</span></div>
+          </div>
+          <p class="note">Αν η δωροκάρτα καλύπτει όλο το ποσό, η κράτηση επιβεβαιώνεται χωρίς πληρωμή. Ό,τι περισσέψει μένει στον κωδικό για επόμενη φορά.</p>
+        </div>
+      </div>
+
+      <div class="sec">
+        <div class="sec-h"><div><h3>4. Στο panel του διοργανωτή</h3><p>Πωλήσεις → Δωροκάρτες</p></div>
+          <div class="seg" role="group" aria-label="Φίλτρο">
+            <button type="button" aria-pressed="true" data-gf="all">Όλες</button>
+            <button type="button" aria-pressed="false" data-gf="open">Με υπόλοιπο</button>
+          </div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Κωδικός</th><th>Για</th><th>Αξία</th><th>Υπόλοιπο</th><th>Λήξη</th><th>Κατάσταση</th></tr></thead>
+            <tbody id="g-rows">
+              <tr data-open="1"><td>…M4XA</td><td>Ελένη</td><td class="num">100,00 €</td><td class="num">100,00 €</td><td>24/09/2027</td><td><span class="tag">Δεν χρησιμοποιήθηκε</span></td></tr>
+              <tr data-open="1"><td>…K8PR</td><td>Γιάννης</td><td class="num">150,00 €</td><td class="num">35,00 €</td><td>02/07/2027</td><td><span class="tag warn">Μερικώς</span></td></tr>
+              <tr data-open="0"><td>…Z3TT</td><td>Άννα</td><td class="num">90,00 €</td><td class="num">0,00 €</td><td>18/06/2027</td><td><span class="tag good">Εξαργυρώθηκε</span></td></tr>
+              <tr data-open="0"><td>…B7QA</td><td>Κώστας</td><td class="num">50,00 €</td><td class="num">50,00 €</td><td>01/09/2026</td><td><span class="tag bad">Έληξε</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="cols two">
+      <div class="sec">
+        <div class="sec-h"><div><h3>Τι χρειάζεται για να γίνει</h3></div></div>
+        <div class="sec-b est">
+          <div><span>Σελίδα «Δωροκάρτα» και πληρωμή μέσω Viva</span><span class="num">1,5 ώρα</span></div>
+          <div><span>Έκδοση ως κουπόνι (υπάρχει ήδη: υπόλοιπο, λήξη, υπενθύμιση λήξης)</span><span class="num">0,5 ώρα</span></div>
+          <div><span>Email και PDF με QR, αποστολή σε ημερομηνία</span><span class="num">1 ώρα</span></div>
+          <div><span>Πεδίο κωδικού στο checkout (σήμερα δεν υπάρχει)</span><span class="num">1 ώρα</span></div>
+          <div><span>Λίστα στο panel, τεστ</span><span class="num">1 ώρα</span></div>
+          <div><span>Σύνολο</span><span class="num">4–6 ώρες</span></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-h"><div><h3>Ερωτήσεις</h3></div></div>
+        <div class="sec-b">
+          <ul class="q">
+            <li><b>Ποσό, εκδρομή ή και τα δύο;</b><span>Το σχέδιο δείχνει και τα δύο. Μόνο ποσό είναι απλούστερο.</span></li>
+            <li><b>Πόσο ισχύει;</b><span>Προτείνουμε 12 μήνες, με υπενθύμιση πριν λήξει (υπάρχει ήδη για τα κουπόνια).</span></li>
+            <li><b>Για τον λογιστή:</b><span>Ο ΦΠΑ και το παραστατικό μπαίνουν όταν πουλιέται η δωροκάρτα ή όταν εξαργυρώνεται; Και τι γίνεται με όσες λήγουν αχρησιμοποίητες; Μέχρι να απαντήσει, δεν βγαίνει παραστατικό στην αγορά.</span></li>
+            <li><b>Αλλάζει το OOS-7;</b><span>Οι δωροκάρτες ήταν εκτός πεδίου. Χρειάζεται το ΟΚ σας για να μπουν.</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var $=function(s,r){return (r||document).querySelector(s)}, $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+  var euro=function(n){return n.toFixed(2).replace('.',',')+' €'};
+  function press(group,btn){$$('button',group).forEach(function(b){b.setAttribute('aria-pressed',b===btn)})}
+
+  // tabs
+  $$('.tab').forEach(function(t){t.onclick=function(){
+    $$('.tab').forEach(function(x){x.setAttribute('aria-selected',x===t)});
+    $$('.panel').forEach(function(p){p.hidden=p.id!==t.dataset.p});
+  }});
+
+  // 1. email
+  var lang='el',subj='a';
+  var T={el:{a:'Η κράτησή σας για το Απογευματινό ψάρεμα δεν ολοκληρώθηκε',b:'Κρατήσαμε τα στοιχεία σας, μένει μόνο η πληρωμή',h:'Η πληρωμή σας δεν ολοκληρώθηκε',p1:'Γεια σας Μαρία, ξεκινήσατε μια κράτηση αλλά η πληρωμή δεν έγινε. Αν θέλετε ακόμα να έρθετε, συνεχίστε από εκεί που σταματήσατε.',when:'Σάββατο 27 Σεπτεμβρίου · 15:00 · Μαρίνα Ζέας',pax:'2 ενήλικες, 1 παιδί · 125,00 €',cta:'Ολοκλήρωση πληρωμής',p2:'Οι θέσεις δεν είναι κρατημένες. Θα ελέγξουμε ξανά τη διαθεσιμότητα όταν πατήσετε το κουμπί.',foot:'Λάβατε αυτό το email επειδή ξεκινήσατε κράτηση στο aegean-blue.gr. Δεν θα λάβετε άλλη υπενθύμιση για αυτή την κράτηση.',sl:'Θέμα: ',trip:'Απογευματινό ψάρεμα'},
+         en:{a:'Your booking for the Afternoon fishing trip was not completed',b:'We kept your details, only the payment is left',h:'Your payment was not completed',p1:'Hello Maria, you started a booking but the payment did not go through. If you would still like to come, pick up where you left off.',when:'Saturday 27 September · 15:00 · Zea Marina',pax:'2 adults, 1 child · €125.00',cta:'Complete payment',p2:'Your seats are not held. We will check availability again when you press the button.',foot:'You received this email because you started a booking on aegean-blue.gr. You will not get another reminder for this booking.',sl:'Subject: ',trip:'Afternoon fishing trip'}};
+  function mail(){var t=T[lang];$('#m-subj').textContent=t[subj];$('#m-subj-line').firstChild.nodeValue=t.sl;$('#m-h').textContent=t.h;$('#m-p1').textContent=t.p1;$('#m-when').textContent=t.when;$('#m-pax').textContent=t.pax;$('#m-cta').textContent=t.cta;$('#m-p2').textContent=t.p2;$('#m-foot').textContent=t.foot;$('#m-trip').textContent=t.trip}
+  $$('[data-dev]').forEach(function(b){b.onclick=function(){press(b.parentNode,b);$('#mail').classList.toggle('phone',b.dataset.dev==='phone')}});
+  $$('[data-subj]').forEach(function(b){b.onclick=function(){press(b.parentNode,b);subj=b.dataset.subj;mail()}});
+  $$('[data-lang]').forEach(function(b){b.onclick=function(){press(b.parentNode,b);lang=b.dataset.lang;mail()}});
+  $('#ab-delay').onchange=function(){var v=this.value;$('#send-at').textContent=v==='0'?'16:02':v==='120'?'18:02':'10:00';$('#delay-txt').textContent=v==='0'?'αμέσως μόλις λήξει':v==='120'?'δύο ώρες μετά τη λήξη':'την επόμενη μέρα στις 10:00'};
+  $('#ab-on').onchange=function(){$('#ab-off-note').hidden=this.checked;$('#ab-delay').disabled=!this.checked};
+
+  // 2. quay
+  var ca=2,cc=1,dep='Απογευματινό ψάρεμα · 15:00',left=9;
+  function tot(){return ca*50+cc*25}
+  function refresh(){ $('#ca').textContent=ca;$('#cc').textContent=cc;['#q-total','#q-total2','#q-total3','#q-total4'].forEach(function(s){$(s).textContent=euro(tot())});
+    var g=$('#q-guests');g.innerHTML='';var n=ca+cc;
+    for(var i=1;i<=n;i++){var d=document.createElement('div');d.className='row three';d.innerHTML='<div class="field"><label for="qn'+i+'">Επιβάτης '+i+'</label><input id="qn'+i+'" value="'+(i===1?'Μαρία Κ.':'')+'"></div><div class="field"><label for="qs'+i+'">Φύλο</label><select id="qs'+i+'"><option></option><option>Α</option><option'+(i===1?' selected':'')+'>Θ</option></select></div><div class="field"><label for="qc'+i+'">Υπηκοότητα</label><select id="qc'+i+'"><option>Ελλάδα</option><option>Ιταλία</option><option>Γερμανία</option></select></div>';g.appendChild(d)}
+    $('#q-sum').textContent=dep+' · '+n+' άτομα';
+  }
+  $$('.cnt button').forEach(function(b){b.onclick=function(){var d=+b.dataset.d;if(b.dataset.c==='a')ca=Math.max(0,Math.min(left-cc,ca+d));else cc=Math.max(0,Math.min(left-ca,cc+d));refresh()}});
+  $$('.dep').forEach(function(b){b.onclick=function(){$$('.dep').forEach(function(x){x.setAttribute('aria-pressed',x===b)});dep=b.dataset.dep;left=+b.dataset.left;if(ca+cc>left){ca=Math.min(ca,left);cc=Math.max(0,left-ca)}refresh()}});
+  function go(n){$$('[data-q]').forEach(function(s){s.style.display=+s.dataset.q===n?'grid':'none'});$$('.steps i').forEach(function(i,k){i.classList.toggle('on',k<n)});$('#q-step-txt').textContent=n+' από 4';
+    if(n===3){var s=$('#q-status');s.className='status wait';$('#q-status-txt').innerHTML='Περιμένει πληρωμή · <span class="num">'+euro(tot())+'</span>'}}
+  $$('[data-go]').forEach(function(b){b.onclick=function(){go(+b.dataset.go)}});
+  $('#q-sim').onclick=function(){var s=$('#q-status');s.className='status paid';$('#q-status-txt').textContent='Πληρώθηκε';setTimeout(function(){go(4)},700)};
+  refresh();
+
+  // 3. gift cards
+  var amt=100;
+  function gift(){var a=euro(amt);$('#g-pay').textContent=a;$('#gc-amt').textContent=amt+' €';$('#gc-for').textContent='Για '+(($('#g-to').value||'').trim()||'…')+', από '+(($('#g-from').value||'').trim()||'…');var m=($('#g-msg').value||'').trim();$('#gc-msg').textContent=m?'«'+m+'»':''}
+  $$('[data-amt]').forEach(function(b){b.onclick=function(){press(b.parentNode,b);amt=+b.dataset.amt;gift()}});
+  $$('[data-gk]').forEach(function(b){b.onclick=function(){press(b.parentNode,b);var trip=b.dataset.gk==='trip';$('#gk-amt').style.display=trip?'none':'grid';$('#gk-trip').style.display=trip?'block':'none';if(trip){amt=+$('#g-trip').value.split('|')[1]}else{var on=$('[data-amt][aria-pressed="true"]');amt=on?+on.dataset.amt:100}gift()}});
+  $('#g-trip').onchange=function(){amt=+this.value.split('|')[1];gift()};
+  ['#g-to','#g-from','#g-msg'].forEach(function(s){$(s).oninput=gift});
+  $('#g-apply').onclick=function(){var ok=/^KAIKI-GIFT-/i.test(($('#g-code').value||'').trim());$('#g-err').hidden=ok;$('#g-applied').hidden=!ok;$('#g-line').hidden=!ok;$('#g-total').textContent=ok?'25,00 €':'125,00 €'};
+  $$('[data-gf]').forEach(function(b){b.onclick=function(){press(b.parentNode,b);var open=b.dataset.gf==='open';$$('#g-rows tr').forEach(function(r){r.hidden=open&&r.dataset.open!=='1'})}});
+  gift();
+})();
+</script>

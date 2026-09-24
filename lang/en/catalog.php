@@ -431,6 +431,7 @@ return [
 
         // The form's two tabs (2026-09-17).
         'wizard' => [
+            'title' => 'New trip',
             // The new-trip guide (product owner, 2026-09-22, direction Α).
             'basics' => [
                 'label' => 'The basics',
@@ -456,6 +457,7 @@ return [
                 'schedule_refused' => 'The :time schedule was not saved',
             ],
             'prices' => [
+                'vessel_section' => 'Boat price',
                 'label' => 'Prices',
                 'description' => 'What each person pays',
                 'intro' => 'First the passenger groups: Adult, Child and Infant are ready; add disabled passengers, students or whatever else you sell. Then tick the periods that have another price and fill in the prices.',
@@ -466,6 +468,9 @@ return [
                 'add_season' => 'Price for a period',
                 'plan_refused' => 'The “:season” price list was not saved',
                 'quote' => 'A trip sold on request has no price here: you send one with each enquiry, from “Quotes”.',
+            ],
+            'terms' => [
+                'description' => 'Cancellation, VAT and what the guest is asked',
             ],
             'page' => [
                 'label' => 'Page',

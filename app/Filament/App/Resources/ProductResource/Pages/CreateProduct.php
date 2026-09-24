@@ -6,6 +6,7 @@ namespace App\Filament\App\Resources\ProductResource\Pages;
 
 use App\Domain\Availability\Actions\GenerateDepartures;
 use App\Domain\Availability\Support\WeekdayMask;
+use App\Domain\Catalog\Actions\SaveExtra;
 use App\Domain\Catalog\Actions\SaveProduct;
 use App\Domain\Catalog\Actions\SaveScheduleRule;
 use App\Domain\Pricing\Actions\SavePriceTable;
@@ -15,12 +16,15 @@ use App\Enums\BookingMode;
 use App\Enums\DepositType;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource;
+use App\Filament\App\Resources\ProductResource\RelationManagers\ExtrasRelationManager;
 use App\Filament\App\Support\ScheduleConflictNotice;
 use App\Filament\Forms\MoneyInput;
+use App\Models\Extra;
 use App\Models\Product;
 use App\Models\RatePlan;
 use App\Models\ScheduleRule;
 use App\Models\Season;
+use App\Models\Vessel;
 use App\Support\Tenancy;
 use Filament\Forms\Components\Wizard\Step;
 use Filament\Notifications\Notification;
@@ -79,6 +83,12 @@ class CreateProduct extends CreateRecord
      */
     protected static bool $canCreateAnother = false;
 
+    /** «Νέα εκδρομή», not Filament's «Νέα εγγραφή: Εκδρομή» (2026-09-24). */
+    public function getTitle(): string
+    {
+        return __('catalog.product.wizard.title');
+    }
+
     /** Where the wizard lands: the trip's own page, on the tab it left off. */
     protected function getRedirectUrl(): string
     {
@@ -134,6 +144,17 @@ class CreateProduct extends CreateRecord
 
         unset($data['wizard_seasons'], $data['wizard_prices'], $data['wizard_terms']);
 
+        // «Πρόσθετα» (2026-09-24): saved after the trip, the way its own table
+        // saves them — scoped to this trip.
+        $extras = array_values((array) ($data['wizard_extras'] ?? []));
+        unset($data['wizard_extras']);
+
+        // A draft may be saved before «Πόσα άτομα» is answered; the column is
+        // not nullable, so it takes the boat's certificate until it is.
+        if (($data['max_pax'] ?? null) === null || $data['max_pax'] === '') {
+            $data['max_pax'] = (int) (Vessel::query()->whereKey($data['vessel_id'] ?? null)->value('capacity_max') ?? 1);
+        }
+
         $columns = [PriceTable::NEW_DEFAULT, ...array_map(static fn (int $id): string => 's' . $id, $seasonIds)];
         $grid = [];
 
@@ -160,6 +181,7 @@ class CreateProduct extends CreateRecord
         }
 
         $this->createRatePlans($product, $vesselPrice, $vesselSeasonPrices, $includedPax, $extraPaxPrice);
+        $this->createExtras($product, $extras);
         $this->createSchedules($product, $schedules);
 
         if ($wants === 'publish') {
@@ -236,6 +258,31 @@ class CreateProduct extends CreateRecord
             throw ValidationException::withMessages([
                 'data.wizard_prices' => array_merge(...array_values($exception->errors())),
             ]);
+        }
+    }
+
+    /**
+     * The wizard's «Πρόσθετα», each through {@see SaveExtra} as the trip's own
+     * table does. A row with no name is a box opened and left empty.
+     *
+     * @param  list<array<string, mixed>>  $extras
+     */
+    private function createExtras(Product $product, array $extras): void
+    {
+        foreach ($extras as $row) {
+            $name = (array) ($row['name'] ?? []);
+
+            if (array_filter($name, static fn (mixed $value): bool => is_string($value) && trim($value) !== '') === []) {
+                continue;
+            }
+
+            try {
+                app(SaveExtra::class)(new Extra, ExtrasRelationManager::attributesFrom($row), [$product->getKey() => []]);
+            } catch (ValidationException $exception) {
+                throw ValidationException::withMessages([
+                    'data.wizard_extras' => array_merge(...array_values($exception->errors())),
+                ]);
+            }
         }
     }
 

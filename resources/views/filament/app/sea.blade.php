@@ -511,6 +511,38 @@
         color: rgb(var(--warning-300));
     }
 
+    /*
+     * The new-trip wizard (2026-09-24): periods as cards like the edit page's
+     * ticks, and the price lines with the group's name beside its prices.
+     */
+    .ka-period-cards .fi-fo-checkbox-list-option-label {
+        padding: .7rem .85rem;
+        border: 1px solid rgb(var(--gray-200));
+        border-radius: .75rem;
+        background: #fff;
+    }
+
+    .ka-period-cards .fi-fo-checkbox-list-option-label:has(input:checked) {
+        border-color: rgb(var(--primary-600));
+        background: rgb(var(--primary-50));
+    }
+
+    .dark .ka-period-cards .fi-fo-checkbox-list-option-label {
+        border-color: rgba(255, 255, 255, .1);
+        background: rgba(255, 255, 255, .03);
+    }
+
+    .ka-price-row {
+        align-items: end;
+        padding-block: .6rem;
+        border-bottom: 1px solid #E1E8F2;
+    }
+
+    .ka-price-row-name {
+        font-weight: 600;
+        padding-bottom: .6rem;
+    }
+
     /* Rule Ε: the trip's name and its state on one line. */
     .ka-title-with-state {
         display: inline-flex;

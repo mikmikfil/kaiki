@@ -855,3 +855,50 @@ it('refuses a badge longer than twenty-four characters', function (): void {
         expect($product->refresh()->getTranslation('badge', 'el', false))->toBeNull();
     });
 })->group('fast');
+
+it('saves a draft from the first step, with the boat\'s certificate standing in for «Πόσα άτομα»', function (): void {
+    // Mike, 2026-09-24 (the wizard mockup): «Αποθήκευση ως πρόχειρη» at any
+    // step. A trip started today and finished tomorrow is how most first
+    // trips get made.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $page = productPageAs($owner, CreateProduct::class);
+
+    $state = productFormState();
+    unset($state['meeting_point_id']);
+    $state['max_pax'] = null;
+    $state['wizard_publish'] = 'publish';
+
+    $page->fillForm($state)->call('saveDraft')->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $product = Product::query()->firstOrFail();
+
+        expect($product->status)->toBe(ProductStatus::Draft)
+            ->and($product->meeting_point_id)->toBeNull()
+            ->and($product->max_pax)->toBe(12);
+    });
+})->group('fast');
+
+it('makes the extras typed in the wizard, as the trip\'s own table would', function (): void {
+    // Mike, 2026-09-24: «δεν βλέπω κάπου τις πρόσθετες υπηρεσίες».
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $page = productPageAs($owner, CreateProduct::class);
+
+    $state = productFormState([
+        'wizard_extras' => [
+            ['name' => ['el' => 'Μάσκες', 'en' => 'Masks'], 'kind' => 'free', 'is_active' => true],
+            ['name' => ['el' => 'Γεύμα', 'en' => 'Lunch'], 'kind' => 'paid', 'pricing_type' => 'per_person', 'price_cents' => '25,00', 'is_active' => true],
+        ],
+    ]);
+
+    $page->fillForm($state)->call('create')->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $extras = Product::query()->firstOrFail()->extras()->get();
+
+        expect($extras)->toHaveCount(2)
+            ->and($extras->firstWhere('price_cents', 2500))->not->toBeNull();
+    });
+})->group('fast');

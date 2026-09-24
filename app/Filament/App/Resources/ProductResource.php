@@ -576,118 +576,7 @@ class ProductResource extends Resource
                 // categories, so the section is not offered there at all.
                 ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat)
                 ->schema([
-                    Repeater::make('age_bands')
-                        // The section already says «Ηλικιακές κατηγορίες»; the
-                        // same words again over the list were the second of
-                        // two identical headings (2026-09-24).
-                        ->hiddenLabel()
-                        ->label(__('catalog.product.sections.bands'))
-                        ->addActionLabel(__('catalog.product.form.bands.add'))
-                        ->schema([
-                            // Not asked any more (2026-09-17): made from the
-                            // name on first save (SaveAgeBands::withCodes) and
-                            // carried here unchanged, so prices stay attached.
-                            Hidden::make('code'),
-
-                            TranslatableInput::text(
-                                'label',
-                                __('catalog.product.form.bands.label.label'),
-                                __('catalog.product.form.bands.label.help'),
-                                maxLength: 60,
-                            ),
-
-                            // By age («Παιδί», 3 έως 11) or by status («ΑμεΑ»,
-                            // «Φοιτητής»), product owner 2026-09-24. A status
-                            // group has no ages, and may ask for proof instead.
-                            ToggleButtons::make('kind')
-                                ->label(__('catalog.product.form.bands.kind.label'))
-                                ->options(AgeBandKind::class)
-                                ->default(AgeBandKind::Age->value)
-                                ->inline()
-                                ->grouped()
-                                ->live(),
-
-                            TextInput::make('min_age')
-                                ->label(__('catalog.product.form.bands.min_age.label'))
-                                ->integer()
-                                ->required()
-                                ->default(0)
-                                ->minValue(0)
-                                ->maxValue(120)
-                                ->visible(static fn (Get $get): bool => ! static::bandIsByStatus($get('kind'))),
-
-                            TextInput::make('max_age')
-                                ->label(__('catalog.product.form.bands.max_age.label'))
-                                ->helperText(__('catalog.product.form.bands.max_age.help'))
-                                ->integer()
-                                ->minValue(0)
-                                ->maxValue(120)
-                                ->visible(static fn (Get $get): bool => ! static::bandIsByStatus($get('kind'))),
-
-                            // No «ποσοστό της βασικής» any more (product owner,
-                            // 2026-09-17): every band's price is euros, typed in
-                            // the price table below. A new band is `fixed`; an
-                            // existing percentage band keeps its mode untouched
-                            // until the table is saved and writes it as euros.
-                            Hidden::make('pricing_mode')
-                                ->default(AgeBandPricing::Fixed->value),
-
-                            Hidden::make('price_multiplier_bp'),
-
-                            // The four switches together in one box, so the
-                            // band reads as name and ages, then its settings.
-                            Group::make([
-                                Toggle::make('is_base')
-                                    ->label(__('catalog.product.form.bands.is_base.label')),
-
-                                Toggle::make('counts_toward_capacity')
-                                    ->label(__('catalog.product.form.bands.counts_toward_capacity.label'))
-                                    ->helperText(__('catalog.product.form.bands.counts_toward_capacity.help'))
-                                    ->default(true),
-
-                                Toggle::make('requires_adult')
-                                    ->label(__('catalog.product.form.bands.requires_adult.label')),
-
-                                // «Χωρίς έγγραφο» (2026-09-17): checkout asks these
-                                // passengers for a name, nationality and date of
-                                // birth, and no document.
-                                Toggle::make('no_document')
-                                    ->label(__('catalog.product.form.bands.no_document.label'))
-                                    ->helperText(__('catalog.product.form.bands.no_document.help')),
-
-                                // What stands in for an age check: the crew see
-                                // the card at boarding, told so on the boarding
-                                // list. No card number is asked
-                                // at checkout (Mike, 2026-09-24: it proves
-                                // nothing online and is data we would keep).
-                                Toggle::make('requires_proof')
-                                    ->label(__('catalog.product.form.bands.requires_proof.label'))
-                                    ->helperText(__('catalog.product.form.bands.requires_proof.help'))
-                                    ->visible(static fn (Get $get): bool => static::bandIsByStatus($get('kind'))),
-                            ])
-                                ->columns(['default' => 1, 'md' => 2])
-                                ->columnSpanFull()
-                                ->extraAttributes(['class' => 'ka-toggle-box']),
-                        ])
-                        // Rule Δ of the form mockup (2026-09-24): each band is
-                        // one closed row that says what it is — «Παιδί · 3 έως
-                        // 11 ετών · πιάνει θέση» — and opens when needed.
-                        ->collapsible()
-                        ->collapsed()
-                        // Three or four rows: «Σύμπτυξη όλων / Ανάπτυξη όλων»
-                        // over them was one more line of controls for nothing.
-                        ->collapseAllAction(static fn (Action $action): Action => $action->hidden())
-                        ->expandAllAction(static fn (Action $action): Action => $action->hidden())
-                        ->itemLabel(static fn (array $state): ?string => static::bandSummary($state))
-                        // Wrapped, not cut: on a phone «Ενήλικας · 12 ετών και
-                        // π…» hid the very part that tells two rows apart.
-                        ->truncateItemLabel(false)
-                        // A new trip starts with the usual three, which the
-                        // operator edits, removes or adds to — e.g. ΑΜΕΑ, which
-                        // may share ages with «Ενήλικας» (2026-09-17).
-                        ->default(static::defaultAgeBands(...))
-                        ->columns(['default' => 1, 'md' => 2, 'xl' => 4])
-                        ->columnSpanFull(),
+                    static::bandsRepeater(),
                 ]),
 
             /*
@@ -1583,6 +1472,126 @@ class ProductResource extends Resource
     public static function bandIsByStatus(mixed $kind): bool
     {
         return $kind === AgeBandKind::Status || $kind === AgeBandKind::Status->value;
+    }
+
+    /**
+     * «Ομάδες επιβατών»: one folded row per group, the same on the edit page
+     * and in the new-trip wizard (2026-09-24, so the two cannot drift apart).
+     */
+    public static function bandsRepeater(): Repeater
+    {
+        return Repeater::make('age_bands')
+            // The section already says «Ηλικιακές κατηγορίες»; the
+            // same words again over the list were the second of
+            // two identical headings (2026-09-24).
+            ->hiddenLabel()
+            ->label(__('catalog.product.sections.bands'))
+            ->addActionLabel(__('catalog.product.form.bands.add'))
+            ->schema([
+                // Not asked any more (2026-09-17): made from the
+                // name on first save (SaveAgeBands::withCodes) and
+                // carried here unchanged, so prices stay attached.
+                Hidden::make('code'),
+
+                TranslatableInput::text(
+                    'label',
+                    __('catalog.product.form.bands.label.label'),
+                    __('catalog.product.form.bands.label.help'),
+                    maxLength: 60,
+                ),
+
+                // By age («Παιδί», 3 έως 11) or by status («ΑμεΑ»,
+                // «Φοιτητής»), product owner 2026-09-24. A status
+                // group has no ages, and may ask for proof instead.
+                ToggleButtons::make('kind')
+                    ->label(__('catalog.product.form.bands.kind.label'))
+                    ->options(AgeBandKind::class)
+                    ->default(AgeBandKind::Age->value)
+                    ->inline()
+                    ->grouped()
+                    ->live(),
+
+                TextInput::make('min_age')
+                    ->label(__('catalog.product.form.bands.min_age.label'))
+                    ->integer()
+                    ->required()
+                    ->default(0)
+                    ->minValue(0)
+                    ->maxValue(120)
+                    ->visible(static fn (Get $get): bool => ! static::bandIsByStatus($get('kind'))),
+
+                TextInput::make('max_age')
+                    ->label(__('catalog.product.form.bands.max_age.label'))
+                    ->helperText(__('catalog.product.form.bands.max_age.help'))
+                    ->integer()
+                    ->minValue(0)
+                    ->maxValue(120)
+                    ->visible(static fn (Get $get): bool => ! static::bandIsByStatus($get('kind'))),
+
+                // No «ποσοστό της βασικής» any more (product owner,
+                // 2026-09-17): every band's price is euros, typed in
+                // the price table below. A new band is `fixed`; an
+                // existing percentage band keeps its mode untouched
+                // until the table is saved and writes it as euros.
+                Hidden::make('pricing_mode')
+                    ->default(AgeBandPricing::Fixed->value),
+
+                Hidden::make('price_multiplier_bp'),
+
+                // The four switches together in one box, so the
+                // band reads as name and ages, then its settings.
+                Group::make([
+                    Toggle::make('is_base')
+                        ->label(__('catalog.product.form.bands.is_base.label')),
+
+                    Toggle::make('counts_toward_capacity')
+                        ->label(__('catalog.product.form.bands.counts_toward_capacity.label'))
+                        ->helperText(__('catalog.product.form.bands.counts_toward_capacity.help'))
+                        ->default(true),
+
+                    Toggle::make('requires_adult')
+                        ->label(__('catalog.product.form.bands.requires_adult.label')),
+
+                    // «Χωρίς έγγραφο» (2026-09-17): checkout asks these
+                    // passengers for a name, nationality and date of
+                    // birth, and no document.
+                    Toggle::make('no_document')
+                        ->label(__('catalog.product.form.bands.no_document.label'))
+                        ->helperText(__('catalog.product.form.bands.no_document.help')),
+
+                    // What stands in for an age check: the crew see
+                    // the card at boarding, told so on the boarding
+                    // list. No card number is asked
+                    // at checkout (Mike, 2026-09-24: it proves
+                    // nothing online and is data we would keep).
+                    Toggle::make('requires_proof')
+                        ->label(__('catalog.product.form.bands.requires_proof.label'))
+                        ->helperText(__('catalog.product.form.bands.requires_proof.help'))
+                        ->visible(static fn (Get $get): bool => static::bandIsByStatus($get('kind'))),
+                ])
+                    ->columns(['default' => 1, 'md' => 2])
+                    ->columnSpanFull()
+                    ->extraAttributes(['class' => 'ka-toggle-box']),
+            ])
+            // Rule Δ of the form mockup (2026-09-24): each band is
+            // one closed row that says what it is — «Παιδί · 3 έως
+            // 11 ετών · πιάνει θέση» — and opens when needed.
+            ->collapsible()
+            ->collapsed()
+            // Three or four rows: «Σύμπτυξη όλων / Ανάπτυξη όλων»
+            // over them was one more line of controls for nothing.
+            ->collapseAllAction(static fn (Action $action): Action => $action->hidden())
+            ->expandAllAction(static fn (Action $action): Action => $action->hidden())
+            ->itemLabel(static fn (array $state): ?string => static::bandSummary($state))
+            // Wrapped, not cut: on a phone «Ενήλικας · 12 ετών και
+            // π…» hid the very part that tells two rows apart.
+            ->truncateItemLabel(false)
+            // A new trip starts with the usual three, which the
+            // operator edits, removes or adds to — e.g. ΑΜΕΑ, which
+            // may share ages with «Ενήλικας» (2026-09-17).
+            ->default(static::defaultAgeBands(...))
+            ->columns(['default' => 1, 'md' => 2, 'xl' => 4])
+            ->columnSpanFull();
     }
 
     /**

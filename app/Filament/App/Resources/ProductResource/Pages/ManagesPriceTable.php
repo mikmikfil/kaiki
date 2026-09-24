@@ -361,8 +361,10 @@ trait ManagesPriceTable
                 ->label(__('pricing.periods.terms.deposit'))
                 ->options(DepositType::class)
                 // Not grouped: three Greek labels side by side are wider than
-                // a phone, and a grouped row cannot wrap.
+                // a phone, and a grouped row cannot wrap. The whole row, so
+                // the three stay on one line where there is room.
                 ->inline()
+                ->columnSpanFull()
                 ->live(),
             TextInput::make('deposit_percent')
                 ->label(__('pricing.periods.terms.deposit_percent'))
