@@ -3793,6 +3793,35 @@
         .hero-search-below input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
         .hero-search-below input[type="number"]::-webkit-inner-spin-button,
         .hero-search-below input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        /* The operator's name on a phone (Mike, 2026-09-24): it was cut to
+           «Aegean Blue…». A size smaller, the town under it hidden, and the
+           language switch and the burger a little tighter, so a name of about
+           twenty letters fits whole; a longer one still ellipses. */
+        @media (max-width: 40rem) {
+            header.site .brand .name { font-size: .98rem; letter-spacing: -.025em; }
+            header.site .brand .brand-tag { display: none; }
+            header.site .brand-mark { inline-size: 2.1rem; block-size: 2.1rem; }
+            header.site .wrap { gap: .5rem; }
+            header.site .brand { flex: 1 1 auto; }
+            .header-end { flex: none; gap: .35rem; }
+            .header-end .langs a { padding-inline: .35rem; }
+        }
+
+        /* The timeline's dashed track ends at the last year's dot rather than
+           running on to the edge (Mike, 2026-09-24). The border stays for its
+           room but goes transparent; the dashes are a background as long as
+           the distance from the first dot to the last. */
+        @media (min-width: 48rem) {
+            ol.timeline {
+                --gap: 1.5rem;
+                border-block-start-color: transparent;
+                background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--kaiki-accent) 28%, #fff) 0 6px, transparent 6px 11px)
+                    0 0 / calc((100% - (var(--n) - 1) * var(--gap)) * (var(--n) - 1) / var(--n) + (var(--n) - 1) * var(--gap) + .4rem) 2px no-repeat;
+                background-origin: border-box; background-clip: border-box;
+            }
+            .timeline-n1 { --n: 1; } .timeline-n2 { --n: 2; } .timeline-n3 { --n: 3; } .timeline-n4 { --n: 4; }
+            .timeline-n5 { --n: 5; } .timeline-n6 { --n: 6; } .timeline-n7 { --n: 7; } .timeline-n8 { --n: 8; }
+        }
     </style>
 
     {{-- The booking bundle, fetched from the first byte of the page.
