@@ -208,8 +208,6 @@ return [
         ],
 
         'sections' => [
-            'schedules' => 'Schedules',
-            'schedules_intro' => 'When the trip repeats. The departures are generated from this.',
             'extras' => 'Extras',
             'extras_intro' => 'Whatever is offered alongside the seat, free or paid.',
             'questions' => 'Extra questions',
@@ -389,6 +387,7 @@ return [
             'bands' => [
                 'help' => 'The usual three are filled in. Change the ages, delete any you do not need or add your own, e.g. disabled passengers. The base one, usually the adult, gives the «from» price.',
                 'add' => 'Add a band',
+                'summary' => ['with_adult' => 'with an adult', 'no_document' => 'no document'],
                 'code' => ['label' => 'Code', 'help' => 'Your own, e.g. "adult".'],
                 'label' => ['label' => 'Name', 'help' => 'The guest reads this when choosing passengers.'],
                 'min_age' => ['label' => 'From age'],

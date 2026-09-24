@@ -190,18 +190,35 @@
         display: none;
     }
 
+    /*
+     * Rule Α of the form mockup (2026-09-24): the closed tabs are dark enough
+     * to read (#7B8BA1 was a pale grey the eye skipped), the open one has a
+     * 3px bar, and the row stays under the top bar while the form scrolls —
+     * a long «Τιμές» tab no longer loses its way back to «Βασικά».
+     */
+    .ka-line-tabs > nav.fi-tabs {
+        position: sticky;
+        top: 4rem;
+        z-index: 15;
+        background: #F7FAFD;
+    }
+
+    .dark .ka-line-tabs > nav.fi-tabs {
+        background: rgb(var(--gray-950));
+    }
+
     .ka-line-tabs > nav.fi-tabs .fi-tabs-item {
         padding: .7rem 0;
         margin-block-end: -1px;
         border-radius: 0;
-        border-block-end: 2px solid transparent;
+        border-block-end: 3px solid transparent;
         background: transparent !important;
     }
 
     .ka-line-tabs > nav.fi-tabs .fi-tabs-item-label {
         font-size: 1.0625rem;
         font-weight: 600;
-        color: #7B8BA1;
+        color: #4F607A;
     }
 
     .ka-line-tabs > nav.fi-tabs .fi-tabs-item.fi-active {
@@ -291,12 +308,26 @@
         box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
     }
 
+    /* The count beside a tab: a small quiet pill («1 ενεργό», «7 από 8») —
+       quiet text until 2026-09-24, when the mockup gave it an edge so it reads
+       as a note on the tab rather than more of its name. */
+    .ka-line-tabs > nav.fi-tabs .fi-badge:not(.fi-color-warning) {
+        background: #E8EEF6;
+        color: #4F607A;
+    }
+
+    .dark .ka-line-tabs > nav.fi-tabs .fi-badge:not(.fi-color-warning) {
+        background: rgba(255, 255, 255, .08);
+        color: rgb(var(--gray-300));
+    }
+
     .ka-line-tabs > nav.fi-tabs .fi-badge {
-        background: transparent;
         --tw-ring-color: transparent;
         box-shadow: none;
-        padding-inline: 0;
-        font-weight: 500;
+        padding-inline: .5rem;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: .75rem;
     }
 
     /*
@@ -385,6 +416,93 @@
     form[data-ka-locale="el"] .ka-locale--en,
     form[data-ka-locale="en"] .ka-locale--el {
         display: none;
+    }
+
+    /*
+     * Rules Β and Γ of the form mockup (2026-09-24, «μου φαίνεται λίγο χάος»).
+     *
+     * Β — every section has a header you can see: a pale strip, the icon in a
+     * small blue tile, the title a step above the field labels (17px against
+     * 14px). Until now a section title and a field label were the same size,
+     * so a long tab read as one undivided list of fields.
+     *
+     * Γ — a table that carries its own heading (a relation manager inside a
+     * form: «Δρομολόγια», «Τιμοκατάλογοι», «Πρόσθετα») gets the same strip,
+     * so it reads as a section like the others. And the footer that only says
+     * «Προβολή 1 αποτελέσματος» goes when there is a single page: a pager
+     * with nothing to page is one more line of noise.
+     */
+    .fi-main .fi-section:not(.fi-aside) > .fi-section-header,
+    .fi-main .fi-ta-ctn .fi-ta-header:has(.fi-ta-header-heading) {
+        background: #F1F5FA;
+        border-start-start-radius: .75rem;
+        border-start-end-radius: .75rem;
+    }
+
+    .fi-main .fi-section.fi-collapsed > .fi-section-header {
+        border-radius: .75rem;
+    }
+
+    .fi-main .fi-section-header-heading,
+    .fi-main .fi-ta-header-heading {
+        font-size: 1.0625rem;
+        line-height: 1.4;
+    }
+
+    .fi-main .fi-section-header-icon {
+        box-sizing: content-box;
+        width: 1.125rem;
+        height: 1.125rem;
+        padding: .5rem;
+        margin-top: 0;
+        align-self: center;
+        border-radius: .6rem;
+        background: #EAF1FA;
+        color: #1E5AA8;
+    }
+
+    .fi-main .fi-ta-ctn .fi-ta-pagination:not(:has(.fi-pagination-items)) {
+        display: none;
+    }
+
+    .dark .fi-main .fi-section:not(.fi-aside) > .fi-section-header,
+    .dark .fi-main .fi-ta-ctn .fi-ta-header:has(.fi-ta-header-heading) {
+        background: rgba(255, 255, 255, .03);
+    }
+
+    .dark .fi-main .fi-section-header-icon {
+        background: rgb(var(--primary-400) / .14);
+        color: rgb(var(--primary-300));
+    }
+
+    /*
+     * Rule Δ: a repeated item that folds (the trip's age bands) reads as a
+     * row — its summary in the header, bold — and its switches sit together
+     * in one pale box instead of four loose lines between the fields.
+     */
+    .fi-main .fi-fo-repeater-item-header > h4 {
+        font-weight: 600;
+        font-size: .9375rem;
+    }
+
+    .fi-main .ka-toggle-box {
+        padding: .9rem 1rem;
+        border: 1px solid #E1E8F2;
+        border-radius: .75rem;
+        background: #F7FAFD;
+    }
+
+    .dark .fi-main .ka-toggle-box {
+        border-color: rgba(255, 255, 255, .08);
+        background: rgba(255, 255, 255, .03);
+    }
+
+    /* Rule Ε: the trip's name and its state on one line. */
+    .ka-title-with-state {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .4rem .75rem;
     }
 
     /*

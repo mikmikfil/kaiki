@@ -285,6 +285,7 @@ class ProductResource extends Resource
     {
         return [
             Section::make(__('catalog.product.sections.basics'))
+                ->icon('heroicon-o-map')
                 ->schema([
                     TranslatableInput::text(
                         'title',
@@ -386,6 +387,7 @@ class ProductResource extends Resource
             Section::make(static fn (Get $get): string => static::modeOf($get) === BookingMode::PerSeat
                 ? __('catalog.product.sections.schedule_per_seat')
                 : __('catalog.product.sections.schedule'))
+                ->icon('heroicon-o-clock')
                 ->schema([
                     Placeholder::make('schedule_where')
                         ->hiddenLabel()
@@ -471,6 +473,7 @@ class ProductResource extends Resource
                 ->columns(2),
 
             Section::make(__('catalog.product.sections.capacity'))
+                ->icon('heroicon-o-user-group')
                 ->schema([
                     TextInput::make('max_pax')
                         ->label(__('catalog.product.form.max_pax.label'))
@@ -513,20 +516,23 @@ class ProductResource extends Resource
             // of its own in the menu. On a saved trip sold per seat only: there
             // is nothing to hang a rule on before the first save, and a charter
             // has no repeating schedule.
-            Section::make(__('catalog.product.sections.schedules'))
-                ->description(__('catalog.product.sections.schedules_intro'))
+            //
+            // **No `Section` around it** (2026-09-24, rule Γ of the form
+            // mockup): the manager draws its own card and heading, and the
+            // wrapper made a box in a box with two titles, «Δρομολόγια» and
+            // «Πότε φεύγει». The heading is the manager's, like the price lists.
+            Livewire::make(
+                ScheduleRulesRelationManager::class,
+                static fn (?Product $record): array => [
+                    'ownerRecord' => $record,
+                    'pageClass' => Pages\EditProduct::class,
+                ],
+            )
+                ->key('trip-schedule-rules')
                 ->visible(static fn (?Product $record, Get $get): bool => $record instanceof Product
                     && $record->exists
                     && static::modeOf($get) === BookingMode::PerSeat)
-                ->schema([
-                    Livewire::make(
-                        ScheduleRulesRelationManager::class,
-                        static fn (?Product $record): array => [
-                            'ownerRecord' => $record,
-                            'pageClass' => Pages\EditProduct::class,
-                        ],
-                    )->key('trip-schedule-rules'),
-                ]),
+                ->columnSpanFull(),
         ];
     }
 
@@ -540,12 +546,17 @@ class ProductResource extends Resource
     {
         return [
             Section::make(__('catalog.product.sections.bands'))
+                ->icon('heroicon-o-users')
                 ->description(__('catalog.product.form.bands.help'))
                 // A whole-boat charter sells the boat rather than passenger
                 // categories, so the section is not offered there at all.
                 ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat)
                 ->schema([
                     Repeater::make('age_bands')
+                        // The section already says «Ηλικιακές κατηγορίες»; the
+                        // same words again over the list were the second of
+                        // two identical headings (2026-09-24).
+                        ->hiddenLabel()
                         ->label(__('catalog.product.sections.bands'))
                         ->addActionLabel(__('catalog.product.form.bands.add'))
                         ->schema([
@@ -586,35 +597,49 @@ class ProductResource extends Resource
 
                             Hidden::make('price_multiplier_bp'),
 
-                            Toggle::make('is_base')
-                                ->label(__('catalog.product.form.bands.is_base.label')),
+                            // The four switches together in one box, so the
+                            // band reads as name and ages, then its settings.
+                            Group::make([
+                                Toggle::make('is_base')
+                                    ->label(__('catalog.product.form.bands.is_base.label')),
 
-                            Toggle::make('counts_toward_capacity')
-                                ->label(__('catalog.product.form.bands.counts_toward_capacity.label'))
-                                ->helperText(__('catalog.product.form.bands.counts_toward_capacity.help'))
-                                ->default(true),
+                                Toggle::make('counts_toward_capacity')
+                                    ->label(__('catalog.product.form.bands.counts_toward_capacity.label'))
+                                    ->helperText(__('catalog.product.form.bands.counts_toward_capacity.help'))
+                                    ->default(true),
 
-                            Toggle::make('requires_adult')
-                                ->label(__('catalog.product.form.bands.requires_adult.label')),
+                                Toggle::make('requires_adult')
+                                    ->label(__('catalog.product.form.bands.requires_adult.label')),
 
-                            // «Χωρίς έγγραφο» (2026-09-17): checkout asks these
-                            // passengers for a name, nationality and date of
-                            // birth, and no document.
-                            Toggle::make('no_document')
-                                ->label(__('catalog.product.form.bands.no_document.label'))
-                                ->helperText(__('catalog.product.form.bands.no_document.help')),
+                                // «Χωρίς έγγραφο» (2026-09-17): checkout asks these
+                                // passengers for a name, nationality and date of
+                                // birth, and no document.
+                                Toggle::make('no_document')
+                                    ->label(__('catalog.product.form.bands.no_document.label'))
+                                    ->helperText(__('catalog.product.form.bands.no_document.help')),
+                            ])
+                                ->columns(['default' => 1, 'md' => 2])
+                                ->columnSpanFull()
+                                ->extraAttributes(['class' => 'ka-toggle-box']),
                         ])
-                        ->itemLabel(static function (array $state): ?string {
-                            $label = $state['label'] ?? null;
-                            $name = is_array($label) ? (string) ($label[app()->getLocale()] ?? $label['el'] ?? '') : '';
-
-                            return $name !== '' ? $name : null;
-                        })
+                        // Rule Δ of the form mockup (2026-09-24): each band is
+                        // one closed row that says what it is — «Παιδί · 3 έως
+                        // 11 ετών · πιάνει θέση» — and opens when needed.
+                        ->collapsible()
+                        ->collapsed()
+                        // Three or four rows: «Σύμπτυξη όλων / Ανάπτυξη όλων»
+                        // over them was one more line of controls for nothing.
+                        ->collapseAllAction(static fn (Action $action): Action => $action->hidden())
+                        ->expandAllAction(static fn (Action $action): Action => $action->hidden())
+                        ->itemLabel(static fn (array $state): ?string => static::bandSummary($state))
+                        // Wrapped, not cut: on a phone «Ενήλικας · 12 ετών και
+                        // π…» hid the very part that tells two rows apart.
+                        ->truncateItemLabel(false)
                         // A new trip starts with the usual three, which the
                         // operator edits, removes or adds to — e.g. ΑΜΕΑ, which
                         // may share ages with «Ενήλικας» (2026-09-17).
                         ->default(static::defaultAgeBands(...))
-                        ->columns(2)
+                        ->columns(['default' => 1, 'md' => 3])
                         ->columnSpanFull(),
                 ]),
 
@@ -659,6 +684,7 @@ class ProductResource extends Resource
             // section is there but says, in one line, that it appears after
             // the first save: a missing section reads as "no prices here".
             Section::make(__('pricing.price_table.heading'))
+                ->icon('heroicon-o-currency-euro')
                 // The create page lands here after «Συνέχεια στις τιμές».
                 ->id('prices')
                 ->description(__('pricing.price_table.intro'))
@@ -701,6 +727,7 @@ class ProductResource extends Resource
     {
         return [
             Section::make(__('catalog.product.sections.policy'))
+                ->icon('heroicon-o-shield-check')
                 ->schema([
                     static::cancellationPolicySelect(),
 
@@ -714,6 +741,7 @@ class ProductResource extends Resource
             // checkout and they are conditions of travelling, so they belong
             // beside the policy rather than under the page's marketing text.
             Section::make(__('catalog.product.sections.questions'))
+                ->icon('heroicon-o-chat-bubble-left-right')
                 ->description(__('catalog.product.sections.questions_intro'))
                 ->visible(static fn (?Product $record): bool => $record instanceof Product && $record->exists)
                 ->schema([
@@ -737,6 +765,7 @@ class ProductResource extends Resource
     {
         return [
             Section::make(__('catalog.product.sections.content'))
+                ->icon('heroicon-o-document-text')
                 ->schema([
                     /*
                      * **The line under the title** (Mike, 2026-09-23: *«κάτω
@@ -813,6 +842,7 @@ class ProductResource extends Resource
              * that is still there.
              */
             Section::make(__('catalog.product.sections.images'))
+                ->icon('heroicon-o-photo')
                 ->description(__('catalog.product.form.images.help'))
                 ->collapsible()
                 ->schema([
@@ -841,6 +871,7 @@ class ProductResource extends Resource
             // operator's WordPress site. `TripPageContent` turns these lines and
             // rows back into the columns' shapes on save.
             Section::make(__('catalog.product.sections.trip_page'))
+                ->icon('heroicon-o-rectangle-stack')
                 ->description(__('catalog.product.trip_page.description'))
                 ->collapsible()
                 ->schema([
@@ -907,6 +938,7 @@ class ProductResource extends Resource
                 ]),
 
             Section::make(__('catalog.product.sections.seo'))
+                ->icon('heroicon-o-magnifying-glass')
                 ->collapsed()
                 ->schema([
                     TranslatableInput::text(
@@ -939,6 +971,7 @@ class ProductResource extends Resource
              * πρώτη αποθήκευση.
              */
             Section::make(__('faq.on_product.title'))
+                ->icon('heroicon-o-question-mark-circle')
                 ->description(__('faq.on_product.help'))
                 ->collapsible()
                 ->visible(static fn (?Product $record): bool => $record instanceof Product && $record->exists)
@@ -1461,6 +1494,54 @@ class ProductResource extends Resource
             ->get()
             ->mapWithKeys(static fn (Port $port): array => [$port->getKey() => (string) $port->name])
             ->all();
+    }
+
+    /**
+     * A closed band's row: «Παιδί · 3 έως 11 ετών · δεν πιάνει θέση».
+     *
+     * The name, its ages, then only what sets it apart — base, no seat, with an
+     * adult, no document — so three closed rows can be told apart without
+     * opening one (rule Δ, 2026-09-24). The same age phrases as the price
+     * table's rows, so a band reads the same in both places.
+     *
+     * @param  array<string, mixed>  $state
+     */
+    public static function bandSummary(array $state): ?string
+    {
+        $label = $state['label'] ?? null;
+        $name = is_array($label) ? trim((string) ($label[app()->getLocale()] ?? $label['el'] ?? '')) : '';
+
+        if ($name === '') {
+            return null;
+        }
+
+        $min = is_numeric($state['min_age'] ?? null) ? (int) $state['min_age'] : 0;
+        $max = is_numeric($state['max_age'] ?? null) ? (int) $state['max_age'] : null;
+
+        $parts = [
+            $name,
+            $max === null
+                ? __('pricing.price_table.ages_from', ['min' => $min])
+                : __('pricing.price_table.ages_between', ['min' => $min, 'max' => $max]),
+        ];
+
+        if ((bool) ($state['is_base'] ?? false)) {
+            $parts[] = __('pricing.price_table.base');
+        }
+
+        if (! (bool) ($state['counts_toward_capacity'] ?? true)) {
+            $parts[] = __('pricing.price_table.no_seat');
+        }
+
+        if ((bool) ($state['requires_adult'] ?? false)) {
+            $parts[] = __('catalog.product.form.bands.summary.with_adult');
+        }
+
+        if ((bool) ($state['no_document'] ?? false)) {
+            $parts[] = __('catalog.product.form.bands.summary.no_document');
+        }
+
+        return implode(' · ', $parts);
     }
 
     /**

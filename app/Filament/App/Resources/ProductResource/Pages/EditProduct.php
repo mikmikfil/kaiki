@@ -15,7 +15,10 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
 class EditProduct extends EditRecord
@@ -30,6 +33,41 @@ class EditProduct extends EditRecord
         parent::mount($record);
 
         $this->loadPriceTable();
+    }
+
+    /**
+     * The trip's own name, not «Επεξεργασία: Εκδρομή» (rule Ε of the form
+     * mockup, 2026-09-24): with several trips open in tabs, the model's name
+     * said nothing about which one this was.
+     */
+    public function getTitle(): string
+    {
+        $title = trim((string) $this->getRecord()->getAttribute('title'));
+
+        return $title !== '' ? $title : parent::getTitle();
+    }
+
+    /** The name, and beside it whether it is on sale — the same pill as the list. */
+    public function getHeading(): string|Htmlable
+    {
+        $status = $this->getRecord()->getAttribute('status');
+
+        if (! $status instanceof ProductStatus) {
+            return $this->getTitle();
+        }
+
+        return new HtmlString(
+            '<span class="ka-title-with-state">' . e($this->getTitle()) . ' '
+            . Blade::render('<x-filament::badge :color="$color" size="lg">{{ $label }}</x-filament::badge>', [
+                'color' => match ($status) {
+                    ProductStatus::Draft => 'warning',
+                    ProductStatus::Active => 'success',
+                    ProductStatus::Inactive, ProductStatus::Archived => 'gray',
+                },
+                'label' => __('enums.product_status.' . $status->value . '.label'),
+            ])
+            . '</span>',
+        );
     }
 
     /**

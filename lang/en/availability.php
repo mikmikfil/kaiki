@@ -97,7 +97,7 @@ return [
 
         // On the trip, in its «Schedule» tab (2026-09-17).
         'on_product' => [
-            'title' => 'When it runs',
+            'title' => 'Schedules',
             'help' => 'Each row repeats: days, time, and from when until when. The departures guests book are made from these.',
             'add' => 'New schedule',
             'other' => 'Boat, seats and on/off',
