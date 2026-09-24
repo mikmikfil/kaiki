@@ -1,0 +1,153 @@
+/* ==========================================================================
+   Kaiki guest pages: one type system (typography review, 24/9).
+   Everything below `#mk.m-new` is the proposal; «Όπως σήμερα» is the live CSS.
+   ========================================================================== */
+
+/* ---------- the mockup's own bar and markers (not part of the proposal) ---------- */
+.mk-bar{position:sticky;top:0;z-index:2147483000;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;padding:10px 16px;background:#0F1B2D;color:#C9D4E3;font:500 13px/1.4 Inter,system-ui,sans-serif}
+.mk-bar b{color:#fff;font-weight:700}
+.mk-bar a{color:#fff;font-weight:600;text-decoration:none}
+.mk-grp{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.mk-seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:#1C2B42;border-radius:9px;padding:3px}
+.mk-seg button{font:600 13px/1.2 Inter,system-ui,sans-serif;color:#C9D4E3;background:none;border:0;border-radius:7px;padding:6px 11px;cursor:pointer}
+.mk-seg button[aria-pressed="true"]{background:#fff;color:#0F1B2D}
+.mk-seg button:focus-visible,.mk-bar a:focus-visible{outline:2px solid #7FB0FF;outline-offset:1px}
+@media (max-width:640px){.mk-bar{padding:8px 10px;gap:6px}.mk-bar .mk-title{display:none}.mk-seg button{padding:5px 8px;font-size:12px}}
+#mk header.site{top:var(--mk-bar,0px)}
+html{scroll-padding-top:calc(var(--mk-bar,0px) + 6rem)}
+
+#mk:not(.m-new) .mk-n,#mk:not(.mk-marks) .mk-n{display:none!important}
+#mk.m-new.mk-marks .mk-n{display:inline-grid!important;place-items:center;inline-size:18px;block-size:18px;margin-inline:6px 0;border-radius:50%;background:#E4572E;color:#fff;font:700 11px/1 Inter,system-ui,sans-serif;letter-spacing:0;text-transform:none;vertical-align:middle;flex:none;position:relative;top:-.08em;box-shadow:0 0 0 2px #fff;text-shadow:none;overflow:visible;max-width:none;min-width:18px}
+#mk.m-new.mk-marks .mk-n + .mk-n{margin-inline-start:3px}
+.mk-map{display:grid;place-items:center;inline-size:100%;block-size:100%;min-block-size:220px;background:repeating-linear-gradient(135deg,#E6ECF2 0 14px,#DDE5EC 14px 28px);color:#4A5D5A;font:500 14px/1.4 Inter,system-ui,sans-serif;border:0}
+
+/* ---------- today, as visitors see it: Inter is never loaded ---------- */
+#mk.pg-hosted:not(.m-new):not(.f-inter){--kaiki-font:"Helvetica Neue",Arial,sans-serif;font-family:"Helvetica Neue",Arial,sans-serif}
+#mk.pg-guest:not(.m-new):not(.f-inter){--kaiki-font-family:system-ui;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+
+/* ---------- the proposal: tokens ---------- */
+#mk.m-new{
+  --t-cap:.8125rem;                       /* 13  caption, labels, eyebrow */
+  --t-sm:.9375rem;                        /* 15  secondary text, UI */
+  --t-body:1rem;                          /* 16  body */
+  --t-title:1.125rem;                     /* 18  card / item titles, prices */
+  --t-lead:clamp(1.0625rem,1.4vw,1.25rem);/* 17→20 standfirst */
+  --t-sub:clamp(1.25rem,1.6vw,1.5rem);    /* 20→24 sub-section heading */
+  --t-panel:clamp(1.5rem,2.3vw,2rem);     /* 24→32 heading in a panel; booking pages' h1 */
+  --t-h2:clamp(1.75rem,3vw,2.5rem);       /* 28→40 section heading */
+  --t-h1p:clamp(2rem,3.2vw,2.75rem);      /* 32→44 page title */
+  --t-h1:clamp(2.5rem,4.6vw,3.75rem);     /* 40→60 hero title */
+  --c-ink:#131A22; --c-deep:#0E2D49; --c-soft:#4A5D5A; --c-faint:#5F716E; --c-link:#1B5FD1;
+  --ink-faint:#5F716E;
+  --kaiki-font:Inter,"Helvetica Neue",Arial,sans-serif;
+  --kaiki-font-family:Inter;
+  font-family:Inter,"Helvetica Neue",Arial,sans-serif;
+}
+#mk.m-new button,#mk.m-new input,#mk.m-new select,#mk.m-new textarea{font-family:inherit}
+#mk.m-new [data-kaiki-widget]{--kaiki-font:Inter,"Helvetica Neue",Arial,sans-serif}
+#mk.m-new p,#mk.m-new blockquote,#mk.m-new li{text-wrap:pretty}
+
+/* ---------- hosted pages: headings ---------- */
+#mk.m-new .hero h1,#mk.m-new .hero.has-image h1{font-size:var(--t-h1);font-weight:800;line-height:1.1;letter-spacing:-.03em}
+#mk.m-new main .wrap > h1,#mk.m-new .page-head h1,#mk.m-new .search-head h1,#mk.m-new .trip-hero h1{font-size:var(--t-h1p);font-weight:700;line-height:1.12;letter-spacing:-.025em;color:var(--c-deep)}
+#mk.m-new .section-head h2,#mk.m-new .block-head h2,#mk.m-new .trips-block .block-head h2,#mk.m-new .story-copy > h2,#mk.m-new .block.faq > h2,#mk.m-new .block.contact h2{font-size:var(--t-h2);font-weight:700;line-height:1.15;letter-spacing:-.022em}
+#mk.m-new .cta-band h2,#mk.m-new .cta-band.has-image h2{font-size:var(--t-panel);font-weight:700;line-height:1.18;letter-spacing:-.02em}
+#mk.m-new .trips-more{font-size:var(--t-sub);font-weight:700;line-height:1.25;letter-spacing:-.015em;color:var(--c-deep)}
+#mk.m-new .product-main .section > h2,#mk.m-new .product-main .block > h2,#mk.m-new .product-main .lists h2,#mk.m-new .product-main h2,#mk.m-new .ask h2{font-size:var(--t-sub);font-weight:700;line-height:1.2;letter-spacing:-.015em;color:var(--c-deep)}
+#mk.m-new.pg-legal main .wrap > h2{font-size:var(--t-sub);font-weight:700;line-height:1.2;letter-spacing:-.015em;color:var(--c-deep);margin:2.25rem 0 .6rem}
+#mk.m-new .contact-details h2{font-size:var(--t-title);font-weight:700;letter-spacing:-.012em;color:var(--c-deep)}
+#mk.m-new li.trip h3,#mk.m-new .step h3,#mk.m-new .feature h3,#mk.m-new .timeline h3,#mk.m-new .boat-body h3,#mk.m-new .person-copy h3{font-size:var(--t-title);font-weight:700;line-height:1.3;letter-spacing:-.012em}
+#mk.m-new ol.trip-timeline h3{font-size:var(--t-body)}
+
+/* ---------- hosted: eyebrows and labels ---------- */
+#mk.m-new .eyebrow-line,#mk.m-new .eyebrow,#mk.m-new .block.contact .eyebrow{font-size:var(--t-cap);font-weight:600;letter-spacing:.02em;line-height:1.4}
+#mk.m-new .person-role{font-size:var(--t-cap);font-weight:600;letter-spacing:.02em}
+#mk.m-new .search-form label{font-size:var(--t-cap);font-weight:600;letter-spacing:.02em;color:var(--c-soft)}
+#mk.m-new .hero-search .search-form label{color:var(--c-ink)}
+#mk.m-new .hero-search .search-form input,#mk.m-new .hero-search .search-form select{font-size:var(--t-sm);color:var(--c-soft)}
+#mk.m-new main form:not(.search-form) label{font-size:var(--t-sm);font-weight:600;letter-spacing:0;color:var(--c-ink)}
+#mk.m-new main form .optional{font-size:var(--t-cap);color:var(--c-faint)}
+
+/* ---------- hosted: cards, prices, meta ---------- */
+#mk.m-new .trip-price strong{font-size:var(--t-title);font-weight:700;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+#mk.m-new .trip-price .from,#mk.m-new .trip-price .per{font-size:var(--t-cap);color:var(--c-soft)}
+#mk.m-new .trip-price .on-request{font-size:var(--t-sm);font-weight:600}
+#mk.m-new .trip-badge{font-size:var(--t-cap);font-weight:600}
+#mk.m-new li.trip .summary{font-size:var(--t-sm);line-height:1.55}
+#mk.m-new li.trip .facts{font-size:var(--t-cap);color:var(--c-faint);flex-wrap:wrap;row-gap:.3rem;white-space:normal;overflow:visible}
+#mk.m-new li.trip .facts .fact-port,#mk.m-new li.trip .facts .fact-boat{overflow:visible;text-overflow:clip;white-space:nowrap;flex:none}
+#mk.m-new .result-count{font-size:var(--t-sm);color:var(--c-soft)}
+#mk.m-new .booking .price strong{font-size:var(--t-panel);font-weight:700;color:var(--c-link);font-variant-numeric:tabular-nums}
+#mk.m-new .booking .price .from,#mk.m-new .booking .price .vat{font-size:var(--t-cap);color:var(--c-faint)}
+#mk.m-new .quote-stars{color:#B7791F}
+#mk.m-new .quote figcaption{font-size:var(--t-cap)}
+#mk.m-new .quote figcaption b{font-size:var(--t-sm)}
+#mk.m-new .stats strong{font-size:clamp(1.75rem,2.6vw,2.25rem);font-weight:700;font-variant-numeric:tabular-nums}
+#mk.m-new .stat-label{font-size:var(--t-sm)}
+#mk.m-new .boat-reg,#mk.m-new .boat-specs dt{font-size:var(--t-cap);color:var(--c-faint)}
+#mk.m-new .boat-specs dd{font-size:var(--t-title);font-variant-numeric:tabular-nums}
+#mk.m-new .boat-licence{font-size:var(--t-sm)}
+#mk.m-new .boat-trips a{font-size:var(--t-sm)}
+#mk.m-new .timeline-year{font-size:var(--t-body);font-variant-numeric:tabular-nums}
+
+/* ---------- hosted: UI text on one step ---------- */
+#mk.m-new .site-nav a,#mk.m-new .button,#mk.m-new .see-all,#mk.m-new .hero-badges,#mk.m-new .tab-label,#mk.m-new ul.facts li,#mk.m-new .trip-time,#mk.m-new .step p,#mk.m-new .feature p,#mk.m-new .ask p,#mk.m-new .muted,#mk.m-new .contact-details a,#mk.m-new footer.site .cols a,#mk.m-new footer.site .cols p,#mk.m-new footer.site .foot-reach a{font-size:var(--t-sm)}
+#mk.m-new .contact-details a{color:var(--c-ink)}
+#mk.m-new .muted{color:var(--c-soft)}
+#mk.m-new .crumbs a{font-size:var(--t-sm);font-weight:600;color:var(--c-link)}
+#mk.m-new .standfirst,#mk.m-new .lede,#mk.m-new .search-head .standfirst,#mk.m-new .trip-intro .standfirst,#mk.m-new .hero .standfirst{font-size:var(--t-lead);line-height:1.5}
+#mk.m-new .trip-hero ~ * .standfirst,#mk.m-new p.standfirst{font-size:var(--t-lead)}
+
+/* ---------- hosted: measure ---------- */
+#mk.m-new .story-copy .prose,#mk.m-new .product-main .prose,#mk.m-new .faq-item .prose,#mk.m-new .page-head .lede{max-width:62ch}
+#mk.m-new.pg-legal main .wrap{gap:0}
+#mk.m-new.pg-legal main .wrap > p,#mk.m-new.pg-legal main .wrap > ul,#mk.m-new.pg-legal main .wrap > ol{max-width:65ch;margin:0 0 .6rem}
+#mk.m-new.pg-legal main .wrap > h1{margin-bottom:.5rem}
+
+/* ---------- hosted: footer ---------- */
+#mk.m-new footer.site h3{font-size:var(--t-cap);font-weight:600;letter-spacing:.02em;line-height:1.4;color:rgba(255,255,255,.62);margin:.25rem 0 .9rem}
+#mk.m-new footer.site .foot-bottom,#mk.m-new footer.site .foot-bottom p,#mk.m-new footer.site .foot-bottom a,#mk.m-new .foot-bottom .powered{font-size:var(--t-cap)}
+#mk.m-new .foot-reach-title{font-size:var(--t-title);font-weight:700}
+#mk.m-new .brand-tag{color:var(--c-faint)}
+#mk.m-new footer.site .brand-tag{color:rgba(255,255,255,.62)}
+#mk.m-new.pg-hosted .langs a:not([aria-current="true"]){color:var(--c-faint)}
+
+/* ---------- guest pages (checkout /c/, booking /b/) ---------- */
+#mk.m-new.pg-guest h1{font-size:var(--t-panel);font-weight:700;line-height:1.15;letter-spacing:-.02em}
+#mk.m-new.pg-guest section h1{color:var(--c-deep)}
+#mk.m-new.pg-guest .reference,#mk.m-new.pg-guest .kicker{font-size:var(--t-cap);font-weight:600;letter-spacing:.02em}
+#mk.m-new.pg-guest .reference{color:rgba(255,255,255,.78)}
+#mk.m-new.pg-guest .kicker{color:var(--c-faint)}
+#mk.m-new.pg-guest .card h2,#mk.m-new.pg-guest form.card h2,#mk.m-new.pg-guest aside h2{font-size:var(--t-title);font-weight:700;letter-spacing:-.012em;color:var(--c-deep)}
+#mk.m-new.pg-guest aside h3{font-size:var(--t-cap);font-weight:600;letter-spacing:.02em;color:var(--c-soft)}
+#mk.m-new.pg-guest dt,#mk.m-new.pg-guest .muted,#mk.m-new.pg-guest p.muted{color:var(--c-soft)}
+#mk.m-new.pg-guest .muted,#mk.m-new.pg-guest p.muted{font-size:var(--t-sm)}
+#mk.m-new.pg-guest .muted.secure{font-size:var(--t-cap)}
+#mk.m-new.pg-guest form label{color:var(--c-faint)}
+#mk.m-new.pg-guest .label{font-size:var(--t-cap);font-weight:600;letter-spacing:.02em;color:var(--c-faint)}
+#mk.m-new.pg-booking .facts span{font-size:var(--t-cap);color:var(--c-soft)}
+#mk.m-new.pg-booking .facts b{font-size:var(--t-title);font-variant-numeric:tabular-nums}
+#mk.m-new.pg-guest .passenger-band{font-size:var(--t-cap)}
+#mk.m-new.pg-guest a.policy-link,#mk.m-new.pg-guest .sec-meeting a,#mk.m-new.pg-guest main a:not([class]){color:var(--c-link);font-weight:600}
+#mk.m-new.pg-guest .btn.pay{background:var(--c-link);border-color:var(--c-link)}
+#mk.m-new.pg-guest .discount-form input{text-transform:none}
+#mk.m-new.pg-guest dd.total,#mk.m-new.pg-guest dd{font-variant-numeric:tabular-nums}
+
+/* ---------- the mockup's notes panel (not part of the proposal) ---------- */
+.mk-back-sm{display:none}
+@media (max-width:640px){.mk-back-sm{display:inline-grid;place-items:center;inline-size:28px;block-size:28px;border-radius:7px;background:#1C2B42}}
+#mk-notes{background:#F4F6F9;border-top:1px solid #DDE3EA;color:#131A22;font:400 15px/1.6 Inter,system-ui,sans-serif;padding:48px 16px 64px}
+#mk-notes .in{max-width:60rem;margin:0 auto}
+#mk-notes a{color:#1B5FD1;font-weight:600;text-decoration:none}
+#mk-notes .mk-crumb{margin:0 0 12px}
+#mk-notes h2{font:700 26px/1.2 Inter,system-ui,sans-serif;letter-spacing:-.02em;color:#0E2D49;margin:0 0 20px}
+#mk-notes ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+#mk-notes ol>li{background:#fff;border:1px solid #DDE3EA;border-radius:12px;padding:14px 16px 14px 52px;position:relative}
+#mk-notes ol>li .n{position:absolute;left:14px;top:14px;inline-size:26px;block-size:26px;border-radius:50%;background:#E4572E;color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px}
+#mk-notes b.t{display:block;font-weight:700;color:#0E2D49;font-size:16px;line-height:1.35}
+#mk-notes .why{margin:4px 0 6px;color:#4A5D5A;max-width:70ch}
+#mk-notes .ba{font-size:13px;font-variant-numeric:tabular-nums;background:#F4F6F9;border-radius:8px;padding:6px 10px;overflow-wrap:anywhere}
+#mk-notes .imp{display:inline-block;font-size:12px;font-weight:600;border-radius:999px;padding:1px 8px;margin-inline-start:6px;vertical-align:2px}
+#mk-notes .imp.hi{background:#FDE2D9;color:#9A2E0E}
+#mk-notes .imp.mid{background:#FFF1CC;color:#7A5300}
+#mk-notes .imp.lo{background:#E3EEF9;color:#1E4E86}
