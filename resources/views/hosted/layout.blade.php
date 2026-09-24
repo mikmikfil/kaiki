@@ -3251,6 +3251,10 @@
             background: color-mix(in srgb, var(--kaiki-accent) 86%, #000); color: #fff;
         }
         .band + .cta-band.has-image, .cta-band.has-image + .band { margin-block-start: 0; }
+        /* Half the width, so a smaller heading (Mike, 24/9): the band's own size
+           broke «Όλο το σκάφος, μόνο για την παρέα σας» onto three lines. */
+        .cta-band.has-image h2 { font-size: clamp(1.55rem, 2.3vw, 2.05rem); line-height: 1.15; }
+        .cta-band.has-image .lead { font-size: 1rem; }
 
         /* ==================================================================
            The trip card's foot (Mike, 2026-09-24, from the first home mockup):
