@@ -58,6 +58,7 @@ class ListStaff extends ListRecords
                     $user->forceFill([
                         'salutation' => $data['salutation'] ?? null,
                         'specialty' => $data['specialty'] ?? null,
+                        ...StaffResource::publicProfile($data),
                         'phone' => $data['phone'] ?? null,
                     ])->save();
 

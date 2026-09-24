@@ -3206,6 +3206,90 @@
         @media (min-width: 60rem) {
             .product-aside { padding: .25rem 1.5rem 2.5rem; margin-inline: -1.5rem; }
         }
+
+        /* ==================================================================
+           «Σχετικά με εμάς» (2026-09-24): the timeline, the boats, the people,
+           the licences and the meeting point. Mockup approved by Mike the same
+           day (docs/mockups/about-page.html). They work on the home page too.
+           ================================================================== */
+
+        /* The masthead without the search: one column, the words given room. */
+        .hero.hero-plain .hero-inner { grid-template-columns: minmax(0, 1fr); }
+        .hero.hero-plain .hero-copy { max-width: 46rem; }
+        .hero.hero-plain h1 { font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 1.02; }
+
+        /* --- timeline: down on a phone, across from a tablet up --- */
+        .timeline { list-style: none; margin: 0; padding: 0; display: grid; }
+        .timeline li { position: relative; padding: 0 0 1.6rem 1.9rem; border-inline-start: 2px solid var(--line); margin-inline-start: .4rem; }
+        .timeline li:last-child { border-inline-start-color: transparent; padding-block-end: 0; }
+        .timeline li::before {
+            content: ""; position: absolute; inset-inline-start: -.47rem; inset-block-start: .3rem;
+            inline-size: .8rem; block-size: .8rem; border-radius: 50%;
+            background: #fff; border: 2px solid var(--kaiki-accent);
+        }
+        .timeline li.is-now::before { background: var(--kaiki-accent); }
+        .timeline-year { display: block; font-weight: 700; color: var(--kaiki-accent); font-variant-numeric: tabular-nums; margin-block-end: .15rem; }
+        .timeline h3 { margin: 0 0 .2rem; font-size: 1.05rem; color: var(--kaiki-primary); }
+        .timeline p { margin: 0; color: var(--ink-soft); max-width: 32rem; }
+        @media (min-width: 48rem) {
+            .timeline { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1.5rem; border-block-start: 2px solid var(--line); padding-block-start: 1.9rem; }
+            .timeline li { border: 0; padding: 0; margin: 0; }
+            .timeline li::before { inset-inline-start: 0; inset-block-start: -2.4rem; }
+        }
+
+        /* --- boats --- */
+        .fleet { display: grid; gap: 1.25rem; }
+        @media (min-width: 40rem) { .fleet-2, .fleet-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 62rem) { .fleet-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        .boat-card { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow-sm), 0 0 0 1px var(--line); display: flex; flex-direction: column; }
+        .boat-photo { inline-size: 100%; aspect-ratio: 3 / 2; object-fit: cover; display: block; }
+        .boat-photo-empty { display: grid; place-items: center; background: linear-gradient(160deg, color-mix(in srgb, var(--kaiki-primary) 70%, #fff), var(--kaiki-primary)); color: #fff; font-weight: 800; font-size: 1.6rem; letter-spacing: -.02em; }
+        .boat-body { padding: 1.1rem 1.25rem 1.25rem; display: grid; gap: .75rem; flex: 1; align-content: start; }
+        .boat-body h3 { margin: 0; font-size: 1.2rem; color: var(--kaiki-primary); }
+        .boat-reg { margin: .1rem 0 0; font-size: .82rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+        .boat-specs { display: flex; flex-wrap: wrap; gap: .4rem 1.6rem; margin: 0; }
+        .boat-specs dt { font-size: .78rem; color: var(--ink-faint); }
+        .boat-specs dd { margin: 0; font-weight: 700; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+        .boat-licence { margin: 0; font-size: .88rem; color: var(--ink-soft); }
+        .boat-trips { font-weight: 600; font-size: .95rem; border-block-start: 1px solid var(--line); padding-block-start: .75rem; margin-block-start: auto; }
+
+        /* --- people --- */
+        .crew { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.5rem; }
+        @media (min-width: 36rem) { .crew-2, .crew-3, .crew-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 62rem) { .crew-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .crew-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .person { display: grid; gap: .9rem; align-content: start; }
+        .person-photo { inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 18px; display: block; }
+        .person-initials { display: grid; place-items: center; background: linear-gradient(160deg, color-mix(in srgb, var(--kaiki-primary) 70%, #fff), var(--kaiki-primary)); color: #fff; font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.03em; }
+        .person h3 { margin: 0; font-size: 1.1rem; color: var(--kaiki-primary); }
+        .person-role { margin: .15rem 0 .35rem; font-size: .9rem; font-weight: 600; color: var(--kaiki-accent); }
+        .person-copy p:last-child { margin-block-end: 0; }
+        .person-copy p:not(.person-role) { color: var(--ink-soft); margin-block-start: 0; }
+        @media (max-width: 35.99rem) {
+            /* A phone: photograph beside the words, so four people are not four screens. */
+            .crew-block:not(.no-photos) .person { grid-template-columns: 5.5rem minmax(0, 1fr); align-items: center; gap: 1rem; }
+            .crew-block:not(.no-photos) .person-photo { aspect-ratio: 1; border-radius: 50%; font-size: 1.6rem; }
+        }
+        .crew-block.no-photos .person { border-block-start: 2px solid var(--kaiki-primary); padding-block-start: .9rem; }
+
+        /* --- licences --- */
+        .credentials { list-style: none; margin: 0; padding: 0; display: grid; border-block-start: 1px solid var(--line); }
+        @media (min-width: 48rem) { .credentials { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 3rem; } }
+        .credentials li { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); gap: .85rem; padding-block: 1rem; border-block-end: 1px solid var(--line); }
+        .credentials svg { color: var(--kaiki-accent); inline-size: 1.35rem; block-size: 1.35rem; margin-block-start: .1rem; }
+        .credentials strong { display: block; color: var(--kaiki-primary); }
+        .credential-number { display: block; color: var(--ink-soft); font-size: .92rem; font-variant-numeric: tabular-nums; }
+
+        /* --- meeting point: the port's photograph across the page, a card on it --- */
+        .meeting-block { position: relative; display: flex; align-items: flex-end; min-block-size: 30rem; background: var(--deep); overflow: hidden; }
+        .meeting-photo { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; }
+        .meeting-card { position: relative; z-index: 1; background: #fff; border-radius: 18px; padding: clamp(1.25rem, 3vw, 1.75rem); max-inline-size: 27rem; box-shadow: 0 18px 44px rgba(6, 16, 20, .28); }
+        .meeting-card h2 { font-size: var(--step-2); margin: 0 0 .6rem; color: var(--kaiki-primary); }
+        .meeting-card p { margin: 0 0 .35rem; color: var(--ink-soft); }
+        .meeting-position { font-size: .85rem; color: var(--ink-faint) !important; font-variant-numeric: tabular-nums; }
+        .meeting-hint { display: flex; gap: .55rem; align-items: flex-start; background: var(--sand); border-radius: 10px; padding: .7rem .85rem; margin: .9rem 0 1rem !important; color: var(--kaiki-text) !important; font-size: .93rem; }
+        .meeting-hint svg { flex: none; inline-size: 1.1rem; block-size: 1.1rem; margin-block-start: .15rem; color: var(--kaiki-accent); }
+        .meeting-hint p { margin: 0; }
+        .meeting-cta { margin: 0 !important; }
     </style>
 
     {{-- The booking bundle, fetched from the first byte of the page.

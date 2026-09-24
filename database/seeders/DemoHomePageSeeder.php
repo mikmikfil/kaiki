@@ -57,7 +57,7 @@ class DemoHomePageSeeder extends Seeder
                 // Only for an operator who has never touched the editor.
                 // Overwriting a page somebody arranged by hand — including the
                 // one in this development database — is not a seeder's job.
-                if (HomePageBlock::query()->exists()) {
+                if (HomePageBlock::query()->onPage(HomePageBlock::PAGE_HOME)->exists()) {
                     return;
                 }
 

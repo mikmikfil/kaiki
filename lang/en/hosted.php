@@ -45,6 +45,12 @@ return [
     // HOS-10. It says who to contact rather than what went wrong — the visitor
     // cannot fix an operator's subscription and does not need to know about it.
     'blocks' => [
+        // «About us» (2026-09-24): the lines a new section starts with.
+        'timeline' => ['eyebrow' => 'Our story', 'heading' => 'How we got here'],
+        'fleet' => ['eyebrow' => 'The fleet', 'heading' => 'Our boats'],
+        'crew' => ['eyebrow' => 'At the helm', 'heading' => 'Our people'],
+        'credentials' => ['eyebrow' => 'Licences and insurance', 'heading' => 'All in order'],
+        'meeting_point' => ['eyebrow' => 'Meeting point', 'heading' => 'Where we leave from'],
         'hero' => [
             'cta' => [
                 'trips' => 'See our trips',
@@ -298,6 +304,30 @@ return [
         // hidden from sight and from the accessibility tree — but a label is
         // what makes it look real to the scripts it is there to catch.
         'honeypot' => 'Company website',
+    ],
+
+    // «About us» (2026-09-24).
+    'about' => [
+        'nav' => 'About us',
+        'title' => 'About us · :operator',
+        'fleet' => [
+            'capacity' => 'People',
+            'length' => 'Length',
+            'metres' => ':value m',
+            'trips' => '{1} 1 trip on this boat|[2,*] :count trips on this boat',
+        ],
+        'credentials' => [
+            'boats' => '{1} 1 boat|[2,*] :count boats',
+            'vat' => 'VAT :number',
+            'gemi' => 'GEMI number',
+        ],
+        'port' => [
+            'directions' => 'Directions in Maps',
+            'north' => 'N',
+            'south' => 'S',
+            'east' => 'E',
+            'west' => 'W',
+        ],
     ],
 
     'legal' => [

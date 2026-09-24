@@ -39,6 +39,8 @@ use Illuminate\Notifications\Notifiable;
  * @property string $name
  * @property string|null $email null for «Χωρίς σύνδεση»: crew who never sign in (2026-09-24)
  * @property CrewSpecialty|null $specialty what they do on the boat
+ * @property string|null $photo_path on the public disk, for the about page
+ * @property array<string, string>|null $bio «Λίγα λόγια», per locale, for the about page
  * @property string|null $locale
  * @property bool $is_super_admin
  */
@@ -73,7 +75,19 @@ class User extends Authenticatable implements FilamentUser, HasLocalePreference
             'two_factor_recovery_codes' => 'encrypted',
             'is_super_admin' => 'boolean',
             'specialty' => CrewSpecialty::class,
+            'bio' => 'array',
         ];
+    }
+
+    /**
+     * «Λίγα λόγια», as the about page shows it (2026-09-24): the visitor's
+     * language, else the other one, else nothing.
+     */
+    public function bioIn(string $locale): string
+    {
+        $bio = is_array($this->bio) ? $this->bio : [];
+
+        return trim((string) ($bio[$locale] ?? $bio['el'] ?? $bio['en'] ?? ''));
     }
 
     /**

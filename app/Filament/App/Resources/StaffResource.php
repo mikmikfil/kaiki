@@ -14,8 +14,11 @@ use App\Filament\Support\MoreActions;
 use App\Models\User;
 use App\Support\Authorization\Capability;
 use Filament\Forms\Components\Component;
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Form;
@@ -157,6 +160,34 @@ class StaffResource extends Resource
                 ->options(CrewSpecialty::class)
                 ->inline(),
 
+            // What the site's «Σχετικά με εμάς» shows of a captain or a
+            // deckhand (2026-09-24). Both optional; nobody else's page shows them.
+            Fieldset::make(__('staff.form.public.label'))
+                ->schema([
+                    FileUpload::make('photo_path')
+                        ->label(__('staff.form.photo.label'))
+                        ->helperText(__('staff.form.photo.help'))
+                        ->disk('public')
+                        ->directory('staff')
+                        ->visibility('public')
+                        ->image()
+                        ->imageEditor()
+                        ->imageCropAspectRatio('4:5')
+                        ->maxSize(4096)
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                        ->columnSpanFull(),
+                    Textarea::make('bio.el')
+                        ->label(__('staff.form.bio.el'))
+                        ->helperText(__('staff.form.bio.help'))
+                        ->rows(2)
+                        ->maxLength(200),
+                    Textarea::make('bio.en')
+                        ->label(__('staff.form.bio.en'))
+                        ->rows(2)
+                        ->maxLength(200),
+                ])
+                ->columns(1),
+
             TextInput::make('phone')
                 ->label(__('staff.form.phone.label'))
                 ->helperText(__('staff.form.phone.help'))
@@ -263,6 +294,8 @@ class StaffResource extends Resource
                         'salutation' => $record->salutation,
                         'email' => $record->email,
                         'specialty' => $record->specialty?->value,
+                        'photo_path' => $record->photo_path,
+                        'bio' => is_array($record->bio) ? $record->bio : [],
                         'phone' => $record->phone,
                         'locale' => $record->locale,
                         // A person who already holds two — from a seed, the API,
@@ -283,6 +316,7 @@ class StaffResource extends Resource
                                     'name' => $data['name'],
                                     'salutation' => $data['salutation'] ?? null,
                                     'specialty' => $data['specialty'] ?? null,
+                                    ...static::publicProfile($data),
                                     'phone' => $data['phone'] ?? null,
                                     'locale' => $data['locale'],
                                 ]);
@@ -376,6 +410,34 @@ class StaffResource extends Resource
                             }),
                     ]))
             ->defaultSort('name');
+    }
+
+    /**
+     * The photograph and «Λίγα λόγια» as stored: a path or null, and only the
+     * languages that have words in them.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{photo_path: string|null, bio: array<string, string>|null}
+     */
+    public static function publicProfile(array $data): array
+    {
+        $photo = $data['photo_path'] ?? null;
+        $photo = is_array($photo) ? (reset($photo) ?: null) : $photo;
+
+        $bio = [];
+
+        foreach (['el', 'en'] as $locale) {
+            $text = trim((string) ($data['bio'][$locale] ?? ''));
+
+            if ($text !== '') {
+                $bio[$locale] = $text;
+            }
+        }
+
+        return [
+            'photo_path' => is_string($photo) && $photo !== '' ? $photo : null,
+            'bio' => $bio === [] ? null : $bio,
+        ];
     }
 
     /**

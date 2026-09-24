@@ -1,0 +1,509 @@
+<title>Σχετικά με εμάς</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* The operator's site (hosted/layout.blade.php) with the demo operator's colours.
+   Kaiki rules: light only, Inter only (+ Plex Mono for numbers), no uppercase,
+   no underlined links. Photos are the demo seeder's. */
+:root{
+  --primary:#0E2D4A; --accent:#1E88D8; --paper:#F7F9F8; --surface:#FFFFFF; --rule:#E1E9E7;
+  --ink:#14222B; --ink-soft:#4A5D5A; --ink-faint:#7B8D8A; --sand:#F3EFE7;
+  --auto:#E3F2EA; --auto-ink:#1F6B45; --own:#FBEFDC; --own-ink:#8A520B;
+  --pblue:#1E5AA8; --pdeep:#0F2E57; --pink:#15233A; --pmuted:#5F6F86; --pline:#E1E8F2; --pstrip:#F1F5FA;
+  --sans:Inter,"Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:#E6ECF0;color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-block:24px 72px;padding-inline:16px;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:is(button,a,input):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+img{display:block;max-width:100%}
+.page{max-width:1200px;margin:0 auto;display:grid;gap:20px}
+
+/* ---- the mockup's own chrome ---- */
+.intro h1{font-size:26px;line-height:1.2;margin:0 0 6px;letter-spacing:-.015em;text-wrap:balance}
+.intro p{margin:0;max-width:74ch;color:var(--ink-soft)}
+.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;background:#fff;border:1px solid #CFDAE8;border-radius:10px;padding:3px}
+.seg button{padding:6px 14px;border-radius:7px;font-weight:600;font-size:14px;color:var(--ink-soft)}
+.seg button[aria-pressed="true"]{background:var(--primary);color:#fff}
+.key{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}
+.tag{display:inline-flex;align-items:center;gap:6px;border-radius:99px;padding:3px 10px;font-size:12px;font-weight:600;line-height:1.4;white-space:nowrap}
+.tag::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.tag.auto{background:var(--auto);color:var(--auto-ink)}
+.tag.own{background:var(--own);color:var(--own-ink)}
+
+/* ---- the device ---- */
+.device{margin:0 auto;width:100%;border-radius:18px;overflow:hidden;background:var(--paper);box-shadow:0 1px 0 #CBD5DE,0 18px 50px rgba(14,45,74,.14);transition:max-width .3s ease}
+.device.phone{max-width:390px}
+.device.desk{max-width:1200px}
+.site{container:site/inline-size;position:relative}
+.device[data-marks="off"] .mark{display:none}
+.mark{position:absolute;z-index:3;top:14px;left:clamp(16px,4cqi,48px);box-shadow:0 2px 8px rgba(0,0,0,.08)}
+
+.in{padding-inline:clamp(18px,5cqi,56px)}
+.sec{position:relative;padding-block:clamp(48px,8cqi,88px)}
+.sec + .sec{border-top:1px solid var(--rule)}
+.kick{font-size:14px;font-weight:600;color:var(--accent);margin:0 0 10px;letter-spacing:.01em}
+h2{font-weight:800;font-size:clamp(26px,4.2cqi,40px);line-height:1.1;letter-spacing:-.028em;color:var(--primary);margin:0 0 14px;text-wrap:balance}
+h3{font-weight:700;font-size:18px;letter-spacing:-.01em;color:var(--primary);margin:0}
+.lede{font-size:clamp(16px,1.9cqi,18px);color:var(--ink-soft);max-width:40rem;margin:0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* header */
+.sh{display:flex;align-items:center;gap:14px;padding-block:16px;background:var(--surface);border-bottom:1px solid var(--rule)}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;margin-right:auto}
+.logo{width:38px;height:38px;border-radius:10px;background:var(--primary);display:grid;place-items:center;flex:none;color:#fff;font-weight:800;font-size:15px;letter-spacing:-.03em}
+.brand b{display:block;color:var(--primary);font-weight:800;font-size:16px;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand small{display:block;color:var(--ink-faint);font-size:12px;line-height:1.2}
+.nav{display:none;gap:22px;font-size:14.5px}
+.nav a{color:var(--ink-soft)}
+.nav a[aria-current]{color:var(--primary);font-weight:700}
+.langs{display:flex;gap:4px;font-size:13px}
+.langs span{padding:4px 8px;border:1px solid var(--rule);border-radius:8px;color:var(--ink-soft)}
+.langs span.on{background:var(--primary);border-color:var(--primary);color:#fff}
+.book{display:none;background:var(--accent);color:#fff;font-weight:700;padding:10px 16px;border-radius:10px;font-size:14.5px}
+.burger{width:40px;height:40px;border:1px solid var(--rule);border-radius:10px;display:grid;place-items:center;color:var(--primary)}
+@container site (min-width:760px){.nav,.book{display:flex}.burger{display:none}}
+
+/* hero */
+.hero{position:relative;min-height:clamp(440px,62cqi,620px);display:flex;align-items:flex-end;color:#fff;overflow:hidden;background:var(--primary)}
+.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:60% 55%;animation:settle 2.4s cubic-bezier(.2,.7,.2,1) both}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,22,36,.82) 0%,rgba(8,22,36,.55) 45%,rgba(8,22,36,.08) 80%),linear-gradient(0deg,rgba(8,22,36,.7) 0%,transparent 45%)}
+@keyframes settle{from{transform:scale(1.07)}to{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.hero img{animation:none}}
+.hero-copy{position:relative;z-index:2;width:100%;padding-block:96px 28px}
+.hero .kick{color:rgba(255,255,255,.8)}
+.hero h1{font-weight:800;font-size:clamp(36px,7cqi,72px);line-height:1.02;letter-spacing:-.035em;margin:0 0 18px;max-width:13ch;text-wrap:balance}
+.hero .lede{color:rgba(255,255,255,.9);max-width:34rem}
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 24px;margin-top:40px;padding-top:22px;border-top:1px solid rgba(255,255,255,.28)}
+@container site (min-width:760px){.facts{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.facts b{display:block;font-family:var(--mono);font-weight:500;font-size:clamp(26px,3.6cqi,34px);line-height:1;letter-spacing:-.02em}
+.facts span{display:block;margin-top:6px;font-size:13.5px;color:rgba(255,255,255,.78)}
+
+/* story */
+.story{display:grid;gap:32px;align-items:center}
+@container site (min-width:760px){.story{grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:clamp(36px,6cqi,72px)}}
+.story figure{margin:0;position:relative}
+.story figure img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:16px}
+.story figcaption{font-size:13px;color:var(--ink-faint);margin-top:10px}
+.story p{color:var(--ink-soft);margin:0 0 14px;max-width:36rem}
+.sign{display:flex;align-items:center;gap:12px;margin-top:22px;padding-top:18px;border-top:1px solid var(--rule)}
+.sign img{width:44px;height:44px;border-radius:50%;object-fit:cover}
+.sign b{display:block;color:var(--primary);font-size:15px}
+.sign small{color:var(--ink-faint);font-size:13px}
+
+/* timeline: a real sequence, so it is numbered by year */
+.tl{list-style:none;margin:36px 0 0;padding:0;display:grid;gap:0}
+.tl li{position:relative;padding:0 0 26px 30px;border-left:2px solid var(--rule);margin-left:6px}
+.tl li:last-child{border-left-color:transparent;padding-bottom:0}
+.tl li::before{content:"";position:absolute;left:-7px;top:4px;width:12px;height:12px;border-radius:50%;background:var(--paper);border:2px solid var(--accent)}
+.tl li.now::before{background:var(--accent)}
+.tl .y{font-family:var(--mono);font-weight:500;font-size:15px;color:var(--accent);display:block;margin-bottom:2px}
+.tl b{display:block;color:var(--primary);font-size:16px}
+.tl span{display:block;color:var(--ink-soft);font-size:14.5px;max-width:30rem}
+@container site (min-width:760px){
+  .tl{grid-template-columns:repeat(5,minmax(0,1fr));gap:20px;border-top:2px solid var(--rule);padding-top:26px;margin-top:48px}
+  .tl li{border-left:0;padding:0;margin:0}
+  .tl li::before{left:0;top:-34px}
+}
+
+/* fleet */
+.head{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:end;justify-content:space-between;margin-bottom:28px}
+.head h2{margin:0}
+.head a{font-weight:600;font-size:15px}
+.fleet{display:grid;gap:18px}
+@container site (min-width:760px){.fleet{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.boat{background:var(--surface);border-radius:16px;overflow:hidden;box-shadow:0 1px 2px rgba(14,45,74,.06),0 0 0 1px var(--rule)}
+.boat img{width:100%;aspect-ratio:3/2;object-fit:cover}
+.boat .b{padding:16px 18px 18px;display:grid;gap:10px}
+.boat .reg{font-family:var(--mono);font-size:12.5px;color:var(--ink-faint)}
+.specs{display:grid;grid-template-columns:repeat(3,auto);justify-content:start;gap:4px 18px;margin:0}
+.specs dt{font-size:12px;color:var(--ink-faint)}
+.specs dd{margin:0;font-family:var(--mono);font-size:15px;color:var(--ink);grid-row:2}
+.boat .lic{font-size:13px;color:var(--ink-soft)}
+.boat .go{font-weight:600;font-size:14.5px;border-top:1px solid var(--rule);padding-top:12px}
+
+/* people */
+.crew{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:600px){.crew{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.person{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center}
+@container site (min-width:600px){.person{grid-template-columns:1fr;text-align:left}}
+.av{width:84px;height:84px;border-radius:50%;object-fit:cover;background:var(--primary)}
+@container site (min-width:600px){.av{width:100%;height:auto;aspect-ratio:4/5;border-radius:16px}}
+.mono{display:grid;place-items:center;color:#fff;font-weight:800;font-size:26px;letter-spacing:-.03em;background:linear-gradient(160deg,#2B5D8A,var(--primary))}
+@container site (min-width:600px){.mono{font-size:44px}}
+.person .role{font-size:13.5px;color:var(--accent);font-weight:600;margin:2px 0 4px}
+.person p{margin:0;color:var(--ink-soft);font-size:14.5px}
+.crew[data-photos="off"] .av{display:none}
+.crew[data-photos="off"] .person{grid-template-columns:1fr;border-top:2px solid var(--primary);padding-top:14px}
+
+/* guest review */
+.review{display:grid;background:var(--primary);color:#fff;overflow:hidden;position:relative}
+@container site (min-width:760px){.review{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}}
+.review .q{padding-block:clamp(48px,8cqi,88px)}
+.stars{color:#F5C451;letter-spacing:3px;font-size:18px}
+.review blockquote{margin:14px 0 22px;font-size:clamp(22px,3.2cqi,30px);line-height:1.3;font-weight:600;letter-spacing:-.018em;max-width:26ch;text-wrap:pretty}
+.review cite{font-style:normal;color:#B9CADC;font-size:14.5px}
+.review cite b{color:#fff;display:block;font-size:15.5px}
+.review .score{margin-top:26px;padding-top:18px;border-top:1px solid rgba(255,255,255,.2);font-size:14px;color:#B9CADC}
+.review .score b{font-family:var(--mono);color:#fff;font-weight:500;font-size:18px;margin-right:6px}
+.review img{width:100%;height:100%;min-height:260px;object-fit:cover;object-position:center 60%}
+
+/* licences */
+.docs{display:grid;gap:0;margin-top:26px;border-top:1px solid var(--rule)}
+@container site (min-width:760px){.docs{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:48px}}
+.doc{display:grid;grid-template-columns:28px 1fr;gap:12px;padding-block:16px;border-bottom:1px solid var(--rule)}
+.doc svg{color:var(--accent);margin-top:2px}
+.doc b{display:block;color:var(--primary);font-size:15.5px}
+.doc span{display:block;color:var(--ink-soft);font-size:14px}
+.doc .num{color:var(--ink);font-size:13.5px}
+
+/* port */
+.port{position:relative;min-height:440px;display:flex;align-items:flex-end;overflow:hidden}
+.port > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.port-card{position:relative;z-index:2;background:var(--surface);border-radius:16px;padding:22px;margin-block:28px;width:100%;max-width:420px;box-shadow:0 18px 40px rgba(8,22,36,.25)}
+.port-card h2{font-size:clamp(24px,3.2cqi,30px);margin-bottom:10px}
+.port-card p{margin:0 0 6px;color:var(--ink-soft)}
+.port-card .num{font-size:13px;color:var(--ink-faint)}
+.hint{display:flex;gap:8px;background:var(--sand);border-radius:10px;padding:10px 12px;margin:14px 0 16px;font-size:14px;color:var(--ink)}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--accent);color:#fff;font-weight:700;padding:12px 18px;border-radius:10px;font-size:15px}
+.btn.light{background:#fff;color:var(--primary)}
+
+/* call to action */
+.cta{position:relative;min-height:340px;display:flex;align-items:center;color:#fff;overflow:hidden}
+.cta > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%}
+.cta::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,22,36,.8),rgba(8,22,36,.25))}
+.cta .in{position:relative;z-index:2;padding-block:56px}
+.cta h2{color:#fff;font-size:clamp(30px,5cqi,48px);margin-bottom:10px}
+.cta p{margin:0 0 22px;color:rgba(255,255,255,.88);font-size:17px}
+
+.foot{background:var(--primary);color:#B9CADC;font-size:13px;padding-block:24px;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between}
+.foot b{color:#fff}
+
+/* ---- the operator's panel (blue, like the rest of the panel) ---- */
+.panel{background:#fff;border-radius:18px;padding:22px 16px 26px;color:var(--pink);box-shadow:0 1px 0 #CBD5DE}
+@media (min-width:760px){.panel{padding:26px 30px 30px}}
+.panel .crumbs{font-size:13px;color:var(--pmuted)}
+.panel .ph{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between;margin:4px 0 16px}
+.panel .ph h2{margin:0;font-size:24px;color:var(--pink);letter-spacing:-.02em}
+.panel .ph a{font-weight:600;color:var(--pblue);font-size:14px}
+.tabs{display:flex;gap:24px;overflow-x:auto;border-bottom:1px solid var(--pline);margin-bottom:18px;scrollbar-width:none}
+.tabs span{padding:10px 0 9px;font-weight:600;color:#4F607A;border-bottom:3px solid transparent;white-space:nowrap;margin-bottom:-1px}
+.tabs span.on{color:var(--pink);border-bottom-color:var(--pdeep)}
+.pgrid{display:grid;gap:16px}
+@media (min-width:900px){.pgrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+.psec{border:1px solid var(--pline);border-radius:12px;overflow:hidden}
+.psec-h{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:12px 16px;background:var(--pstrip);border-bottom:1px solid var(--pline)}
+.psec-h .ic{width:30px;height:30px;border-radius:8px;background:#E4EDF8;color:var(--pblue);display:grid;place-items:center;flex:none}
+.psec-h b{font-size:15.5px;margin-right:auto}
+.panel .tag{white-space:normal}
+.pgrid > *,.brand > div{min-width:0}
+.psec-b{padding:6px 16px}
+.prow{display:flex;gap:14px;align-items:center;justify-content:space-between;padding-block:11px;border-bottom:1px solid var(--pline)}
+.prow:last-child{border-bottom:0}
+.prow b{display:block;font-size:14.5px;font-weight:600}
+.prow small{display:block;color:var(--pmuted);font-size:13px}
+.prow .h{color:#A7B4C6;cursor:grab;font-size:16px;margin-right:-4px}
+.field{padding-block:12px;border-bottom:1px solid var(--pline)}
+.field label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+.field input{width:100%;font:inherit;border:1px solid #CFDAE8;border-radius:8px;padding:9px 12px;color:var(--pink)}
+.sw{width:42px;height:24px;border-radius:99px;background:#CBD5E1;position:relative;flex:none;transition:background .15s}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.2);transition:left .15s}
+.sw[aria-checked="true"]{background:var(--pblue)}
+.sw[aria-checked="true"]::after{left:21px}
+.new{font-size:11.5px;font-weight:700;color:var(--pblue);background:#E4EDF8;border-radius:99px;padding:1px 8px;margin-left:6px;vertical-align:1px}
+.addb{display:inline-block;font-weight:600;color:var(--pblue);font-size:14px;padding-block:12px}
+
+.qs{background:#fff;border-radius:18px;padding:20px 22px;box-shadow:0 1px 0 #CBD5DE}
+.qs h2{font-size:18px;margin:0 0 12px;color:var(--ink);letter-spacing:-.01em}
+.qs ol{margin:0;padding-left:22px;display:grid;gap:10px}
+.qs li b{display:block}
+.qs li span{color:var(--ink-soft);font-size:14.5px}
+</style>
+
+<div class="page">
+  <header class="intro">
+    <h1>«Σχετικά με εμάς» στο site του διοργανωτή</h1>
+    <p>Μια σελίδα στο μενού, δίπλα στις εκδρομές. Ό,τι ξέρει ήδη το Kaiki (σκάφη, άνθρωποι, άδειες, λιμάνι) μπαίνει μόνο του και μένει πάντα σωστό. Την ιστορία και τις κριτικές τις γράφει ο διοργανωτής, με τα ίδια κομμάτια που έχει και η Αρχική.</p>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Οθόνη">
+      <button type="button" id="v-phone" aria-pressed="false" data-view="phone">Κινητό</button>
+      <button type="button" id="v-desk" aria-pressed="true" data-view="desk">Υπολογιστής</button>
+    </div>
+    <div class="key">
+      <span class="tag auto">Από το Kaiki</span>
+      <span class="tag own">Γράφει ο διοργανωτής</span>
+      <div class="seg" role="group" aria-label="Σημάδια">
+        <button type="button" id="m-on" aria-pressed="true" data-marks="on">Με σημάδια</button>
+        <button type="button" id="m-off" aria-pressed="false" data-marks="off">Όπως το βλέπει ο επισκέπτης</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="device desk" id="device" data-marks="on">
+   <div class="site">
+    <header class="sh in">
+      <div class="brand">
+        <span class="logo">AB</span>
+        <div><b>Aegean Blue Cruises</b><small>Πειραιάς</small></div>
+      </div>
+      <nav class="nav" aria-label="Μενού">
+        <a href="#">Εκδρομές</a>
+        <a href="#" aria-current="page">Σχετικά με εμάς</a>
+        <a href="#">Συχνές ερωτήσεις</a>
+        <a href="#">Επικοινωνία</a>
+      </nav>
+      <div class="langs"><span class="on">ΕΛ</span><span>EN</span></div>
+      <a href="#" class="book">Κλείστε θέση</a>
+      <span class="burger" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>
+    </header>
+
+    <!-- 1. hero -->
+    <section class="hero" data-part="hero">
+      <span class="tag own mark">Γράφει ο διοργανωτής · Εισαγωγή</span>
+      <img src="about-img/hero.jpg" alt="">
+      <div class="hero-copy in">
+        <p class="kick">Σχετικά με εμάς</p>
+        <h1>Τρεις γενιές στη θάλασσα του Σαρωνικού</h1>
+        <p class="lede">Οικογενειακή επιχείρηση από τον Πειραιά. Βγάζουμε μικρές παρέες για κολύμπι, ψάρεμα και ηλιοβασιλέματα, με δικά μας σκάφη και δικούς μας κυβερνήτες.</p>
+        <div class="facts">
+          <div><b>1968</b><span>η πρώτη βάρκα της οικογένειας</span></div>
+          <div><b>3</b><span>σκάφη, όλα δικά μας</span></div>
+          <div><b>12</b><span>άτομα το πολύ σε κάθε εκδρομή</span></div>
+          <div><b>4,9</b><span>στην Google, από 380 κριτικές</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. story + timeline -->
+    <section class="sec in" data-part="story">
+      <span class="tag own mark">Γράφει ο διοργανωτής · Ιστορία</span>
+      <div class="story">
+        <figure>
+          <img src="about-img/story.jpg" alt="Ο Γιώργος και η Ελένη Παπαδάκη στην πλώρη">
+          <figcaption>Ο Γιώργος και η Ελένη, καλοκαίρι 2024</figcaption>
+        </figure>
+        <div>
+          <p class="kick">Η ιστορία μας</p>
+          <h2>Ξεκινήσαμε με μια ψαρόβαρκα στη Σαλαμίνα</h2>
+          <p>Ο παππούς μας ψάρευε ανάμεσα στη Σαλαμίνα και την Αίγινα από το 1968. Εκεί μάθαμε κάθε κάβο, κάθε σπηλιά και ποιος όρμος έχει νερά σαν πισίνα όταν φυσάει μελτέμι.</p>
+          <p>Το 2009 φτιάξαμε το πρώτο σκάφος για επισκέπτες. Σήμερα έχουμε τρία και βγαίνουμε κάθε μέρα από τον Απρίλιο ως τον Οκτώβριο. Οι παρέες μένουν μικρές, για να χωράνε όλοι στην πλώρη.</p>
+          <div class="sign">
+            <img src="about-img/p-giorgos.jpg" alt="">
+            <div><b>Γιώργος Παπαδάκης</b><small>Κυβερνήτης και ιδιοκτήτης</small></div>
+          </div>
+        </div>
+      </div>
+      <ol class="tl" aria-label="Χρονολόγιο">
+        <li><span class="y">1968</span><b>Η «Αγία Ειρήνη»</b><span>Η ψαρόβαρκα του παππού, στο λιμανάκι της Σαλαμίνας.</span></li>
+        <li><span class="y">1994</span><b>Δίπλωμα κυβερνήτη</b><span>Ο Γιώργος παίρνει το δίπλωμα και το πρώτο καΐκι.</span></li>
+        <li><span class="y">2009</span><b>Το «Θάλασσα»</b><span>Το πρώτο μας σκάφος για επισκέπτες, 12 θέσεις.</span></li>
+        <li><span class="y">2021</span><b>Μαρίνα Ζέας</b><span>Μεταφερόμαστε στον Πειραιά. Έρχονται το «Αύρα» και το «Γαλήνη».</span></li>
+        <li class="now"><span class="y">2026</span><b>Σήμερα</b><span>Τρία σκάφη, πέντε άνθρωποι, 40 χιλιάδες επιβάτες ως τώρα.</span></li>
+      </ol>
+    </section>
+
+    <!-- 3. fleet -->
+    <section class="sec in" data-part="fleet">
+      <span class="tag auto mark">Από το Kaiki · Σκάφη</span>
+      <div class="head">
+        <div><p class="kick">Ο στόλος</p><h2>Τα σκάφη μας</h2></div>
+        <a href="#">Όλες οι εκδρομές →</a>
+      </div>
+      <div class="fleet">
+        <article class="boat">
+          <img src="about-img/boat-thalassa.jpg" alt="Το σκάφος Θάλασσα δεμένο στη μαρίνα">
+          <div class="b">
+            <div><h3>Θάλασσα</h3><span class="reg">Ν.Π. 4127 · Πειραιάς</span></div>
+            <dl class="specs"><dt>Άτομα</dt><dd>12</dd><dt>Μήκος</dt><dd>11,5 μ.</dd><dt>Από</dt><dd>2009</dd></dl>
+            <span class="lic">Ημερόπλοιο</span>
+            <a class="go" href="#">4 εκδρομές με αυτό →</a>
+          </div>
+        </article>
+        <article class="boat">
+          <img src="about-img/boat-avra.jpg" alt="Το καταμαράν Αύρα στο ανοιχτό πέλαγος">
+          <div class="b">
+            <div><h3>Αύρα</h3><span class="reg">Ν.Π. 5580 · Πειραιάς</span></div>
+            <dl class="specs"><dt>Άτομα</dt><dd>8</dd><dt>Μήκος</dt><dd>12,8 μ.</dd><dt>Από</dt><dd>2021</dd></dl>
+            <span class="lic">Επαγγελματικό τουριστικό, μόνο ιδιωτικές</span>
+            <a class="go" href="#">2 εκδρομές με αυτό →</a>
+          </div>
+        </article>
+        <article class="boat">
+          <img src="about-img/boat-galini.jpg" alt="Το ιστιοπλοϊκό Γαλήνη ανάμεσα σε βουνά">
+          <div class="b">
+            <div><h3>Γαλήνη</h3><span class="reg">Ν.Π. 5613 · Πειραιάς</span></div>
+            <dl class="specs"><dt>Άτομα</dt><dd>10</dd><dt>Μήκος</dt><dd>10,2 μ.</dd><dt>Από</dt><dd>2021</dd></dl>
+            <span class="lic">Ημερόπλοιο</span>
+            <a class="go" href="#">3 εκδρομές με αυτό →</a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 4. people -->
+    <section class="sec in" data-part="people">
+      <span class="tag auto mark">Από το Kaiki · Ομάδα</span>
+      <div class="head"><div><p class="kick">Στο τιμόνι</p><h2>Οι άνθρωποί μας</h2></div></div>
+      <div class="crew" id="crew" data-photos="on">
+        <div class="person">
+          <img class="av" src="about-img/p-giorgos.jpg" alt="Γιώργος Παπαδάκης">
+          <div><h3>Γιώργος Παπαδάκης</h3><p class="role">Κυβερνήτης</p><p>Στη θάλασσα από παιδί. Ξέρει κάθε σπηλιά της Αίγινας.</p></div>
+        </div>
+        <div class="person">
+          <img class="av" src="about-img/p-maria.jpg" alt="Μαρία Λεβέντη" style="object-position:30% 40%">
+          <div><h3>Μαρία Λεβέντη</h3><p class="role">Κυβερνήτρια</p><p>Κάνει τα ηλιοβασιλέματα και μιλάει αγγλικά, ιταλικά και γαλλικά.</p></div>
+        </div>
+        <div class="person">
+          <div class="av mono" aria-hidden="true">ΝΚ</div>
+          <div><h3>Νίκος Καραλής</h3><p class="role">Ναύτης</p><p>Σας βοηθάει να ανεβείτε και φτιάχνει τον καλύτερο φραπέ του Σαρωνικού.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. a guest review -->
+    <section class="review" data-part="review">
+      <span class="tag own mark">Γράφει ο διοργανωτής · Κριτικές</span>
+      <div class="q in">
+        <div class="stars" aria-label="5 αστέρια">★★★★★</div>
+        <blockquote>«Ο Γιώργος μάς πήγε σε έναν όρμο που δεν θα βρίσκαμε ποτέ μόνοι μας. Τα παιδιά ακόμα μιλάνε για τα χελιδονόψαρα.»</blockquote>
+        <cite><b>Katrin M.</b>Μόναχο · Οικογενειακή εκδρομή, Αύγουστος 2026</cite>
+        <p class="score"><b>4,9</b>από 380 κριτικές στην Google</p>
+      </div>
+      <img src="about-img/quote.jpg" alt="">
+    </section>
+
+    <!-- 6. licences -->
+    <section class="sec in" data-part="docs">
+      <span class="tag auto mark">Από το Kaiki · Στοιχεία επιχείρησης</span>
+      <p class="kick">Άδειες και ασφάλεια</p>
+      <h2>Όλα στα χαρτιά τους</h2>
+      <p class="lede">Κάθε σκάφος έχει άδεια από το Λιμεναρχείο Πειραιά και κάθε επιβάτης είναι ασφαλισμένος σε κάθε εκδρομή.</p>
+      <div class="docs">
+        <div class="doc"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/><path d="M9 12l2 2 4-4"/></svg><div><b>Αδειοδοτημένα σκάφη</b><span>2 ημερόπλοια, 1 επαγγελματικό τουριστικό</span></div></div>
+        <div class="doc"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v12H4z"/><path d="M8 7V5h8v2"/></svg><div><b>Ασφάλεια επιβατών</b><span>Σε κάθε εκδρομή, για κάθε επιβάτη</span></div></div>
+        <div class="doc"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></svg><div><b>Μητρώο Τουριστικών Επιχειρήσεων</b><span class="num">ΜΗΤΕ 0206Ε70000012345</span></div></div>
+        <div class="doc"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M10 21v-6h4v6"/></svg><div><b>Aegean Blue Cruises ΙΚΕ</b><span class="num">ΑΦΜ 801234567 · ΔΟΥ Πειραιά</span></div></div>
+      </div>
+    </section>
+
+    <!-- 7. port -->
+    <section class="port" data-part="port">
+      <span class="tag auto mark">Από το Kaiki · Λιμάνια</span>
+      <img src="about-img/port.jpg" alt="Η Μαρίνα Ζέας με τα σκάφη δεμένα">
+      <div class="in" style="width:100%">
+        <div class="port-card">
+          <p class="kick">Σημείο συνάντησης</p>
+          <h2>Μαρίνα Ζέας, προβλήτα Β</h2>
+          <p>Ακτή Θεμιστοκλέους 42, 185 36 Πειραιάς</p>
+          <p class="num">37°56′12″ Β · 23°39′02″ Α</p>
+          <div class="hint"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="flex:none;margin-top:1px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Ελάτε 20 λεπτά πριν την αναχώρηση.</div>
+          <a class="btn" href="#">Οδηγίες στους χάρτες</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. call to action -->
+    <section class="cta" data-part="cta">
+      <span class="tag auto mark">Πάντα στο τέλος</span>
+      <img src="about-img/cta.jpg" alt="">
+      <div class="in">
+        <h2>Ελάτε μαζί μας</h2>
+        <p>Διαλέξτε εκδρομή και κλείστε θέση σε ένα λεπτό.</p>
+        <a class="btn light" href="#">Δείτε τις εκδρομές</a>
+      </div>
+    </section>
+
+    <footer class="foot in"><span><b>Aegean Blue Cruises ΙΚΕ</b> · 210 452 0000 · info@aegeanblue.gr</span><span>Όροι · Απόρρητο · powered by Kaiki</span></footer>
+   </div>
+  </div>
+
+  <!-- the panel -->
+  <section class="panel" aria-label="Πώς το φτιάχνει ο διοργανωτής">
+    <div class="crumbs">Site › Σχετικά με εμάς</div>
+    <div class="ph"><h2>Σχετικά με εμάς</h2><a href="#">Προβολή στο site ↗</a></div>
+    <div class="tabs"><span>Αρχική</span><span class="on">Σχετικά με εμάς</span><span>Συχνές ερωτήσεις</span><span>Εμφάνιση</span></div>
+
+    <div class="pgrid">
+      <div class="psec">
+        <div class="psec-h"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg></span><b>Γράφετε εσείς</b><span class="tag own">ίδια κομμάτια με την Αρχική</span></div>
+        <div class="psec-b">
+          <div class="field"><label for="page-name">Όνομα στο μενού</label><input id="page-name" value="Σχετικά με εμάς"></div>
+          <div class="prow"><span class="h">⋮⋮</span><div style="margin-right:auto"><b>Εισαγωγή</b><small>Φωτογραφία, τίτλος, 4 αριθμοί</small></div><button type="button" class="sw" role="switch" aria-checked="true" aria-label="Εισαγωγή" data-part="hero"></button></div>
+          <div class="prow"><span class="h">⋮⋮</span><div style="margin-right:auto"><b>Ιστορία <span class="new">νέο: χρονολόγιο</span></b><small>Κείμενο, φωτογραφία, 5 χρονιές</small></div><button type="button" class="sw" role="switch" aria-checked="true" aria-label="Ιστορία" data-part="story"></button></div>
+          <div class="prow"><span class="h">⋮⋮</span><div style="margin-right:auto"><b>Κριτικές</b><small>1 κριτική, βαθμός Google</small></div><button type="button" class="sw" role="switch" aria-checked="true" aria-label="Κριτικές" data-part="review"></button></div>
+          <span class="addb">+ Προσθήκη κομματιού</span>
+        </div>
+      </div>
+
+      <div class="psec">
+        <div class="psec-h"><span class="ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 4v5h-5"/></svg></span><b>Γεμίζει μόνο του</b><span class="tag auto">από το Kaiki</span></div>
+        <div class="psec-b">
+          <div class="prow"><div><b>Τα σκάφη μας</b><small>Από «Σκάφη»: φωτογραφία, άτομα, μήκος, άδεια</small></div><button type="button" class="sw" role="switch" aria-checked="true" aria-label="Τα σκάφη μας" data-part="fleet"></button></div>
+          <div class="prow"><div><b>Οι άνθρωποί μας</b><small>Από «Ομάδα»: κυβερνήτες και ναύτες</small></div><button type="button" class="sw" role="switch" aria-checked="true" aria-label="Οι άνθρωποί μας" data-part="people"></button></div>
+          <div class="prow"><div><b>Με φωτογραφίες</b><small>Όποιος δεν έχει, φαίνεται με τα αρχικά του</small></div><button type="button" class="sw" role="switch" aria-checked="true" aria-label="Με φωτογραφίες" id="sw-photos"></button></div>
+          <div class="prow"><div><b>Άδειες και ασφάλεια</b><small>Από τα στοιχεία επιχείρησης: ΜΗΤΕ, ΑΦΜ, άδειες σκαφών</small></div><button type="button" class="sw" role="switch" aria-checked="true" aria-label="Άδειες και ασφάλεια" data-part="docs"></button></div>
+          <div class="prow"><div><b>Σημείο συνάντησης</b><small>Από «Λιμάνια»: το κύριο λιμάνι</small></div><button type="button" class="sw" role="switch" aria-checked="true" aria-label="Σημείο συνάντησης" data-part="port"></button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="qs">
+    <h2>Πέντε ερωτήσεις</h2>
+    <ol>
+      <li><b>Μια γραμμή για κάθε άνθρωπο;</b><span>Το «Ξέρει κάθε σπηλιά της Αίγινας» δεν υπάρχει σήμερα. Θα μπει ένα πεδίο «Λίγα λόγια» στην «Ομάδα», προαιρετικό, σε ελληνικά και αγγλικά.</span></li>
+      <li><b>Φωτογραφίες ανθρώπων;</b><span>Προτείνω ναι, με αρχικά για όποιον δεν έχει. Ο διακόπτης τις κρύβει όλες.</span></li>
+      <li><b>Μόνο κυβερνήτες ή και ναύτες;</b><span>Τώρα δείχνει και τους δύο. Όσοι έχουν ειδικότητα «Άλλο» δεν φαίνονται.</span></li>
+      <li><b>Νέο κομμάτι «Χρονολόγιο»;</b><span>Χρονιά, τίτλος και μια γραμμή. Θα υπάρχει και στην Αρχική.</span></li>
+      <li><b>Ξεχωριστή σελίδα;</b><span>Προτείνω ξεχωριστή σελίδα στο μενού, όχι ένα ακόμα κομμάτι στην Αρχική.</span></li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(function () {
+  var device = document.getElementById('device');
+  function press(group, btn) {
+    document.querySelectorAll(group).forEach(function (o) { o.setAttribute('aria-pressed', o === btn ? 'true' : 'false'); });
+  }
+  document.querySelectorAll('[data-view]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      press('[data-view]', b);
+      device.classList.remove('phone', 'desk');
+      device.classList.add(b.dataset.view);
+    });
+  });
+  document.querySelectorAll('button[data-marks]').forEach(function (b) {
+    b.addEventListener('click', function () { press('button[data-marks]', b); device.dataset.marks = b.dataset.marks; });
+  });
+  var crew = document.getElementById('crew');
+  document.querySelectorAll('.sw').forEach(function (s) {
+    s.addEventListener('click', function () {
+      var on = s.getAttribute('aria-checked') !== 'true';
+      s.setAttribute('aria-checked', on ? 'true' : 'false');
+      if (s.id === 'sw-photos') crew.dataset.photos = on ? 'on' : 'off';
+      if (s.dataset.part) {
+        var sec = device.querySelector('[data-part="' + s.dataset.part + '"]');
+        if (sec) sec.hidden = !on;
+      }
+    });
+  });
+  if (window.innerWidth < 700) { document.getElementById('v-phone').click(); }
+  var name = document.getElementById('page-name');
+  var link = device.querySelector('.nav a[aria-current]');
+  var kick = device.querySelector('.hero .kick');
+  name.addEventListener('input', function () {
+    var v = name.value.trim() || 'Σχετικά με εμάς';
+    link.textContent = v; kick.textContent = v;
+  });
+})();
+</script>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Tenancy\Support;
 
 use App\Domain\Operations\Support\FirstSteps;
+use App\Enums\CrewSpecialty;
 use App\Models\BrandProfile;
 use App\Models\CancellationPolicy;
 use App\Models\HomePageBlock;
@@ -12,7 +13,6 @@ use App\Models\Port;
 use App\Models\Product;
 use App\Models\Season;
 use App\Models\Tenant;
-use App\Enums\CrewSpecialty;
 use App\Models\User;
 use App\Models\Vessel;
 use App\Observers\TenantObserver;
@@ -280,7 +280,7 @@ final class SetupChecklist
             //
             // True for a bookings-only account so the dashboard never reports
             // a step they were never offered as outstanding.
-            self::HOME_PAGE => ! self::servesHomePage() || HomePageBlock::query()->exists(),
+            self::HOME_PAGE => ! self::servesHomePage() || HomePageBlock::query()->onPage(HomePageBlock::PAGE_HOME)->exists(),
             self::READY => $tenant->onboarding_completed_at !== null,
         ];
     }

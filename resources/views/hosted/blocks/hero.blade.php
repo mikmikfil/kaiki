@@ -68,7 +68,7 @@
     $embed = $block->videoEmbed();
 @endphp
 
-<section class="block hero @if ($poster || $video || $embed) has-image @endif">
+<section class="block hero @if ($poster || $video || $embed) has-image @endif @if (($pageName ?? 'home') !== 'home') hero-plain @endif">
     @if ($video)
         <video class="hero-image hero-video"
                autoplay
@@ -161,12 +161,16 @@
              operator enabled — not a cut-down version of it, because a visitor
              who filters by port on one page and cannot on the other has learnt
              something untrue about the site. --}}
-        <div class="hero-search">
-            <h2 class="hero-search-title">{{ __('hosted.blocks.hero.search_title') }}</h2>
-            @include('hosted.partials.search-form', [
-                'action' => route('hosted.search', ['operator' => $tenant->slug]),
-                'idPrefix' => 'hero',
-            ])
-        </div>
+        {{-- The home page's only. On «Σχετικά με εμάς» the visitor came to read
+             about the operator, and the search is one menu link away. --}}
+        @if (($pageName ?? 'home') === 'home')
+            <div class="hero-search">
+                <h2 class="hero-search-title">{{ __('hosted.blocks.hero.search_title') }}</h2>
+                @include('hosted.partials.search-form', [
+                    'action' => route('hosted.search', ['operator' => $tenant->slug]),
+                    'idPrefix' => 'hero',
+                ])
+            </div>
+        @endif
     </div>
 </section>

@@ -347,6 +347,26 @@ return [
             'label' => 'Call to action',
             'description' => 'A photograph with a heading, a sentence and one or two buttons.',
         ],
+        'timeline' => [
+            'label' => 'Timeline',
+            'description' => 'Up to eight years, each with a title and a line.',
+        ],
+        'fleet' => [
+            'label' => 'Our boats',
+            'description' => 'Fills itself from «Boats»: photo, capacity, length, licence.',
+        ],
+        'crew' => [
+            'label' => 'Our people',
+            'description' => 'Fills itself from «Team»: captains and deckhands, with photo and a few words.',
+        ],
+        'credentials' => [
+            'label' => 'Licences and insurance',
+            'description' => 'Fills itself: company name, VAT number, GEMI and the boats\' licences.',
+        ],
+        'meeting_point' => [
+            'label' => 'Meeting point',
+            'description' => 'One port from «Ports», with photo, address and directions.',
+        ],
     ],
 
     'font_source' => [
@@ -753,6 +773,7 @@ return [
         'weather_choice_applied' => ['label' => 'Weather cancellation, settled'],
         'quote_sent' => ['label' => 'Quote sent'],
         'review_request' => ['label' => 'Google review request'],
+        'payment_unfinished' => ['label' => 'Payment not completed'],
     ],
 
     'webhook_event' => [

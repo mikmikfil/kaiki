@@ -22,6 +22,17 @@ return [
     ],
 
     'form' => [
+        // «About us» (2026-09-24).
+        'public' => ['label' => 'On your site'],
+        'photo' => [
+            'label' => 'Photo',
+            'help' => 'Shown on the «About us» page. Without one, their initials are shown.',
+        ],
+        'bio' => [
+            'el' => 'A few words (Greek)',
+            'en' => 'A few words (English)',
+            'help' => 'One or two lines, e.g. «Knows every cave on Aegina».',
+        ],
         'specialty' => ['label' => 'Specialty', 'help' => 'What they do on the boat. A departure’s «Captain» list offers the captains.'],
         'phone' => ['label' => 'Mobile', 'help' => 'Optional. For you to call them.'],
         'name' => ['label' => 'Full name'],
