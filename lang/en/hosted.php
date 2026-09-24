@@ -15,6 +15,12 @@ declare(strict_types=1);
 
 return [
 
+    'not_found' => [
+        'title' => 'This page does not exist',
+        'lede' => 'The address may have changed, or the trip is no longer available.',
+        'back' => 'See our trips',
+    ],
+
     'nav' => [
         'language' => 'Language',
         'menu' => 'Menu',
