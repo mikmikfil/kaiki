@@ -2785,14 +2785,12 @@
         /* 750px (Mike, 2026-09-24: «το hero να πάει στα 750px ύψος»). */
         .hero.has-image { min-height: 750px; }
         .hero.has-image .hero-copy { padding: 0; }
-        /* Lighter (Mike, 24/9: «μήπως είναι έντονο το black overlay;»): .5 at
-           the words' edge, was .7, fading to nothing on the right, so the
-           photograph keeps its colour; the headline's text-shadow carries the
-           rest of the contrast. */
+        /* Between the two (Mike, 24/9): .7 at the words' edge was heavy, .5
+           «παραέγινε ανοιχτό»; .6 there, fading to .1 on the right. */
         .hero.has-image::after {
             background:
-                linear-gradient(90deg, rgba(6, 16, 20, .5) 0%, rgba(6, 16, 20, .22) 50%, rgba(6, 16, 20, .04) 100%),
-                linear-gradient(to bottom, rgba(6, 16, 20, 0) 62%, rgba(6, 16, 20, .18) 100%);
+                linear-gradient(90deg, rgba(6, 16, 20, .6) 0%, rgba(6, 16, 20, .3) 50%, rgba(6, 16, 20, .1) 100%),
+                linear-gradient(to bottom, rgba(6, 16, 20, 0) 60%, rgba(6, 16, 20, .22) 100%);
         }
         .hero.has-image h1 { font-size: clamp(2.4rem, 5vw, 3.9rem); line-height: 1.05; letter-spacing: -.03em; text-wrap: balance; }
         .hero.has-image .standfirst { font-size: clamp(1.05rem, 1.5vw, 1.25rem); max-width: 36rem; text-wrap: pretty; }
