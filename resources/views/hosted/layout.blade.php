@@ -3251,6 +3251,37 @@
            climbing over the photograph beside it. */
         .hero-search-below + .stats-block { margin-block-start: 0; }
 
+        /* The bar's look (Mike, 2026-09-24, from the first home mockup): the
+           icon in the operator's accent, two lines tall, on the left; the field's
+           name in bold beside it and the value under it in grey; a thin rule
+           between fields; the button in the accent with an arrow.
+
+           The label becomes `display: contents`, so its icon and its words are
+           grid items of the field itself — the icon spans both rows, the words
+           take the first and the control the second. Clicking the words still
+           focuses the control: the label is still the label. */
+        .hero-search.hero-search-below .field:not(.submit) {
+            display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); column-gap: .75rem; row-gap: .05rem; align-items: center;
+        }
+        .hero-search.hero-search-below .field:not(.submit) label { display: contents; font-size: .9rem; font-weight: 600; letter-spacing: 0; color: var(--kaiki-text); }
+        .hero-search.hero-search-below .field:not(.submit) label .icon { grid-row: 1 / span 2; inline-size: 1.45rem; block-size: 1.45rem; color: var(--kaiki-accent); }
+        .hero-search.hero-search-below .field:not(.submit) :is(input, select) {
+            grid-column: 2; block-size: 1.6rem; min-block-size: 0; font-size: .88rem; color: var(--ink-faint);
+            border: 0; background-color: transparent; padding: 0; border-radius: 0; cursor: pointer;
+        }
+        .hero-search.hero-search-below .field:not(.submit) select {
+            appearance: none; -webkit-appearance: none; padding-inline-end: 1.5rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238593A6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right center;
+        }
+        .hero-search.hero-search-below .field.submit { border: 0 !important; }
+        .hero-search.hero-search-below .search-form button {
+            background: var(--kaiki-accent); color: #fff; font-weight: 700; gap: .6rem;
+            box-shadow: 0 6px 16px color-mix(in srgb, var(--kaiki-accent) 25%, transparent);
+        }
+        .hero-search.hero-search-below .search-form button:hover { background: color-mix(in srgb, var(--kaiki-accent) 85%, #000); }
+        .hero-search.hero-search-below .search-form button .icon { display: none; }
+        .hero-search.hero-search-below .search-form button::after { content: "→"; font-size: 1.1em; line-height: 1; }
+
         /* ==================================================================
            «Σχετικά με εμάς» (2026-09-24): the timeline, the boats, the people,
            the licences and the meeting point. Mockup approved by Mike the same
