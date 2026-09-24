@@ -242,15 +242,6 @@ class DemoAboutPageSeeder extends Seeder
                 'settings' => ['photos' => true],
             ],
             $this->homeReviews(),
-            [
-                'type' => HomeBlockType::Credentials->value,
-                'eyebrow' => $both('Άδειες και ασφάλεια', 'Licences and insurance'),
-                'heading' => $both('Όλα στα χαρτιά τους', 'All in order'),
-                'body' => $both(
-                    'Κάθε σκάφος έχει άδεια από το Λιμεναρχείο Πειραιά και κάθε επιβάτης είναι ασφαλισμένος σε κάθε εκδρομή.',
-                    'Every boat is licensed by the Piraeus Port Authority, and every passenger is insured on every trip.',
-                ),
-            ],
         ];
     }
 

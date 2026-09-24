@@ -3217,39 +3217,6 @@
             .product-aside { padding: .25rem 1.5rem 2.5rem; margin-inline: -1.5rem; }
         }
 
-        /* ==================================================================
-           A soft gradient on the two dark bands (Mike, 2026-09-24): «Γιατί
-           Aegean Blue» and the private-trips band. The deep colour, lifting
-           towards the primary, with a faint glow of the accent from the top
-           right corner — enough to give the flat navy some depth, not enough
-           to read as a decoration.
-           ================================================================== */
-        .band-dark,
-        .cta-band.has-image {
-            background:
-                radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--kaiki-accent) 34%, transparent) 0%, transparent 60%),
-                linear-gradient(155deg, var(--deep) 0%, color-mix(in srgb, var(--deep) 70%, var(--kaiki-primary)) 100%);
-        }
-        /* The split band's photograph covers its right half, so the glow comes
-           from the words' side. */
-        .cta-band.has-image {
-            background:
-                radial-gradient(90% 110% at 0% 0%, color-mix(in srgb, var(--kaiki-accent) 38%, transparent) 0%, transparent 62%),
-                linear-gradient(155deg, var(--deep) 0%, color-mix(in srgb, var(--deep) 70%, var(--kaiki-primary)) 100%);
-        }
-        /* And the glow drifts, slightly (Mike, 24/9): the light layer is drawn
-           larger than the band and wanders a little across it, nine seconds one
-           way and back (was fourteen; «λίγο πιο γρήγορη»). Still for anybody who asked for reduced motion. */
-        @media (prefers-reduced-motion: no-preference) {
-            .band-dark, .cta-band.has-image {
-                background-size: 150% 150%, 100% 100%;
-                animation: glow-drift 9s ease-in-out infinite alternate;
-            }
-            .band-dark { background-position: 100% 0%, 0 0; }
-            .cta-band.has-image { background-position: 0% 0%, 0 0; animation-name: glow-drift-left; }
-        }
-        @keyframes glow-drift { from { background-position: 100% 0%, 0 0; } to { background-position: 55% 35%, 0 0; } }
-        @keyframes glow-drift-left { from { background-position: 0% 0%, 0 0; } to { background-position: 40% 45%, 0 0; } }
 
         /* ==================================================================
            The header's layout (Mike, 2026-09-24, from the first home mockup):
@@ -3652,6 +3619,78 @@
         .meeting-hint svg { flex: none; inline-size: 1.1rem; block-size: 1.1rem; margin-block-start: .15rem; color: var(--kaiki-accent); }
         .meeting-hint p { margin: 0; }
         .meeting-cta { margin: 0 !important; }
+        /* ==================================================================
+           The dark boxes, all in one place and last, so no earlier rule can
+           flatten them (Mike, 2026-09-24): «Γιατί …» (band-dark), the private
+           trips band (the split call to action), and «Πώς λειτουργεί», which
+           became a box of the same kind — centred, colour only, no photograph.
+
+           Each is the deep colour lifting towards the primary, with a large
+           glow of the accent that drifts across it. The glow is its own layer
+           (`::before`) moved with `transform`, which the browser animates on
+           the compositor: smoother than moving a background, and it never
+           repaints the words over it. Still for reduced motion.
+           ================================================================== */
+        .band-dark,
+        .cta-band.has-image,
+        .steps-route:not(.has-image) {
+            position: relative; isolation: isolate; overflow: hidden;
+            background: linear-gradient(155deg, var(--deep) 0%, color-mix(in srgb, var(--deep) 62%, var(--kaiki-primary)) 100%);
+        }
+        .band-dark > *, .cta-band.has-image > *, .steps-route:not(.has-image) > * { position: relative; z-index: 1; }
+        .band-dark::before,
+        .cta-band.has-image::before,
+        .steps-route:not(.has-image)::before {
+            content: ""; display: block; position: absolute; z-index: 0; pointer-events: none;
+            inset-block: -45% -45%; inset-inline: -35% -35%;
+            background:
+                radial-gradient(38% 42% at 72% 28%, color-mix(in srgb, var(--kaiki-accent) 62%, transparent) 0%, transparent 100%),
+                radial-gradient(30% 34% at 22% 78%, color-mix(in srgb, var(--kaiki-accent) 30%, transparent) 0%, transparent 100%);
+            filter: blur(10px);
+            opacity: .95;
+        }
+        /* The split band's photograph covers its right half: the glow lives on the words' side. */
+        .cta-band.has-image::before {
+            inset-inline: -40% 20%;
+            background:
+                radial-gradient(40% 44% at 40% 30%, color-mix(in srgb, var(--kaiki-accent) 66%, transparent) 0%, transparent 100%),
+                radial-gradient(30% 34% at 20% 85%, color-mix(in srgb, var(--kaiki-accent) 30%, transparent) 0%, transparent 100%);
+        }
+        @media (prefers-reduced-motion: no-preference) {
+            .band-dark::before,
+            .cta-band.has-image::before,
+            .steps-route:not(.has-image)::before { animation: glow-wander 11s ease-in-out infinite alternate; will-change: transform; }
+        }
+        @keyframes glow-wander {
+            0%   { transform: translate3d(0, 0, 0) scale(1); }
+            50%  { transform: translate3d(-9%, 7%, 0) scale(1.12); }
+            100% { transform: translate3d(6%, -5%, 0) scale(.96); }
+        }
+
+        /* «Πώς λειτουργεί» as a box: inside the page's width, rounded like the
+           private trips band, the words and the route in the middle. */
+        .steps-route:not(.has-image) {
+            margin-inline: 0; border-radius: clamp(18px, 2vw, 26px);
+            padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.25rem, 4vw, 3.5rem);
+            color: rgba(255, 255, 255, .78);
+        }
+        .steps-route:not(.has-image) .section-head h2 { color: #fff; }
+        .steps-route:not(.has-image) .section-head .lead { color: rgba(255, 255, 255, .78); }
+        .steps-route:not(.has-image) .eyebrow-line { color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+        .steps-route:not(.has-image) .stop-copy h3 { color: #fff; }
+        .steps-route:not(.has-image) .stop-copy p { color: rgba(255, 255, 255, .72); }
+        /* the route on dark: a pale dashed track, a bright line, dots with a soft ring */
+        .steps-route:not(.has-image) .route .stop:not(:last-child)::before { border-color: rgba(255, 255, 255, .28); }
+        .steps-route:not(.has-image) .route .stop:not(:last-child)::after { background: color-mix(in srgb, var(--kaiki-accent) 55%, #fff); }
+        .steps-route:not(.has-image) .stop-dot { box-shadow: 0 0 0 6px rgba(255, 255, 255, .08); border-color: color-mix(in srgb, var(--kaiki-accent) 55%, #fff); }
+        .steps-route:not(.has-image) .route[data-animate="ready"] .stop-dot,
+        .steps-route:not(.has-image) .route[data-animate="on"] .stop-dot {
+            background: color-mix(in srgb, var(--deep) 70%, var(--kaiki-primary)); color: #fff; box-shadow: none;
+        }
+        .steps-route:not(.has-image) .route[data-animate="on"] .stop-dot { animation-name: route-fill-dark; }
+        @keyframes route-fill-dark {
+            to { background: var(--kaiki-accent); color: #fff; box-shadow: 0 0 0 6px rgba(255, 255, 255, .08); }
+        }
     </style>
 
     {{-- The booking bundle, fetched from the first byte of the page.
