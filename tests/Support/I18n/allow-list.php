@@ -48,6 +48,7 @@ return [
         'branding.form.social.facebook' => 'Company name, identical in both locales.',
         'branding.form.social.tripadvisor' => 'Company name, identical in both locales.',
         'branding.form.social.whatsapp' => 'Company name, identical in both locales.',
+        'hosted.footer.whatsapp' => 'Company name, identical in both locales.',
 
         // The same wordmarks again, on the guest-facing contact block. They are
         // the accessible names of the icon buttons, so a screen reader says the
