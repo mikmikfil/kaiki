@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Enums;
 
 use App\Enums\Concerns\HasTranslatedLabel;
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasLabel;
 
 /**
  * Where a booking came from (`docs/data-model.md` §2.5).
@@ -18,7 +20,7 @@ use App\Enums\Concerns\HasTranslatedLabel;
  *
  * Shared with `enquiries`, which uses the same vocabulary.
  */
-enum BookingSource: string
+enum BookingSource: string implements HasColor, HasLabel
 {
     use HasTranslatedLabel;
 
@@ -28,12 +30,32 @@ enum BookingSource: string
     case Manual = 'manual';
     case Import = 'import';
 
+    /**
+     * Sold on the quay by the operator or the crew (2026-09-24), paid on the
+     * spot on their POS or in cash. No receipt from Kaiki (their cash register
+     * issues it) and no text message; the email only when the guest gave one.
+     */
+    case Quay = 'quay';
+
+    /**
+     * The badge colour in the panel. BKG-34: what is worth noticing is a
+     * booking that is **not** ordinary — imported, or typed in by hand.
+     */
+    public function getColor(): string
+    {
+        return match ($this) {
+            self::Import => 'warning',
+            self::Manual, self::Quay => 'info',
+            self::Widget, self::Hosted, self::Wordpress => 'gray',
+        };
+    }
+
     /** Did a guest make this themselves? */
     public function isGuestInitiated(): bool
     {
         return match ($this) {
             self::Widget, self::Hosted, self::Wordpress => true,
-            self::Manual, self::Import => false,
+            self::Manual, self::Import, self::Quay => false,
         };
     }
 

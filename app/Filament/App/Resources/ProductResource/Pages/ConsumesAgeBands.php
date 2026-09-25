@@ -193,6 +193,8 @@ trait ConsumesAgeBands
             ->map(static fn (AgeBand $band): array => [
                 'code' => $band->code,
                 'label' => $band->getTranslations('label'),
+                'kind' => $band->kind->value,
+                'requires_proof' => (bool) $band->requires_proof,
                 'min_age' => $band->min_age,
                 'max_age' => $band->max_age,
                 'counts_toward_capacity' => $band->counts_toward_capacity,

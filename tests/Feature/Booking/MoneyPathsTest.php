@@ -71,6 +71,9 @@ function moneyMixes(): array
         'card' => [[PaymentGatewayName::Viva, PaymentKind::Full, 12000]],
         'cash' => [[PaymentGatewayName::Cash, PaymentKind::Full, 12000]],
         'bank transfer' => [[PaymentGatewayName::BankTransfer, PaymentKind::Full, 12000]],
+        // The quay sale's card (2026-09-24): paid on the operator's own POS, so
+        // given back by hand like cash, never through the gateway.
+        'card on the operator POS' => [[PaymentGatewayName::Pos, PaymentKind::Full, 12000]],
         'card deposit, cash balance' => [
             [PaymentGatewayName::Viva, PaymentKind::Deposit, 3600],
             [PaymentGatewayName::Cash, PaymentKind::Balance, 8400],

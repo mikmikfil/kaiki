@@ -32,7 +32,7 @@ return [
     ],
 
     'filters' => [
-        'needs_attention' => 'Only the ones that need me',
+        'needs_attention' => 'Need me',
     ],
 
     'actions' => [

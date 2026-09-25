@@ -35,6 +35,9 @@ use Illuminate\Support\Carbon;
  * @property int|null $capacity_override
  * @property bool $is_active
  * @property Carbon|null $last_generated_on
+ * @property int|null $captain_user_id the captain of every departure it makes (2026-09-24)
+ * @property string|null $captain_name a captain with no account, typed
+ * @property list<int>|null $crew_user_ids the crew of every departure it makes
  * @property-read Product|null $product null once the trip is soft-deleted —
  *                the rules stay behind and the column still points at a row the
  *                default scope will not return (2026-09-22)
@@ -59,6 +62,7 @@ class ScheduleRule extends Model
             'capacity_override' => 'integer',
             'is_active' => 'boolean',
             'last_generated_on' => 'date',
+            'crew_user_ids' => 'array',
         ];
     }
 

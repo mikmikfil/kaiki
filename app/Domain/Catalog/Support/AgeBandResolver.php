@@ -47,7 +47,10 @@ final class AgeBandResolver
      */
     public static function forAge(iterable $bands, int $age): ?AgeBand
     {
-        $matches = self::collect($bands)->filter(fn (AgeBand $band): bool => $band->covers($age));
+        // A group by status covers every age, so it is never the answer to
+        // "which band is a nine-year-old": an import or an OTA passes an age,
+        // and that says nothing about a student card.
+        $matches = self::collect($bands)->filter(fn (AgeBand $band): bool => ! $band->isByStatus() && $band->covers($age));
 
         if ($matches->isEmpty()) {
             return null;

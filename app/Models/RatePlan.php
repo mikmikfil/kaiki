@@ -45,6 +45,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int|null $max_advance_days
  * @property int|null $min_pax_override
  * @property bool $is_active
+ * @property bool $follows_trip_terms the year-round plan's deposit and deadlines are copied here
  */
 #[ObservedBy(RatePlanObserver::class)]
 class RatePlan extends Model
@@ -74,6 +75,7 @@ class RatePlan extends Model
             'max_advance_days' => 'integer',
             'min_pax_override' => 'integer',
             'is_active' => 'boolean',
+            'follows_trip_terms' => 'boolean',
         ];
     }
 

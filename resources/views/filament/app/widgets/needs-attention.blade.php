@@ -133,10 +133,12 @@
         /* Filament's own buttons for the answers, the same height as ours. */
         .ka-actions .fi-btn { min-height: 2.75rem; border-radius: .7rem; }
         @media (max-width: 767.98px) {
-            /* Side by side and equal on a phone, never one per line. */
-            .ka-actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
-            .ka-actions > * { justify-content: center; }
-            .ka-actions .fi-btn { padding-inline: .5rem; font-size: .85rem; white-space: normal; line-height: 1.15; }
+            /* One per row on a phone, full width (Mike, 2026-09-24). Side by
+               side, «Να φύγει κανονικά» and «Ακύρωση αναχώρησης» wrapped onto
+               two lines each and the wrong one was one thumb away. */
+            .ka-actions { display: grid; grid-template-columns: minmax(0, 1fr); }
+            .ka-actions > * { justify-content: center; width: 100%; }
+            .ka-actions .fi-btn { width: 100%; }
         }
         .ka-btn {
             display: inline-flex; align-items: center; gap: .4rem;

@@ -172,6 +172,7 @@ class Branding extends Page implements HasForms
     {
         return [
             Section::make(__('branding.sections.colors'))
+                ->icon('heroicon-o-swatch')
                 ->schema([
                     $this->color('color_primary'),
                     $this->color('color_secondary'),
@@ -182,6 +183,7 @@ class Branding extends Page implements HasForms
                 ->columns(2),
 
             Section::make(__('branding.sections.typography'))
+                ->icon('heroicon-o-language')
                 ->schema([
                     TextInput::make('font_family')
                         ->label(__('branding.form.font_family.label'))
@@ -221,6 +223,7 @@ class Branding extends Page implements HasForms
                 ->columns(2),
 
             Section::make(__('branding.sections.logos'))
+                ->icon('heroicon-o-photo')
                 ->schema([
                     $this->upload(BrandAsset::LogoLight, 'logo_light'),
                     $this->upload(BrandAsset::LogoDark, 'logo_dark'),
@@ -230,6 +233,7 @@ class Branding extends Page implements HasForms
                 ->columns(2),
 
             Section::make(__('branding.sections.contact'))
+                ->icon('heroicon-o-phone')
                 ->schema([
                     ...array_map(
                         fn (string $key): Component => TextInput::make("social_links.{$key}")
@@ -255,6 +259,7 @@ class Branding extends Page implements HasForms
                 ->columns(2),
 
             Section::make(__('branding.sections.advanced'))
+                ->icon('heroicon-o-adjustments-horizontal')
                 ->schema([
                     Textarea::make('custom_css')
                         ->label(__('branding.form.custom_css.label'))

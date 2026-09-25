@@ -2,13 +2,18 @@
 
 declare(strict_types=1);
 
+use App\Enums\CrewSpecialty;
 use App\Enums\HomeBlockType;
 use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
 use App\Enums\TenantStatus;
 use App\Models\Faq;
 use App\Models\HomePageBlock;
+use App\Models\Port;
 use App\Models\Product;
+use App\Models\User;
+use App\Models\Vessel;
+use App\Support\Tenancy;
 
 use function Pest\Laravel\get;
 
@@ -68,6 +73,12 @@ it('renders each of the block types', function (): void {
         // photograph.
         Faq::factory()->asking('Ερώτηση;', 'A question?')->create();
 
+        // The about page's mounts of 2026-09-24 render nothing without their
+        // records either: a boat, a captain, a port.
+        Vessel::factory()->create();
+        Port::factory()->create(['is_active' => true]);
+        User::factory()->create(['tenant_id' => Tenancy::current()?->getKey(), 'specialty' => CrewSpecialty::Captain]);
+
         foreach (HomeBlockType::cases() as $type) {
             HomePageBlock::factory()->ofType($type)->at($order++)->create([
                 'heading' => ['el' => "Ενότητα {$type->value}", 'en' => "Section {$type->value}"],
@@ -80,9 +91,11 @@ it('renders each of the block types', function (): void {
                 // The same reasoning for the figures card of 16 September: four
                 // big numbers with none of them is not a card worth drawing, so
                 // it gets one figure.
-                'items' => $type === HomeBlockType::Stats
-                    ? [['value' => ['el' => '30+', 'en' => '30+'], 'label' => ['el' => 'χρόνια', 'en' => 'years']]]
-                    : null,
+                'items' => match ($type) {
+                    HomeBlockType::Stats => [['value' => ['el' => '30+', 'en' => '30+'], 'label' => ['el' => 'χρόνια', 'en' => 'years']]],
+                    HomeBlockType::Timeline => [['year' => '1968', 'title' => ['el' => 'Η πρώτη βάρκα', 'en' => 'The first boat']]],
+                    default => null,
+                },
             ]);
         }
     });

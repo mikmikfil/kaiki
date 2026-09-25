@@ -41,12 +41,16 @@ class SaveHomePage
      * @param  list<array<string, mixed>>  $blocks  the form's own state, in display order
      * @return int the number of blocks stored
      */
-    public function __invoke(array $blocks): int
+    public function __invoke(array $blocks, string $page = HomePageBlock::PAGE_HOME): int
     {
-        return DB::transaction(function () use ($blocks): int {
+        $page = in_array($page, HomePageBlock::PAGES, true) ? $page : HomePageBlock::PAGE_HOME;
+
+        return DB::transaction(function () use ($blocks, $page): int {
             // Tenant-scoped by `BelongsToTenant`, so this deletes one
             // operator's page and cannot reach another's.
-            HomePageBlock::query()->delete();
+            // One page at a time (2026-09-24): saving «Σχετικά με εμάς» must
+            // not take the home page with it.
+            HomePageBlock::query()->onPage($page)->delete();
 
             $order = 0;
 
@@ -62,6 +66,7 @@ class SaveHomePage
                 }
 
                 $block = new HomePageBlock([
+                    'page' => $page,
                     'type' => $type,
                     'sort_order' => $order++,
                     'is_visible' => (bool) ($input['is_visible'] ?? true),

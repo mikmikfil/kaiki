@@ -139,6 +139,13 @@ final class IssueInvoice
             throw new RuntimeException('An imported booking was invoiced at its source (BKG-34).');
         }
 
+        // A quay sale's receipt comes out of the operator's own cash register,
+        // with the POS or the cash (2026-09-24, option Β). A second document
+        // from Kaiki would be the same sale twice in their books.
+        if ($booking->source === BookingSource::Quay) {
+            throw new RuntimeException('A quay sale is receipted by the operator\'s own register (option Β).');
+        }
+
         if (! in_array($booking->status, [
             BookingStatus::Confirmed,
             BookingStatus::CheckedIn,

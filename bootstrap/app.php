@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Hosted\NotFoundPage;
 use App\Http\Middleware\ApiKeyCors;
 use App\Http\Middleware\AuthenticateApiKey;
 use App\Http\Middleware\AuthenticateChannel;
@@ -24,6 +25,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -195,5 +198,11 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return ApiExceptionRenderer::render($e);
+        });
+
+        // A missing page on the guest pages: the operator's own 404 in their
+        // language, or a Greek one when there is no operator (24/9 list).
+        $exceptions->render(static function (NotFoundHttpException $e, Request $request): ?Response {
+            return NotFoundPage::applies($request) ? app(NotFoundPage::class)->respond($request) : null;
         });
     })->create();

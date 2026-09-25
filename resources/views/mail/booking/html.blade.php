@@ -73,7 +73,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ __("mail.{$template->value}.subject", ['reference' => $booking->reference]) }}</title>
+    <title>{{ __("mail.{$template->value}.subject", ['reference' => $booking->reference, 'trip' => (string) $booking->product?->title]) }}</title>
 </head>
 <body style="margin:0;padding:0;background:#f2f5f7;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f5f7;">

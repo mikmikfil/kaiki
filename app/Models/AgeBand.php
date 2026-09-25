@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Domain\Catalog\Actions\SaveAgeBands;
+use App\Enums\AgeBandKind;
 use App\Enums\AgeBandPricing;
 use App\Models\Concerns\BelongsToTenant;
 use App\Models\Concerns\HasKaikiTranslations;
@@ -44,6 +45,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $tenant_id
  * @property int $product_id
  * @property string $code
+ * @property AgeBandKind $kind by age, or by status («ΑμεΑ», «Φοιτητής»)
+ * @property bool $requires_proof a status group whose card the crew see at boarding
  * @property string $label translatable
  * @property int $min_age
  * @property int|null $max_age
@@ -87,6 +90,8 @@ class AgeBand extends Model
             'is_base' => 'boolean',
             'requires_adult' => 'boolean',
             'no_document' => 'boolean',
+            'kind' => AgeBandKind::class,
+            'requires_proof' => 'boolean',
             'sort_order' => 'integer',
         ];
     }
@@ -95,6 +100,12 @@ class AgeBand extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    /** A group by status («ΑμεΑ», «Φοιτητής») rather than by age. */
+    public function isByStatus(): bool
+    {
+        return $this->kind === AgeBandKind::Status;
     }
 
     /**
@@ -107,6 +118,12 @@ class AgeBand extends Model
      */
     public function covers(int $age): bool
     {
+        // «ΑμεΑ», «Φοιτητής»: chosen for who the passenger is, at any age
+        // (2026-09-24). The check that stands in for it is the card at boarding.
+        if ($this->isByStatus()) {
+            return true;
+        }
+
         if ($age < $this->min_age) {
             return false;
         }

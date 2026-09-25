@@ -1,0 +1,200 @@
+<title>Πάνω μέρος σελίδων</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* The top of «Βρείτε εκδρομή» and «Επικοινωνήστε μαζί μας», which start on
+   bare white (Mike, 24/9: «ας βάλουμε χρώμα, μην είναι άδειο»). Aegean Blue's
+   tokens, 1400px column, light, no uppercase, no underlines. */
+:root{
+  --primary:#123A5E; --deep:#0E2C48; --accent:#1B5FD1; --secondary:#0B2740; --mist:#F1F5FA; --tint:#E8F0FB;
+  --ink:#131A22; --soft:#4A5D5A; --faint:#5F716E; --rule:#E1E9E7; --paper:#FFFFFF; --ground:#E6ECF0;
+  --sans:Inter,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55;padding-block:22px 64px;padding-inline:16px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:is(button,a,input,select,textarea):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--accent);text-decoration:none}
+p{margin:0}
+.page{max-width:1480px;margin:0 auto;display:grid;gap:18px}
+.intro h1{font-size:25px;line-height:1.2;margin:0 0 6px;letter-spacing:-.015em}
+.intro p{color:var(--soft);font-size:15px;max-width:78ch}
+.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:#fff;border:1px solid #CFDAE8;border-radius:10px;padding:3px}
+.seg button{padding:7px 12px;border-radius:7px;font-weight:600;font-size:14px;color:var(--soft)}
+.seg button[aria-pressed="true"]{background:var(--primary);color:#fff}
+.why{font-size:14.5px;color:var(--soft);background:#fff;border-radius:12px;padding:12px 16px;box-shadow:0 1px 0 #CBD5DE}
+.why b{color:var(--ink)}
+.device{margin:0 auto;width:100%;background:var(--paper);border-radius:18px;overflow:hidden;box-shadow:0 1px 0 #CBD5DE,0 18px 50px rgba(14,44,72,.12);transition:max-width .3s}
+.device.phone{max-width:390px}
+.device.desk{max-width:1480px}
+.site{container:site/inline-size}
+.col{max-width:calc(1400px + 5rem);margin-inline:auto;padding-inline:clamp(20px,2.6cqi,40px)}
+
+/* the site's header, as on the live pages */
+.sh{display:flex;align-items:center;gap:14px;padding-block:14px;border-bottom:1px solid var(--rule);background:#fff}
+.brand{display:flex;align-items:center;gap:10px;flex:1 1 0;min-width:0}
+.logo{width:36px;height:36px;border-radius:9px;background:var(--primary);display:grid;place-items:center;color:#fff}
+.brand b{font-weight:800;color:var(--primary);letter-spacing:-.02em;white-space:nowrap}
+.nav{display:none;gap:1.35rem;font-weight:600;font-size:15px}
+.nav a{color:var(--ink)}
+.nav a[aria-current]{color:var(--accent)}
+.end{flex:1 1 0;display:flex;justify-content:flex-end;align-items:center;gap:14px}
+.langs{font-size:13px;font-weight:600;color:var(--faint)}
+.langs b{color:var(--primary)}
+.book{display:none;background:var(--accent);color:#fff!important;font-weight:700;font-size:14px;padding:10px 16px;border-radius:10px}
+@container site (min-width:860px){.nav,.book{display:flex}}
+
+/* ---- the three tops ---- */
+.top{position:relative;overflow:hidden}
+.top .in{position:relative;z-index:1}
+.kick{font-size:14px;font-weight:600;margin:0 0 10px;display:inline-flex;align-items:center;gap:10px}
+.kick::before{content:"";width:22px;height:2px;background:currentColor;border-radius:2px}
+.top h1{font-weight:800;font-size:clamp(32px,4.4cqi,52px);line-height:1.06;letter-spacing:-.03em;margin:0 0 12px;text-wrap:balance}
+.top .lede{font-size:clamp(16px,1.6cqi,19px);max-width:36rem}
+.crumbs{font-size:13.5px;margin-bottom:18px;display:flex;gap:8px;align-items:center}
+
+/* Α: the dark band with its glow */
+.tA{background:linear-gradient(155deg,var(--deep),#16406B);color:#fff;padding-block:clamp(48px,6cqi,84px) clamp(96px,10cqi,128px)}
+.tA::before{content:"";position:absolute;inset:-40% -30%;background:radial-gradient(34% 40% at 72% 32%,rgba(27,95,209,.62),transparent 70%),radial-gradient(28% 32% at 22% 80%,rgba(27,95,209,.3),transparent 70%);filter:blur(10px);animation:wander 11s ease-in-out infinite alternate}
+@keyframes wander{to{transform:translate3d(-8%,6%,0) scale(1.1)}}
+@media (prefers-reduced-motion:reduce){.tA::before{animation:none}}
+.tA .kick{color:#8DB4F2}.tA .lede{color:rgba(255,255,255,.86)}.tA .crumbs{color:rgba(255,255,255,.7)}.tA .crumbs a{color:#fff}
+
+/* Β: a photograph, lower than the home hero, rounded, inside the page's width */
+.tB{padding-top:clamp(12px,1.4cqi,18px)}
+.tB .photo{position:relative;border-radius:clamp(18px,2.2cqi,28px);overflow:hidden;color:#fff;padding:clamp(40px,5cqi,72px) clamp(24px,4cqi,56px) clamp(120px,11cqi,150px);min-height:clamp(320px,28cqi,400px)}
+.tB .photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.tB .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,16,20,.74),rgba(6,16,20,.46) 55%,rgba(6,16,20,.16))}
+.tB .photo > *{position:relative;z-index:1}
+.tB .kick{color:rgba(255,255,255,.85)}.tB .lede{color:rgba(255,255,255,.92)}.tB .crumbs{color:rgba(255,255,255,.75)}.tB .crumbs a{color:#fff}
+
+/* Γ: a soft tint, calm, the title dark */
+.tC{background:linear-gradient(180deg,var(--tint),#F6F9FD);padding-block:clamp(44px,5.5cqi,76px) clamp(88px,9cqi,112px);border-bottom:1px solid #DCE6F3}
+.tC .kick{color:var(--accent)}.tC h1{color:var(--primary)}.tC .lede{color:var(--soft)}.tC .crumbs{color:var(--faint)}
+
+/* what overlaps the band's lower edge */
+.over{position:relative;z-index:2;margin-top:clamp(-80px,-6cqi,-60px)}
+.card{background:#fff;border-radius:18px;box-shadow:0 2px 6px rgba(14,44,72,.06),0 22px 50px rgba(14,44,72,.14)}
+/* the search bar, as live */
+.sbar{display:grid;grid-template-columns:minmax(0,1fr);padding:8px}
+@container site (min-width:900px){.sbar{grid-template-columns:repeat(4,minmax(0,1fr)) auto;align-items:stretch}}
+.fld{display:grid;grid-template-columns:24px minmax(0,1fr);column-gap:10px;align-items:center;padding:12px 16px;border-radius:12px}
+.fld + .fld{border-top:1px solid var(--rule)}
+@container site (min-width:900px){.fld + .fld{border-top:0;border-left:1px solid var(--rule);border-radius:0}}
+.fld svg{grid-row:1/span 2;color:var(--accent)}
+.fld b{font-size:14px}
+.fld span{font-size:14px;color:var(--faint)}
+.go{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:#fff;font-weight:700;border-radius:12px;padding:14px 26px;margin:6px}
+.count{font-size:14px;color:var(--faint);padding-block:22px 10px}
+.cards{display:grid;gap:18px;grid-template-columns:minmax(0,1fr);padding-bottom:36px}
+@container site (min-width:700px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container site (min-width:1100px){.cards{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.trip-ph{height:170px;border-radius:16px;background:linear-gradient(180deg,#DCE6F1,#EEF3F8)}
+
+/* the contact form and details */
+.cgrid{display:grid;gap:20px;grid-template-columns:minmax(0,1fr);padding-bottom:40px}
+@container site (min-width:900px){.cgrid{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);align-items:start}}
+.form{padding:clamp(20px,2.6cqi,32px);display:grid;gap:14px}
+.form .two{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:600px){.form .two{grid-template-columns:1fr 1fr}}
+.form label{display:grid;gap:6px;font-size:14.5px;font-weight:600}
+.form input,.form textarea{font:inherit;font-size:16px;border:1.5px solid #D9E2EC;border-radius:12px;padding:12px 14px;width:100%;min-width:0}
+.form textarea{min-height:120px;resize:vertical}
+.form .send{justify-self:start;background:var(--accent);color:#fff;font-weight:700;border-radius:12px;padding:13px 22px}
+.side{padding:clamp(20px,2.4cqi,28px);display:grid;gap:14px}
+.side h2{font-size:18px;margin:0;color:var(--primary)}
+.side div{display:flex;gap:10px;align-items:center;font-size:15px}
+.side svg{color:var(--accent);flex:none}
+.side p{font-size:14px;color:var(--faint)}
+</style>
+
+<div class="page">
+  <header class="intro">
+    <h1>Χρώμα στο πάνω μέρος: αναζήτηση και επικοινωνία</h1>
+    <p>Σήμερα και οι δύο σελίδες ξεκινούν σε λευκό. Τρεις κατευθύνσεις, ίδια και για τις δύο σελίδες, με το header και το πλάτος 1400px του site. Η φόρμα πατάει στο κάτω μέρος της ζώνης, όπως η αναζήτηση στην αρχική.</p>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Σελίδα">
+      <button type="button" id="p-s" aria-pressed="true" data-p="s">Βρείτε εκδρομή</button>
+      <button type="button" id="p-c" aria-pressed="false" data-p="c">Επικοινωνία</button>
+    </div>
+    <div class="seg" role="group" aria-label="Κατεύθυνση">
+      <button type="button" id="d-A" aria-pressed="true" data-d="A">Α. Σκούρη ζώνη</button>
+      <button type="button" id="d-B" aria-pressed="false" data-d="B">Β. Φωτογραφία</button>
+      <button type="button" id="d-C" aria-pressed="false" data-d="C">Γ. Απαλό γαλάζιο</button>
+    </div>
+    <div class="seg" role="group" aria-label="Οθόνη">
+      <button type="button" id="v-phone" aria-pressed="false" data-view="phone">Κινητό</button>
+      <button type="button" id="v-desk" aria-pressed="true" data-view="desk">Υπολογιστής</button>
+    </div>
+  </div>
+  <p class="why" id="why"></p>
+
+  <div class="device desk" id="device">
+   <div class="site">
+    <header class="sh"><div class="col" style="display:flex;align-items:center;gap:14px;width:100%">
+      <div class="brand"><span class="logo"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14M12 4l7 11h-7M4 18h16l-2 3H6z"/></svg></span><b>Aegean Blue Cruises</b></div>
+      <nav class="nav"><a href="#" id="nav-s" aria-current="page">Βρείτε εκδρομή</a><a href="#">Σχετικά με εμάς</a><a href="#" id="nav-c">Επικοινωνία</a></nav>
+      <div class="end"><span class="langs"><b>ΕΛ</b> · EN</span><a class="book" href="#">Κλείστε θέση →</a></div>
+    </div></header>
+
+    <!-- the band: filled by script with the chosen direction and page -->
+    <section class="top" id="top"></section>
+
+    <div class="col over" id="below"></div>
+   </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var PAGES = {
+    s: { kick: 'Όλες οι εκδρομές', title: 'Βρείτε εκδρομή', lede: 'Διαλέξτε ημερομηνία και πείτε μας πόσα άτομα είστε. Οι τιμές είναι για όλη την παρέα.', img: 'tops-img/search.jpg' },
+    c: { kick: 'Επικοινωνία', title: 'Επικοινωνήστε μαζί μας', lede: 'Ρωτήστε μας ό,τι θέλετε για μια εκδρομή, μια ημερομηνία ή μια ιδιωτική ναύλωση. Διαβάζουμε κάθε μήνυμα.', img: 'tops-img/contact.jpg' }
+  };
+  var WHY = {
+    A: '<b>Α. Σκούρη ζώνη.</b> Όπως τα σκούρα κουτιά της αρχικής: ντεγκραντέ με τη λάμψη που κινείται, λευκός τίτλος. Η φόρμα πατάει στην κάτω άκρη της.',
+    B: '<b>Β. Φωτογραφία.</b> Ένα χαμηλότερο hero με καμπύλες γωνίες, όπως της αρχικής αλλά μικρότερο. Κάθε σελίδα με τη δική της φωτογραφία (ο διοργανωτής τη διαλέγει).',
+    C: '<b>Γ. Απαλό γαλάζιο.</b> Πιο ήσυχο: ανοιχτό γαλάζιο φόντο σε όλο το πλάτος και σκούρος τίτλος. Η φόρμα πατάει στην κάτω άκρη.'
+  };
+  var ICON = {
+    date: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
+    users: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.8 14.2c2.3.2 4 1.8 4.7 4.8"/></svg>',
+    pin: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>',
+    tag: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/></svg>',
+    phone: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 4.2 10 7.4a1.4 1.4 0 0 1-.3 1.6l-1.1 1a12.6 12.6 0 0 0 4.4 4.4l1-1.1a1.4 1.4 0 0 1 1.6-.3l3.2 1.6a1.4 1.4 0 0 1 .7 1.6 3.9 3.9 0 0 1-4.2 2.9A14.6 14.6 0 0 1 4.1 6.4 3.9 3.9 0 0 1 7 2.2a1.4 1.4 0 0 1 1.4.7Z"/></svg>',
+    mail: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>'
+  };
+  var state = { p: 's', d: 'A' };
+  var top = document.getElementById('top'), below = document.getElementById('below'), device = document.getElementById('device');
+
+  function copy(pg) {
+    return '<p class="crumbs"><a href="#">Αρχική</a> › ' + pg.title + '</p><p class="kick">' + pg.kick + '</p><h1>' + pg.title + '</h1><p class="lede">' + pg.lede + '</p>';
+  }
+  function render() {
+    var pg = PAGES[state.p];
+    top.className = 'top t' + state.d;
+    top.innerHTML = state.d === 'B'
+      ? '<div class="col"><div class="photo"><img src="' + pg.img + '" alt="">' + copy(pg) + '</div></div>'
+      : '<div class="col in">' + copy(pg) + '</div>';
+    below.innerHTML = state.p === 's'
+      ? '<div class="card sbar"><div class="fld">' + ICON.date + '<b>Ημερομηνία</b><span>24/09/2026</span></div><div class="fld">' + ICON.users + '<b>Πόσα άτομα</b><span>2</span></div><div class="fld">' + ICON.pin + '<b>Αναχώρηση από</b><span>Όλα</span></div><div class="fld">' + ICON.tag + '<b>Είδος εκδρομής</b><span>Όλα</span></div><span class="go">Αναζήτηση →</span></div><p class="count">10 εκδρομές</p><div class="cards"><div class="trip-ph"></div><div class="trip-ph"></div><div class="trip-ph"></div><div class="trip-ph"></div></div>'
+      : '<div class="cgrid"><form class="card form" onsubmit="return false"><div class="two"><label>Το όνομά σας<input></label><label>Email<input type="email"></label></div><label>Τηλέφωνο <span style="font-weight:400;color:var(--faint)">(προαιρετικό)</span><input type="tel"></label><label>Το μήνυμά σας<textarea></textarea></label><button class="send" type="submit">Αποστολή μηνύματος</button></form><div class="card side"><h2>Ή βρείτε μας απευθείας</h2><div>' + ICON.phone + '+30 210 412 3456</div><div>' + ICON.mail + 'info@aegean-blue.example</div><div>' + ICON.pin + 'Ακτή Θεμιστοκλέους 42, Πειραιάς</div><p>Απαντάμε μέσα σε μία εργάσιμη μέρα, συνήθως νωρίτερα.</p></div></div>';
+    document.getElementById('why').innerHTML = WHY[state.d];
+    document.getElementById('nav-s').toggleAttribute('aria-current', state.p === 's');
+    document.getElementById('nav-c').toggleAttribute('aria-current', state.p === 'c');
+  }
+  function press(sel, b) { document.querySelectorAll(sel).forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); }); }
+  document.querySelectorAll('button[data-p]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-p]', b); state.p = b.dataset.p; render(); }); });
+  document.querySelectorAll('button[data-d]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-d]', b); state.d = b.dataset.d; render(); }); });
+  document.querySelectorAll('button[data-view]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-view]', b); device.classList.remove('phone', 'desk'); device.classList.add(b.dataset.view); }); });
+  document.addEventListener('click', function (e) { var a = e.target.closest('a[href="#"]'); if (a) e.preventDefault(); });
+  render();
+  if (window.innerWidth < 700) document.getElementById('v-phone').click();
+})();
+</script>

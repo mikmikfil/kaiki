@@ -70,5 +70,31 @@
             background: #1C4378;
             color: #fff;
         }
+
+        /*
+         * Room under the top bar, and on a phone the whole width, each screen
+         * an equal half with a thumb-sized height (phone audit, 2026-09-23):
+         * two small pills jammed against the bar read as part of it.
+         */
+        .ka-sibling-tabs {
+            margin-block-start: .5rem;
+        }
+
+        @media (max-width: 639.98px) {
+            .ka-sibling-tabs {
+                display: flex;
+                width: 100%;
+                margin-block-start: .75rem;
+            }
+
+            .ka-sibling-tab {
+                flex: 1 1 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 2.75rem;
+                text-align: center;
+            }
+        }
     </style>
 @endif

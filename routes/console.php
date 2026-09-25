@@ -13,7 +13,9 @@ use App\Jobs\GenerateDeparturesNightly;
 use App\Jobs\PollIcalSourcesJob;
 use App\Jobs\PurgeExpiredExportsJob;
 use App\Jobs\PurgeGuestDocumentsJob;
+use App\Jobs\Reminders\SendCrewRemindersJob;
 use App\Jobs\Reminders\SendDueRemindersJob;
+use App\Jobs\Reminders\SendPaymentUnfinishedJob;
 use App\Jobs\SendVoucherRemindersJob;
 use App\Jobs\SweepWebhookRetriesJob;
 use App\Models\NotificationLog;
@@ -202,6 +204,34 @@ Schedule::job(new SendDueRemindersJob)
     ->withoutOverlapping()
     ->onOneServer()
     ->name('notifications:reminders');
+
+/*
+|--------------------------------------------------------------------------
+| The crew's reminder, 24 hours before (2026-09-24)
+|--------------------------------------------------------------------------
+|
+| To a departure's captain and crew, once. A sweep for the same reasons as the
+| guests' above: a departure moved or a crew changed is read at send time.
+*/
+Schedule::job(new SendCrewRemindersJob)
+    ->everyFifteenMinutes()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('crew:reminders');
+
+/*
+|--------------------------------------------------------------------------
+| «Η κράτησή σας για … δεν ολοκληρώθηκε» (2026-09-24)
+|--------------------------------------------------------------------------
+|
+| Once, after an abandoned checkout has expired. Every five minutes, the same
+| beat as the expiry sweep it follows.
+*/
+Schedule::job(new SendPaymentUnfinishedJob)
+    ->everyFiveMinutes()
+    ->withoutOverlapping()
+    ->onOneServer()
+    ->name('notifications:payment-unfinished');
 
 /*
 |--------------------------------------------------------------------------

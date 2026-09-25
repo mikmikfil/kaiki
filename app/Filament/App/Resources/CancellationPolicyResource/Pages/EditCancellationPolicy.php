@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources\CancellationPolicyResource\Pages;
 
 use App\Filament\App\Resources\CancellationPolicyResource;
+use App\Filament\App\Support\TitledByRecord;
+use App\Filament\Support\MoreActions;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
@@ -18,13 +20,14 @@ use Illuminate\Database\Eloquent\Model;
 class EditCancellationPolicy extends EditRecord
 {
     use ConsumesTierRepeater;
+    use TitledByRecord;
 
     protected static string $resource = CancellationPolicyResource::class;
 
     /** @return array<int, Action> */
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make(), RestoreAction::make()];
+        return MoreActions::header([], [DeleteAction::make(), RestoreAction::make()]);
     }
 
     /** @param array<string, mixed> $data */

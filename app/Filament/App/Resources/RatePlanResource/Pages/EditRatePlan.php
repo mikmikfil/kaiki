@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources\RatePlanResource\Pages;
 
 use App\Filament\App\Resources\RatePlanResource;
+use App\Filament\Support\MoreActions;
 use App\Models\RatePlan;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -21,7 +22,7 @@ class EditRatePlan extends EditRecord
     /** @return array<int, Action> */
     protected function getHeaderActions(): array
     {
-        return [DeleteAction::make(), RestoreAction::make()];
+        return MoreActions::header([], [DeleteAction::make(), RestoreAction::make()]);
     }
 
     /**

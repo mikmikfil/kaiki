@@ -37,6 +37,10 @@
 
     @if (! empty($brand['font']['css_url']))
         <link rel="stylesheet" href="{{ $brand['font']['css_url'] }}">
+    @else
+        {{-- Inter, same-origin, the same files as the operator's site (2026-09-24). --}}
+        <link rel="preload" href="/fonts/inter/inter-greek-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="/fonts/inter/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
     @endif
 
     {{-- The operator's own icon, else Kaiki's rather than none (2026-09-17). --}}
@@ -44,6 +48,8 @@
 
 
     <style>
+        @include('partials.inter-font-face')
+
         :root {
             @foreach ($colors as $name => $value)
                 {{ $name }}: {{ $value }};
@@ -69,7 +75,10 @@
             margin: 0;
             background: var(--kaiki-background, #f1f3f6);
             color: var(--kaiki-text, #14202b);
-            font-family: var(--kaiki-font-family, system-ui), system-ui, -apple-system, sans-serif;
+            /* The operator's face, then Inter (now actually loaded), then the
+               system's. It was system-ui straight after the brand's family,
+               so a brand that said «Inter» without installing it got Segoe UI. */
+            font-family: var(--kaiki-font-family, Inter), Inter, "Helvetica Neue", Arial, sans-serif;
             font-size: 16px;
             line-height: 1.55;
             -webkit-font-smoothing: antialiased;
@@ -599,7 +608,10 @@
         /* «Κουπόνι» beside the price (2026-09-17). */
         .discount-form { margin-top: 1rem; }
         .discount-row { display: flex; gap: .5rem; }
-        .discount-row input { flex: 1; text-transform: uppercase; }
+        /* No text-transform (I18N-2, and the guest pages' own rule): the code
+           is matched through DiscountCode::normalise(), so it may be typed in
+           any case and is shown as typed. */
+        .discount-row input { flex: 1; }
         .btn-quiet { background: transparent; color: inherit; border: 1px solid rgba(0, 0, 0, .2); width: auto; }
         /* The operator's checkout questions (2026-09-17). */
         .trip-question .question-label { margin: .9rem 0 .35rem; font-weight: 600; }
@@ -825,6 +837,56 @@
             .wrap.full-bleed > .sheet > footer.brand { padding-bottom: calc(5.6rem + env(safe-area-inset-bottom, 0px)); }
 
             .checkout-grid .btn.pay { display: none; }
+        }
+
+        /* ==================================================================
+           The guest pages on the operator's site's type system (Mike,
+           2026-09-24; docs/mockups/typo/index.html). Same steps, same greys,
+           same link rule as the hosted pages:
+             caption 13 · small 15 · body 16 · title 18 · h1 24→32
+           Greys: #4A5D5A for secondary text, #5F716E for labels — the three
+           translucent blacks (.55 at 3.8:1, .6, .62) are gone. Links in the
+           accent at 600, never the browser's #0000EE. Every solid button in the
+           accent, as on the site.
+           ================================================================== */
+        :root { --g-soft: #4A5D5A; --g-faint: #5F716E; --g-deep: #0E2D49; }
+        a { color: var(--kaiki-accent, var(--kaiki-primary, #123a5e)); font-weight: 600; }
+        button, input, select, textarea { font-family: inherit; }
+
+        h1 { font-size: clamp(1.5rem, 2.3vw, 2rem); font-weight: 700; line-height: 1.15; letter-spacing: -.02em; color: var(--g-deep); }
+        .checkout-hero h1 { font-size: clamp(1.5rem, 2.3vw, 2rem); font-weight: 700; letter-spacing: -.02em; }
+        @media (min-width: 56rem) { .checkout-hero h1 { font-size: 2rem; } }
+        h2 { font-size: 1.125rem; font-weight: 700; letter-spacing: -.012em; color: var(--g-deep); }
+        .policy h3, .checkout-side h3 { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; color: var(--g-soft); }
+
+        .label { font-size: .8125rem; letter-spacing: .02em; color: var(--g-faint); }
+        .kicker { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; color: var(--g-faint); }
+        .checkout-hero .reference { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; color: rgba(255, 255, 255, .78); }
+        .facts > div > span { font-size: .8125rem; color: var(--g-soft); }
+        .facts > div > b { font-size: 1.125rem; }
+        .muted { font-size: .9375rem; color: var(--g-soft); }
+        dl.rows dt { color: var(--g-soft); }
+        details.passenger .passenger-name { color: var(--g-soft); }
+        details.passenger .passenger-band { font-size: .8125rem; }
+        header.brand .tag { font-size: .8125rem; color: var(--g-faint); }
+        .pass .code { font-size: .8125rem; letter-spacing: .02em; color: var(--g-faint); }
+        .checkout-grid .field > label { color: var(--g-faint); }
+        .checkout-grid .field:has(input:not(:placeholder-shown)) > label,
+        .checkout-grid .field:has(textarea:not(:placeholder-shown)) > label,
+        .checkout-grid .field:has(select) > label,
+        .checkout-grid .field:has(input[type="date"]) > label { color: var(--g-faint); }
+        .checkout-grid .field:focus-within > label { color: var(--kaiki-primary, #123a5e); }
+
+        label, .consent label, details.passenger > summary, .back-to-site, header.brand .phone, .pay-brand { font-size: .9375rem; }
+        .checkout-grid .field > label { font-size: .9375rem; }
+        header.brand .langs a, footer.brand { font-size: .8125rem; }
+
+        .btn { background: var(--kaiki-accent, var(--kaiki-primary, #0b3d91)); }
+        .btn.secondary { background: #fff; }
+        .btn.danger, .btn-quiet { background: transparent; }
+        @media (max-width: 55.99rem) {
+            .pay-dock .amount .label { font-size: .8125rem; color: var(--g-faint); }
+            .pay-dock .amount .value { font-weight: 700; }
         }
     </style>
 </head>

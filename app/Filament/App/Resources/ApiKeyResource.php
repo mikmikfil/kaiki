@@ -10,6 +10,7 @@ use App\Enums\ApiKeyType;
 use App\Enums\ApiScope;
 use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\ApiKeyResource\Pages;
+use App\Filament\Support\MoreActions;
 use App\Models\ApiKey;
 use Closure;
 use Filament\Forms\Components\CheckboxList;
@@ -221,7 +222,7 @@ class ApiKeyResource extends Resource
                     }),
             ])
             ->defaultSort('created_at', 'desc')
-            ->actions([
+            ->actions(MoreActions::row(null, [
                 Action::make('revoke')
                     ->label(__('api_keys.actions.revoke.label'))
                     ->icon('heroicon-o-no-symbol')
@@ -247,7 +248,7 @@ class ApiKeyResource extends Resource
                             ->success()
                             ->send();
                     }),
-            ])
+            ]))
             ->emptyStateHeading(__('api_keys.empty.heading'))
             ->emptyStateDescription(__('api_keys.empty.description'));
     }

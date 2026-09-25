@@ -171,7 +171,7 @@ it('renders the steps in order, the reasons with their icons, and a dark band wh
     ]);
 
     expect($body)->toContain('<p class="eyebrow-line">Πώς λειτουργεί</p>')
-        ->and($body)->toContain('<ol class="steps steps-2">')
+        ->and($body)->toContain('<ol class="route route-2" data-animate>')
         ->and(strpos($body, 'Διαλέξτε εκδρομή'))->toBeLessThan(strpos($body, 'Πληρώστε online'))
         ->and($body)->toContain('band-dark')
         ->and($body)->toContain('Έμπειρο πλήρωμα');
@@ -180,7 +180,7 @@ it('renders the steps in order, the reasons with their icons, and a dark band wh
 it('does not fall back to platform copy for steps the operator deleted', function (): void {
     $body = sectionsPage('no-steps', [OperatorPage::input(HomeBlockType::Steps, ['heading' => null])]);
 
-    expect($body)->not->toContain('class="block band band-sand steps-block')
+    expect($body)->not->toContain('class="block steps-block steps-route')
         ->and($body)->not->toContain(__('hosted.blocks.steps.defaults.0.title', [], 'el'));
 })->group('fast');
 

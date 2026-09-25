@@ -37,7 +37,7 @@
 @php($preview = $this->previewState())
 
 <section
-    class="fi-section rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+    class="fi-section rounded-xl bg-white p-4 shadow-sm sm:p-6 ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
     aria-labelledby="branding-preview-heading"
     x-data="{
         apply(properties) {
@@ -60,6 +60,13 @@
     {{-- Livewire wraps a dispatched event's parameters in `detail`. --}}
     @branding-changed.window="apply($event.detail.properties)"
 >
+    <style>
+        .ka-preview-frame { position: relative; padding: 1.5rem .5rem .5rem; border-radius: .75rem; border: 1px dashed rgb(var(--gray-300)); background: rgb(var(--gray-50)); }
+        .dark .ka-preview-frame { border-color: rgb(var(--gray-500)); background: rgba(255, 255, 255, .04); }
+        .ka-preview-tag { position: absolute; top: .3rem; left: .6rem; font-size: .6875rem; font-weight: 600; line-height: 1rem; color: rgb(var(--gray-600)); }
+        .dark .ka-preview-tag { color: rgb(var(--gray-300)); }
+    </style>
+
     <h2 id="branding-preview-heading" class="text-base font-semibold leading-6 text-gray-950 dark:text-white">
         {{ __('branding.preview.heading') }}
     </h2>
@@ -70,42 +77,55 @@
 
     <div class="mt-4 grid gap-6 lg:grid-cols-2">
         <div>
-            <h3 class="text-xs font-semibold tracking-wide text-gray-400">
+            <h3 class="text-xs font-semibold text-gray-600 dark:text-gray-300">
                 {{ __('branding.preview.widget') }}
             </h3>
 
-            {{-- `wire:ignore` because the widget owns this subtree: Livewire
-                 re-rendering the page around a mounted shadow root would tear it
-                 down on every keystroke, which is the opposite of live. --}}
-            <div x-ref="widget" class="mt-2" wire:ignore>
-                {{-- Before the bundle, because the bundle reads it on load. --}}
-                <script>window.__kaikiPreview = @json($preview['payload']);</script>
+            {{-- The preview stays light in a dark panel on purpose: it is
+                 the guest's page, drawn in the operator's own colours, and a
+                 guest's phone decides its own theme (2026-09-23). The frame and
+                 the «Προεπισκόπηση» tag say so, so a white box in a dark panel
+                 reads as a picture of something else rather than a mistake. --}}
+            <div class="ka-preview-frame mt-2">
+                <span class="ka-preview-tag">{{ __('branding.preview.tag') }}</span>
 
-                {{-- The alias, not a versioned path: the panel should show what
-                     operators are actually running (ADR-0011). --}}
-                <script
-                    src="{{ $preview['bundle'] }}"
-                    data-key="{{ $preview['key'] }}"
-                    data-mount="list"
-                    data-locale="{{ app()->getLocale() }}"
-                    data-analytics="false"
-                ></script>
+                {{-- `wire:ignore` because the widget owns this subtree: Livewire
+                     re-rendering the page around a mounted shadow root would tear it
+                     down on every keystroke, which is the opposite of live. --}}
+                <div x-ref="widget" wire:ignore>
+                    {{-- Before the bundle, because the bundle reads it on load. --}}
+                    <script>window.__kaikiPreview = @json($preview['payload']);</script>
+
+                    {{-- The alias, not a versioned path: the panel should show what
+                         operators are actually running (ADR-0011). --}}
+                    <script
+                        src="{{ $preview['bundle'] }}"
+                        data-key="{{ $preview['key'] }}"
+                        data-mount="list"
+                        data-locale="{{ app()->getLocale() }}"
+                        data-analytics="false"
+                    ></script>
+                </div>
             </div>
         </div>
 
         <div>
-            <h3 class="text-xs font-semibold tracking-wide text-gray-400">
+            <h3 class="text-xs font-semibold text-gray-600 dark:text-gray-300">
                 {{ __('branding.preview.email') }}
             </h3>
 
             {{-- An iframe, because an email template carries its own document —
                  table layouts and inline styles that would fight the panel's
                  stylesheet if they were inlined into this page. --}}
-            <iframe
-                title="{{ __('branding.preview.email') }}"
-                class="mt-2 h-96 w-full rounded-lg border border-gray-200 dark:border-gray-700"
-                srcdoc="{{ $preview['email'] }}"
-            ></iframe>
+            <div class="ka-preview-frame mt-2">
+                <span class="ka-preview-tag">{{ __('branding.preview.tag') }}</span>
+
+                <iframe
+                    title="{{ __('branding.preview.email') }}"
+                    class="block h-96 w-full rounded-md"
+                    srcdoc="{{ $preview['email'] }}"
+                ></iframe>
+            </div>
         </div>
     </div>
 </section>

@@ -10,6 +10,7 @@ use App\Enums\QuoteLineKind;
 use App\Enums\QuoteStatus;
 use App\Filament\App\Navigation\SiblingScreens;
 use App\Filament\App\Resources\QuoteResource\Pages;
+use App\Filament\Support\MoreActions;
 use App\Models\Quote;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DateTimePicker;
@@ -118,6 +119,7 @@ class QuoteResource extends Resource
     {
         return [
             Section::make(__('quotes.quote.sections.lines'))
+                ->icon('heroicon-o-list-bullet')
                 ->schema([
                     Repeater::make('lineItems')
                         ->relationship()
@@ -169,6 +171,7 @@ class QuoteResource extends Resource
                 ]),
 
             Section::make(__('quotes.quote.sections.terms'))
+                ->icon('heroicon-o-document-check')
                 ->schema([
                     DateTimePicker::make('valid_until')
                         ->label(__('quotes.quote.form.valid_until.label'))
@@ -248,15 +251,14 @@ class QuoteResource extends Resource
                     ->label(__('quotes.quote.table.status'))
                     ->options(QuoteStatus::options()),
             ])
-            ->actions([
+            ->actions(MoreActions::row(
                 // Drafts only. See the class docblock: a sent quote is an offer
                 // somebody holds a link to.
                 EditAction::make()
-                    ->visible(static fn (Quote $record): bool => $record->status === QuoteStatus::Draft),
-
-                static::sendAction(),
-                static::reviseAction(),
-            ]);
+                    ->visible(static fn (Quote $record): bool => $record->status === QuoteStatus::Draft), [
+                        static::sendAction(),
+                        static::reviseAction(),
+                    ]));
     }
 
     /**

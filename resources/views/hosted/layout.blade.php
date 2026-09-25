@@ -76,9 +76,16 @@
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="{{ $fontCss }}">
+    @else
+        {{-- Inter is ours and same-origin (2026-09-24): the two scripts every
+             Greek page needs, asked for before the stylesheet is parsed. --}}
+        <link rel="preload" href="/fonts/inter/inter-greek-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="/fonts/inter/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
     @endif
 
     <style nonce="{{ $nonce }}">
+        @include('partials.inter-font-face')
+
         :root {
             --kaiki-primary: {{ $primary }};
             --kaiki-secondary: {{ $secondary }};
@@ -131,7 +138,9 @@
            sliver; 78 gave three narrow ones and a 22rem aside that had to be
            argued with. Prose keeps its own measure below — widening the page is
            not the same as widening the paragraph. */
-        .wrap { max-width: 86rem; margin: 0 auto; padding: 0 clamp(1.25rem, 3vw, 2.5rem); }
+        /* 1400px of content, the gutters on top (Mike, 2026-09-24; it was 86rem,
+           then 92, then 1450px). Every hosted page shares it. */
+        .wrap { max-width: calc(1400px + 5rem); margin: 0 auto; padding: 0 clamp(1.25rem, 3vw, 2.5rem); }
 
         /* The reading measure, for blocks that are words rather than layout. */
         .prose, .standfirst { max-width: 44rem; }
@@ -992,7 +1001,7 @@
                it is the form that decides the floor. */
             --hero-measure: min(56rem, 100%);
             width: 100%;
-            max-width: 86rem;
+            max-width: calc(1400px + 5rem);
             margin: 0 auto;
             padding: 3.5rem clamp(1.25rem, 3vw, 2.5rem);
             position: relative;
@@ -1221,8 +1230,11 @@
         .button {
             display: inline-flex; align-items: center; gap: .5rem;
             text-decoration: none;
-            background: var(--kaiki-primary); color: #fff;
-            border: 1px solid var(--kaiki-primary);
+            /* The accent, on every solid button (Mike, 2026-09-24: «αυτό το
+               χρώμα για τα buttons παντού»). It was the primary navy, with the
+               accent kept for the two or three calls to book. */
+            background: var(--kaiki-accent); color: #fff;
+            border: 1px solid var(--kaiki-accent);
             padding: .8rem 1.5rem; border-radius: var(--kaiki-radius);
             font-weight: 600; font-size: .97rem; line-height: 1;
             transition: background-color .15s ease, border-color .15s ease, color .15s ease;
@@ -1233,7 +1245,7 @@
            the pointer reads as a warning on a page where the accent is used for
            «sold out» and «not included». */
         .button:hover, .button:focus-visible {
-            background: color-mix(in srgb, var(--kaiki-primary) 88%, var(--kaiki-text));
+            background: color-mix(in srgb, var(--kaiki-accent) 86%, #000);
             border-color: transparent;
         }
 
@@ -2768,7 +2780,7 @@
             position: relative; z-index: 2;
             /* The page column's own width and gutters (`.wrap`), so the words
                and the card line up with the trips below them. */
-            inline-size: 100%; max-width: 86rem; margin: 0 auto;
+            inline-size: 100%; max-width: calc(1400px + 5rem); margin: 0 auto;
             padding: clamp(3rem, 7vw, 5.5rem) clamp(1.25rem, 3vw, 2.5rem);
             display: grid; gap: clamp(2rem, 4vw, 3.5rem); align-items: center;
         }
@@ -2778,12 +2790,15 @@
         .hero-copy { text-align: left; padding: 0; max-width: 42rem; margin: 0; }
         .hero-copy h1 { max-width: none; margin-inline: 0; }
         .hero-copy .standfirst { max-width: 36rem; margin-inline: 0; }
-        .hero.has-image { min-height: min(80vh, 44rem); }
+        /* 750px (Mike, 2026-09-24: «το hero να πάει στα 750px ύψος»). */
+        .hero.has-image { min-height: 750px; }
         .hero.has-image .hero-copy { padding: 0; }
+        /* Between the two (Mike, 24/9): .7 at the words' edge was heavy, .5
+           «παραέγινε ανοιχτό»; .6 there, fading to .1 on the right. */
         .hero.has-image::after {
             background:
-                linear-gradient(90deg, rgba(6, 16, 20, .7) 0%, rgba(6, 16, 20, .36) 55%, rgba(6, 16, 20, .2) 100%),
-                linear-gradient(to bottom, rgba(6, 16, 20, 0) 60%, rgba(6, 16, 20, .25) 100%);
+                linear-gradient(90deg, rgba(6, 16, 20, .6) 0%, rgba(6, 16, 20, .3) 50%, rgba(6, 16, 20, .1) 100%),
+                linear-gradient(to bottom, rgba(6, 16, 20, 0) 60%, rgba(6, 16, 20, .22) 100%);
         }
         .hero.has-image h1 { font-size: clamp(2.4rem, 5vw, 3.9rem); line-height: 1.05; letter-spacing: -.03em; text-wrap: balance; }
         .hero.has-image .standfirst { font-size: clamp(1.05rem, 1.5vw, 1.25rem); max-width: 36rem; text-wrap: pretty; }
@@ -2939,9 +2954,11 @@
             transition: background-color .15s ease, border-color .15s ease;
         }
         .block.contact .contact-list li:hover { background: rgba(255, 255, 255, .1); border-color: rgba(255, 255, 255, .24); }
+        /* Line icons, no tile (2026-09-24), the same drawing as the reasons
+           band's so the two panels read as one family. */
         .block.contact .contact-list .icon {
-            box-sizing: content-box; inline-size: 1.2rem; block-size: 1.2rem; padding: .65rem; margin: 0 0 .9rem;
-            border-radius: 12px; color: #fff; background: rgba(255, 255, 255, .1);
+            inline-size: 1.6rem; block-size: 1.6rem; margin: 0 0 .85rem;
+            color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff);
         }
         .block.contact .contact-label { grid-column: 1; font-size: .8rem; font-weight: 500; letter-spacing: .02em; color: rgba(255, 255, 255, .62); }
         .block.contact .contact-list li > a,
@@ -3016,16 +3033,16 @@
 
         .features { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
         .feature { padding: 1.75rem; border-radius: 16px; background: #fff; border: 1px solid var(--line); }
+        /* The icon on its own, no tile behind it (Mike, 2026-09-24): the card
+           is already the box, and a box in a box was one frame too many. */
         .feature-icon {
-            display: grid; place-items: center; inline-size: 3rem; block-size: 3rem; margin-bottom: 1.1rem;
-            border-radius: 13px; background: var(--mist); color: var(--kaiki-primary);
+            display: block; margin-bottom: 1rem; color: var(--kaiki-primary);
         }
-        .feature-icon .icon { inline-size: 1.5rem; block-size: 1.5rem; }
-        .band-mist .feature-icon { background: var(--sand); }
+        .feature-icon .icon { inline-size: 1.9rem; block-size: 1.9rem; display: block; }
         .band-dark .feature { background: rgba(255, 255, 255, .05); border-color: rgba(255, 255, 255, .1); }
         .band-dark .feature h3 { color: #fff; }
         .band-dark .feature p { color: rgba(255, 255, 255, .7); }
-        .band-dark .feature-icon { background: rgba(255, 255, 255, .08); color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+        .band-dark .feature-icon { color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
 
         /* --- reviews ------------------------------------------------------ */
 
@@ -3072,9 +3089,13 @@
            A lift on hover this time, as the WordPress cards have: those are the
            cards Mike pointed at. The label over the photograph is the operator's
            own, and white so it reads on any picture. */
-        li.trip { position: relative; border-radius: 16px; border: 1px solid var(--line); box-shadow: var(--shadow-sm); transition: box-shadow .2s ease, transform .2s ease; }
-        @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-            li.trip:hover { box-shadow: var(--shadow); transform: translateY(-3px); }
+        /* No lift any more (Mike, 2026-09-24: the card that moves under the
+           pointer went). The deeper shadow stays, so the card still answers. */
+        li.trip { position: relative; border-radius: 16px; border: 1px solid var(--line); box-shadow: var(--shadow-sm); transition: box-shadow .2s ease; }
+        /* Much lighter than `--shadow` (Mike, 24/9): the card answers the
+           pointer, it does not lift off the page. */
+        @media (hover: hover) {
+            li.trip:hover { box-shadow: 0 1px 2px rgba(11, 39, 64, .05), 0 4px 12px rgba(11, 39, 64, .06); }
         }
         li.trip h3 { font-size: 1.15rem; letter-spacing: -.015em; color: var(--deep); }
         .trip-badge {
@@ -3095,6 +3116,11 @@
            than two stretched ones. The cards are already equal in height with
            the price row pinned to the bottom (`.trip-foot`). */
         ul.trips, .trips.results { grid-template-columns: repeat(3, minmax(0, 1fr)); justify-content: stretch; }
+        /* Four to a row on a wide screen (Mike, 2026-09-24), three from a
+           tablet up to 80rem. The featured rail keeps its own three. */
+        @media (min-width: 80rem) {
+            ul.trips, .trips.results { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
         /* `ul.` again: the rule above outweighs a bare `.trips-rail`, and a
            rail with three explicit columns squeezed three cards and stretched
            the fourth. */
@@ -3206,6 +3232,813 @@
         @media (min-width: 60rem) {
             .product-aside { padding: .25rem 1.5rem 2.5rem; margin-inline: -1.5rem; }
         }
+
+
+        /* ==================================================================
+           The header's layout (Mike, 2026-09-24, from the first home mockup):
+           the name on the left, the links in the middle, the language switch
+           as two plain words and the button on the right. Name and end take
+           equal shares, so the links sit in the true centre.
+           ================================================================== */
+        header.site .brand { flex: 1 1 0; min-width: 0; }
+        /* Closer and a little bolder (Mike, 24/9): 1.9rem at 500 read as loose. */
+        header.site .site-nav { margin-inline: auto; gap: 1.35rem; font-size: .95rem; font-weight: 600; }
+        header.site .site-nav a { color: var(--kaiki-text); white-space: nowrap; font-weight: 600; }
+        header.site .site-nav a:hover, header.site .site-nav a[aria-current] { color: var(--kaiki-accent); }
+        .header-end { flex: 1 1 0; display: flex; align-items: center; justify-content: flex-end; gap: 1.1rem; }
+        .header-end .langs { gap: 0; font-weight: 600; font-size: .85rem; }
+        .header-end .langs a { border: 0; border-radius: 0; background: none; padding: .15rem .55rem; color: var(--ink-faint); }
+        .header-end .langs a + a { border-inline-start: 1px solid var(--rule); }
+        .header-end .langs a[aria-current="true"] { background: none; color: var(--kaiki-primary); }
+        /* Below a laptop the equal shares squeeze the name onto three lines;
+           there the name keeps its own width and the links take what is left. */
+        @media (min-width: 40.01rem) and (max-width: 64rem) {
+            header.site .brand, .header-end { flex: none; }
+            header.site .site-nav { gap: .85rem; font-size: .86rem; }
+            .header-end { gap: .5rem; }
+            .header-end .langs a { padding-inline: .4rem; }
+            .header-end .header-book { padding-inline: .85rem; }
+            .header-end .header-book::after { display: none; }
+        }
+
+        /* ==================================================================
+           «Πώς λειτουργεί» as a route (Mike, 2026-09-24, mockup version Ε).
+           Numbered circles on a dashed line, each with its step under it; on
+           a phone the line runs down the left. The complete route (circles
+           filled, lines solid) is the default; `/hosted/route.js` sets
+           data-animate="ready" to empty it and "on" to travel it in four
+           seconds, once, when it comes into view.
+           ================================================================== */
+        .steps-route .section-head { margin-block-end: clamp(2rem, 4vw, 2.75rem); }
+        .route { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); position: relative; }
+        .route .stop { position: relative; display: grid; grid-template-columns: 3rem minmax(0, 1fr); column-gap: 1rem; padding-block-end: 1.75rem; }
+        .route .stop:last-child { padding-block-end: 0; }
+        /* the dashed track, from this circle to the next */
+        .route .stop:not(:last-child)::before {
+            content: ""; position: absolute; inset-inline-start: calc(1.5rem - 1px); inset-block: 3rem 0;
+            border-inline-start: 2px dashed color-mix(in srgb, var(--kaiki-accent) 28%, #fff);
+        }
+        /* the solid line over it, which is what travels */
+        .route .stop:not(:last-child)::after {
+            content: ""; position: absolute; z-index: 0; inset-inline-start: calc(1.5rem - 1.5px); inset-block: 3rem 0; inline-size: 3px;
+            border-radius: 3px; background: var(--kaiki-accent); transform-origin: top;
+        }
+        .stop-dot {
+            position: relative; z-index: 1; display: grid; place-items: center;
+            inline-size: 3rem; block-size: 3rem; border-radius: 50%;
+            border: 2px solid var(--kaiki-accent); background: var(--kaiki-accent); color: #fff;
+            font-weight: 800; font-size: 1.05rem; font-variant-numeric: tabular-nums;
+            box-shadow: 0 0 0 6px color-mix(in srgb, var(--kaiki-accent) 10%, #fff);
+        }
+        .stop-dot .icon { inline-size: 1.3rem; block-size: 1.3rem; stroke-width: 2.4; }
+        .stop-copy h3 { margin: .7rem 0 .3rem; font-size: 1.12rem; letter-spacing: -.01em; color: var(--deep); }
+        .stop-copy p { margin: 0; color: var(--ink-soft); font-size: .97rem; line-height: 1.6; max-width: 24rem; }
+        @media (min-width: 48rem) {
+            .route-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .route-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .route-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+            .route .stop { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; padding: 0 .75rem; }
+            .route .stop-copy { display: flex; flex-direction: column; align-items: center; }
+            .route .stop-copy h3 { margin-block-start: 1.1rem; }
+            .route .stop:not(:last-child)::before {
+                inset-inline: calc(50% + 1.5rem) calc(-50% + 1.5rem); inset-block: calc(1.5rem - 1px) auto;
+                border-inline-start: 0; border-block-start: 2px dashed color-mix(in srgb, var(--kaiki-accent) 28%, #fff);
+            }
+            .route .stop:not(:last-child)::after {
+                inset-inline: calc(50% + 1.5rem) calc(-50% + 1.5rem); inset-block: calc(1.5rem - 1.5px) auto;
+                inline-size: auto; block-size: 3px; transform-origin: left;
+            }
+        }
+        @media (min-width: 62rem) {
+            .steps-route.has-image .band-inner { grid-template-columns: 1.1fr 1fr; }
+            .steps-route.has-image .route { grid-template-columns: minmax(0, 1fr); }
+            .steps-route.has-image .route .stop { grid-template-columns: 3rem minmax(0, 1fr); justify-items: start; text-align: start; padding: 0 0 1.75rem; }
+            .steps-route.has-image .route .stop-copy { align-items: flex-start; }
+            .steps-route.has-image .route .stop:not(:last-child)::before { inset-inline: calc(1.5rem - 1px) auto; inset-block: 3rem 0; border-block-start: 0; border-inline-start: 2px dashed color-mix(in srgb, var(--kaiki-accent) 28%, #fff); }
+            .steps-route.has-image .route .stop:not(:last-child)::after { inset-inline: calc(1.5rem - 1.5px) auto; inset-block: 3rem 0; inline-size: 3px; block-size: auto; transform-origin: top; }
+        }
+
+        /* Ready: emptied, waiting to be travelled. */
+        .route[data-animate="ready"] .stop-dot,
+        .route[data-animate="on"] .stop-dot { background: #fff; color: var(--kaiki-accent); box-shadow: none; }
+        .route[data-animate="ready"] .stop::after { transform: scaleY(0); }
+        @media (min-width: 48rem) { .route[data-animate="ready"] .stop::after { transform: scaleX(0); } }
+
+        /* On: four seconds, the first circle to the last. */
+        .route[data-animate="on"] .stop-dot { animation: route-fill .5s ease forwards; }
+        .route[data-animate="on"] .stop::after { transform: scaleY(0); animation: route-grow-y 1.3s ease-in-out forwards; }
+        .route[data-animate="on"] .stop:nth-child(1) .stop-dot { animation-delay: .1s; }
+        .route[data-animate="on"] .stop:nth-child(1)::after { animation-delay: .5s; }
+        .route[data-animate="on"] .stop:nth-child(2) .stop-dot { animation-delay: 1.8s; }
+        .route[data-animate="on"] .stop:nth-child(2)::after { animation-delay: 2.2s; }
+        .route[data-animate="on"] .stop:nth-child(3) .stop-dot { animation-delay: 3.5s; }
+        .route[data-animate="on"] .stop:nth-child(3)::after { animation-delay: 3.9s; }
+        .route[data-animate="on"] .stop:nth-child(4) .stop-dot { animation-delay: 5.2s; }
+        .route-4[data-animate="on"] .stop-dot { animation-duration: .4s; }
+        @media (min-width: 48rem) {
+            .route[data-animate="on"] .stop::after { transform: scaleX(0); animation-name: route-grow-x; }
+        }
+        @media (min-width: 62rem) {
+            .steps-route.has-image .route[data-animate="ready"] .stop::after,
+            .steps-route.has-image .route[data-animate="on"] .stop::after { transform: scaleY(0); animation-name: route-grow-y; }
+            .steps-route.has-image .route[data-animate="ready"] .stop::after { animation: none; }
+        }
+        @keyframes route-grow-x { to { transform: scaleX(1); } }
+        @keyframes route-grow-y { to { transform: scaleY(1); } }
+        @keyframes route-fill {
+            to { background: var(--kaiki-accent); color: #fff; box-shadow: 0 0 0 6px color-mix(in srgb, var(--kaiki-accent) 10%, #fff); }
+        }
+
+        /* ==================================================================
+           The footer's first row (Mike, 2026-09-24): «Έχετε ερώτηση;» with a
+           support icon, and phone, WhatsApp and email as plain links, on the
+           operator's secondary colour, flush with the top of the footer.
+           ================================================================== */
+        footer.site:has(> .foot-reach) { padding-block-start: 0; }
+        .foot-reach { background: var(--kaiki-secondary); margin-block-end: clamp(2.5rem, 6vw, 4rem); }
+        .foot-reach .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem 2rem; padding-block: clamp(1.75rem, 3vw, 2.4rem); }
+        .foot-reach-title { display: inline-flex; align-items: center; gap: .65rem; margin: 0 auto 0 0 !important; color: #fff; font-weight: 700; font-size: 1.05rem; letter-spacing: -.01em; }
+        .foot-reach-title .icon { inline-size: 1.35rem; block-size: 1.35rem; color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+        .foot-reach ul { display: flex; flex-wrap: wrap; gap: .6rem 1.75rem; }
+        .foot-reach li { margin: 0 !important; }
+        .foot-reach a { display: inline-flex; align-items: center; gap: .55rem; color: #fff !important; font-weight: 600; overflow-wrap: anywhere; }
+        .foot-reach a:hover { color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff) !important; }
+        .foot-reach a .icon { inline-size: 1.15rem; block-size: 1.15rem; flex: none; color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+        @media (max-width: 40rem) {
+            .foot-reach .wrap { flex-direction: column; align-items: flex-start; }
+            .foot-reach ul { flex-direction: column; gap: .7rem; }
+        }
+
+        /* ==================================================================
+           The call-to-action band with a photograph, split (Mike, 2026-09-24,
+           «Ιδιωτικές ναυλώσεις» from the first home mockup): the words on the
+           operator's deep colour on the left, the photograph beside them on the
+           right, rounded, inside the page's width rather than edge to edge.
+           On a phone the photograph goes under the words.
+           ================================================================== */
+        .cta-band.has-image {
+            display: grid; grid-template-columns: minmax(0, 1fr);
+            margin-inline: 0; padding: 0;
+            border-radius: clamp(18px, 2vw, 26px); overflow: hidden;
+            background: var(--deep);
+        }
+        .cta-band.has-image::before { display: none; }
+        .cta-band.has-image .cta-image {
+            position: static; z-index: auto; order: 2;
+            inline-size: 100%; block-size: 100%; min-block-size: 15rem;
+            object-fit: cover; object-position: center center;
+        }
+        .cta-band.has-image .cta-copy {
+            max-width: 34rem; align-self: center;
+            padding: clamp(1.75rem, 4.5vw, 3.5rem);
+        }
+        @media (min-width: 62rem) {
+            .cta-band.has-image { grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); min-block-size: 22rem; }
+        }
+        /* The first button in the accent, as on every other solid button; the
+           second stays the outlined one. */
+        .cta-band.has-image .buttons .button-light {
+            background: var(--kaiki-accent); border-color: var(--kaiki-accent); color: #fff;
+        }
+        .cta-band.has-image .buttons .button-light:hover,
+        .cta-band.has-image .buttons .button-light:focus-visible {
+            background: color-mix(in srgb, var(--kaiki-accent) 86%, #000); color: #fff;
+        }
+        .band + .cta-band.has-image, .cta-band.has-image + .band { margin-block-start: 0; }
+        /* Half the width, so a smaller heading (Mike, 24/9): the band's own size
+           broke «Όλο το σκάφος, μόνο για την παρέα σας» onto three lines. */
+        .cta-band.has-image h2 { font-size: clamp(1.55rem, 2.3vw, 2.05rem); line-height: 1.15; }
+        .cta-band.has-image .lead { font-size: 1rem; }
+
+        /* ==================================================================
+           The card's facts on one line, side by side (Mike, 2026-09-24, point 3
+           of his reference): the duration, then the port and boat, which gives
+           way with an ellipsis rather than wrapping under it. The full text is
+           still there for a screen reader.
+           ================================================================== */
+        /* Two facts (duration, port), one line, never wrapping (Mike, 24/9:
+           the boat is off the card). The duration never shrinks; the port
+           gives way with an ellipsis only if a card is too narrow for both. */
+        li.trip .facts { display: flex; flex-wrap: nowrap; align-items: center; gap: .65rem; white-space: nowrap; min-width: 0; overflow: hidden; }
+        li.trip .facts span { flex: none; gap: .3rem; }
+        li.trip .facts .fact-port { display: block; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        li.trip .facts .fact-port .icon { display: inline-block; vertical-align: -.15em; margin-inline-end: .3rem; }
+
+        /* ==================================================================
+           The trip card's foot (Mike, 2026-09-24, from the first home mockup):
+           the price on the left in the accent, what it is for beside it, and a
+           round arrow on the right instead of a full-width button.
+           ================================================================== */
+        .trip-foot { flex-direction: row; align-items: center; justify-content: space-between; gap: .75rem; min-height: 0; }
+        .trip-foot.is-party-price { min-height: 0; }
+        .trip-foot .trip-price { min-width: 0; }
+        .trip-price strong { color: var(--kaiki-accent); }
+        .trip-price .per { font-size: .85rem; color: var(--ink-soft); }
+        .trip-price .on-request { color: var(--kaiki-accent); font-weight: 700; }
+        .trip-go {
+            flex: none; margin-left: auto;
+            display: grid; place-items: center; inline-size: 2.6rem; block-size: 2.6rem; border-radius: 50%;
+            border: 1.5px solid var(--kaiki-accent); color: var(--kaiki-accent);
+            transition: background-color .15s ease, color .15s ease;
+        }
+        .trip-go .icon { inline-size: 1.1rem; block-size: 1.1rem; transition: transform .15s ease; }
+        .trip-go:hover, .trip-go:focus-visible { background: var(--kaiki-accent); color: #fff; }
+        .trip-go:hover .icon { transform: translateX(2px); }
+        @media (prefers-reduced-motion: reduce) { .trip-go, .trip-go .icon { transition: none; } }
+
+        /* ==================================================================
+           The search under the masthead (Mike, 2026-09-24): one horizontal
+           white bar, overlapping the photograph's lower edge by about 3.5rem,
+           as wide as the page column so it lines up with the trips below.
+           ================================================================== */
+        .hero:has(+ .hero-search-below) .hero-inner { grid-template-columns: minmax(0, 1fr); }
+        .hero.has-image:has(+ .hero-search-below) .hero-inner { padding-block-end: clamp(5.5rem, 9vw, 7.5rem); }
+        .hero-search.hero-search-below {
+            position: relative; z-index: 3;
+            inline-size: auto; max-width: none;
+            /* Exactly the column's width, the trips' below it (Mike, 24/9). */
+            margin: calc(-1 * var(--section-gap) - 3.5rem) 0 0;
+            padding: .6rem; border-radius: 18px;
+            background: #fff;
+            box-shadow: 0 2px 6px rgba(11, 39, 64, .06), 0 24px 56px rgba(11, 39, 64, .18);
+        }
+        .hero-search.hero-search-below .search-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; align-items: stretch; }
+        .hero-search.hero-search-below .search-form > * { grid-column: auto; }
+        .hero-search.hero-search-below .search-form > :last-child { grid-column: 1 / -1; padding: .5rem .35rem .35rem; }
+        .hero-search.hero-search-below .field { padding: .6rem 1rem; }
+        .hero-search.hero-search-below .field:nth-child(odd) { border-inline-start: 0; }
+        .hero-search.hero-search-below .field:nth-child(even) { border-inline-start: 1px solid var(--rule); }
+        .hero-search.hero-search-below .field:nth-child(n+3) { border-block-start: 1px solid var(--rule); }
+        .hero-search.hero-search-below .search-form input,
+        .hero-search.hero-search-below .search-form select { border: 0; background: transparent; padding-inline: 0; min-block-size: 2.2rem; box-shadow: none; }
+        .hero-search.hero-search-below .search-form button { inline-size: 100%; min-block-size: 3.25rem; border-radius: 12px; }
+        @media (min-width: 64rem) {
+            .hero-search.hero-search-below .search-form { display: flex; flex-wrap: nowrap; align-items: stretch; gap: 0; }
+            .hero-search.hero-search-below .field { flex: 1 1 0; min-width: 0; padding: .65rem 1.2rem; border-block-start: 0 !important; border-inline-start: 1px solid var(--rule) !important; }
+            .hero-search.hero-search-below .field:first-child { border-inline-start: 0 !important; }
+            /* `align-self: center`: the base `.search-form .submit` pins the
+               button to the row's floor, which in a bar of two-line fields put
+               it visibly below the middle (Mike, 24/9). */
+            .hero-search.hero-search-below .search-form > :last-child { flex: 0 0 auto; display: flex; align-items: center; align-self: center; padding: 0 0 0 .6rem; }
+            .hero-search.hero-search-below .search-form button { inline-size: auto; block-size: auto; min-block-size: 3.4rem; padding-inline: 2.2rem; }
+        }
+        @media (max-width: 40rem) {
+            .hero-search.hero-search-below { margin-inline: 0; }
+            .hero-search.hero-search-below .search-form { grid-template-columns: minmax(0, 1fr); }
+            .hero-search.hero-search-below .field { border-inline-start: 0 !important; }
+            .hero-search.hero-search-below .field:nth-child(n+2) { border-block-start: 1px solid var(--rule); }
+        }
+        /* The figures card, when a page has one, sits under the bar rather than
+           climbing over the photograph beside it. */
+        .hero-search-below + .stats-block { margin-block-start: 0; }
+
+        /* The bar's look (Mike, 2026-09-24, from the first home mockup): the
+           icon in the operator's accent, two lines tall, on the left; the field's
+           name in bold beside it and the value under it in grey; a thin rule
+           between fields; the button in the accent with an arrow.
+
+           The label becomes `display: contents`, so its icon and its words are
+           grid items of the field itself — the icon spans both rows, the words
+           take the first and the control the second. Clicking the words still
+           focuses the control: the label is still the label. */
+        .hero-search.hero-search-below .field:not(.submit) {
+            display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); column-gap: .75rem; row-gap: .05rem; align-items: center;
+        }
+        .hero-search.hero-search-below .field:not(.submit) label { display: contents; font-size: .9rem; font-weight: 600; letter-spacing: 0; color: var(--kaiki-text); }
+        .hero-search.hero-search-below .field:not(.submit) label .icon { grid-row: 1 / span 2; inline-size: 1.45rem; block-size: 1.45rem; color: var(--kaiki-accent); }
+        .hero-search.hero-search-below .field:not(.submit) :is(input, select) {
+            grid-column: 2; block-size: 1.6rem; min-block-size: 0; font-size: .88rem; color: var(--ink-faint);
+            border: 0; background-color: transparent; padding: 0; border-radius: 0; cursor: pointer;
+        }
+        .hero-search.hero-search-below .field:not(.submit) select {
+            appearance: none; -webkit-appearance: none; padding-inline-end: 1.5rem;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238593A6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right center;
+        }
+        .hero-search.hero-search-below .field.submit { border: 0 !important; }
+        .hero-search.hero-search-below .search-form button {
+            background: var(--kaiki-accent); color: #fff; font-weight: 700; gap: .6rem;
+            box-shadow: 0 6px 16px color-mix(in srgb, var(--kaiki-accent) 25%, transparent);
+        }
+        .hero-search.hero-search-below .search-form button:hover { background: color-mix(in srgb, var(--kaiki-accent) 85%, #000); }
+        .hero-search.hero-search-below .search-form button .icon { display: none; }
+        .hero-search.hero-search-below .search-form button::after { content: "→"; font-size: 1.1em; line-height: 1; }
+
+        /* ==================================================================
+           «Σχετικά με εμάς» (2026-09-24): the timeline, the boats, the people,
+           the licences and the meeting point. Mockup approved by Mike the same
+           day (docs/mockups/about-page.html). They work on the home page too.
+           ================================================================== */
+
+        /* The masthead without the search: one column, the words given room. */
+        .hero.hero-plain .hero-inner { grid-template-columns: minmax(0, 1fr); }
+        .hero.hero-plain .hero-copy { max-width: 46rem; }
+        .hero.hero-plain h1 { font-size: clamp(2.4rem, 6vw, 4.4rem); line-height: 1.02; }
+
+        /* --- timeline: down on a phone, across from a tablet up --- */
+        .timeline { list-style: none; margin: 0; padding: 0; display: grid; }
+        .timeline li { position: relative; padding: 0 0 1.6rem 1.9rem; border-inline-start: 2px solid var(--line); margin-inline-start: .4rem; }
+        .timeline li:last-child { border-inline-start-color: transparent; padding-block-end: 0; }
+        .timeline li::before {
+            content: ""; position: absolute; inset-inline-start: -.47rem; inset-block-start: .3rem;
+            inline-size: .8rem; block-size: .8rem; border-radius: 50%;
+            background: #fff; border: 2px solid var(--kaiki-accent);
+        }
+        .timeline li.is-now::before { background: var(--kaiki-accent); }
+        .timeline-year { display: block; font-weight: 700; color: var(--kaiki-accent); font-variant-numeric: tabular-nums; margin-block-end: .15rem; }
+        .timeline h3 { margin: 0 0 .2rem; font-size: 1.05rem; color: var(--kaiki-primary); }
+        .timeline p { margin: 0; color: var(--ink-soft); max-width: 32rem; }
+        /* --- the timeline travelled (Mike, 2026-09-24), as «Πώς λειτουργεί»:
+           the track is dashed, a solid line runs from each dot to the next,
+           and each dot fills as the line reaches it. Complete by default;
+           route.js empties it ("ready") and travels it ("on"), .8s a year. */
+        .timeline li { border-inline-start-style: dashed; border-inline-start-color: color-mix(in srgb, var(--kaiki-accent) 28%, #fff); }
+        .timeline li:last-child { border-inline-start-color: transparent; }
+        .timeline li::before { background: var(--kaiki-accent); z-index: 1; }
+        .timeline li:not(:last-child)::after {
+            content: ""; position: absolute; z-index: 0; background: var(--kaiki-accent); border-radius: 3px;
+            inset-inline-start: -2.5px; inset-block: .7rem -.3rem; inline-size: 3px; transform-origin: top;
+        }
+        @media (min-width: 48rem) {
+            ol.timeline { border-block-start-style: dashed; border-block-start-color: color-mix(in srgb, var(--kaiki-accent) 28%, #fff); }
+            .timeline li:not(:last-child)::after {
+                inset-inline: .8rem calc(-1.5rem); inset-block: calc(-1.9rem - 2.5px) auto; inline-size: auto; block-size: 3px; transform-origin: left;
+            }
+        }
+        .timeline[data-animate="ready"] li::before,
+        .timeline[data-animate="on"] li::before { background: #fff; }
+        .timeline[data-animate="ready"] li::after { transform: scaleY(0); }
+        .timeline[data-animate="on"] li::before { animation: timeline-dot .4s ease forwards; }
+        .timeline[data-animate="on"] li::after { transform: scaleY(0); animation: route-grow-y .7s ease-in-out forwards; }
+        @media (min-width: 48rem) {
+            .timeline[data-animate="ready"] li::after { transform: scaleX(0); }
+            .timeline[data-animate="on"] li::after { transform: scaleX(0); animation-name: route-grow-x; }
+        }
+        .timeline[data-animate="on"] li:nth-child(1)::before { animation-delay: .1s; }
+        .timeline[data-animate="on"] li:nth-child(1)::after { animation-delay: .3s; }
+        .timeline[data-animate="on"] li:nth-child(2)::before { animation-delay: 1s; }
+        .timeline[data-animate="on"] li:nth-child(2)::after { animation-delay: 1.1s; }
+        .timeline[data-animate="on"] li:nth-child(3)::before { animation-delay: 1.8s; }
+        .timeline[data-animate="on"] li:nth-child(3)::after { animation-delay: 1.9s; }
+        .timeline[data-animate="on"] li:nth-child(4)::before { animation-delay: 2.6s; }
+        .timeline[data-animate="on"] li:nth-child(4)::after { animation-delay: 2.7s; }
+        .timeline[data-animate="on"] li:nth-child(5)::before { animation-delay: 3.4s; }
+        .timeline[data-animate="on"] li:nth-child(5)::after { animation-delay: 3.5s; }
+        .timeline[data-animate="on"] li:nth-child(6)::before { animation-delay: 4.2s; }
+        .timeline[data-animate="on"] li:nth-child(6)::after { animation-delay: 4.3s; }
+        .timeline[data-animate="on"] li:nth-child(7)::before { animation-delay: 5s; }
+        .timeline[data-animate="on"] li:nth-child(7)::after { animation-delay: 5.1s; }
+        .timeline[data-animate="on"] li:nth-child(8)::before { animation-delay: 5.8s; }
+        @keyframes timeline-dot { to { background: var(--kaiki-accent); box-shadow: 0 0 0 5px color-mix(in srgb, var(--kaiki-accent) 12%, #fff); } }
+
+        @media (min-width: 48rem) {
+            .timeline { grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 1.5rem; border-block-start: 2px solid var(--line); padding-block-start: 1.9rem; }
+            .timeline li { border: 0; padding: 0; margin: 0; }
+            .timeline li::before { inset-inline-start: 0; inset-block-start: -2.4rem; }
+        }
+
+        /* --- boats --- */
+        .fleet { display: grid; gap: 1.25rem; }
+        @media (min-width: 40rem) { .fleet-2, .fleet-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 62rem) { .fleet-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+        .boat-card { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow-sm), 0 0 0 1px var(--line); display: flex; flex-direction: column; }
+        .boat-photo { inline-size: 100%; aspect-ratio: 3 / 2; object-fit: cover; display: block; }
+        .boat-photo-empty { display: grid; place-items: center; background: linear-gradient(160deg, color-mix(in srgb, var(--kaiki-primary) 70%, #fff), var(--kaiki-primary)); color: #fff; font-weight: 800; font-size: 1.6rem; letter-spacing: -.02em; }
+        .boat-body { padding: 1.1rem 1.25rem 1.25rem; display: grid; gap: .75rem; flex: 1; align-content: start; }
+        .boat-body h3 { margin: 0; font-size: 1.2rem; color: var(--kaiki-primary); }
+        .boat-reg { margin: .1rem 0 0; font-size: .82rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+        .boat-specs { display: flex; flex-wrap: wrap; gap: .4rem 1.6rem; margin: 0; }
+        .boat-specs dt { font-size: .78rem; color: var(--ink-faint); }
+        .boat-specs dd { margin: 0; font-weight: 700; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+        .boat-licence { margin: 0; font-size: .88rem; color: var(--ink-soft); }
+        .boat-trips { list-style: none; margin: auto 0 0; padding: .75rem 0 0; border-block-start: 1px solid var(--line); display: grid; gap: .35rem; }
+        .boat-trips a { display: flex; justify-content: space-between; gap: .75rem; font-weight: 600; font-size: .95rem; color: var(--kaiki-accent); }
+        .boat-trips a span { flex: none; transition: transform .15s ease; }
+        .boat-trips a:hover span { transform: translateX(2px); }
+        .boat-trips .more { font-size: .88rem; color: var(--ink-faint); }
+
+        /* --- people --- */
+        .crew { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.5rem; }
+        @media (min-width: 36rem) { .crew-2, .crew-3, .crew-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+        @media (min-width: 62rem) { .crew-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } .crew-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+        .person { display: grid; gap: .9rem; align-content: start; }
+        .person-photo { inline-size: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 18px; display: block; }
+        .person-initials { display: grid; place-items: center; background: linear-gradient(160deg, color-mix(in srgb, var(--kaiki-primary) 70%, #fff), var(--kaiki-primary)); color: #fff; font-weight: 800; font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.03em; }
+        .person h3 { margin: 0; font-size: 1.1rem; color: var(--kaiki-primary); }
+        .person-role { margin: .15rem 0 .35rem; font-size: .9rem; font-weight: 600; color: var(--kaiki-accent); }
+        .person-copy p:last-child { margin-block-end: 0; }
+        .person-copy p:not(.person-role) { color: var(--ink-soft); margin-block-start: 0; }
+        @media (max-width: 35.99rem) {
+            /* A phone: photograph beside the words, so four people are not four screens. */
+            .crew-block:not(.no-photos) .person { grid-template-columns: 5.5rem minmax(0, 1fr); align-items: center; gap: 1rem; }
+            .crew-block:not(.no-photos) .person-photo { aspect-ratio: 1; border-radius: 50%; font-size: 1.6rem; }
+        }
+        .crew-block.no-photos .person { border-block-start: 2px solid var(--kaiki-primary); padding-block-start: .9rem; }
+
+        /* --- licences --- */
+        .credentials { list-style: none; margin: 0; padding: 0; display: grid; border-block-start: 1px solid var(--line); }
+        @media (min-width: 48rem) { .credentials { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 3rem; } }
+        .credentials li { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); gap: .85rem; padding-block: 1rem; border-block-end: 1px solid var(--line); }
+        .credentials svg { color: var(--kaiki-accent); inline-size: 1.35rem; block-size: 1.35rem; margin-block-start: .1rem; }
+        .credentials strong { display: block; color: var(--kaiki-primary); }
+        .credential-number { display: block; color: var(--ink-soft); font-size: .92rem; font-variant-numeric: tabular-nums; }
+
+        /* --- meeting point: the port's photograph across the page, a card on it --- */
+        .meeting-block { position: relative; display: flex; align-items: flex-end; min-block-size: 30rem; background: var(--deep); overflow: hidden; }
+        .meeting-photo { position: absolute; inset: 0; inline-size: 100%; block-size: 100%; object-fit: cover; }
+        .meeting-card { position: relative; z-index: 1; background: #fff; border-radius: 18px; padding: clamp(1.25rem, 3vw, 1.75rem); max-inline-size: 27rem; box-shadow: 0 18px 44px rgba(6, 16, 20, .28); }
+        .meeting-card h2 { font-size: var(--step-2); margin: 0 0 .6rem; color: var(--kaiki-primary); }
+        .meeting-card p { margin: 0 0 .35rem; color: var(--ink-soft); }
+        .meeting-position { font-size: .85rem; color: var(--ink-faint) !important; font-variant-numeric: tabular-nums; }
+        .meeting-hint { display: flex; gap: .55rem; align-items: flex-start; background: var(--sand); border-radius: 10px; padding: .7rem .85rem; margin: .9rem 0 1rem !important; color: var(--kaiki-text) !important; font-size: .93rem; }
+        .meeting-hint svg { flex: none; inline-size: 1.1rem; block-size: 1.1rem; margin-block-start: .15rem; color: var(--kaiki-accent); }
+        .meeting-hint p { margin: 0; }
+        .meeting-cta { margin: 0 !important; }
+        /* ==================================================================
+           The dark boxes, all in one place and last, so no earlier rule can
+           flatten them (Mike, 2026-09-24): «Γιατί …» (band-dark), the private
+           trips band (the split call to action), and «Πώς λειτουργεί», which
+           became a box of the same kind — centred, colour only, no photograph.
+
+           Each is the deep colour lifting towards the primary, with a large
+           glow of the accent that drifts across it. The glow is its own layer
+           (`::before`) moved with `transform`, which the browser animates on
+           the compositor: smoother than moving a background, and it never
+           repaints the words over it. Still for reduced motion.
+           ================================================================== */
+        .band-dark,
+        .cta-band.has-image,
+        .steps-route:not(.has-image) {
+            position: relative; isolation: isolate; overflow: hidden;
+            background: linear-gradient(155deg, var(--deep) 0%, color-mix(in srgb, var(--deep) 62%, var(--kaiki-primary)) 100%);
+        }
+        .band-dark > *, .cta-band.has-image > *, .steps-route:not(.has-image) > * { position: relative; z-index: 1; }
+        /* More room above and below (Mike, 24/9), as the steps band has. */
+        .band-dark { padding-block: clamp(4.5rem, 9vw, 7.5rem); }
+        .band-dark::before,
+        .cta-band.has-image::before,
+        .steps-route:not(.has-image)::before {
+            content: ""; display: block; position: absolute; z-index: 0; pointer-events: none;
+            inset-block: -45% -45%; inset-inline: -35% -35%;
+            background:
+                radial-gradient(38% 42% at 72% 28%, color-mix(in srgb, var(--kaiki-accent) 62%, transparent) 0%, transparent 100%),
+                radial-gradient(30% 34% at 22% 78%, color-mix(in srgb, var(--kaiki-accent) 30%, transparent) 0%, transparent 100%);
+            filter: blur(10px);
+            opacity: .95;
+        }
+        /* The split band's photograph covers its right half: the glow lives on the words' side. */
+        .cta-band.has-image::before {
+            inset-inline: -40% 20%;
+            background:
+                radial-gradient(40% 44% at 40% 30%, color-mix(in srgb, var(--kaiki-accent) 66%, transparent) 0%, transparent 100%),
+                radial-gradient(30% 34% at 20% 85%, color-mix(in srgb, var(--kaiki-accent) 30%, transparent) 0%, transparent 100%);
+        }
+        @media (prefers-reduced-motion: no-preference) {
+            .band-dark::before,
+            .cta-band.has-image::before,
+            .steps-route:not(.has-image)::before { animation: glow-wander 11s ease-in-out infinite alternate; will-change: transform; }
+        }
+        @keyframes glow-wander {
+            0%   { transform: translate3d(0, 0, 0) scale(1); }
+            50%  { transform: translate3d(-9%, 7%, 0) scale(1.12); }
+            100% { transform: translate3d(6%, -5%, 0) scale(.96); }
+        }
+
+        /* «Πώς λειτουργεί» as a box: inside the page's width, rounded like the
+           private trips band, the words and the route in the middle. */
+        /* Edge to edge (Mike, 24/9: «full width το background»): the band
+           reaches both sides of the screen, the words and the route stay in
+           the page's column. */
+        .steps-route:not(.has-image) {
+            margin-inline: calc(50% - 50vw); border-radius: 0;
+            padding-block: clamp(4.5rem, 9vw, 7.5rem); padding-inline: calc(50vw - 50%);
+            color: rgba(255, 255, 255, .78);
+        }
+        .steps-route:not(.has-image) .section-head h2 { color: #fff; }
+        .steps-route:not(.has-image) .section-head .lead { color: rgba(255, 255, 255, .78); }
+        .steps-route:not(.has-image) .eyebrow-line { color: color-mix(in srgb, var(--kaiki-accent) 45%, #fff); }
+        .steps-route:not(.has-image) .stop-copy h3 { color: #fff; }
+        .steps-route:not(.has-image) .stop-copy p { color: rgba(255, 255, 255, .72); }
+        /* the route on dark: a pale dashed track, a bright line, dots with a soft ring */
+        .steps-route:not(.has-image) .route .stop:not(:last-child)::before { border-color: rgba(255, 255, 255, .28); }
+        .steps-route:not(.has-image) .route .stop:not(:last-child)::after { background: color-mix(in srgb, var(--kaiki-accent) 55%, #fff); }
+        .steps-route:not(.has-image) .stop-dot { box-shadow: 0 0 0 6px rgba(255, 255, 255, .08); border-color: color-mix(in srgb, var(--kaiki-accent) 55%, #fff); }
+        .steps-route:not(.has-image) .route[data-animate="ready"] .stop-dot,
+        .steps-route:not(.has-image) .route[data-animate="on"] .stop-dot {
+            background: color-mix(in srgb, var(--deep) 70%, var(--kaiki-primary)); color: #fff; box-shadow: none;
+        }
+        .steps-route:not(.has-image) .route[data-animate="on"] .stop-dot { animation-name: route-fill-dark; }
+        @keyframes route-fill-dark {
+            to { background: var(--kaiki-accent); color: #fff; box-shadow: 0 0 0 6px rgba(255, 255, 255, .08); }
+        }
+        /* ==================================================================
+           The story with a photograph, half the screen each (Mike, 2026-09-24,
+           direction Γ of docs/mockups/story-sections.html): the photograph
+           runs to the edge of the screen on its side, the words sit on a soft
+           tint on the other, and two stories in a row touch, so they read as
+           one band that zig-zags. On a phone the photograph goes on top.
+           ================================================================== */
+        .story.has-image {
+            margin-inline: calc(50% - 50vw); gap: 0; align-items: stretch;
+            grid-template-columns: minmax(0, 1fr);
+        }
+        .story.has-image .story-image {
+            inline-size: 100%; block-size: 100%; min-block-size: 18rem; max-block-size: none;
+            aspect-ratio: auto; border-radius: 0; object-fit: cover;
+        }
+        .story.has-image .story-copy {
+            display: flex; flex-direction: column; justify-content: center;
+            padding: clamp(2.5rem, 6vw, 6rem) clamp(1.25rem, 5vw, 5.5rem);
+            background: var(--mist);
+        }
+        .story.has-image.side-right .story-copy { background: var(--sand); }
+        .story.has-image .story-copy > * { max-width: 34rem; }
+        .story.has-image + .story.has-image { margin-block-start: calc(-1 * var(--section-gap)); }
+        /* An edge-to-edge story and an edge-to-edge band touch, as two bands do:
+           the white gap between them read as a hole (Mike, 24/9). */
+        .story.has-image + .band, .band + .story.has-image,
+        .story.has-image + .steps-route:not(.has-image), .steps-route:not(.has-image) + .story.has-image { margin-block-start: calc(-1 * var(--section-gap)); }
+        @media (min-width: 62rem) {
+            .story.has-image, .story.side-left.has-image { grid-template-columns: 1fr 1fr; min-block-size: 34rem; }
+            .story.has-image .story-image { min-block-size: 34rem; }
+        }
+        @media (max-width: 61.99rem) {
+            .story.has-image .story-image { order: -1; max-block-size: 26rem; }
+        }
+
+        /* A slow Ken Burns on the photographed masthead (Mike, 2026-09-24):
+           up to 15% closer and some drift, 22 seconds one way and back (made
+           stronger the same evening). With the origin at 60% / 45% the scaled
+           photograph overhangs every edge by more than the drift at every
+           point of the way, so no edge of it ever shows.
+           Still for reduced motion; a video masthead is left alone. */
+        .hero.has-image { overflow: hidden; }
+        @media (prefers-reduced-motion: no-preference) {
+            .hero.has-image img.hero-image { animation: ken-burns 22s ease-in-out infinite alternate; transform-origin: 60% 45%; will-change: transform; }
+        }
+        @keyframes ken-burns {
+            from { transform: scale(1) translate3d(0, 0, 0); }
+            to   { transform: scale(1.15) translate3d(-3%, -2%, 0); }
+        }
+        /* The search bar's fields (Mike, 2026-09-24):
+           - no calendar icon at the end of the date: the browser's picker
+             button is stretched, invisible, over the whole field, so a click
+             anywhere on «Ημερομηνία» opens the calendar;
+           - focus lights the whole field, a soft tint with a rounded ring,
+             instead of a square outline around the bare control. */
+        .hero-search-below .field:not(.submit) input[type="date"] { position: static; }
+        .hero-search-below .field:not(.submit) { position: relative; border-radius: 12px; transition: background-color .15s ease, box-shadow .15s ease; }
+        .hero-search-below .field:not(.submit) input[type="date"]::-webkit-calendar-picker-indicator {
+            position: absolute; inset: 0; inline-size: auto; block-size: auto; margin: 0; padding: 0;
+            opacity: 0; cursor: pointer; background: none;
+        }
+        .hero-search-below .search-form input:focus-visible,
+        .hero-search-below .search-form select:focus-visible { outline: none; box-shadow: none; }
+        .hero-search-below .field:not(.submit):focus-within {
+            background: color-mix(in srgb, var(--kaiki-accent) 6%, #fff);
+            box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--kaiki-accent) 42%, #fff);
+        }
+        .hero-search-below .field:not(.submit):hover { background: color-mix(in srgb, var(--kaiki-accent) 3%, #fff); }
+        /* And no spinner arrows on «Πόσα άτομα»: the number is typed, and a phone shows its number pad. */
+        .hero-search-below input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+        .hero-search-below input[type="number"]::-webkit-inner-spin-button,
+        .hero-search-below input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        /* The operator's name on a phone (Mike, 2026-09-24): it was cut to
+           «Aegean Blue…». A size smaller, the town under it hidden, and the
+           language switch and the burger a little tighter, so a name of about
+           twenty letters fits whole; a longer one still ellipses. */
+        @media (max-width: 40rem) {
+            header.site .brand .name { font-size: .98rem; letter-spacing: -.025em; }
+            header.site .brand .brand-tag { display: none; }
+            header.site .brand-mark { inline-size: 2.1rem; block-size: 2.1rem; }
+            header.site .wrap { gap: .5rem; }
+            header.site .brand { flex: 1 1 auto; }
+            .header-end { flex: none; gap: .35rem; }
+            .header-end .langs a { padding-inline: .35rem; }
+        }
+
+        /* The timeline's dashed track ends at the last year's dot rather than
+           running on to the edge (Mike, 2026-09-24). The border stays for its
+           room but goes transparent; the dashes are a background as long as
+           the distance from the first dot to the last. */
+        @media (min-width: 48rem) {
+            ol.timeline {
+                --gap: 1.5rem;
+                border-block-start-color: transparent;
+                background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--kaiki-accent) 28%, #fff) 0 6px, transparent 6px 11px)
+                    0 0 / calc((100% - (var(--n) - 1) * var(--gap)) * (var(--n) - 1) / var(--n) + (var(--n) - 1) * var(--gap) + .4rem) 2px no-repeat;
+                background-origin: border-box; background-clip: border-box;
+            }
+            .timeline-n1 { --n: 1; } .timeline-n2 { --n: 2; } .timeline-n3 { --n: 3; } .timeline-n4 { --n: 4; }
+            .timeline-n5 { --n: 5; } .timeline-n6 { --n: 6; } .timeline-n7 { --n: 7; } .timeline-n8 { --n: 8; }
+        }
+
+        /* ==================================================================
+           ONE TYPE SYSTEM for every guest page (Mike, 2026-09-24: «κάνε όλες
+           τις προτάσεις του designer»; docs/mockups/typo/index.html).
+
+           Last in the sheet on purpose: it restates sizes that earlier rules
+           set one page at a time, and the later rule wins. Nine steps and
+           nothing between them:
+
+             caption 13 · small 15 · body 16 · title 18 · lead 17→20
+             sub 20→24 · panel 24→32 · h2 28→40 · page h1 32→44 · hero h1 40→60
+
+           800 only on the hero's title; 700 for every other heading and price;
+           600 for navigation, buttons, labels and links. Letter-spacing no more
+           than +0.02em on small labels (lower-case Greek spaced wider reads
+           letter by letter), negative only from 18px up. Greys: #4A5D5A for
+           secondary text (7:1), #5F716E for labels (5.1:1), replacing #7B8D8A
+           (3.5:1, below AA). Paragraphs no wider than about 65 characters.
+           ================================================================== */
+        :root {
+            --ink-faint: #5F716E;
+            --t-cap: .8125rem;
+            --t-sm: .9375rem;
+            --t-title: 1.125rem;
+            --t-lead: clamp(1.0625rem, 1.4vw, 1.25rem);
+            --t-sub: clamp(1.25rem, 1.6vw, 1.5rem);
+            --t-panel: clamp(1.5rem, 2.3vw, 2rem);
+            --t-h2: clamp(1.75rem, 3vw, 2.5rem);
+            --t-h1-page: clamp(2rem, 3.2vw, 2.75rem);
+            --t-h1-hero: clamp(2.5rem, 4.6vw, 3.75rem);
+            --measure: min(65ch, 32rem);
+        }
+        /* A <button> does not inherit the page's font by default: the contact
+           form's «Αποστολή μηνύματος» was Arial on an Inter page. */
+        button, input, select, textarea { font-family: inherit; }
+
+        /* ---- titles ---- */
+        .hero h1, .hero.has-image h1, .hero.hero-plain h1 {
+            font-size: var(--t-h1-hero); font-weight: 800; line-height: 1.1; letter-spacing: -.025em;
+        }
+        main .wrap > h1, .page-head h1, .search-head h1, .trip-hero h1 {
+            font-size: var(--t-h1-page); font-weight: 700; line-height: 1.12; letter-spacing: -.025em; color: var(--deep);
+        }
+        .section-head h2, .block-head h2, .trips-block .block-head h2, .story-copy > h2, .block.faq > h2,
+        .block.contact h2, .block.contact.has-image h2 {
+            font-size: var(--t-h2); font-weight: 700; line-height: 1.15; letter-spacing: -.022em;
+        }
+        .cta-band h2, .cta-band.has-image h2 { font-size: var(--t-panel); font-weight: 700; line-height: 1.18; letter-spacing: -.02em; }
+        .trips-more { font-size: var(--t-sub); font-weight: 700; line-height: 1.25; letter-spacing: -.015em; color: var(--deep); }
+        /* The trip page's sections: one style (they were 18/700 ink, 18/800 navy and 16/700). */
+        .product-main .section > h2, .product-main .block > h2, .product-main .lists h2, .product-main .block.faq > h2 {
+            font-size: var(--t-sub); font-weight: 700; line-height: 1.2; letter-spacing: -.015em; color: var(--deep);
+        }
+        .ask h2 { font-size: var(--t-title); font-weight: 700; letter-spacing: -.012em; }
+        .contact-details h2 { font-size: var(--t-title); font-weight: 700; letter-spacing: -.012em; color: var(--deep); }
+        /* One card title: trips, route stops, features, timeline, boats, crew
+           (16.8, 17.6, 17.9, 18.4 and 19.2 before). */
+        li.trip h3, .step h3, .feature h3, .stop-copy h3, .timeline h3, .boat-body h3, .person-copy h3 {
+            font-size: var(--t-title); font-weight: 700; line-height: 1.3; letter-spacing: -.012em;
+        }
+        ol.trip-timeline h3 { font-size: 1rem; }
+
+        /* ---- eyebrows and labels ---- */
+        .eyebrow, .eyebrow-line, .eyebrow.eyebrow-line, .block.contact .eyebrow {
+            font-size: var(--t-cap); font-weight: 600; letter-spacing: .02em; line-height: 1.4;
+        }
+        .person-role { font-size: var(--t-cap); font-weight: 600; letter-spacing: .02em; }
+        .search-form label { font-size: var(--t-cap); font-weight: 600; letter-spacing: .02em; color: var(--ink-soft); }
+        .contact-form-card label { font-size: var(--t-sm); font-weight: 600; letter-spacing: 0; color: var(--kaiki-text); }
+        .contact-form-card .optional { font-size: var(--t-cap); color: var(--ink-faint); }
+        /* The search bar under the hero: the values a guest has chosen are not
+           placeholders, and were set in the placeholder grey. */
+        .hero-search.hero-search-below .field:not(.submit) :is(input, select) { font-size: var(--t-sm); color: var(--ink-soft); }
+
+        /* ---- cards and prices: the name first, the price second ---- */
+        .trip-price strong { font-size: var(--t-title); font-weight: 700; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+        .trip-price .from, .trip-price .per { font-size: var(--t-cap); color: var(--ink-soft); }
+        .trip-price .on-request { font-size: var(--t-sm); font-weight: 600; }
+        .trip-badge { font-size: var(--t-cap); font-weight: 600; }
+        li.trip .summary { font-size: var(--t-sm); line-height: 1.55; }
+        li.trip .facts { font-size: var(--t-cap); color: var(--ink-faint); }
+        .result-count { font-size: var(--t-sm); color: var(--ink-soft); }
+        .price strong { font-size: var(--t-panel); font-weight: 700; color: var(--kaiki-accent); font-variant-numeric: tabular-nums; }
+        .price .from, .price .vat { font-size: var(--t-cap); color: var(--ink-faint); }
+        .quote-stars { color: #B7791F; }
+        .quote figcaption { font-size: var(--t-cap); }
+        .quote figcaption b { font-size: var(--t-sm); }
+        .stats strong, .hero + .stats-block .stats strong { font-weight: 700; font-variant-numeric: tabular-nums; }
+        .stat-label, .hero + .stats-block .stat-label { font-size: var(--t-sm); }
+        .boat-reg, .boat-specs dt { font-size: var(--t-cap); color: var(--ink-faint); }
+        .boat-specs dd { font-size: var(--t-title); }
+        .boat-licence, .boat-trips a { font-size: var(--t-sm); }
+        .timeline-year { font-size: 1rem; }
+
+        /* ---- running text and UI on the one small step ---- */
+        .site-nav a, .button, .see-all, .hero-badges, .tab-label, ul.facts li, .trip-time,
+        .step p, .feature p, .stop-copy p, .ask p, .contact-details a, .ask-actions .button {
+            font-size: var(--t-sm);
+        }
+        .muted { font-size: var(--t-sm); color: var(--ink-soft); }
+        .brand-tag, header.site .langs a { font-size: var(--t-cap); }
+        .mosaic-all, .tiers li, .map-open .button { font-size: var(--t-sm); }
+        .contact-details a, .contact-details .contact-list a { font-size: 1rem; }
+        .menu-panel a, .menu-panel .button { font-size: var(--t-title); }
+        .hero.has-image .standfirst { font-size: var(--t-lead); }
+        .crumbs a { font-size: var(--t-sm); font-weight: 600; color: var(--kaiki-accent); }
+        .page-head .lede, .search-head .standfirst, .trip-intro .standfirst { font-size: var(--t-lead); line-height: 1.5; }
+
+        /* ---- measure ---- */
+        .story-copy .prose, .product-main .prose, .faq-item .prose, .page-head .lede { max-width: var(--measure); }
+
+        /* ---- the legal page: prose, not sections ----
+           It is the one page whose column holds its h1, h2 and paragraphs
+           directly, so the column's gap put ~85px between the lines of an
+           address, and nothing held the lines to a readable width. */
+        main .wrap:not(:has(> .block)):has(> h1) { gap: 0; }
+        main .wrap:not(:has(> .block)):has(> h1) > h1 { margin: 0 0 1rem; }
+        main .wrap:not(:has(> .block)):has(> h1) > h2 {
+            font-size: var(--t-sub); font-weight: 700; line-height: 1.2; letter-spacing: -.015em; color: var(--deep);
+            margin: 2.25rem 0 .6rem;
+        }
+        main .wrap:not(:has(> .block)):has(> h1) > :is(p, ul, ol) { max-width: var(--measure); margin: 0 0 .6rem; }
+
+        /* ---- the trip's schedule: a row without a time still lines up ---- */
+        ol.trip-timeline li:not(:has(.trip-time)) h3 { margin-inline-start: 3.7rem; }
+
+        /* ---- footer ---- */
+        footer.site { font-size: var(--t-sm); }
+        footer.site h3 { font-size: var(--t-cap); font-weight: 600; letter-spacing: .02em; line-height: 1.4; color: rgba(255, 255, 255, .62); margin: .25rem 0 .9rem; }
+        .foot-bottom, .foot-bottom .powered { font-size: var(--t-cap); }
+        .foot-reach-title { font-size: var(--t-title); }
+        footer.site .brand-tag { color: rgba(255, 255, 255, .62); }
+
+        /* ==================================================================
+           Two more of 24/9, kept here with the rest of the day.
+           ================================================================== */
+        /* The white hairline between «Πώς λειτουργεί» and the story under it.
+           The scroll reveal slid the story's two halves up 10px as they came
+           in, and for that distance the page's white showed through between
+           two sections that are meant to touch. The edge-to-edge halves stay
+           put; the words inside the tinted half rise instead. */
+        @supports (animation-timeline: view()) {
+            @media (prefers-reduced-motion: no-preference) {
+                .story.has-image .story-image,
+                .story.has-image .story-copy { animation: none; }
+                .story.has-image .story-copy > * {
+                    animation: kaiki-rise linear both;
+                    animation-timeline: view();
+                    animation-range: entry 0% entry 32%;
+                }
+            }
+        }
+
+        /* The private-trips band's two buttons (Mike): one under the other and
+           one width — both as wide as the wider, left-aligned in the text
+           column; the whole column on a phone. */
+        .cta-band.has-image .buttons { display: inline-grid; grid-template-columns: minmax(0, 1fr); justify-items: stretch; }
+        .cta-band.has-image .buttons .button { justify-content: center; text-align: center; }
+        @media (max-width: 40rem) {
+            .cta-band.has-image .buttons { display: grid; }
+        }
+        /* The hero's two buttons had the same fault on a phone only: stacked
+           there, at 185 and 179px. One width when one is above the other;
+           side by side on a wider screen they keep their own size. */
+        @media (max-width: 40rem) {
+            .hero .cta { display: inline-grid; grid-template-columns: minmax(0, 1fr); }
+            .hero .cta .button { justify-content: center; }
+        }
+
+        /* The footer's own room (Mike, 24/9): more above the columns and below
+           the legal line. The «Έχετε ερώτηση;» row keeps its padding; the
+           space under it is its bottom margin. */
+        .foot-reach { margin-block-end: clamp(3.5rem, 7vw, 5.5rem); }
+        footer.site { padding-block-end: clamp(2.5rem, 5vw, 3.5rem); }
+        footer.site:not(:has(> .foot-reach)) { padding-block-start: clamp(3.5rem, 7vw, 5.5rem); }
+
+        /* ==================================================================
+           The top of «Βρείτε εκδρομή» and «Επικοινωνήστε μαζί μας» (Mike,
+           2026-09-24, direction Α of docs/mockups/page-tops.html). The band is
+           `.band.band-dark` — full bleed, and the dark boxes' gradient and
+           drifting glow come from their rules above, not a copy of them. What
+           follows it climbs over its lower edge: the home page's white search
+           bar, or the contact form and the «Ή βρείτε μας απευθείας» card.
+           ================================================================== */
+        /* Flush under the header: the column's own top padding is taken back. */
+        main .wrap > .page-top:first-child { margin-block-start: -2rem; }
+        .page-top.band-dark { padding-block: clamp(2.5rem, 5vw, 4.25rem) clamp(5.5rem, 9vw, 7.75rem); }
+        .page-top .crumbs { margin: 0 0 1.25rem; font-size: var(--t-cap); color: rgba(255, 255, 255, .7); }
+        .page-top .crumbs a { font-size: var(--t-cap); font-weight: 600; color: #fff; }
+        .page-top h1 {
+            font-size: var(--t-h1-page); font-weight: 700; line-height: 1.12; letter-spacing: -.025em;
+            color: #fff; margin: 0 0 .75rem; text-wrap: balance;
+        }
+        .page-top .lede { font-size: var(--t-lead); line-height: 1.5; color: rgba(255, 255, 255, .86); max-width: 36rem; margin: 0; }
+        /* The overlap: less on a phone, where the band is short already. The
+           column's 1.75rem gap is taken back first. */
+        .page-top-over,
+        .hero-search.hero-search-below.page-top-over {
+            position: relative; z-index: 3;
+            margin: calc(-1.75rem - clamp(2.5rem, 5.5vw, 4.75rem)) 0 0;
+        }
+        .page-top-over .contact-form-card,
+        .page-top-over .contact-details {
+            background: #fff; border: 0; border-radius: 18px;
+            box-shadow: 0 2px 6px rgba(11, 39, 64, .06), 0 24px 56px rgba(11, 39, 64, .16);
+        }
+        .page-top-over .contact-details { padding: clamp(1.4rem, 2.4vw, 1.9rem); }
+        .page-top-over .contact-details h2 { margin-block-start: 0; }
     </style>
 
     {{-- The booking bundle, fetched from the first byte of the page.
@@ -3288,24 +4121,21 @@
             @include('hosted.partials.nav-links')
         </nav>
 
-        {{-- A telephone number a guest can tap, and the one button the header
-             exists for. Both leave the row on a narrow screen and reappear in
-             the burger's panel. --}}
-        @if ($tenant->phone)
-            <a class="header-phone" href="tel:{{ $tenant->phone }}" aria-label="{{ __('hosted.nav.call', ['phone' => $tenant->phone]) }}">
-                @include('hosted.partials.icon', ['name' => 'phone']){{ $tenant->phone }}
-            </a>
-        @endif
+        {{-- The right-hand end (Mike, 2026-09-24, the first home mockup's
+             header): the language switch as two words, then the one button the
+             header exists for. The telephone left the row the same day — it is
+             in the footer's first row, and in the burger's panel on a phone. --}}
+        <div class="header-end">
+            <nav class="langs" aria-label="{{ __('hosted.nav.language') }}">
+                @foreach (['el' => 'ΕΛ', 'en' => 'EN'] as $code => $label)
+                    <a href="{{ $alternates[$code] }}"
+                       hreflang="{{ $code }}"
+                       @if ($code === $locale) aria-current="true" @endif>{{ $label }}</a>
+                @endforeach
+            </nav>
 
-        <a class="button button-accent header-book" href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.nav.book') }}</a>
-
-        <nav class="langs" aria-label="{{ __('hosted.nav.language') }}">
-            @foreach (['el' => 'ΕΛ', 'en' => 'EN'] as $code => $label)
-                <a href="{{ $alternates[$code] }}"
-                   hreflang="{{ $code }}"
-                   @if ($code === $locale) aria-current="true" @endif>{{ $label }}</a>
-            @endforeach
-        </nav>
+            <a class="button button-accent arrow header-book" href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.nav.book') }}</a>
+        </div>
 
         {{-- The same links behind a burger, on a phone only.
 
@@ -3356,6 +4186,34 @@
 </main>
 
 <footer class="site">
+    {{-- «Έχετε ερώτηση; Είμαστε εδώ.» (Mike, 2026-09-24): one quiet row at the
+         top of the footer, on the operator's secondary colour, with the three
+         ways to reach them as plain links. It replaced the contact panel that
+         sat above the footer on the home page. Each link only when the
+         operator has that way to be reached. --}}
+    @php
+        $reachWhatsApp = data_get($tenant->settings, 'social.whatsapp');
+        $reachWhatsApp = is_string($reachWhatsApp) && str_starts_with($reachWhatsApp, 'https://') ? $reachWhatsApp : null;
+    @endphp
+    @if ($tenant->phone || $tenant->email || $reachWhatsApp)
+        <div class="foot-reach">
+            <div class="wrap">
+                <p class="foot-reach-title">@include('hosted.partials.icon', ['name' => 'support']){{ __('hosted.footer.reach') }}</p>
+                <ul>
+                    @if ($tenant->phone)
+                        <li><a href="tel:{{ preg_replace('/[^0-9+]/', '', (string) $tenant->phone) }}">@include('hosted.partials.icon', ['name' => 'phone']){{ $tenant->phone }}</a></li>
+                    @endif
+                    @if ($reachWhatsApp)
+                        <li><a href="{{ $reachWhatsApp }}" rel="noopener noreferrer" target="_blank">@include('hosted.partials.icon', ['name' => 'social-whatsapp']){{ __('hosted.footer.whatsapp') }}</a></li>
+                    @endif
+                    @if ($tenant->email)
+                        <li><a href="mailto:{{ $tenant->email }}">@include('hosted.partials.icon', ['name' => 'mail']){{ $tenant->email }}</a></li>
+                    @endif
+                </ul>
+            </div>
+        </div>
+    @endif
+
     <div class="wrap">
         {{-- A deep band in the operator's own primary colour since 16 September,
              the footer of their WordPress site: their mark and a way to follow

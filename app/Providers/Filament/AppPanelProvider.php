@@ -8,11 +8,15 @@ use App\Domain\Hosted\Support\HostedAsset;
 use App\Filament\App\Auth\EditProfile;
 use App\Filament\App\Auth\Login;
 use App\Filament\App\Auth\RequestPasswordReset;
+use App\Filament\App\Pages\CheckIn;
 use App\Filament\App\Pages\Settings;
 use App\Filament\Avatars\InitialsAvatarProvider;
 use App\Http\Controllers\App\BoardingController;
 use App\Http\Controllers\App\BoardingServiceWorkerController;
 use App\Http\Controllers\App\DismissAnnouncementController;
+use App\Http\Controllers\App\PanelManifestController;
+use App\Http\Controllers\App\PanelOfflineController;
+use App\Http\Controllers\App\PanelServiceWorkerController;
 use App\Http\Controllers\ExportDownloadController;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EndExpiredImpersonation;
@@ -32,10 +36,14 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Infolists\Infolist;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Resources\Resource;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Filesystem\FilesystemAdapter;
@@ -126,6 +134,30 @@ class AppPanelProvider extends PanelProvider
         );
 
         /*
+         * **Dates the way a Greek reads them** (2026-09-23): 16/09/2026,
+         * 16/09/2026 09:00, 09:00.
+         *
+         * Filament's defaults are American — «Σεπ 16, 2026», and a time with
+         * seconds nobody asked for, «09:00:00» — and they apply wherever a
+         * column, an entry or a picker says `->date()` without a format, which
+         * was thirty-one places. These are only the defaults: a call that
+         * names its own format keeps it.
+         */
+        foreach ([Table::class, Infolist::class, DateTimePicker::class] as $owner) {
+            $owner::$defaultDateDisplayFormat = 'd/m/Y';
+            $owner::$defaultDateTimeDisplayFormat = 'd/m/Y H:i';
+            $owner::$defaultTimeDisplayFormat = 'H:i';
+        }
+
+        DateTimePicker::$defaultDateTimeWithSecondsDisplayFormat = 'd/m/Y H:i:s';
+
+        // Greek does not capitalise every word of a label: «Πολιτική ακύρωσης»,
+        // not the «Πολιτική Ακύρωσης» Filament makes of it for headings and
+        // breadcrumbs by default. One switch on the base class covers every
+        // resource in both panels.
+        Resource::titleCaseModelLabel(false);
+
+        /*
          * A saved file is handed to FilePond as a root-relative URL.
          *
          * Filament's own callback returns `Storage::url()`, which is absolute
@@ -192,6 +224,9 @@ class AppPanelProvider extends PanelProvider
              */
             ->defaultAvatarProvider(InitialsAvatarProvider::class)
             ->path('app')
+            // Filament's CSS plus every utility our own views use, both panels
+            // alike (2026-09-23). See {@see PanelTheme}.
+            ->theme(PanelTheme::url())
             // Ours, for the phone (direction Α1, product owner, 2026-09-23): the
             // right keyboard and autofill on each field, the error said once
             // above the form, «Να με θυμάσαι» on by default on a phone. See
@@ -238,6 +273,11 @@ class AppPanelProvider extends PanelProvider
             ->darkModeBrandLogo(fn (): ?string => PlatformBrand::logoUrl(dark: true))
             ->favicon(fn (): string => PlatformBrand::faviconUrl() ?? asset('favicon.svg'))
             ->brandName(config('app.name'))
+            // No global search. Filament switches it on by itself the moment a
+            // resource names its records (`$recordTitleAttribute`, 2026-09-24),
+            // and on a phone the box sat on top of «Μενού» (Mike, same day).
+            // Nobody asked for it; each list has its own search.
+            ->globalSearch(false)
             ->discoverResources(in: app_path('Filament/App/Resources'), for: 'App\\Filament\\App\\Resources')
             ->discoverPages(in: app_path('Filament/App/Pages'), for: 'App\\Filament\\App\\Pages')
             ->discoverWidgets(in: app_path('Filament/App/Widgets'), for: 'App\\Filament\\App\\Widgets')
@@ -288,6 +328,40 @@ class AppPanelProvider extends PanelProvider
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.catalogue')),
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.fleet')),
             ])
+            /*
+             * «Σάρωση εισιτηρίων» alone at the top of the menu, above every
+             * group (Mike, 2026-09-24): it is the one thing done forty times a
+             * morning on the quay. The same place the home page's button goes —
+             * the camera on the boarding page — and only where there is
+             * scanning at all: boarding on, QR on, and somebody allowed to board.
+             */
+            ->navigationItems([
+                NavigationItem::make('scan')
+                    ->label(fn (): string => __('panel.nav.scan'))
+                    ->icon('heroicon-o-qr-code')
+                    ->url(fn (): string => route('filament.app.boarding', ['camera' => 1]))
+                    ->isActiveWhen(fn (): bool => request()->routeIs('filament.app.boarding'))
+                    ->sort(-100)
+                    ->visible(fn (): bool => CheckIn::canAccess() && CheckIn::qrEnabled()),
+            ])
+            /*
+             * The panel as an app on a phone (PWA, 2026-09-23): its manifest,
+             * its service worker and the page that worker shows with no
+             * network. `routes` rather than `authenticatedRoutes`: the sign-in
+             * page links the manifest and registers the worker too, and none of
+             * the three is about anybody. The worker at `/app/sw.js` is allowed
+             * the scope `/app`; see {@see PanelServiceWorkerController}.
+             */
+            ->routes(function (): void {
+                Route::get('manifest.webmanifest', PanelManifestController::class)
+                    ->name('manifest');
+
+                Route::get('sw.js', PanelServiceWorkerController::class)
+                    ->name('sw');
+
+                Route::get('offline', PanelOfflineController::class)
+                    ->name('offline');
+            })
             /*
              * The export download (OPS-18).
              *

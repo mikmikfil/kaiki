@@ -23,4 +23,10 @@ return [
     'filter_actor' => 'Filter by person',
     'filter_action' => 'Filter by action',
     'filter_subject' => 'Filter by subject type',
+    // What a row is about, where no panel resource names it (the rest come
+    // from the resource's own label; see AuditLogResource::subjectTypeLabel).
+    'subject_types' => [
+        'Tenant' => 'Operator account',
+        'User' => 'Team member',
+    ],
 ];

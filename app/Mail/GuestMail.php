@@ -77,6 +77,7 @@ class GuestMail extends Mailable
             replyTo: OperatorSender::replyTo($tenant),
             subject: __("mail.{$this->template->value}.subject", [
                 'reference' => $this->booking->reference,
+                'trip' => (string) $this->booking->product?->title,
             ]),
         );
     }

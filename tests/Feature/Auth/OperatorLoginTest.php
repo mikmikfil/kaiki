@@ -49,8 +49,8 @@ it('uses the short, sentence-case words of the mockup', function (): void {
         ->toContain('Εμφάνιση')
         ->toContain('Κρατήσεις για εκδρομές με σκάφος.')
         // Filament's own Greek, which said «στο λογαριασμό».
-        ->not->toContain('Συνδεθείτε στο λογαριασμό σας')
-        ->not->toContain('Θυμήσου με');
+        ->and($html)->not->toContain('Συνδεθείτε στο λογαριασμό σας')
+        ->and($html)->not->toContain('Θυμήσου με');
 })->group('fast');
 
 it('has «Ξέχασα τον κωδικό» for each layout, and the phone script to tick «Να με θυμάσαι»', function (): void {
@@ -63,7 +63,7 @@ it('has «Ξέχασα τον κωδικό» for each layout, and the phone scri
         ->toContain("component.\$set('data.remember', true, false)")
         ->toContain("field.scrollIntoView({ block: 'center' })")
         // The band no longer folds while the keyboard is up (2026-09-23, second round).
-        ->not->toContain('kaiki-auth-compact');
+        ->and($html)->not->toContain('kaiki-auth-compact');
 })->group('fast');
 
 it('leaves «Να με θυμάσαι» unticked on the server, for the desktop', function (): void {
@@ -113,5 +113,5 @@ it('gives «Ξέχασα τον κωδικό» the mockup\'s heading and a way b
         ->toContain('Θα σου στείλουμε σύνδεσμο για να βάλεις καινούργιο. Ισχύει 60 λεπτά.')
         ->toContain('Στείλε μου σύνδεσμο')
         ->toContain('kaiki-auth-back')
-        ->not->toContain('back to login');
+        ->and($html)->not->toContain('back to login');
 })->group('fast');

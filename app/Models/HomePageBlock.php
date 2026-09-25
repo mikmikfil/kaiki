@@ -65,6 +65,9 @@ class HomePageBlock extends Model
 
     protected $guarded = [];
 
+    /** @var array<string, mixed> */
+    protected $attributes = ['page' => self::PAGE_HOME];
+
     /**
      * Neither is required, and that is in the migration's docblock: a gallery
      * has no prose and a trips block often has no heading.
@@ -99,6 +102,28 @@ class HomePageBlock extends Model
             'buttons' => 'array',
             'settings' => 'array',
         ];
+    }
+
+    /**
+     * The two pages built from sections (2026-09-24): the home page, and
+     * «Σχετικά με εμάς». Every row saved before then is the home page's.
+     */
+    public const PAGE_HOME = 'home';
+
+    public const PAGE_ABOUT = 'about';
+
+    public const PAGES = [self::PAGE_HOME, self::PAGE_ABOUT];
+
+    /**
+     * One page's sections. Every query that reads or replaces a page's blocks
+     * goes through this, or the about page's sections turn up on the home page.
+     *
+     * @param  Builder<HomePageBlock>  $query
+     * @return Builder<HomePageBlock>
+     */
+    public function scopeOnPage(Builder $query, string $page): Builder
+    {
+        return $query->where('page', $page);
     }
 
     /**

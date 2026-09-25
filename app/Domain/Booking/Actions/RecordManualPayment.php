@@ -154,7 +154,7 @@ final class RecordManualPayment
             ]);
         }
 
-        if (! in_array($gateway, [PaymentGatewayName::Cash, PaymentGatewayName::BankTransfer], true)) {
+        if (! in_array($gateway, [PaymentGatewayName::Cash, PaymentGatewayName::BankTransfer, PaymentGatewayName::Pos], true)) {
             // A gateway payment has a gateway behind it and arrives by webhook.
             // Recording one by hand would put money in the books that nobody
             // can reconcile against a settlement file.

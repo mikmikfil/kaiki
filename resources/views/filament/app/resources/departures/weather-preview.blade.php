@@ -33,7 +33,7 @@
 
         <div class="overflow-x-auto">
             <table class="w-full">
-                <thead class="text-left text-xs uppercase text-gray-500">
+                <thead class="text-left text-xs text-gray-500">
                     <tr>
                         <th class="py-1 pr-3">{{ __('availability.departure.weather.col.guest') }}</th>
                         <th class="py-1 pr-3">{{ __('availability.departure.weather.col.trip') }}</th>

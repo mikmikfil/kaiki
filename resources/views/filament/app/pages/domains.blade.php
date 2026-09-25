@@ -13,7 +13,7 @@
 --}}
 <x-filament-panels::page>
     <div class="space-y-6">
-        <div class="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+        <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-gray-900">
             <h3 class="text-sm font-semibold">{{ __('domains.mode.heading') }}</h3>
 
             @if ($label = $this->siteModeLabel())
@@ -33,7 +33,7 @@
              give way to what the plan includes and the way to a bigger one.
              Domains the operator already has are still listed below. --}}
         @unless ($this->allowsCustomDomain())
-            <div class="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+            <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-gray-900">
                 <h3 class="text-sm font-semibold">{{ __('plans.pro_only') }}</h3>
 
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -49,7 +49,7 @@
         @endunless
 
         @if ($this->allowsCustomDomain())
-        <div class="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+        <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-gray-900">
             <h3 class="text-sm font-semibold">{{ __('domains.cname.heading') }}</h3>
 
             <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -58,16 +58,16 @@
 
             <dl class="mt-3 grid gap-2 text-sm sm:grid-cols-3">
                 <div>
-                    <dt class="text-xs uppercase tracking-wide text-gray-400">{{ __('domains.cname.type') }}</dt>
+                    <dt class="text-xs text-gray-600 dark:text-gray-300">{{ __('domains.cname.type') }}</dt>
                     <dd class="font-mono">CNAME</dd>
                 </div>
                 <div>
-                    <dt class="text-xs uppercase tracking-wide text-gray-400">{{ __('domains.cname.name') }}</dt>
+                    <dt class="text-xs text-gray-600 dark:text-gray-300">{{ __('domains.cname.name') }}</dt>
                     <dd class="font-mono">book</dd>
                 </div>
                 <div>
-                    <dt class="text-xs uppercase tracking-wide text-gray-400">{{ __('domains.cname.value') }}</dt>
-                    <dd class="font-mono">{{ $this->target() }}</dd>
+                    <dt class="text-xs text-gray-600 dark:text-gray-300">{{ __('domains.cname.value') }}</dt>
+                    <dd class="font-mono [overflow-wrap:anywhere]">{{ $this->target() }}</dd>
                 </div>
             </dl>
         </div>
@@ -88,7 +88,7 @@
                 @foreach ($this->domains() as $domain)
                     <li class="flex flex-wrap items-center justify-between gap-3 py-3">
                         <div>
-                            <p class="font-mono text-sm">{{ $domain->hostname }}</p>
+                            <p class="font-mono text-sm [overflow-wrap:anywhere]">{{ $domain->hostname }}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
                                 {{ $domain->status->label() }}
                                 @if ($domain->last_checked_at)

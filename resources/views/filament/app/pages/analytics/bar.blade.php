@@ -20,6 +20,6 @@
     $width = $ratio === null ? 0.0 : max(0.0, min(1.0, (float) $ratio));
 @endphp
 
-<span style="display: block; margin-top: .35rem; height: 3px; border-radius: 999px; background: rgb(var(--gray-200)); overflow: hidden;">
+<span style="display: block; margin-top: .35rem; height: 3px; border-radius: 999px; background: rgb(var(--ka-track, var(--gray-200))); overflow: hidden;">
     <span style="display: block; height: 3px; width: {{ round($width * 100, 1) }}%; border-radius: 999px; background: rgb(var(--primary-600));"></span>
 </span>

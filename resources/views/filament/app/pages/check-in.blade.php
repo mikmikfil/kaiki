@@ -44,9 +44,9 @@
                 autofocus
                 wire:model.live.debounce.300ms="ticket"
                 placeholder="{{ __('checkin.scan.placeholder') }}"
-                class="mt-1 w-full rounded-lg border-gray-300 text-base"
+                class="mt-1 w-full rounded-lg border-gray-300 text-base dark:border-white/10 dark:bg-white/5 dark:text-white dark:placeholder-gray-500"
             >
-            <p class="mt-1 text-xs text-gray-500">{{ __('checkin.scan.help') }}</p>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ __('checkin.scan.help') }}</p>
         </div>
     </x-filament::section>
 
@@ -56,7 +56,7 @@
         <x-filament::section>
             {{-- One sentence for "no such code" and for "the booking is gone",
                  the same reasoning TOK-4 applies to the guest pages. --}}
-            <p class="text-sm font-medium text-danger-600">{{ __('checkin.refused.unknown_ticket') }}</p>
+            <p class="text-sm font-medium text-danger-600 dark:text-danger-400">{{ __('checkin.refused.unknown_ticket') }}</p>
         </x-filament::section>
     @endif
 
@@ -66,22 +66,22 @@
             <div class="flex flex-col gap-3">
                 <div>
                     <p class="text-lg font-semibold">{{ $scanned->full_name ?? __('checkin.guest.unnamed') }}</p>
-                    <p class="text-sm text-gray-500">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
                         {{ $booking?->product?->title }} · {{ $booking?->reference }}
                     </p>
                     @if ($booking !== null)
-                        <p class="text-sm text-gray-500">
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
                             {{ __('checkin.actions.override.help', ['time' => $this->windowFor($booking)]) }}
                         </p>
                     @endif
                 </div>
 
                 @if ($scanned->checked_in_at !== null)
-                    <p class="text-sm font-medium text-success-600">
+                    <p class="text-sm font-medium text-success-600 dark:text-success-400">
                         {{ __('checkin.guest.checked_in_at', ['time' => $scanned->checked_in_at->format('H:i')]) }}
                     </p>
                 @else
-                    <div class="flex flex-wrap gap-2">
+                    <div class="kc-actions grid gap-2 sm:flex sm:flex-wrap">
                         {{ ($this->checkInAction)(['guest' => $scanned->getKey()]) }}
                         {{ ($this->overrideAction)(['guest' => $scanned->getKey()]) }}
                         {{ ($this->noShowAction)(['guest' => $scanned->getKey()]) }}
@@ -99,7 +99,7 @@
              reached only through a ticket's QR, which an operator without QR
              boarding does not print. --}}
         <p class="mb-3 text-sm">
-            <a href="{{ route('filament.app.boarding') }}" class="font-semibold text-primary-600">{{ __('checkin.offline_link') }}</a>
+            <a href="{{ route('filament.app.boarding') }}" class="inline-block py-1.5 font-semibold text-primary-600 dark:text-primary-400">{{ __('checkin.offline_link') }}</a>
         </p>
 
         @if ($bookings->isEmpty())
@@ -109,15 +109,15 @@
                 @foreach ($bookings as $booking)
                     @php($guests = $booking->guests->sortBy('position'))
                     @php($early = $this->isEarly($booking))
-                    <div class="rounded-lg border border-gray-200 p-3">
+                    <div class="rounded-lg border border-gray-200 p-3 dark:border-white/10">
                         <div class="flex items-baseline justify-between gap-2">
                             <span class="font-medium">{{ $booking->product?->title }}</span>
                             {{-- Hours and minutes. The column is a `time` and
                                  printed raw it read «08:30:00» — seconds nobody
                                  on a quay has ever needed. --}}
-                            <span class="text-sm text-gray-500">{{ substr((string) $booking->local_time, 0, 5) }}</span>
+                            <span class="shrink-0 text-sm text-gray-500 dark:text-gray-400">{{ substr((string) $booking->local_time, 0, 5) }}</span>
                         </div>
-                        <p class="text-xs text-gray-500">
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
                             {{ $booking->reference }} ·
                             {{-- The number a crew member actually wants: it is
                                  what tells them when they can cast off. --}}
@@ -129,24 +129,34 @@
 
                         <ul class="mt-2 flex flex-col gap-2">
                             @foreach ($guests as $guest)
-                                <li class="flex items-center justify-between gap-2">
-                                    <span class="text-sm">
+                                {{-- Below `sm` the name has the full width and the two
+                                     buttons sit under it, side by side: in a row
+                                     beside them it wrapped to five lines and the
+                                     buttons ran off the card (audit 2026-09-23). --}}
+                                <li class="flex flex-col gap-2 border-t border-gray-100 pt-2 first:border-t-0 first:pt-0 sm:flex-row sm:items-center sm:justify-between sm:border-t-0 sm:pt-0 dark:border-white/5">
+                                    <span class="min-w-0 text-sm">
                                         {{ $guest->full_name ?? __('checkin.guest.unnamed') }}
                                         @php($answerLine = \App\Models\BookingAnswer::joined([...($guest->is_lead ? $booking->answers->whereNull('booking_guest_id')->all() : []), ...$guest->answers->all()]))
                                         @if ($answerLine !== '')
-                                            <span class="block text-xs text-gray-500">{{ $answerLine }}</span>
+                                            <span class="block text-xs text-gray-500 dark:text-gray-400">{{ $answerLine }}</span>
+                                        @endif
+                                        {{-- «Φοιτητής», «ΑμεΑ»: a group by status the crew check
+                                             with their eyes, since checkout asked no number
+                                             (2026-09-24). --}}
+                                        @if ($guest->ageBand?->requires_proof)
+                                            <span class="block text-xs font-medium text-warning-700 dark:text-warning-400">{{ __('checkin.guest.proof', ['group' => $guest->ageBand->label]) }}</span>
                                         @endif
                                         @if ($guest->no_show)
-                                            <span class="text-xs text-danger-600">· {{ __('checkin.guest.no_show') }}</span>
+                                            <span class="text-xs text-danger-600 dark:text-danger-400">· {{ __('checkin.guest.no_show') }}</span>
                                         @endif
                                     </span>
 
                                     @if ($guest->checked_in_at !== null)
-                                        <span class="text-xs text-success-600">
+                                        <span class="shrink-0 text-xs text-success-600 dark:text-success-400">
                                             {{ __('checkin.guest.checked_in_at', ['time' => $guest->checked_in_at->format('H:i')]) }}
                                         </span>
                                     @else
-                                        <span class="flex gap-1">
+                                        <span class="kc-actions grid grid-cols-2 gap-2 sm:flex sm:shrink-0">
                                             {{-- Before the window opens a plain tap is refused,
                                                  so the row offers the way that is not. --}}
                                             @if ($early)
@@ -165,5 +175,19 @@
             </div>
         @endif
     </x-filament::section>
+
+    {{-- Every check-in button a thumb can hit on a moving deck: 44px tall, and
+         below `sm` as wide as its cell, so the pair reads as two halves of
+         one row rather than two chips. --}}
+    <style>
+        .kc-actions .fi-btn { min-height: 2.75rem; }
+        /* Early boarding is amber, and white on amber is 2–3:1 — in the sun,
+           unreadable. Dark type on it is above 5:1 in both themes. */
+        .kc-actions .fi-btn.fi-color-warning:not(.fi-btn-outlined),
+        .kc-actions .fi-btn.fi-color-warning:not(.fi-btn-outlined) .fi-btn-icon { color: rgb(var(--gray-950)); }
+        @media (max-width: 639.98px) {
+            .kc-actions .fi-btn { width: 100%; }
+        }
+    </style>
 
 </x-filament-panels::page>

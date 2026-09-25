@@ -1,0 +1,176 @@
+<title>Φόρμα ερώτησης</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* The trip page's enquiry form (trips sold «κατόπιν ζήτησης»), three looks
+   (Mike, 24/9: «λίγο παλιακή»). Aegean Blue's tokens, light, no uppercase. */
+:root{
+  --primary:#123A5E; --deep:#0E2C48; --accent:#1B5FD1; --accent-soft:#EDF3FD;
+  --ink:#131A22; --soft:#4A5D5A; --faint:#7B8D8A; --rule:#E1E9E7; --line:#D9E2EC; --paper:#FFFFFF; --ground:#E6ECF0; --mist:#F4F7FB;
+  --sans:Inter,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55;padding-block:22px 64px;padding-inline:16px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:is(button,a,input,textarea,select):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+p{margin:0}
+.page{max-width:1100px;margin:0 auto;display:grid;gap:18px}
+.intro h1{font-size:25px;line-height:1.2;margin:0 0 6px;letter-spacing:-.015em}
+.intro p{color:var(--soft);font-size:15px;max-width:76ch}
+.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:#fff;border:1px solid #CFDAE8;border-radius:10px;padding:3px}
+.seg button{padding:7px 12px;border-radius:7px;font-weight:600;font-size:14px;color:var(--soft)}
+.seg button[aria-pressed="true"]{background:var(--primary);color:#fff}
+.why{font-size:14.5px;color:var(--soft);background:#fff;border-radius:12px;padding:12px 16px;box-shadow:0 1px 0 #CBD5DE}
+.why b{color:var(--ink)}
+.stage{display:grid;gap:24px;grid-template-columns:minmax(0,1fr);align-items:start}
+@media (min-width:900px){.stage{grid-template-columns:minmax(0,1fr) 420px}}
+.trip{background:#fff;border-radius:18px;padding:24px;box-shadow:0 1px 0 #CBD5DE;color:var(--faint);font-size:14px;min-height:200px}
+.trip b{display:block;color:var(--primary);font-size:22px;margin-bottom:6px}
+
+/* shared */
+.card{background:#fff;border-radius:20px;box-shadow:0 2px 6px rgba(14,44,72,.05),0 20px 48px rgba(14,44,72,.1);overflow:hidden}
+.card h2{margin:0;font-size:20px;font-weight:800;letter-spacing:-.015em;color:var(--primary)}
+.card .sub{margin-top:4px;font-size:14px;color:var(--soft)}
+.fields{display:grid;gap:12px}
+.two{display:grid;gap:12px;grid-template-columns:1fr 1fr}
+.btn{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;background:var(--accent);color:#fff;font-weight:700;font-size:16px;padding:15px 20px;border-radius:12px;box-shadow:0 8px 20px rgba(27,95,209,.25)}
+.btn:hover{background:#174FB0}
+.note{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--faint);margin-top:12px}
+.note svg{flex:none;margin-top:2px}
+
+/* 1: soft fields with the label inside the box, like the search bar */
+.v1 .in{padding:24px}
+.v1 .hd{margin-bottom:18px}
+.f1{position:relative;display:grid;grid-template-columns:22px minmax(0,1fr);column-gap:10px;align-items:center;background:var(--mist);border:1.5px solid transparent;border-radius:12px;padding:10px 14px;transition:border-color .15s,background .15s}
+.f1:focus-within{background:#fff;border-color:var(--accent)}
+.f1 svg{grid-row:1/span 2;color:var(--accent)}
+.f1 label{font-size:12.5px;font-weight:600;color:var(--soft)}
+.f1 input,.f1 textarea{grid-column:2;border:0;background:transparent;font:inherit;font-size:15.5px;color:var(--ink);padding:0;outline:none;width:100%}
+.f1 textarea{resize:vertical;min-height:70px}
+.f1.msg{grid-template-columns:minmax(0,1fr)}
+.f1.msg label,.f1.msg textarea{grid-column:1}
+
+/* 2: a header band in the operator's colour, then clean underlined-free fields */
+.v2 .hd{padding:22px 24px;background:linear-gradient(155deg,var(--deep),#173F6C);color:#fff}
+.v2 .hd h2{color:#fff}
+.v2 .hd .sub{color:#B9CADC}
+.v2 .hd .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.v2 .hd .chips span{font-size:12.5px;font-weight:600;background:rgba(255,255,255,.12);border-radius:99px;padding:4px 10px}
+.v2 .in{padding:22px 24px 24px}
+.f2{display:grid;gap:6px}
+.f2 label{font-size:13.5px;font-weight:600;color:var(--ink)}
+.two > *{min-width:0}
+.f2 input,.f2 textarea{width:100%;min-width:0;font:inherit;font-size:15.5px;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;background:#fff;color:var(--ink);transition:border-color .15s,box-shadow .15s}
+.f2 input:focus,.f2 textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 4px rgba(27,95,209,.12)}
+.f2 textarea{resize:vertical;min-height:88px}
+.opt{font-weight:400;color:var(--faint)}
+
+/* 3: two steps — the trip first (date and people as steppers), then who you are */
+.v3 .in{padding:24px}
+.v3 .step{display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:var(--accent);margin:18px 0 10px}
+.v3 .step:first-of-type{margin-top:16px}
+.v3 .step i{width:22px;height:22px;border-radius:50%;background:var(--accent-soft);display:grid;place-items:center;font-style:normal;font-size:12px}
+.pick{display:grid;grid-template-columns:1fr 1fr;border:1.5px solid var(--line);border-radius:14px;overflow:hidden}
+.pick > div{padding:10px 14px;display:grid;gap:2px}
+.pick > div + div{border-left:1.5px solid var(--line)}
+.pick label{font-size:12.5px;font-weight:600;color:var(--soft)}
+.pick input{border:0;font:inherit;font-size:15.5px;padding:0;color:var(--ink);background:transparent;outline:none;width:100%}
+.stepper{display:flex;align-items:center;justify-content:space-between}
+.stepper button{width:28px;height:28px;border-radius:50%;border:1.5px solid var(--line);color:var(--primary);font-weight:700}
+.stepper b{font-size:15.5px}
+.v3 .f2 input{padding:11px 14px}
+</style>
+
+<div class="page">
+  <header class="intro">
+    <h1>Η φόρμα «Ρωτήστε μας για την εκδρομή»</h1>
+    <p>Για τις εκδρομές που κλείνονται κατόπιν ζήτησης (π.χ. «Ιδιωτική μέρα με σκάφος»). Ίδια πεδία με σήμερα: όνομα, email, τηλέφωνο, ημερομηνία, άτομα, μήνυμα. Τρεις εκδοχές στο ύφος της νέας αναζήτησης.</p>
+  </header>
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Εκδοχή">
+      <button type="button" id="b1" aria-pressed="true" data-v="1">1. Πεδία με εικονίδια</button>
+      <button type="button" id="b2" aria-pressed="false" data-v="2">2. Με σκούρα κεφαλίδα</button>
+      <button type="button" id="b3" aria-pressed="false" data-v="3">3. Σε δύο βήματα</button>
+    </div>
+  </div>
+  <p class="why" id="why"></p>
+
+  <div class="stage">
+    <div class="trip"><b>Ιδιωτική ημέρα με σκάφος</b>… η σελίδα της εκδρομής αριστερά, η φόρμα δεξιά, όπως σήμερα.</div>
+
+    <!-- 1 -->
+    <form class="card v1" data-v="1" onsubmit="return false">
+      <div class="in">
+        <div class="hd"><h2>Ρωτήστε μας για την εκδρομή</h2><p class="sub">Σας απαντάμε μέσα στη μέρα, συνήθως σε μία ώρα.</p></div>
+        <div class="fields">
+          <div class="f1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M4.5 20c.8-3.8 3.8-6 7.5-6s6.7 2.2 7.5 6"/></svg><label for="a1">Ονοματεπώνυμο</label><input id="a1" placeholder="π.χ. Μαρία Παπαδοπούλου"></div>
+          <div class="two">
+            <div class="f1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg><label for="a2">Email</label><input id="a2" type="email" placeholder="εσείς@email.gr"></div>
+            <div class="f1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 4.2 10 7.4a1.4 1.4 0 0 1-.3 1.6l-1.1 1a12.6 12.6 0 0 0 4.4 4.4l1-1.1a1.4 1.4 0 0 1 1.6-.3l3.2 1.6a1.4 1.4 0 0 1 .7 1.6 3.9 3.9 0 0 1-4.2 2.9A14.6 14.6 0 0 1 4.1 6.4 3.9 3.9 0 0 1 7 2.2a1.4 1.4 0 0 1 1.4.7Z"/></svg><label for="a3">Τηλέφωνο</label><input id="a3" type="tel" placeholder="69…"></div>
+          </div>
+          <div class="two">
+            <div class="f1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><label for="a4">Ημερομηνία</label><input id="a4" type="date"></div>
+            <div class="f1"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.8 14.2c2.3.2 4 1.8 4.7 4.8"/></svg><label for="a5">Άτομα</label><input id="a5" type="number" min="1" placeholder="4"></div>
+          </div>
+          <div class="f1 msg"><label for="a6">Το μήνυμά σας</label><textarea id="a6" placeholder="Γενέθλια, πρόταση γάμου, πού θα θέλατε να πάμε…"></textarea></div>
+        </div>
+        <button class="btn" style="margin-top:16px" type="submit">Στείλτε την ερώτηση →</button>
+        <p class="note"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>Χρησιμοποιούμε τα στοιχεία σας μόνο για να σας απαντήσουμε.</p>
+      </div>
+    </form>
+
+    <!-- 2 -->
+    <form class="card v2" data-v="2" onsubmit="return false" hidden>
+      <div class="hd">
+        <h2>Ρωτήστε μας για την εκδρομή</h2>
+        <p class="sub">Πείτε μας ημερομηνία και άτομα, και σας στέλνουμε προσφορά μέσα στη μέρα.</p>
+        <div class="chips"><span>Απάντηση σε 1 ώρα</span><span>Χωρίς δέσμευση</span></div>
+      </div>
+      <div class="in fields">
+        <div class="f2"><label for="b1i">Ονοματεπώνυμο</label><input id="b1i"></div>
+        <div class="two"><div class="f2"><label for="b2i">Email</label><input id="b2i" type="email"></div><div class="f2"><label for="b3i">Τηλέφωνο <span class="opt">(προαιρετικό)</span></label><input id="b3i" type="tel"></div></div>
+        <div class="two"><div class="f2"><label for="b4i">Ημερομηνία</label><input id="b4i" type="date"></div><div class="f2"><label for="b5i">Άτομα</label><input id="b5i" type="number" min="1"></div></div>
+        <div class="f2"><label for="b6i">Το μήνυμά σας</label><textarea id="b6i" placeholder="Γενέθλια, πρόταση γάμου, πού θα θέλατε να πάμε…"></textarea></div>
+        <button class="btn" type="submit">Ζητήστε προσφορά →</button>
+      </div>
+    </form>
+
+    <!-- 3 -->
+    <form class="card v3" data-v="3" onsubmit="return false" hidden>
+      <div class="in">
+        <h2>Ρωτήστε μας για την εκδρομή</h2><p class="sub">Δύο βήματα, ένα λεπτό.</p>
+        <div class="step"><i>1</i>Η εκδρομή σας</div>
+        <div class="pick">
+          <div><label for="c1">Ημερομηνία</label><input id="c1" type="date"></div>
+          <div><label>Άτομα</label><div class="stepper"><button type="button" aria-label="Λιγότερα">−</button><b>4</b><button type="button" aria-label="Περισσότερα">+</button></div></div>
+        </div>
+        <div class="step"><i>2</i>Πώς να σας απαντήσουμε</div>
+        <div class="fields">
+          <div class="f2"><label for="c3">Ονοματεπώνυμο</label><input id="c3"></div>
+          <div class="two"><div class="f2"><label for="c4">Email</label><input id="c4" type="email"></div><div class="f2"><label for="c5">Τηλέφωνο</label><input id="c5" type="tel"></div></div>
+          <div class="f2"><label for="c6">Κάτι ακόμα; <span class="opt">(προαιρετικό)</span></label><input id="c6" placeholder="Γενέθλια, πρόταση γάμου…"></div>
+        </div>
+        <button class="btn" style="margin-top:16px" type="submit">Στείλτε την ερώτηση →</button>
+        <p class="note">Χωρίς δέσμευση. Σας απαντάμε μέσα στη μέρα.</p>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+(function () {
+  var why = {
+    1: '<b>1. Πεδία με εικονίδια.</b> Όπως η νέα λωρίδα αναζήτησης: κάθε πεδίο σε απαλό γκρι-γαλάζιο κουτί με εικονίδιο και τίτλο μέσα, email και τηλέφωνο δίπλα δίπλα, ημερομηνία και άτομα δίπλα δίπλα, και ένα μεγάλο γαλάζιο κουμπί.',
+    2: '<b>2. Με σκούρα κεφαλίδα.</b> Πάνω μια σκούρα ζώνη με τον τίτλο και δύο μικρές ετικέτες («Απάντηση σε 1 ώρα», «Χωρίς δέσμευση»), από κάτω καθαρά λευκά πεδία που γίνονται γαλάζια όταν γράφεις.',
+    3: '<b>3. Σε δύο βήματα.</b> Πρώτα η εκδρομή (ημερομηνία και άτομα με −/+), μετά ποιος είστε. Το μήνυμα γίνεται μικρό και προαιρετικό.'
+  };
+  function press(sel, b) { document.querySelectorAll(sel).forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); }); }
+  function show(v) { document.querySelectorAll('form[data-v]').forEach(function (f) { f.hidden = f.dataset.v !== v; }); document.getElementById('why').innerHTML = why[v]; }
+  document.querySelectorAll('button[data-v]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-v]', b); show(b.dataset.v); }); });
+  show('1');
+})();
+</script>

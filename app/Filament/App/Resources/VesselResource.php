@@ -6,11 +6,13 @@ namespace App\Filament\App\Resources;
 
 use App\Domain\Media\Support\GalleryField;
 use App\Enums\VesselAmenity;
+use App\Enums\VesselLicence;
 use App\Enums\VesselStatus;
 use App\Enums\VesselType;
 use App\Filament\App\Navigation\SiblingScreens;
 use App\Filament\App\Resources\VesselResource\Pages;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\Port;
 use App\Models\Vessel;
 use App\Rules\VesselCapacityNotLowered;
@@ -53,6 +55,8 @@ use Illuminate\Validation\Rules\Unique;
 class VesselResource extends Resource
 {
     protected static ?string $model = Vessel::class;
+
+    protected static ?string $recordTitleAttribute = 'name';
 
     /**
      * The uploader's own field, mapped to the `images` column it stores into
@@ -114,6 +118,7 @@ class VesselResource extends Resource
     {
         return [
             Section::make(__('catalog.vessel.sections.identity'))
+                ->icon('heroicon-o-identification')
                 ->schema([
                     TextInput::make('name')
                         ->label(__('catalog.vessel.form.name.label'))
@@ -168,6 +173,13 @@ class VesselResource extends Resource
                         ->helperText(__('catalog.vessel.form.registration_number.help'))
                         ->maxLength(40),
 
+                    // Printed on the passenger list (ν. 4926/2022, 2026-09-24).
+                    Select::make('licence_type')
+                        ->label(__('catalog.vessel.form.licence_type.label'))
+                        ->helperText(__('catalog.vessel.form.licence_type.help'))
+                        ->options(VesselLicence::class)
+                        ->native(false),
+
                     TranslatableInput::textarea(
                         'description',
                         __('catalog.vessel.form.description.label'),
@@ -177,6 +189,7 @@ class VesselResource extends Resource
                 ->columns(2),
 
             Section::make(__('catalog.vessel.sections.capacity'))
+                ->icon('heroicon-o-user-group')
                 ->schema([
                     TextInput::make('capacity_max')
                         ->label(__('catalog.vessel.form.capacity_max.label'))
@@ -220,6 +233,7 @@ class VesselResource extends Resource
                 ->columns(2),
 
             Section::make(__('catalog.vessel.sections.operations'))
+                ->icon('heroicon-o-wrench-screwdriver')
                 ->schema([
                     Select::make('home_port_id')
                         ->label(__('catalog.vessel.form.home_port.label'))
@@ -301,6 +315,7 @@ class VesselResource extends Resource
                 ->columns(2),
 
             Section::make(__('catalog.vessel.sections.specs'))
+                ->icon('heroicon-o-clipboard-document-list')
                 ->schema([
                     // The §3.9 key list. Unknown keys already in the column are
                     // preserved by EditVessel rather than dropped, because §3.9
@@ -350,6 +365,7 @@ class VesselResource extends Resource
                 ->collapsed(),
 
             Section::make(__('catalog.vessel.sections.media'))
+                ->icon('heroicon-o-photo')
                 ->schema([
                     /*
                      * **Ένας uploader, και η πρώτη είναι η κύρια** (Mike,
@@ -473,12 +489,11 @@ class VesselResource extends Resource
                     ->options(VesselType::options()),
                 TrashedFilter::make(),
             ])
-            ->actions([
-                EditAction::make(),
+            ->actions(MoreActions::row(EditAction::make(), [
                 DeleteAction::make(),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
-            ])
+            ]))
             ->searchPlaceholder(__('catalog.shared.search_placeholder'));
     }
 

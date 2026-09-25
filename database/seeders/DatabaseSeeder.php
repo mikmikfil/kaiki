@@ -75,6 +75,9 @@ class DatabaseSeeder extends Seeder
         // on nobody's screen.
         $this->call(DemoHomePageSeeder::class);
 
+        // «Σχετικά με εμάς» for Aegean Blue (2026-09-24): boats, crew, port and the page.
+        $this->call(DemoAboutPageSeeder::class);
+
         // Last of all, because it books the departures every seeder above it
         // created. Without bookings every operations screen built in M5 renders
         // its empty state — the dashboard figures, the fleet strip, «Χρειάζονται

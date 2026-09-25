@@ -1,13 +1,21 @@
 {{--
-    Laravel's own error layout, with one change: its two inline <style> blocks
-    carry the hosted pages' CSP nonce when there is one (stress sweep,
-    2026-09-23). The guest side sends `style-src 'self' 'nonce-…'`, so without
-    it a 404 on an operator's site rendered as bare unstyled text. Everywhere
-    else there is no nonce and nothing changes.
+    Laravel's own error layout, with three changes (2026-09-23):
+
+    - Its two inline <style> blocks carry the hosted pages' CSP nonce when
+      there is one. The guest side sends `style-src 'self' 'nonce-…'`, so
+      without it a 404 on an operator's site rendered as bare unstyled text.
+      Everywhere else there is no nonce and nothing changes.
+    - The message is not uppercased, and speaks the page's language: «NOT
+      FOUND» in capitals was all a guest ever saw, and uppercase Greek drops
+      its accents (I18N-2). The Greek wording is in lang/el.json, where
+      Laravel's error views look.
+    - A faint lifebuoy behind the message (Mike chose it from
+      docs/mockups/nautical-icons.html): the one place an icon says
+      something — lost? here is a lifebuoy.
 --}}
 @php($cspNonce = request()->attributes->get(\App\Http\Middleware\HostedPageHeaders::NONCE))
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -22,17 +30,31 @@
             body {
                 font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
             }
+            /* The lifebuoy: behind the message, never in front of it. */
+            .kaiki-buoy {
+                position: absolute; left: 50%; top: 50%;
+                width: min(78vw, 420px); height: auto;
+                transform: translate(-50%, -50%);
+                opacity: .07; pointer-events: none; user-select: none;
+            }
+            .kaiki-over { position: relative; z-index: 1; }
+            @media (prefers-color-scheme: dark) {
+                .kaiki-buoy { filter: invert(1); opacity: .06; }
+            }
         </style>
     </head>
     <body class="antialiased">
-        <div class="relative flex items-top justify-center min-h-screen bg-gray-100 dark:bg-gray-900 sm:items-center sm:pt-0" role="main">
-            <div class="max-w-xl mx-auto sm:px-6 lg:px-8">
+        <div class="relative flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 sm:items-center sm:pt-0" role="main">
+            @if (trim($__env->yieldContent('code')) === '404')
+                <img class="kaiki-buoy" src="{{ asset('images/nautical/lifebuoy.svg') }}" alt="">
+            @endif
+            <div class="kaiki-over max-w-xl mx-auto sm:px-6 lg:px-8">
                 <div class="flex items-center pt-8 sm:justify-start sm:pt-0">
                     <h1 class="px-4 text-lg dark:text-gray-300 text-gray-700 border-r border-gray-400 tracking-wider">
                         @yield('code')
                     </h1>
 
-                    <div class="ml-4 text-lg dark:text-gray-300 text-gray-700 uppercase tracking-wider">
+                    <div class="ml-4 text-lg dark:text-gray-300 text-gray-700">
                         @yield('message')
                     </div>
                 </div>

@@ -10,6 +10,7 @@ use App\Enums\BookingStatus;
 use App\Enums\Role;
 use App\Events\BookingCheckedIn;
 use App\Exceptions\CheckInRefused;
+use App\Filament\App\Pages\CheckIn;
 use App\Models\AuditLog;
 use App\Models\Booking;
 use App\Models\BookingGuest;
@@ -18,6 +19,7 @@ use App\Models\User;
 use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
+use Livewire\Livewire;
 use Tests\Support\Booking\CheckInScenario;
 use Tests\Support\OperatorUser;
 
@@ -345,4 +347,54 @@ it('records who scanned the ticket', function (): void {
         expect(Booking::query()->find($booking->getKey())->guests()->first()->checked_in_by_user_id)
             ->toBe($crew->getKey());
     });
+})->group('fast');
+
+it('marks a no-show from the button, and the same button then says «Αναίρεση» and takes it off', function (): void {
+    // Two things found on 2026-09-24. The button was named `markNoShow` while
+    // its method is `noShowAction()`, and Filament finds an action by its name
+    // plus "Action" — so a press in a real browser found nothing and did
+    // nothing. And it read «Δεν ήρθε» both ways (Mike: «Αναίρεση»).
+    Carbon::setTestNow('2026-07-03 08:45:00');
+
+    [$tenant, $booking] = CheckInScenario::sailing(Carbon::parse('2026-07-03 09:00:00'));
+
+    $guest = Tenancy::forTenant($tenant, fn (): BookingGuest => $booking->guests()->firstOrFail());
+
+    tenancy()->initialize($tenant);
+    app()->setLocale('el');
+
+    $page = Livewire::actingAs(crewFor($tenant))->test(CheckIn::class);
+    $label = fn (): ?string => $page->instance()->noShowAction()->arguments(['guest' => $guest->getKey()])->getLabel();
+
+    expect($label())->toBe('Δεν ήρθε');
+
+    // By the name the rendered button sends, not by the method's name — the
+    // two disagreeing is exactly what broke.
+    $page->callAction($page->instance()->noShowAction()->getName(), arguments: ['guest' => $guest->getKey()]);
+
+    expect($guest->refresh()->no_show)->toBeTrue()
+        ->and($label())->toBe('Αναίρεση');
+
+    Livewire::actingAs(crewFor($tenant))->test(CheckIn::class)
+        ->callAction('noShow', arguments: ['guest' => $guest->getKey()]);
+
+    expect($guest->refresh()->no_show)->toBeFalse();
+})->group('fast');
+
+it('boards a guest early from the button, with the reason on the record', function (): void {
+    // Same fault as the no-show button: named `checkInEarly`, method
+    // `overrideAction()`, so the modal never opened from a real press.
+    Carbon::setTestNow('2026-07-03 08:00:00');
+
+    [$tenant, $booking] = CheckInScenario::sailing(Carbon::parse('2026-07-03 09:00:00'), offsetMinutes: 30);
+
+    $guest = Tenancy::forTenant($tenant, fn (): BookingGuest => $booking->guests()->firstOrFail());
+
+    tenancy()->initialize($tenant);
+
+    $page = Livewire::actingAs(crewFor($tenant))->test(CheckIn::class);
+
+    $page->callAction($page->instance()->overrideAction()->getName(), ['reason' => 'Ήρθε νωρίς με τα παιδιά'], ['guest' => $guest->getKey()]);
+
+    expect($guest->refresh()->checked_in_at)->not->toBeNull();
 })->group('fast');

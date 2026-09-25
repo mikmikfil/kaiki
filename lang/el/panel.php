@@ -24,6 +24,7 @@ return [
     // Sidebar labels shorter than the screen's own title (Menu 1, 2026-09-16).
     'nav' => [
         'home' => 'Αρχική',
+        'scan' => 'Σάρωση εισιτηρίων',
         'prices' => 'Τιμές',
         'ports' => 'Λιμάνια',
         'related' => 'Σχετικές οθόνες',
@@ -63,5 +64,11 @@ return [
         'decrease' => 'Μείωση',
         'increase' => 'Αύξηση',
     ],
+
+    // «⋯» — the row's and the page's less-used actions, behind one button.
+    'more_actions' => 'Περισσότερα',
+
+    // A file field on a touch screen, which has nothing to drag from.
+    'upload_pick' => 'Επιλέξτε αρχείο',
 
 ];

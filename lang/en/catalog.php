@@ -46,6 +46,10 @@ return [
                 'label' => 'Status',
                 'help' => 'Only active boats can be sold. Maintenance hides the boat without retiring it.',
             ],
+            'licence_type' => [
+                'label' => 'Licence',
+                'help' => 'Day passenger boat or professional pleasure boat. Printed on the passenger list.',
+            ],
             'registration_number' => [
                 'label' => 'Registration number',
                 'help' => 'The ΑΛΣ registration. It is printed on the manifest and the charter agreement.',
@@ -60,8 +64,8 @@ return [
             ],
             'crew_count' => ['label' => 'Crew'],
             'captain_name' => [
-                'label' => 'Captain',
-                'help' => 'Shown on the passenger manifest.',
+                'label' => 'Usual captain',
+                'help' => 'Printed on the passenger list when the departure or its schedule names nobody else.',
             ],
             'home_port' => [
                 'label' => 'Home port',
@@ -208,8 +212,6 @@ return [
         ],
 
         'sections' => [
-            'schedules' => 'Schedules',
-            'schedules_intro' => 'When the trip repeats. The departures are generated from this.',
             'extras' => 'Extras',
             'extras_intro' => 'Whatever is offered alongside the seat, free or paid.',
             'questions' => 'Extra questions',
@@ -221,7 +223,7 @@ return [
             'capacity' => 'How many people',
             'policy' => 'Terms and cancellation',
             'seo' => 'How it appears on Google',
-            'bands' => 'Age bands',
+            'bands' => 'Passenger groups',
             'checklist' => 'Before publishing',
             'images' => 'Photographs',
             'trip_page' => 'Trip page content',
@@ -272,6 +274,7 @@ return [
             // Ο ένας διακόπτης γλώσσας της φόρμας (2026-09-18).
             'locale_switch' => 'Form language',
             'vessel' => [
+                'pleasure_per_seat' => 'This boat is licensed as a professional pleasure boat. Those are usually chartered whole and do not sell seats. Ask your lawyer before publishing.',
                 'label' => 'Vessel',
                 'help' => 'The boat that runs this trip. Its passenger certificate is a legal ceiling and is never exceeded.',
             ],
@@ -334,6 +337,10 @@ return [
                 'help' => 'How many minutes before departure you expect the guest at the quay.',
                 'suffix' => 'minutes',
             ],
+            'landing_port' => [
+                'label' => 'Landing port',
+                'help' => 'If the passengers get off elsewhere. Empty: they come back to the same port.',
+            ],
             'meeting_point' => [
                 'label' => 'Meeting point',
                 'help' => 'The port or marina where you meet.',
@@ -387,8 +394,11 @@ return [
                 'help' => 'About 155 characters.',
             ],
             'bands' => [
-                'help' => 'The usual three are filled in. Change the ages, delete any you do not need or add your own, e.g. disabled passengers. The base one, usually the adult, gives the «from» price.',
-                'add' => 'Add a band',
+                'help' => 'Adult, Child and Infant are ready. Add whatever else you sell, e.g. disabled passengers or students. The base group gives the «from» price.',
+                'add' => 'Add a group',
+                'summary' => ['with_adult' => 'with an adult', 'no_document' => 'no document', 'by_status' => 'by status', 'proof' => 'proof at boarding'],
+                'kind' => ['label' => 'What defines it'],
+                'requires_proof' => ['label' => 'Shows proof at boarding', 'help' => 'E.g. a student or disability card. The crew see it on the boarding list. No number is asked at checkout.'],
                 'code' => ['label' => 'Code', 'help' => 'Your own, e.g. "adult".'],
                 'label' => ['label' => 'Name', 'help' => 'The guest reads this when choosing passengers.'],
                 'min_age' => ['label' => 'From age'],
@@ -421,6 +431,7 @@ return [
 
         // The form's two tabs (2026-09-17).
         'wizard' => [
+            'title' => 'New trip',
             // The new-trip guide (product owner, 2026-09-22, direction Α).
             'basics' => [
                 'label' => 'The basics',
@@ -446,9 +457,10 @@ return [
                 'schedule_refused' => 'The :time schedule was not saved',
             ],
             'prices' => [
+                'vessel_section' => 'Boat price',
                 'label' => 'Prices',
                 'description' => 'What each person pays',
-                'intro' => 'The three usual categories to start with. Change the ages and names, remove any you do not need.',
+                'intro' => 'First the passenger groups: Adult, Child and Infant are ready; add disabled passengers, students or whatever else you sell. Then tick the periods that have another price and fill in the prices.',
                 'price' => 'Price per person',
                 'price_help' => 'Applies all year, whenever no period does.',
                 'seasons' => 'Prices per period',
@@ -456,6 +468,9 @@ return [
                 'add_season' => 'Price for a period',
                 'plan_refused' => 'The “:season” price list was not saved',
                 'quote' => 'A trip sold on request has no price here: you send one with each enquiry, from “Quotes”.',
+            ],
+            'terms' => [
+                'description' => 'Cancellation, VAT and what the guest is asked',
             ],
             'page' => [
                 'label' => 'Page',

@@ -97,6 +97,7 @@ final class StartImpersonation
         Session::regenerate();
 
         Auth::login($target);
+        ImpersonationSession::rememberPasswordOf($target);
 
         ImpersonationSession::begin(
             User::query()->findOrFail($impersonatorId),

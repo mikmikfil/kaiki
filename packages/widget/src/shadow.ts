@@ -1,4 +1,4 @@
-import { brandProperties, type BrandPayload } from './branding';
+import { brandProperties, SYSTEM_STACK, type BrandPayload } from './branding';
 
 /**
  * The boundary between the widget and somebody else's page (WGT-1, WGT-22).
@@ -144,7 +144,7 @@ const BASE_STYLES = `
      the root would make the whole widget ten pixels tall. */
   font-size: 16px;
   line-height: 1.5;
-  font-family: var(--kaiki-font);
+  font-family: var(--kaiki-font, ${SYSTEM_STACK});
   color: var(--kaiki-text);
   text-align: start;
 }
@@ -177,8 +177,11 @@ const BASE_STYLES = `
      rendered the entire booking form in Comic Sans that way.
      Nothing in the operator's stylesheet can match an element inside a shadow
      root, so restating them on this element is the fix rather than an
-     escalation — there is no war of important flags to lose. */
-  font-family: var(--kaiki-font);
+     escalation — there is no war of important flags to lose.
+     The page's '--kaiki-font' when it sets one (Kaiki's own pages set Inter),
+     else the branding's family, else the system's — never whatever the
+     operator's theme put on '*'. */
+  font-family: var(--kaiki-font, ${SYSTEM_STACK});
   font-size: 16px;
   font-weight: 400;
   font-style: normal;
@@ -343,6 +346,63 @@ const BASE_STYLES = `
 .kaiki-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .kaiki-stepper input { -moz-appearance: textfield; appearance: textfield; }
 .kaiki-consent { grid-template-columns: auto 1fr; align-items: start; gap: .6rem; }
+
+/* The enquiry form in two steps (Mike, 2026-09-24): a numbered line per step,
+   the day and the people side by side in one bordered box, email and phone on
+   one row, the optional line marked as such, and the button in the accent. */
+.kaiki-enquiry .kaiki-enquiry-sub { margin-top: -.5rem; }
+.kaiki-enquiry-step { display: flex; align-items: center; gap: .55rem; margin: .4rem 0 -.1rem; font-size: .82rem; font-weight: 700; color: var(--kaiki-accent); }
+.kaiki-enquiry-step i {
+  font-style: normal; inline-size: 1.4rem; block-size: 1.4rem; border-radius: 50%;
+  display: grid; place-items: center; font-size: .75rem;
+  background: color-mix(in srgb, var(--kaiki-accent) 12%, var(--kaiki-background));
+}
+.kaiki-enquiry-pick {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border: 1.5px solid color-mix(in srgb, var(--kaiki-text) 16%, transparent);
+  border-radius: calc(var(--kaiki-radius, 10px) + 4px); overflow: hidden;
+}
+.kaiki-enquiry-cell { display: grid; gap: .15rem; padding: .6rem .8rem; min-width: 0; }
+.kaiki-enquiry-cell + .kaiki-enquiry-cell { border-inline-start: 1.5px solid color-mix(in srgb, var(--kaiki-text) 16%, transparent); }
+.kaiki-enquiry-cell > span { font-size: .78rem; font-weight: 600; color: color-mix(in srgb, var(--kaiki-text) 65%, transparent); }
+.kaiki-enquiry-cell input[type="date"] { font: inherit; color: inherit; border: 0; background: transparent; padding: 0; min-height: 30px; width: 100%; }
+.kaiki-enquiry-stepper { display: grid; grid-template-columns: 30px 1fr 30px; align-items: center; gap: .25rem; }
+.kaiki-enquiry-stepper button {
+  inline-size: 30px; block-size: 30px; border-radius: 50%; padding: 0; cursor: pointer;
+  font: inherit; font-weight: 700; line-height: 1; color: var(--kaiki-primary);
+  background: var(--kaiki-background); border: 1.5px solid color-mix(in srgb, var(--kaiki-text) 16%, transparent);
+}
+.kaiki-enquiry-stepper button:disabled { opacity: .35; cursor: default; }
+.kaiki-enquiry-stepper input {
+  font: inherit; font-weight: 700; text-align: center; border: 0; background: transparent; padding: 0; min-height: 30px; width: 100%; color: inherit;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.kaiki-enquiry-stepper input::-webkit-outer-spin-button,
+.kaiki-enquiry-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.kaiki-enquiry-cell:focus-within { background: color-mix(in srgb, var(--kaiki-accent) 6%, var(--kaiki-background)); }
+.kaiki-enquiry-cell input:focus-visible { outline: none; }
+.kaiki-enquiry-two { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+.kaiki-enquiry-two > * { min-width: 0; }
+@media (max-width: 22rem) { .kaiki-enquiry-two { grid-template-columns: 1fr; } }
+.kaiki-enquiry .kaiki-field input, .kaiki-enquiry .kaiki-field textarea { border-width: 1.5px; border-radius: calc(var(--kaiki-radius, 10px) + 2px); }
+.kaiki-enquiry .kaiki-field input:focus, .kaiki-enquiry .kaiki-field textarea:focus {
+  outline: none; border-color: var(--kaiki-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--kaiki-accent) 14%, transparent);
+}
+.kaiki-enquiry-optional { font-style: normal; font-weight: 400; color: color-mix(in srgb, var(--kaiki-text) 55%, transparent); }
+.kaiki-enquiry-actions { display: grid; gap: .5rem; }
+.kaiki-enquiry-actions .kaiki-button {
+  inline-size: 100%; justify-content: center; min-height: 50px; font-size: 1rem; font-weight: 700;
+  background: var(--kaiki-accent); border-color: var(--kaiki-accent); color: var(--kaiki-on-primary, var(--kaiki-background));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--kaiki-accent) 25%, transparent);
+}
+.kaiki-enquiry-actions .kaiki-button:hover { background: color-mix(in srgb, var(--kaiki-accent) 86%, var(--kaiki-text)); }
+.kaiki-enquiry-note { font-size: .8rem; margin: 0; }
+/* In the phone sheet too: the button full width, the note under it. The sheet's
+   own row rule (nowrap, side by side) is for back + continue. */
+.kaiki-booking.kaiki-enquiry[data-sheet="true"] .kaiki-enquiry-actions { display: grid; gap: .4rem; }
+.kaiki-booking.kaiki-enquiry[data-sheet="true"] .kaiki-enquiry-actions .kaiki-button { inline-size: 100%; white-space: nowrap; }
+.kaiki-booking.kaiki-enquiry[data-sheet="true"] .kaiki-enquiry-note { text-align: center; }
 .kaiki-consent input { min-height: 0; width: auto; }
 
 .kaiki-summary { display: grid; gap: .4rem; margin: 0 0 .9rem; }
@@ -914,6 +974,42 @@ const BASE_STYLES = `
 @media (prefers-reduced-motion: reduce) {
   .kaiki-root * { transition: none !important; animation: none !important; }
 }
+
+/* ------------------------------------------------------------------
+   The type system of the guest pages (2026-09-24, the typography review in
+   docs/mockups/typo): the same nine steps as the operator's site, so the
+   booking box stops being the one thing on a trip page set to its own scale.
+     caption 13 · small 15 · body 16 · title 18
+   Labels 13 / 600 / +0.02em in the secondary ink (was 11.2–12.5px at .06em);
+   every field 16px, because iOS zooms the page into any field smaller than
+   that the moment it is tapped; the optional marker in the secondary ink
+   rather than 55% (3.9:1). Last in the sheet, so it wins over the rules above.
+   ------------------------------------------------------------------ */
+.kaiki-heading { font-size: 1.125rem; }
+.kaiki-muted { font-size: .9375rem; }
+.kaiki-four-lines dt,
+.kaiki-summary dt,
+.kaiki-enquiry-cell > span { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; color: var(--kaiki-secondary-text); }
+.kaiki-field { font-size: .9375rem; }
+.kaiki-field input,
+.kaiki-field textarea,
+.kaiki-enquiry-cell input { font-size: 1rem; }
+.kaiki-enquiry-step { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; }
+.kaiki-enquiry-optional { color: var(--kaiki-secondary-text); }
+.kaiki-enquiry-note { font-size: .8125rem; }
+.kaiki-weekdays { font-size: .8125rem; }
+.kaiki-day { font-size: .9375rem; }
+.kaiki-legend { font-size: .8125rem; }
+.kaiki-button,
+.kaiki-enquiry-actions .kaiki-button { font-size: .9375rem; font-weight: 600; }
+.kaiki-hold,
+.kaiki-total .kaiki-muted,
+.kaiki-time-left,
+.kaiki-card .kaiki-facts,
+.kaiki-peek-summary { font-size: .8125rem; }
+.kaiki-lines,
+.kaiki-peek-action { font-size: .9375rem; }
+.kaiki-peek-price { font-size: 1.125rem; }
 `;
 
 /** Test seam: the instance counter is module state, and a test needs it reset. */
