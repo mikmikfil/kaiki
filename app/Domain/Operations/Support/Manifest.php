@@ -95,6 +95,9 @@ final class Manifest
         $bookings = Booking::query()
             ->where('departure_id', $departure->getKey())
             ->whereIn('status', self::sailingStatuses())
+            // A sandbox test is nobody aboard, and this list goes to the port
+            // authority (TestSeats).
+            ->where('is_test', false)
             ->orderBy('guest_name')
             ->get();
 

@@ -60,7 +60,7 @@ use RuntimeException;
 final class AcceptQuote
 {
     /**
-     * @throws RuntimeException when the offer is not live, or the boat has gone
+     * @throws RuntimeException when the offer is not live, the boat has gone, or the trip has started
      */
     public function __invoke(Quote $quote): Booking
     {
@@ -93,6 +93,13 @@ final class AcceptQuote
             /** @var Booking $booking */
             $booking = Booking::query()->findOrFail($locked->booking_id);
 
+            // A quote valid for a week, for a charter in three days (2026-09-25):
+            // once the trip has started there is nothing left to accept, and
+            // the checkout would take money for a day already gone.
+            if (! $booking->starts_at_utc->isFuture()) {
+                throw new RuntimeException('trip_started');
+            }
+
             // AVL-45's order: the vessel first, then the booking. The vessel row
             // is locked before the calendar is read, so the answer cannot go
             // stale between the read and the write — which is the whole
@@ -103,7 +110,8 @@ final class AcceptQuote
                 // BKG-25's opt-in hold has done its job. Released **before**
                 // the read, and inside this transaction, so a refusal below
                 // rolls it back along with everything else.
-                VesselBlock::query()->where('booking_id', $booking->getKey())->delete();
+                // One by one, so the observer frees the sailings the block closed.
+                VesselBlock::query()->where('booking_id', $booking->getKey())->get()->each(static fn (VesselBlock $block) => $block->delete());
 
                 $this->assertWindowIsStillFree($booking);
             }

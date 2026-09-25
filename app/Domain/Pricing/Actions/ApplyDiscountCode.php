@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Pricing\Actions;
 
 use App\Domain\Booking\Actions\StartCheckout;
+use App\Domain\Booking\Support\OpenGatewayOrders;
 use App\Domain\Pricing\Support\DepositCalculator;
 use App\Enums\BookingStatus;
 use App\Exceptions\DiscountCodeRefused;
@@ -205,7 +206,18 @@ final class ApplyDiscountCode
             'total_cents' => $total,
             'balance_cents' => max(0, $total - (int) $booking->paid_cents),
             'price_snapshot' => $snapshot,
-        ])->save();
+        ]);
+
+        $totalChanged = $booking->isDirty('total_cents') || $booking->isDirty('deposit_cents');
+
+        $booking->save();
+
+        // A guest back from the gateway (2026-09-25): the order still open
+        // there was minted for the old total. Withdrawn, so «Πληρωμή» mints
+        // one at the new amount; paid anyway, the difference goes back.
+        if ($totalChanged && $booking->status === BookingStatus::PendingPayment) {
+            OpenGatewayOrders::withdraw($booking);
+        }
     }
 
     /**

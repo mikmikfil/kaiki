@@ -28,6 +28,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Livewire\Component as LivewireComponent;
 
 /**
  * Taking a boat out of service, on `/app` (spec AVL-3, AVL-4, TEN-8, SEC-3).
@@ -161,6 +162,15 @@ class VesselBlockResource extends Resource
                         ->label(__('availability.block.form.notes.label'))
                         ->rows(3)
                         ->maxLength(500)
+                        ->columnSpanFull(),
+
+                    // Shown once a save is refused for landing on bookings
+                    // (2026-09-25): the refusal names them, and this is the
+                    // operator saying they have read the names.
+                    Toggle::make('confirm_overlap')
+                        ->label(__('availability.block.form.confirm_overlap.label'))
+                        ->visible(static fn (Get $get, LivewireComponent $livewire): bool => (bool) $get('confirm_overlap')
+                            || $livewire->getErrorBag()->has('data.confirm_overlap'))
                         ->columnSpanFull(),
                 ])
                 ->columns(2),

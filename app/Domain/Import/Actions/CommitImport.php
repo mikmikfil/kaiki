@@ -495,6 +495,19 @@ final class CommitImport
             ]];
         }
 
+        // The trip's own seat count, named the same way (2026-09-25): the
+        // seats are counted, so the sailing shows full and sells no more.
+        if ($departure instanceof Departure) {
+            $departure->refresh();
+
+            if ($departure->seats_sold > $departure->capacity) {
+                $notes[] = ['key' => 'imports.warnings.over_capacity', 'params' => [
+                    'sold' => $departure->seats_sold,
+                    'capacity' => $departure->capacity,
+                ]];
+            }
+        }
+
         return ['Booking', (int) $booking->getKey(), $notes];
     }
 

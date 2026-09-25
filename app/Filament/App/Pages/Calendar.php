@@ -303,7 +303,7 @@ class Calendar extends Page
                 // `start_time` / `end_time`, which is what the action's own
                 // contract calls them. The form fields are named for the
                 // operator; the translation happens here, once.
-                (new CreateVesselBlock)($vessel, [
+                $block = (new CreateVesselBlock)($vessel, [
                     'local_date' => $this->date,
                     'start_time' => $data['starts_at'],
                     'end_time' => $data['ends_at'],
@@ -311,23 +311,38 @@ class Calendar extends Page
                     'title' => $data['title'] ?? null,
                     'notes' => $data['notes'] ?? null,
                     'created_by_user_id' => auth()->id(),
+                    // A drag is answered with the names below rather than
+                    // refused; the list page asks first (2026-09-25).
+                    'confirm_overlap' => true,
                 ]);
 
                 $notification = Notification::make()->title(__('calendar.block.created'));
+
+                // Every booking under it by reference, charters included — the
+                // count below sees only sailings (2026-09-25).
+                $under = CreateVesselBlock::bookingsUnder($vessel, $block->window());
+
+                $body = [];
 
                 if ($covered['departures'] > 0) {
                     // Named rather than refused. A boat that has broken down is
                     // blocked whether or not somebody has bought a seat, and the
                     // operator needs to know which sailings they have just
                     // covered so they can go and cancel them properly.
-                    $notification
-                        ->warning()
-                        ->body(__('calendar.block.covers', [
-                            'departures' => $covered['departures'],
-                            'pax' => $covered['pax'],
-                        ]));
-                } else {
+                    $body[] = (string) __('calendar.block.covers', [
+                        'departures' => $covered['departures'],
+                        'pax' => $covered['pax'],
+                    ]);
+                }
+
+                if ($under !== []) {
+                    $body[] = (string) __('availability.block.validation.bookings_named', ['references' => implode(', ', $under)]);
+                }
+
+                if ($body === []) {
                     $notification->success();
+                } else {
+                    $notification->warning()->body(implode(' ', $body));
                 }
 
                 $notification->send();

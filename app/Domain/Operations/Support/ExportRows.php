@@ -14,6 +14,7 @@ use App\Models\BookingAnswer;
 use App\Models\BookingGuest;
 use App\Models\ExportJob;
 use App\Support\Format\MoneyFormatter;
+use Carbon\CarbonInterface;
 use Illuminate\Contracts\Database\Query\Builder as BuilderContract;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -323,6 +324,16 @@ final class ExportRows
             ->toDateTimeString();
     }
 
+    /**
+     * A stored instant on the operator's clock, as the window above is.
+     *
+     * Raw, a «from 1 October» export listed a row created «2026-09-30 21:30».
+     */
+    private function local(?CarbonInterface $at): string
+    {
+        return $at === null ? '' : Carbon::instance($at)->setTimezone($this->timezone())->toDateTimeString();
+    }
+
     private function timezone(): string
     {
         $timezone = $this->job->tenant?->timezone;
@@ -338,7 +349,7 @@ final class ExportRows
         return [
             $booking->reference,
             $booking->status->label(),
-            $booking->created_at?->toDateTimeString() ?? '',
+            $this->local($booking->created_at),
             $booking->local_date->toDateString(),
             substr($booking->local_time, 0, 5),
             (string) $booking->product?->title,
@@ -365,7 +376,7 @@ final class ExportRows
             // spells them; an operator reading a column called "source" wants
             // to know the booking came from their own website.
             $booking->source->label(),
-            $booking->cancelled_at?->toDateTimeString() ?? '',
+            $this->local($booking->cancelled_at),
             $booking->cancel_reason?->label() ?? '',
             BookingAnswer::joined($booking->answers->whereNull('booking_guest_id')),
         ];
@@ -395,7 +406,7 @@ final class ExportRows
             // (`nullOnDelete`), and the honest default is that the person took
             // a seat — understating the head count is the error that matters.
             $this->boolean($ageBand instanceof AgeBand ? $ageBand->counts_toward_capacity : true),
-            $guest->checked_in_at?->toDateTimeString() ?? '',
+            $this->local($guest->checked_in_at),
             $this->boolean($guest->no_show),
             BookingAnswer::joined($guest->answers),
         ];

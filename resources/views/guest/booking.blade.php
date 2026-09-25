@@ -120,7 +120,7 @@
             <span class="label">{{ __('guest.booking.weather.heading') }}</span>
             <p>{{ __('guest.booking.weather.body', [
                 'amount' => $money($entitlement->totalCents),
-                'deadline' => $booking->weather_choice_due_at?->format('d/m/Y') ?? '—',
+                'deadline' => \App\Domain\Availability\LocalDateTimeResolver::inTenantZone($booking->weather_choice_due_at)?->format('d/m/Y') ?? '—',
             ]) }}</p>
 
             {{-- CXL-7's three options. Each is its own submit rather than a

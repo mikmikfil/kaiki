@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Operations\Support;
 
 use App\Domain\Availability\Support\LocalDay;
+use App\Domain\Booking\Support\TestSeats;
 use App\Enums\BookingStatus;
 use App\Enums\DepartureStatus;
 use App\Enums\GuestDetailsStatus;
@@ -91,7 +92,8 @@ final class DashboardFigures
             ->where('status', '!=', DepartureStatus::Cancelled->value)
             ->where('starts_at_utc', '>=', $today->startUtc)
             ->where('starts_at_utc', '<', $tomorrow->endUtcExclusive)
-            ->selectRaw('COUNT(*) as departures, COALESCE(SUM(seats_sold), 0) as pax')
+            // Real guests only: test seats are in `seats_sold` (TestSeats).
+            ->selectRaw('COUNT(*) as departures, COALESCE(SUM(' . TestSeats::realSoldSql() . '), 0) as pax')
             ->first();
 
         return [
@@ -118,7 +120,7 @@ final class DashboardFigures
         return Departure::query()
             ->where('status', DepartureStatus::Scheduled->value)
             ->where('min_pax', '>', 0)
-            ->whereColumn('seats_sold', '<', 'min_pax')
+            ->whereRaw(TestSeats::realSoldSql() . ' < departures.min_pax')
             ->where('starts_at_utc', '>=', Carbon::now('UTC'))
             ->where('starts_at_utc', '<', Carbon::now('UTC')->addHours(self::AT_RISK_HOURS))
             ->count();

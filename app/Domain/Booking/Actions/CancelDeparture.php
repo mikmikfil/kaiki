@@ -113,9 +113,13 @@ final class CancelDeparture
         $cancelled = 0;
 
         foreach ($bookings as $booking) {
-            if ($reason === DepartureCancelReason::Weather) {
+            if ($reason === DepartureCancelReason::Weather && $booking->wasBooked()) {
                 $this->openTheChoice($booking, $at);
             } else {
+                // Every other reason, and a weather cancellation of something
+                // that was never a booking (a draft, a quote request, an unpaid
+                // checkout): nothing to choose and nothing to refund, and
+                // SendBookingCancellation stays quiet for those too.
                 ($this->cancelBooking)(
                     booking: $booking,
                     reason: self::bookingReasonFor($reason),

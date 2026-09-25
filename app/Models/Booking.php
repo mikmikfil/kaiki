@@ -269,6 +269,22 @@ class Booking extends Model
     }
 
     /**
+     * Was this ever a real booking to the guest: confirmed, or paid something?
+     *
+     * A draft left in the widget, a quote request and a checkout nobody paid
+     * are not, and a departure cancelled from under them sends them no
+     * «ακυρώθηκε» and no weather choice (2026-09-25). Read from the columns
+     * rather than the status, because by the time a listener asks, the status
+     * is `cancelled` either way.
+     */
+    public function wasBooked(): bool
+    {
+        return $this->confirmed_at !== null
+            || (int) $this->paid_cents > 0
+            || (int) $this->refunded_cents > 0;
+    }
+
+    /**
      * Drafts whose hold has run out — the sweeper's query, and nothing else's.
      *
      * Reads `bookings_hold_expiry_idx`, which deliberately does not lead with

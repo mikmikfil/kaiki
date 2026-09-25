@@ -6,12 +6,15 @@ namespace App\Domain\Booking\Actions;
 
 use App\Domain\Availability\Actions\HoldSeats;
 use App\Domain\Availability\Actions\ReleaseHold;
+use App\Domain\Booking\Support\QuotePaymentDeadline;
 use App\Domain\Booking\Support\SeatCommitment;
+use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
 use App\Enums\CancelledBy;
 use App\Enums\CancelReason;
 use App\Enums\PaymentKind;
 use App\Enums\PaymentStatus;
+use App\Events\LatePaymentRefunded;
 use App\Exceptions\CapacityExceeded;
 use App\Exceptions\HoldRefused;
 use App\Jobs\ExecuteGatewayRefund;
@@ -171,6 +174,15 @@ final class ConfirmFromWebhook
         $confirmed->forceFill([
             'balance_due_at' => ($this->computeBalanceDueAt)($confirmed),
         ])->save();
+
+        // Paid more than the booking now costs (2026-09-25): an order minted
+        // before a code or a guest removal lowered the total, paid anyway.
+        // The difference goes back, the same way a late charge does.
+        $surplus = Payment::paidCentsFor($confirmed->getKey()) - $confirmed->total_cents;
+
+        if ($surplus > 0) {
+            $this->refundLate($payment, $confirmed, $surplus);
+        }
     }
 
     private function markPaid(Payment $payment): void
@@ -187,14 +199,21 @@ final class ConfirmFromWebhook
      */
     private function fail(Payment $payment, Booking $booking): void
     {
-        if ($booking->status !== BookingStatus::PendingPayment) {
+        if ($booking->status !== BookingStatus::PendingPayment || $payment->status === PaymentStatus::Cancelled) {
             // Already confirmed by another payment, already expired by the
             // sweeper, or already back in draft. A failure webhook arriving
-            // late must not undo any of those.
+            // late must not undo any of those — nor one for an order withdrawn
+            // when a newer one replaced it (2026-09-25).
             return;
         }
 
         $payment->forceFill(['status' => PaymentStatus::Failed])->save();
+
+        // An accepted quote stays where it is (2026-09-25): payable again at
+        // `/c/` until its own deadline, which the sweeper keeps.
+        if (QuotePaymentDeadline::for($booking) !== null) {
+            return;
+        }
 
         $departure = DB::transaction(function () use ($booking): ?Departure {
             // AVL-45's order, as everywhere: vessel, departure, booking.
@@ -224,6 +243,14 @@ final class ConfirmFromWebhook
         });
 
         if (! $departure instanceof Departure) {
+            // A private charter keeps its boat under a fresh hold, as a sailing
+            // re-takes its seats below (2026-09-25). With no expiry at all the
+            // hold sweeper never found it, and the draft stayed payable for
+            // good — days after the charter date.
+            if ($booking->vessel_id !== null && $booking->mode !== BookingMode::Quote) {
+                $this->holdSeats->holdVessel($booking->refresh());
+            }
+
             return;
         }
 
@@ -396,11 +423,34 @@ final class ConfirmFromWebhook
         $this->send($refund);
     }
 
-    /** After commit (AVL-46): the gateway call is a queued job. */
+    /**
+     * After commit (AVL-46): the gateway call is a queued job, and the guest
+     * is told why the money is going back (2026-09-25). Once per refund row,
+     * so a replayed webhook, which writes none, emails nobody.
+     */
     private function send(?Payment $refund): void
     {
-        if ($refund instanceof Payment && $refund->gateway->isExternal()) {
+        if (! $refund instanceof Payment) {
+            return;
+        }
+
+        if ($refund->gateway->isExternal()) {
             ExecuteGatewayRefund::dispatch($refund->getKey(), null);
+        }
+
+        $booking = Booking::query()->find($refund->booking_id);
+
+        if ($booking instanceof Booking) {
+            LatePaymentRefunded::dispatch(
+                (int) $booking->getKey(),
+                (int) $booking->tenant_id,
+                (int) $refund->amount_cents,
+                match (true) {
+                    $booking->status === BookingStatus::Expired => LatePaymentRefunded::REASON_EXPIRED,
+                    $booking->status->isLive() => LatePaymentRefunded::REASON_OVERPAID,
+                    default => LatePaymentRefunded::REASON_CANCELLED,
+                },
+            );
         }
     }
 

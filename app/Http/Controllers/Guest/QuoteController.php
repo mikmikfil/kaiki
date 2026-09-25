@@ -9,6 +9,8 @@ use App\Domain\Booking\Actions\DeclineQuote;
 use App\Domain\Booking\Actions\SubmitEnquiry;
 use App\Domain\Booking\Data\EnquiryData;
 use App\Domain\Booking\Support\GuestTokenResolver;
+use App\Domain\Booking\Support\QuotePaymentDeadline;
+use App\Enums\BookingStatus;
 use App\Enums\QuoteStatus;
 use App\Models\Booking;
 use App\Models\Product;
@@ -82,8 +84,14 @@ final class QuoteController extends GuestPageController
                 // is still free is a locked read taken at the moment of
                 // acceptance, and answering it here would answer it from a row
                 // written days ago.
-                'canAccept' => $quote->canBeAccepted(),
+                // And never once the trip has started (2026-09-25).
+                'canAccept' => $quote->canBeAccepted() && $booking->starts_at_utc->isFuture(),
                 'wasReplaced' => self::wasReplaced($quote),
+                // An accepted quote not yet paid for: the button to the
+                // checkout, and the date it stays open until (2026-09-25).
+                'payBy' => $quote->status === QuoteStatus::Accepted && $booking->status === BookingStatus::PendingPayment
+                    ? QuotePaymentDeadline::for($booking)
+                    : null,
             ];
         });
     }
@@ -97,17 +105,19 @@ final class QuoteController extends GuestPageController
         }
 
         try {
-            Tenancy::forTenant($tenant, fn () => app(AcceptQuote::class)($quote));
+            $booking = Tenancy::forTenant($tenant, fn (): Booking => app(AcceptQuote::class)($quote));
         } catch (RuntimeException $exception) {
-            // `vessel_unavailable`, or an offer that is no longer live. Both go
-            // back to the page, which renders the reason — a stack trace on a
-            // guest-facing page is a guest who telephones.
+            // `vessel_unavailable`, `trip_started`, or an offer that is no
+            // longer live. All go back to the page, which renders the reason —
+            // a stack trace on a guest-facing page is a guest who telephones.
             return redirect()
                 ->route('guest.quote', ['token' => $token])
                 ->with('quote_error', $exception->getMessage());
         }
 
-        return redirect()->route('guest.quote', ['token' => $token]);
+        // «Αποδοχή και πληρωμή» (2026-09-25): straight on to the payment, which
+        // is what the button promised. The quote page keeps the same link.
+        return redirect()->route('guest.checkout', ['token' => $booking->manage_token]);
     }
 
     public function decline(Request $request, string $token): RedirectResponse|Response

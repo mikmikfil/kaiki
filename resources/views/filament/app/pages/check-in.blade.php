@@ -90,7 +90,7 @@
 
                 @if ($scanned->checked_in_at !== null)
                     <p class="text-sm font-medium text-success-600 dark:text-success-400">
-                        {{ __('checkin.guest.checked_in_at', ['time' => $scanned->checked_in_at->format('H:i')]) }}
+                        {{ __('checkin.guest.checked_in_at', ['time' => \App\Domain\Availability\LocalDateTimeResolver::inTenantZone($scanned->checked_in_at)?->format('H:i')]) }}
                     </p>
                 @else
                     <div class="kc-actions grid gap-2 sm:flex sm:flex-wrap">
@@ -176,7 +176,7 @@
 
                                     @if ($guest->checked_in_at !== null)
                                         <span class="shrink-0 text-xs text-success-600 dark:text-success-400">
-                                            {{ __('checkin.guest.checked_in_at', ['time' => $guest->checked_in_at->format('H:i')]) }}
+                                            {{ __('checkin.guest.checked_in_at', ['time' => \App\Domain\Availability\LocalDateTimeResolver::inTenantZone($guest->checked_in_at)?->format('H:i')]) }}
                                         </span>
                                     @else
                                         <span class="kc-actions grid grid-cols-2 gap-2 sm:flex sm:shrink-0">

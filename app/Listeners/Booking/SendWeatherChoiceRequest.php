@@ -50,7 +50,7 @@ class SendWeatherChoiceRequest implements ShouldQueue
         Tenancy::forTenant($tenant, function () use ($event): void {
             $booking = Booking::query()->find($event->bookingId);
 
-            if (! $booking instanceof Booking || trim((string) $booking->guest_email) === '' || $booking->weather_choice !== null) {
+            if (! $booking instanceof Booking || trim((string) $booking->guest_email) === '' || $booking->weather_choice !== null || ! $booking->wasBooked()) {
                 return;
             }
 

@@ -83,9 +83,16 @@ final class SeatCommitment
         // both understand.
         $credit = 'CASE WHEN seats_held < ' . $ownHeldSeats . ' THEN seats_held ELSE ' . $ownHeldSeats . ' END';
 
+        // Room is asked for only the seats that are not already this booking's
+        // hold (2026-09-25). Seats wholly held are moving, not being taken: the
+        // hold was admitted by `HoldSeats`, under the legal ceiling, and moving
+        // it cannot put one more person aboard. Until this a hold taken with
+        // BKG-32's override (three on a trip of two) could never be confirmed —
+        // the move was refused for the very excess the operator had approved,
+        // and so was any other guest's held seat on that sailing.
         $affected = DB::table('departures')
             ->where('id', $departure->getKey())
-            ->whereRaw('capacity - seats_sold - (seats_held - (' . $credit . ')) >= ?', [$seats])
+            ->whereRaw('(' . $seats . ' - (' . $credit . ') <= 0 OR capacity - seats_sold - (seats_held - (' . $credit . ')) >= ?)', [$seats])
             ->update([
                 'seats_sold' => DB::raw('seats_sold + ' . $seats),
                 'seats_held' => DB::raw('seats_held - (' . $credit . ')'),
@@ -93,6 +100,33 @@ final class SeatCommitment
             ]);
 
         return $affected === 1;
+    }
+
+    /**
+     * Count seats that are already sold elsewhere, room or not (BKG-34).
+     *
+     * For an import only: it states what happened at another system, so it is
+     * never refused. {@see self::commit()} is tried first; when there is no
+     * room the seats are still counted, so the sailing shows over its capacity
+     * and nothing sells the same seats again. Until 2026-09-25 the refusal was
+     * ignored and the counter stayed low: 18 of 20 shown with 22 aboard.
+     *
+     * @return bool true when the seats fitted, false when they oversold
+     */
+    public static function commitImported(Departure $departure, int $seats): bool
+    {
+        if (self::commit($departure, $seats)) {
+            return true;
+        }
+
+        DB::table('departures')
+            ->where('id', $departure->getKey())
+            ->update([
+                'seats_sold' => DB::raw('seats_sold + ' . $seats),
+                'updated_at' => now(),
+            ]);
+
+        return false;
     }
 
     /**

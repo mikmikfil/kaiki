@@ -11,6 +11,7 @@ use App\Enums\GuestDocumentType;
 use App\Models\AgeBand;
 use App\Models\Booking;
 use App\Models\BookingGuest;
+use App\Models\Payment;
 use App\Models\Tenant;
 use App\Support\Countries;
 use App\Support\Tenancy;
@@ -257,3 +258,19 @@ it('keeps the operator\'s «Χωρίς έγγραφο» when the bands are saved
         expect(SaveGuestDetails::isComplete($guest, true))->toBeTrue();
     });
 });
+
+it('refuses a checkout that leaves a passenger out of the post', function (): void {
+    [$tenant, $booking] = passengerDraft();
+
+    // A crafted request, or a form with a row removed: the adult alone.
+    $post = passengerPost();
+    $post['guests'] = [$post['guests'][0]];
+
+    post('/c/' . $booking->manage_token, $post)
+        ->assertSessionHasErrors('guests.missing.2');
+
+    Tenancy::forTenant($tenant, static function () use ($booking): void {
+        expect($booking->refresh()->status)->toBe(BookingStatus::Draft)
+            ->and(Payment::query()->where('booking_id', $booking->getKey())->open()->exists())->toBeFalse();
+    });
+})->group('fast');

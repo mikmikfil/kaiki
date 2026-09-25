@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Compliance\Actions;
 
+use App\Domain\Availability\LocalDateTimeResolver;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Enums\AgreementStatus;
 use App\Enums\BookingMode;
@@ -136,7 +137,9 @@ final class GenerateCharterAgreement
 
         return [
             'template_version' => self::TEMPLATE_VERSION,
-            'generated_at' => Carbon::now()->toIso8601String(),
+            // With the operator's offset, so the footer prints their clock
+            // rather than UTC's; the instant is the same.
+            'generated_at' => Carbon::now()->setTimezone(LocalDateTimeResolver::timezone($tenant))->toIso8601String(),
 
             'operator' => [
                 'name' => $tenant->name,

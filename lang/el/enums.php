@@ -775,6 +775,7 @@ return [
         'quote_sent' => ['label' => 'Αποστολή προσφοράς'],
         'review_request' => ['label' => 'Αίτημα αξιολόγησης στην Google'],
         'payment_unfinished' => ['label' => 'Η πληρωμή δεν ολοκληρώθηκε'],
+        'payment_refunded' => ['label' => 'Επιστροφή πληρωμής που ήρθε αργά'],
     ],
 
     'webhook_event' => [

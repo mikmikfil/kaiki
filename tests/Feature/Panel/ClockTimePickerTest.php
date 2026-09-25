@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\BookingMode;
 use App\Enums\ProductStatus;
 use App\Enums\Role;
+use App\Filament\App\Resources\BookingResource\Pages\CreateBooking;
 use App\Filament\App\Resources\DepartureResource\Pages\CreateDeparture;
 use App\Filament\App\Resources\ProductResource\Pages\EditProduct;
 use App\Filament\App\Resources\ScheduleRuleResource\Pages\CreateScheduleRule;
@@ -67,6 +68,8 @@ it('never converts a time-only picker to or from the tenant timezone', function 
     'schedule rule' => CreateScheduleRule::class,
     'departure' => CreateDeparture::class,
     'vessel block' => CreateVesselBlock::class,
+    // A phone charter's start (2026-09-25).
+    'manual booking' => CreateBooking::class,
 ])->group('fast');
 
 /*
@@ -106,6 +109,8 @@ it('never converts a date-only picker to or from the tenant timezone', function 
     // `ScheduleRuleResource`'s own, checked on the next line. The trip form
     // itself holds no calendar day.
     'schedule rule' => CreateScheduleRule::class,
+    // A phone charter's day (2026-09-25).
+    'manual booking' => CreateBooking::class,
 ])->group('fast');
 
 it('stores a schedule window on the day the operator typed', function (): void {

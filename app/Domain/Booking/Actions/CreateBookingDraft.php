@@ -10,13 +10,13 @@ use App\Domain\Availability\Support\OccupationCollector;
 use App\Domain\Availability\Support\PartyGuard;
 use App\Domain\Availability\Support\Window;
 use App\Domain\Booking\Data\BookingDraftData;
+use App\Domain\Booking\Support\GuestDetailsTracking;
 use App\Domain\Booking\Support\LeadGuest;
 use App\Domain\Booking\Support\ManifestRows;
 use App\Domain\Pricing\Actions\ApplyDiscountCode;
 use App\Domain\Pricing\Actions\ComputePrice;
 use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
-use App\Enums\GuestDetailsStatus;
 use App\Exceptions\DiscountCodeRefused;
 use App\Exceptions\HoldRefused;
 use App\Exceptions\PartyRefused;
@@ -195,7 +195,10 @@ final class CreateBookingDraft
                 'vat_category' => (string) ($quote->snapshot->vat['vat_category'] ?? ''),
                 'vat_cents' => (int) ($quote->snapshot->vat['vat_cents'] ?? 0),
 
-                'guest_details_status' => GuestDetailsStatus::NotRequired,
+                // `pending` on a trip that asks for a passenger list (BKG-15,
+                // 2026-09-25); the deadline and the `/g/` token come at
+                // confirmation ({@see GuestDetailsTracking::open()}).
+                'guest_details_status' => GuestDetailsTracking::initialStatus($product),
                 // Minted now because `/b/{token}` is the guest's only way back
                 // to a booking they have not paid for yet. `guest_details_token`
                 // is deliberately **not** minted here — §2.5 wants it lazy, so

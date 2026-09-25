@@ -78,7 +78,8 @@ final class DeclineQuote
             }
 
             // Back on sale now, not in a fortnight. See the class docblock.
-            VesselBlock::query()->where('booking_id', $booking->getKey())->delete();
+            // One by one, so the observer frees the sailings the block closed.
+            VesselBlock::query()->where('booking_id', $booking->getKey())->get()->each(static fn (VesselBlock $block) => $block->delete());
 
             return $locked;
         });

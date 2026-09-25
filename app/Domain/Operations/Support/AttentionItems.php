@@ -7,6 +7,7 @@ namespace App\Domain\Operations\Support;
 use App\Domain\Availability\Actions\SailBelowMinimum;
 use App\Domain\Booking\Actions\ConfirmManualRefund;
 use App\Domain\Booking\Actions\RefundBooking;
+use App\Domain\Booking\Support\TestSeats;
 use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
 use App\Enums\CancelledBy;
@@ -201,7 +202,7 @@ final class AttentionItems
                 'time' => $departure->local_date->toDateString() . ' ' . substr($departure->local_time, 0, 5),
             ]),
             detail: (string) __('attention.under_minimum.detail', [
-                'sold' => $departure->seats_sold,
+                'sold' => $departure->seats_sold - TestSeats::on($departure),
                 'minimum' => $departure->min_pax,
                 'vessel' => (string) $departure->vessel?->name,
             ]),
@@ -561,7 +562,8 @@ final class AttentionItems
         return Departure::query()
             ->where('status', DepartureStatus::Scheduled->value)
             ->where('min_pax', '>', 0)
-            ->whereColumn('seats_sold', '<', 'min_pax')
+            // Real guests only: test seats are in `seats_sold` (TestSeats).
+            ->whereRaw(TestSeats::realSoldSql() . ' < departures.min_pax')
             ->where('starts_at_utc', '>=', $now)
             ->where('starts_at_utc', '<', $now->copy()->addHours(self::AT_RISK_HOURS));
     }

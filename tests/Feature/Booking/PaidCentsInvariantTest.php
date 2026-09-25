@@ -15,6 +15,7 @@ use App\Models\Payment;
 use App\Models\Tenant;
 use App\Models\Voucher;
 use App\Support\Tenancy;
+use Illuminate\Support\Carbon;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,6 +35,11 @@ use App\Support\Tenancy;
 | correct if every previous one was.
 |
 */
+
+// Before the factory's 4 July sailing: checkout refuses a trip that has
+// started (AVL-19 at the line money crosses, 2026-09-25).
+beforeEach(fn () => Carbon::setTestNow('2026-06-01 09:00:00'));
+afterEach(fn () => Carbon::setTestNow());
 
 /** @return array{0: Tenant, 1: Departure, 2: Booking} */
 function paymentScenario(int $total = 12000, int $capacity = 10): array

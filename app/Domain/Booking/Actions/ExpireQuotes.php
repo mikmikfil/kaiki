@@ -114,7 +114,8 @@ final class ExpireQuotes
     {
         // The block goes either way: an offer nobody can accept must not keep a
         // boat off sale.
-        VesselBlock::query()->where('booking_id', $bookingId)->delete();
+        // One by one, so the observer frees the sailings the block closed.
+        VesselBlock::query()->where('booking_id', $bookingId)->get()->each(static fn (VesselBlock $block) => $block->delete());
 
         $newerIsLive = Quote::query()
             ->where('booking_id', $bookingId)

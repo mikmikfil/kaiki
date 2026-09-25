@@ -62,6 +62,10 @@ function lockedActions(): array
         // so the draft locks the vessel before it asks and before it writes —
         // the same row `StartCheckout` and `ConfirmBooking` take first.
         'app/Domain/Booking/Actions/CreateBookingDraft.php',
+
+        // The per-seat hold asks the same question of the same boat
+        // (2026-09-25), so it takes the vessel before the departure too.
+        'app/Domain/Availability/Actions/HoldSeats.php',
     ];
 }
 

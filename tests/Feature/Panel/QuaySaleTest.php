@@ -130,6 +130,11 @@ it('refuses a party the boat has no room for, and sells nothing', function (): v
 })->group('fast');
 
 it('sells the departure it was opened on, on a day with two sailings', function (): void {
+    // A morning, so «two hours from now» plus three stays on the same Athens
+    // day; run in the evening, the later sailing crossed midnight and the
+    // fixture itself was refused (InconsistentDepartureTime).
+    Carbon::setTestNow('2026-07-01 07:00:00');
+
     [$fixture, $owner] = quayScenario(Role::Owner);
 
     $later = Tenancy::forTenant($fixture['tenant'], function () use ($fixture) {

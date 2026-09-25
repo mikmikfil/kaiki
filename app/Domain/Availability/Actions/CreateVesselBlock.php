@@ -6,9 +6,14 @@ namespace App\Domain\Availability\Actions;
 
 use App\Domain\Availability\LocalDateTimeResolver;
 use App\Domain\Availability\Support\LocalDay;
+use App\Domain\Availability\Support\Window;
 use App\Enums\BlockReason;
+use App\Enums\BookingStatus;
+use App\Models\Booking;
+use App\Models\Departure;
 use App\Models\Vessel;
 use App\Models\VesselBlock;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -35,6 +40,13 @@ use Illuminate\Validation\ValidationException;
  * window therefore runs to the start of the 7th, and `local_end_date` holds the
  * 6th — the number they typed. Storing the 7th would be arithmetically tidy and
  * would read as a mistake on every screen.
+ *
+ * ## Never silently over somebody's booking (2026-09-25)
+ *
+ * A block over a sold charter or a sailing with passengers is refused until
+ * the caller confirms it (`confirm_overlap`), and the refusal names the
+ * bookings. It still cancels nothing — a boat that broke down is blocked
+ * whoever has booked it — but the operator has read the references first.
  */
 final class CreateVesselBlock
 {
@@ -60,7 +72,75 @@ final class CreateVesselBlock
 
         $timezone = LocalDateTimeResolver::timezone();
 
-        return DB::transaction(fn (): VesselBlock => VesselBlock::query()->create([
+        return DB::transaction(function () use ($vessel, $attributes, $starts, $ends, $timezone, $allDay, $reason): VesselBlock {
+            // The boat's row, as every booking door takes it before asking.
+            Vessel::query()->lockForUpdate()->find($vessel->getKey());
+
+            if (! (bool) ($attributes['confirm_overlap'] ?? false)) {
+                $under = self::bookingsUnder($vessel, Window::of($starts, $ends), self::intOrNull($attributes['booking_id'] ?? null));
+
+                if ($under !== []) {
+                    throw ValidationException::withMessages([
+                        'confirm_overlap' => [trans('availability.block.validation.bookings_under', [
+                            'references' => implode(', ', $under),
+                        ])],
+                    ]);
+                }
+            }
+
+            return $this->insert($vessel, $attributes, $starts, $ends, $timezone, $allDay, $reason);
+        });
+    }
+
+    /**
+     * The references of every live booking a block over `$window` would sit on:
+     * charters and per-seat bookings alike, confirmed, awaiting payment or
+     * holding at the checkout, within the boat's turnaround buffer — the same
+     * reach a block has on a departure. `$excludingBookingId` leaves out the
+     * booking the block is for.
+     *
+     * @return list<string>
+     */
+    public static function bookingsUnder(Vessel $vessel, Window $window, ?int $excludingBookingId = null): array
+    {
+        $buffer = $vessel->effectiveTurnaroundBufferMinutes();
+        $padded = $window->paddedBy($buffer);
+
+        $committing = array_values(array_map(
+            static fn (BookingStatus $status): string => $status->value,
+            array_filter(BookingStatus::cases(), static fn (BookingStatus $status): bool => $status->committingSeats()),
+        ));
+
+        return Booking::query()
+            ->where(static fn (Builder $query): Builder => $query
+                ->where('vessel_id', $vessel->getKey())
+                ->orWhereIn('departure_id', Departure::query()->select('id')->where('vessel_id', $vessel->getKey())))
+            ->where(static fn (Builder $query): Builder => $query
+                ->whereIn('status', $committing)
+                ->orWhere(static fn (Builder $held): Builder => $held
+                    ->where('status', BookingStatus::Draft->value)
+                    ->whereNotNull('hold_expires_at')
+                    ->where('hold_expires_at', '>', now())))
+            ->when($excludingBookingId !== null, static fn (Builder $query): Builder => $query->whereKeyNot($excludingBookingId))
+            ->where('starts_at_utc', '<', $padded->endUtc)
+            ->where('ends_at_utc', '>', $padded->startUtc)
+            ->orderBy('starts_at_utc')
+            ->get()
+            ->filter(static fn (Booking $booking): bool => $window->conflictsWith(Window::of($booking->starts_at_utc, $booking->ends_at_utc), $buffer))
+            ->map(static fn (Booking $booking): string => (string) $booking->reference)
+            ->values()
+            ->all();
+    }
+
+    private static function intOrNull(mixed $value): ?int
+    {
+        return is_numeric($value) ? (int) $value : null;
+    }
+
+    /** @param array<string, mixed> $attributes */
+    private function insert(Vessel $vessel, array $attributes, Carbon $starts, Carbon $ends, string $timezone, bool $allDay, BlockReason $reason): VesselBlock
+    {
+        return VesselBlock::query()->create([
             'vessel_id' => $vessel->getKey(),
             'starts_at_utc' => $starts,
             'ends_at_utc' => $ends,
@@ -76,7 +156,7 @@ final class CreateVesselBlock
             'ical_source_id' => $attributes['ical_source_id'] ?? null,
             'external_uid' => $attributes['external_uid'] ?? null,
             'created_by_user_id' => $attributes['created_by_user_id'] ?? null,
-        ]));
+        ]);
     }
 
     /**

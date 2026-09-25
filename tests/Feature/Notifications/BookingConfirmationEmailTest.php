@@ -149,7 +149,8 @@ it('carries every fact of the trip in the confirmation, in both halves', functio
             ->toContain('/b/' . $booking->manage_token . '/ticket')
             ->toContain('/g/' . $booking->guest_details_token)
             ->toContain(__('mail.common.details_title', [], 'el'))
-            ->toContain('16/7');
+            // 21:00 UTC on the 16th is the 17th in Athens (CNV-2).
+            ->toContain('17/7');
     }
 
     // The boarding QR is the only image, and it is carried, never fetched
