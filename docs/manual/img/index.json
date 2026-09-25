@@ -1,5 +1,5 @@
 {
-  "takenAt": "2026-09-23T14:00:17.038Z",
+  "takenAt": "2026-09-25T12:30:22.543Z",
   "shots": [
     {
       "name": "dashboard",
@@ -158,23 +158,7 @@
       "url": "/app/setup?step=business"
     },
     {
-      "name": "setup-home-page",
-      "url": "/app/setup?step=home_page"
-    },
-    {
       "name": "trip-new-basics",
-      "url": "/app/products/create"
-    },
-    {
-      "name": "trip-new-when",
-      "url": "/app/products/create"
-    },
-    {
-      "name": "trip-new-prices",
-      "url": "/app/products/create"
-    },
-    {
-      "name": "trip-new-publish",
       "url": "/app/products/create"
     },
     {
@@ -214,12 +198,12 @@
       "url": "/app"
     },
     {
-      "name": "crew-trip-summary",
-      "url": "/app/calendar"
-    },
-    {
       "name": "settings-phone",
       "url": "/app/settings"
+    },
+    {
+      "name": "dashboard-phone",
+      "url": "/app"
     },
     {
       "name": "admin-dashboard",
@@ -231,6 +215,10 @@
     },
     {
       "name": "admin-tenant-edit",
+      "url": "/admin/tenants/c330149a-b3a8-48aa-817c-84c66a712e0d/edit?lang=el"
+    },
+    {
+      "name": "admin-tenant-branding",
       "url": "/admin/tenants/c330149a-b3a8-48aa-817c-84c66a712e0d/edit?lang=el"
     },
     {
@@ -275,15 +263,15 @@
     },
     {
       "name": "guest-checkout",
-      "url": "/c/rRPEGsl5nSTomdkeRsXdycXOlgfEjbnSOGjQIw3A"
+      "url": "/c/gDQw3YmK2gQyITh3XIyF3FCNNJpgAJ9F1SNFv2MV"
     },
     {
       "name": "guest-booking",
-      "url": "/b/qXNQbUVdnXMWHGY7VcamtLHZzfasLktYVOJFF3Rp"
+      "url": "/b/HIUC5zskcLxWKcMI4ghdvkJyG6kyxeBVzl8jQiuv"
     },
     {
       "name": "guest-checkout-phone",
-      "url": "/c/rRPEGsl5nSTomdkeRsXdycXOlgfEjbnSOGjQIw3A"
+      "url": "/c/gDQw3YmK2gQyITh3XIyF3FCNNJpgAJ9F1SNFv2MV"
     }
   ]
 }

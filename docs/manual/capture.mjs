@@ -148,25 +148,6 @@ async function scrollToText(page, text) {
   await page.waitForTimeout(300);
 }
 
-/**
- * Show step `index` of the «Νέα εκδρομή» guide.
- *
- * The guide validates each step on the server before it moves on, and filling
- * in a whole trip to photograph its third step would leave a trip half-made in
- * the demo. The step on screen is Alpine state, so it is set directly: the step
- * is the real one, only nothing was typed into the ones before it.
- */
-async function wizardStep(page, index) {
-  await page.evaluate((i) => {
-    const el = [...document.querySelectorAll('[x-data]')]
-      .find((e) => e.getAttribute('x-data').includes('nextStep'));
-    const data = window.Alpine.$data(el);
-    data.step = data.getSteps()[i];
-  }, index);
-  await page.waitForTimeout(500);
-  await page.evaluate(() => window.scrollTo(0, 0));
-}
-
 /** Open a Filament tab by its label. */
 async function openTab(page, name) {
   await page.getByRole('tab', { name }).first().click();
@@ -254,18 +235,17 @@ const PANEL_SHOTS = [
  */
 const SETUP_SHOTS = [
   ['setup-guide', '/app/setup?step=business'],
-  ['setup-home-page', '/app/setup?step=home_page'],
+  // `setup-home-page` left on 25/9: the home page is no longer a step of the
+  // guide but the last, optional one of «Τα πρώτα σας βήματα».
 ];
 
 /**
- * «Νέα εκδρομή», the five-step guide (2026-09-22), and the trip form in five
- * tabs (2026-09-18). The URL of the trip is found, not written here.
+ * «Νέα εκδρομή» is the «Βασικά» tab alone since 25/9, and «Συνέχεια» opens the
+ * trip's own page, so there is one figure of it and the rest are the tabs of a
+ * saved (draft) trip. The URL of the trip is found, not written here.
  */
 const NEW_TRIP_SHOTS = [
-  ['trip-new-basics', 0],
-  ['trip-new-when', 1],
-  ['trip-new-prices', 2],
-  ['trip-new-publish', 4],
+  ['trip-new-basics', '/app/products/create'],
 ];
 
 const TRIP_TAB_SHOTS = [
@@ -295,6 +275,9 @@ const CREW_PHONE_SHOTS = [
 /** The owner's settings cards on a phone — two to a row, which is the point of squares. */
 const OWNER_PHONE_SHOTS = [
   ['settings-phone', '/app/settings'],
+  // The home page on a phone: «Πώληση τώρα» and «Σάρωση» in a bar fixed to
+  // the foot of the screen (25/9).
+  ['dashboard-phone', '/app'],
 ];
 
 /**
@@ -320,6 +303,12 @@ const ADMIN_SHOTS = [
     await openTab(page, 'Λειτουργίες');
     await page.locator('[id="data.check_in_enabled"]').first()
       .evaluate((el) => el.scrollIntoView({ block: 'center' }));
+  }],
+  // «Εμφάνιση» (25/9): the logo and the colours, set by the platform when it
+  // opens the account. Looked at, never saved.
+  ['admin-tenant-branding', `/admin/tenants/${tenantRouteKey('aegean-blue')}/edit?lang=el`, async (page) => {
+    await openTab(page, 'Εμφάνιση');
+    await page.evaluate(() => window.scrollTo(0, 0));
   }],
   // «Σύνδεση ως» (2026-09-23): the form only. Pressing it is a separate,
   // opt-in block below, because it writes a line in the operator's log.
@@ -475,8 +464,8 @@ mkdirSync(OUT, { recursive: true });
     taken.push(await shoot(context, name, url, PANEL));
   }
 
-  for (const [name, step] of NEW_TRIP_SHOTS) {
-    taken.push(await shoot(context, name, '/app/products/create', PANEL, (page) => wizardStep(page, step)));
+  for (const [name, url] of NEW_TRIP_SHOTS) {
+    taken.push(await shoot(context, name, url, PANEL));
   }
 
   const tripUrl = demoTripUrl();

@@ -12,14 +12,13 @@
  * nobody can tell which picture is the stale one. Walking the real URLs means
  * a screen that cannot be reached is a screen that does not get into the book.
  *
- * ## Two operators, on purpose
+ * ## One operator, two kinds of trip
  *
- * The demo tenant (`aegean-blue`) has trips but **no rate plans**, so its price
- * tab is the empty state — which is the right picture for "what you see before
- * you have made a price list", and the wrong one for "this is the grid you fill
- * in". The test operator (`dokimi-kritis`) has seven plans and priced bands, so
- * the filled grid comes from there. Both are seeded, deterministic and carry no
- * real guest's name.
+ * Until 25/9 the filled price grid came from a second test operator
+ * (`dokimi-kritis`), which is no longer in the local database. The demo
+ * operator's trips on sale are priced, so the grid now comes from one of them,
+ * and the draft is used for everything a draft shows: the step buttons under
+ * each tab and «Πριν τη δημοσίευση». Nothing here writes to the database.
  *
  * ## Tabs are addressed, not clicked
  *
@@ -54,51 +53,81 @@ const TAB = {
 
 const PEOPLE = {
   demo: 'maria@aegean-blue.example',
-  test: 'nikos@dokimi-kritis.example',
 };
 
 /** The trips the guide photographs, by their route key (a uuid, §1.1). */
 const TRIPS = {
-  // Aegean Blue, sold per seat: the one the walkthrough edits.
+  // Aegean Blue, sold per seat and still a draft: the one the walkthrough
+  // edits. A draft on purpose — only a draft shows «← / Επόμενο →» under each
+  // tab and «Πριν τη δημοσίευση» beside the form.
   perSeat: 'c3dab4a6-9a49-4dc6-9c3a-c953465946df',
   // Aegean Blue, whole-boat charter: a different «Πότε φεύγει».
   charter: 'a99f7fd2-9e61-401f-93d6-7cc491c8495b',
-  // Δοκιμή Κρήτης, per seat, with plans and prices behind it.
-  priced: '221fe4d4-42da-4750-a67d-257466e218aa',
+  // Aegean Blue, per seat and on sale, so its «Τιμές» tab is filled in: the
+  // groups, the ticked periods and the table. (The priced test operator,
+  // «Δοκιμή Κρήτης», is no longer in the local database — 25/9.)
+  priced: '710f71e2-279e-4b58-a2f6-f76d8c3baddb',
 };
 
 const edit = (trip, tab) => `/app/products/${trip}/edit?tab=${tab}`;
 
 /**
+ * Open «Νέο δρομολόγιο» and then «+ Ώρα», so the figure is the hour grid
+ * (25/9). Nothing is saved: the modal is photographed and the page closed.
+ */
+async function openTimePicker(page) {
+  await page.locator('button:has-text("Νέο δρομολόγιο")').first().click();
+  await page.waitForTimeout(1500);
+  const modal = page.locator('.fi-modal-window:visible').first();
+  await modal.locator('.ka-time-add').first().click();
+  await page.waitForTimeout(300);
+  // An hour picked, so the minutes are live too.
+  await modal.locator('.ka-pick-grid button', { hasText: /^10$/ }).first().click().catch(() => {});
+  await page.waitForTimeout(300);
+  await modal.locator('.ka-pick-label').first().evaluate((el) => el.scrollIntoView({ block: 'center' }));
+}
+
+/** The first row's «⋯», opened: on a deleted trip it holds «Οριστική διαγραφή». */
+async function openRowMenu(page) {
+  await page.evaluate(() => document.querySelectorAll('.fi-ta-content').forEach((el) => { el.scrollLeft = el.scrollWidth; }));
+  await page.locator('tbody tr').first().locator('button.fi-icon-btn').last().click();
+  await page.waitForTimeout(600);
+}
+
+/**
  * `[name, url, scrollTo?]` — the third element is a selector to bring into view
- * before the shot, for the sections that sit below the fold at 900px.
+ * before the shot, for the sections that sit below the fold at 900px, or a
+ * function given the page.
+ *
+ * «Νέα εκδρομή» is one tab since 25/9 («Βασικά», then «Συνέχεια»), so it is
+ * photographed once; everything after it is the trip's own edit page.
  */
 const DEMO_SHOTS = [
   ['products-list', '/app/products'],
-  ['create-basics', `/app/products/create?tab=${TAB.basics}`],
-  ['create-when', `/app/products/create?tab=${TAB.when}`],
-  ['create-prices', `/app/products/create?tab=${TAB.prices}`],
-  ['create-terms', `/app/products/create?tab=${TAB.terms}`],
-  ['create-page', `/app/products/create?tab=${TAB.page}`],
-  ['edit-basics', edit(TRIPS.perSeat, TAB.basics)],
+  ['create-basics', '/app/products/create'],
   ['edit-when', edit(TRIPS.perSeat, TAB.when)],
+  ['edit-vessel', edit(TRIPS.perSeat, TAB.when), 'text=Συνήθες σκάφος'],
   ['edit-schedules', edit(TRIPS.perSeat, TAB.when), 'button:has-text("Νέο δρομολόγιο")'],
-  ['edit-prices-empty', edit(TRIPS.perSeat, TAB.prices)],
-  ['edit-extras', edit(TRIPS.perSeat, TAB.prices), 'button:has-text("Νέο πρόσθετο")'],
+  ['time-picker', edit(TRIPS.perSeat, TAB.when), openTimePicker],
+  ['step-nav', edit(TRIPS.perSeat, TAB.when), '.ka-step-nav'],
+  ['step-nav-last', edit(TRIPS.perSeat, TAB.page), '.ka-step-last'],
   ['edit-terms', edit(TRIPS.perSeat, TAB.terms)],
   ['edit-page', edit(TRIPS.perSeat, TAB.page)],
   ['edit-checklist', edit(TRIPS.perSeat, TAB.basics), '.ka-checklist-side'],
   ['charter-when', edit(TRIPS.charter, TAB.when)],
-];
-
-const TEST_SHOTS = [
   ['bands', edit(TRIPS.priced, TAB.prices)],
+  ['periods', edit(TRIPS.priced, TAB.prices), '.kpp'],
   ['price-table', edit(TRIPS.priced, TAB.prices), '#prices'],
-  ['checklist-ready', edit(TRIPS.priced, TAB.basics), '.ka-checklist-side'],
+  ['edit-extras', edit(TRIPS.priced, TAB.prices), 'button:has-text("Νέο πρόσθετο")'],
+  // «Διαγραμμένες» only, where «Οριστική διαγραφή» lives.
+  // «λείπει 2» on «Τιμές»: the deleted draft is the demo's one trip with
+  // requirements unmet. Read only, like every other shot.
+  ['tab-badges', '/app/products/815a12c7-905b-4c26-ae95-731b50f6bd5c/edit?tab=-times-tab'],
+  ['products-trashed', '/app/products?tableFilters[trashed][value]=0', openRowMenu],
 ];
 
 const GUEST_SHOTS = [
-  ['guest-trip', '/aegean-blue/olimeri-tria-nisia'],
+  ['guest-trip', '/aegean-blue/iliovasilema-aigina'],
 ];
 
 async function signIn(context, email) {
@@ -132,8 +161,13 @@ async function shoot(context, name, url, base, scrollTo = null) {
     await page.goto(base + url, { waitUntil: 'domcontentloaded' });
     await settle(page);
 
-    if (scrollTo) {
-      await page.locator(scrollTo).first()
+    if (typeof scrollTo === 'function') {
+      await scrollTo(page);
+      await page.waitForTimeout(400);
+    } else if (scrollTo) {
+      // The visible one: every tab is in the page, and the hidden tabs carry
+      // the same step buttons and sections.
+      await page.locator(`${scrollTo} >> visible=true`).first()
         .evaluate((el) => el.scrollIntoView({ block: 'center' }));
       await page.waitForTimeout(400);
     }
@@ -180,7 +214,6 @@ async function run(email, shots, base, label) {
 }
 
 await run(PEOPLE.demo, DEMO_SHOTS, PANEL, 'Aegean Blue, 1280×900');
-await run(PEOPLE.test, TEST_SHOTS, PANEL, 'Δοκιμή Κρήτης — the priced trip');
 await run(null, GUEST_SHOTS, GUEST, 'the guest side');
 
 await browser.close();
