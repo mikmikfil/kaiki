@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:9e39de1d9ed2837e47d1a71efbeec607c28fad3b4e000d74c21a4f08cd321434
+-- migrations-fingerprint: sha256:da5749c8f6961983ade02ecb355d85849ffc1dc13cf1bb9333849be5fbaa93ab
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -457,6 +457,7 @@ CREATE TABLE `departures` (
   `crew_user_ids` json DEFAULT NULL,
   `crew_from_rule` tinyint(1) NOT NULL DEFAULT '1',
   `crew_reminded_at` timestamp NULL DEFAULT NULL,
+  `crew_names` json DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `departures_tenant_prod_start_uq` (`tenant_id`,`product_id`,`starts_at_utc`),
   UNIQUE KEY `departures_uuid_unique` (`uuid`),
@@ -1322,6 +1323,7 @@ CREATE TABLE `schedule_rules` (
   `captain_user_id` bigint unsigned DEFAULT NULL,
   `captain_name` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `crew_user_ids` json DEFAULT NULL,
+  `crew_names` json DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `schedule_rules_product_id_foreign` (`product_id`),
   KEY `schedule_rules_vessel_id_foreign` (`vessel_id`),
@@ -1801,3 +1803,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (88,'2026_09_24_120
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (89,'2026_09_24_130000_add_specialty_and_optional_email_to_users',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (90,'2026_09_24_140000_add_crew_to_schedule_rules',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (91,'2026_09_24_150000_add_about_page',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (92,'2026_09_25_120000_add_crew_names_to_departures_and_schedule_rules',1);
