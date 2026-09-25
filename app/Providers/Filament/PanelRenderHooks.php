@@ -124,6 +124,12 @@ final class PanelRenderHooks
             static fn (): View => view('filament.touch-targets'),
         );
 
+        // A photo already in a single-file field can be removed with its ×.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View => view('filament.file-upload-layers'),
+        );
+
         // − and + either side of every number field, on both panels
         // (product owner, 2026-09-22: *«όπου στο διαχειριστικό έχει βελάκια
         // πάνω κάτω για αύξηση αριθμού, τα θέλω οριζόντια + και −»*). The
