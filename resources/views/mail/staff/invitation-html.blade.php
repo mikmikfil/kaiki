@@ -20,7 +20,10 @@
     $font = 'font-family:Arial,Helvetica,sans-serif;';
     $roleKey = $role?->value;
     $can = $roleKey !== null ? (array) __("staff.invitation.roles.{$roleKey}.can") : [];
-    $cannot = $roleKey !== null ? (string) __("staff.invitation.roles.{$roleKey}.cannot") : '';
+    // The owner can do everything, so theirs has no «cannot» line at all.
+    $cannot = $roleKey !== null && \Illuminate\Support\Facades\Lang::has("staff.invitation.roles.{$roleKey}.cannot")
+        ? (string) __("staff.invitation.roles.{$roleKey}.cannot")
+        : '';
     $isOwner = $role === \App\Enums\Role::Owner;
 @endphp
 <!doctype html>

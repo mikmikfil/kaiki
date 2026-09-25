@@ -18,7 +18,7 @@
 @foreach ((array) __("staff.invitation.roles.{$role->value}.can") as $item)
 - {{ $item }}
 @endforeach
-@if ((string) __("staff.invitation.roles.{$role->value}.cannot") !== '')
+@if (\Illuminate\Support\Facades\Lang::has("staff.invitation.roles.{$role->value}.cannot"))
 {{ __("staff.invitation.roles.{$role->value}.cannot") }}
 @endif
 @endif

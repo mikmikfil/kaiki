@@ -123,7 +123,6 @@ return [
                     'Bookings, payments and refunds',
                     'Your team and their roles',
                 ],
-                'cannot' => '',
             ],
             'manager' => [
                 'can' => [
