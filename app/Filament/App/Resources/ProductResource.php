@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources;
 
+use App\Domain\Catalog\Actions\ForceDeleteProduct;
 use App\Domain\Catalog\Actions\SaveCancellationPolicy;
 use App\Domain\Catalog\Support\ProductPublishChecklist;
 use App\Domain\Catalog\Support\TripPageContent;
@@ -52,11 +53,13 @@ use Filament\Forms\Components\View as ViewField;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\Action as TableAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ForceDeleteAction;
 use Filament\Tables\Actions\RestoreAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -67,6 +70,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Unique;
+use Illuminate\Validation\ValidationException;
 
 /**
  * The trip, on `/app` (spec CAT-4, CAT-5, CAT-7, CAT-15, SEC-3, TEN-8, I18N-1).
@@ -1330,6 +1334,31 @@ class ProductResource extends Resource
                     ->visible(static fn (Product $record): bool => self::previewUrl($record) !== null),
                 DeleteAction::make(),
                 RestoreAction::make(),
+                // The bin on a deleted trip (Mike, 25/9): gone for good, but
+                // only a trip nobody ever booked — see ForceDeleteProduct.
+                ForceDeleteAction::make()
+                    ->label(__('catalog.product.force_delete.label'))
+                    ->icon('heroicon-m-trash')
+                    ->modalHeading(__('catalog.product.force_delete.heading'))
+                    ->modalDescription(__('catalog.product.force_delete.body'))
+                    ->modalSubmitActionLabel(__('catalog.product.force_delete.label'))
+                    ->action(static function (Product $record, ForceDeleteAction $action): void {
+                        try {
+                            app(ForceDeleteProduct::class)($record);
+                        } catch (ValidationException $exception) {
+                            Notification::make()
+                                ->danger()
+                                ->title(__('catalog.product.force_delete.refused'))
+                                ->body(collect($exception->errors())->flatten()->first())
+                                ->persistent()
+                                ->send();
+
+                            $action->halt();
+                        }
+
+                        $action->success();
+                    })
+                    ->successNotificationTitle(__('catalog.product.force_delete.done')),
             ]));
     }
 

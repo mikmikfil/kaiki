@@ -430,6 +430,15 @@ return [
         ],
 
         // The form's two tabs (2026-09-17).
+        'force_delete' => [
+            'label' => 'Delete for good',
+            'heading' => 'Delete this trip for good',
+            'body' => 'It goes for ever, with its prices, schedules and departures. This cannot be undone.',
+            'done' => 'Deleted for good',
+            'refused' => 'Not deleted',
+            'has_bookings' => 'It has bookings, and a booking keeps its trip. It stays in deleted trips, off sale.',
+            'in_use' => 'Something else still uses this trip. Nothing was changed.',
+        ],
         'steps' => [
             'back' => ':tab',
             'next' => 'Next: :tab',
