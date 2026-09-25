@@ -52,6 +52,9 @@ function matrix(): array
         'view_manifest' => [Capability::ViewManifest, [Role::Owner, Role::Manager, Role::Crew]],
         // The quay sale (2026-09-24): every role sells.
         'sell_on_quay' => [Capability::SellOnQuay, [Role::Owner, Role::Manager, Role::Crew]],
+        // «Οφείλει €X» at boarding (2026-09-25): the whole open balance, cash
+        // or POS, and nothing wider.
+        'collect_balance_on_board' => [Capability::CollectBalanceOnBoard, [Role::Owner, Role::Manager, Role::Crew]],
     ];
 }
 

@@ -71,7 +71,17 @@ return [
         // The departure's minimum (2026-09-25): said positively once reached.
         'guaranteed' => 'This departure is guaranteed.',
         'min_pax' => 'Runs with at least :count people. If not enough book, you get all your money back.',
-        'deposit_note' => 'You pay :deposit now and :balance before departure.',
+        // «Deposit or the whole amount» (Mike, 2026-09-25): the deposit is
+        // preselected and the balance date is shown.
+        'choice' => [
+            'legend' => 'How much you pay now',
+            'deposit' => 'Deposit :deposit now',
+            'deposit_until' => ':balance by :date',
+            'deposit_on_board' => ':balance on the boat',
+            'deposit_later' => ':balance before departure',
+            'full' => 'The whole amount :total',
+            'now' => 'Now',
+        ],
         'your_details' => 'Your details',
         'name' => 'Full name',
         'email' => 'Email',
@@ -143,10 +153,14 @@ return [
             'total' => 'Total',
             'paid' => 'Paid',
             'balance' => 'Still to pay',
+            'deposit' => 'Deposit',
+            'until' => 'By',
             'refunded' => 'Refunded',
         ],
         'balance_due' => 'The balance is due by :date.',
         'pay_balance' => 'Pay the balance',
+        'balance_on_board' => ':amount balance, paid on board.',
+        'pay_balance_offline' => 'Card payment is not available here. Please contact the operator to settle the balance.',
         'ticket' => 'Download your ticket',
         // Β2's strip of three times (2026-09-18). Lower case: an
         // uppercase transform strips the accents off Greek.

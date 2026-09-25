@@ -10,8 +10,13 @@
 {{ __('mail.common.total') }}: {{ $d->total }}
 @endif
 @if ($d->paid !== null)
-{{ __('mail.common.paid') }}: {{ $d->paid }}
+{{ $d->balance !== null ? __('mail.common.deposit_paid') : __('mail.common.paid') }}: {{ $d->paid }}
 @endif
-@if ($d->balance !== null)
-{{ $d->balanceDue !== null ? __('mail.common.balance_due', ['date' => $d->balanceDue]) : __('mail.common.balance') }}: {{ $d->balance }}
+@if ($d->balance !== null && $d->balanceOnBoard)
+{{ __('mail.common.balance_on_board', ['amount' => $d->balance]) }}
+@elseif ($d->balance !== null)
+{{ __('mail.common.balance') }}: {{ $d->balance }}
+@if ($d->balanceDue !== null)
+{{ __('mail.common.until') }}: {{ $d->balanceDue }}
+@endif
 @endif

@@ -29,6 +29,15 @@
                         </label>
                     @endforeach
                 </div>
+                @if ($type !== 'none' && ! (\App\Support\Tenancy::current()?->deposits_enabled ?? false))
+                    {{-- The price list asks for a deposit the operator's switch never takes. --}}
+                    <p class="kpt2-warn" role="status">
+                        {{ __('pricing.periods.terms.deposits_off') }}
+                        @if (\App\Filament\App\Pages\PaymentSettings::canAccess())
+                            <a href="{{ \App\Filament\App\Pages\PaymentSettings::getUrl() }}">{{ __('pricing.periods.terms.deposits_off_link') }}</a>
+                        @endif
+                    </p>
+                @endif
             </div>
 
             @if ($type === 'percent')
@@ -95,12 +104,15 @@
         .kpt2-input em { font-style: normal; font-size: .8rem; color: rgb(var(--gray-500)); }
         .kpt2-error { font-size: .75rem; color: rgb(var(--danger-600)); }
         .kpt2-differs { margin: 0; padding: .7rem .9rem; list-style: none; border-radius: .6rem; background: rgb(var(--warning-50)); color: rgb(var(--warning-800)); font-size: .85rem; display: grid; gap: .2rem; }
+        .kpt2-warn { margin: 0; padding: .6rem .8rem; border-radius: .6rem; background: rgb(var(--warning-50)); color: rgb(var(--warning-800)); font-size: .85rem; }
+        .kpt2-warn a { font-weight: 600; color: inherit; text-decoration: none; }
         .kpt2-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
         .kpt2-dirty { font-size: .8rem; color: rgb(var(--warning-700)); }
         .dark .kpt2-label { color: #fff; }
         .dark .kpt2-input { background: rgba(255, 255, 255, .05); border-color: rgba(255, 255, 255, .15); }
         .dark .kpt2-seg { border-color: rgba(255, 255, 255, .15); }
         .dark .kpt2-seg label.is-on { background: rgb(var(--primary-400)); color: rgb(var(--primary-950)); }
+        .dark .kpt2-warn { background: rgb(var(--warning-400) / .12); color: rgb(var(--warning-300)); }
         .dark .kpt2-differs { background: rgb(var(--warning-400) / .12); color: rgb(var(--warning-300)); }
     </style>
 @endif

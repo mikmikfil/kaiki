@@ -38,7 +38,12 @@ final class SavePeriodTerms
             $terms = $default instanceof RatePlan ? SavePriceTable::termsOf($default) : SavePriceTable::noTerms();
             $follows = true;
         } else {
-            $terms = array_intersect_key($terms, array_flip(SavePriceTable::TERMS)) + SavePriceTable::noTerms();
+            // The balance deadline has no field in the modal, so a caller that
+            // does not send it keeps the plan's own rather than wiping it
+            // (2026-09-25). Every other term is on the form and sent.
+            $terms = array_intersect_key($terms, array_flip(SavePriceTable::TERMS))
+                + ['balance_due_days_before_departure' => $plan->balance_due_days_before_departure]
+                + SavePriceTable::noTerms();
             $follows = false;
         }
 

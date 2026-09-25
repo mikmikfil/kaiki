@@ -197,12 +197,7 @@ final class ApplyDiscountCode
             $snapshot['vat']['vat_cents'] = $total - $net;
         }
 
-        $plan = isset($snapshot['rate_plan_id']) ? RatePlan::query()->find($snapshot['rate_plan_id']) : null;
-
-        if ($plan instanceof RatePlan && array_key_exists('deposit', $snapshot)) {
-            // PRC-25: the deposit is taken from the total after the discount.
-            $snapshot['deposit'] = DepositCalculator::forPlan($plan, $total, (bool) (Tenancy::current()->deposits_enabled ?? false));
-        }
+        $snapshot = self::rewriteDeposit($booking, $snapshot, $total);
 
         $booking->forceFill([
             'discount_code_id' => $code?->getKey(),
@@ -211,6 +206,40 @@ final class ApplyDiscountCode
             'balance_cents' => max(0, $total - (int) $booking->paid_cents),
             'price_snapshot' => $snapshot,
         ])->save();
+    }
+
+    /**
+     * PRC-25: the deposit is taken from the total after the discount — in the
+     * snapshot the checkout page prints, and in `deposit_cents`, which is what
+     * {@see StartCheckout} charges (2026-09-25). Until then only the snapshot
+     * moved, and a €300 trip at 30% with a €100 code still charged €90.
+     *
+     * A booking paying in full (a deposit equal to its old total) stays paying
+     * in full. One without a rate plan — a quote's fixed deposit — keeps its
+     * deposit, capped at the new total. Fills the booking, does not save it.
+     *
+     * @param  array<string, mixed>  $snapshot  the snapshot being written
+     * @return array<string, mixed> the snapshot, with its deposit rewritten
+     */
+    public static function rewriteDeposit(Booking $booking, array $snapshot, int $newTotal): array
+    {
+        $oldTotal = (int) $booking->getOriginal('total_cents');
+        $oldDeposit = (int) $booking->deposit_cents;
+        $plan = isset($snapshot['rate_plan_id']) ? RatePlan::query()->find($snapshot['rate_plan_id']) : null;
+
+        if ($plan instanceof RatePlan && array_key_exists('deposit', $snapshot)) {
+            $snapshot['deposit'] = DepositCalculator::forPlan($plan, $newTotal, (bool) (Tenancy::current()->deposits_enabled ?? false));
+        }
+
+        $deposit = match (true) {
+            $oldDeposit >= $oldTotal => $newTotal,
+            $plan instanceof RatePlan && is_array($snapshot['deposit'] ?? null) => (int) $snapshot['deposit']['amount_cents'],
+            default => min($oldDeposit, $newTotal),
+        };
+
+        $booking->forceFill(['deposit_cents' => max(0, $deposit)]);
+
+        return $snapshot;
     }
 
     private static function timezone(): string

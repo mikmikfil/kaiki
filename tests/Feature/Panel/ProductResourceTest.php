@@ -637,6 +637,38 @@ it('prices every group for all year and each ticked period', function (): void {
     });
 })->group('fast');
 
+it('keeps a period\'s balance deadline when its «⋯» terms are saved', function (): void {
+    // The modal has no field for it, and saving used to write null over it
+    // (2026-09-25).
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $product = productDraftFor($owner);
+
+    $plan = Tenancy::forTenant(productTenantOf($owner), fn (): RatePlan => RatePlan::factory()
+        ->forSeason(Season::factory()->create())
+        ->create([
+            'product_id' => $product->getKey(),
+            'balance_due_days_before_departure' => 21,
+            'follows_trip_terms' => false,
+        ]));
+
+    productPageAs($owner, EditProduct::class, ['record' => $product->getRouteKey()])
+        ->callAction('periodTerms', data: [
+            'own' => true,
+            'deposit_type' => 'percent',
+            'deposit_percent' => 25,
+            'min_lead_time_hours' => 0,
+        ], arguments: ['plan' => $plan->getKey()])
+        ->assertHasNoActionErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function () use ($plan): void {
+        $plan->refresh();
+
+        expect($plan->deposit_percent)->toBe(25)
+            ->and($plan->balance_due_days_before_departure)->toBe(21);
+    });
+})->group('fast');
+
 it('takes the trip page texts on the «Σελίδα» tab', function (): void {
     // Product owner, 2026-09-22: *«και κείμενα τα πάντα»*. The wizard carried
     // them to `SaveProduct` on the first walk; since 25/9 they are typed on the

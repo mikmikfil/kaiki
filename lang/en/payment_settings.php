@@ -37,11 +37,19 @@ return [
             'label' => 'I take a deposit',
             'help' => 'How much the deposit is belongs to each rate plan. This is whether it applies at all.',
         ],
+        'balance_collection' => [
+            'label' => 'The balance is collected',
+            'help' => 'Online, the guest pays it by card before departure and gets reminders. On board, you collect it on the day of the trip: no due date and no reminders.',
+        ],
         'balance_days' => [
             'label' => 'The balance is due',
             'help' => 'How many days before departure the balance falls due. The guest gets a reminder with a payment link. Empty means 14 days.',
             'suffix' => 'days before departure',
         ],
+    ],
+
+    'warnings' => [
+        'no_deposit_plan' => 'Deposits are on, but no price list asks for one. Set an amount in the trip’s prices, or the guest pays the full amount.',
     ],
 
     'actions' => [

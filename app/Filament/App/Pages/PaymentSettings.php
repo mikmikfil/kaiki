@@ -5,9 +5,14 @@ declare(strict_types=1);
 namespace App\Filament\App\Pages;
 
 use App\Domain\Booking\Actions\ComputeBalanceDueAt;
+use App\Enums\BalanceCollection;
+use App\Enums\DepositType;
 use App\Filament\App\Resources\ProductResource;
 use App\Models\IntegrationCredential;
+use App\Models\RatePlan;
 use App\Support\Tenancy;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -101,6 +106,7 @@ class PaymentSettings extends Page implements HasForms
 
         $this->getForm('form')?->fill([
             'deposits_enabled' => (bool) ($tenant->deposits_enabled ?? false),
+            'balance_collection' => ($tenant->balance_collection ?? BalanceCollection::Online)->value,
             'balance_due_days_before_departure' => $tenant?->balance_due_days_before_departure,
             'default_vat_rate_id' => $tenant?->default_vat_rate_id,
         ]);
@@ -122,6 +128,25 @@ class PaymentSettings extends Page implements HasForms
                         // first.
                         ->live(),
 
+                    // Deposits on, and not one price list asks for one: the
+                    // switch alone changes nothing a guest pays.
+                    Placeholder::make('no_deposit_plan')
+                        ->hiddenLabel()
+                        ->content(__('payment_settings.warnings.no_deposit_plan'))
+                        ->extraAttributes(['class' => 'text-warning-700 dark:text-warning-400'])
+                        ->visible(fn (Get $get): bool => (bool) $get('deposits_enabled') && ! self::anyPlanTakesDeposit()),
+
+                    // Where the rest is paid (Mike, 2026-09-25). On board, there
+                    // is no due date to set, so the days field goes.
+                    Radio::make('balance_collection')
+                        ->label(__('payment_settings.fields.balance_collection.label'))
+                        ->helperText(__('payment_settings.fields.balance_collection.help'))
+                        ->options(BalanceCollection::options())
+                        ->default(BalanceCollection::Online->value)
+                        ->required()
+                        ->live()
+                        ->visible(fn (Get $get): bool => (bool) $get('deposits_enabled')),
+
                     TextInput::make('balance_due_days_before_departure')
                         ->label(__('payment_settings.fields.balance_days.label'))
                         ->helperText(__('payment_settings.fields.balance_days.help'))
@@ -132,7 +157,8 @@ class PaymentSettings extends Page implements HasForms
                         // ADR-0018's platform default, shown as the placeholder
                         // so an empty field reads as «14» rather than as nothing.
                         ->placeholder((string) ComputeBalanceDueAt::PLATFORM_DEFAULT_DAYS)
-                        ->visible(fn (Get $get): bool => (bool) $get('deposits_enabled')),
+                        ->visible(fn (Get $get): bool => (bool) $get('deposits_enabled')
+                            && $get('balance_collection') !== BalanceCollection::OnBoard->value),
                 ]),
 
             /*
@@ -179,6 +205,7 @@ class PaymentSettings extends Page implements HasForms
 
         $enabled = (bool) ($state['deposits_enabled'] ?? false);
         $days = $state['balance_due_days_before_departure'] ?? null;
+        $collection = BalanceCollection::tryFrom((string) ($state['balance_collection'] ?? '')) ?? BalanceCollection::Online;
         $rate = $state['default_vat_rate_id'] ?? null;
 
         // Checked against the list the select was built from rather than saved
@@ -196,11 +223,23 @@ class PaymentSettings extends Page implements HasForms
                 ? (int) $days
                 : null,
             'default_vat_rate_id' => $rateIsSelectable ? (int) $rate : null,
+            // Kept as chosen when deposits go off: with no deposit there is no
+            // balance, so it does nothing until they are switched on again.
+            'balance_collection' => $enabled ? $collection : $tenant->balance_collection,
         ])->save();
 
         Notification::make()
             ->title(__('payment_settings.saved'))
             ->success()
             ->send();
+    }
+
+    /** Whether any active price list takes a deposit at all. */
+    public static function anyPlanTakesDeposit(): bool
+    {
+        return RatePlan::query()
+            ->active()
+            ->whereIn('deposit_type', [DepositType::Percent->value, DepositType::Fixed->value])
+            ->exists();
     }
 }

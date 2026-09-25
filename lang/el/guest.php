@@ -67,7 +67,17 @@ return [
         // The departure's minimum (2026-09-25): said positively once reached.
         'guaranteed' => 'Η αναχώρηση είναι εγγυημένη.',
         'min_pax' => 'Πραγματοποιείται με τουλάχιστον :count άτομα. Αν δεν συμπληρωθούν, σας επιστρέφουμε όλα τα χρήματα.',
-        'deposit_note' => 'Πληρώνετε :deposit τώρα και :balance πριν την αναχώρηση.',
+        // «Προκαταβολή ή όλο το ποσό» (Mike, 25/9): η προκαταβολή είναι
+        // προεπιλεγμένη και η ημερομηνία του υπολοίπου φαίνεται.
+        'choice' => [
+            'legend' => 'Πόσα πληρώνετε τώρα',
+            'deposit' => 'Προκαταβολή :deposit τώρα',
+            'deposit_until' => ':balance έως :date',
+            'deposit_on_board' => ':balance στο σκάφος',
+            'deposit_later' => ':balance πριν την αναχώρηση',
+            'full' => 'Όλο το ποσό :total',
+            'now' => 'Τώρα',
+        ],
         'your_details' => 'Τα στοιχεία σας',
         'name' => 'Ονοματεπώνυμο',
         'email' => 'Email',
@@ -143,10 +153,14 @@ return [
             'total' => 'Σύνολο',
             'paid' => 'Πληρωμένο',
             'balance' => 'Υπόλοιπο',
+            'deposit' => 'Προκαταβολή',
+            'until' => 'Έως',
             'refunded' => 'Επιστράφηκε',
         ],
         'balance_due' => 'Το υπόλοιπο είναι πληρωτέο έως τις :date.',
         'pay_balance' => 'Πληρωμή υπολοίπου',
+        'balance_on_board' => 'Υπόλοιπο :amount, πληρώνεται στο σκάφος.',
+        'pay_balance_offline' => 'Η πληρωμή με κάρτα δεν είναι διαθέσιμη εδώ. Επικοινωνήστε με την εταιρεία για την εξόφληση.',
         'ticket' => 'Λήψη εισιτηρίου',
         // Β2's strip of three times (2026-09-18). Lower case: an
         // uppercase transform strips the accents off Greek.

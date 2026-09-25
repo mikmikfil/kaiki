@@ -49,7 +49,7 @@ return [
         'recorded' => 'The payment is recorded.',
         'too_much' => 'That is more than is owed on this booking (:balance).',
         'not_positive' => 'Enter an amount greater than zero.',
-        'wrong_gateway' => 'Only cash and bank transfers are recorded by hand. A card payment arrives by itself.',
+        'wrong_gateway' => 'Only cash, POS and bank transfers are recorded by hand. An online card payment arrives by itself.',
         'not_live' => 'This booking is cancelled, so no payment can be recorded against it.',
     ],
 
@@ -161,6 +161,12 @@ return [
 
         'settle' => [
             'heading' => 'Payment and capacity',
+            'payment' => 'Payment',
+            'payment_paid' => 'Paid in full',
+            'payment_deposit' => 'Deposit',
+            'payment_on_the_day' => 'Pays on the day',
+            'deposit_amount' => 'Deposit amount',
+            'deposit_by' => 'Paid by',
             'method' => 'Paid by',
             // BKG-33, and the second half is what an operator wants to know:
             // this money never appears in a gateway statement.

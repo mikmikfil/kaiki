@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\RatePlan;
 use App\Models\Season;
 use App\Support\Format\MoneyFormatter;
+use App\Support\Tenancy;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\TextInput;
@@ -342,7 +343,17 @@ trait ManagesPriceTable
                     return;
                 }
 
-                app(SavePeriodTerms::class)($plan, (bool) ($data['own'] ?? false) ? self::termsFromForm($data) : null);
+                $terms = null;
+
+                if ((bool) ($data['own'] ?? false)) {
+                    // No field for the balance deadline here: left out, so the
+                    // period keeps the one it has instead of losing it to a
+                    // null (2026-09-25). SavePeriodTerms fills it back in.
+                    $terms = self::termsFromForm($data);
+                    unset($terms['balance_due_days_before_departure']);
+                }
+
+                app(SavePeriodTerms::class)($plan, $terms);
 
                 Notification::make()->success()->title(__('pricing.periods.terms.saved'))->send();
             });
@@ -365,6 +376,11 @@ trait ManagesPriceTable
                 // the three stay on one line where there is room.
                 ->inline()
                 ->columnSpanFull()
+                // A deposit on a price list the operator's switch never takes.
+                ->helperText(static fn (Get $get): ?string => ($get('deposit_type') ?? DepositType::None->value) !== DepositType::None->value
+                    && ! (Tenancy::current()->deposits_enabled ?? false)
+                    ? __('pricing.periods.terms.deposits_off')
+                    : null)
                 ->live(),
             TextInput::make('deposit_percent')
                 ->label(__('pricing.periods.terms.deposit_percent'))

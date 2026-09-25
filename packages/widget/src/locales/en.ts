@@ -54,6 +54,10 @@ export const en = {
   'booking.peek.pick_date': 'Pick a date',
   'booking.peek.people_one': 'one person',
   'booking.peek.people_many': ':count people',
+  // «€X now, €Y later» under the total, when there is a deposit. The amounts
+  // arrive formatted by the server.
+  'booking.split.later': ':now now, :later later',
+  'booking.split.on_board': ':now now, :later on the boat',
   'booking.sheet.close': 'Close',
   'enquiry.peek.summary': 'We answer with a quote',
   // Only once the seats are running out. A departure with eleven free has no

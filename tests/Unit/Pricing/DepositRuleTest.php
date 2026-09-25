@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Pricing\Support\DepositCalculator;
 use App\Enums\DepositType;
 use App\Models\RatePlan;
 
@@ -10,7 +11,7 @@ use App\Models\RatePlan;
 | Deposits — spec PRC-23, CNV-1, CNV-4
 |--------------------------------------------------------------------------
 |
-| `RatePlan::depositCents()` is the only place that answers "what does the
+| `DepositCalculator::amountCents()` is the only place that answers "what does the
 | guest pay now", and it answers in integer cents through the same half-up
 | helper the refund path uses. Two implementations of that rounding is two
 | chances for a deposit and its refund to disagree by a cent, which is a
@@ -35,11 +36,11 @@ function planWithDeposit(DepositType $type, ?int $percent = null, ?int $fixedCen
 it('charges the whole total when no deposit is taken', function (): void {
     // "No deposit" means the guest pays everything at checkout, not nothing —
     // getting this backwards would take a boat out with no money against it.
-    expect(planWithDeposit(DepositType::None)->depositCents(15000))->toBe(15000);
+    expect(DepositCalculator::amountCents(planWithDeposit(DepositType::None), 15000, true))->toBe(15000);
 })->group('fast');
 
 it('takes a percentage of the total, rounded half up', function (int $totalCents, int $percent, int $expected): void {
-    expect(planWithDeposit(DepositType::Percent, percent: $percent)->depositCents($totalCents))
+    expect(DepositCalculator::amountCents(planWithDeposit(DepositType::Percent, percent: $percent), $totalCents, true))
         ->toBe($expected);
 })->with([
     // 30% of €150.00 is exact.
@@ -52,24 +53,24 @@ it('takes a percentage of the total, rounded half up', function (int $totalCents
 ])->group('fast');
 
 it('takes a flat amount whatever the total', function (): void {
-    expect(planWithDeposit(DepositType::Fixed, fixedCents: 20000)->depositCents(85000))->toBe(20000);
+    expect(DepositCalculator::amountCents(planWithDeposit(DepositType::Fixed, fixedCents: 20000), 85000, true))->toBe(20000);
 })->group('fast');
 
 it('never charges a flat deposit larger than the total', function (): void {
     // A €200 standing deposit on a €150 seat is an operator setting, not a
     // licence to take more than the trip costs.
-    expect(planWithDeposit(DepositType::Fixed, fixedCents: 20000)->depositCents(15000))->toBe(15000);
+    expect(DepositCalculator::amountCents(planWithDeposit(DepositType::Fixed, fixedCents: 20000), 15000, true))->toBe(15000);
 })->group('fast');
 
 it('answers zero rather than a negative for a zero total', function (): void {
-    expect(planWithDeposit(DepositType::Percent, percent: 30)->depositCents(0))->toBe(0)
-        ->and(planWithDeposit(DepositType::Fixed, fixedCents: 5000)->depositCents(0))->toBe(0)
-        ->and(planWithDeposit(DepositType::None)->depositCents(0))->toBe(0);
+    expect(DepositCalculator::amountCents(planWithDeposit(DepositType::Percent, percent: 30), 0, true))->toBe(0)
+        ->and(DepositCalculator::amountCents(planWithDeposit(DepositType::Fixed, fixedCents: 5000), 0, true))->toBe(0)
+        ->and(DepositCalculator::amountCents(planWithDeposit(DepositType::None), 0, true))->toBe(0);
 })->group('fast');
 
 it('returns an integer, never a float', function (): void {
     // CNV-1 in its narrowest form: the value that reaches a payment column.
-    expect(planWithDeposit(DepositType::Percent, percent: 33)->depositCents(1001))->toBeInt();
+    expect(DepositCalculator::amountCents(planWithDeposit(DepositType::Percent, percent: 33), 1001, true))->toBeInt();
 })->group('fast');
 
 it('names the column each type needs', function (): void {

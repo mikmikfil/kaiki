@@ -62,6 +62,12 @@ class IssueCreditNoteOnRefund
 {
     public function handle(BookingRefunded $event): void
     {
+        if (! $event->answersInvoice()) {
+            // Money paid on top of the total, given back (2026-09-25). It was
+            // never invoiced, so there is nothing to correct.
+            return;
+        }
+
         $tenant = Tenant::query()->find($event->tenantId());
 
         if (! $tenant instanceof Tenant) {

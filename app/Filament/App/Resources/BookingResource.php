@@ -12,6 +12,7 @@ use App\Enums\BookingStatus;
 use App\Enums\PaymentGatewayName;
 use App\Exceptions\HoldRefused;
 use App\Filament\App\Resources\BookingResource\Pages;
+use App\Filament\Forms\MoneyInput;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Product;
@@ -19,6 +20,7 @@ use App\Models\User;
 use App\Support\Authorization\Capability;
 use App\Support\Authorization\CrewWindow;
 use App\Support\Format\MoneyFormatter;
+use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -65,6 +67,13 @@ use Illuminate\Support\Carbon;
  */
 class BookingResource extends Resource
 {
+    /** «Πληρωμή» on a phone booking (2026-09-25). */
+    public const PAYMENT_PAID = 'paid';
+
+    public const PAYMENT_DEPOSIT = 'deposit';
+
+    public const PAYMENT_ON_THE_DAY = 'on_the_day';
+
     protected static ?string $model = Booking::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-ticket';
@@ -225,17 +234,40 @@ class BookingResource extends Resource
             Section::make(__('bookings.form.settle.heading'))
                 ->icon('heroicon-o-banknotes')
                 ->schema([
+                    // «Πληρωμή» (Mike, 2026-09-25): paid in full, a deposit, or
+                    // everything on the day. The last two confirm the booking
+                    // with the rest open, so it keeps its seats and never
+                    // expires.
+                    Radio::make('payment')
+                        ->label(__('bookings.form.settle.payment'))
+                        ->options([
+                            self::PAYMENT_PAID => __('bookings.form.settle.payment_paid'),
+                            self::PAYMENT_DEPOSIT => __('bookings.form.settle.payment_deposit'),
+                            self::PAYMENT_ON_THE_DAY => __('bookings.form.settle.payment_on_the_day'),
+                        ])
+                        ->required()
+                        ->live()
+                        ->columnSpanFull(),
+
                     Select::make('paid_by')
                         ->label(__('bookings.form.settle.method'))
-                        ->options([
-                            PaymentGatewayName::Cash->value => PaymentGatewayName::Cash->label(),
-                            PaymentGatewayName::Pos->value => PaymentGatewayName::Pos->label(),
-                            PaymentGatewayName::BankTransfer->value => PaymentGatewayName::BankTransfer->label(),
-                        ])
+                        ->options(self::manualMethods())
                         // BKG-33: neither of these calls anything, and both are
                         // excluded from gateway reconciliation because there is
                         // no gateway to reconcile against.
-                        ->helperText(__('bookings.form.settle.help')),
+                        ->helperText(__('bookings.form.settle.help'))
+                        ->required(fn (Get $get): bool => $get('payment') === self::PAYMENT_PAID)
+                        ->visible(fn (Get $get): bool => $get('payment') === self::PAYMENT_PAID),
+
+                    MoneyInput::make('deposit_amount', __('bookings.form.settle.deposit_amount'))
+                        ->required(fn (Get $get): bool => $get('payment') === self::PAYMENT_DEPOSIT)
+                        ->visible(fn (Get $get): bool => $get('payment') === self::PAYMENT_DEPOSIT),
+
+                    Select::make('deposit_by')
+                        ->label(__('bookings.form.settle.deposit_by'))
+                        ->options(self::manualMethods())
+                        ->required(fn (Get $get): bool => $get('payment') === self::PAYMENT_DEPOSIT)
+                        ->visible(fn (Get $get): bool => $get('payment') === self::PAYMENT_DEPOSIT),
 
                     Toggle::make('override_capacity')
                         ->label(__('bookings.form.settle.override_capacity'))
@@ -361,6 +393,7 @@ class BookingResource extends Resource
         }
 
         $adjustment = self::adjustmentFrom($data);
+        $payment = isset($data['payment']) ? (string) $data['payment'] : null;
 
         return app(CreateManualBooking::class)(
             new BookingDraftData(
@@ -384,11 +417,32 @@ class BookingResource extends Resource
                 ? (string) ($data['capacity_reason'] ?? '')
                 : null,
             // A blank select is `null`, and `isset()` already excludes it — an
-            // extra `!== null` reads as caution and is dead code.
-            paidBy: isset($data['paid_by'])
+            // extra `!== null` reads as caution and is dead code. With no
+            // «Πληρωμή» chosen (a caller other than the form), `paid_by` alone
+            // decides, as it always has.
+            paidBy: in_array($payment, [null, self::PAYMENT_PAID], true) && isset($data['paid_by'])
                 ? PaymentGatewayName::from((string) $data['paid_by'])
                 : null,
+            depositCents: $payment === self::PAYMENT_DEPOSIT ? (int) ($data['deposit_amount'] ?? 0) : null,
+            depositBy: $payment === self::PAYMENT_DEPOSIT && isset($data['deposit_by'])
+                ? PaymentGatewayName::from((string) $data['deposit_by'])
+                : null,
+            payOnTheDay: $payment === self::PAYMENT_ON_THE_DAY,
         );
+    }
+
+    /**
+     * Money that arrives by hand: cash, card on the POS, or a bank transfer.
+     *
+     * @return array<string, string>
+     */
+    private static function manualMethods(): array
+    {
+        return [
+            PaymentGatewayName::Cash->value => PaymentGatewayName::Cash->label(),
+            PaymentGatewayName::Pos->value => PaymentGatewayName::Pos->label(),
+            PaymentGatewayName::BankTransfer->value => PaymentGatewayName::BankTransfer->label(),
+        ];
     }
 
     /** @param array<string, mixed> $data */

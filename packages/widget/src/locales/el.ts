@@ -55,6 +55,10 @@ export const el: Record<MessageKey, string> = {
   'booking.peek.pick_date': 'Διαλέξτε ημερομηνία',
   'booking.peek.people_one': 'ένα άτομο',
   'booking.peek.people_many': ':count άτομα',
+  // «€X τώρα, €Y αργότερα» κάτω από το σύνολο, όταν υπάρχει προκαταβολή.
+  // Τα ποσά έρχονται μορφοποιημένα από τον server.
+  'booking.split.later': ':now τώρα, :later αργότερα',
+  'booking.split.on_board': ':now τώρα, :later στο σκάφος',
   'booking.sheet.close': 'Κλείσιμο',
   'enquiry.peek.summary': 'Απαντάμε με προσφορά',
   // Μόνο όταν οι θέσεις σώνονται. Μια αναχώρηση με έντεκα ελεύθερες δεν έχει

@@ -117,7 +117,9 @@ final class AttentionItems
 
         return $this->underMinimumQuery($now)->count()
             + $this->missingGuestDetailsQuery($now)->count()
-            + $this->overdueBalancesQuery($now)->count()
+            + ($this->collectsBalanceOnBoard()
+                ? $this->unpaidAfterSailingQuery($now)->count()
+                : $this->overdueBalancesQuery($now)->count())
             + $this->expiringQuotesQuery($now)->count()
             + $this->owedRefundsQuery()->count()
             + $this->lostChartersQuery($now)->count()
@@ -151,7 +153,7 @@ final class AttentionItems
         $items = [
             ...$this->underMinimum($now),
             ...$this->missingGuestDetails($now),
-            ...$this->overdueBalances($now),
+            ...($this->collectsBalanceOnBoard() ? $this->unpaidAfterSailing($now) : $this->overdueBalances($now)),
             ...$this->expiringQuotes($now),
             ...$this->owedRefunds(),
             ...$this->lostCharters($now),
@@ -338,6 +340,42 @@ final class AttentionItems
                 ),
             ]),
             deadline: $this->local($booking->balance_due_at),
+            subject: $booking,
+        ))->all();
+    }
+
+    /**
+     * A balance collected on board that was not, once the boat has sailed
+     * (Mike, 2026-09-25).
+     *
+     * For an operator who takes the balance on the day there is no due date,
+     * so nothing is overdue before departure; after it, whatever is still open
+     * is money somebody forgot to take or to record. It stays until it is paid.
+     * Same `balance:` key as an overdue balance, so the row takes a payment in
+     * place in the same way.
+     *
+     * @return list<AttentionItem>
+     */
+    private function unpaidAfterSailing(Carbon $now): array
+    {
+        $bookings = $this->unpaidAfterSailingQuery($now)
+            ->orderBy('starts_at_utc')
+            ->limit(self::SOURCE_LIMIT)
+            ->get();
+
+        return $bookings->map(fn (Booking $booking): AttentionItem => new AttentionItem(
+            key: 'balance:' . $booking->getKey(),
+            severity: AttentionSeverity::Warning,
+            title: (string) __('attention.unpaid_balance.title', ['reference' => $booking->reference]),
+            detail: (string) __('attention.unpaid_balance.detail', [
+                'guest' => $booking->guest_name,
+                'amount' => MoneyFormatter::format(
+                    $booking->balance_cents,
+                    null,
+                    MoneyFormatter::currency(),
+                ),
+            ]),
+            deadline: $this->local($booking->starts_at_utc),
             subject: $booking,
         ))->all();
     }
@@ -550,10 +588,29 @@ final class AttentionItems
             ->whereIn('status', [
                 BookingStatus::PendingPayment->value,
                 BookingStatus::Confirmed->value,
+                // The boat sailing does not settle the debt (2026-09-25): an
+                // overdue balance stays here, checked in or completed, until
+                // somebody records it paid.
+                BookingStatus::CheckedIn->value,
+                BookingStatus::Completed->value,
             ])
             ->where('balance_cents', '>', 0)
             ->whereNotNull('balance_due_at')
             ->where('balance_due_at', '<', $now);
+    }
+
+    /** @return Builder<Booking> */
+    private function unpaidAfterSailingQuery(Carbon $now): Builder
+    {
+        return Booking::query()
+            ->where('is_test', false)
+            ->whereIn('status', [
+                BookingStatus::Confirmed->value,
+                BookingStatus::CheckedIn->value,
+                BookingStatus::Completed->value,
+            ])
+            ->where('balance_cents', '>', 0)
+            ->where('starts_at_utc', '<', $now);
     }
 
     /** @return Builder<Quote> */
@@ -644,6 +701,12 @@ final class AttentionItems
 
         return Vessel::query()->whereNotNull('captain_name')->where('captain_name', '!=', '')->exists()
             || User::query()->where('tenant_id', $tenant->getKey())->where('specialty', CrewSpecialty::Captain->value)->exists();
+    }
+
+    /** Whether this operator takes the balance on the boat, on the day. */
+    private function collectsBalanceOnBoard(): bool
+    {
+        return Tenancy::current()?->collectsBalanceOnBoard() === true;
     }
 
     private function local(?Carbon $at): ?Carbon

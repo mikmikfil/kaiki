@@ -28,18 +28,28 @@
             <td style="padding:8px 0 4px;text-align:right;{{ $font }}font-weight:bold;">{{ $d->total }}</td>
         </tr>
     @endif
+    {{-- «Προκαταβολή» / «Υπόλοιπο» / «Έως» (2026-09-25): what was paid is a
+         deposit while something is left, and the date is a line of its own. --}}
     @if ($d->paid !== null)
         <tr>
-            <td style="padding:4px 0;{{ $font }}{{ $muted }}">{{ __('mail.common.paid') }}</td>
+            <td style="padding:4px 0;{{ $font }}{{ $muted }}">{{ $d->balance !== null ? __('mail.common.deposit_paid') : __('mail.common.paid') }}</td>
             <td style="padding:4px 0;text-align:right;{{ $font }}{{ $muted }}">{{ $d->paid }}</td>
         </tr>
     @endif
-    @if ($d->balance !== null)
+    @if ($d->balance !== null && $d->balanceOnBoard)
         <tr>
-            <td style="padding:4px 0;{{ $font }}font-weight:bold;">
-                {{ $d->balanceDue !== null ? __('mail.common.balance_due', ['date' => $d->balanceDue]) : __('mail.common.balance') }}
-            </td>
+            <td colspan="2" style="padding:4px 0;{{ $font }}font-weight:bold;">{{ __('mail.common.balance_on_board', ['amount' => $d->balance]) }}</td>
+        </tr>
+    @elseif ($d->balance !== null)
+        <tr>
+            <td style="padding:4px 0;{{ $font }}font-weight:bold;">{{ __('mail.common.balance') }}</td>
             <td style="padding:4px 0;text-align:right;{{ $font }}font-weight:bold;">{{ $d->balance }}</td>
         </tr>
+        @if ($d->balanceDue !== null)
+            <tr>
+                <td style="padding:4px 0;{{ $font }}{{ $muted }}">{{ __('mail.common.until') }}</td>
+                <td style="padding:4px 0;text-align:right;{{ $font }}{{ $muted }}">{{ $d->balanceDue }}</td>
+            </tr>
+        @endif
     @endif
 </table>

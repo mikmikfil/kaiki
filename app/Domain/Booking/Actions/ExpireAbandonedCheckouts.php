@@ -48,6 +48,11 @@ use Throwable;
  * {@see SeatCommitment::release()}, which floors at zero in SQL — so a second
  * run finds nothing to do rather than releasing the same seats twice.
  *
+ * ## A booking with money on it is never touched
+ *
+ * Checked under the lock, like the status: a pending booking that already has
+ * a succeeded payment — a deposit in cash, a part payment at the desk — stays.
+ *
  * ## A confirmed booking is never touched
  *
  * The query is `pending_payment` only. A webhook that arrived a second before
@@ -119,6 +124,14 @@ final class ExpireAbandonedCheckouts
                 // Re-checked under the lock, not in the selecting query: a
                 // webhook that landed between the two wins, and it should.
                 if ($locked->status !== BookingStatus::PendingPayment) {
+                    return false;
+                }
+
+                // Money is on it (2026-09-25): a deposit taken by hand, a part
+                // payment in cash. A booking somebody has paid for is not an
+                // abandoned checkout, whatever its card session did; expiring
+                // it would free seats a guest has paid to hold.
+                if (Payment::paidCentsFor($locked->getKey()) > 0) {
                     return false;
                 }
 

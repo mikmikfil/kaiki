@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Enums\AuditAction;
 use App\Enums\BookingStatus;
 use App\Enums\PaymentGatewayName;
 use App\Enums\Role;
 use App\Filament\App\Resources\BookingResource\Pages\ViewBooking;
+use App\Models\AuditLog;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Payment;
@@ -22,7 +24,7 @@ use Tests\Support\OperatorUser;
 |--------------------------------------------------------------------------
 |
 | `RecordManualPaymentTest` proves the action. This proves the operator can
-| reach it, that crew cannot, and that the button is not there on a booking with
+| reach it, that crew reach only the whole balance (since 2026-09-25), and that the button is not there on a booking with
 | nothing owing — a "record a payment" button on a settled booking is an
 | invitation to record a second one.
 |
@@ -104,35 +106,109 @@ it('hides the button when there is nothing owing', function (): void {
     bookingPageAs($user, $booking)->assertActionHidden('record_payment');
 });
 
-it('gives crew no way to record money', function (): void {
-    // TEN-8. Crew stand on the quay with a passenger list; they do not put
-    // entries in the operator's books.
-    $crew = OperatorUser::withRole(Role::Crew);
-
-    /*
-     * Deliberately a booking on **today's** departure.
-     *
-     * `CrewWindow` now narrows the bookings list to today and tomorrow, so a
-     * booking on any other date gives a crew member a 404 before the action is
-     * ever reached — and this test would pass while proving nothing about the
-     * button. The row filter and the action gate are two separate guarantees
-     * and this file owns the second: a booking a crew member *can* open, with a
-     * balance owing, and no way to settle it.
-     */
-    $booking = Tenancy::forTenant($crew->tenant, function (): Booking {
+/**
+ * A booking a crew member *can* open, with a balance owing.
+ *
+ * Deliberately on **today's** departure. `CrewWindow` narrows the bookings list
+ * to today and tomorrow, so a booking on any other date gives a crew member a
+ * 404 before the action is ever reached — and a test would pass while proving
+ * nothing about the button.
+ */
+function crewBookingOwing(User $crew): Booking
+{
+    return Tenancy::forTenant($crew->tenant, function (): Booking {
         $departure = Departure::factory()
             ->at(Carbon::now('Europe/Athens')->toDateString(), '09:00')
             ->create();
 
+        $booking = Booking::factory()->for($departure)->create([
+            'status' => BookingStatus::Confirmed,
+            'starts_at_utc' => $departure->starts_at_utc,
+            'ends_at_utc' => $departure->ends_at_utc,
+            'total_cents' => 12000,
+            'deposit_cents' => 3600,
+            'paid_cents' => 3600,
+            'balance_cents' => 8400,
+        ]);
+
+        // The deposit paid online. `paid_cents` is derived from payment rows
+        // (PAY-10), so the row has to exist for the balance to stay 8400.
+        Payment::factory()->deposit(3600)->create(['booking_id' => $booking->getKey()]);
+
+        return $booking;
+    });
+}
+
+it('gives crew the open balance to collect, and no other amount', function (): void {
+    // Reversed on 2026-09-25 (Mike, plan Β2). Until then this test was «gives
+    // crew no way to record money»: TEN-8 kept crew out of the books entirely.
+    // Operators who collect the balance on the boat need crew to say «paid», so
+    // crew now get «Πληρώθηκε» — the whole balance, cash or POS — and still not
+    // «Καταχώριση πληρωμής», which takes any amount and a bank transfer.
+    $crew = OperatorUser::withRole(Role::Crew);
+    $booking = crewBookingOwing($crew);
+
+    bookingPageAs($crew, $booking)
+        ->assertActionHidden('record_payment')
+        ->assertActionVisible('collect_balance')
+        ->callAction('collect_balance', ['gateway' => PaymentGatewayName::Pos->value])
+        ->assertHasNoActionErrors();
+
+    Tenancy::forTenant($crew->tenant, function () use ($booking, $crew): void {
+        $payment = Payment::query()->where('booking_id', $booking->getKey())->where('gateway', PaymentGatewayName::Pos->value)->sole();
+
+        expect($booking->refresh()->balance_cents)->toBe(0)
+            ->and($payment->amount_cents)->toBe(8400)
+            ->and($payment->gateway)->toBe(PaymentGatewayName::Pos)
+            // Who pressed it: the one corroboration cash on a boat has.
+            ->and(AuditLog::query()->where('action', AuditAction::PaymentRecorded->value)->value('user_id'))
+            ->toBe($crew->getKey());
+    });
+});
+
+it('shows an owner the full form, not the crew button', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+    $booking = crewBookingOwing($owner);
+
+    bookingPageAs($owner, $booking)
+        ->assertActionVisible('record_payment')
+        ->assertActionHidden('collect_balance');
+});
+
+it('still gives crew no refund and no cancel', function (): void {
+    $crew = OperatorUser::withRole(Role::Crew);
+    $booking = crewBookingOwing($crew);
+
+    // A refund is made by cancelling or by removing people, and both stay
+    // behind ManageBookings.
+    bookingPageAs($crew, $booking)
+        ->assertActionHidden('cancel_booking')
+        ->assertActionHidden('remove_guests')
+        ->assertActionHidden('record_payment');
+});
+
+it('gives crew no way to record money on a booking outside the boarding window', function (): void {
+    // TEN-8 as it was, for everything that is not today's boat.
+    $crew = OperatorUser::withRole(Role::Crew);
+
+    $booking = Tenancy::forTenant($crew->tenant, function (): Booking {
+        $departure = Departure::factory()
+            ->at(Carbon::now('Europe/Athens')->addDay()->toDateString(), '20:00')
+            ->create();
+
         return Booking::factory()->for($departure)->create([
             'status' => BookingStatus::Confirmed,
+            'starts_at_utc' => $departure->starts_at_utc,
+            'ends_at_utc' => $departure->ends_at_utc,
             'total_cents' => 12000,
             'paid_cents' => 0,
             'balance_cents' => 12000,
         ]);
     });
 
-    bookingPageAs($crew, $booking)->assertActionHidden('record_payment');
+    bookingPageAs($crew, $booking)
+        ->assertActionHidden('record_payment')
+        ->assertActionHidden('collect_balance');
 });
 
 it('refuses an amount larger than the balance, on the form', function (): void {

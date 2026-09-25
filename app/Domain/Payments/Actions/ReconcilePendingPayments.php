@@ -211,6 +211,11 @@ final class ReconcilePendingPayments
                 return null;
             }
 
+            if ($transaction->transactionId !== null && $payment->gateway_transaction_ref === null) {
+                // What a refund of this charge will need (2026-09-25).
+                $payment->forceFill(['gateway_transaction_ref' => $transaction->transactionId])->save();
+            }
+
             ($this->confirm)($payment, succeeded: $transaction->succeeded);
 
             Log::info('payments.reconciled', [

@@ -71,6 +71,11 @@ return [
 
     // A payment that arrived when the booking could no longer take it
     // (2026-09-25): expired, cancelled or already paid. Refunded to the card.
+    'unpaid_balance' => [
+        'title' => 'Unpaid balance · :reference',
+        'detail' => ':guest did not pay the :amount balance on board.',
+    ],
+
     'late_payment' => [
         'title' => 'Payment being refunded · :amount · :reference',
         'detail' => ':guest paid after the booking had expired, been cancelled or been paid in full. The money goes back to the card automatically.',

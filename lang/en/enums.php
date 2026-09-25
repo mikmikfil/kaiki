@@ -57,6 +57,11 @@ return [
         ],
     ],
 
+    'balance_collection' => [
+        'online' => ['label' => 'Online by card'],
+        'on_board' => ['label' => 'On board, on the day'],
+    ],
+
     'tenant_vertical' => [
         'boats' => ['label' => 'Boats'],
         'other' => ['label' => 'Other'],
@@ -546,6 +551,7 @@ return [
         'cash' => ['label' => 'Cash'],
         'bank_transfer' => ['label' => 'Bank transfer'],
         'pos' => ['label' => 'Card (POS)'],
+        'import' => ['label' => 'Imported (paid elsewhere)'],
     ],
 
     /*

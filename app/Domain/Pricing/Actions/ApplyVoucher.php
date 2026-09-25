@@ -140,6 +140,8 @@ final class ApplyVoucher
                 'total_cents' => max(0, $gross - $applied),
             ]);
 
+            $this->rewriteDeposit($booking);
+
             $booking->forceFill([
                 'balance_cents' => max(0, $booking->total_cents - $booking->paid_cents),
             ])->save();
@@ -164,9 +166,30 @@ final class ApplyVoucher
             'total_cents' => max(0, $booking->subtotal_cents + $booking->extras_cents - $codeCents),
         ]);
 
+        $this->rewriteDeposit($booking);
+
         $booking->forceFill([
             'balance_cents' => max(0, $booking->total_cents - $booking->paid_cents),
         ])->save();
+    }
+
+    /**
+     * PRC-25, the deposit after the voucher (2026-09-25): the total just moved,
+     * so the deposit follows it, as it does after a discount code. Only when
+     * the total moved — confirmation re-applies the same voucher to the same
+     * total, and must not touch what the guest was charged.
+     */
+    private function rewriteDeposit(Booking $booking): void
+    {
+        if (! $booking->isDirty('total_cents')) {
+            return;
+        }
+
+        $snapshot = is_array($booking->price_snapshot) ? $booking->price_snapshot : [];
+
+        $booking->forceFill([
+            'price_snapshot' => ApplyDiscountCode::rewriteDeposit($booking, $snapshot, (int) $booking->total_cents),
+        ]);
     }
 
     /** What a discount code already took off this booking (ApplyDiscountCode). */

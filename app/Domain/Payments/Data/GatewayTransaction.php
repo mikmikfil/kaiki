@@ -24,12 +24,19 @@ final readonly class GatewayTransaction
         public bool $succeeded,
         public bool $settled,
         public int $amountCents,
+        public ?string $transactionId = null,
     ) {}
 
-    /** The money is there. */
-    public static function paid(int $amountCents): self
+    /**
+     * The money is there.
+     *
+     * `$transactionId` is the gateway's id for the charge itself, as opposed
+     * to the order it was made against: a refund reverses the charge, so it is
+     * what the refund call needs (2026-09-25).
+     */
+    public static function paid(int $amountCents, ?string $transactionId = null): self
     {
-        return new self(succeeded: true, settled: true, amountCents: $amountCents);
+        return new self(succeeded: true, settled: true, amountCents: $amountCents, transactionId: $transactionId);
     }
 
     /** The attempt is over and the money is not coming. */

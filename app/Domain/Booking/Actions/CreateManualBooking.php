@@ -13,11 +13,13 @@ use App\Enums\PaymentGatewayName;
 use App\Enums\PaymentKind;
 use App\Enums\PaymentStatus;
 use App\Events\CapacityOverridden;
+use App\Events\ManualPaymentRecorded;
 use App\Exceptions\IllegalStateTransition;
 use App\Models\Booking;
 use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 /**
  * A booking taken on the phone or at a desk (spec BKG-30 to BKG-33).
@@ -54,6 +56,14 @@ use Illuminate\Support\Str;
  * excluded from reconciliation. {@see PaymentGatewayName::isExternal()} is what
  * excludes them, so the exclusion is a property of the row rather than a filter
  * somebody has to remember to write.
+ *
+ * ## Confirmed on a deposit, or on nothing yet (Mike, 2026-09-25)
+ *
+ * A phone booking is often not paid in full on the phone: the guest sends a
+ * deposit by transfer, or pays everything on the day. Both confirm the booking
+ * with an open balance, so it holds its seats and never expires; its due date
+ * follows the operator's setting ({@see ComputeBalanceDueAt}), which is none
+ * when the balance is collected on board.
  */
 final class CreateManualBooking
 {
@@ -67,6 +77,11 @@ final class CreateManualBooking
      * @param  ManualBookingAdjustment|null  $adjustment  BKG-31's discount or total override
      * @param  string|null  $capacityOverrideReason  BKG-32's explicit confirmation; null means the ordinary limits apply
      * @param  PaymentGatewayName|null  $paidBy  `cash` or `bank_transfer` to mark it paid at once (BKG-33)
+     * @param  int|null  $depositCents  a deposit taken now, less than the total; confirms with the rest open
+     * @param  PaymentGatewayName|null  $depositBy  how the deposit arrived: cash, POS or bank transfer
+     * @param  bool  $payOnTheDay  confirm with nothing paid; the guest pays everything on the day
+     *
+     * @throws ValidationException when the deposit is not a deposit
      */
     public function __invoke(
         BookingDraftData $data,
@@ -74,7 +89,15 @@ final class CreateManualBooking
         ?string $capacityOverrideReason = null,
         ?PaymentGatewayName $paidBy = null,
         BookingSource $source = BookingSource::Manual,
+        ?int $depositCents = null,
+        ?PaymentGatewayName $depositBy = null,
+        bool $payOnTheDay = false,
     ): Booking {
+        if ($depositCents !== null) {
+            // Before anything is written: a refused deposit leaves no draft.
+            $this->guardDeposit($depositCents, $depositBy);
+        }
+
         // The source is this Action's to set, not the caller's. A manual
         // booking that arrived claiming to be a widget booking would be
         // invisible in every report that separates the two — and
@@ -100,6 +123,10 @@ final class CreateManualBooking
 
         if ($paidBy !== null) {
             $booking = $this->markPaid($booking, $paidBy);
+        } elseif ($depositCents !== null) {
+            $booking = $this->takeDeposit($booking, $depositCents, $depositBy ?? PaymentGatewayName::Cash);
+        } elseif ($payOnTheDay) {
+            $booking = $this->confirmUnpaid($booking);
         }
 
         return $booking->refresh();
@@ -213,5 +240,89 @@ final class CreateManualBooking
         });
 
         return ($this->confirmBooking)($booking->refresh());
+    }
+
+    /**
+     * A deposit taken on the phone or at the desk, and the booking confirmed
+     * with the rest still open (2026-09-25).
+     *
+     * A `Deposit` row, because here it is one: the operator agreed with the
+     * guest how much now and how much later. {@see ConfirmBooking} then derives
+     * the money columns from the rows (PAY-10) and the due date from the
+     * operator's setting, as it does on every other confirmation.
+     */
+    private function takeDeposit(Booking $booking, int $depositCents, PaymentGatewayName $gateway): Booking
+    {
+        if (! $booking->status->canTransitionTo(BookingStatus::Confirmed)) {
+            throw IllegalStateTransition::forBooking($booking->status, BookingStatus::Confirmed);
+        }
+
+        if ($depositCents >= $booking->total_cents) {
+            // A "deposit" of the whole price is the whole price. The total is
+            // only known once the engine has priced the draft, so this is not a
+            // refusal: refusing here would leave a draft holding the seats.
+            return $this->markPaid($booking, $gateway);
+        }
+
+        $payment = DB::transaction(static function () use ($booking, $depositCents, $gateway): Payment {
+            $payment = new Payment;
+
+            $payment->forceFill([
+                'uuid' => (string) Str::uuid(),
+                'booking_id' => $booking->getKey(),
+                'gateway' => $gateway,
+                'kind' => PaymentKind::Deposit,
+                'amount_cents' => $depositCents,
+                'status' => PaymentStatus::Succeeded,
+                'idempotency_key' => (string) Str::uuid(),
+                'paid_at' => now(),
+            ])->save();
+
+            $booking->forceFill(['deposit_cents' => $depositCents])->save();
+
+            return $payment;
+        });
+
+        $booking = ($this->confirmBooking)($booking->refresh());
+
+        // The same audit row a payment recorded later leaves (BKG-33, AUD-1).
+        ManualPaymentRecorded::dispatch($booking, $depositCents, $gateway, $payment->uuid, null);
+
+        return $booking;
+    }
+
+    /**
+     * Confirmed with nothing paid: the guest pays on the day (2026-09-25).
+     *
+     * No payment row, because no money has arrived. The booking holds its
+     * seats as a confirmed one and so never expires; the whole total is the
+     * balance, collected on board or chased by the reminders, as the operator
+     * has set.
+     */
+    private function confirmUnpaid(Booking $booking): Booking
+    {
+        if (! $booking->status->canTransitionTo(BookingStatus::Confirmed)) {
+            throw IllegalStateTransition::forBooking($booking->status, BookingStatus::Confirmed);
+        }
+
+        $booking->forceFill(['deposit_cents' => 0])->save();
+
+        return ($this->confirmBooking)($booking->refresh());
+    }
+
+    /** @throws ValidationException */
+    private function guardDeposit(int $depositCents, ?PaymentGatewayName $gateway): void
+    {
+        if ($depositCents < 1) {
+            throw ValidationException::withMessages([
+                'deposit_amount' => [trans('bookings.payment.not_positive')],
+            ]);
+        }
+
+        if ($gateway !== null && ! in_array($gateway, [PaymentGatewayName::Cash, PaymentGatewayName::Pos, PaymentGatewayName::BankTransfer], true)) {
+            throw ValidationException::withMessages([
+                'deposit_by' => [trans('bookings.payment.wrong_gateway')],
+            ]);
+        }
     }
 }

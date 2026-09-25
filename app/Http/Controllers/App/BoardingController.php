@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\App;
 
 use App\Domain\Booking\Actions\CheckInGuest;
+use App\Domain\Booking\Actions\CollectBalanceOnBoard;
 use App\Enums\BookingStatus;
 use App\Exceptions\CheckInRefused;
 use App\Filament\App\Pages\CheckIn;
+use App\Filament\App\Support\CollectBalanceAction;
 use App\Models\Booking;
 use App\Models\BookingAnswer;
 use App\Models\BookingGuest;
@@ -182,7 +184,9 @@ class BoardingController
     /**
      * Everyone the crew might board today, by ticket code.
      *
-     * A name and a seat and nothing else. TEN-8 gives crew `ViewPaxList` and
+     * A name and a seat, and since 2026-09-25 one figure: «Οφείλει €X» on a
+     * booking with an open balance, for whoever may collect it on the boat
+     * (`CollectBalanceOnBoard`). Otherwise nothing. TEN-8 gives crew `ViewPaxList` and
      * `CheckInGuests` and explicitly not pricing, financials or documents — and
      * this payload sits in a phone's cache on a boat, which is the worst place
      * in the product for a document number to be. There is no case for one
@@ -204,14 +208,26 @@ class BoardingController
             ->get();
 
         $rows = [];
+        $user = Auth::user();
 
         foreach ($bookings as $booking) {
+            // «Οφείλει €X» (2026-09-25), once per booking: on the lead
+            // passenger, or the first ticketed one when nobody is marked lead.
+            // A figure only — recording it needs a signal, so the button is on
+            // the full page, which the footer links to.
+            $owes = CollectBalanceOnBoard::offeredTo($user instanceof User ? $user : null, $booking)
+                ? CollectBalanceAction::owes($booking)
+                : null;
+            $ticketed = $booking->guests->whereNotNull('ticket_code');
+            $owesOn = ($ticketed->firstWhere('is_lead', true) ?? $ticketed->sortBy('position')->first())?->getKey();
+
             foreach ($booking->guests as $guest) {
                 if ($guest->ticket_code === null) {
                     continue;
                 }
 
                 $rows[] = [
+                    'owes' => $guest->getKey() === $owesOn ? $owes : null,
                     'ticket_code' => $guest->ticket_code,
                     'name' => $guest->full_name ?? __('boarding.unnamed'),
                     'reference' => $booking->reference,

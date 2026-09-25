@@ -22,6 +22,7 @@ use App\Events\BookingCancelledByOperator;
 use App\Events\BookingGuestsRemoved;
 use App\Filament\App\Resources\BookingResource;
 use App\Filament\App\Resources\QuoteResource;
+use App\Filament\App\Support\CollectBalanceAction;
 use App\Models\Booking;
 use App\Models\Quote;
 use App\Support\Authorization\Capability;
@@ -168,6 +169,13 @@ class ViewBooking extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            // «Πληρώθηκε» (2026-09-25) for somebody who may collect the open
+            // balance on the boat and nothing more — crew. The whole balance,
+            // cash or POS, on a booking in the boarding window. Whoever holds
+            // ManageBookings has «Καταχώριση πληρωμής» below instead.
+            CollectBalanceAction::make('collect_balance', fn (array $arguments): Booking => $this->booking())
+                ->hidden(static fn (): bool => Auth::user()?->hasCapability(Capability::ManageBookings) ?? false),
+
             Action::make('record_payment')
                 ->label(__('bookings.payment.action'))
                 ->icon('heroicon-o-banknotes')

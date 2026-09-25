@@ -10,10 +10,14 @@ use App\Domain\Booking\Support\SeatCommitment;
 use App\Enums\BookingSource;
 use App\Enums\BookingStatus;
 use App\Enums\GuestDetailsStatus;
+use App\Enums\PaymentGatewayName;
+use App\Enums\PaymentKind;
+use App\Enums\PaymentStatus;
 use App\Events\BookingConfirmed;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Models\Departure;
+use App\Models\Payment;
 use Illuminate\Support\Str;
 
 /**
@@ -74,6 +78,10 @@ final class ImportBooking
     ): Booking {
         $product = $data->product;
         $bands = $product->ageBands;
+
+        // Never above the total: a `Payment` row carries this figure
+        // (2026-09-25), and a charge larger than the trip is not a payment.
+        $paidCents = max(0, min($paidCents, $totalCents));
 
         $pax = $data->paxByCode;
         $paxTotal = array_sum($pax);
@@ -152,6 +160,7 @@ final class ImportBooking
             ])->save();
 
             $this->createManifestRows($booking, $pax);
+            $this->recordPaidAtSource($booking, $paidCents);
 
             // An imported booking describes a trip somebody is actually going
             // on, so its seats are sold. Through the same statement every other
@@ -172,6 +181,40 @@ final class ImportBooking
 
             return $booking;
         });
+    }
+
+    /**
+     * The money already received at the source, as a `Payment` row
+     * (2026-09-25).
+     *
+     * PAY-10 derives `paid_cents` from rows, and an import that wrote the
+     * column alone broke every later write: a balance recorded in cash
+     * recomputed `paid_cents` from the rows and lost the imported part — the
+     * guest was chased for money they had paid — and a cancellation found no
+     * charge to lay the refund over. One succeeded row of
+     * {@see PaymentGatewayName::Import}, for exactly the column's figure. No
+     * event: it is written directly, so no invoice and no email follow
+     * (BKG-34), and it is not external, so nothing calls a gateway.
+     */
+    private function recordPaidAtSource(Booking $booking, int $paidCents): void
+    {
+        if ($paidCents < 1) {
+            return;
+        }
+
+        $payment = new Payment;
+
+        $payment->forceFill([
+            'uuid' => (string) Str::uuid(),
+            'booking_id' => $booking->getKey(),
+            'gateway' => PaymentGatewayName::Import,
+            'kind' => $paidCents >= $booking->total_cents ? PaymentKind::Full : PaymentKind::Deposit,
+            'amount_cents' => $paidCents,
+            'status' => PaymentStatus::Succeeded,
+            // PAY-9: minted though it deduplicates nothing, as for cash.
+            'idempotency_key' => (string) Str::uuid(),
+            'paid_at' => $booking->confirmed_at ?? now(),
+        ])->save();
     }
 
     /**

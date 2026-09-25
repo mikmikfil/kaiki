@@ -93,4 +93,22 @@ return [
         'unknown_ticket' => 'That ticket is not valid. Send the guest to the office.',
     ],
 
+    // «Owes €X» at boarding (2026-09-25). Crew record the whole balance only,
+    // in cash or on the POS; any other amount is the office's.
+    'balance' => [
+        'owes' => 'Owes :amount',
+        'action' => 'Paid',
+        'heading' => 'Paid :amount',
+        'description' => 'Booking :reference. It is recorded that you entered this.',
+        'how' => 'How did they pay?',
+        'confirm' => 'Record',
+        'done' => 'Recorded: :amount (:how).',
+        'refused' => [
+            'nothing_owed' => 'This booking owes nothing.',
+            'not_today' => 'This booking is not on today\'s departures. Send the guest to the office.',
+            'status' => 'This booking is not active. Send the guest to the office.',
+            'gateway' => 'Choose cash or POS.',
+        ],
+    ],
+
 ];

@@ -53,13 +53,21 @@ final class ComputeBalanceDueAt
 
     /**
      * @param  Carbon|null  $confirmedAt  when the booking confirmed; now by default
-     * @return Carbon|null null when there is nothing left to pay
+     * @return Carbon|null null when there is nothing left to pay, or it is paid on board
      */
     public function __invoke(Booking $booking, ?Carbon $confirmedAt = null): ?Carbon
     {
         if ($booking->balance_cents < 1) {
             // Paid in full. A due date on a settled booking would put it in the
             // reminder scheduler's query forever.
+            return null;
+        }
+
+        if (Tenant::query()->find($booking->tenant_id)?->collectsBalanceOnBoard() === true) {
+            // Paid on the boat, on the day (Mike, 2026-09-25): no due date, so
+            // no reminder and nothing overdue before departure. The balance
+            // itself stays on the booking; after departure an unpaid one is
+            // picked up by the attention list from `balance_cents` alone.
             return null;
         }
 

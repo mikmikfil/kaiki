@@ -206,6 +206,9 @@
         .who { min-width: 0; }
         .who b { display: block; font-size: .95rem; }
         .who span { font-size: .78rem; color: var(--soft); }
+        /* «Οφείλει €X» (2026-09-25): the one figure on the page, on the lead
+           passenger, in the warning colour so it is seen before the button. */
+        .who span.owes { display: block; font-size: .85rem; font-weight: 700; color: var(--warn); }
 
         /* One per name, for boarding without a ticket in hand — and the only
            control on the page for an operator without QR. 44px tall at least,
@@ -413,6 +416,12 @@
                 var answers = document.createElement('span');
                 answers.textContent = row.answers;
                 who.appendChild(answers);
+            }
+            if (row.owes) {
+                var owes = document.createElement('span');
+                owes.className = 'owes';
+                owes.textContent = row.owes;
+                who.appendChild(owes);
             }
 
             li.appendChild(who);

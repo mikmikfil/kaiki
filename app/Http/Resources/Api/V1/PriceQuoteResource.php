@@ -6,11 +6,16 @@ namespace App\Http\Resources\Api\V1;
 
 use App\Data\Pricing\PriceLineData;
 use App\Data\Pricing\PriceQuoteData;
+use App\Domain\Availability\LocalDateTimeResolver;
+use App\Domain\Booking\Actions\ComputeBalanceDueAt;
 use App\Domain\Catalog\Support\AgeBandResolver;
+use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Product;
+use App\Models\Tenant;
 use App\Support\Format\MoneyFormatter;
 use App\Support\Locale\TranslationValue;
+use Illuminate\Support\Carbon;
 
 /**
  * A server-computed price, as `docs/api.md`'s `PriceQuote` (spec PRC-1,
@@ -74,7 +79,7 @@ final class PriceQuoteResource
             'total_cents' => $snapshot->totalCents,
             'total_formatted' => MoneyFormatter::format($snapshot->totalCents, $locale, MoneyFormatter::currency()),
             'vat' => self::vat($snapshot->vat),
-            'deposit' => self::deposit($quote),
+            'deposit' => self::deposit($quote, $product, $departure, $window),
             // PRC-18 is M2, and the request refuses a voucher code rather than
             // ignoring one, so this is null rather than absent for the reason
             // the branding payload gives: a client that branches on presence
@@ -136,10 +141,15 @@ final class PriceQuoteResource
         ];
     }
 
-    /** @return array<string, mixed> */
-    private static function deposit(PriceQuoteData $quote): array
+    /**
+     * @param  array<string, mixed>|null  $window
+     * @return array<string, mixed>
+     */
+    private static function deposit(PriceQuoteData $quote, Product $product, ?Departure $departure, ?array $window): array
     {
         $deposit = $quote->snapshot->deposit;
+        $takesDeposit = $quote->depositCents > 0 && $quote->balanceCents > 0;
+        $onBoard = $takesDeposit && self::tenantOf($product)?->collectsBalanceOnBoard() === true;
 
         return [
             'type' => $deposit['type'] ?? 'none',
@@ -151,11 +161,74 @@ final class PriceQuoteResource
                 MoneyFormatter::currency(),
             ),
             'balance_cents' => $quote->balanceCents,
-            // The balance policy is M2's, with the booking it is due against.
-            // Null is the contract's own answer for "the deposit model does not
-            // apply", and no balance is due until there is a booking.
-            'balance_due_at' => null,
+            // Formatted by the server for the same reason the total is: the
+            // widget computes nothing (WGT-13), so «€Y αργότερα» needs Y ready.
+            'balance_formatted' => MoneyFormatter::format(
+                $quote->balanceCents,
+                app()->getLocale(),
+                MoneyFormatter::currency(),
+            ),
+            // When the balance would fall due for a booking confirmed now
+            // (2026-09-25), by the same rule a confirmed booking gets. Null
+            // with no deposit, and null when it is paid on the boat.
+            'balance_due_at' => $takesDeposit && ! $onBoard
+                ? self::balanceDueAt($quote, $product, $departure, $window)?->toIso8601ZuluString()
+                : null,
+            // Paid on the boat, on the day (`tenants.balance_collection`): the
+            // widget then says «στο σκάφος» rather than «αργότερα».
+            'balance_on_board' => $onBoard,
         ];
+    }
+
+    /**
+     * {@see ComputeBalanceDueAt}, asked about a booking that does not exist yet.
+     *
+     * An unsaved booking with exactly what the Action reads: the operator, the
+     * departure instant, the rate plan the price came from and a balance. The
+     * rule then has one home, and the quote cannot promise a date the booking
+     * will not get.
+     *
+     * @param  array<string, mixed>|null  $window
+     */
+    private static function balanceDueAt(PriceQuoteData $quote, Product $product, ?Departure $departure, ?array $window): ?Carbon
+    {
+        $startsAt = $departure->starts_at_utc ?? self::windowStart($product, $window);
+
+        if (! $startsAt instanceof Carbon) {
+            return null;
+        }
+
+        $probe = new Booking;
+        $probe->forceFill([
+            'tenant_id' => $product->tenant_id,
+            'starts_at_utc' => $startsAt,
+            'price_snapshot' => ['rate_plan_id' => $quote->snapshot->ratePlanId],
+            'balance_cents' => $quote->balanceCents,
+        ]);
+
+        return app(ComputeBalanceDueAt::class)($probe, Carbon::now());
+    }
+
+    /**
+     * A charter's start, from the window's local date and time.
+     *
+     * @param  array<string, mixed>|null  $window
+     */
+    private static function windowStart(Product $product, ?array $window): ?Carbon
+    {
+        $date = $window['local_date'] ?? null;
+        $time = $window['local_time'] ?? null;
+
+        if (! is_string($date) || $date === '' || ! is_string($time) || $time === '') {
+            return null;
+        }
+
+        return LocalDateTimeResolver::resolveForTenant($date, $time, self::tenantOf($product))->instant;
+    }
+
+    private static function tenantOf(Product $product): ?Tenant
+    {
+        return Tenant::query()->find($product->tenant_id);
     }
 
     /**

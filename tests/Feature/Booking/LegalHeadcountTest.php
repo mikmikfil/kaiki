@@ -297,6 +297,7 @@ it('refuses a party outside the trip bounds in the panel', function (): void {
                     'pax' => [['code' => 'adult', 'qty' => $qty]],
                     'guest_name' => 'Γιώργος Παπαδάκης',
                     'guest_email' => 'giorgos@example.gr',
+                    'payment' => 'on_the_day',
                 ])
                 ->call('create')
                 ->assertNotified($rejection->sentenceIn(app()->getLocale(), $product->fresh()));

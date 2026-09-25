@@ -232,6 +232,7 @@ export function useSettled(active: boolean): boolean {
  */
 export function Peek({
   price,
+  split = null,
   summary,
   action,
   ready,
@@ -239,6 +240,8 @@ export function Peek({
   onToggle,
 }: {
   readonly price: string;
+  /** «€X τώρα, €Y αργότερα» under the total, when there is a deposit. */
+  readonly split?: string | null;
   readonly summary: string;
   readonly action: string;
   readonly ready: boolean;
@@ -276,6 +279,7 @@ export function Peek({
 
       <span class="kaiki-peek-text">
         <span class="kaiki-peek-price">{price}</span>
+        {split !== null ? <span class="kaiki-peek-split">{split}</span> : null}
         <span class="kaiki-peek-summary">{summary}</span>
       </span>
 

@@ -779,6 +779,25 @@ const BASE_STYLES = `
   line-height: 1.2;
 }
 
+/* «€X τώρα, €Y αργότερα» under the total (2026-09-25), when the operator
+   takes a deposit. The text colour, not the secondary grey: it is money. */
+.kaiki-peek-split,
+.kaiki-split {
+  display: block;
+  font-size: .82rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.kaiki-peek-split {
+  margin-top: .05rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kaiki-split { margin: 1rem 0 0; }
+
 .kaiki-peek-summary {
   display: block;
   margin-top: .05rem;
@@ -1011,7 +1030,9 @@ const BASE_STYLES = `
 .kaiki-total .kaiki-muted,
 .kaiki-time-left,
 .kaiki-card .kaiki-facts,
-.kaiki-peek-summary { font-size: .8125rem; }
+.kaiki-peek-summary,
+.kaiki-peek-split,
+.kaiki-split { font-size: .8125rem; }
 .kaiki-lines,
 .kaiki-peek-action { font-size: .9375rem; }
 .kaiki-peek-price { font-size: 1.125rem; }
