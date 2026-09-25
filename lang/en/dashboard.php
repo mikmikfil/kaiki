@@ -108,6 +108,11 @@ return [
             'scan' => 'Scan tickets',
             'board' => 'Boarding list',
         ],
+        'actions' => [
+            'scan_hint' => 'Opens the camera',
+            'board_hint' => 'Tick off names',
+            'sell_hint' => ':time · :count seat free|:time · :count seats free',
+        ],
         'boxes' => [
             'departures' => 'Departures',
             'departures_today' => ':count today|:count today',

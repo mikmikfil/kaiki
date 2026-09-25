@@ -241,6 +241,112 @@ it('sends «Σάρωση εισιτηρίων» to the boarding page with the ca
         ->assertSee(route('filament.app.boarding', ['camera' => 1]), escape: false);
 })->group('fast');
 
+/**
+ * Where the home page's action tiles are: which ones, in what order, whether
+ * any sits inside the blue card, and whether they come before it.
+ *
+ * @return array{keys: list<string>, inside_card: int, before_card: bool, one: bool}
+ */
+function dayTiles(string $html): array
+{
+    $dom = new DOMDocument;
+    @$dom->loadHTML('<?xml encoding="utf-8"?>' . $html);
+    $xpath = new DOMXPath($dom);
+
+    $keys = [];
+
+    foreach ($xpath->query('//a[@data-action]') ?: [] as $node) {
+        if ($node instanceof DOMElement) {
+            $keys[] = $node->getAttribute('data-action');
+        }
+    }
+
+    $card = (int) strpos($html, 'class="kd-next"');
+    $tiles = strpos($html, 'kd-acts');
+
+    return [
+        'keys' => $keys,
+        'inside_card' => (int) $xpath->query('//div[@class="kd-next"]//a[@data-action]')?->length,
+        'before_card' => $tiles !== false && $tiles < $card,
+        'one' => (int) $xpath->query('//div[contains(@class, "kd-acts") and contains(@class, "is-one")]')?->length === 1,
+    ];
+}
+
+it('puts «Σάρωση» and «Πώληση τώρα» in two tiles under the card, not inside it', function (): void {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $owner = homeOwner();
+    $owner->tenant->forceFill(['check_in_enabled' => true, 'qr_check_in_enabled' => true])->save();
+    tenancy()->initialize($owner->tenant);
+
+    $free = Departure::query()->firstOrFail()->seatsAvailable();
+
+    // Mike, 2026-09-25, direction Α: the card is information only.
+    $html = Livewire::actingAs($owner)
+        ->test(DayByBoat::class)
+        ->assertOk()
+        ->assertSee(__('dashboard.home.actions.scan_hint'))
+        ->assertSee(__('calendar.sell.title'))
+        // The sale says which sailing it is for.
+        ->assertSee(trans_choice('dashboard.home.actions.sell_hint', $free, ['time' => '18:00', 'count' => $free]))
+        ->html();
+
+    expect(dayTiles($html))->toBe([
+        'keys' => ['scan', 'sell'],
+        'inside_card' => 0,
+        'before_card' => false,
+        'one' => false,
+    ]);
+})->group('fast');
+
+it('names the list tile «Λίστα επιβίβασης» when the QR scanner is off', function (): void {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $owner = homeOwner();
+    $owner->tenant->forceFill(['check_in_enabled' => true, 'qr_check_in_enabled' => false])->save();
+    tenancy()->initialize($owner->tenant);
+
+    $html = Livewire::actingAs($owner)
+        ->test(DayByBoat::class)
+        ->assertSee(__('dashboard.home.next.board'))
+        ->assertSee(__('dashboard.home.actions.board_hint'))
+        ->assertDontSee(__('dashboard.home.actions.scan_hint'))
+        ->html();
+
+    expect(dayTiles($html)['keys'])->toBe(['scan', 'sell'])
+        ->and(dayTiles($html)['inside_card'])->toBe(0);
+})->group('fast');
+
+it('leaves the sale alone, across the row, when boarding is switched off', function (): void {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $owner = homeOwner();
+    $owner->tenant->forceFill(['check_in_enabled' => false])->save();
+    tenancy()->initialize($owner->tenant);
+
+    $html = Livewire::actingAs($owner)->test(DayByBoat::class)->html();
+
+    expect(dayTiles($html))->toMatchArray(['keys' => ['sell'], 'one' => true]);
+})->group('fast');
+
+it('drops the sale and keeps the scan across the row with no departure this week', function (): void {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $owner = OperatorUser::withRole(Role::Owner, Tenant::factory()->create(['timezone' => 'Europe/Athens']));
+    $owner->tenant->forceFill(['check_in_enabled' => true, 'qr_check_in_enabled' => true])->save();
+    tenancy()->initialize($owner->tenant);
+
+    $html = Livewire::actingAs($owner)
+        ->test(DayByBoat::class)
+        ->assertOk()
+        ->assertSee(__('dashboard.home.next.none'))
+        ->assertDontSee(__('calendar.sell.title'))
+        ->html();
+
+    expect(dayTiles($html))->toBe([
+        'keys' => ['scan'],
+        'inside_card' => 0,
+        'before_card' => false,
+        'one' => true,
+    ]);
+})->group('fast');
+
 it('greets with the name as given, or without one when it is blank', function (?string $name, string $morning, string $hello): void {
     app()->setLocale('el');
 

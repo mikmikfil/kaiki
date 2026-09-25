@@ -104,6 +104,11 @@ return [
             'scan' => 'Σάρωση εισιτηρίων',
             'board' => 'Λίστα επιβίβασης',
         ],
+        'actions' => [
+            'scan_hint' => 'Ανοίγει την κάμερα',
+            'board_hint' => 'Τσεκάρετε ονόματα',
+            'sell_hint' => ':time · :count ελεύθερη|:time · :count ελεύθερες',
+        ],
         'boxes' => [
             'departures' => 'Αναχωρήσεις',
             'departures_today' => ':count σήμερα|:count σήμερα',

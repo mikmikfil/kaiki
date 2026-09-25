@@ -40,10 +40,14 @@ it('gives crew a home of the scan button, the next boat and today by boat', func
         ->assertSuccessful()
         ->assertSee(__('panel.nav.scan'));
 
-    // The widget loads after the page, so it is asked on its own.
-    Livewire::actingAs($crew)->test(DayByBoat::class)
-        ->assertSeeHtml('class="kd-scan"')
-        ->assertDontSeeHtml('class="kd-box"');
+    // The widget loads after the page, so it is asked on its own. The scan is
+    // a tile above the card (2026-09-25), still the first thing they see.
+    $html = Livewire::actingAs($crew)->test(DayByBoat::class)
+        ->assertSeeHtml('data-action="scan"')
+        ->assertDontSeeHtml('class="kd-box"')
+        ->html();
+
+    expect(strpos($html, 'data-action="scan"'))->toBeLessThan(strpos($html, 'class="kd-next"'));
 })->group('fast');
 
 it('leaves the owner their home, and adds the scan to their menu too', function (): void {
@@ -59,9 +63,13 @@ it('leaves the owner their home, and adds the scan to their menu too', function 
         ->assertSuccessful()
         ->assertSee(__('panel.nav.scan'));
 
-    Livewire::actingAs($owner)->test(DayByBoat::class)
-        ->assertDontSeeHtml('class="kd-scan"')
-        ->assertSeeHtml('class="kd-box"');
+    // The owner's tiles come after the card, not before it.
+    $html = Livewire::actingAs($owner)->test(DayByBoat::class)
+        ->assertSeeHtml('data-action="scan"')
+        ->assertSeeHtml('class="kd-box"')
+        ->html();
+
+    expect(strpos($html, 'data-action="scan"'))->toBeGreaterThan(strpos($html, 'class="kd-next"'));
 })->group('fast');
 
 it('shows crew the next departure they sail, with their role, ahead of an earlier one', function (): void {

@@ -26,8 +26,9 @@ use Livewire\Attributes\On;
  * Three parts, in the order an operator's morning asks for them:
  *
  * 1. **The next departure**, in the panel's deep blue: when, which trip, which
- *    boat and quay, how many are aboard, and the boarding button under the
- *    thumb.
+ *    boat and quay, how many are aboard. Information only: «Σάρωση
+ *    εισιτηρίων» and «Πώληση τώρα» are two white tiles right under it
+ *    (2026-09-25), and above it for crew, whose first job is the scan.
  * 2. **Four boxes**, one question each: Αναχωρήσεις today, new Κρατήσεις,
  *    the Ημερολόγιο, and Προσοχή — the to-do items listed further down the page.
  *    Each box says its one number in words.
@@ -139,7 +140,45 @@ class DayByBoat extends Widget
             'sell_url' => $this->canSell() && $departure->status->isSellable()
                 ? Calendar::getUrl(['action' => 'sell', 'actionArguments' => ['departure' => (string) $departure->uuid]])
                 : null,
+            'free' => $departure->seatsAvailable(),
         ];
+    }
+
+    /**
+     * The two action tiles under the next departure's card (Mike, 2026-09-25,
+     * direction Α of docs/mockups/dashboard-quick-actions.html): the card only
+     * says what is leaving; boarding and the sale sit under it, white, one
+     * line each. Scan first, sell second; either may be missing, and one alone
+     * takes the whole row.
+     *
+     * The sale says which sailing it is for — «08:30 · 40 ελεύθερες» — since
+     * it opens the sale of the card's departure and no other.
+     *
+     * @param  array<string, mixed>|null  $next  {@see getNext()}
+     * @param  array{url: string, label: string, hint: string, icon: string}|null  $boarding  {@see getBoarding()}
+     * @return list<array{key: string, url: string, label: string, hint: string, icon: string}>
+     */
+    public static function actions(?array $next, ?array $boarding): array
+    {
+        $actions = [];
+
+        if ($boarding !== null) {
+            $actions[] = ['key' => 'scan'] + $boarding;
+        }
+
+        if ($next !== null && is_string($next['sell_url'] ?? null)) {
+            $free = (int) $next['free'];
+
+            $actions[] = [
+                'key' => 'sell',
+                'url' => $next['sell_url'],
+                'label' => __('calendar.sell.title'),
+                'hint' => trans_choice('dashboard.home.actions.sell_hint', $free, ['time' => $next['time'], 'count' => $free]),
+                'icon' => 'heroicon-o-currency-euro',
+            ];
+        }
+
+        return $actions;
     }
 
     private function canSell(): bool
@@ -156,7 +195,7 @@ class DayByBoat extends Widget
      * boarding off, no button at all; boarding on but QR off, the passenger
      * list and never «Σάρωση».
      *
-     * @return array{url: string, label: string, icon: string}|null
+     * @return array{url: string, label: string, hint: string, icon: string}|null
      */
     public function getBoarding(): ?array
     {
@@ -174,6 +213,7 @@ class DayByBoat extends Widget
             // (Mike, 2026-09-23). The list is still the Filament page.
             'url' => $qr ? route('filament.app.boarding', ['camera' => 1]) : CheckIn::getUrl(),
             'label' => $qr ? __('dashboard.home.next.scan') : __('dashboard.home.next.board'),
+            'hint' => $qr ? __('dashboard.home.actions.scan_hint') : __('dashboard.home.actions.board_hint'),
             'icon' => $qr ? 'heroicon-o-qr-code' : 'heroicon-o-list-bullet',
         ];
     }
