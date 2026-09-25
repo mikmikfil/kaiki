@@ -36,10 +36,9 @@
 @endphp
 
 @if ($port)
-    <section @class(['block', 'band', 'meeting-block', 'has-image' => $port->photo_url !== null])>
-        @if ($port->photo_url)
-            <img class="meeting-photo" src="{{ $port->photo_url }}" alt="" loading="lazy">
-        @endif
+    {{-- No photograph of the port any more (Mike, 25/9: «remove photo from
+         ports»): the card, the map link and the instructions say where. --}}
+    <section class="block band meeting-block">
 
         <div class="meeting-card">
             @if ($block->eyebrow)

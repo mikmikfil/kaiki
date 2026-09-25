@@ -147,7 +147,6 @@ return [
         'sections' => [
             'identity' => 'The place',
             'location' => 'Finding it',
-            'media' => 'Photo',
         ],
 
         'form' => [
@@ -171,10 +170,6 @@ return [
             'maps_url' => [
                 'label' => 'Map link',
                 'help' => 'Optional. Use it when the address alone puts the pin in the wrong place.',
-            ],
-            'photo_path' => [
-                'label' => 'Photo',
-                'help' => 'A picture of the meeting point helps guests recognise it.',
             ],
             'is_active' => [
                 'label' => 'Active',

@@ -358,8 +358,6 @@ class BuildHomePage
         $port = is_numeric($id) ? Port::query()->where('is_active', true)->find((int) $id) : null;
         $port ??= Port::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->first();
 
-        $port?->setAttribute('photo_url', HostedAsset::url($port->photo_path));
-
         return $port;
     }
 

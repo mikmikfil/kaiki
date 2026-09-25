@@ -9,7 +9,6 @@ use App\Filament\Forms\TranslatableInput;
 use App\Filament\Support\MoreActions;
 use App\Models\Port;
 use Filament\Forms\Components\Component;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -148,25 +147,6 @@ class PortResource extends Resource
                 ])
                 ->columns(2),
 
-            Section::make(__('catalog.port.sections.media'))
-                ->icon('heroicon-o-photo')
-                ->schema([
-                    // A path column, not a media row (ADR-0021 Option A). No
-                    // resizing here: conversions arrive with StoreUploadedImage
-                    // in #17, and this issue is explicitly scoped to storing a
-                    // path.
-                    FileUpload::make('photo_path')
-                        ->label(__('catalog.port.form.photo_path.label'))
-                        ->helperText(__('catalog.port.form.photo_path.help'))
-                        ->image()
-                        // The disk `GET /api/v1/products` builds URLs from (#36).
-                        // Filament's default follows `FILESYSTEM_DISK`, which is
-                        // `local` — a disk that cannot produce a URL at all, so the
-                        // API returned nothing for every image the panel uploaded.
-                        ->disk((string) config('kaiki.catalog.uploads.disk'))
-                        ->directory('ports')
-                        ->maxSize(5120),
-                ]),
         ];
     }
 
