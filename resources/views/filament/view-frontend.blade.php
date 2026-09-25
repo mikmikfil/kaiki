@@ -11,10 +11,11 @@
     recognises it and can read it out to a customer, and an arrow that says it
     opens elsewhere.
 
-    **It is absent rather than dead when there is nothing to see.** HOS-6 lets an
-    operator switch their hosted pages off, and the page is a 404 then; a card
-    leading to a "not found" teaches an operator the feature is broken rather
-    than switched off. `$url` is null in that case and nothing renders.
+    **Two destinations, one card.** With a home page it is «Η σελίδα σας» and
+    leads there; without one (*bookings only*) it is «Οι εκδρομές σας» and leads
+    to the search page, because `/{operator}` is a 404 for them (2026-09-25).
+    The provider picks `$url`, `$label` and `$title`; `$url` is null only for
+    the crew and outside a tenant, and nothing renders then.
 
     **A scoped `<style>` rather than utility classes**, the same reasoning the
     locale switcher records: Filament ships a precompiled stylesheet built from
@@ -34,7 +35,7 @@
         target="_blank"
         rel="noopener"
         class="kaiki-view-frontend"
-        title="{{ __('panel.view_frontend.title') }}"
+        title="{{ $title }}"
     >
         <span class="kaiki-view-frontend-icon" aria-hidden="true">
             {{-- Inline, because an icon component Filament has not compiled is
@@ -47,7 +48,7 @@
 
         <span class="kaiki-view-frontend-text">
             <span class="kaiki-view-frontend-label">
-                {{ __('panel.view_frontend.label') }}
+                {{ $label }}
                 <span class="kaiki-view-frontend-live" role="img" aria-label="{{ __('panel.view_frontend.live') }}"></span>
             </span>
             <span class="kaiki-view-frontend-address">{{ $address }}</span>
