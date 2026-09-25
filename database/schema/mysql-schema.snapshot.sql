@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:da5749c8f6961983ade02ecb355d85849ffc1dc13cf1bb9333849be5fbaa93ab
+-- migrations-fingerprint: sha256:30e2612500abbb02b9f18e633023667fb0ec7da960fc7530f52cb52b72cc0f00
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -1470,6 +1470,7 @@ CREATE TABLE `tenants` (
   `deleted_at` timestamp NULL DEFAULT NULL,
   `balance_due_days_before_departure` smallint unsigned DEFAULT '14',
   `weather_choice_default` varchar(16) COLLATE utf8mb4_unicode_ci DEFAULT 'refund',
+  `balance_collection` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'online',
   PRIMARY KEY (`id`),
   UNIQUE KEY `tenants_uuid_unique` (`uuid`),
   UNIQUE KEY `tenants_slug_unique` (`slug`),
@@ -1804,3 +1805,4 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (89,'2026_09_24_130
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (90,'2026_09_24_140000_add_crew_to_schedule_rules',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (91,'2026_09_24_150000_add_about_page',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (92,'2026_09_25_120000_add_crew_names_to_departures_and_schedule_rules',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (93,'2026_09_25_130000_add_balance_collection_to_tenants',1);
