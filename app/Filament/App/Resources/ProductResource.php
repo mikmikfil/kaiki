@@ -333,7 +333,8 @@ class ProductResource extends Resource
     }
 
     /**
-     * Tab 1 — what the trip is: its name, its address, its boat, how it sells.
+     * Tab 1 — what the trip is: its name, its address, how it sells. The boat
+     * is on «Πότε φεύγει» since 25/9.
      *
      * @return array<int, Component>
      */
@@ -374,25 +375,6 @@ class ProductResource extends Resource
                         ->validationMessages([
                             'unique' => __('catalog.product.form.slug.taken'),
                         ]),
-
-                    Select::make('vessel_id')
-                        ->label(__('catalog.product.form.vessel.label'))
-                        ->helperText(__('catalog.product.form.vessel.help'))
-                        ->options(static::vesselOptions(...))
-                        ->searchable()
-                        ->live()
-                        ->preload(),
-
-                    // A professional pleasure boat is chartered whole, on the
-                    // reading of ν. 4926/2022 the lawyer is still to confirm —
-                    // so selling one per seat is said, not refused (2026-09-24).
-                    Placeholder::make('licence_warning')
-                        ->hiddenLabel()
-                        ->content(__('catalog.product.form.vessel.pleasure_per_seat'))
-                        ->extraAttributes(['class' => 'ka-warning-note'])
-                        ->columnSpanFull()
-                        ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat
-                            && static::vesselLicence($get) === VesselLicence::ProfessionalPleasure),
 
                     Select::make('category')
                         ->label(__('catalog.product.form.category.label'))
@@ -441,8 +423,8 @@ class ProductResource extends Resource
     }
 
     /**
-     * Tab 2 — when it leaves: how long, how early to be there, how many fit,
-     * and the timetable that generates the departures.
+     * Tab 2 — when it leaves: how long, how early to be there, on which boat,
+     * how many fit, and the timetable that generates the departures.
      *
      * @return array<int, Component>
      */
@@ -546,6 +528,36 @@ class ProductResource extends Resource
                         ->seconds(false)
                         ->native(false)
                         ->visible(static fn (Get $get): bool => (bool) $get('flexible_start')),
+                ])
+                ->columns(2),
+
+            // «Συνήθες σκάφος» (Mike, 25/9): moved here from «Βασικά». Each
+            // schedule in «Δρομολόγια» can name a boat of its own, and a rule
+            // that names none sails this one — so it is asked beside the
+            // timetable, and above «Μέγιστα άτομα», whose ceiling it sets.
+            // `live()` because the max_pax help line and cap read it unsaved.
+            Section::make(__('catalog.product.sections.vessel'))
+                ->icon('heroicon-o-lifebuoy')
+                ->schema([
+                    Select::make('vessel_id')
+                        ->label(__('catalog.product.form.vessel.label'))
+                        ->helperText(__('catalog.product.form.vessel.help'))
+                        ->options(static::vesselOptions(...))
+                        ->searchable()
+                        ->live()
+                        ->afterStateUpdated(static::followVesselCapacity(...))
+                        ->preload(),
+
+                    // A professional pleasure boat is chartered whole, on the
+                    // reading of ν. 4926/2022 the lawyer is still to confirm —
+                    // so selling one per seat is said, not refused (2026-09-24).
+                    Placeholder::make('licence_warning')
+                        ->hiddenLabel()
+                        ->content(__('catalog.product.form.vessel.pleasure_per_seat'))
+                        ->extraAttributes(['class' => 'ka-warning-note'])
+                        ->columnSpanFull()
+                        ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat
+                            && static::vesselLicence($get) === VesselLicence::ProfessionalPleasure),
                 ])
                 ->columns(2),
 
@@ -1048,8 +1060,9 @@ class ProductResource extends Resource
      * @var array<string, list<string>>
      */
     public const TAB_REQUIREMENTS = [
-        'basics' => [ProductPublishChecklist::VESSEL, ProductPublishChecklist::TITLE_LOCALES],
-        'when' => [ProductPublishChecklist::MEETING_POINT],
+        'basics' => [ProductPublishChecklist::TITLE_LOCALES],
+        // The boat is chosen on «Πότε φεύγει» since 25/9, above «Πόσα άτομα».
+        'when' => [ProductPublishChecklist::VESSEL, ProductPublishChecklist::MEETING_POINT],
         'prices' => [ProductPublishChecklist::AGE_BANDS, ProductPublishChecklist::RATE_PLAN, ProductPublishChecklist::PRICES],
         'terms' => [ProductPublishChecklist::CANCELLATION_POLICY],
     ];
@@ -1556,6 +1569,31 @@ class ProductResource extends Resource
                 'capacity' => $vessel->capacity_max,
             ])
             : __('catalog.product.form.max_pax.help');
+    }
+
+    /**
+     * «Μέγιστα άτομα» follows the boat while it is still the default.
+     *
+     * A draft made without a boat starts at 1 (25/9: the boat is chosen on
+     * «Πότε φεύγει» now, after the draft exists). Choosing one should not leave
+     * a trip for one person; but a number the operator typed is theirs, so it
+     * is replaced only while it is blank, 1 with no boat before, or exactly the
+     * previous boat's certificate.
+     */
+    public static function followVesselCapacity(Get $get, Set $set, mixed $state, mixed $old): void
+    {
+        $capacity = is_numeric($state) ? Vessel::query()->whereKey((int) $state)->value('capacity_max') : null;
+
+        if ($capacity === null) {
+            return;
+        }
+
+        $current = $get('max_pax');
+        $default = is_numeric($old) ? Vessel::query()->whereKey((int) $old)->value('capacity_max') : 1;
+
+        if ($current === null || $current === '' || (is_numeric($current) && (int) $current === (int) $default)) {
+            $set('max_pax', (int) $capacity);
+        }
     }
 
     /** @return array<int, string> */

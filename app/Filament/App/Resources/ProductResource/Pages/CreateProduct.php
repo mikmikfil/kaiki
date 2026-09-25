@@ -17,6 +17,9 @@ use Filament\Resources\Pages\CreateRecord;
 /**
  * «Νέα εκδρομή»: the «Βασικά» tab, then the trip's own page.
  *
+ * The boat is not on «Βασικά» since 25/9: it is «Συνήθες σκάφος» on «Πότε
+ * φεύγει». A single-boat operator's draft is put on that boat silently.
+ *
  * ## One form, not two (Mike, 25/9)
  *
  * *«Πιστεύω έχει γίνει μπέρδεμα με την πρώτη δημιουργία εκδρομής και την
@@ -85,8 +88,8 @@ class CreateProduct extends CreateRecord
      * A draft with what the edit page would otherwise show empty.
      *
      * The columns a trip cannot be stored without get the defaults the wizard
-     * used to offer — the boat's certificate for «Μέγιστα άτομα», three hours,
-     * half an hour's check-in — and a per-seat trip gets the usual three age
+     * used to offer — the boat's certificate for «Μέγιστα άτομα» (1 until a
+     * boat is chosen), three hours, half an hour's check-in — and a per-seat trip gets the usual three age
      * bands, so «Τιμές» opens with rows to price rather than a blank list.
      * All of it is on the next tabs to change.
      *
@@ -95,9 +98,12 @@ class CreateProduct extends CreateRecord
     protected function handleRecordCreation(array $data): Product
     {
         $data['status'] = ProductStatus::Draft->value;
+        $data['vessel_id'] ??= $this->onlyVesselId();
 
         if (($data['max_pax'] ?? null) === null || $data['max_pax'] === '') {
-            $data['max_pax'] = (int) (Vessel::query()->whereKey($data['vessel_id'] ?? null)->value('capacity_max') ?? 1);
+            $data['max_pax'] = $data['vessel_id'] === null
+                ? 1
+                : (int) (Vessel::query()->whereKey($data['vessel_id'])->value('capacity_max') ?? 1);
         }
 
         $data['duration_minutes'] ??= 180;
@@ -110,5 +116,21 @@ class CreateProduct extends CreateRecord
         }
 
         return $this->saveProductWithBands(new Product, $data);
+    }
+
+    /**
+     * The operator's boat, when they have exactly one.
+     *
+     * The boat is not asked here since 25/9 — it is «Συνήθες σκάφος» on
+     * «Πότε φεύγει», beside the timetable whose rules inherit it. An operator
+     * with one boat has nothing to choose, so the draft is put on it and
+     * «Μέγιστα άτομα» starts at its certificate; with two or more the draft
+     * has none, and the tab's «λείπει» badge says so until one is chosen.
+     */
+    private function onlyVesselId(): ?int
+    {
+        $ids = Vessel::query()->limit(2)->pluck('id');
+
+        return $ids->count() === 1 ? (int) $ids->first() : null;
     }
 }

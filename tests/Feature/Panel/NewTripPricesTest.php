@@ -43,13 +43,16 @@ it('keeps the prices and the period typed on a new trip, with the bands the crea
 
     tenancy()->initialize($tenant);
 
+    // The operator's one boat, which the create page puts the draft on: the
+    // boat is asked on «Πότε φεύγει» since 25/9, not here.
+    Vessel::factory()->create(['capacity_max' => 12]);
+
     Livewire::actingAs($owner)->test(CreateProduct::class)
         ->fillForm([
             'title' => ['el' => 'Κρουαζιέρα', 'en' => 'Cruise'],
             'slug' => 'cruise',
             'category' => ProductCategory::SharedFullDay->value,
             'mode' => BookingMode::PerSeat->value,
-            'vessel_id' => Vessel::factory()->create(['capacity_max' => 12])->getKey(),
         ])
         ->call('create')
         ->assertHasNoFormErrors();

@@ -26,6 +26,8 @@ use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Vessel;
 use App\Support\Tenancy;
+use Filament\Forms\Components\Component;
+use Filament\Forms\Components\Field;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -70,6 +72,10 @@ function productPageAs(User $user, string $page, array $params = []): Testable
 /**
  * What «Νέα εκδρομή» asks: the «Βασικά» tab and nothing else (Mike, 25/9).
  *
+ * No boat among it: that is «Συνήθες σκάφος» on «Πότε φεύγει» since the same
+ * day. The operator gets **one** boat here, so the create page puts the draft
+ * on it by itself — which is what most operators, with a single boat, see.
+ *
  * **The capacity is stated, not left to the factory.** `capacity_max` defaults
  * to a random 8–90, and the create page copies it into «Μέγιστα άτομα» — a
  * number a rule is checked against does not belong to the dice.
@@ -79,13 +85,37 @@ function productPageAs(User $user, string $page, array $params = []): Testable
  */
 function productBasics(array $overrides = []): array
 {
+    Vessel::factory()->create(['capacity_max' => 12]);
+
     return array_merge([
         'title' => ['el' => 'Ημερήσια κρουαζιέρα', 'en' => 'Full-day cruise'],
         'slug' => 'full-day-cruise',
         'category' => ProductCategory::SharedFullDay->value,
         'mode' => BookingMode::PerSeat->value,
-        'vessel_id' => Vessel::factory()->create(['capacity_max' => 12])->getKey(),
     ], $overrides);
+}
+
+/**
+ * Every field name a list of form components holds, sections opened.
+ *
+ * @param  array<int, mixed>  $components
+ * @return list<string>
+ */
+function productFieldNames(array $components): array
+{
+    $names = [];
+
+    foreach ($components as $component) {
+        if ($component instanceof Field) {
+            $names[] = $component->getName();
+        }
+
+        if ($component instanceof Component) {
+            $names = [...$names, ...productFieldNames($component->getChildComponents())];
+        }
+    }
+
+    return $names;
 }
 
 /**
@@ -296,13 +326,120 @@ it('asks only for «Βασικά» on a new trip', function (): void {
 
     $page = productPageAs($owner, CreateProduct::class);
 
-    foreach (['title.el', 'slug', 'vessel_id', 'category', 'mode', 'is_featured'] as $field) {
+    foreach (['title.el', 'slug', 'category', 'mode', 'is_featured'] as $field) {
         $page->assertFormFieldExists($field);
     }
 
-    foreach (['max_pax', 'duration_minutes', 'default_start_time', 'meeting_point_id', 'age_bands', 'cancellation_policy_id', 'summary'] as $field) {
+    // The boat left «Βασικά» on 25/9 for «Πότε φεύγει».
+    foreach (['vessel_id', 'max_pax', 'duration_minutes', 'default_start_time', 'meeting_point_id', 'age_bands', 'cancellation_policy_id', 'summary'] as $field) {
         $page->assertFormFieldDoesNotExist($field);
     }
+})->group('fast');
+
+it('asks for the usual boat on «Πότε φεύγει», above «Πόσα άτομα», not on «Βασικά»', function (): void {
+    // Mike, 25/9: each schedule can name its own boat, and a schedule that
+    // names none sails the trip's — so the trip's is chosen beside the
+    // timetable, where its certificate also caps «Μέγιστα άτομα».
+    $basics = productFieldNames(ProductResource::basicsSections());
+    $when = productFieldNames(ProductResource::whenSections());
+
+    expect($basics)->not->toContain('vessel_id')
+        ->and($when)->toContain('vessel_id')
+        ->and(array_search('vessel_id', $when, true))->toBeLessThan(array_search('max_pax', $when, true))
+        ->and(ProductResource::TAB_REQUIREMENTS['when'])->toContain(ProductPublishChecklist::VESSEL)
+        ->and(ProductResource::TAB_REQUIREMENTS['basics'])->not->toContain(ProductPublishChecklist::VESSEL);
+
+    $owner = OperatorUser::withRole(Role::Owner);
+    $product = productDraftFor($owner);
+
+    productPageAs($owner, EditProduct::class, ['record' => $product->getRouteKey()])
+        ->assertFormFieldExists('vessel_id')
+        ->assertSee(__('catalog.product.form.vessel.label'))
+        ->assertSee(__('catalog.product.form.vessel.help'));
+})->group('fast');
+
+it('counts a draft without a boat as missing on «Πότε φεύγει», and opens it without error', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $product = productDraftFor($owner, [
+        'vessel_id' => null,
+        'max_pax' => 1,
+        'meeting_point_id' => Tenancy::forTenant(productTenantOf($owner), fn (): int => (int) Port::factory()->create()->getKey()),
+    ]);
+
+    Tenancy::forTenant(productTenantOf($owner), function () use ($product): void {
+        expect(ProductResource::missingBadge($product, 'when'))->toBe(trans_choice('catalog.product.tabs.missing', 1, ['count' => 1]))
+            ->and(ProductResource::missingBadge($product, 'basics'))->toBeNull();
+    });
+
+    productPageAs($owner, EditProduct::class, ['record' => $product->getRouteKey()])
+        ->assertSuccessful()
+        ->assertSee(trans_choice('catalog.product.tabs.missing', 1, ['count' => 1]));
+})->group('fast');
+
+it('puts a new trip on the operator\'s only boat, and on none when there are two', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    // One boat: nothing to choose, so the draft is on it, at its certificate.
+    productPageAs($owner, CreateProduct::class)
+        ->fillForm(productBasics())
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $product = Product::query()->sole();
+        $boat = Vessel::query()->sole();
+
+        expect($product->vessel_id)->toBe($boat->getKey())
+            ->and($product->max_pax)->toBe(12);
+
+        // A second boat: the next draft waits for «Πότε φεύγει» to be told.
+        Vessel::factory()->create(['capacity_max' => 30]);
+    });
+
+    productPageAs($owner, CreateProduct::class)
+        ->fillForm(productBasics(['slug' => 'second-cruise']))
+        ->call('create')
+        ->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $second = Product::query()->where('slug', 'second-cruise')->sole();
+
+        expect($second->vessel_id)->toBeNull()
+            ->and($second->max_pax)->toBe(1)
+            ->and(ProductPublishChecklist::unmet($second))->toContain(ProductPublishChecklist::VESSEL);
+    });
+})->group('fast');
+
+it('lets «Μέγιστα άτομα» follow the boat chosen on «Πότε φεύγει» until the operator types their own', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    [$small, $large] = Tenancy::forTenant(productTenantOf($owner), fn (): array => [
+        Vessel::factory()->create(['capacity_max' => 8]),
+        Vessel::factory()->create(['capacity_max' => 20]),
+    ]);
+
+    $product = productDraftFor($owner, ['vessel_id' => null, 'max_pax' => 1]);
+
+    // The draft's placeholder 1 gives way to the boat's certificate…
+    $page = productPageAs($owner, EditProduct::class, ['record' => $product->getRouteKey()])
+        ->fillForm(['vessel_id' => $small->getKey()])
+        ->assertFormSet(['max_pax' => 8])
+        // …and to the next boat's, while it is still the previous boat's.
+        ->fillForm(['vessel_id' => $large->getKey()])
+        ->assertFormSet(['max_pax' => 20]);
+
+    // A number the operator typed is theirs.
+    $page->fillForm(['max_pax' => 6])
+        ->fillForm(['vessel_id' => $small->getKey()])
+        ->assertFormSet(['max_pax' => 6])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function () use ($product, $small): void {
+        expect($product->refresh()->vessel_id)->toBe($small->getKey())
+            ->and($product->max_pax)->toBe(6);
+    });
 })->group('fast');
 
 it('asks for a single departure time only on a whole-boat trip', function (): void {
