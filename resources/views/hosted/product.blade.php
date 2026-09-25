@@ -169,6 +169,11 @@
                     </li>
                 @endif
             </ul>
+            {{-- «Τουλάχιστον Χ άτομα» (2026-09-25), under the facts: here and
+                 not in the booking card, which a phone folds into a sheet. --}}
+            @if ($minimumParty = \App\Domain\Booking\Support\MinimumParty::ofProduct($product))
+                <p class="muted min-pax">{{ __('hosted.product.min_pax', ['count' => $minimumParty]) }}</p>
+            @endif
             </div>
 
         {{-- Not when it repeats the standfirst word for word.
@@ -621,6 +626,11 @@
                                  opens on it, at the party step. --}}
                             @if ($initialDate ?? null)
                                 data-date="{{ $initialDate }}"
+                            @endif
+                            {{-- …and the sailing, from the departures calendar's
+                                 «Κράτηση» (2026-09-25): the time is chosen too. --}}
+                            @if ($initialDeparture ?? null)
+                                data-departure="{{ $initialDeparture }}"
                             @endif
                             {{-- «Powered by Kaiki» is already in this
                                  page's footer. The line inside the widget is

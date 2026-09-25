@@ -19,6 +19,7 @@ use App\Enums\PaymentKind;
 use App\Enums\TripQuestionScope;
 use App\Exceptions\CheckoutRefused;
 use App\Exceptions\DiscountCodeRefused;
+use App\Exceptions\HoldRefused;
 use App\Exceptions\IllegalStateTransition;
 use App\Models\Booking;
 use App\Models\Tenant;
@@ -330,6 +331,13 @@ final class CheckoutController extends GuestPageController
                     ->route('guest.checkout', ['token' => $token])
                     ->withInput()
                     ->withErrors(['checkout' => __('guest.checkout.refused')]);
+            } catch (HoldRefused $refused) {
+                // A charter whose hold lapsed on this page while somebody else
+                // took the boat (2026-09-25). Its own sentence, and no charge.
+                return redirect()
+                    ->route('guest.checkout', ['token' => $token])
+                    ->withInput()
+                    ->withErrors(['checkout' => $refused->getMessage()]);
             }
 
             $target = $result['target'];

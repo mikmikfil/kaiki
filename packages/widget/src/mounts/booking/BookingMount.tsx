@@ -7,6 +7,7 @@ import {
   isSoldOut,
   type DraftResult,
   isInvalidDiscountCode,
+  isDateRefused,
   isPartyRefused,
   refusalMessage,
 } from '../../booking/api';
@@ -32,6 +33,7 @@ import { ExtrasStep } from './steps/ExtrasStep';
 import { FourLines } from './FourLines';
 import { Hold } from './Hold';
 import { PartyStep } from './steps/PartyStep';
+import type { DepartureOption } from '../calendar/MonthGrid';
 import { Peek, useSettled, useSheetMode } from './Sheet';
 
 /**
@@ -76,6 +78,11 @@ interface BookingMountProps {
   readonly locale: string;
   /** A day chosen on the operator's own calendar, through the trip page's `?date=`. */
   readonly initialDate?: string | null;
+  /**
+   * The sailing chosen on the operator's departures calendar, through the trip
+   * page's `?departure=` (2026-09-25). Only read together with `initialDate`.
+   */
+  readonly initialDeparture?: string | null;
   /** False when the operator chose to leave the boat's name out (`data-vessel="hide"`). */
   readonly showVessel?: boolean;
   /** False for the compact form (`data-details="hide"`): the page already shows the four lines. */
@@ -119,6 +126,7 @@ export function BookingMount({
   analytics,
   locale,
   initialDate = null,
+  initialDeparture = null,
   showVessel = true,
   showDetails = true,
 }: BookingMountProps) {
@@ -127,7 +135,12 @@ export function BookingMount({
 
   // A guest who pressed a day on the operator's own calendar starts on the
   // party step with that day chosen (WGT-5 as amended 2026-09-11).
-  const [state, dispatch] = useReducer(reduce, null, () => initialStateOn(initialDate, options));
+  //
+  // With a departure as well — the «Κράτηση» of the departures calendar — the
+  // time is chosen too, once the effect below has confirmed it.
+  const [state, dispatch] = useReducer(reduce, null, () => initialStateOn(initialDate, options, initialDeparture));
+
+  useArrivingDeparture(client, productUuid, initialDate, initialDeparture, dispatch);
   const [phase, setPhase] = useState<Phase>('walking');
   const [draft, setDraft] = useState<DraftResult | null>(null);
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
@@ -229,6 +242,18 @@ export function BookingMount({
         setPartyRefusal(refusalMessage(error));
         setPhase('walking');
         analytics.emit('kaiki:error', { product_uuid: productUuid, error_code: 'party_refused' });
+
+        return;
+      }
+
+      if (isDateRefused(error)) {
+        // AVL-19 and AVL-20 (2026-09-25): the day closed while the calendar
+        // was open. The server's sentence, in the same place as the party's —
+        // any change the guest makes clears it — and a fresh calendar behind it.
+        client.invalidate();
+        setPartyRefusal(refusalMessage(error));
+        setPhase('walking');
+        analytics.emit('kaiki:error', { product_uuid: productUuid, error_code: 'date_refused' });
 
         return;
       }
@@ -557,13 +582,15 @@ export function BookingMount({
             }}
           />
 
-          {partyRefusal !== null ? (
+          {(partyRefusal ?? quote.refusal) !== null ? (
             // The server's own sentence — «Σε αυτή την εκδρομή τα παιδιά
             // ταξιδεύουν με συνοδό ενήλικα», or whatever rule the catalogue
             // grows next. The widget keeps no wording of its own for these on
-            // purpose: the rule and its explanation ship together.
+            // purpose: the rule and its explanation ship together. Since
+            // 2026-09-25 the running quote's refusal too (a date past its lead
+            // time), so the guest reads why before pressing on, not after.
             <p class="kaiki-error" role="alert">
-              {partyRefusal}
+              {partyRefusal ?? quote.refusal}
             </p>
           ) : null}
         </div>
@@ -690,6 +717,65 @@ function Outcome({
       ) : null}
     </div>
   );
+}
+
+/**
+ * The departure a guest chose on the departures calendar, confirmed (2026-09-25).
+ *
+ * The walk already starts on «Άτομα» with the sailing's uuid; this reads that
+ * day's availability once and fills in the two facts the party step and the
+ * bar need — the time and the seats left. If the sailing is no longer on
+ * offer (sold out, cancelled, or a hand-edited link), the guest is sent back
+ * to the day's times with nothing chosen, rather than walked on to a refusal
+ * at the checkout.
+ */
+function useArrivingDeparture(
+  client: Api,
+  productUuid: string,
+  date: string | null,
+  departure: string | null,
+  dispatch: (action: Action) => void,
+): void {
+  useEffect(() => {
+    if (date === null || departure === null) {
+      return undefined;
+    }
+
+    let abandoned = false;
+
+    client
+      .get<{ data: { local_date: string; departures?: DepartureOption[] }[] }>('/availability', {
+        query: { product: productUuid, from: date, to: date },
+      })
+      .then((response) => {
+        if (abandoned) {
+          return;
+        }
+
+        const days = Array.isArray(response.data) ? response.data : [];
+        const options = days.find((day) => day.local_date === date)?.departures ?? [];
+        const chosen = options.find((option) => option.uuid === departure);
+
+        dispatch({
+          type: 'patch',
+          patch:
+            chosen === undefined
+              ? { step: 'date', departureUuid: null, localTime: null, seatsAvailable: null, awaitingDeparture: options.length > 1 }
+              : { localTime: chosen.window.local_time, seatsAvailable: chosen.seats_available, awaitingDeparture: false },
+        });
+      })
+      .catch(() => {
+        // Nothing read, nothing claimed: the walk stays on the party step with
+        // the uuid, and the server checks the seats at the checkout as it
+        // always does (ADR-0006).
+      });
+
+    return () => {
+      abandoned = true;
+    };
+    // Once, for the departure the page arrived with.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 }
 
 type Action =

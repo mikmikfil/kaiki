@@ -119,10 +119,18 @@ export function initialState(): BookingState {
  * answered, so the walk starts on the party step — and `back()` still reaches
  * the date, with the day shown as chosen, for a guest who changes their mind.
  */
-export function initialStateOn(date: string | null, options: MachineOptions): BookingState {
+export function initialStateOn(date: string | null, options: MachineOptions, departure: string | null = null): BookingState {
   const start = initialState();
 
-  return date === null ? start : next({ ...start, localDate: date }, options);
+  if (date === null) {
+    return start;
+  }
+
+  // The departures calendar's «Κράτηση» (2026-09-25) names the sailing too.
+  // Its time and its seats are not known yet — the mount reads them from
+  // `GET /availability` and fills them in, or sends the guest back to the
+  // day's times if that sailing has gone.
+  return next({ ...start, localDate: date, departureUuid: departure }, options);
 }
 
 /**

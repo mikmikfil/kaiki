@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Availability\Support;
 
+use App\Domain\Availability\Contracts\BulkVesselHoldSource;
+use App\Domain\Availability\Contracts\ExcludingVesselHoldSource;
 use App\Domain\Availability\Contracts\VesselHoldSource;
 use App\Domain\Availability\VesselCalendar;
 use App\Enums\DepartureStatus;
@@ -77,8 +79,14 @@ final class OccupationCollector
         private readonly array $holdWindows = [],
     ) {}
 
-    /** Load everything touching `$range`, in two queries. */
-    public static function forRange(Vessel $vessel, Window $range): self
+    /**
+     * Load everything touching `$range`, in two queries.
+     *
+     * `$excludingBookingId` leaves one booking's own occupation out
+     * (2026-09-25): a charter confirming asks whether anybody **else** has the
+     * boat, and its own draft or `pending_payment` row is in exactly that window.
+     */
+    public static function forRange(Vessel $vessel, Window $range, ?int $excludingBookingId = null): self
     {
         $buffer = $vessel->effectiveTurnaroundBufferMinutes();
         $padded = $range->paddedBy($buffer);
@@ -98,8 +106,98 @@ final class OccupationCollector
             $buffer,
             $departures,
             VesselCalendar::blocksFor($vessel, $padded),
-            self::holdWindows($vessel, $padded),
+            self::holdWindows($vessel, $padded, $excludingBookingId),
         );
+    }
+
+    /**
+     * {@see self::forRange()} for a whole fleet at once (the departures
+     * calendar, 2026-09-25).
+     *
+     * Three queries whatever the size of the fleet — departures, blocks, and
+     * the live private holds — where calling `forRange()` per boat would be
+     * three per boat. Each collector it returns is the same object `forRange()`
+     * builds, holding only its own boat's rows, so every question asked of it
+     * afterwards is answered by exactly the code the availability endpoint
+     * runs.
+     *
+     * @param  Collection<int, Vessel>  $vessels
+     * @return array<int, self> keyed by vessel id
+     */
+    public static function forVessels(Collection $vessels, Window $range): array
+    {
+        if ($vessels->isEmpty()) {
+            return [];
+        }
+
+        $widest = (int) $vessels->max(static fn (Vessel $vessel): int => $vessel->effectiveTurnaroundBufferMinutes());
+        $padded = $range->paddedBy($widest);
+        $ids = $vessels->map(static fn (Vessel $vessel): int => (int) $vessel->getKey())->values()->all();
+
+        /** @var Collection<int, Departure> $departures */
+        $departures = Departure::query()
+            ->whereIn('vessel_id', $ids)
+            // AVL-28, as in `forRange()`: a cancelled departure occupies nothing.
+            ->whereNot('status', DepartureStatus::Cancelled)
+            ->where('starts_at_utc', '<', $padded->endUtc)
+            ->where('ends_at_utc', '>', $padded->startUtc)
+            ->orderBy('starts_at_utc')
+            ->get();
+
+        $blocks = VesselCalendar::blocksForVessels($vessels, $padded);
+        $holds = self::holdWindowsByVessel($vessels, $ids, $padded);
+
+        $collectors = [];
+
+        foreach ($vessels as $vessel) {
+            $key = (int) $vessel->getKey();
+
+            $collectors[$key] = new self(
+                $vessel->effectiveTurnaroundBufferMinutes(),
+                $departures->where('vessel_id', $key)->values(),
+                $blocks->where('vessel_id', $key)->values(),
+                $holds[$key] ?? [],
+            );
+        }
+
+        return $collectors;
+    }
+
+    /**
+     * The fleet's live private holds: one query for a source that can answer
+     * in bulk, one per boat for a source that cannot.
+     *
+     * @param  Collection<int, Vessel>  $vessels
+     * @param  list<int>  $ids
+     * @return array<int, list<Window>>
+     */
+    private static function holdWindowsByVessel(Collection $vessels, array $ids, Window $range): array
+    {
+        $now = Carbon::now();
+        $windows = [];
+
+        /** @var iterable<VesselHoldSource> $sources */
+        $sources = app()->tagged(self::HOLD_SOURCE_TAG);
+
+        foreach ($sources as $source) {
+            if ($source instanceof BulkVesselHoldSource) {
+                foreach ($source->holdWindowsByVessel($ids, $range, $now) as $vesselId => $held) {
+                    foreach ($held as $window) {
+                        $windows[$vesselId][] = $window;
+                    }
+                }
+
+                continue;
+            }
+
+            foreach ($vessels as $vessel) {
+                foreach ($source->holdWindows($vessel, $range, $now) as $window) {
+                    $windows[(int) $vessel->getKey()][] = $window;
+                }
+            }
+        }
+
+        return $windows;
     }
 
     /**
@@ -112,7 +210,7 @@ final class OccupationCollector
      *
      * @return list<Window>
      */
-    private static function holdWindows(Vessel $vessel, Window $range): array
+    private static function holdWindows(Vessel $vessel, Window $range, ?int $excludingBookingId = null): array
     {
         $now = Carbon::now();
         $windows = [];
@@ -121,7 +219,11 @@ final class OccupationCollector
         $sources = app()->tagged(self::HOLD_SOURCE_TAG);
 
         foreach ($sources as $source) {
-            foreach ($source->holdWindows($vessel, $range, $now) as $window) {
+            $found = $excludingBookingId !== null && $source instanceof ExcludingVesselHoldSource
+                ? $source->holdWindowsExcluding($vessel, $range, $now, $excludingBookingId)
+                : $source->holdWindows($vessel, $range, $now);
+
+            foreach ($found as $window) {
                 $windows[] = $window;
             }
         }

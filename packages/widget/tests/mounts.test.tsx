@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { analytics } from '../src/analytics';
 import { ApiClient } from '../src/api-client';
@@ -222,6 +222,37 @@ describe('the calendar mount', () => {
     { local_date: first, status: 'available' },
     { local_date: second, status: 'sold_out' },
   ];
+
+  // The clock on the first of the month (2026-09-25): the grid never offers a
+  // day before today, so on the 25th a fixture on the 1st would be drawn past.
+  // Only `Date` is faked — `vi.waitFor` still needs real timers.
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(new Date().getFullYear(), new Date().getMonth(), 1, 12));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('never offers a day before today, whatever the server said', async () => {
+    // 2026-09-25: a charter calendar answered `available` for every day of the
+    // month, yesterday included. Defensive: the widget draws those as past.
+    vi.setSystemTime(new Date(new Date().getFullYear(), new Date().getMonth(), 2, 12));
+
+    const api = client((url) =>
+      url.includes('/availability')
+        ? { data: days.map((day) => ({ ...day, status: 'available' })) }
+        : { data: { uuid: 'product-uuid', booking_url: 'https://book.kaiki.app/aegean-blue/sunset' } },
+    );
+
+    render(<CalendarMount {...props({ client: api, link: 'trip' })} />, host);
+    await settle();
+
+    await vi.waitFor(() => expect(host.querySelector('.kaiki-day-available .kaiki-day-pick')).not.toBeNull());
+    expect(host.querySelector('.kaiki-day-past')?.getAttribute('aria-label')).toContain(first);
+    expect(host.querySelector('.kaiki-day-past .kaiki-day-pick')).toBeNull();
+  });
 
   it('shows availability and never a price', async () => {
     render(<CalendarMount {...props({ client: client(() => ({ data: days })) })} />, host);

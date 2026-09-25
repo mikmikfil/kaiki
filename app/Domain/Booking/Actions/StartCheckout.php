@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Booking\Support\CharterOccupancy;
 use App\Domain\Booking\Support\SeatCommitment;
 use App\Domain\Pricing\Actions\ApplyDiscountCode;
 use App\Domain\Pricing\Actions\ApplyVoucher;
@@ -14,6 +15,7 @@ use App\Enums\PaymentStatus;
 use App\Exceptions\CapacityExceeded;
 use App\Exceptions\CheckoutRefused;
 use App\Exceptions\DiscountCodeRefused;
+use App\Exceptions\HoldRefused;
 use App\Exceptions\IllegalStateTransition;
 use App\Models\Booking;
 use App\Models\Departure;
@@ -72,6 +74,7 @@ final class StartCheckout
      *
      * @throws CapacityExceeded when the seats went while the guest was deciding
      * @throws CheckoutRefused when nobody has said whose booking this is
+     * @throws HoldRefused when a charter's boat went to somebody else (2026-09-25)
      * @throws IllegalStateTransition when the booking is not a live draft
      */
     public function __invoke(Booking $booking, PaymentGatewayName $gateway = PaymentGatewayName::Viva): array
@@ -98,9 +101,9 @@ final class StartCheckout
         $result = DB::transaction(function () use ($booking, $gateway): array {
             // AVL-45's order: vessel, departure, booking. Unconditional, on
             // every driver — AVL-43.1 calls a skipped lock a review blocker.
-            if ($booking->vessel_id !== null) {
-                Vessel::query()->lockForUpdate()->find($booking->vessel_id);
-            }
+            $vessel = $booking->vessel_id === null
+                ? null
+                : Vessel::query()->lockForUpdate()->find($booking->vessel_id);
 
             $departure = $booking->departure_id === null
                 ? null
@@ -108,6 +111,14 @@ final class StartCheckout
 
             /** @var Booking $locked */
             $locked = Booking::query()->lockForUpdate()->findOrFail($booking->getKey());
+
+            // A private charter, the line before money (2026-09-25): its hold
+            // may have lapsed on the checkout page while somebody else took the
+            // boat. Asked under the vessel lock, leaving this booking's own
+            // hold out of the answer.
+            if ($departure === null && $vessel instanceof Vessel && ! CharterOccupancy::isFreeFor($vessel, $locked)) {
+                throw HoldRefused::vesselUnavailable();
+            }
 
             // Re-verified here as well as at confirmation, because the voucher
             // may have been spent on another booking since the draft was made

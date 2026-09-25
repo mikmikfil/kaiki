@@ -10,6 +10,7 @@ use App\Http\Controllers\Guest\ManageBookingController;
 use App\Http\Controllers\Guest\QuoteController;
 use App\Http\Controllers\Guest\VivaReturnController;
 use App\Http\Controllers\Guest\VoucherController;
+use App\Http\Controllers\Hosted\CalendarPageController;
 use App\Http\Controllers\Hosted\ContactPageController;
 use App\Http\Controllers\Hosted\HostedPageController;
 use App\Http\Controllers\Hosted\ProductPageController;
@@ -381,6 +382,13 @@ Route::domain(HostedHost::name())
             ->where('operator', '[a-z0-9][a-z0-9-]*')
             ->name('hosted.search');
 
+        // «Ημερολόγιο» (2026-09-25): every departure, day by day. Before the
+        // trip route for the same reason as `/search`; a trip whose slug is
+        // literally `calendar` is shadowed, like one called `search`.
+        Route::get('/{operator}/calendar', [CalendarPageController::class, 'show'])
+            ->where('operator', '[a-z0-9][a-z0-9-]*')
+            ->name('hosted.calendar');
+
         // One trip (#104). **Registered after `/legal` and `/search`**, which is not a style
         // choice: both match two segments, Laravel takes the first that does,
         // and the reverse order would make the legal page unreachable for every
@@ -422,6 +430,7 @@ Route::middleware(['tenant', 'hosted.custom', 'hosted.page', 'locale'])->group(f
     Route::get('/legal', [HostedPageController::class, 'legal'])->name('hosted.custom.legal');
     Route::get('/about', [HostedPageController::class, 'about'])->name('hosted.custom.about');
     Route::get('/search', [SearchPageController::class, 'show'])->name('hosted.custom.search');
+    Route::get('/calendar', [CalendarPageController::class, 'show'])->name('hosted.custom.calendar');
     Route::get('/contact', [ContactPageController::class, 'show'])->name('hosted.custom.contact');
 
     Route::post('/contact', [ContactPageController::class, 'send'])

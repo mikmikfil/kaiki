@@ -28,10 +28,15 @@ return [
         // Placeholders and a slash, no words: the tab's own name, and «2 / 5».
         'catalog.product.steps.back' => 'Only the :tab placeholder; the name comes translated.',
         'hosted.product.photo_count' => 'A counter, «:current / :total», the same in every language.',
+        'hosted.calendar.part_hints.afternoon' => 'Two clock times and a dash, «12:00–18:00»; no words to translate.',
 
         // Proper nouns and product names are not translated. "Solo" is the name
         // of a plan, the same word on a Greek invoice as on an English one.
         'enums.plan.solo.label' => 'Plan name, a proper noun in both locales.',
+
+        // Mike, 25/9: «Featured» in Greek too, the word operators already use.
+        'catalog.product.form.is_featured.label' => 'Kept in English on purpose in the Greek panel (Mike, 25/9).',
+        'catalog.product.table.featured' => 'Kept in English on purpose in the Greek panel (Mike, 25/9).',
 
         // Each language is written in its own language, in both files — someone
         // reading the English panel and hunting for Greek must recognise

@@ -120,6 +120,34 @@ final class VesselCalendar
     }
 
     /**
+     * {@see self::blocksFor()} for a fleet, in one query (the departures
+     * calendar, 2026-09-25).
+     *
+     * Over-fetches by the **largest** buffer in the set, like
+     * {@see self::occupiedVesselIds()}: the exact AVL-7 test runs per window in
+     * PHP afterwards, with each boat's own buffer, so a block fetched a little
+     * too eagerly can only ever be ruled out, never let through.
+     *
+     * @param  Collection<int, Vessel>  $vessels
+     * @return Collection<int, VesselBlock>
+     */
+    public static function blocksForVessels(Collection $vessels, Window $window): Collection
+    {
+        if ($vessels->isEmpty()) {
+            return collect();
+        }
+
+        $buffer = (int) $vessels->max(
+            static fn (Vessel $vessel): int => $vessel->effectiveTurnaroundBufferMinutes(),
+        );
+
+        return VesselBlock::query()
+            ->whereIn('vessel_id', $vessels->map(static fn (Vessel $vessel): int => (int) $vessel->getKey())->all())
+            ->overlapping($window->paddedBy($buffer))
+            ->get();
+    }
+
+    /**
      * Which of these boats are busy at all during `$window` (#105).
      *
      * The same question as {@see self::isFree()}, asked about a fleet in **two

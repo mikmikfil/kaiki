@@ -422,6 +422,7 @@ return [
             'missing' => 'Missing: :items|Missing :count: :items',
             'tabs' => [
                 'all' => 'All',
+                'trashed' => 'Deleted',
             ],
         ],
 

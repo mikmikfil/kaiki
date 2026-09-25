@@ -31,8 +31,27 @@ function binPage(User $user): Testable
     Filament::setCurrentPanel(Filament::getPanel('app'));
     tenancy()->initialize($user->tenant);
 
-    return Livewire::actingAs($user)->test(ListProducts::class, ['tableFilters' => ['trashed' => ['value' => 0]]]);
+    return Livewire::actingAs($user)->test(ListProducts::class)->set('activeTab', 'trashed');
 }
+
+it('keeps deleted trips in their own tab, out of every other', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    [$kept, $deleted] = Tenancy::forTenant($owner->tenant, function (): array {
+        $kept = Product::factory()->create();
+        $deleted = Product::factory()->create();
+        $deleted->delete();
+
+        return [$kept, $deleted];
+    });
+
+    binPage($owner)
+        ->assertCanSeeTableRecords([$deleted])
+        ->assertCanNotSeeTableRecords([$kept])
+        ->set('activeTab', 'all')
+        ->assertCanSeeTableRecords([$kept])
+        ->assertCanNotSeeTableRecords([$deleted]);
+})->group('fast');
 
 it('deletes a deleted trip for good, with its departures', function (): void {
     $owner = OperatorUser::withRole(Role::Owner);

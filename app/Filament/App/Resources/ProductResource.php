@@ -63,7 +63,6 @@ use Filament\Tables\Actions\ForceDeleteAction;
 use Filament\Tables\Actions\RestoreAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Filters\TrashedFilter;
 use Filament\Tables\Table;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -1296,13 +1295,15 @@ class ProductResource extends Resource
                         : __('catalog.product.table.price_from_value', [
                             'price' => MoneyFormatter::format($state),
                         ]))
-                    ->alignEnd(),
+                    ->alignEnd()
+                    ->hidden(static fn (mixed $livewire): bool => self::onBinTab($livewire)),
 
                 IconColumn::make('is_featured')
                     ->label(__('catalog.product.table.featured'))
                     ->boolean()
                     ->toggleable()
-                    ->visibleFrom('md'),
+                    ->visibleFrom('md')
+                    ->hidden(static fn (mixed $livewire): bool => self::onBinTab($livewire)),
             ])
             ->defaultSort('sort_order')
             /*
@@ -1325,10 +1326,9 @@ class ProductResource extends Resource
             // Status is a row of tabs above the list (`ListProducts::getTabs`),
             // with the number of drafts on its tab, rather than a filter
             // hidden behind a button.
-            ->filters([
-                TrashedFilter::make(),
-            ])
-            ->actions(MoreActions::row(EditAction::make(), [
+            // Deleted trips are a tab of their own, «Διαγραμμένες» (Mike, 25/9:
+            // the bin could not be found behind the filter button).
+            ->actions([...MoreActions::row(EditAction::make()->hidden(static fn (Product $record): bool => $record->trashed()), [
                 /*
                  * **«Δείτε τη σελίδα»** (product owner, 2026-09-22).
                  *
@@ -1346,10 +1346,16 @@ class ProductResource extends Resource
                     ->url(static fn (Product $record): ?string => self::previewUrl($record), shouldOpenInNewTab: true)
                     ->visible(static fn (Product $record): bool => self::previewUrl($record) !== null),
                 DeleteAction::make(),
-                RestoreAction::make(),
+            ]),
+                // On a deleted trip, restore and the bin sit on the row itself
+                // rather than behind «⋯» — they are the only two things to do
+                // with it. Both are visible on deleted rows only.
+                RestoreAction::make()->button()->color('gray'),
                 // The bin on a deleted trip (Mike, 25/9): gone for good, but
                 // only a trip nobody ever booked — see ForceDeleteProduct.
                 ForceDeleteAction::make()
+                    ->iconButton()
+                    ->tooltip(__('catalog.product.force_delete.label'))
                     ->label(__('catalog.product.force_delete.label'))
                     ->icon('heroicon-m-trash')
                     ->modalHeading(__('catalog.product.force_delete.heading'))
@@ -1372,7 +1378,7 @@ class ProductResource extends Resource
                         $action->success();
                     })
                     ->successNotificationTitle(__('catalog.product.force_delete.done')),
-            ]));
+            ]);
     }
 
     /**
@@ -1877,6 +1883,16 @@ class ProductResource extends Resource
         $mode = $get('mode');
 
         return $mode instanceof BookingMode ? $mode : BookingMode::tryFrom((string) $mode);
+    }
+
+    /**
+     * The «Διαγραμμένες» tab: price and «Featured» mean nothing on a deleted
+     * trip, and without them the row is narrow enough for its restore and bin
+     * buttons to be on screen.
+     */
+    private static function onBinTab(mixed $livewire): bool
+    {
+        return $livewire instanceof Pages\ListProducts && $livewire->activeTab === 'trashed';
     }
 
     /** @return Builder<Product> */

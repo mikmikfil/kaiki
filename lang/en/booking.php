@@ -33,6 +33,8 @@ return [
         // AVL-25, added by #89. An operator may squeeze one more person onto
         // a boat they under-sold; they may not sail illegally full.
         'legal_capacity' => 'That would put more people aboard than the vessel is licensed to carry. This limit cannot be overridden.',
+        // A private charter (2026-09-25): somebody else already has the boat.
+        'vessel_unavailable' => 'The boat has just been booked for this time. Please choose another day.',
     ],
 
     'draft' => [

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Catalog\Support\SearchFilters;
+use App\Domain\Hosted\Support\CalendarPage;
 use App\Enums\Role;
 use App\Filament\App\Pages\SearchSettings;
 use App\Models\Tenant;
@@ -92,4 +93,32 @@ it('is the same source of truth the guest surfaces read', function (): void {
         // panel wrote somewhere else, this is where it would show.
         expect(SearchFilters::for())->toBe(SearchFilters::for($tenant));
     });
+})->group('fast');
+
+it('takes «Ημερολόγιο» out of the site menu, and puts it back', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+    $tenant = Tenant::query()->findOrFail($owner->tenant_id);
+
+    tenancy()->initialize($tenant);
+
+    // On by default, for the operator who never opened this screen.
+    expect(CalendarPage::inMenu($tenant))->toBeTrue();
+
+    Livewire::actingAs($owner)
+        ->test(SearchSettings::class)
+        ->assertFormSet(['calendar.in_menu' => true])
+        ->fillForm(['filters' => SearchFilters::defaults(), 'calendar' => ['in_menu' => false]])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect(CalendarPage::inMenu($tenant->refresh()))->toBeFalse()
+        // The filters were saved beside it, not over it.
+        ->and(SearchFilters::for($tenant)[SearchFilters::PORT])->toBeTrue();
+
+    Livewire::actingAs($owner)
+        ->test(SearchSettings::class)
+        ->fillForm(['filters' => SearchFilters::defaults(), 'calendar' => ['in_menu' => true]])
+        ->call('save');
+
+    expect(CalendarPage::inMenu($tenant->refresh()))->toBeTrue();
 })->group('fast');

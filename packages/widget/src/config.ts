@@ -55,6 +55,13 @@ export interface WidgetConfig {
    * on. The hosted trip page passes it on from its `?date=`.
    */
   readonly date: string | null;
+  /**
+   * `data-departure`: the sailing already chosen on that day — the hosted
+   * departures calendar's «Κράτηση» (2026-09-25). With `data-date` it opens the
+   * booking walk on the party step with the time chosen too. Only a UUID is
+   * read; anything else is ignored and the day alone is used.
+   */
+  readonly departure: string | null;
   /** The WordPress plugin's «Appearance» settings, each checked (see `appearance.ts`). */
   readonly appearance: Appearance;
   /**
@@ -149,6 +156,7 @@ export function readConfig(script: HTMLScriptElement): WidgetConfig | null {
     target: value(script.dataset.target),
     link: (script.dataset.link ?? '').trim().toLowerCase() === 'trip' ? 'trip' : null,
     date: isoDate(script.dataset.date),
+    departure: uuidOf(script.dataset.departure),
     appearance: readAppearance(script.dataset),
     showVessel: (script.dataset.vessel ?? '').trim().toLowerCase() !== 'hide',
     showDetails: (script.dataset.details ?? '').trim().toLowerCase() !== 'hide',
@@ -184,6 +192,12 @@ function bundleSrc(script: HTMLScriptElement): string {
  * Only the shape is checked here. Whether the day still sails is the server's
  * answer, and the walk already handles a day that has sold out since.
  */
+function uuidOf(raw: string | undefined): string | null {
+  const trimmed = (raw ?? '').trim().toLowerCase();
+
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(trimmed) ? trimmed : null;
+}
+
 function isoDate(raw: string | undefined): string | null {
   const trimmed = (raw ?? '').trim();
 

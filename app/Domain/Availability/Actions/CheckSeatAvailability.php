@@ -10,6 +10,7 @@ use App\Data\Availability\DepartureAvailabilityData;
 use App\Domain\Availability\Contracts\DepartureExpiredHolds;
 use App\Domain\Availability\Contracts\DeparturePersonsAboard;
 use App\Domain\Availability\LocalDateTimeResolver;
+use App\Domain\Availability\Support\BookingCutoff;
 use App\Domain\Availability\Support\CountedSeats;
 use App\Domain\Availability\Support\LocalDay;
 use App\Domain\Availability\Support\OccupationCollector;
@@ -158,6 +159,50 @@ final class CheckSeatAvailability
     }
 
     /**
+     * The same verdicts for departures a caller has already loaded.
+     *
+     * The departures calendar (2026-09-25) reads every trip an operator sells
+     * across fourteen days, and `__invoke` per trip would be five queries per
+     * trip. So the calendar loads the ingredients once for the whole catalogue
+     * — the occupations through {@see OccupationCollector::forVessels()}, the
+     * plans and the seasons in bulk — and hands each trip's share here, where
+     * it meets exactly the ladder `GET /availability` applies: the blanket
+     * conditions, then lead time, advance window, a busy boat and the party.
+     *
+     * The departures must have been through {@see self::hydrateExpiredHolds()}
+     * already, like the ones `__invoke` evaluates.
+     *
+     * @param  Collection<int, Departure>  $departures
+     * @param  Collection<int, RatePlan>  $plans
+     * @param  Collection<int, Season>  $seasons
+     * @param  array<string, int>  $paxByCode  empty for «what exists», as a calendar asks
+     * @return list<DepartureAvailabilityData>
+     */
+    public function evaluate(
+        Product $product,
+        Collection $departures,
+        OccupationCollector $occupations,
+        Collection $plans,
+        Collection $seasons,
+        array $paxByCode = [],
+    ): array {
+        $bands = $product->ageBands;
+        $pax = CountedSeats::sanitise($bands, $paxByCode);
+
+        return $this->evaluateDay(
+            $departures,
+            $product,
+            $bands,
+            $pax,
+            $occupations,
+            $plans,
+            $seasons,
+            $this->blanketRejection($product, $product->vessel, $bands, $pax),
+            LocalDateTimeResolver::timezone(),
+        );
+    }
+
+    /**
      * Tell each departure how many of its held seats have already lapsed.
      *
      * Batched through {@see DepartureExpiredHolds}, whose implementation lives
@@ -169,7 +214,7 @@ final class CheckSeatAvailability
      *
      * @param  Collection<int, Departure>  $departures
      */
-    private static function hydrateExpiredHolds(Collection $departures): void
+    public static function hydrateExpiredHolds(Collection $departures): void
     {
         if ($departures->isEmpty()) {
             return;
@@ -293,20 +338,12 @@ final class CheckSeatAvailability
     ): ?AvailabilityRejection {
         $plan = RatePlanResolver::resolve($plans, $seasons, $departure->local_date)->plan;
 
-        // AVL-19: **absolute** hours from now. An hour is an hour whatever the
-        // clocks did last night, so this is instant arithmetic and not calendar
-        // arithmetic — unlike the check immediately below it.
-        $leadHours = $plan === null ? 0 : $plan->min_lead_time_hours;
+        // AVL-19 and AVL-20, in the one place the charter calendar, the quote
+        // and the booking also ask (2026-09-25).
+        $cutoff = BookingCutoff::check($plan, $departure->starts_at_utc, $departure->local_date, $timezone);
 
-        if ($departure->starts_at_utc->lessThan(Carbon::now()->addHours($leadHours))) {
-            return AvailabilityRejection::LeadTimeTooShort;
-        }
-
-        // AVL-20: **calendar** days in the tenant's timezone, deliberately
-        // unlike the lead time. "Ninety days ahead" is a date an operator can
-        // point at on a calendar, not 2160 hours.
-        if ($this->isTooFarAhead($departure, $plan === null ? null : $plan->max_advance_days, $timezone)) {
-            return AvailabilityRejection::TooFarAhead;
+        if ($cutoff !== null) {
+            return $cutoff;
         }
 
         // AVL-22.1, with AVL-7's buffer and AVL-9's self-exclusion.
@@ -322,18 +359,6 @@ final class CheckSeatAvailability
         // `seatsAvailable()` is `capacity − seats_sold − seats_held` (§2.4,
         // AVL-24), with expired holds already treated as released (ADR-0005).
         return $this->party->check($bands, $pax, $product, $departure);
-    }
-
-    /** AVL-20, in tenant-local calendar days from today. */
-    private function isTooFarAhead(Departure $departure, ?int $maxAdvanceDays, string $timezone): bool
-    {
-        if ($maxAdvanceDays === null) {
-            return false;
-        }
-
-        $limit = Carbon::parse(LocalDay::today($timezone)->localDate)->addDays($maxAdvanceDays);
-
-        return Carbon::parse($departure->local_date->toDateString())->greaterThan($limit);
     }
 
     /** The UTC window covering every requested local date. */

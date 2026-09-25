@@ -9,9 +9,10 @@
     title and the lede sit in the page's column, and whatever follows the band
     (the search bar, the contact cards) climbs over its lower edge.
 
-    Expects: $tenant, $locale, $eyebrow, $title, $lede.
+    Expects: $tenant, $locale, $eyebrow, $title, $lede; optionally $modifier,
+    a class for one page's variant (the calendar's shorter band, `cal-top`).
 --}}
-<header class="band band-dark page-top">
+<header class="band band-dark page-top {{ $modifier ?? '' }}">
     <nav class="crumbs" aria-label="{{ __('hosted.page_top.breadcrumb') }}">
         @if (\App\Domain\Hosted\Support\HostedUrl::homeEnabledFor($tenant))
             <a href="{{ route('hosted.index', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.page_top.home') }}</a>

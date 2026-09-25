@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Booking\Support\CharterOccupancy;
 use App\Domain\Booking\Support\LockOrder;
 use App\Domain\Booking\Support\SeatCommitment;
 use App\Domain\Pricing\Actions\ApplyVoucher;
@@ -12,6 +13,7 @@ use App\Enums\DepartureStatus;
 use App\Events\BookingConfirmed;
 use App\Events\DepartureGuaranteed;
 use App\Exceptions\CapacityExceeded;
+use App\Exceptions\HoldRefused;
 use App\Exceptions\IllegalStateTransition;
 use App\Models\Booking;
 use App\Models\Departure;
@@ -74,6 +76,7 @@ final class ConfirmBooking
      *                              {@see StartCheckout} and must not be counted twice
      *
      * @throws CapacityExceeded when the seats went while the guest was paying
+     * @throws HoldRefused when a charter's boat went to somebody else (2026-09-25)
      * @throws IllegalStateTransition when the booking is not in a confirmable state
      */
     public function __invoke(Booking $booking, bool $fromCheckout = false): Booking
@@ -95,9 +98,9 @@ final class ConfirmBooking
             // the coarsest of the four, and taking it last would let a
             // per-vessel charter and a per-seat confirmation acquire the same
             // two rows in opposite orders, which is the deadlock.
-            if ($booking->vessel_id !== null) {
-                Vessel::query()->lockForUpdate()->find($booking->vessel_id);
-            }
+            $vessel = $booking->vessel_id === null
+                ? null
+                : Vessel::query()->lockForUpdate()->find($booking->vessel_id);
 
             $departure = $booking->departure_id === null
                 ? null
@@ -105,6 +108,15 @@ final class ConfirmBooking
 
             /** @var Booking $locked */
             $locked = Booking::query()->lockForUpdate()->findOrFail($booking->getKey());
+
+            // A private charter (2026-09-25): is the boat still this booking's
+            // alone? Its hold can lapse between the draft and the payment, and a
+            // second charter can have taken the window in between — the one case
+            // a paid charter must not become `confirmed`. Its own occupation is
+            // left out of the answer (AVL-9's self-exclusion, for a booking).
+            if ($departure === null && $vessel instanceof Vessel && ! CharterOccupancy::isFreeFor($vessel, $locked)) {
+                throw HoldRefused::vesselUnavailable();
+            }
 
             // PRC-20: re-validated **inside** the transaction with its own row
             // lock, so two concurrent bookings cannot spend the same voucher.

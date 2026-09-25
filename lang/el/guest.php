@@ -64,6 +64,9 @@ return [
         'discount' => 'Έκπτωση',
         'total' => 'Σύνολο',
         'vat_included' => 'Στην τιμή περιλαμβάνεται ΦΠΑ.',
+        // The departure's minimum (2026-09-25): said positively once reached.
+        'guaranteed' => 'Η αναχώρηση είναι εγγυημένη.',
+        'min_pax' => 'Πραγματοποιείται με τουλάχιστον :count άτομα. Αν δεν συμπληρωθούν, σας επιστρέφουμε όλα τα χρήματα.',
         'deposit_note' => 'Πληρώνετε :deposit τώρα και :balance πριν την αναχώρηση.',
         'your_details' => 'Τα στοιχεία σας',
         'name' => 'Ονοματεπώνυμο',

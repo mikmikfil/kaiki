@@ -22,6 +22,15 @@ return [
     'sections' => [
         'filters' => 'Filters',
         'filters_help' => 'Date and party size are always there — without them it is a list rather than a search.',
+        'calendar' => 'Calendar',
+        'calendar_help' => 'Every departure you run, day by day, with seats and prices.',
+    ],
+
+    'calendar' => [
+        'in_menu' => [
+            'label' => 'In the site menu',
+            'help' => '«Calendar» beside «Find a trip». Switched off, the page stays for anyone who already has the link.',
+        ],
     ],
 
     'filters' => [

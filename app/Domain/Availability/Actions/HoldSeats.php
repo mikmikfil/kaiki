@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Availability\Actions;
 
 use App\Domain\Availability\Support\HoldLock;
+use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
 use App\Exceptions\HoldLockUnavailable;
 use App\Exceptions\HoldRefused;
@@ -157,6 +158,28 @@ final class HoldSeats
             ->sum('pax_total');
 
         return $aboard + $booking->pax_total > $ceiling;
+    }
+
+    /**
+     * A private charter's hold: the whole boat, for the same minutes (2026-09-25).
+     *
+     * No counter to write — a charter is one party on the whole boat, and
+     * `BookingHoldSource` reads its hold straight off the booking row. Here
+     * rather than in the draft so AVL-37.5's three writers stay three. The
+     * caller must hold the vessel's row lock and have asked, under it, whether
+     * the boat is free: `CreateBookingDraft` does both in the transaction that
+     * inserts the draft, so no second guest can find the boat unheld between
+     * the row and its hold.
+     */
+    public function holdVessel(Booking $booking): Booking
+    {
+        if ($booking->mode === BookingMode::Quote) {
+            throw HoldRefused::quoteModeHoldsNothing();
+        }
+
+        $booking->forceFill(['hold_expires_at' => self::expiryFrom(now())])->save();
+
+        return $booking;
     }
 
     /** When a hold taken now runs out. */

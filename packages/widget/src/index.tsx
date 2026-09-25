@@ -143,6 +143,7 @@ function mount(config: WidgetConfig, script: HTMLScriptElement, doc: Document): 
             locale={t.locale}
             link={config.link}
             date={config.date}
+            departure={config.departure}
             showVessel={config.showVessel}
             showDetails={config.showDetails}
           />,

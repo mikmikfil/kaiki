@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domain\Availability\LocalDateTimeResolver;
+use App\Domain\Availability\Support\BookingCutoff;
 use App\Domain\Availability\Support\PartyGuard;
 use App\Domain\Catalog\Queries\PublicProductQuery;
 use App\Domain\Catalog\Support\OfferedExtrasResolver;
@@ -93,6 +94,29 @@ final class PriceQuoteController
                     ? 'pricing.quote.validation.departure_required'
                     : 'pricing.quote.validation.window_required',
                 $product->mode === BookingMode::PerSeat ? 'departure_uuid' : 'window',
+            );
+        }
+
+        // AVL-19 and AVL-20 (2026-09-25): the rule `GET /availability` greys
+        // a date out by, so a sailing the calendar calls past is refused here
+        // in the same words — never priced, and never refused for another
+        // reason («no price table») that reads as the site breaking.
+        $window = $request->window();
+        $cutoff = BookingCutoff::forRequest(
+            $product,
+            $departure,
+            $date,
+            is_string($window['local_time'] ?? null) ? $window['local_time'] : null,
+            $this->extraHours($request, $product),
+        );
+
+        if ($cutoff !== null) {
+            return ApiErrorResponse::make(
+                code: $cutoff->value,
+                message: $cutoff->labelIn('en'),
+                messageEl: $cutoff->labelIn('el'),
+                status: SymfonyResponse::HTTP_UNPROCESSABLE_ENTITY,
+                details: ['reason' => $cutoff->value],
             );
         }
 

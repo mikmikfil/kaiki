@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domain\Availability\Support\BookingCutoff;
 use App\Domain\Availability\Support\CountedSeats;
 use App\Domain\Availability\Support\PartyGuard;
 use App\Domain\Booking\Actions\CancelBooking;
@@ -103,6 +104,24 @@ final class BookingController
         // calendar greys a party out and the quote refuses it, and neither
         // stops a client posting it anyway. Until this, `requires_adult` was a
         // promise the trip form made and the checkout never kept.
+        $data = $request->toData($product, $departure);
+
+        // AVL-19 and AVL-20 (2026-09-25), by the rule the calendar and the
+        // quote use, so a date the calendar calls past cannot become a draft.
+        // `CreateManualBooking` and imports do not come through here, which is
+        // BKG-32's operator override kept.
+        $cutoff = BookingCutoff::forRequest($product, $departure, $data->date, $data->startTime, $data->extraHours);
+
+        if ($cutoff !== null) {
+            return ApiErrorResponse::make(
+                code: $cutoff->value,
+                message: $cutoff->labelIn('en'),
+                messageEl: $cutoff->labelIn('el'),
+                status: SymfonyResponse::HTTP_UNPROCESSABLE_ENTITY,
+                details: ['reason' => $cutoff->value],
+            );
+        }
+
         $pax = CountedSeats::sanitise($product->ageBands, $request->paxByCode($product));
 
         if (($rejection = $party->blanket($product->ageBands, $pax)) !== null) {
@@ -116,7 +135,7 @@ final class BookingController
         }
 
         try {
-            $booking = ($this->createDraft)($request->toData($product, $departure));
+            $booking = ($this->createDraft)($data);
         } catch (CapacityExceeded $exceeded) {
             // §5: "two simultaneous requests for the last seat cannot both
             // succeed. The loser receives 409 insufficient_capacity."
@@ -126,12 +145,7 @@ final class BookingController
                 status: SymfonyResponse::HTTP_CONFLICT,
             );
         } catch (HoldRefused $refused) {
-            return ApiErrorResponse::make(
-                code: $refused->reason,
-                message: $refused->getMessage(),
-                messageEl: $refused->getMessage(),
-                status: SymfonyResponse::HTTP_CONFLICT,
-            );
+            return self::holdRefused($refused);
         } catch (DiscountCodeRefused $refused) {
             // «Κουπόνι» (2026-09-17). The sentence is already in the booking's
             // language; the widget shows it under the code field.
@@ -236,6 +250,10 @@ final class BookingController
                 code: 'insufficient_capacity',
                 status: SymfonyResponse::HTTP_CONFLICT,
             );
+        } catch (HoldRefused $refused) {
+            // A charter whose hold lapsed while somebody else took the boat
+            // (2026-09-25), refused at the line before money.
+            return self::holdRefused($refused);
         } catch (IllegalStateTransition $transition) {
             return ApiErrorResponse::fromKey(
                 key: 'api.errors.booking_not_payable',
@@ -325,5 +343,32 @@ final class BookingController
     private function relations(): array
     {
         return ['product.meetingPoint', 'vessel', 'departure', 'guests'];
+    }
+
+    /**
+     * §5's 409 for a hold that could not be taken.
+     *
+     * The sentence in both languages from the lang files for a boat already
+     * taken (2026-09-25), which the widget shows as it comes; the older
+     * refusals keep the one sentence they have always carried.
+     */
+    private static function holdRefused(HoldRefused $refused): JsonResponse
+    {
+        if ($refused->reason === 'vessel_unavailable') {
+            return ApiErrorResponse::make(
+                code: 'vessel_unavailable',
+                message: (string) __('booking.hold.vessel_unavailable', [], 'en'),
+                messageEl: (string) __('booking.hold.vessel_unavailable', [], 'el'),
+                status: SymfonyResponse::HTTP_CONFLICT,
+                details: ['reason' => 'vessel_unavailable'],
+            );
+        }
+
+        return ApiErrorResponse::make(
+            code: $refused->reason,
+            message: $refused->getMessage(),
+            messageEl: $refused->getMessage(),
+            status: SymfonyResponse::HTTP_CONFLICT,
+        );
     }
 }

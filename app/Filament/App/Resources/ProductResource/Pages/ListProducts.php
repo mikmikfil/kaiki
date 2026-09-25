@@ -47,7 +47,8 @@ class ListProducts extends ListRecords
 
         $tabs = [
             'all' => Tab::make(__('catalog.product.table.tabs.all'))
-                ->badge(array_sum($counts)),
+                ->badge(array_sum($counts))
+                ->modifyQueryUsing(static fn (Builder $query): Builder => $query->whereNull('deleted_at')),
         ];
 
         foreach (ProductStatus::cases() as $status) {
@@ -55,7 +56,7 @@ class ListProducts extends ListRecords
 
             $tab = Tab::make($status->label())
                 ->badge($count)
-                ->modifyQueryUsing(static fn (Builder $query): Builder => $query->where('status', $status->value));
+                ->modifyQueryUsing(static fn (Builder $query): Builder => $query->whereNull('deleted_at')->where('status', $status->value));
 
             if ($status === ProductStatus::Draft && $count > 0) {
                 $tab->badgeColor('warning');
@@ -63,6 +64,16 @@ class ListProducts extends ListRecords
 
             $tabs[$status->value] = $tab;
         }
+
+        /*
+         * «Διαγραμμένες» (Mike, 25/9): the bin was built behind Filament's
+         * filter button, where nobody looks. The resource query keeps deleted
+         * rows (restore and edit need them), so every tab above says
+         * `deleted_at is null` and this one says the opposite.
+         */
+        $tabs['trashed'] = Tab::make(__('catalog.product.table.tabs.trashed'))
+            ->badge(Product::onlyTrashed()->count())
+            ->modifyQueryUsing(static fn (Builder $query): Builder => $query->whereNotNull('deleted_at'));
 
         return $tabs;
     }
