@@ -182,14 +182,19 @@ class ProductResource extends Resource
                                     ->schema(static::basicsSections()),
 
                                 Tabs\Tab::make(__('catalog.product.tabs.when'))
-                                    ->badge(static::scheduleBadge(...))
-                                    ->badgeColor(static fn (?Product $record): string => static::scheduleBadge($record) === __('catalog.product.tabs.no_schedule') ? 'warning' : 'gray')
+                                    ->badge(static::whenBadge(...))
+                                    ->badgeColor(static fn (?Product $record): string => static::missingBadge($record, 'when') !== null
+                                        || static::scheduleBadge($record) === __('catalog.product.tabs.no_schedule') ? 'warning' : 'gray')
                                     ->schema(static::whenSections()),
 
                                 Tabs\Tab::make(__('catalog.product.tabs.prices'))
+                                    ->badge(static fn (?Product $record): ?string => static::missingBadge($record, 'prices'))
+                                    ->badgeColor('warning')
                                     ->schema(static::priceSections()),
 
                                 Tabs\Tab::make(__('catalog.product.tabs.terms'))
+                                    ->badge(static fn (?Product $record): ?string => static::missingBadge($record, 'terms'))
+                                    ->badgeColor('warning')
                                     ->schema(static::termsSections()),
 
                                 Tabs\Tab::make(__('catalog.product.tabs.page'))
@@ -986,16 +991,42 @@ class ProductResource extends Resource
         ];
     }
 
-    /** «λείπει 2» on a saved trip that cannot be published yet; nothing otherwise. */
-    public static function basicsBadge(?Product $record): ?string
+    /**
+     * Which tab each publish requirement is fixed on, so «λείπει 1» sits on
+     * the tab that fixes it. Product owner, 2026-09-25: *«ενώ λέει ότι λείπει
+     * ο τιμοκατάλογος, εμφανίζεται στα βασικά ότι λείπει 1»* — every unmet
+     * requirement used to be counted on «Βασικά».
+     *
+     * @var array<string, list<string>>
+     */
+    public const TAB_REQUIREMENTS = [
+        'basics' => [ProductPublishChecklist::VESSEL, ProductPublishChecklist::TITLE_LOCALES],
+        'when' => [ProductPublishChecklist::MEETING_POINT],
+        'prices' => [ProductPublishChecklist::AGE_BANDS, ProductPublishChecklist::RATE_PLAN, ProductPublishChecklist::PRICES],
+        'terms' => [ProductPublishChecklist::CANCELLATION_POLICY],
+    ];
+
+    /** «λείπει 2» on the tab whose requirements a saved trip does not meet yet; nothing otherwise. */
+    public static function missingBadge(?Product $record, string $tab): ?string
     {
         if (! $record instanceof Product || ! $record->exists) {
             return null;
         }
 
-        $missing = count(ProductPublishChecklist::unmet($record));
+        $missing = count(array_intersect(ProductPublishChecklist::unmet($record), self::TAB_REQUIREMENTS[$tab] ?? []));
 
         return $missing === 0 ? null : trans_choice('catalog.product.tabs.missing', $missing, ['count' => $missing]);
+    }
+
+    public static function basicsBadge(?Product $record): ?string
+    {
+        return static::missingBadge($record, 'basics');
+    }
+
+    /** A missing meeting point first, in amber; otherwise the timetable's count. */
+    public static function whenBadge(?Product $record): ?string
+    {
+        return static::missingBadge($record, 'when') ?? static::scheduleBadge($record);
     }
 
     /** «5 από 8»: how much of the guest's page is written, on a saved trip. */

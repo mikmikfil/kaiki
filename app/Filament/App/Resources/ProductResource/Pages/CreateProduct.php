@@ -158,7 +158,14 @@ class CreateProduct extends CreateRecord
         $columns = [PriceTable::NEW_DEFAULT, ...array_map(static fn (int $id): string => 's' . $id, $seasonIds)];
         $grid = [];
 
-        foreach (array_keys($data['age_bands'] ?? []) as $key) {
+        // **The repeater's keys from the live form state, not from `$data`.**
+        // A repeater dehydrates to a plain list (0, 1, 2…), while the price
+        // fields are named after its item keys — uuids in the browser — so
+        // `$data['age_bands']` shared no key with `$typed`, every cell read as
+        // empty, and the trip was made with no price list (product owner,
+        // 2026-09-25). The dehydrated list keeps the form's order, so the
+        // position still matches.
+        foreach (array_keys((array) ($this->data['age_bands'] ?? [])) as $key) {
             $row = [];
 
             foreach ($columns as $column) {
