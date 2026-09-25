@@ -214,8 +214,8 @@ return [
         'sections' => [
             'extras' => 'Extras',
             'extras_intro' => 'Whatever is offered alongside the seat, free or paid.',
-            'questions' => 'Extra questions',
-            'questions_intro' => 'Anything you want to ask the guest at checkout.',
+            'questions' => 'Questions at booking',
+            'questions_intro' => "The guest answers them when booking, and you see the answers on the booking. Not the page's FAQ.",
             'basics' => 'The basics',
             'schedule' => 'Times and duration',
             'schedule_per_seat' => 'Duration and check-in',
