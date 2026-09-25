@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Api\V1;
 
-use App\Domain\Media\Support\ImagePayload;
 use App\Models\Port;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -40,7 +39,9 @@ final class MeetingPointResource extends JsonResource
             'lat' => $this->lat !== null ? (float) $this->lat : null,
             'lng' => $this->lng !== null ? (float) $this->lng : null,
             'instructions' => $this->instructions,
-            'photo_url' => ImagePayload::url($this->photo_path),
+            // Kept in the contract, always null: ports have no photograph
+            // since 25/9, and a key that vanished would break a site reading it.
+            'photo_url' => null,
             'maps_url' => $this->mapsUrl(),
         ];
     }
