@@ -12,7 +12,6 @@
     $questions = $this->questions();
     $position = array_search($current, $questions, true);
     $isReady = $current === \App\Domain\Tenancy\Support\SetupChecklist::READY;
-    $handOff = $this->handOffUrl($current);
     $done = $isReady ? false : ($states[$current] ?? false);
 @endphp
 
@@ -165,26 +164,6 @@
                             </div>
                         @endif
                         <p class="ka-setup-hint">{{ __('setup.policy.later') }}</p>
-                    @endif
-                @elseif ($handOff !== null)
-                    @if ($done)
-                        <p class="ka-setup-done">
-                            <x-filament::icon icon="heroicon-m-check-circle" class="h-5 w-5" />
-                            {{ __('setup.steps.' . $current . '.done') }}
-                        </p>
-                    @else
-                        <div>
-                            <x-filament::button tag="a" :href="$handOff" color="gray" icon="heroicon-m-arrow-top-right-on-square">
-                                {{ __('setup.steps.' . $current . '.action') }}
-                            </x-filament::button>
-                        </div>
-                        {{-- «Περίοδοι» is the one hand-off step an operator is
-                             expected to skip — one price all year needs none —
-                             so it says that before it says «come back». --}}
-                        @if ($current === \App\Domain\Tenancy\Support\SetupChecklist::SEASON)
-                            <p class="ka-setup-hint">{{ __('setup.steps.season.caveat') }}</p>
-                        @endif
-                        <p class="ka-setup-hint">{{ __('setup.come_back') }}</p>
                     @endif
                 @else
                     {{ $this->form }}

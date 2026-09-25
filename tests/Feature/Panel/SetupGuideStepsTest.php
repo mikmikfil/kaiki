@@ -5,14 +5,13 @@ declare(strict_types=1);
 use App\Domain\Tenancy\Support\SetupChecklist;
 use App\Enums\AuditAction;
 use App\Enums\CrewSpecialty;
-use App\Enums\HomeBlockType;
 use App\Enums\HostedSiteMode;
 use App\Enums\Role;
 use App\Filament\Admin\Resources\TenantResource\Pages\EditTenant;
+use App\Filament\App\Pages\HomePage;
 use App\Filament\App\Pages\Setup;
 use App\Models\AuditLog;
 use App\Models\CancellationPolicy;
-use App\Models\HomePageBlock;
 use App\Models\PolicyTemplate;
 use App\Models\Tenant;
 use App\Models\User;
@@ -51,14 +50,13 @@ it('asks the questions in the order each answer is needed', function (): void {
     // εκδρομή και περίοδοι»). Each of those has a real screen of its own, and
     // asking for them here was either a hand-off out of the guide or a
     // shortened copy of a form that already exists.
-    // The home page step (2026-09-23) is conditional: an operator who gets a
-    // home page from us is asked to build it, last. The logo and the colours
-    // left on 2026-09-25 — the platform sets them from /admin.
+    // The logo and the colours left on 2026-09-25 — the platform sets them
+    // from /admin — and so did the home page, to the dashboard's first steps
+    // (`FirstStepsReturnTest`).
     expect(SetupChecklist::questions())->toBe([
         SetupChecklist::BUSINESS,
         SetupChecklist::VAT,
         SetupChecklist::CANCELLATION,
-        SetupChecklist::HOME_PAGE,
     ]);
 
     // Still owed, still reported — just not questions here.
@@ -93,10 +91,9 @@ it('saves the chosen ladder as the default policy and moves on', function (): vo
             ->set('step', SetupChecklist::CANCELLATION)
             ->call('choosePreset', 'strict')
             ->call('continue')
-            // The home page step sits between this and the close since
-            // 2026-09-23, for an operator who gets a home page from us — which
-            // the factory's default site mode does.
-            ->assertSet('step', SetupChecklist::HOME_PAGE);
+            // The last question: the close comes next (the home page step
+            // left for the dashboard on 2026-09-25).
+            ->assertSet('step', SetupChecklist::READY);
 
         $policy = CancellationPolicy::query()->with('tiers')->sole();
 
@@ -134,12 +131,12 @@ it('sets a step aside with «Αργότερα» and goes forward to the next ope
             ->call('back')
             ->assertSet('step', SetupChecklist::BUSINESS);
 
-        // Four questions: the home page step joined them (2026-09-23) and the
-        // branding step left (2026-09-25), so the figure is counted rather
-        // than typed here.
+        // Three questions: the branding step left for /admin and the home
+        // page for the dashboard's first steps (both 2026-09-25), so the
+        // figure is counted rather than typed here.
         expect(SetupChecklist::skipped())->toBe([SetupChecklist::BUSINESS])
             ->and(SetupChecklist::progress())->toBe(['done' => 1, 'total' => count(SetupChecklist::questions())])
-            ->and(count(SetupChecklist::questions()))->toBe(4);
+            ->and(count(SetupChecklist::questions()))->toBe(3);
     });
 })->group('fast');
 
@@ -161,17 +158,13 @@ it('has no branding step any more, and ignores one asked for by URL', function (
     });
 })->group('fast');
 
-it('lets the guide reach the screens it hands off to', function (): void {
-    // The gate holds every other panel page back, and three of the seven steps
-    // are answered elsewhere: the boat, the periods and the first trip.
+it('holds every other panel page back while the guide is open', function (): void {
+    // No screen is part of the guide since 2026-09-25: the home page, the last
+    // step answered elsewhere, moved to the dashboard's first steps.
     $owner = guideOwner();
 
-    foreach (Setup::handOffUrls() as $url) {
-        actingAs($owner)->get($url)->assertSuccessful();
-    }
-
-    // …and nothing beyond them.
     actingAs($owner)->get('/app/bookings')->assertRedirect(Setup::getUrl());
+    actingAs($owner)->get(HomePage::getUrl())->assertRedirect(Setup::getUrl());
 })->group('fast');
 
 it('saves the business details on «Συνέχεια»', function (): void {
@@ -254,39 +247,23 @@ it('restarts the guide from /admin without losing what was filled in', function 
         ->and($tenant->legal_name)->toBe('Webflow Ι.Κ.Ε.');
 })->group('fast');
 
-it('asks for a home page only from the operators who get one', function (): void {
-    // Mike, 2026-09-23: *«στο first time config, σε αυτούς που έχουν full
-    // website να υπάρχει και για εκεί βήμα τελευταίο να σε στέλνει να φτιάχνεις
-    // την σελίδα»*.
-    //
-    // The conditional half is the point. A `bookings_only` account has no
-    // marketing home page from us — their pages are one per trip — so the step
-    // would hand them to a screen that governs nothing they have, and the
-    // dashboard would report a step they were never offered as outstanding.
+it('no longer asks for a home page, whatever the site mode', function (): void {
+    // Mike, 2026-09-25: the home page is the last, optional line of the
+    // dashboard's first steps now, for the operators who get one
+    // (`FirstStepsReturnTest`). The guide asks about the account alone.
     $owner = guideOwner();
     actingAs($owner);
 
     Tenancy::forTenant($owner->tenant, function (): void {
-        expect(SetupChecklist::questions())->toContain(SetupChecklist::HOME_PAGE)
-            // Not done until there is something on the page: a home page an
-            // operator opened and left empty is the one the guide most needs to
-            // keep asking about.
-            ->and(SetupChecklist::state()[SetupChecklist::HOME_PAGE])->toBeFalse();
-
-        HomePageBlock::factory()->ofType(HomeBlockType::Faq)->create();
-
-        expect(SetupChecklist::state()[SetupChecklist::HOME_PAGE])->toBeTrue();
-
+        expect(SetupChecklist::steps())->not->toContain('home_page')
+            ->and(SetupChecklist::state())->not->toHaveKey('home_page');
     });
 
     $bookingsOnly = $owner->tenant;
     $bookingsOnly->forceFill(['hosted_site_mode' => HostedSiteMode::BookingsOnly])->save();
 
     Tenancy::forTenant($bookingsOnly, function (): void {
-        expect(SetupChecklist::questions())->not->toContain(SetupChecklist::HOME_PAGE)
-            // …and reported as settled rather than outstanding, so the
-            // dashboard does not chase them for it.
-            ->and(SetupChecklist::state()[SetupChecklist::HOME_PAGE])->toBeTrue();
+        expect(SetupChecklist::steps())->not->toContain('home_page');
     });
 })->group('fast');
 

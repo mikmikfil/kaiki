@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Filament\App\Widgets;
 
 use App\Domain\Operations\Support\FirstSteps as Steps;
-use App\Filament\App\Resources\DepartureResource;
+use App\Filament\App\Pages\HomePage;
 use App\Filament\App\Resources\PortResource;
 use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Resources\SeasonResource;
 use App\Filament\App\Resources\VesselResource;
+use App\Filament\App\Support\ReturnsToFirstSteps;
 use Filament\Widgets\Widget;
 
 /**
@@ -26,6 +27,13 @@ use Filament\Widgets\Widget;
  */
 class FirstSteps extends Widget
 {
+    /**
+     * `?from=` on the checklist's links, so the page they open can send the
+     * operator back here when the step is done (Mike, 25/9;
+     * {@see ReturnsToFirstSteps}).
+     */
+    public const MARKER = 'first-steps';
+
     protected static string $view = 'filament.app.widgets.first-steps';
 
     protected static ?int $sort = 0;
@@ -75,13 +83,23 @@ class FirstSteps extends Widget
      */
     public function getLinks(): array
     {
+        // The steps finished on the page they open carry the marker; the two
+        // lists do not, because nothing is finished on a list page.
         return [
-            Steps::PORT => PortResource::getUrl('create'),
-            Steps::VESSEL => VesselResource::getUrl('create'),
-            Steps::SEASON => SeasonResource::getUrl('create'),
-            Steps::PRODUCT => ProductResource::getUrl('create'),
+            Steps::PORT => self::linkFromChecklist(PortResource::getUrl('create')),
+            Steps::VESSEL => self::linkFromChecklist(VesselResource::getUrl('create')),
+            Steps::SEASON => self::linkFromChecklist(SeasonResource::getUrl('create')),
+            Steps::PRODUCT => self::linkFromChecklist(ProductResource::getUrl('create')),
             Steps::PUBLISHED => ProductResource::getUrl('index'),
-            Steps::DEPARTURE => DepartureResource::getUrl('index'),
+            // Only listed for an operator who gets a home page; the link is
+            // built either way, since a route lookup costs nothing.
+            Steps::HOME_PAGE => self::linkFromChecklist(HomePage::getUrl()),
         ];
+    }
+
+    /** `$url`, marked as opened from this checklist. */
+    public static function linkFromChecklist(string $url): string
+    {
+        return $url . (str_contains($url, '?') ? '&' : '?') . 'from=' . self::MARKER;
     }
 }

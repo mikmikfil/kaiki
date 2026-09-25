@@ -28,8 +28,6 @@ return [
     'back' => 'Back',
     'later' => 'Later',
     'later_tag' => 'later',
-    'come_back' => 'When you are done there, open «Setup guide» from the menu again and you will carry on from here.',
-
     'skip' => 'Skip for now',
     'unskip' => 'Put it back on the list',
     'done' => 'Done',
@@ -81,14 +79,6 @@ return [
         ],
         // Only for operators who get a home page from us (2026-09-23). A
         // bookings-only account never sees this step at all.
-        'home_page' => [
-            'label' => 'Your home page',
-            'description' => 'What a visitor reads',
-            'question' => 'What should your home page say?',
-            'why' => 'It is the page your address points at — the first one anybody looking you up will see. You build it from sections in whatever order you like: a large photograph, your trips, a few words about you, your FAQ. All optional; the ones you leave out simply do not appear.',
-            'done' => 'You have already built your home page.',
-            'action' => 'Build your home page',
-        ],
         'port' => [
             'label' => 'Ports',
             'description' => 'Where you sail from',

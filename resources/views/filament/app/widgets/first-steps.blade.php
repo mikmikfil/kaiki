@@ -13,7 +13,10 @@
 
         <ol class="kaiki-first-steps">
             @foreach ($this->getSteps() as $step => $done)
-                @php($isNext = $step === $this->getNextStep())
+                @php
+                    $isNext = $step === $this->getNextStep();
+                    $isOptional = in_array($step, $this->getOptional(), true);
+                @endphp
                 <li @class(['is-done' => $done, 'is-next' => $isNext])>
                     <span class="mark" aria-hidden="true">{{ $done ? '✓' : $loop->iteration }}</span>
 
@@ -22,17 +25,27 @@
                         <span class="why">{{ __('dashboard.first_steps.' . $step . '.why') }}</span>
                     </span>
 
+                    {{-- Every button in one column of its own, the same width
+                         in every row (Mike, 25/9: «στη σειρά του, όχι έτσι
+                         χύμα»). Each was as wide as its own label and pushed
+                         against the right edge, so two buttons in a list never
+                         lined up, and on a phone they squeezed the text beside
+                         them into three lines. --}}
                     @if ($isNext)
-                        <x-filament::button tag="a" size="sm" :href="$this->getLinks()[$step]">
-                            {{ __('dashboard.first_steps.' . $step . '.action') }}
-                        </x-filament::button>
-                    @elseif (! $done && in_array($step, $this->getOptional(), true))
+                        <span class="act">
+                            <x-filament::button tag="a" size="sm" :href="$this->getLinks()[$step]">
+                                {{ __('dashboard.first_steps.' . $step . '.action') }}
+                            </x-filament::button>
+                        </span>
+                    @elseif (! $done && $isOptional)
                         {{-- An optional step is never "next", so it had no way in
                              at all (Mike, 25/9). Its own button, quieter than the
                              one that says what to do now. --}}
-                        <x-filament::button tag="a" size="sm" color="gray" outlined :href="$this->getLinks()[$step]">
-                            {{ __('dashboard.first_steps.' . $step . '.action') }}
-                        </x-filament::button>
+                        <span class="act">
+                            <x-filament::button tag="a" size="sm" color="gray" outlined :href="$this->getLinks()[$step]">
+                                {{ __('dashboard.first_steps.' . $step . '.action') }}
+                            </x-filament::button>
+                        </span>
                     @endif
                 </li>
             @endforeach
@@ -40,14 +53,37 @@
 
         <style>
             .kaiki-first-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
-            .kaiki-first-steps li { display: flex; align-items: center; gap: .85rem; }
+
+            /* One grid per row, the same three columns in every row: the
+               mark, the words, the button. A row with no button leaves its
+               column empty, so the words never run under the buttons above
+               or below them. On a phone the button drops under the words,
+               the full width of them. */
+            .kaiki-first-steps li {
+                display: grid;
+                grid-template-columns: 1.6rem minmax(0, 1fr);
+                column-gap: .85rem;
+                row-gap: .5rem;
+                align-items: start;
+            }
+            .kaiki-first-steps .act { grid-column: 2; display: grid; }
+            .kaiki-first-steps .act > * { width: 100%; }
+
+            @media (min-width: 640px) {
+                .kaiki-first-steps li {
+                    grid-template-columns: 1.6rem minmax(0, 1fr) 11rem;
+                    align-items: center;
+                }
+                .kaiki-first-steps .act { grid-column: 3; }
+            }
+
             .kaiki-first-steps .mark {
-                flex: 0 0 1.6rem; height: 1.6rem; border-radius: 999px;
+                width: 1.6rem; height: 1.6rem; border-radius: 999px;
                 display: grid; place-items: center; font-size: .8rem; font-weight: 600;
                 background: rgb(var(--gray-100)); color: rgb(var(--gray-500));
             }
             .kaiki-first-steps .is-done .mark { background: rgb(var(--primary-500)); color: #fff; }
-            .kaiki-first-steps .body { display: grid; gap: .1rem; min-width: 0; flex: 1 1 auto; }
+            .kaiki-first-steps .body { display: grid; gap: .1rem; min-width: 0; }
             .kaiki-first-steps .why { font-size: .82rem; color: rgb(var(--gray-500)); }
             .kaiki-first-steps .is-done .body strong { color: rgb(var(--gray-500)); }
 

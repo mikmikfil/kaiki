@@ -77,10 +77,10 @@ return [
             'why' => 'A trip that is still a draft cannot be seen or booked by anybody.',
             'action' => 'Open your trips',
         ],
-        'departure' => [
-            'title' => 'Put it on the calendar',
-            'why' => 'Dates and times people can actually book. A trip with no departures has nothing to sell.',
-            'action' => 'Open the calendar',
+        'home_page' => [
+            'title' => 'Build your home page',
+            'why' => 'The page your address points at: a photograph, your trips, a few words about you.',
+            'action' => 'Home page',
         ],
     ],
 

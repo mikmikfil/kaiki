@@ -97,10 +97,10 @@ class RequireSetupFirst
 
         $allowed = [
             Setup::getUrl(),
+            // Nothing else since 2026-09-25: the home page, the last step the
+            // guide answered on another screen, moved to the dashboard's first
+            // steps, and every question left is answered on the guide itself.
             filament()->getPanel('app')->getLogoutUrl(),
-            // The screens the guide itself sends people to. They are part of
-            // finishing it: three of the seven steps are answered there.
-            ...Setup::handOffUrls(),
         ];
 
         foreach ($allowed as $url) {
