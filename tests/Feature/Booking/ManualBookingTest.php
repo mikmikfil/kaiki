@@ -6,10 +6,12 @@ use App\Domain\Booking\Actions\CreateManualBooking;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Booking\Data\ManualBookingAdjustment;
 use App\Enums\AuditAction;
+use App\Enums\BookingMode;
 use App\Enums\BookingSource;
 use App\Enums\BookingStatus;
 use App\Enums\PaymentGatewayName;
 use App\Exceptions\HoldRefused;
+use App\Exceptions\IllegalStateTransition;
 use App\Models\AuditLog;
 use App\Models\Departure;
 use App\Models\Payment;
@@ -269,6 +271,24 @@ it('marks a booking paid in cash and confirms it', function (): void {
             // costs one uuid; a column that is sometimes null is a column every
             // later query has to special-case.
             ->and($payment->idempotency_key)->not->toBeNull();
+    });
+})->group('fast');
+
+it('takes no money for a trip sold on request, rather than money for a quote request', function (): void {
+    $fixture = BookingApiScenario::bookable(unitPriceCents: 6500);
+
+    Tenancy::forTenant($fixture['tenant'], function () use ($fixture): void {
+        $fixture['product']->forceFill(['mode' => BookingMode::Quote])->save();
+
+        // The payment used to be saved and the confirmation to throw after it,
+        // leaving a quote request paid in full — €8,294 of revenue with no
+        // booking behind it on the demo's statistics (roadmap, 25/9).
+        expect(fn () => app(CreateManualBooking::class)(
+            manualDraft($fixture),
+            paidBy: PaymentGatewayName::Cash,
+        ))->toThrow(IllegalStateTransition::class);
+
+        expect(Payment::query()->count())->toBe(0);
     });
 })->group('fast');
 
