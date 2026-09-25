@@ -21,6 +21,7 @@ use App\Exceptions\CheckoutRefused;
 use App\Exceptions\DiscountCodeRefused;
 use App\Exceptions\HoldRefused;
 use App\Exceptions\IllegalStateTransition;
+use App\Exceptions\PartyRefused;
 use App\Http\Middleware\AuthenticateGuestToken;
 use App\Http\Middleware\EnforceIdempotencyKey;
 use App\Http\Requests\Api\V1\BookingCreateRequest;
@@ -92,7 +93,14 @@ final class BookingController
             );
         }
 
-        $departure = $request->departure();
+        $departure = $request->departure($product);
+
+        // A named sailing that is not this trip's (another trip, another
+        // operator, or gone) is refused, never replaced by the day's first
+        // sailing (2026-09-25). Its status is `CreateBookingDraft`'s to check.
+        if ($departure === null && $request->hasDepartureUuid()) {
+            return self::holdRefused(HoldRefused::departureUnavailable());
+        }
 
         // AVL-26 and AVL-26b, in the same words `GET /availability` and
         // `POST /price-quote` use. Only the party rules: seats and the boat's
@@ -146,6 +154,16 @@ final class BookingController
             );
         } catch (HoldRefused $refused) {
             return self::holdRefused($refused);
+        } catch (PartyRefused $refused) {
+            // Too few, too many, or more people than the boat's certificate
+            // (2026-09-25): the quote's code and sentence, in both languages.
+            return ApiErrorResponse::make(
+                code: $refused->rejection->value,
+                message: $refused->messageIn('en'),
+                messageEl: $refused->messageIn('el'),
+                status: SymfonyResponse::HTTP_UNPROCESSABLE_ENTITY,
+                details: ['reason' => $refused->rejection->value],
+            );
         } catch (DiscountCodeRefused $refused) {
             // «Κουπόνι» (2026-09-17). The sentence is already in the booking's
             // language; the widget shows it under the code field.
@@ -354,13 +372,26 @@ final class BookingController
      */
     private static function holdRefused(HoldRefused $refused): JsonResponse
     {
-        if ($refused->reason === 'vessel_unavailable') {
+        // Refusals that have a fixed sentence, in both languages. The sailing
+        // being gone is a 409 like the boat being taken; a day with two
+        // sailings and no time is the request's to fix, so a 422 (2026-09-25).
+        $bilingual = [
+            'vessel_unavailable' => SymfonyResponse::HTTP_CONFLICT,
+            'departure_unavailable' => SymfonyResponse::HTTP_CONFLICT,
+            'product_unavailable' => SymfonyResponse::HTTP_CONFLICT,
+            'departure_time_required' => SymfonyResponse::HTTP_UNPROCESSABLE_ENTITY,
+            // AVL-25 under the departure lock: more people than the boat's
+            // certificate, infants counted. Fewer people is the remedy.
+            'legal_capacity' => SymfonyResponse::HTTP_UNPROCESSABLE_ENTITY,
+        ];
+
+        if (isset($bilingual[$refused->reason])) {
             return ApiErrorResponse::make(
-                code: 'vessel_unavailable',
-                message: (string) __('booking.hold.vessel_unavailable', [], 'en'),
-                messageEl: (string) __('booking.hold.vessel_unavailable', [], 'el'),
-                status: SymfonyResponse::HTTP_CONFLICT,
-                details: ['reason' => 'vessel_unavailable'],
+                code: $refused->reason,
+                message: (string) __('booking.hold.' . $refused->reason, [], 'en'),
+                messageEl: (string) __('booking.hold.' . $refused->reason, [], 'el'),
+                status: $bilingual[$refused->reason],
+                details: ['reason' => $refused->reason],
             );
         }
 

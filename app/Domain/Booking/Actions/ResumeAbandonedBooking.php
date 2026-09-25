@@ -79,7 +79,7 @@ final class ResumeAbandonedBooking
             return $existing;
         }
 
-        $booking->loadMissing(['product', 'voucher', 'discountCode', 'extras']);
+        $booking->loadMissing(['product', 'departure', 'voucher', 'discountCode', 'extras']);
 
         $pax = [];
 
@@ -120,6 +120,9 @@ final class ResumeAbandonedBooking
             ],
             isTest: (bool) $booking->is_test,
             originUrl: $booking->origin_url,
+            // The same sailing, or none (2026-09-25): a sailing cancelled or
+            // blocked since is refused rather than swapped for another one.
+            departure: $booking->departure,
         ));
     }
 }

@@ -6,6 +6,7 @@ namespace App\Domain\Import\Actions;
 
 use App\Domain\Availability\Actions\CreateManualDeparture;
 use App\Domain\Availability\LocalDateTimeResolver;
+use App\Domain\Availability\Support\PartyGuard;
 use App\Domain\Booking\Actions\ImportBooking;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Catalog\Actions\SaveAgeBands;
@@ -469,6 +470,8 @@ final class CommitImport
             startTime: $startTime,
         );
 
+        $departure = null;
+
         if ($product->mode === BookingMode::PerSeat) {
             $departure = $this->departure($product, $start['date'], $start['time'], $notes);
             $booking = ($this->importBooking)($draft($departure->local_date->copy(), null), $total, $paid, $departure, $sourceData);
@@ -479,7 +482,39 @@ final class CommitImport
 
         $notes[] = ['key' => 'imports.notes.booking_created', 'params' => ['reference' => $booking->reference]];
 
+        // AVL-25, reported rather than refused (2026-09-25). An import says what
+        // already happened elsewhere, and half a season landing is worse than
+        // the whole of it with the problem named — but a sailing over the boat's
+        // certificate is one the operator must see before it leaves the quay.
+        $aboard = $this->overCertificate($booking, $product, $departure);
+
+        if ($aboard !== null) {
+            $notes[] = ['key' => 'imports.warnings.over_certificate', 'params' => [
+                'aboard' => $aboard,
+                'max' => (int) $product->vessel?->capacity_max,
+            ]];
+        }
+
         return ['Booking', (int) $booking->getKey(), $notes];
+    }
+
+    /**
+     * Everyone aboard, when that is more than the boat's certificate; else null.
+     * The same sum the booking doors refuse with ({@see PartyGuard}).
+     */
+    private function overCertificate(Booking $booking, Product $product, ?Departure $departure): ?int
+    {
+        $party = app(PartyGuard::class);
+
+        if ($departure instanceof Departure) {
+            return $party->exceedsCertificate($departure->vessel?->capacity_max, 0, $departure)
+                ? $party->personsAboard($departure)
+                : null;
+        }
+
+        return $party->exceedsCertificate($product->vessel?->capacity_max, (int) $booking->pax_total)
+            ? (int) $booking->pax_total
+            : null;
     }
 
     /**

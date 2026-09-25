@@ -35,6 +35,10 @@ return [
         'legal_capacity' => 'That would put more people aboard than the vessel is licensed to carry. This limit cannot be overridden.',
         // A private charter (2026-09-25): somebody else already has the boat.
         'vessel_unavailable' => 'The boat has just been booked for this time. Please choose another day.',
+        // 2026-09-25: the exact sailing the guest picked, or nothing.
+        'departure_unavailable' => 'This departure is no longer available. Please choose another time.',
+        'departure_time_required' => 'This trip sails more than once that day. Please choose a time.',
+        'product_unavailable' => 'This trip is not available for booking right now.',
     ],
 
     'draft' => [

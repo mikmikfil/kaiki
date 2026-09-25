@@ -132,7 +132,7 @@ return [
              * the form field error and the exception an import raises, so an
              * operator and a log line say the same thing.
              */
-            'refused' => 'This boat cannot carry fewer than :capacity passengers yet — :count record(s) already promise more: :records.',
+            'refused' => 'The limit cannot go down to :capacity people yet. More people than that are already booked on: :records. Move or cancel those bookings first, or keep the higher number.',
         ],
     ],
 

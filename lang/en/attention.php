@@ -69,6 +69,13 @@ return [
         'detail' => ':guest (:reference) paid, but the boat had already been booked. The booking was cancelled and refunded in full.',
     ],
 
+    // A payment that arrived when the booking could no longer take it
+    // (2026-09-25): expired, cancelled or already paid. Refunded to the card.
+    'late_payment' => [
+        'title' => 'Payment being refunded · :amount · :reference',
+        'detail' => ':guest paid after the booking had expired, been cancelled or been paid in full. The money goes back to the card automatically.',
+    ],
+
     // Money that came in as cash or by transfer and has to go back by hand
     // (2026-09-23). A card refunds itself; these do not.
     'refund' => [

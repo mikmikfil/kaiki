@@ -121,6 +121,7 @@ final class AttentionItems
             + $this->expiringQuotesQuery($now)->count()
             + $this->owedRefundsQuery()->count()
             + $this->lostChartersQuery($now)->count()
+            + $this->latePaymentsQuery($now)->count()
             + $this->brokenCalendarsQuery()->count()
             + count($this->captainlessGroups($now));
     }
@@ -154,6 +155,7 @@ final class AttentionItems
             ...$this->expiringQuotes($now),
             ...$this->owedRefunds(),
             ...$this->lostCharters($now),
+            ...$this->latePayments($now),
             ...$this->brokenCalendars(),
             ...$this->withoutCaptain($now),
         ];
@@ -473,6 +475,38 @@ final class AttentionItems
         ))->all();
     }
 
+    /**
+     * Money that came in when the booking could no longer take it, and is
+     * going back on its own (2026-09-25): a payment finished after the checkout
+     * expired or the booking was cancelled, or one on top of a balance already
+     * settled. `ConfirmFromWebhook` refunds it; the operator is told because
+     * the guest was charged and refunded without a word, and will ask.
+     *
+     * @return list<AttentionItem>
+     */
+    private function latePayments(Carbon $now): array
+    {
+        $refunds = $this->latePaymentsQuery($now)
+            ->with('booking')
+            ->orderBy('id')
+            ->limit(self::SOURCE_LIMIT)
+            ->get();
+
+        return $refunds->map(fn (Payment $refund): AttentionItem => new AttentionItem(
+            key: 'late_payment:' . $refund->getKey(),
+            severity: AttentionSeverity::Warning,
+            title: (string) __('attention.late_payment.title', [
+                'amount' => MoneyFormatter::format($refund->amount_cents, null, MoneyFormatter::currency()),
+                'reference' => (string) $refund->booking?->reference,
+            ]),
+            detail: (string) __('attention.late_payment.detail', [
+                'guest' => (string) $refund->booking?->guest_name,
+            ]),
+            deadline: $this->local($refund->booking?->starts_at_utc),
+            subject: $refund,
+        ))->all();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | The questions themselves, shared by the rows and by count()
@@ -569,6 +603,28 @@ final class AttentionItems
             ->where('cancel_reason', CancelReason::VesselBookedPrivately->value)
             ->where('cancelled_by', CancelledBy::System->value)
             ->where('starts_at_utc', '>=', $now);
+    }
+
+    /**
+     * The refunds {@see RefundBooking::LATE_KEY_PREFIX} marks. Shown until the
+     * trip's day has passed, and for a week after the money came in whatever
+     * the trip — a balance paid twice after the sailing is still a question.
+     *
+     * @return Builder<Payment>
+     */
+    private function latePaymentsQuery(Carbon $now): Builder
+    {
+        return Payment::query()
+            ->where('kind', PaymentKind::Refund->value)
+            ->where('idempotency_key', 'like', RefundBooking::LATE_KEY_PREFIX . '%')
+            ->whereIn('status', [
+                PaymentStatus::Pending->value,
+                PaymentStatus::Processing->value,
+                PaymentStatus::Succeeded->value,
+            ])
+            ->where(static fn (Builder $query) => $query
+                ->where('created_at', '>=', $now->copy()->subDays(7))
+                ->orWhereHas('booking', static fn (Builder $booking) => $booking->where('starts_at_utc', '>=', $now)));
     }
 
     /** @return Builder<IcalSource> */

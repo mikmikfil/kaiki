@@ -57,7 +57,7 @@ final class RecordManualPayment
 {
     public function __construct(
         private readonly ConfirmBooking $confirmBooking,
-        private readonly ComputeBalanceDueAt $computeBalanceDueAt,
+        private readonly RecomputeBookingMoney $recomputeMoney,
     ) {}
 
     /**
@@ -108,24 +108,25 @@ final class RecordManualPayment
             ])->save();
 
             // PAY-10, in the same transaction as the row it is derived from and
-            // recomputed rather than incremented. A booking already confirmed
-            // stops here: this is the whole of what changed for it.
-            $paid = Payment::paidCentsFor($locked->getKey());
+            // recomputed rather than incremented; PRC-27.2's due date with it,
+            // so a booking settled in cash loses its due date here and the
+            // reminder scheduler stops chasing a guest who has already paid. A
+            // booking already confirmed stops here: this is the whole of what
+            // changed for it.
+            ($this->recomputeMoney)($locked);
 
-            $locked->forceFill([
-                'paid_cents' => $paid,
-                'balance_cents' => max(0, $locked->total_cents - $paid),
-                'refunded_cents' => Payment::refundedCentsFor($locked->getKey()),
-            ])->save();
-
-            // PRC-27.2, written after the balance because it reads it. A
-            // booking settled in cash must lose its due date here, or the
-            // reminder scheduler goes on chasing a guest who has already paid —
-            // which is the complaint that arrives from the guest, not from the
-            // operator.
-            $locked->forceFill([
-                'balance_due_at' => ($this->computeBalanceDueAt)($locked),
-            ])->save();
+            if ($locked->balance_cents < 1) {
+                // Settled at the desk while a gateway page may still be open —
+                // a guest who gave up on the card and paid cash. That order is
+                // withdrawn here, so it does not sit in the stuck-payment feed;
+                // if the guest pays it anyway, `ConfirmFromWebhook` hands the
+                // surplus back (2026-09-25).
+                Payment::query()
+                    ->where('booking_id', $locked->getKey())
+                    ->where('kind', '!=', PaymentKind::Refund->value)
+                    ->open()
+                    ->update(['status' => PaymentStatus::Cancelled->value, 'updated_at' => now()]);
+            }
 
             return $payment;
         });
@@ -215,6 +216,13 @@ final class RecordManualPayment
             return $booking;
         }
 
-        return ($this->confirmBooking)($booking);
+        // A `pending_payment` booking's seats went into `seats_sold` at the
+        // redirect (BKG-9), so confirming it must not take them a second time —
+        // the same flag the webhook passes. A draft's seats are still held and
+        // move now.
+        return ($this->confirmBooking)(
+            $booking,
+            fromCheckout: $booking->status === BookingStatus::PendingPayment,
+        );
     }
 }

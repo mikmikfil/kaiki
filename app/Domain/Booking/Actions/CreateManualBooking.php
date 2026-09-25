@@ -141,6 +141,7 @@ final class CreateManualBooking
             isTest: $data->isTest,
             skipHold: $overriding,
             originUrl: $data->originUrl,
+            departure: $data->departure,
         );
     }
 

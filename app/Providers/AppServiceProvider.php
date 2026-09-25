@@ -59,12 +59,10 @@ class AppServiceProvider extends ServiceProvider
         // Everything that can already have promised seats on a vessel, so
         // GuardVesselCapacity can ask before `capacity_max` is lowered.
         //
-        // **Deliberately empty today.** `products.max_pax` arrives with #18 and
-        // `departures.capacity` with #23; until those tables exist nothing can
-        // claim a seat and the guard correctly refuses nothing. Each of those
-        // issues adds one implementation of VesselCapacityClaims and one `tag()`
-        // line here — the Action, the message, its localisation and both
-        // enforcement points are already built and tested.
+        // **Empty here, and filled elsewhere** (2026-09-25): the people already
+        // booked on the boat's sailings ahead are `BookingHoldSource`'s answer,
+        // tagged in {@see BookingServiceProvider}. This line only declares the
+        // tag, so the singleton resolves when that provider is absent.
         $this->app->tag([], GuardVesselCapacity::TAG);
 
         $this->app->singleton(

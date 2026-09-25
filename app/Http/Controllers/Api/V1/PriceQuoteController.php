@@ -126,11 +126,13 @@ final class PriceQuoteController
             // AC of #37: the machine code the widget branches on, and the
             // sentence beside it in the negotiated locale. `AvailabilityRejection`
             // owns both so this endpoint and `GET /availability` cannot drift
-            // into describing the same refusal two ways.
+            // into describing the same refusal two ways. `sentenceIn` puts the
+            // trip's own number into the bounds refusals (2026-09-25), the
+            // same words `POST /bookings` answers with.
             return ApiErrorResponse::make(
                 code: $rejection->value,
-                message: $rejection->labelIn('en'),
-                messageEl: $rejection->labelIn('el'),
+                message: $rejection->sentenceIn('en', $product),
+                messageEl: $rejection->sentenceIn('el', $product),
                 status: SymfonyResponse::HTTP_UNPROCESSABLE_ENTITY,
                 details: ['reason' => $rejection->value],
             );

@@ -8,6 +8,7 @@ use App\Domain\Availability\Actions\CheckSeatAvailability;
 use App\Domain\Availability\Support\OccupationCollector;
 use App\Domain\Booking\Support\BookingHoldSource;
 use App\Domain\Booking\Support\BookingProductCount;
+use App\Domain\Catalog\Actions\GuardVesselCapacity;
 use App\Domain\Catalog\Actions\SaveProduct;
 use App\Events\BookingCancelled;
 use App\Events\BookingConfirmed;
@@ -38,9 +39,11 @@ use Illuminate\Support\ServiceProvider;
  * numbers stay plausible — which is why they are wired here as a group rather
  * than one at a time as each is first needed.
  *
- * `GuardVesselCapacity::TAG` is deliberately **not** filled here. It asks what
- * has been promised against a *vessel's* capacity, which `products.max_pax` and
- * `departures.capacity` answer; it predates bookings and is not this issue's.
+ * `GuardVesselCapacity::TAG` is filled here too since 2026-09-25. Its tag had
+ * stayed empty, so a boat's certificate could be lowered below the people
+ * already booked with no warning. What stands in the way of a lower
+ * certificate is the headcount on the sailings ahead, which is `bookings`'
+ * answer — the same sum the legal check uses.
  */
 class BookingServiceProvider extends ServiceProvider
 {
@@ -56,6 +59,7 @@ class BookingServiceProvider extends ServiceProvider
         $this->app->tag([BookingHoldSource::class], CheckSeatAvailability::EXPIRED_HOLDS_TAG);
         $this->app->tag([BookingHoldSource::class], OccupationCollector::HOLD_SOURCE_TAG);
         $this->app->tag([BookingProductCount::class], SaveProduct::TAG);
+        $this->app->tag([BookingHoldSource::class], GuardVesselCapacity::TAG);
     }
 
     public function boot(): void

@@ -6,6 +6,7 @@ namespace App\Filament\App\Resources\BookingResource\Pages;
 
 use App\Domain\Booking\Actions\CreateManualBooking;
 use App\Exceptions\HoldRefused;
+use App\Exceptions\PartyRefused;
 use App\Filament\App\Resources\BookingResource;
 use App\Models\Booking;
 use Filament\Notifications\Notification;
@@ -47,7 +48,10 @@ class CreateBooking extends CreateRecord
     {
         try {
             return BookingResource::createFromForm($data);
-        } catch (HoldRefused $refused) {
+        } catch (HoldRefused|PartyRefused $refused) {
+            // PartyRefused (2026-09-25): too few or too many for the trip, or
+            // a charter party past the boat's certificate. The override lifts
+            // the trip's maximum, never the certificate.
             Notification::make()
                 ->danger()
                 ->title($refused->getMessage())

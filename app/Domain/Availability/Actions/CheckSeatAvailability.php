@@ -28,6 +28,7 @@ use App\Models\RatePlan;
 use App\Models\Season;
 use App\Models\Vessel;
 use App\Support\Tenancy;
+use Illuminate\Container\Attributes\Tag;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -85,9 +86,16 @@ final class CheckSeatAvailability
 
     private readonly PartyGuard $party;
 
-    /** @param iterable<DeparturePersonsAboard> $personsAboard */
-    public function __construct(private readonly iterable $personsAboard = [])
-    {
+    /**
+     * Through the tag (2026-09-25): until then the container passed the
+     * default `[]`, so the calendar's legal check counted nobody aboard.
+     *
+     * @param  iterable<DeparturePersonsAboard>  $personsAboard
+     */
+    public function __construct(
+        #[Tag(self::TAG)]
+        private readonly iterable $personsAboard = [],
+    ) {
         $this->party = new PartyGuard($personsAboard);
     }
 
@@ -122,6 +130,12 @@ final class CheckSeatAvailability
         // — and the requirement is explicit that correctness must not depend on
         // the scheduler having run.
         self::hydrateExpiredHolds($departures);
+
+        // AVL-25's headcount for the whole range in one query, and only when a
+        // party was asked about and something is sold or held (2026-09-25).
+        if ($pax !== []) {
+            $this->party->preloadPersonsAboard($departures);
+        }
 
         $plans = RatePlan::query()
             ->where('product_id', $product->getKey())
@@ -188,6 +202,10 @@ final class CheckSeatAvailability
     ): array {
         $bands = $product->ageBands;
         $pax = CountedSeats::sanitise($bands, $paxByCode);
+
+        if ($pax !== []) {
+            $this->party->preloadPersonsAboard($departures);
+        }
 
         return $this->evaluateDay(
             $departures,
@@ -315,7 +333,7 @@ final class CheckSeatAvailability
         // `blanket()` rather than the full check, because only this rule is
         // date-independent — see {@see PartyGuard::blanket()} for what folding
         // legal capacity in here would do to the reported reason.
-        return $this->party->blanket($bands, $pax);
+        return $this->party->blanket($bands, $pax, $product);
     }
 
     /**

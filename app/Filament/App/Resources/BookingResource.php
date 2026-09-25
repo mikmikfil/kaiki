@@ -10,6 +10,7 @@ use App\Domain\Booking\Data\ManualBookingAdjustment;
 use App\Enums\BookingSource;
 use App\Enums\BookingStatus;
 use App\Enums\PaymentGatewayName;
+use App\Exceptions\HoldRefused;
 use App\Filament\App\Resources\BookingResource\Pages;
 use App\Models\Booking;
 use App\Models\Departure;
@@ -339,6 +340,12 @@ class BookingResource extends Resource
             ? Departure::query()->find((int) $data['departure_id'])
             : null;
 
+        // A departure that was picked and cannot be found (deleted, or not this
+        // operator's) is refused, never quietly replaced by today's first sailing.
+        if (isset($data['departure_id']) && ! $departure instanceof Departure) {
+            throw HoldRefused::departureUnavailable();
+        }
+
         $pax = [];
 
         /** @var array<int, array<string, mixed>> $rows */
@@ -367,6 +374,9 @@ class BookingResource extends Resource
                 // The picked departure's own time (2026-09-24): without it, a day
                 // with two sailings of the same trip put the booking on the first.
                 startTime: $departure instanceof Departure ? (string) $departure->local_time : null,
+                // And the departure itself (2026-09-25), used as it is: a
+                // cancelled or blocked sailing is refused, never swapped.
+                departure: $departure,
                 specialRequests: isset($data['special_requests']) ? (string) $data['special_requests'] : null,
             ),
             adjustment: $adjustment,

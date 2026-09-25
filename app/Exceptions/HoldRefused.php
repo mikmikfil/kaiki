@@ -99,4 +99,34 @@ final class HoldRefused extends RuntimeException
     {
         return new self((string) trans('booking.hold.vessel_unavailable'), 'vessel_unavailable');
     }
+
+    /**
+     * The sailing the guest picked is not on sale (2026-09-25).
+     *
+     * Cancelled, completed, closed by a vessel block, or not this trip's at
+     * all. Refused rather than moved to another sailing of the same day: the
+     * guest chose a time, and a booking on a different one is a different
+     * booking.
+     */
+    public static function departureUnavailable(): self
+    {
+        return new self((string) trans('booking.hold.departure_unavailable'), 'departure_unavailable');
+    }
+
+    /**
+     * A date with more than one sailing and no time to tell them apart.
+     *
+     * Asked rather than guessed: until 2026-09-25 the earliest sailing of the
+     * day won, so a guest who picked 17:00 was held and charged on 10:00.
+     */
+    public static function departureTimeRequired(): self
+    {
+        return new self((string) trans('booking.hold.departure_time_required'), 'departure_time_required');
+    }
+
+    /** The trip is not on sale (draft, inactive or archived). */
+    public static function productUnavailable(): self
+    {
+        return new self((string) trans('booking.hold.product_unavailable'), 'product_unavailable');
+    }
 }

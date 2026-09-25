@@ -7,6 +7,7 @@ namespace App\Domain\Booking\Data;
 use App\Domain\Booking\Actions\StartCheckout;
 use App\Domain\Pricing\Actions\ComputePrice;
 use App\Enums\BookingSource;
+use App\Models\Departure;
 use App\Models\Product;
 use Illuminate\Support\Carbon;
 use Spatie\LaravelData\Data;
@@ -98,6 +99,15 @@ final class BookingDraftData extends Data
          * none, which is what null means.
          */
         public readonly ?string $originUrl = null,
+        /**
+         * The exact sailing, for a per-seat booking (2026-09-25).
+         *
+         * Used as it is: `CreateBookingDraft` checks that it is this trip's,
+         * on sale and not blocked, and refuses otherwise. Null means "find it
+         * by date and `startTime`", which refuses a date with more than one
+         * sailing rather than picking the earliest.
+         */
+        public readonly ?Departure $departure = null,
     ) {}
 
     /**

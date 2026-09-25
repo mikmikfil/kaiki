@@ -74,19 +74,25 @@ final class ConfirmBooking
     /**
      * @param  bool  $fromCheckout  true when the seats are already committed by
      *                              {@see StartCheckout} and must not be counted twice
+     * @param  bool  $paidAfterExpiry  the one way out of `expired` (2026-09-25): a
+     *                                 payment that finished after the checkout
+     *                                 lapsed. Only {@see ConfirmFromWebhook} passes
+     *                                 it; the seats are taken afresh, or refused
      *
      * @throws CapacityExceeded when the seats went while the guest was paying
      * @throws HoldRefused when a charter's boat went to somebody else (2026-09-25)
      * @throws IllegalStateTransition when the booking is not in a confirmable state
      */
-    public function __invoke(Booking $booking, bool $fromCheckout = false): Booking
+    public function __invoke(Booking $booking, bool $fromCheckout = false, bool $paidAfterExpiry = false): Booking
     {
-        if (! $booking->status->canTransitionTo(BookingStatus::Confirmed)) {
+        $revived = $paidAfterExpiry && $booking->status === BookingStatus::Expired;
+
+        if (! $revived && ! $booking->status->canTransitionTo(BookingStatus::Confirmed)) {
             throw IllegalStateTransition::forBooking($booking->status, BookingStatus::Confirmed);
         }
 
         /** @var array{booking: Booking, guaranteed: bool} $result */
-        $result = DB::transaction(function () use ($booking, $fromCheckout): array {
+        $result = DB::transaction(function () use ($booking, $fromCheckout, $revived): array {
             // **AVL-45's order, inline and top to bottom.** Deliberately not
             // extracted into helpers: the order is the requirement, a reader
             // has to be able to see it without following two private methods,
@@ -108,6 +114,11 @@ final class ConfirmBooking
 
             /** @var Booking $locked */
             $locked = Booking::query()->lockForUpdate()->findOrFail($booking->getKey());
+
+            if ($revived && $locked->status !== BookingStatus::Expired) {
+                // Somebody else moved it between the caller's read and this lock.
+                throw IllegalStateTransition::forBooking($locked->status, BookingStatus::Confirmed);
+            }
 
             // A private charter (2026-09-25): is the boat still this booking's
             // alone? Its hold can lapse between the draft and the payment, and a
@@ -142,6 +153,11 @@ final class ConfirmBooking
                 'balance_cents' => max(0, $locked->total_cents - $paid),
                 'refunded_cents' => Payment::refundedCentsFor($locked->getKey()),
             ])->save();
+
+            if ($revived) {
+                // It is not expired any more, so the reason it was is not true.
+                $locked->forceFill(['cancel_reason' => null])->save();
+            }
 
             // PRC-27.2: **computed and written**, never derived on read, so the
             // reminder scheduler and the "Υπόλοιπα" dashboard bucket can index
