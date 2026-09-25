@@ -1818,7 +1818,10 @@
         .lightbox { display: none; }
 
         .lightbox:target {
-            position: fixed; inset: 0; z-index: 60;
+            /* Above the widget's payment bar on a phone, which sits at
+               2147483000 (`packages/widget/src/shadow.ts`) — at 60 the bar
+               covered the bottom of the photograph and took its taps. */
+            position: fixed; inset: 0; z-index: 2147483100;
             display: grid; place-items: center;
             padding: clamp(1rem, 4vw, 3rem);
         }
@@ -1832,14 +1835,43 @@
             position: relative; z-index: 1; margin: 0;
             max-inline-size: min(94vw, 68rem);
             max-block-size: 88vh;
-            display: flex; align-items: center; justify-content: center;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: .6rem;
         }
 
         .lightbox figure img {
-            max-inline-size: 100%; max-block-size: 88vh;
+            max-inline-size: 100%; max-block-size: 80vh;
             inline-size: auto; block-size: auto;
             object-fit: contain; border-radius: 10px; display: block;
         }
+
+        /* The photograph's alt text, when the operator wrote one. */
+        .lightbox figcaption {
+            color: rgba(255, 255, 255, .9); font-size: .9rem; text-align: center;
+            max-inline-size: 40rem;
+        }
+
+        /* «2 / 5», level with the close button. */
+        .lightbox-count {
+            position: absolute; z-index: 2; margin: 0;
+            inset-block-start: clamp(.75rem, 3vw, 1.5rem); inset-inline-start: clamp(.75rem, 3vw, 1.5rem);
+            padding: .45rem .2rem;
+            color: rgba(255, 255, 255, .85); font-size: .9rem; font-variant-numeric: tabular-nums;
+        }
+
+        .lightbox-close:focus-visible,
+        .lightbox-step a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+        /* The page under an open photograph does not scroll. Without a script:
+           `:has()` sees the open panel and holds the document still. */
+        html:has(.lightbox:target) { overflow: hidden; }
+
+        /* A short fade in, and none for anyone who asked for less motion. */
+        @media (prefers-reduced-motion: no-preference) {
+            .lightbox:target { animation: lightbox-in .18s ease-out; }
+        }
+
+        @keyframes lightbox-in { from { opacity: 0; } to { opacity: 1; } }
 
         .lightbox-close {
             position: absolute; z-index: 2;
@@ -1854,9 +1886,12 @@
             position: absolute; z-index: 2; inset-block-start: 50%; translate: 0 -50%;
             color: #fff; text-decoration: none; font-size: 2rem; line-height: 1;
             padding: .6rem .9rem; border-radius: 999px;
+            /* On a phone the arrows sit on the photograph itself, and a white
+               glyph on a white sail is not there at all. */
+            background: rgba(6, 16, 20, .45);
         }
 
-        .lightbox-step a:hover { background: rgba(255, 255, 255, .14); }
+        .lightbox-step a:hover { background: rgba(6, 16, 20, .7); }
         .lightbox-step .prev { inset-inline-start: clamp(.25rem, 2vw, 1.5rem); }
         .lightbox-step .next { inset-inline-end: clamp(.25rem, 2vw, 1.5rem); }
 
@@ -1987,6 +2022,17 @@
            ένα αρνητικό περιθώριο «στο περίπου» είναι ακριβώς ο τρόπος που μια
            σελίδα αποκτά οριζόντιο scroll σε ένα τηλέφωνο. */
         .boat-rail > li { flex: none; width: min(17rem, 72vw); scroll-snap-align: start; }
+
+        /* Each photograph is a link to its lightbox panel (2026-09-25). */
+        .boat-open { display: block; border-radius: 10px; overflow: hidden; }
+        /* Drawn inside the photograph: the rail scrolls, so it clips anything
+           outside its own box, an outline included. */
+        .boat-open:focus-visible { outline: 3px solid var(--kaiki-primary); outline-offset: -3px; }
+
+        @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+            .boat-open img { transition: scale .4s ease; }
+            .boat-open:hover img { scale: 1.03; }
+        }
 
         .boat-rail img {
             width: 100%; height: 100%;

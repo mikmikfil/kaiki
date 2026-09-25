@@ -478,52 +478,38 @@
                 </section>
             @endif
 
-            {{-- The lightbox for the mosaic at the top of the page. Every
+            {{-- The lightboxes: the mosaic's at the top of the page, and the
+                 boat's from the rail in «Το σκάφος» (Mike, 2026-09-25). Every
                  photograph the operator uploaded is here, including the ones the
                  mosaic has no tile for, so replacing the old gallery at the foot
-                 of the page lost none of them. --}}
-            @if ($shotCount > 0)
+                 of the page lost none of them.
+
+                 Out here rather than inside the boat's tab: a panel inside a tab
+                 that is not the checked one is `display: none` with it, and a
+                 link to it would open nothing. --}}
+            @php
+                $boatShots = $product->vessel
+                    ? \App\Domain\Media\Support\ImagePayload::collection($product->vessel->images, $locale)
+                    : [];
+            @endphp
+
+            @if ($shotCount > 0 || $boatShots !== [])
                 <div class="lightboxes">
-                    {{-- The lightbox, in CSS alone.
+                    @include('hosted.partials.lightbox', [
+                        'shots' => $shots,
+                        'group' => 'shot',
+                        'back' => 'gallery',
+                        'label' => __('hosted.product.gallery'),
+                    ])
 
-                         `:target` is what opens it: each photograph links to the
-                         id of its own full-size panel, and the panel is hidden
-                         until the URL names it. No script, which is not a
-                         preference here — HOS-4 promises these pages carry none
-                         and `HostedPageLocaleTest` fails the build if one
-                         appears.
+                    @include('hosted.partials.lightbox', [
+                        'shots' => $boatShots,
+                        'group' => 'boat-shot',
+                        'back' => 'boat-photos',
+                        'label' => __('hosted.product.boat.photos'),
+                    ])
 
-                         What that costs, stated rather than hidden: this is not
-                         a real modal. Focus is not trapped inside it and Escape
-                         does not close it, because both need a script. Back
-                         does close it, the close link is the first thing in the
-                         panel, and every photograph is still reachable and
-                         readable with the lightbox never opened at all. --}}
-                    @foreach ($shots as $i => $shot)
-                        <div class="lightbox" id="shot-{{ $i }}" role="dialog" aria-modal="true"
-                             aria-label="{{ $shot['alt'] ?: __('hosted.product.gallery') }}">
-                            <a class="lightbox-scrim" href="#gallery" aria-label="{{ __('hosted.product.close') }}"></a>
-
-                            <figure>
-                                <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($shot['url']) }}"
-                                     alt="{{ $shot['alt'] ?? '' }}"
-                                     loading="lazy">
-                            </figure>
-
-                            <a class="lightbox-close" href="#gallery">{{ __('hosted.product.close') }}</a>
-
-                            <nav class="lightbox-step" aria-label="{{ __('hosted.product.gallery') }}">
-                                @if ($i > 0)
-                                    <a class="prev" href="#shot-{{ $i - 1 }}" rel="prev">&#8249;</a>
-                                @endif
-                                @if ($i < count($shots) - 1)
-                                    <a class="next" href="#shot-{{ $i + 1 }}" rel="next">&#8250;</a>
-                                @endif
-                            </nav>
-                        </div>
-                    @endforeach
-
-                    {{-- Arrow keys and Escape, once a photograph is open.
+                    {{-- Keys, swipe and focus, once a photograph is open.
 
                          A file rather than an inline script, and not for
                          tidiness: these pages send `script-src 'self'` with no
