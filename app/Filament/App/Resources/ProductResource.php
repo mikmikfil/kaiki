@@ -818,6 +818,10 @@ class ProductResource extends Resource
                         // New files land at the end, so uploading more never
                         // moves the photograph that leads the card.
                         ->appendFiles()
+                        // One upload at a time: FilePond adds each file to the form when
+                        // its upload finishes, so parallel uploads saved 1-2-3 as 2-1-3
+                        // and the wrong photo led the card.
+                        ->maxParallelUploads(1)
                         ->panelLayout('grid')
                         ->imagePreviewHeight('120')
                         // The disk the API and the hosted pages build URLs
