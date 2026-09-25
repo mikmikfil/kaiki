@@ -189,6 +189,21 @@ it('tells the calendar to drop a trip that was cancelled', function (): void {
         ->assertDontSee('/calendar.ics', escape: false);
 })->group('fast');
 
+it('offers nothing to diary for a booking that holds no ticket yet', function (BookingStatus $status): void {
+    [$tenant, $booking] = calendarBooking();
+
+    // A draft has a start time too, and «Προσθήκη στο ημερολόγιο» on one put a
+    // trip nobody had paid for in the guest's diary (roadmap, 25/9).
+    Tenancy::forTenant($tenant, static function () use ($booking, $status): void {
+        $booking->forceFill(['status' => $status])->save();
+    });
+
+    get('/b/' . $booking->manage_token)
+        ->assertOk()
+        ->assertDontSee('/calendar.ics', escape: false)
+        ->assertDontSee('calendar.google.com/calendar/render', escape: false);
+})->with([BookingStatus::Draft, BookingStatus::PendingPayment])->group('fast');
+
 it('offers both ways from the page, and sends the token to neither Google nor a referrer', function (): void {
     [$tenant, $booking] = calendarBooking();
 
