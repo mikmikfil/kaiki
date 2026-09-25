@@ -288,7 +288,7 @@ it('lets a second guest in once the first hold lapses, and never confirms the fi
             ->and($lost->cancel_reason)->toBe(CancelReason::VesselBookedPrivately)
             ->and($lost->cancelled_by)->toBe(CancelledBy::System)
             // Refunded in full: a pending refund against the card, for all of it.
-            ->and(Payment::query()
+            ->and((int) Payment::query()
                 ->where('booking_id', $lost->getKey())
                 ->where('kind', PaymentKind::Refund->value)
                 ->sum('amount_cents'))->toBe($lost->total_cents)
