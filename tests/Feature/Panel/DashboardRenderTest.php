@@ -6,10 +6,12 @@ use App\Domain\Operations\Support\FirstSteps as Steps;
 use App\Enums\BookingStatus;
 use App\Enums\ProductStatus;
 use App\Enums\Role;
+use App\Filament\App\Resources\SeasonResource;
 use App\Filament\App\Widgets\FirstSteps;
 use App\Filament\App\Widgets\OperationsOverview;
 use App\Models\Booking;
 use App\Models\Departure;
+use App\Models\Port;
 use App\Models\Product;
 use App\Models\User;
 use App\Models\Vessel;
@@ -87,14 +89,24 @@ it('shows the first steps instead of six zeros to an operator who has not', func
         ->assertOk()
         ->assertSee(__('dashboard.first_steps.heading'))
         // The first thing to do, and only the first: a checklist of four open
-        // items is a decision about where to start.
-        ->assertSee(__('dashboard.first_steps.vessel.action'));
+        // items is a decision about where to start. The port, first of all
+        // (Mike, 25/9).
+        ->assertSee(__('dashboard.first_steps.port.action'))
+        ->assertDontSee(__('dashboard.first_steps.vessel.action'))
+        // Except an optional step, which is never "next" and so had no button
+        // at all: periods get their own, to the page that makes one.
+        ->assertSee(__('dashboard.first_steps.season.action'))
+        ->assertSee(SeasonResource::getUrl('create'), escape: false);
 });
 
 it('walks the steps in the order the engine needs them', function (): void {
     $user = OperatorUser::withRole(Role::Owner);
 
     Tenancy::forTenant($user->tenant, function (): void {
+        expect(Steps::next())->toBe(Steps::PORT);
+
+        Port::factory()->create();
+
         expect(Steps::next())->toBe(Steps::VESSEL);
 
         Vessel::factory()->create();

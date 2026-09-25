@@ -13,6 +13,7 @@ use App\Filament\App\Widgets\OperationsOverview;
 use App\Filament\App\Widgets\TodayAtSea;
 use App\Models\Booking;
 use App\Models\Departure;
+use App\Models\Port;
 use App\Models\User;
 use App\Models\Vessel;
 use App\Support\Tenancy;
@@ -49,6 +50,8 @@ function tradingOperator(): User
     $owner = OperatorUser::withRole(Role::Owner);
 
     Tenancy::forTenant($owner->tenant, function (): void {
+        Port::factory()->create();
+
         $vessel = Vessel::factory()->create(['name' => 'Θάλασσα']);
 
         $departure = Departure::factory()->for($vessel)->at('2026-09-08', '18:00')->withSeats(4)->create();

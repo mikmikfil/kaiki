@@ -7,6 +7,7 @@ namespace App\Domain\Operations\Support;
 use App\Enums\ProductStatus;
 use App\Models\Booking;
 use App\Models\Departure;
+use App\Models\Port;
 use App\Models\Product;
 use App\Models\Season;
 use App\Models\Vessel;
@@ -37,6 +38,13 @@ use App\Support\Tenancy;
  */
 final class FirstSteps
 {
+    /**
+     * First of all (Mike, 25/9: «πρώτο πρώτο να είναι το λιμάνι»): the boat's
+     * home port and the trip's meeting point are both picked from this list,
+     * so a port made first is one the next two forms can simply choose.
+     */
+    public const PORT = 'port';
+
     public const VESSEL = 'vessel';
 
     public const SEASON = 'season';
@@ -109,13 +117,14 @@ final class FirstSteps
     public const OPTIONAL = [self::SEASON];
 
     /**
-     * The five steps and whether each is done, in order.
+     * The six steps and whether each is done, in order.
      *
      * @return array<string, bool>
      */
     public static function state(): array
     {
         return [
+            self::PORT => Port::query()->exists(),
             self::VESSEL => Vessel::query()->exists(),
             self::SEASON => Season::query()->exists(),
             self::PRODUCT => Product::query()->exists(),
