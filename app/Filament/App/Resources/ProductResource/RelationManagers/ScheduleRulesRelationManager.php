@@ -140,6 +140,8 @@ class ScheduleRulesRelationManager extends RelationManager
                     ->multiple()
                     ->searchable()
                     ->columnSpanFull(),
+
+                DepartureResource::crewNamesField(),
             ])
             ->columns(2);
 
@@ -262,11 +264,12 @@ class ScheduleRulesRelationManager extends RelationManager
         $captain = $data['captain_user_id'] ?? null;
         $captainName = $data['captain_name'] ?? null;
         $crew = (array) ($data['crew_user_ids'] ?? []);
-        unset($data['captain_user_id'], $data['captain_name'], $data['crew_user_ids']);
+        $crewNames = array_key_exists('crew_names', $data) ? (array) ($data['crew_names'] ?? []) : null;
+        unset($data['captain_user_id'], $data['captain_name'], $data['crew_user_ids'], $data['crew_names']);
 
         try {
             $rule = app(SaveScheduleRule::class)($record, $product, $data);
-            app(AssignScheduleCrew::class)($rule, $captain, $captainName, $crew);
+            app(AssignScheduleCrew::class)($rule, $captain, $captainName, $crew, $crewNames);
 
             ScheduleConflictNotice::sendFor($rule);
 

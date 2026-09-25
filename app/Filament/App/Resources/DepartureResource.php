@@ -6,6 +6,7 @@ namespace App\Filament\App\Resources;
 
 use App\Domain\Availability\Actions\CreateManualDeparture;
 use App\Domain\Availability\Actions\UpdateDeparture;
+use App\Domain\Availability\Support\CrewNames;
 use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\CancelDeparture;
 use App\Domain\Operations\Support\WeatherCancellationPreview;
@@ -28,6 +29,7 @@ use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
@@ -101,6 +103,23 @@ class DepartureResource extends Resource
     public static function getPluralModelLabel(): string
     {
         return __('availability.departure.model.plural');
+    }
+
+    /**
+     * «Ή ονόματα πληρώματος» (Mike, 2026-09-25): crew with no Kaiki account,
+     * typed one by one — the crew's `captain_name`. The same field on the
+     * departure, on the schedule and in the calendar's «Ανάθεση».
+     */
+    public static function crewNamesField(): TagsInput
+    {
+        return TagsInput::make('crew_names')
+            ->label(__('availability.departure.crew.crew_names.label'))
+            ->helperText(__('availability.departure.crew.crew_names.help'))
+            ->placeholder(__('availability.departure.crew.crew_names.placeholder'))
+            ->splitKeys(['Enter', 'Tab'])
+            ->rules(['array', 'max:' . CrewNames::MAX_COUNT])
+            ->nestedRecursiveRules(['string', 'max:' . CrewNames::MAX_LENGTH])
+            ->columnSpanFull();
     }
 
     /**
@@ -239,6 +258,8 @@ class DepartureResource extends Resource
                         ->multiple()
                         ->searchable()
                         ->columnSpanFull(),
+
+                    static::crewNamesField(),
                 ])
                 ->columns(2),
 

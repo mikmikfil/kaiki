@@ -45,7 +45,8 @@ class EditDeparture extends EditRecord
         $captain = $data['captain_user_id'] ?? null;
         $captainName = $data['captain_name'] ?? null;
         $crew = (array) ($data['crew_user_ids'] ?? []);
-        unset($data['captain_user_id'], $data['captain_name'], $data['crew_user_ids']);
+        $crewNames = array_key_exists('crew_names', $data) ? (array) ($data['crew_names'] ?? []) : null;
+        unset($data['captain_user_id'], $data['captain_name'], $data['crew_user_ids'], $data['crew_names']);
 
         if (! $record instanceof Departure) {
             return $record;
@@ -54,7 +55,7 @@ class EditDeparture extends EditRecord
         try {
             $record = app(UpdateDeparture::class)($record, $data);
 
-            return app(AssignDepartureCrew::class)($record, $captain, $captainName, $crew);
+            return app(AssignDepartureCrew::class)($record, $captain, $captainName, $crew, $crewNames);
         } catch (ValidationException $exception) {
             throw $this->attachToForm($exception);
         }

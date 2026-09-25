@@ -234,6 +234,7 @@ return [
             'from_rule' => 'From the schedule. A change here applies to this departure only.',
             'captain_name' => ['label' => 'Or the captain’s name', 'help' => 'If they have no Kaiki account.'],
             'members' => ['label' => 'Crew', 'help' => 'Those of your people sailing with it.'],
+            'crew_names' => ['label' => 'Or crew names', 'help' => 'Those with no Kaiki account. Press Enter after each name.', 'placeholder' => 'Full name'],
             'validation' => ['not_ours' => 'Someone you chose does not belong to your business.', 'overlap' => ':name is already on «:trip» (:boat, :time), at the same time.'],
             'mail' => [
                 'subject' => 'You are on the crew: :date, :time',

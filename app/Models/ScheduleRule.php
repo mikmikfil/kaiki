@@ -38,6 +38,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $captain_user_id the captain of every departure it makes (2026-09-24)
  * @property string|null $captain_name a captain with no account, typed
  * @property list<int>|null $crew_user_ids the crew of every departure it makes
+ * @property list<string>|null $crew_names its crew with no account, typed (2026-09-25)
  * @property-read Product|null $product null once the trip is soft-deleted —
  *                the rules stay behind and the column still points at a row the
  *                default scope will not return (2026-09-22)
@@ -63,6 +64,7 @@ class ScheduleRule extends Model
             'is_active' => 'boolean',
             'last_generated_on' => 'date',
             'crew_user_ids' => 'array',
+            'crew_names' => 'array',
         ];
     }
 

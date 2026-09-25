@@ -352,6 +352,7 @@ class Calendar extends Page
                     'captain_user_id' => $departure?->captain_user_id,
                     'captain_name' => $departure?->captain_name,
                     'crew_user_ids' => $departure === null ? [] : ($departure->crew_user_ids ?? []),
+                    'crew_names' => $departure === null ? [] : ($departure->crew_names ?? []),
                 ];
             })
             ->form([
@@ -369,6 +370,7 @@ class Calendar extends Page
                     ->options(static fn (): array => DepartureResource::peopleOptions())
                     ->multiple()
                     ->searchable(),
+                DepartureResource::crewNamesField(),
             ])
             ->action(function (array $data, array $arguments): void {
                 $departure = Departure::query()->where('uuid', $arguments['departure'] ?? '')->firstOrFail();
@@ -378,6 +380,7 @@ class Calendar extends Page
                     $data['captain_user_id'] ?? null,
                     $data['captain_name'] ?? null,
                     $data['crew_user_ids'] ?? [],
+                    (array) ($data['crew_names'] ?? []),
                 );
 
                 Notification::make()->title(__('calendar.assign.saved'))->success()->send();

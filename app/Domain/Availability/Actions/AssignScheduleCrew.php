@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Availability\Actions;
 
+use App\Domain\Availability\Support\CrewNames;
 use App\Enums\DepartureStatus;
 use App\Mail\CrewScheduleMail;
 use App\Models\Departure;
@@ -30,21 +31,26 @@ use Illuminate\Validation\ValidationException;
  * **One email per person per schedule**, not one per departure — a schedule
  * makes dozens of them, and a message that arrives dozens of times is one
  * nobody reads.
+ *
+ * **Crew typed by name** (Mike, 2026-09-25) travel the same way as
+ * `captain_name`, and get no email. Null leaves the rule's as they are.
  */
 final class AssignScheduleCrew
 {
     /**
      * @param  list<int|string>  $crewUserIds
+     * @param  list<string>|null  $crewNames  null = leave them as they are
      *
      * @throws ValidationException
      */
-    public function __invoke(ScheduleRule $rule, int|string|null $captainUserId, ?string $captainName, array $crewUserIds): ScheduleRule
+    public function __invoke(ScheduleRule $rule, int|string|null $captainUserId, ?string $captainName, array $crewUserIds, ?array $crewNames = null): ScheduleRule
     {
         $captainUserId = $captainUserId === null || $captainUserId === '' ? null : (int) $captainUserId;
         $crew = array_values(array_diff(array_unique(array_map('intval', $crewUserIds)), [$captainUserId]));
         $ids = array_values(array_filter([$captainUserId, ...$crew]));
         $name = $captainName === null ? null : trim($captainName);
         $name = $captainUserId === null && $name !== '' ? $name : null;
+        $typed = CrewNames::clean($crewNames ?? $rule->crew_names);
 
         $targets = Departure::query()
             ->where('schedule_rule_id', $rule->getKey())
@@ -70,11 +76,12 @@ final class AssignScheduleCrew
             ...array_map('intval', (array) ($rule->crew_user_ids ?? [])),
         ]));
 
-        DB::transaction(function () use ($rule, $captainUserId, $name, $crew, $targets): void {
+        DB::transaction(function () use ($rule, $captainUserId, $name, $crew, $typed, $targets): void {
             $rule->forceFill([
                 'captain_user_id' => $captainUserId,
                 'captain_name' => $name,
                 'crew_user_ids' => $crew === [] ? null : $crew,
+                'crew_names' => $typed,
             ])->save();
 
             if ($targets->isNotEmpty()) {
@@ -82,6 +89,7 @@ final class AssignScheduleCrew
                     'captain_user_id' => $captainUserId,
                     'captain_name' => $name,
                     'crew_user_ids' => $crew === [] ? null : json_encode($crew),
+                    'crew_names' => $typed === null ? null : json_encode($typed, JSON_UNESCAPED_UNICODE),
                 ]);
             }
         });
