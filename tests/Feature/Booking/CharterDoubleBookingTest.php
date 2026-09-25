@@ -333,6 +333,7 @@ it('refuses an operator booking a charter on a boat that is taken, with the sent
                 'pax' => [['code' => 'adult', 'qty' => 2]],
                 'guest_name' => 'Γιώργος Παπαδάκης',
                 'guest_email' => 'giorgos@example.gr',
+                'payment' => 'on_the_day',
             ])
             ->call('create')
             ->assertHasNoFormErrors()

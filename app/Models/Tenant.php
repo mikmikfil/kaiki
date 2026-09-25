@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Domain\Channels\Support\ChannelResolver;
+use App\Enums\BalanceCollection;
 use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
 use App\Enums\TenantStatus;
@@ -65,6 +66,7 @@ use Stancl\Tenancy\Database\Concerns\TenantRun;
  * @property int $guest_document_retention_days
  * @property bool $auto_issue_invoice
  * @property bool $deposits_enabled
+ * @property BalanceCollection $balance_collection
  * @property bool|null $qr_check_in_enabled
  * @property bool|null $check_in_enabled
  * @property bool|null $extra_person_pricing_enabled
@@ -91,6 +93,17 @@ class Tenant extends Model implements TenantContract
 
     protected $guarded = [];
 
+    /**
+     * The column's default, known to a model built in memory too, so a tenant
+     * saved before it was ever re-read never writes a null into a NOT NULL
+     * column (the button sweep caught it on every settings save).
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'balance_collection' => 'online',
+    ];
+
     /** @return array<string, string> */
     protected function casts(): array
     {
@@ -110,6 +123,7 @@ class Tenant extends Model implements TenantContract
             'guest_document_retention_days' => 'integer',
             'auto_issue_invoice' => 'boolean',
             'deposits_enabled' => 'boolean',
+            'balance_collection' => BalanceCollection::class,
             'qr_check_in_enabled' => 'boolean',
             'check_in_enabled' => 'boolean',
             'extra_person_pricing_enabled' => 'boolean',
@@ -200,6 +214,19 @@ class Tenant extends Model implements TenantContract
     public function defaultVatRate(): BelongsTo
     {
         return $this->belongsTo(VatRate::class, 'default_vat_rate_id');
+    }
+
+    /**
+     * Whether the balance after a deposit is paid on the boat, on the day
+     * (Mike, 2026-09-25), rather than online by card before the trip.
+     *
+     * On board, a booking has no balance due date, gets no reminder and is not
+     * overdue until its departure has sailed. The column is never null; a
+     * model built in memory without it reads as online, today's behaviour.
+     */
+    public function collectsBalanceOnBoard(): bool
+    {
+        return $this->balance_collection === BalanceCollection::OnBoard;
     }
 
     /**

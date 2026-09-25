@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Filament\App\Pages;
 
 use App\Domain\Booking\Actions\CheckInGuest;
+use App\Domain\Booking\Actions\CollectBalanceOnBoard;
 use App\Domain\Booking\Actions\MarkNoShow;
 use App\Domain\Booking\Data\CheckInOverride;
 use App\Domain\Booking\Support\CheckInWindow;
 use App\Enums\BookingStatus;
 use App\Exceptions\CheckInRefused;
+use App\Filament\App\Support\CollectBalanceAction;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Models\User;
@@ -54,8 +56,14 @@ use Livewire\Attributes\Url;
  * financials, no guest documents beyond what the manifest shows"*. A Page has
  * no model to hang a policy on and Filament allows what nothing forbids, so
  * access is asserted explicitly against the capability, and the page renders a
- * **name and a seat** and nothing else. There is no price on it, no payment
- * status and no document number — not hidden behind a condition, absent.
+ * **name and a seat** and nothing else. There is no price on it and no document
+ * number — not hidden behind a condition, absent.
+ *
+ * **One figure, since 2026-09-25:** a booking with an open balance shows
+ * «Οφείλει €X» and a «Πληρώθηκε» button (cash or POS), for whoever holds
+ * `CollectBalanceOnBoard` — crew included. Mike reversed the no-money rule for
+ * operators who collect the balance on the day; the total, what was paid and
+ * how are still absent. See {@see CollectBalanceOnBoard}.
  */
 class CheckIn extends Page
 {
@@ -252,6 +260,33 @@ class CheckIn extends Page
 
                 $this->attempt($guest, new CheckInOverride((string) $data['reason']));
             });
+    }
+
+    /**
+     * «Πληρώθηκε», for the whole open balance of one booking (2026-09-25).
+     *
+     * The booking comes from the arguments, and the Action behind it checks
+     * the window and the status again: an argument is whatever the browser
+     * sent, not what the list rendered.
+     */
+    public function collectBalanceAction(): Action
+    {
+        return CollectBalanceAction::make(
+            'collectBalance',
+            static function (array $arguments): ?Booking {
+                $id = $arguments['booking'] ?? null;
+
+                return is_int($id) || is_string($id) ? Booking::query()->find($id) : null;
+            },
+        );
+    }
+
+    /** Whether «Οφείλει €X» and its button show on this booking for this person. */
+    public function owesOnBoard(Booking $booking): bool
+    {
+        $user = Auth::user();
+
+        return CollectBalanceOnBoard::offeredTo($user instanceof User ? $user : null, $booking);
     }
 
     /** BKG-23, per guest, reversible, and nothing else follows from it. */

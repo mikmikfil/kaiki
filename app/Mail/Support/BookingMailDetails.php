@@ -165,6 +165,11 @@ final class BookingMailDetails
          * @var list<array{name: string, code: string, guest: BookingGuest}>
          */
         public readonly array $boardingPasses = [],
+        /**
+         * The balance is paid on the boat, on the day (2026-09-25): the views
+         * say «Υπόλοιπο €X, πληρώνεται στο σκάφος» instead of a due date.
+         */
+        public readonly bool $balanceOnBoard = false,
     ) {}
 
     /** @param array<string, mixed> $extra */
@@ -471,7 +476,8 @@ final class BookingMailDetails
             paid: $template !== NotificationTemplate::QuoteSent && $paidCents > 0 ? $euros($paidCents) : null,
             balance: $showsBalance && $balanceCents > 0 ? $euros($balanceCents) : null,
             balanceDue: $showsBalance && $balanceCents > 0 && $booking->balance_due_at !== null
-                ? $booking->balance_due_at->copy()->locale($locale)->isoFormat('dddd D/M')
+                // The operator's calendar day, not UTC's (2026-09-25).
+                ? $at($booking->balance_due_at, 'dddd D/M')
                 : null,
             refund: $refund,
             bring: $product instanceof Product ? self::lines($product->getTranslation('what_to_bring', $locale, true)) : [],
@@ -500,6 +506,7 @@ final class BookingMailDetails
             calendarUrl: $calendar?->downloadUrl(),
             calendarGoogleUrl: $calendar?->googleUrl(),
             boardingPasses: $template->carriesWholeTrip() ? BoardingPasses::for($booking, $tenant, $locale) : [],
+            balanceOnBoard: $showsBalance && $balanceCents > 0 && $tenant instanceof Tenant && $tenant->collectsBalanceOnBoard(),
         );
     }
 

@@ -3,18 +3,23 @@
 declare(strict_types=1);
 
 use App\Domain\Booking\Actions\ImportBooking;
+use App\Domain\Booking\Actions\RecordManualPayment;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Enums\BookingSource;
 use App\Enums\BookingStatus;
+use App\Enums\PaymentGatewayName;
+use App\Enums\PaymentStatus;
 use App\Events\BookingConfirmed;
 use App\Models\BookingGuest;
 use App\Models\Departure;
+use App\Models\Payment;
 use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Validation\ValidationException;
 use Tests\Support\Api\BookingApiScenario;
 
 /*
@@ -280,5 +285,54 @@ it('takes the departure window rather than guessing at one', function (): void {
             ->toBe($fixture['departure']->starts_at_utc->toIso8601ZuluString())
             ->and($booking->local_date->toDateString())
             ->toBe($fixture['departure']->local_date->toDateString());
+    });
+})->group('fast');
+
+it('keeps what was paid at the source as a payment row, so later money adds to it', function (): void {
+    // PAY-10 derives `paid_cents` from rows. An import that wrote the column
+    // alone lost the €45 on the first cash payment, and the guest was chased
+    // for money they had paid (2026-09-25).
+    $fixture = BookingApiScenario::bookable();
+
+    Tenancy::forTenant($fixture['tenant'], function () use ($fixture): void {
+        $booking = app(ImportBooking::class)(
+            importDraft($fixture),
+            totalCents: 9000,
+            paidCents: 4500,
+            departure: $fixture['departure'],
+        );
+
+        $row = Payment::query()->where('booking_id', $booking->getKey())->sole();
+
+        expect($row->gateway)->toBe(PaymentGatewayName::Import)
+            ->and($row->status)->toBe(PaymentStatus::Succeeded)
+            ->and($row->amount_cents)->toBe(4500)
+            ->and(Payment::paidCentsFor($booking->getKey()))->toBe(4500);
+
+        // More than is still owed is refused, and the rest settles it.
+        expect(fn () => app(RecordManualPayment::class)($booking, 9000, PaymentGatewayName::Cash))
+            ->toThrow(ValidationException::class);
+
+        app(RecordManualPayment::class)($booking, 4500, PaymentGatewayName::Cash);
+
+        $booking->refresh();
+
+        expect($booking->paid_cents)->toBe(9000)
+            ->and($booking->balance_cents)->toBe(0);
+    });
+})->group('fast');
+
+it('writes no payment row for an import that was not paid', function (): void {
+    $fixture = BookingApiScenario::bookable();
+
+    Tenancy::forTenant($fixture['tenant'], function () use ($fixture): void {
+        $booking = app(ImportBooking::class)(
+            importDraft($fixture),
+            totalCents: 9000,
+            paidCents: 0,
+            departure: $fixture['departure'],
+        );
+
+        expect(Payment::query()->where('booking_id', $booking->getKey())->exists())->toBeFalse();
     });
 })->group('fast');

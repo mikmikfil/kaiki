@@ -195,6 +195,10 @@ final class CancellationScenario
     {
         Http::fake([
             '*accounts*/connect/token' => Http::response(['access_token' => 'tok_test', 'expires_in' => 3600]),
+            // A charge with no stored transaction id is looked up by its
+            // order before it is refunded (2026-09-25): Viva refunds a
+            // transaction, never an order.
+            '*/api/transactions?*' => Http::response(['Transactions' => [['StatusId' => 'F', 'Amount' => 0, 'TransactionId' => 'viva_tx_test']]]),
             '*/api/transactions/*' => Http::response(['TransactionId' => 'viva_re_test']),
             '*/v1/refunds' => Http::response(['id' => 're_test_a1b2c3']),
         ]);
@@ -205,6 +209,10 @@ final class CancellationScenario
     {
         Http::fake([
             '*accounts*/connect/token' => Http::response(['access_token' => 'tok_test', 'expires_in' => 3600]),
+            // A charge with no stored transaction id is looked up by its
+            // order before it is refunded (2026-09-25): Viva refunds a
+            // transaction, never an order.
+            '*/api/transactions?*' => Http::response(['Transactions' => [['StatusId' => 'F', 'Amount' => 0, 'TransactionId' => 'viva_tx_test']]]),
             '*/api/transactions/*' => Http::response(['ErrorCode' => $code], 400),
             '*/v1/refunds' => Http::response(['error' => ['code' => $code]], 400),
         ]);

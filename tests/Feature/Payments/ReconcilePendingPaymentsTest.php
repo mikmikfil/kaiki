@@ -76,6 +76,30 @@ it('confirms a booking the gateway says was paid', function (): void {
     });
 })->group('fast');
 
+it('keeps the transaction id a refund of the charge will need', function (): void {
+    // A refund reverses the transaction, not the order (2026-09-25).
+    [$tenant] = WebhookScenario::make();
+
+    Tenancy::forTenant($tenant, function (): void {
+        pendingVivaPayment(12000)->save();
+    });
+
+    Http::fake([
+        '*/api/transactions*' => Http::response(vivaTransactions([
+            'StatusId' => 'F',
+            'Amount' => 120.00,
+            'TransactionId' => 'b1f9c0de-0000-4000-8000-00000000abcd',
+        ])),
+    ]);
+
+    app(ReconcilePendingPayments::class)();
+
+    Tenancy::forTenant($tenant, function (): void {
+        expect(Payment::query()->latest('id')->first()?->gateway_transaction_ref)
+            ->toBe('b1f9c0de-0000-4000-8000-00000000abcd');
+    });
+})->group('fast');
+
 it('leaves a payment alone while the gateway still calls it unsettled', function (): void {
     [$tenant] = WebhookScenario::make();
 

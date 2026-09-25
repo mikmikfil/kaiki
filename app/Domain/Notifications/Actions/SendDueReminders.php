@@ -190,8 +190,8 @@ final class SendDueReminders
             return (int) Tenancy::forTenant($tenant, function () use ($booking, $tenant, $now): int {
                 $sent = 0;
 
-                foreach ($this->dueFor($booking, $now) as [$template, $dueAt]) {
-                    $sent += $this->deliver($booking, $tenant, $template, $dueAt, $now);
+                foreach ($this->dueFor($booking, $now) as $entry) {
+                    $sent += $this->deliver($booking, $tenant, $entry[0], $entry[1], $now, $entry[2] ?? null);
                 }
 
                 return $sent;
@@ -210,6 +210,11 @@ final class SendDueReminders
         }
     }
 
+    private function collectsOnBoard(Booking $booking): bool
+    {
+        return Tenant::query()->find($booking->tenant_id)?->collectsBalanceOnBoard() === true;
+    }
+
     /**
      * BKG-16's table, evaluated against this booking right now.
      *
@@ -217,7 +222,10 @@ final class SendDueReminders
      * time, because BKG-18's drop rule needs both: a reminder deferred to 08:00
      * is only worth sending if 08:00 is still before the thing it is about.
      *
-     * @return list<array{0: NotificationTemplate, 1: Carbon}>
+     * A third element, when present, is the step's own dedupe key: the instant
+     * from which an earlier send of the same template no longer counts.
+     *
+     * @return list<array{0: NotificationTemplate, 1: Carbon, 2?: Carbon}>
      */
     private function dueFor(Booking $booking, Carbon $now): array
     {
@@ -252,13 +260,23 @@ final class SendDueReminders
             }
         }
 
-        // 2. Balance due — per ADR-0018, suppressed when there is nothing to pay.
-        if ($booking->balance_cents > 0 && $booking->balance_due_at !== null) {
+        // 2. Balance due — per ADR-0018, suppressed when there is nothing to pay,
+        //    and when the operator collects it on the boat (2026-09-25): no
+        //    reminder and no overdue notice, even on a due date written before
+        //    the operator switched.
+        //    Two steps of one template, so each step has its own key: the −1
+        //    day step counts only what was sent since it fell due. Keyed on the
+        //    template alone, the −7 row suppressed the −1 for good (2026-09-25).
+        //    A booking made inside the last day still gets one message: the −7
+        //    step goes first on the same pass, and its row satisfies the −1.
+        if ($booking->balance_cents > 0 && $booking->balance_due_at !== null && ! $this->collectsOnBoard($booking)) {
             foreach ([7, 1] as $days) {
                 $at = $booking->balance_due_at->copy()->subDays($days);
 
                 if ($at->lessThanOrEqualTo($now)) {
-                    $due[] = [NotificationTemplate::BalanceDueReminder, $at];
+                    $due[] = $days === 7
+                        ? [NotificationTemplate::BalanceDueReminder, $at]
+                        : [NotificationTemplate::BalanceDueReminder, $at, $at];
                 }
             }
 
@@ -305,8 +323,9 @@ final class SendDueReminders
         NotificationTemplate $template,
         Carbon $dueAt,
         Carbon $now,
+        ?Carbon $since = null,
     ): int {
-        if (NotificationLog::alreadySent($booking->getKey(), $template, NotificationChannel::Mail)) {
+        if (NotificationLog::alreadySent($booking->getKey(), $template, NotificationChannel::Mail, $since)) {
             return 0;
         }
 
@@ -332,12 +351,15 @@ final class SendDueReminders
             return 0;
         }
 
-        $this->notifications->mail($booking, $template, new GuestMail($booking, $template));
+        // A stepped reminder has been deduped on its own key above; the
+        // sender's template-wide check would refuse the second step.
+        $this->notifications->mail($booking, $template, new GuestMail($booking, $template), once: $since === null);
 
         $sent = 1;
 
-        if ($template->usesSms()) {
-            $this->notifications->sms($booking, $template, $this->smsFor($booking, $template));
+        if ($template->usesSms()
+            && ($since === null || ! NotificationLog::alreadySent($booking->getKey(), $template, NotificationChannel::Sms, $since))) {
+            $this->notifications->sms($booking, $template, $this->smsFor($booking, $template), once: $since === null);
 
             $sent++;
         }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Pricing\Support;
 
+use App\Domain\Pricing\Actions\ApplyDiscountCode;
 use App\Domain\Pricing\Actions\ComputePrice;
 use App\Enums\DepositType;
 use App\Models\RatePlan;
@@ -24,8 +25,9 @@ use App\Support\Money\Cents;
  *   one-cent charge against a free booking is a payment row nobody can explain.
  *
  * PRC-25 fixes that the deposit is computed **after** any voucher, which is why
- * this takes the total rather than the subtotal. Vouchers are M2; the ordering
- * is already correct here so that adding them changes nothing in this file.
+ * this takes the total rather than the subtotal. A discount code or a voucher
+ * applied to a booking later calls this again with the new total
+ * ({@see ApplyDiscountCode::rewriteDeposit()}).
  *
  * ## `$depositsEnabled` is a parameter, not a lookup
  *

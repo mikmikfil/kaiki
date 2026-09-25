@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\BalanceCollection;
 use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
 use App\Enums\TenantStatus;
@@ -92,6 +93,15 @@ class TenantFactory extends Factory
     public function takingDeposits(): self
     {
         return $this->state(fn (): array => ['deposits_enabled' => true]);
+    }
+
+    /** An operator who takes a deposit and collects the balance on the boat, on the day. */
+    public function collectingBalanceOnBoard(): self
+    {
+        return $this->state(fn (): array => [
+            'deposits_enabled' => true,
+            'balance_collection' => BalanceCollection::OnBoard,
+        ]);
     }
 
     /** A small operator who boards from the passenger list, with no QR anywhere. */

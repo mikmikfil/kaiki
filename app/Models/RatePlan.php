@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Domain\Pricing\Actions\SaveRatePlan;
-use App\Domain\Pricing\Support\RefundCalculator;
 use App\Enums\DepositType;
 use App\Models\Concerns\BelongsToTenant;
 use App\Observers\RatePlanObserver;
@@ -119,27 +118,5 @@ class RatePlan extends Model
     public function isDefault(): bool
     {
         return $this->season_id === null;
-    }
-
-    /**
-     * The deposit due on a total, in cents (PRC-23).
-     *
-     * Rounded **half up** through the same helper the refund path uses, so a
-     * deposit and a refund of that deposit cannot disagree by a cent. Returns
-     * the full total for `none`, because "no deposit" means the guest pays
-     * everything now rather than nothing.
-     */
-    public function depositCents(int $totalCents): int
-    {
-        return match ($this->deposit_type) {
-            DepositType::None => max(0, $totalCents),
-            DepositType::Percent => RefundCalculator::applyPercent(
-                $totalCents,
-                $this->deposit_percent ?? 0,
-            ),
-            // Never more than the total: a €200 flat deposit on a €150 seat is
-            // an operator setting rather than a licence to overcharge.
-            DepositType::Fixed => min(max(0, $totalCents), $this->deposit_fixed_cents ?? 0),
-        };
     }
 }

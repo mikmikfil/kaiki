@@ -53,6 +53,19 @@ enum PaymentGatewayName: string
      */
     case Pos = 'pos';
 
+    /**
+     * Money a guest paid at the source of an imported booking (2026-09-25).
+     *
+     * `ImportBooking` writes one succeeded row of this for the paid amount, so
+     * `paid_cents` is derived from rows (PAY-10) like on every other booking:
+     * a balance recorded later adds to it instead of replacing it, and a
+     * cancellation can lay a refund over it. Not external — the money went to
+     * the operator through whatever system sold the trip, so a refund of it is
+     * theirs to make, and waits for «Επιστράφηκε» like cash. Never offered on
+     * a form: nobody records an import by hand.
+     */
+    case Import = 'import';
+
     /** Is there a third party to call, and to reconcile against later? */
     public function isExternal(): bool
     {
@@ -64,7 +77,7 @@ enum PaymentGatewayName: string
     {
         return match ($this) {
             self::Viva => IntegrationProvider::Viva,
-            self::Cash, self::BankTransfer, self::Pos => null,
+            self::Cash, self::BankTransfer, self::Pos, self::Import => null,
         };
     }
 }

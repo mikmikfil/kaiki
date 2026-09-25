@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Guest;
 
+use App\Domain\Booking\Actions\ComputeBalanceDueAt;
 use App\Domain\Booking\Actions\MintCheckoutSession;
 use App\Domain\Booking\Actions\ResumeAbandonedBooking;
 use App\Domain\Booking\Actions\SaveGuestDetails;
@@ -26,6 +27,7 @@ use App\Models\Tenant;
 use App\Support\Tenancy;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator as ValidatorFactory;
 use Illuminate\Validation\Validator;
 use Symfony\Component\HttpFoundation\Response;
@@ -141,6 +143,10 @@ final class CheckoutController extends GuestPageController
             // retired the `off` tier for exactly this reason.
             'legalUrl' => HostedUrl::legal($tenant, $locale),
 
+            // «Προκαταβολή ή όλο το ποσό» (Mike, 2026-09-25). Null when the
+            // booking has no deposit, and the page then charges the total.
+            'payChoice' => self::payChoice($booking, $tenant),
+
             /*
              * The cancellation policy, in one sentence, at the moment it is
              * being decided on.
@@ -244,6 +250,9 @@ final class CheckoutController extends GuestPageController
                 // `terms_accepted_at` beside the IP (§2.5), so it has to be present
                 // rather than merely truthy.
                 'terms' => ['accepted'],
+                // The guest's choice beside the price (2026-09-25). Optional:
+                // a page rendered before the choice existed posts none.
+                'kind' => ['nullable', 'string', 'in:deposit,full'],
             ];
 
             if ($needsGuests) {
@@ -314,7 +323,7 @@ final class CheckoutController extends GuestPageController
                 // lying about money — which is the one thing a checkout may
                 // never do. `MintCheckoutSession` refuses a deposit that does
                 // not exist, so the fallback is the total.
-                $result = ($this->mintSession)($booking, self::kindFor($booking));
+                $result = ($this->mintSession)($booking, self::kindFor($booking, $data['kind'] ?? null));
             } catch (DiscountCodeRefused $refused) {
                 // Somebody else spent the last use between this page and the
                 // lock inside `StartCheckout`. The code comes off and the guest
@@ -395,18 +404,69 @@ final class CheckoutController extends GuestPageController
     }
 
     /**
-     * Deposit if the booking has one, otherwise the whole thing.
+     * What the guest chose, when there was a choice; otherwise the deposit if
+     * the booking has one, and the whole thing if not.
      *
-     * Read from the same snapshot the page renders its «you pay X now» line
-     * from, so the sentence and the charge cannot disagree.
+     * `full` is always honoured — paying everything is never wrong. `deposit`
+     * only when there is one: a stale page posting it for a booking whose
+     * deposit went away is charged the total the page will now show.
      */
-    private static function kindFor(Booking $booking): PaymentKind
+    private static function kindFor(Booking $booking, ?string $chosen = null): PaymentKind
     {
-        $deposit = (int) ($booking->price_snapshot['deposit']['amount_cents'] ?? 0);
+        if ($chosen === 'full') {
+            return PaymentKind::Full;
+        }
 
-        return $deposit > 0 && $deposit < $booking->total_cents
+        return self::depositCents($booking) !== null
             ? PaymentKind::Deposit
             : PaymentKind::Full;
+    }
+
+    /**
+     * The deposit this booking would be charged, or null when it has none.
+     *
+     * `deposit_cents` on the booking rather than the snapshot's figure: it is
+     * the column `StartCheckout` and `MintCheckoutSession` charge, so the choice
+     * on the page and the amount at the gateway are one number.
+     */
+    private static function depositCents(Booking $booking): ?int
+    {
+        return $booking->deposit_cents > 0 && $booking->deposit_cents < $booking->total_cents
+            ? $booking->deposit_cents
+            : null;
+    }
+
+    /**
+     * «Προκαταβολή €X τώρα, €Y έως 12/10» or «Όλο το ποσό €Z» (2026-09-25).
+     *
+     * The due date is {@see ComputeBalanceDueAt}'s, asked about this booking as
+     * if its deposit were paid now — the date it will actually get at
+     * confirmation. With the balance paid on the boat there is no date, and
+     * the page says «στο σκάφος».
+     *
+     * @return array{deposit: int, balance: int, total: int, due: Carbon|null, on_board: bool}|null
+     */
+    public static function payChoice(Booking $booking, Tenant $tenant): ?array
+    {
+        $deposit = self::depositCents($booking);
+
+        if ($deposit === null) {
+            return null;
+        }
+
+        $balance = $booking->total_cents - $deposit;
+        $onBoard = $tenant->collectsBalanceOnBoard();
+
+        $probe = clone $booking;
+        $probe->balance_cents = $balance;
+
+        return [
+            'deposit' => $deposit,
+            'balance' => $balance,
+            'total' => $booking->total_cents,
+            'due' => $onBoard ? null : app(ComputeBalanceDueAt::class)($probe, Carbon::now()),
+            'on_board' => $onBoard,
+        ];
     }
 
     /**

@@ -4,6 +4,12 @@
 
 > Entries for #118 … #122 — the dashboard, the vessel calendar, recorded cash, the weather-cancellation workflow and the manifests — are not written here. They are on `main` with their reasoning in each commit message; inventing changelog prose for them after the fact would be reconstruction rather than a record, which is the same rule this project applies in `docs/BUILD-LOG.md`.
 
+### Προκαταβολή και υπόλοιπο, όπως δουλεύουν στην προβλήτα (25/9)
+
+**Το υπόλοιπο εισπράττεται «Online με κάρτα» ή «Στο σκάφος, την ημέρα»**, ρύθμιση ανά εταιρεία (`tenants.balance_collection`). Στο σκάφος δεν υπάρχει προθεσμία, υπενθύμιση ή «ληξιπρόθεσμο»· email και σελίδα κράτησης γράφουν «πληρώνεται στο σκάφος», και ό,τι μείνει απλήρωτο μετά την αναχώρηση μπαίνει στο «Χρειάζεται προσοχή». Το πλήρωμα στην επιβίβαση βλέπει «Οφείλει €X» και το καταχωρεί (μετρητά/POS, όλο το υπόλοιπο, με audit). Κρατήσεις από τηλέφωνο: «Εξοφλήθηκε», «Προκαταβολή» ή «Πληρώνει την ημέρα», χωρίς να λήγουν. Στο checkout ο πελάτης διαλέγει «Προκαταβολή» ή «Όλο το ποσό».
+
+**API:** το `deposit` του `POST /price-quote` επιστρέφει πια `balance_due_at` (ήταν πάντα `null`), και νέα πεδία `balance_formatted` και `balance_on_board`. Προσθήκες μόνο· τίποτα δεν άλλαξε όνομα ή τύπο.
+
 ### Στο checkout, τρία πράγματα που έλειπαν και η σειρά στο κινητό
 
 **Οι όροι έγιναν σύνδεσμος.** Το κουτί έλεγε «Διάβασα και αποδέχομαι τους όρους και την πολιτική ακύρωσης» και δεν οδηγούσε πουθενά — συναίνεση σε κείμενο που ο επισκέπτης δεν είχε τρόπο να διαβάσει. Η σελίδα `/{operator}/legal` υπήρχε όλη την ώρα· απλώς κανείς δεν την είχε συνδέσει. Το `HostedUrl::legal()` τη χτίζει, όπως κάθε άλλο hosted URL, γιατί το checkout ανοίγει και από WordPress ιστότοπο όπου ένα σχετικό path δεν δείχνει πουθενά. Η φράση που γίνεται σύνδεσμος είναι δικό της κλειδί μετάφρασης, ώστε κανένα lang αρχείο να μην κουβαλά HTML.

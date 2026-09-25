@@ -7,10 +7,14 @@
     focused, the touch targets are full-width, and there is nothing to scroll
     past before the thing you came to do.
 
-    **No price, no payment status, no document number.** TEN-8 gives crew the
-    pax list and the check-in action and explicitly nothing else. Those fields
-    are absent from this template rather than hidden behind a condition — a
-    condition is one edit away from being wrong.
+    **No price, no document number.** TEN-8 gives crew the pax list and the
+    check-in action and explicitly nothing else. Those fields are absent from
+    this template rather than hidden behind a condition — a condition is one
+    edit away from being wrong.
+
+    The one exception (Mike, 2026-09-25): «Οφείλει €X» with «Πληρώθηκε» on a
+    booking that still owes, so the balance can be collected on the boat. The
+    open balance only — not the total, not what was paid, not how.
 --}}
 <x-filament-panels::page>
 
@@ -76,6 +80,14 @@
                     @endif
                 </div>
 
+                {{-- «Οφείλει €X» (2026-09-25): the one figure on this page. --}}
+                @if ($booking !== null && $this->owesOnBoard($booking))
+                    <div class="kc-owes flex flex-wrap items-center justify-between gap-2 rounded-lg bg-warning-50 px-3 py-2 dark:bg-warning-400/10">
+                        <span class="text-sm font-semibold text-warning-700 dark:text-warning-400">{{ \App\Filament\App\Support\CollectBalanceAction::owes($booking) }}</span>
+                        <span class="kc-actions">{{ ($this->collectBalanceAction)(['booking' => $booking->getKey()]) }}</span>
+                    </div>
+                @endif
+
                 @if ($scanned->checked_in_at !== null)
                     <p class="text-sm font-medium text-success-600 dark:text-success-400">
                         {{ __('checkin.guest.checked_in_at', ['time' => $scanned->checked_in_at->format('H:i')]) }}
@@ -126,6 +138,17 @@
                                 'total' => $guests->count(),
                             ]) }}
                         </p>
+
+                        {{-- «Οφείλει €X» and «Πληρώθηκε» (2026-09-25), once per
+                             booking rather than per passenger: the balance is
+                             the booking's, and one button cannot be pressed
+                             twice for it from two rows. --}}
+                        @if ($this->owesOnBoard($booking))
+                            <div class="kc-owes mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-warning-50 px-3 py-2 dark:bg-warning-400/10">
+                                <span class="text-sm font-semibold text-warning-700 dark:text-warning-400">{{ \App\Filament\App\Support\CollectBalanceAction::owes($booking) }}</span>
+                                <span class="kc-actions">{{ ($this->collectBalanceAction)(['booking' => $booking->getKey()]) }}</span>
+                            </div>
+                        @endif
 
                         <ul class="mt-2 flex flex-col gap-2">
                             @foreach ($guests as $guest)

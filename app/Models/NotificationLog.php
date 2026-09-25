@@ -110,13 +110,23 @@ class NotificationLog extends Model
      * `failed` rows are deliberately **not** counted. A reminder that failed has
      * not been sent, and treating it as sent would turn one provider outage
      * into a message a guest never receives and nobody ever notices.
+     *
+     * `$since` narrows the question to one step of a template that is sent more
+     * than once: the balance reminder goes at −7 days and again at −1 day, and
+     * the second step asks only about rows written since it fell due
+     * (2026-09-25). Without it the −7 row suppressed the −1 forever.
      */
-    public static function alreadySent(int $bookingId, NotificationTemplate $template, NotificationChannel $channel): bool
-    {
+    public static function alreadySent(
+        int $bookingId,
+        NotificationTemplate $template,
+        NotificationChannel $channel,
+        ?Carbon $since = null,
+    ): bool {
         return static::query()
             ->where('booking_id', $bookingId)
             ->where('template', $template->value)
             ->where('channel', $channel->value)
+            ->when($since !== null, static fn (Builder $query) => $query->where('created_at', '>=', $since))
             ->whereIn('status', [
                 NotificationStatus::Queued->value,
                 NotificationStatus::Sent->value,

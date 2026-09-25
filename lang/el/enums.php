@@ -47,6 +47,11 @@ return [
         ],
     ],
 
+    'balance_collection' => [
+        'online' => ['label' => 'Online με κάρτα'],
+        'on_board' => ['label' => 'Στο σκάφος, την ημέρα'],
+    ],
+
     'tenant_vertical' => [
         'boats' => ['label' => 'Σκάφη'],
         'other' => ['label' => 'Άλλο'],
@@ -537,6 +542,7 @@ return [
         'cash' => ['label' => 'Μετρητά'],
         'bank_transfer' => ['label' => 'Τραπεζικό έμβασμα'],
         'pos' => ['label' => 'Κάρτα (POS)'],
+        'import' => ['label' => 'Εισαγωγή (πληρώθηκε αλλού)'],
     ],
 
     /*

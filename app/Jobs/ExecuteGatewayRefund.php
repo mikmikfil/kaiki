@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Jobs;
 
+use App\Domain\Booking\Actions\RefundBooking;
 use App\Domain\Payments\Gateways\GatewayCallFailed;
 use App\Domain\Payments\Support\GatewayResolver;
 use App\Enums\BookingStatus;
@@ -137,6 +138,9 @@ class ExecuteGatewayRefund implements ShouldBeUnique, ShouldQueue
             return;
         }
 
+        // Read before the money is settled, which may move the status.
+        $surplus = self::isSurplus($payment, $booking);
+
         DB::transaction(function () use ($payment, $booking, $result): void {
             $payment->forceFill([
                 'status' => PaymentStatus::Succeeded,
@@ -148,7 +152,28 @@ class ExecuteGatewayRefund implements ShouldBeUnique, ShouldQueue
             $this->settle($booking);
         });
 
-        BookingRefunded::dispatch($booking->refresh(), $payment->amount_cents, RefundMethod::Cash, $this->reason);
+        $booking->refresh();
+
+        BookingRefunded::dispatch(
+            $booking,
+            $payment->amount_cents,
+            RefundMethod::Cash,
+            $this->reason,
+            answersInvoice: ! $surplus,
+        );
+    }
+
+    /**
+     * A late refund on a booking that is still going ahead gives back money
+     * paid on top of its total (2026-09-25): see
+     * {@see BookingRefunded::answersInvoice()}. A late refund on a cancelled or
+     * expired booking is not surplus — it returns money the invoice, issued
+     * for the whole total, already counted.
+     */
+    private static function isSurplus(Payment $refund, Booking $booking): bool
+    {
+        return str_starts_with((string) $refund->idempotency_key, RefundBooking::LATE_KEY_PREFIX)
+            && in_array($booking->status, [BookingStatus::Confirmed, BookingStatus::CheckedIn, BookingStatus::Completed], true);
     }
 
     /**

@@ -3174,12 +3174,17 @@ components:
           example: 4275
         amount_formatted: { type: [string, "null"], example: 42,75 € }
         balance_cents: { type: integer, description: What remains due after the deposit., example: 9975 }
+        balance_formatted: { type: [string, "null"], example: 99,75 € }
         balance_due_at:
           type: [string, "null"]
           format: date-time
           description: |
             When the balance is due, per the tenant's balance policy (default: 14 days before
-            departure). Null when the deposit model does not apply.
+            departure). On a price quote, the date a booking confirmed now would get. Null when
+            the deposit model does not apply, or when the balance is paid on board.
+        balance_on_board:
+          type: boolean
+          description: "True when the operator collects the balance on the boat, on the day (2026-09-25)."
       additionalProperties: false
 
     VoucherApplication:

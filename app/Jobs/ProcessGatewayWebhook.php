@@ -137,7 +137,16 @@ class ProcessGatewayWebhook implements ShouldBeUnique, ShouldQueue
             return;
         }
 
-        Tenancy::forTenant($tenant, function () use ($confirm, $payment, $outcome): void {
+        $transactionId = $outcome ? $this->transactionIdFrom($event) : null;
+
+        Tenancy::forTenant($tenant, function () use ($confirm, $payment, $outcome, $transactionId): void {
+            // The charge's own id, which a refund reverses (2026-09-25). The
+            // order code in `gateway_ref` found the payment; it is not what
+            // Viva's refund call takes. Written once, from the success event.
+            if ($transactionId !== null && $payment->gateway_transaction_ref === null) {
+                $payment->forceFill(['gateway_transaction_ref' => $transactionId])->save();
+            }
+
             $confirm($payment, succeeded: $outcome);
         });
 
@@ -162,6 +171,17 @@ class ProcessGatewayWebhook implements ShouldBeUnique, ShouldQueue
         };
 
         return is_scalar($reference) && (string) $reference !== '' ? (string) $reference : null;
+    }
+
+    /** The gateway's id for the charge itself, as opposed to its order. */
+    private function transactionIdFrom(GatewayWebhookEvent $event): ?string
+    {
+        $id = match ($event->provider) {
+            PaymentGatewayName::Viva => data_get($event->payload, 'EventData.TransactionId'),
+            default => null,
+        };
+
+        return is_string($id) && $id !== '' ? $id : null;
     }
 
     /**

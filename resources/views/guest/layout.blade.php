@@ -626,6 +626,26 @@
            other one, so it needs its own top margin rather than the form's. */
         .btn.pay { margin-top: 1.4rem; padding-block: .95rem; }
 
+        /* «Προκαταβολή ή όλο το ποσό» (2026-09-25). Two options as cards, the
+           chosen one outlined in the operator's colour. The amounts on the
+           button and the phone's bar follow the choice with `:has()`, since
+           this page runs no script; the deposit is the default either way. */
+        .pay-choice { border: 0; margin: 1.2rem 0 0; padding: 0; display: grid; gap: .6rem; }
+        .pay-choice legend { padding: 0; margin-bottom: .5rem; font-weight: 600; }
+        .pay-option {
+            display: flex; align-items: flex-start; gap: .7rem;
+            margin: 0; padding: .8rem .9rem; border: 1px solid var(--hair); border-radius: var(--kaiki-radius, 8px);
+            cursor: pointer; background: #fff; font-weight: 400; font-size: 1rem;
+        }
+        .pay-option input { margin: .2rem 0 0; flex: none; accent-color: var(--kaiki-primary); width: 1.1rem; height: 1.1rem; }
+        .pay-option strong { display: block; font-weight: 600; }
+        .pay-option .muted { display: block; margin: .15rem 0 0; }
+        .pay-option:has(input:checked) { border-color: var(--kaiki-primary); box-shadow: 0 0 0 1px var(--kaiki-primary); }
+        .when-full, .pay-dock .amount .value.when-full { display: none; }
+        body:has(#kind-full:checked) .when-full { display: inline; }
+        body:has(#kind-full:checked) .pay-dock .value.when-full { display: block; }
+        body:has(#kind-full:checked) .when-deposit { display: none; }
+
         /* Padlock, mark, sentence. Boxed and set apart from the price above it,
            because the job of this block is to look like the part of the page
            that handles money. */

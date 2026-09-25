@@ -13,6 +13,7 @@ use App\Domain\Booking\Support\BookingCalendarInvite;
 use App\Domain\Booking\Support\GuestTokenResolver;
 use App\Domain\Booking\Support\RefundEntitlement;
 use App\Domain\Booking\Support\TicketQr;
+use App\Domain\Payments\Support\GatewayResolver;
 use App\Enums\BookingStatus;
 use App\Enums\CancelledBy;
 use App\Enums\CancelReason;
@@ -105,6 +106,15 @@ final class ManageBookingController extends GuestPageController
             'canCancel' => self::canCancel($booking),
             'weatherChoiceDue' => self::weatherChoiceIsOpen($booking),
             'backUrl' => $this->backToSiteUrl($booking, $tenant),
+            // The pay-balance button, only when there is a gateway to send it
+            // to (2026-09-25). Without one {@see MintBalanceSession} answers
+            // null and the button used to reload the page without a word.
+            'canPayBalance' => app(GatewayResolver::class)->forBooking($booking) !== null,
+            // The due date on the operator's calendar, not UTC's: a balance due
+            // at 00:00 Athens is the day before in UTC (2026-09-25).
+            'balanceDueDate' => $booking->balance_due_at?->copy()
+                ->setTimezone($tenant->timezone ?? (string) config('app.timezone'))
+                ->format('d/m/Y'),
         ]);
     }
 

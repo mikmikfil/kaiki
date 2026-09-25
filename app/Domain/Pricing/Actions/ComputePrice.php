@@ -32,7 +32,7 @@ use Illuminate\Validation\ValidationException;
  * it never posts a price, and nothing in this path reads one from a request.
  * That is the reason this Action exists rather than a controller assembling
  * numbers: the same function answers the public quote endpoint (#37), the
- * operator's manual booking, and M2's booking creation, so there is exactly one
+ * operator's manual booking, and booking creation, so there is exactly one
  * place where a total is decided.
  *
  * ## Not sellable is refused, not priced at zero
@@ -43,11 +43,11 @@ use Illuminate\Validation\ValidationException;
  *
  * ## What is deliberately absent
  *
- * `discount_cents` is present and always zero: vouchers and operator discounts
- * are M2 (PRC-17 to PRC-22, PRC-11). The field exists now so the shape a
- * snapshot is read back with does not change when they land, and PRC-25's
- * ordering — deposit computed **after** the discount — is already correct in
- * {@see DepositCalculator}, which takes the total rather than the subtotal.
+ * `discount_cents` is present and always zero here: a discount code or a
+ * voucher is applied to the booking afterwards (PRC-17 to PRC-22, PRC-11), by
+ * {@see ApplyDiscountCode} and {@see ApplyVoucher}, which rewrite the total and
+ * the deposit. PRC-25's ordering — deposit computed **after** the discount —
+ * holds because {@see DepositCalculator} takes the total, not the subtotal.
  *
  * Per-line VAT overrides (an extra taxed differently from the transport) are
  * also absent, as #34 scopes them out. The top-level `vat` block is here,
@@ -99,8 +99,8 @@ final class ComputePrice
         $subtotal = $this->sum($paxLines);
         $extras = $this->sum($extraLines);
 
-        // M2's term, present and zero. PRC-12 floors the total at zero, which
-        // only matters once a voucher can exceed the subtotal.
+        // Present and zero: codes and vouchers come off the booking later.
+        // PRC-12 floors the total at zero, for a voucher above the subtotal.
         $discount = 0;
         $total = max(0, $subtotal + $extras - $discount);
 

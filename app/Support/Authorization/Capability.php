@@ -71,6 +71,15 @@ enum Capability: string
     case SellOnQuay = 'sell_on_quay';
 
     /**
+     * «Οφείλει €X» at boarding (Mike, 2026-09-25): every role, crew included,
+     * may record that a booking's **whole open balance** was paid on the boat,
+     * in cash or on the POS. Nothing else: no other amount, no bank transfer,
+     * no refund, no edit — those stay behind ManageBookings. The balance is the
+     * one figure crew see, and only on a booking in the boarding window.
+     */
+    case CollectBalanceOnBoard = 'collect_balance_on_board';
+
+    /**
      * Roles holding this capability.
      *
      * @return list<Role>
@@ -108,7 +117,8 @@ enum Capability: string
             self::ViewPaxList,
             self::CheckInGuests,
             self::ViewManifest,
-            self::SellOnQuay => [Role::Owner, Role::Manager, Role::Crew],
+            self::SellOnQuay,
+            self::CollectBalanceOnBoard => [Role::Owner, Role::Manager, Role::Crew],
         };
     }
 

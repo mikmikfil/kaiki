@@ -34,12 +34,29 @@
     $lines = is_array($snapshot['lines'] ?? null) ? $snapshot['lines'] : [];
     $deposit = is_array($snapshot['deposit'] ?? null) ? $snapshot['deposit'] : null;
 
-    // What the button is about to charge — the deposit when there is one, the
-    // whole total otherwise. The same test the controller makes, so the label
-    // and the charge are one decision rather than two that can drift.
-    $depositCents = (int) ($deposit['amount_cents'] ?? 0);
-    $takesDeposit = $depositCents > 0 && $depositCents < $booking->total_cents;
+    // What the button is about to charge — the deposit when there is one and
+    // the guest keeps it chosen, the whole total otherwise. `$payChoice` is the
+    // controller's (`CheckoutController::payChoice()`), from the same column it
+    // charges, so the label and the charge are one decision.
+    $choice = $payChoice ?? null;
+    $takesDeposit = $choice !== null;
+    $depositCents = $takesDeposit ? $choice['deposit'] : 0;
     $dueNow = $takesDeposit ? $depositCents : $booking->total_cents;
+    $kindChosen = old('kind', 'deposit') === 'full' ? 'full' : 'deposit';
+
+    // «έως 12/10» in the operator's timezone: a due date at 09:00 Athens is
+    // 06:00 UTC, the same calendar day either way, but the rule is the rule.
+    $balanceWhen = null;
+    if ($takesDeposit) {
+        $balanceWhen = match (true) {
+            $choice['on_board'] => __('guest.checkout.choice.deposit_on_board', ['balance' => $money($choice['balance'])]),
+            $choice['due'] !== null => __('guest.checkout.choice.deposit_until', [
+                'balance' => $money($choice['balance']),
+                'date' => $choice['due']->copy()->setTimezone($timezone)->format('j/n'),
+            ]),
+            default => __('guest.checkout.choice.deposit_later', ['balance' => $money($choice['balance'])]),
+        };
+    }
 
     // The label in each line is stored per locale, exactly as the catalogue
     // stores every other translatable string.
@@ -203,11 +220,29 @@
             @endif
         </form>
 
+        {{-- «Προκαταβολή ή όλο το ποσό» (Mike, 2026-09-25). Two radios bound
+             to the payment form through `form=`, the deposit preselected, and
+             the balance's date said on the option itself. No script: the
+             button's amount follows the choice through `:has()` below. --}}
         @if ($takesDeposit)
-            <p class="muted">{{ __('guest.checkout.deposit_note', [
-                'deposit' => $money($depositCents),
-                'balance' => $money($booking->total_cents - $depositCents),
-            ]) }}</p>
+            <fieldset class="pay-choice">
+                <legend>{{ __('guest.checkout.choice.legend') }}</legend>
+
+                <label class="pay-option">
+                    <input type="radio" name="kind" value="deposit" form="checkout-form" id="kind-deposit" @checked($kindChosen === 'deposit')>
+                    <span>
+                        <strong>{{ __('guest.checkout.choice.deposit', ['deposit' => $money($depositCents)]) }}</strong>
+                        <span class="muted">{{ $balanceWhen }}</span>
+                    </span>
+                </label>
+
+                <label class="pay-option">
+                    <input type="radio" name="kind" value="full" form="checkout-form" id="kind-full" @checked($kindChosen === 'full')>
+                    <span>
+                        <strong>{{ __('guest.checkout.choice.full', ['total' => $money($booking->total_cents)]) }}</strong>
+                    </span>
+                </label>
+            </fieldset>
         @endif
 
         {{-- What happens if they cannot come, said before they pay rather than
@@ -260,7 +295,14 @@
              number should know whose page they are about to land on. ADR-0004 —
              the card is entered on Viva's own checkout and neither Kaiki nor the
              operator ever sees it. --}}
-        <button type="submit" form="checkout-form" class="btn pay">{{ __('guest.checkout.pay', ['amount' => $money($dueNow)]) }}</button>
+        @if ($takesDeposit)
+            <button type="submit" form="checkout-form" class="btn pay">
+                <span class="when-deposit">{{ __('guest.checkout.pay', ['amount' => $money($depositCents)]) }}</span>
+                <span class="when-full">{{ __('guest.checkout.pay', ['amount' => $money($booking->total_cents)]) }}</span>
+            </button>
+        @else
+            <button type="submit" form="checkout-form" class="btn pay">{{ __('guest.checkout.pay', ['amount' => $money($dueNow)]) }}</button>
+        @endif
 
         {{-- The trust block. A page that asks for money and says nothing about
              where it goes reads as a scam, which is what this is here to fix.
@@ -573,8 +615,14 @@
 --}}
 <div class="pay-dock">
     <span class="amount">
-        <span class="label">{{ __('guest.checkout.total') }}</span>
-        <span class="value">{{ $money($dueNow) }}</span>
+        @if ($takesDeposit)
+            <span class="label">{{ __('guest.checkout.choice.now') }}</span>
+            <span class="value when-deposit">{{ $money($depositCents) }}</span>
+            <span class="value when-full">{{ $money($booking->total_cents) }}</span>
+        @else
+            <span class="label">{{ __('guest.checkout.total') }}</span>
+            <span class="value">{{ $money($dueNow) }}</span>
+        @endif
     </span>
 
     <button type="submit" form="checkout-form" class="btn">{{ __('guest.checkout.pay_short') }}</button>

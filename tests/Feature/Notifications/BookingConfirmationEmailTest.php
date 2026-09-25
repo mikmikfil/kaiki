@@ -138,7 +138,8 @@ it('carries every fact of the trip in the confirmation, in both halves', functio
             ->toContain('125,00 €')
             ->toContain('80,00 €')
             ->toContain('45,00 €')
-            ->toContain('Υπόλοιπο, έως')
+            ->toContain(__('mail.common.deposit_paid', [], 'el'))
+            ->toContain(__('mail.common.until', [], 'el'))
             // The rest of design A.
             ->toContain('Δωρεάν ακύρωση έως 7 ημέρες πριν.')
             ->toContain('Μαγιό')
@@ -185,7 +186,7 @@ it('drops the ticket and the details notice when neither applies', function (): 
 
     expect($html)->not->toContain('/ticket')
         ->and($html)->not->toContain(__('mail.common.details_title', [], 'el'))
-        ->and($html)->not->toContain(__('mail.common.balance_due', ['date' => ''], 'el'));
+        ->and($html)->not->toContain(__('mail.common.until', [], 'el') . '</td>');
 })->group('fast');
 
 it('shows what the discount code took off, in both halves', function (): void {

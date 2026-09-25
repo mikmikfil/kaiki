@@ -25,6 +25,8 @@
     $isOver = $booking->starts_at_utc->isPast();
     $point = $booking->product?->meetingPoint;
     $owesBalance = $booking->balance_cents > 0 && $booking->status === BookingStatus::Confirmed;
+    // Paid on the boat, on the day (2026-09-25): a sentence, no pay button.
+    $balanceOnBoard = $owesBalance && $booking->tenant?->collectsBalanceOnBoard() === true;
 @endphp
 
 @section('content')
@@ -85,22 +87,31 @@
     @if ($owesBalance)
         <section class="sec-balance">
             <span class="label">{{ __('guest.booking.price.balance') }}</span>
+            @if ($balanceOnBoard)
+            <p class="balance-on-board">{{ __('guest.booking.balance_on_board', ['amount' => $money($booking->balance_cents)]) }}</p>
+            @else
             <dl class="rows">
                 <dt class="total">{{ $money($booking->balance_cents) }}</dt>
                 <dd class="total">
                     @if ($booking->balance_due_at)
-                        {{ __('guest.booking.balance_due', ['date' => $booking->balance_due_at->format('d/m/Y')]) }}
+                        {{ __('guest.booking.balance_due', ['date' => $balanceDueDate ?? $booking->balance_due_at->format('d/m/Y')]) }}
                     @endif
                 </dd>
             </dl>
 
             {{-- ADR-0004 Option D: the session is minted when this is pressed,
                  priced at that moment — not at confirmation, and never emailed
-                 as a gateway URL that would have expired weeks ago. --}}
-            <form method="post" action="{{ route('guest.booking.pay-balance', ['token' => $token]) }}">
-                @csrf
-                <button class="btn" type="submit">{{ __('guest.booking.pay_balance') }}</button>
-            </form>
+                 as a gateway URL that would have expired weeks ago. No gateway,
+                 no button: a sentence instead of a silent reload (2026-09-25). --}}
+            @if ($canPayBalance ?? true)
+                <form method="post" action="{{ route('guest.booking.pay-balance', ['token' => $token]) }}">
+                    @csrf
+                    <button class="btn" type="submit">{{ __('guest.booking.pay_balance') }}</button>
+                </form>
+            @else
+                <p class="muted">{{ __('guest.booking.pay_balance_offline') }}</p>
+            @endif
+            @endif
         </section>
     @endif
 
@@ -232,7 +243,8 @@
             <dt>{{ __('guest.booking.price.total') }}</dt>
             <dd>{{ $money($booking->total_cents) }}</dd>
 
-            <dt>{{ __('guest.booking.price.paid') }}</dt>
+            {{-- «Προκαταβολή» while something is still owed (2026-09-25). --}}
+            <dt>{{ $owesBalance && $booking->paid_cents > 0 ? __('guest.booking.price.deposit') : __('guest.booking.price.paid') }}</dt>
             <dd>{{ $money($booking->paid_cents) }}</dd>
 
             @if ($booking->refunded_cents > 0)
@@ -240,9 +252,15 @@
                 <dd>{{ $money($booking->refunded_cents) }}</dd>
             @endif
 
-            @if ($booking->balance_cents > 0)
+            {{-- Nothing is owed on a booking that has ended (2026-09-25):
+                 a cancelled or refunded one kept its old balance column. --}}
+            @if ($booking->balance_cents > 0 && $booking->status->isLive())
                 <dt class="total">{{ __('guest.booking.price.balance') }}</dt>
                 <dd class="total">{{ $money($booking->balance_cents) }}</dd>
+                @if ($owesBalance && ! $balanceOnBoard && $booking->balance_due_at)
+                    <dt>{{ __('guest.booking.price.until') }}</dt>
+                    <dd>{{ $balanceDueDate ?? $booking->balance_due_at->format('d/m/Y') }}</dd>
+                @endif
             @endif
         </dl>
     </section>

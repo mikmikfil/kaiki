@@ -176,6 +176,17 @@ final class VivaSmartCheckoutGateway implements PaymentGateway, ProvidesTransact
             return RefundResult::failure('401');
         }
 
+        // **The transaction, never the order** (2026-09-25). Viva's refund
+        // endpoint takes the charge's TransactionId; `gateway_ref` holds the
+        // 16-digit OrderCode the checkout was opened with, and every refund
+        // sent with it was declined. The id is stored when the payment is
+        // confirmed; a charge confirmed before that is looked up by its order.
+        $transactionId = $payment->gateway_transaction_ref ?? $this->chargedTransactionId($credential, $payment);
+
+        if ($transactionId === null) {
+            return RefundResult::failure('404');
+        }
+
         try {
             $response = $this->call(
                 fn (): Response => $this->http
@@ -184,7 +195,7 @@ final class VivaSmartCheckoutGateway implements PaymentGateway, ProvidesTransact
                     ->delete(sprintf(
                         '%s/api/transactions/%s?amount=%d',
                         $this->apiHost($environment),
-                        $payment->gateway_transaction_ref ?? $payment->gateway_ref,
+                        $transactionId,
                         (int) $amount->getMinorAmount()->toInt(),
                     )),
             );
@@ -200,6 +211,22 @@ final class VivaSmartCheckoutGateway implements PaymentGateway, ProvidesTransact
         }
 
         return RefundResult::success((int) $amount->getMinorAmount()->toInt(), $reference);
+    }
+
+    /** The successful charge against this payment's order, asked of Viva. */
+    private function chargedTransactionId(IntegrationCredential $credential, Payment $payment): ?string
+    {
+        if ($payment->gateway_ref === null || $payment->gateway_ref === '') {
+            return null;
+        }
+
+        try {
+            $transaction = $this->transactionFor($credential, $payment->gateway_ref);
+        } catch (GatewayCallFailed) {
+            return null;
+        }
+
+        return $transaction?->succeeded === true ? $transaction->transactionId : null;
     }
 
     public function describeError(string $code): TranslatableMessage
@@ -415,7 +442,9 @@ final class VivaSmartCheckoutGateway implements PaymentGateway, ProvidesTransact
             if ($status === 'F') {
                 // A success ends the search: money present is the answer
                 // whatever else was attempted against this order.
-                return GatewayTransaction::paid($amount);
+                $id = $transaction['TransactionId'] ?? null;
+
+                return GatewayTransaction::paid($amount, is_string($id) && $id !== '' ? $id : null);
             }
 
             $latest ??= in_array($status, ['E', 'X', 'C'], true)

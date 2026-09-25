@@ -25,7 +25,7 @@ import {
   countedPax,
   type Step,
 } from '../../booking/machine';
-import { usePriceQuote } from '../../booking/price';
+import { splitLine, usePriceQuote } from '../../booking/price';
 import type { Translator } from '../../i18n';
 import { forgetDraft, recallDraft, rememberDraft } from '../../storage';
 import { DateStep } from './steps/DateStep';
@@ -441,6 +441,13 @@ export function BookingMount({
       ? t('booking.peek.price_unknown')
       : t('booking.peek.from').replace(':amount', product.from_price_formatted));
 
+  /**
+   * «€X τώρα, €Y αργότερα» — or «στο σκάφος» — under the total (2026-09-25).
+   * Only beside a real total: under «από 55,00 €» it would split a price
+   * nobody has chosen yet.
+   */
+  const split = quote.total !== null && quote.split !== null ? splitLine(quote.split, t) : null;
+
   const peekSummary = useMemo(() => {
     if (state.localDate === null) {
       return t('booking.peek.pick_date');
@@ -514,6 +521,7 @@ export function BookingMount({
         {sheet ? (
           <Peek
             price={peekPrice}
+            split={split}
             summary={peekSummary}
             action={last ? t('booking.checkout') : t('booking.next')}
             ready={canAdvance(state, options)}
@@ -615,6 +623,9 @@ export function BookingMount({
             ) : null}
           </label>
         ) : null}
+
+        {/* The desktop card has no bar, so the split sits above the buttons. */}
+        {!sheet && split !== null ? <p class="kaiki-split">{split}</p> : null}
 
         <div class="kaiki-actions">
           {state.step !== 'date' ? (

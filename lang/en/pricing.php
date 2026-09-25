@@ -164,6 +164,8 @@ return [
             'days' => 'days before',
             'saved' => 'The period’s terms were saved.',
             'differs' => '«:period» has its own terms.',
+            'deposits_off' => 'Deposits are off in Payments, so the guest pays the full amount.',
+            'deposits_off_link' => 'Open Payments',
         ],
     ],
 

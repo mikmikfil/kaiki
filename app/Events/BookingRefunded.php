@@ -48,7 +48,21 @@ final class BookingRefunded implements Auditable
         private readonly int $amountCents,
         private readonly RefundMethod $method,
         private readonly ?string $reason = null,
+        private readonly bool $answersInvoice = true,
     ) {}
+
+    /**
+     * Does this refund reduce what was sold, and so answer the invoice?
+     *
+     * False for money given back because it was paid on top of the total — an
+     * older tab paid after a newer one (2026-09-25). That money was never on
+     * the invoice, and a credit note for it would take a sale out of the
+     * register that did happen.
+     */
+    public function answersInvoice(): bool
+    {
+        return $this->answersInvoice;
+    }
 
     /**
      * The scalars a second listener needs, without handing it the model.

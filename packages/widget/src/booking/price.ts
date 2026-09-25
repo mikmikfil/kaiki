@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 
 import type { Api, ApiError } from '../api-client';
+import type { Translator } from '../i18n';
 import { countedPax, draftPayload, type BookingState } from './machine';
 
 /**
@@ -55,10 +56,55 @@ export interface Quote {
    * where the from-price fallback is the whole answer.
    */
   readonly refusal: string | null;
+  /**
+   * «€X τώρα, €Y αργότερα» (2026-09-25): the two halves of a total the
+   * operator takes a deposit on, as the server formatted them. Null when there
+   * is no deposit, before the first answer, and after a refusal.
+   */
+  readonly split: DepositSplit | null;
+}
+
+/** A deposit and its balance, both already formatted by the server. */
+export interface DepositSplit {
+  readonly now: string;
+  readonly later: string;
+  /** The operator collects the balance on the boat, on the day. */
+  readonly onBoard: boolean;
 }
 
 interface QuotePayload {
-  readonly data?: { readonly total_formatted?: unknown };
+  readonly data?: { readonly total_formatted?: unknown; readonly deposit?: unknown };
+}
+
+/**
+ * The split, read off `data.deposit` — or null when the quote has none.
+ *
+ * Nothing is computed: `amount_formatted` and `balance_formatted` are rendered
+ * as they came, and a deposit is recognised by the server saying it has one
+ * (`type` other than `none`, and a balance to pay), not by comparing sums.
+ */
+export function depositSplit(deposit: unknown): DepositSplit | null {
+  if (deposit === null || typeof deposit !== 'object') {
+    return null;
+  }
+
+  const d = deposit as Record<string, unknown>;
+  const now = d['amount_formatted'];
+  const later = d['balance_formatted'];
+  const hasBalance = typeof d['balance_cents'] === 'number' && d['balance_cents'] > 0;
+
+  if (d['type'] === 'none' || !hasBalance || typeof now !== 'string' || typeof later !== 'string') {
+    return null;
+  }
+
+  return { now, later, onBoard: d['balance_on_board'] === true };
+}
+
+/** The line under the total, in the guest's language. */
+export function splitLine(split: DepositSplit, t: Translator): string {
+  return t(split.onBoard ? 'booking.split.on_board' : 'booking.split.later')
+    .replace(':now', split.now)
+    .replace(':later', split.later);
 }
 
 /** Long enough to swallow a burst of taps on a stepper, short enough to feel live. */
@@ -74,6 +120,7 @@ export function usePriceQuote(
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
+  const [split, setSplit] = useState<DepositSplit | null>(null);
 
   // Bumped per request; an answer whose number is not the current one is late.
   const seq = useRef(0);
@@ -89,6 +136,7 @@ export function usePriceQuote(
       setLoading(false);
       setFailed(false);
       setRefusal(null);
+      setSplit(null);
 
       return;
     }
@@ -109,6 +157,7 @@ export function usePriceQuote(
           setTotal(typeof formatted === 'string' ? formatted : null);
           setFailed(typeof formatted !== 'string');
           setRefusal(null);
+          setSplit(typeof formatted === 'string' ? depositSplit(response.data?.deposit) : null);
           setLoading(false);
         })
         .catch((error: unknown) => {
@@ -118,6 +167,7 @@ export function usePriceQuote(
 
           setFailed(true);
           setRefusal(quoteRefusal(error));
+          setSplit(null);
           setLoading(false);
         });
     }, SETTLE_MS);
@@ -127,7 +177,7 @@ export function usePriceQuote(
     };
   }, [client, key]);
 
-  return { total, loading, failed, refusal };
+  return { total, loading, failed, refusal, split };
 }
 
 /**

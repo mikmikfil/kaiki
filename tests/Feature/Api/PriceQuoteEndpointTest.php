@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Domain\Availability\LocalDateTimeResolver;
 use App\Domain\Pricing\Actions\ComputePrice;
 use App\Enums\AgeBandPricing;
 use App\Enums\ApiScope;
+use App\Enums\BalanceCollection;
 use App\Enums\DepartureStatus;
+use App\Enums\DepositType;
 use App\Enums\ExtraPricing;
 use App\Models\AgeBand;
 use App\Models\Departure;
@@ -363,4 +366,86 @@ it('is never cached', function (): void {
         'departure_uuid' => $departure->uuid,
         'pax' => [['age_band_uuid' => $adult->uuid, 'qty' => 2]],
     ])->assertHeader('Cache-Control', 'no-store, private');
+})->group('fast');
+
+/**
+ * The fixture, with a 30% deposit the operator actually takes.
+ *
+ * @return array{0: string, 1: Product, 2: Departure, 3: AgeBand}
+ */
+function depositQuoteFixture(BalanceCollection $collection): array
+{
+    [$key, $product, $departure, $adult] = quoteFixture();
+
+    $product->tenant->forceFill([
+        'deposits_enabled' => true,
+        'balance_collection' => $collection,
+        'balance_due_days_before_departure' => 14,
+    ])->save();
+
+    Tenancy::forTenant($product->tenant, fn () => RatePlan::query()
+        ->where('product_id', $product->getKey())
+        ->update(['deposit_type' => DepositType::Percent->value, 'deposit_percent' => 30]));
+
+    return [$key, $product, $departure, $adult];
+}
+
+it('says when the balance would fall due for a booking made now', function (): void {
+    // 2026-09-25: `balance_due_at` was always null. Now it is the date
+    // `ComputeBalanceDueAt` gives a booking confirmed at this moment —
+    // fourteen local days before the sailing, at 09:00 in Athens.
+    Carbon::setTestNow('2026-06-01 10:00:00');
+
+    [$key, $product, $departure, $adult] = depositQuoteFixture(BalanceCollection::Online);
+
+    $response = postQuote($key, [
+        'product_uuid' => $product->uuid,
+        'departure_uuid' => $departure->uuid,
+        'pax' => [['age_band_uuid' => $adult->uuid, 'qty' => 2]],
+    ])->assertOk();
+
+    $expected = LocalDateTimeResolver::resolve(
+        Carbon::parse($departure->local_date)->subDays(14)->toDateString(),
+        '09:00',
+        'Europe/Athens',
+    )->instant;
+
+    $response->assertJsonPath('data.deposit.amount_cents', 3900)
+        ->assertJsonPath('data.deposit.balance_cents', 9100)
+        ->assertJsonPath('data.deposit.balance_due_at', $expected?->toIso8601ZuluString())
+        ->assertJsonPath('data.deposit.balance_on_board', false);
+
+    expect($response->json('data.deposit.balance_formatted'))->toContain('91');
+
+    Carbon::setTestNow();
+})->group('fast');
+
+it('gives no balance date when the balance is paid on the boat', function (): void {
+    Carbon::setTestNow('2026-06-01 10:00:00');
+
+    [$key, $product, $departure, $adult] = depositQuoteFixture(BalanceCollection::OnBoard);
+
+    postQuote($key, [
+        'product_uuid' => $product->uuid,
+        'departure_uuid' => $departure->uuid,
+        'pax' => [['age_band_uuid' => $adult->uuid, 'qty' => 2]],
+    ])->assertOk()
+        ->assertJsonPath('data.deposit.amount_cents', 3900)
+        ->assertJsonPath('data.deposit.balance_due_at', null)
+        ->assertJsonPath('data.deposit.balance_on_board', true);
+
+    Carbon::setTestNow();
+})->group('fast');
+
+it('gives no balance date when there is no deposit', function (): void {
+    [$key, $product, $departure, $adult] = quoteFixture();
+
+    postQuote($key, [
+        'product_uuid' => $product->uuid,
+        'departure_uuid' => $departure->uuid,
+        'pax' => [['age_band_uuid' => $adult->uuid, 'qty' => 2]],
+    ])->assertOk()
+        ->assertJsonPath('data.deposit.type', 'none')
+        ->assertJsonPath('data.deposit.balance_due_at', null)
+        ->assertJsonPath('data.deposit.balance_on_board', false);
 })->group('fast');

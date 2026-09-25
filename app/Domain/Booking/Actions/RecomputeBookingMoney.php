@@ -40,9 +40,19 @@ final class RecomputeBookingMoney
 
         // After the balance, because the calculation reads it. A booking that
         // has ended owes nothing on a date, whatever its columns say.
-        $locked->forceFill([
-            'balance_due_at' => $locked->status->isLive() ? ($this->computeBalanceDueAt)($locked) : null,
-        ])->save();
+        $due = $locked->status->isLive() ? ($this->computeBalanceDueAt)($locked) : null;
+
+        // A due date already set does not move because some money arrived
+        // (2026-09-25). Recomputed now, a part payment after the date took
+        // PRC-27.3's «confirmed late» branch and pushed the date 24 hours on,
+        // out of the overdue list. It is written fresh only when there was none
+        // — a balance reopened on a booking that had been settled — and it goes
+        // when nothing is owed or the operator collects on board.
+        if ($due !== null && $locked->balance_due_at !== null) {
+            $due = $locked->balance_due_at;
+        }
+
+        $locked->forceFill(['balance_due_at' => $due])->save();
 
         return $locked;
     }
