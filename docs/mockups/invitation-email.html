@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Email πρόσκλησης</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+  /* Light only, on purpose: the emails themselves are light only. */
+  :root {
+    --ground: #EEF2F6;
+    --paper: #FFFFFF;
+    --ink: #14202B;
+    --muted: #5A6B7A;
+    --line: #D9E2EA;
+    --sea: #0F2E57;
+    --good: #0E7C5A;
+    --good-bg: #E3F4EC;
+    --bad: #8A3A1F;
+    --bad-bg: #F8ECE6;
+    --warn: #7A4B00;
+    --warn-bg: #FFF6E5;
+    --warn-line: #F0D9A8;
+    --mail-bg: #F2F5F7;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  html, body { overflow-x: hidden; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font: 15px/1.55 Figtree, "Segoe UI", Arial, sans-serif;
+    padding: 32px 16px 64px;
+  }
+  a { color: var(--sea); text-decoration: none; font-weight: 600; }
+  a:hover { text-decoration: none; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  header { display: grid; gap: 10px; max-width: 72ch; margin-bottom: 20px; }
+  .eyebrow { font-size: 13px; font-weight: 600; color: var(--muted); }
+  h1 { margin: 0; font-size: clamp(26px, 3.4vw, 36px); line-height: 1.12; letter-spacing: -.02em; text-wrap: balance; }
+  header p { margin: 0; color: var(--muted); }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 18px 0 28px; position: sticky; top: 0; z-index: 2; background: var(--ground); padding: 10px 0; }
+  .seg { display: inline-flex; flex-wrap: wrap; background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+  .seg button { border: 0; background: none; font: inherit; font-weight: 600; font-size: 14px; color: var(--muted); padding: 7px 12px; border-radius: 8px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--sea); color: #fff; }
+  .seg button:focus-visible { outline: 2px solid var(--sea); outline-offset: 2px; }
+  .hint { color: var(--muted); font-size: 13px; }
+
+  .option { margin: 0 0 44px; display: grid; gap: 12px; }
+  .opt-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .opt-head h2 { margin: 0; font-size: 20px; letter-spacing: -.01em; }
+  .letter { font-weight: 700; color: var(--sea); font-size: 20px; }
+  .tag { font-size: 12px; font-weight: 700; color: var(--muted); background: var(--paper); border: 1px solid var(--line); padding: 2px 9px; border-radius: 999px; }
+  .idea { margin: 0; color: var(--muted); max-width: 80ch; }
+
+  .pair { display: grid; grid-template-columns: minmax(0, 600fr) minmax(0, 375fr); gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .pair { grid-template-columns: 1fr; } .pair .phone { max-width: 375px; } }
+  .client { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .client .size { padding: 6px 14px; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); background: #F8FAFC; }
+  .meta { padding: 12px 14px; border-bottom: 1px solid var(--line); display: grid; gap: 1px; font-size: 13px; }
+  .meta b { font-size: 14px; }
+  .meta span { color: var(--muted); overflow-wrap: anywhere; }
+  .viewport { background: var(--mail-bg); overflow: hidden; }
+  .viewport iframe { display: block; border: 0; transform-origin: 0 0; background: var(--mail-bg); }
+
+  .notes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; font-size: 13.5px; }
+  @media (max-width: 760px) { .notes { grid-template-columns: 1fr; } }
+  .notes div { background: var(--paper); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .notes h3 { margin: 0 0 4px; font-size: 13px; }
+  .notes .pro h3 { color: var(--good); }
+  .notes .con h3 { color: var(--bad); }
+  .notes .new h3 { color: var(--sea); }
+  .notes ul { margin: 0; padding-left: 18px; color: var(--muted); }
+
+  .now { border-left: 3px solid var(--muted); padding-left: 14px; }
+  .flag { background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--warn); border-radius: 10px; padding: 12px 14px; font-size: 14px; max-width: 80ch; }
+  .flag b { color: var(--warn); }
+  .flag ul { margin: 6px 0 0; padding-left: 18px; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 8px 0 36px; }
+  footer { margin-top: 12px; color: var(--muted); font-size: 13px; max-width: 80ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Kaiki · email πρόσκλησης · mockup · 25/9</div>
+    <h1>Η πρόσκληση στην ομάδα, λίγο πιο όμορφη</h1>
+    <p>Φεύγει όταν ο ιδιοκτήτης προσθέτει κάποιον στην «Ομάδα», ή όταν ο διαχειριστής της πλατφόρμας δημιουργεί νέο διοργανωτή. Ο παραλήπτης ορίζει μόνος του τον κωδικό του. Πάνω το σημερινό, από κάτω τρεις κατευθύνσεις, η καθεμιά σε υπολογιστή και σε κινητό.</p>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Ποιος προσκαλείται">
+      <button type="button" aria-pressed="true" data-role="manager">Υπεύθυνος</button>
+      <button type="button" aria-pressed="false" data-role="crew">Πλήρωμα</button>
+      <button type="button" aria-pressed="false" data-role="owner">Νέος διοργανωτής</button>
+    </div>
+    <span class="hint">Αλλάζει το παράδειγμα σε όλα τα emails. Ψεύτικα στοιχεία.</span>
+  </div>
+
+  <section class="option now">
+    <div class="opt-head"><h2>Τώρα</h2><span class="tag">mail/staff/invitation-html</span></div>
+    <p class="idea">Όνομα διοργανωτή με γραμμή στο χρώμα του, τίτλος, μία πρόταση, τετράγωνο κουμπί, ο σύνδεσμος ολόκληρος και μια σημείωση για τη λήξη.</p>
+    <div class="pair">
+      <div class="client"><div class="size">Υπολογιστής · 600px</div><div class="meta"><b data-from></b><span data-subject="now"></span></div><div class="viewport"><iframe title="Τώρα, υπολογιστής" data-mail="now" data-w="600" scrolling="no"></iframe></div></div>
+      <div class="client phone"><div class="size">Κινητό · 375px</div><div class="meta"><b data-from></b><span data-subject="now"></span></div><div class="viewport"><iframe title="Τώρα, κινητό" data-mail="now" data-w="375" scrolling="no"></iframe></div></div>
+    </div>
+    <div class="flag">
+      <b>Τι λείπει ή ενοχλεί σήμερα</b>
+      <ul>
+        <li>«ο/η Μαρία Κωνσταντίνου»: το «ο/η» φαίνεται σαν φόρμα. Οι τρεις κατευθύνσεις το αποφεύγουν.</li>
+        <li>Δεν λέει ποιον ρόλο έχετε, με ποιο email θα μπαίνετε, ούτε πού θα μπαίνετε μετά.</li>
+        <li>«Για περιορισμένο χρόνο»: στην πράξη ο σύνδεσμος λήγει σε <b>60 λεπτά</b> (auth.passwords.users.expire). Όποιος το ανοίξει το βράδυ βρίσκει νεκρό σύνδεσμο. Τα σχέδια γράφουν «7 ημέρες», που θέλει αλλαγή στον κώδικα.</li>
+        <li>Στον νέο διοργανωτή, αποστολέας φαίνεται η δική του εταιρεία και «ο/η» είναι ο διαχειριστής της πλατφόρμας.</li>
+      </ul>
+    </div>
+  </section>
+
+  <hr>
+
+  <section class="option">
+    <div class="opt-head"><span class="letter">Α</span><h2>Γράμμα</h2><span class="tag">ήρεμο, κείμενο πρώτα</span></div>
+    <p class="idea">Χωρίς κάρτα, χωρίς πλαίσιο: ένα σύντομο γράμμα από την εταιρεία, υπογεγραμμένο από όποιον σας πρόσθεσε. Ένα μεγάλο κουμπί, και από κάτω τα μικρά: ισχύς, «δεν το περιμένατε;», ο σύνδεσμος σε κείμενο.</p>
+    <div class="pair">
+      <div class="client"><div class="size">Υπολογιστής · 600px</div><div class="meta"><b data-from></b><span data-subject="a"></span></div><div class="viewport"><iframe title="Α, υπολογιστής" data-mail="a" data-w="600" scrolling="no"></iframe></div></div>
+      <div class="client phone"><div class="size">Κινητό · 375px</div><div class="meta"><b data-from></b><span data-subject="a"></span></div><div class="viewport"><iframe title="Α, κινητό" data-mail="a" data-w="375" scrolling="no"></iframe></div></div>
+    </div>
+    <div class="notes">
+      <div class="pro"><h3>Υπέρ</h3><ul><li>Μοιάζει με email από άνθρωπο, όχι από σύστημα.</li><li>Η υπογραφή λύνει το «ο/η».</li></ul></div>
+      <div class="con"><h3>Κατά</h3><ul><li>Ο ρόλος λέγεται σε μία πρόταση, δεν ξεχωρίζει.</li><li>Λίγο χρώμα, λιγότερο «επίσημο».</li></ul></div>
+      <div class="new"><h3>Νέα κείμενα</h3><ul><li>Θέμα, τίτλος, υπογραφή, «Δεν το περιμένατε;».</li></ul></div>
+    </div>
+  </section>
+
+  <section class="option">
+    <div class="opt-head"><span class="letter">Β</span><h2>Τρία βήματα</h2><span class="tag">ταινία στο χρώμα του διοργανωτή</span></div>
+    <p class="idea">Ταινία σε πλήρες πλάτος στο χρώμα του διοργανωτή, όπως η «Κάρτα εισιτηρίου» της κράτησης. Από κάτω αριθμημένα βήματα: ορίζετε κωδικό, μπαίνετε με αυτό το email, και τι βλέπετε πρώτα. Το κουμπί είναι μέσα στο πρώτο βήμα.</p>
+    <div class="pair">
+      <div class="client"><div class="size">Υπολογιστής · 600px</div><div class="meta"><b data-from></b><span data-subject="b"></span></div><div class="viewport"><iframe title="Β, υπολογιστής" data-mail="b" data-w="600" scrolling="no"></iframe></div></div>
+      <div class="client phone"><div class="size">Κινητό · 375px</div><div class="meta"><b data-from></b><span data-subject="b"></span></div><div class="viewport"><iframe title="Β, κινητό" data-mail="b" data-w="375" scrolling="no"></iframe></div></div>
+    </div>
+    <div class="notes">
+      <div class="pro"><h3>Υπέρ</h3><ul><li>Ίδια οικογένεια με το email κράτησης.</li><li>Λέει και το «μετά»: πού θα μπαίνει από αύριο.</li></ul></div>
+      <div class="con"><h3>Κατά</h3><ul><li>Τρία βήματα για κάτι που είναι ένα κλικ.</li><li>Η ταινία θέλει προσοχή σε σκούρα χρώματα διοργανωτή.</li></ul></div>
+      <div class="new"><h3>Νέα κείμενα</h3><ul><li>Τρία βήματα ανά ρόλο, διεύθυνση σύνδεσης.</li></ul></div>
+    </div>
+  </section>
+
+  <section class="option">
+    <div class="opt-head"><span class="letter">Γ</span><h2>Ο ρόλος σας</h2><span class="tag">καλωσόρισμα με τι μπορείτε να κάνετε</span></div>
+    <p class="idea">Καλωσόρισμα με το όνομα, και στο κέντρο ο ρόλος: τι μπορείτε να κάνετε και τι όχι, με τις λέξεις του πίνακα. Από πάνω τα στοιχεία σε δύο στήλες (εταιρεία, email σύνδεσης, ποιος σας πρόσθεσε). Κουμπί σε όλο το πλάτος.</p>
+    <div class="pair">
+      <div class="client"><div class="size">Υπολογιστής · 600px</div><div class="meta"><b data-from></b><span data-subject="c"></span></div><div class="viewport"><iframe title="Γ, υπολογιστής" data-mail="c" data-w="600" scrolling="no"></iframe></div></div>
+      <div class="client phone"><div class="size">Κινητό · 375px</div><div class="meta"><b data-from></b><span data-subject="c"></span></div><div class="viewport"><iframe title="Γ, κινητό" data-mail="c" data-w="375" scrolling="no"></iframe></div></div>
+    </div>
+    <div class="notes">
+      <div class="pro"><h3>Υπέρ</h3><ul><li>Ο παραλήπτης ξέρει τι θα βρει πριν μπει.</li><li>Λιγότερες ερωτήσεις «γιατί δεν βλέπω τις τιμές;».</li></ul></div>
+      <div class="con"><h3>Κατά</h3><ul><li>Το πιο μακρύ από τα τρία.</li><li>Αν αλλάξει ο ρόλος αργότερα, το email λέει το παλιό.</li></ul></div>
+      <div class="new"><h3>Νέα κείμενα</h3><ul><li>Λίστα «μπορείτε» ανά ρόλο. Οι περιγραφές ρόλων υπάρχουν ήδη.</li></ul></div>
+    </div>
+  </section>
+
+  <footer>Τα emails είναι φτιαγμένα όπως τα πραγματικά: πίνακες, στυλ μέσα στα στοιχεία, γραμματοσειρά συστήματος, καμία εικόνα. Κανένα κείμενο σε κεφαλαία, κανένας σύνδεσμος υπογραμμισμένος. Αποστολέας: η διεύθυνση της πλατφόρμας με το όνομα του διοργανωτή. Απάντηση: σε όποιον έστειλε την πρόσκληση.</footer>
+</div>
+
+<script>
+(function () {
+  const B = '#123A5E', B_SOFT = '#E6EDF5', B_TINT = '#BFD0E3';
+  const ink = '#14202B', muted = '#5A6B7A', line = '#E4ECF1';
+  const F = 'font-family:Arial,Helvetica,sans-serif;';
+  const URL_LONG = 'https://aegeanblue.kaiki.gr/app/password-reset/reset?email=nikos%40example.gr&token=7f3c9a1e0b52d6c48e1f&signature=a9d04e7b2c61f5e8';
+
+  const people = {
+    manager: {
+      name: 'Νίκος Παπαδάκης', first: 'Νίκο', email: 'nikos@example.gr',
+      inviter: 'Μαρία Κωνσταντίνου', inviterEmail: 'maria@aegeanblue.gr', inviterNote: 'Aegean Blue Cruises',
+      role: 'Υπεύθυνος', roleDesc: 'Καθημερινή λειτουργία: εκδρομές, τιμές, κρατήσεις και επιβάτες. Χωρίς χρεώσεις.',
+      can: ['Εκδρομές, τιμές και διαθεσιμότητα', 'Κρατήσεις, επιβάτες και πληρωμές στην προβλήτα', 'Αναχωρήσεις και επιβίβαση'],
+      cannot: 'Χρεώσεις, συνδρομή και προσωπικό μένουν στον ιδιοκτήτη.',
+      first_screen: 'Ξεκινάτε από τον «Πίνακα»: οι σημερινές αναχωρήσεις και ό,τι θέλει προσοχή.',
+      lead: 'Σας προσθέσαμε στην ομάδα της Aegean Blue Cruises, με ρόλο «Υπεύθυνος». Από εδώ θα βλέπετε εκδρομές, κρατήσεις και επιβάτες.',
+    },
+    crew: {
+      name: 'Γιάννης Σταθάκης', first: 'Γιάννη', email: 'giannis@example.gr',
+      inviter: 'Μαρία Κωνσταντίνου', inviterEmail: 'maria@aegeanblue.gr', inviterNote: 'Aegean Blue Cruises',
+      role: 'Πλήρωμα', roleDesc: 'Βλέπει τις σημερινές αναχωρήσεις και την οθόνη επιβίβασης. Τίποτα άλλο.',
+      can: ['Οι σημερινές αναχωρήσεις και οι επιβάτες τους', 'Η οθόνη επιβίβασης, με τον κωδικό του εισιτηρίου'],
+      cannot: 'Κρατήσεις, τιμές και ρυθμίσεις δεν τις βλέπετε.',
+      first_screen: 'Ανοίγει στις σημερινές αναχωρήσεις. Αποθηκεύστε τη σελίδα στο κινητό σας.',
+      lead: 'Σας προσθέσαμε στην ομάδα της Aegean Blue Cruises, με ρόλο «Πλήρωμα». Από εδώ θα βλέπετε τις σημερινές αναχωρήσεις και θα κάνετε την επιβίβαση.',
+    },
+    owner: {
+      name: 'Ελένη Μαυρίδη', first: 'Ελένη', email: 'eleni@aegeanblue.gr',
+      inviter: 'Η ομάδα του Kaiki', inviterEmail: 'hello@kaiki.gr', inviterNote: 'Kaiki',
+      role: 'Ιδιοκτήτης', roleDesc: 'Πλήρης πρόσβαση: χρεώσεις, προσωπικό και διαγραφή λογαριασμού.',
+      can: ['Η σελίδα της εταιρείας σας, με τις εκδρομές και τις τιμές', 'Κρατήσεις, πληρωμές και επιστροφές', 'Η ομάδα σας και οι ρόλοι τους'],
+      cannot: null,
+      first_screen: 'Ο οδηγός «Ξεκινήστε» σας δείχνει τι μένει: στοιχεία, σκάφη, εκδρομές, πληρωμές.',
+      lead: 'Ο λογαριασμός της Aegean Blue Cruises στο Kaiki είναι έτοιμος. Ορίστε τον κωδικό σας και ο οδηγός θα σας πάει βήμα βήμα.',
+    },
+  };
+
+  const subjects = {
+    now: () => 'Πρόσκληση από Aegean Blue Cruises',
+    a: (p) => p === people.owner ? 'Ο λογαριασμός σας στο Kaiki είναι έτοιμος' : 'Σας προσθέσαμε στην ομάδα της Aegean Blue Cruises',
+    b: () => 'Η πρόσκλησή σας στην Aegean Blue Cruises: ένα βήμα μένει',
+    c: (p) => `Καλώς ήρθατε στην Aegean Blue Cruises · ${p.role}`,
+  };
+
+  const btn = (label, full) =>
+    `<table role="presentation" ${full ? 'width="100%"' : ''} cellpadding="0" cellspacing="0" border="0"><tr><td align="center" style="background:${B};border-radius:8px;"><a href="#" style="display:${full ? 'block' : 'inline-block'};padding:14px 24px;${F}font-size:16px;font-weight:bold;color:#ffffff;text-decoration:none;text-align:center;">${label}</a></td></tr></table>`;
+  const link = (label) => `<a href="#" style="color:${B};text-decoration:none;font-weight:bold;">${label}</a>`;
+  const doc = (inner) => `<!doctype html><html lang="el"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body style="margin:0;padding:0;background:#F2F5F7;">${inner}</body></html>`;
+  const smallUrl = `<p style="margin:0;${F}font-size:12px;line-height:1.5;color:${muted};word-break:break-all;">${URL_LONG}</p>`;
+
+  const mails = {
+    // The current template, faithfully: square corners, 560px card, border-bottom accent.
+    now: (p) => doc(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f5f7;"><tr><td align="center" style="padding:24px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border:1px solid #dbe3e9;">
+        <tr><td style="padding:20px 24px;border-bottom:3px solid ${B};${F}font-size:16px;font-weight:bold;color:#14202b;">Aegean Blue Cruises</td></tr>
+        <tr><td style="padding:24px;${F}font-size:15px;line-height:1.55;color:#14202b;">
+          <p style="margin:0 0 14px;font-size:19px;font-weight:bold;">Έχετε πρόσβαση στο Aegean Blue Cruises</p>
+          <p style="margin:0 0 18px;">${p.name}, ο/η ${p.inviter} σας έδωσε πρόσβαση στον πίνακα διαχείρισης του Aegean Blue Cruises. Ορίστε τον κωδικό σας για να ξεκινήσετε.</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 18px;"><tr><td style="background:${B};"><a href="#" style="display:inline-block;padding:12px 20px;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;${F}">Ορισμός κωδικού</a></td></tr></table>
+          <p style="margin:0 0 18px;font-size:13px;color:#5a6b7a;word-break:break-all;">${URL_LONG}</p>
+          <p style="margin:0;font-size:13px;color:#5a6b7a;">Ο σύνδεσμος ισχύει για περιορισμένο χρόνο. Αν λήξει, ζητήστε νέα πρόσκληση.</p>
+        </td></tr>
+      </table></td></tr></table>`),
+
+    // Α · Γράμμα: no card, no band. A short letter, signed by the inviter.
+    a: (p) => doc(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F2F5F7;"><tr><td align="center" style="padding:28px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;background:#ffffff;border-radius:10px;">
+        <tr><td style="padding:32px 32px 8px;${F}font-size:14px;font-weight:bold;color:${B};">Aegean Blue Cruises</td></tr>
+        <tr><td style="padding:8px 32px 30px;${F}font-size:16px;line-height:1.65;color:${ink};">
+          <p style="margin:0 0 18px;font-size:24px;line-height:1.25;font-weight:bold;color:${ink};">${p === people.owner ? 'Ο λογαριασμός σας είναι έτοιμος' : 'Καλώς ήρθατε στην ομάδα'}</p>
+          <p style="margin:0 0 14px;">Γεια σας,</p>
+          <p style="margin:0 0 14px;">${p.lead}</p>
+          <p style="margin:0 0 26px;">Μένει μόνο να ορίσετε τον κωδικό σας. Κανείς άλλος δεν τον ξέρει, ούτε εμείς.</p>
+          ${btn('Ορισμός κωδικού')}
+          <p style="margin:26px 0 2px;">${p === people.owner ? 'Καλή αρχή,' : 'Τα λέμε στο σκάφος,'}</p>
+          <p style="margin:0;font-weight:bold;">${p.inviter}</p>
+          <p style="margin:0;font-size:14px;color:${muted};">${p.inviterNote}</p>
+        </td></tr>
+        <tr><td style="padding:18px 32px 26px;border-top:1px solid ${line};${F}font-size:13px;line-height:1.55;color:${muted};">
+          <p style="margin:0 0 8px;">Ο σύνδεσμος ισχύει 7 ημέρες και μόνο μία φορά. Αν λήξει, ζητήστε νέα πρόσκληση απαντώντας σε αυτό το email.</p>
+          <p style="margin:0 0 8px;"><b style="color:${ink};">Δεν το περιμένατε;</b> Αγνοήστε το. Χωρίς κωδικό ο λογαριασμός δεν ανοίγει.</p>
+          ${smallUrl}
+        </td></tr>
+      </table></td></tr></table>`),
+
+    // Β · Τρία βήματα: full-width band in the operator colour, numbered steps.
+    b: (p) => {
+      const n = (i) => `<td width="40" valign="top" style="padding:0 14px 0 0;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" valign="middle" width="30" height="30" style="width:30px;height:30px;border-radius:15px;background:${B_SOFT};${F}font-size:14px;font-weight:bold;color:${B};">${i}</td></tr></table></td>`;
+      const step = (i, title, body, last) => `<tr>${n(i)}<td valign="top" style="padding:4px 0 ${last ? 0 : 22}px;${F}font-size:15px;line-height:1.55;color:${ink};"><p style="margin:0 0 4px;font-weight:bold;font-size:16px;">${title}</p>${body}</td></tr>`;
+      return doc(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F2F5F7;"><tr><td align="center" style="padding:24px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border:1px solid #DBE3E9;border-radius:10px;overflow:hidden;">
+        <tr><td style="background:${B};padding:26px 28px 24px;${F}color:#ffffff;">
+          <p style="margin:0 0 14px;font-size:15px;font-weight:bold;color:#ffffff;">Aegean Blue Cruises</p>
+          <p style="margin:0 0 6px;font-size:14px;color:${B_TINT};">Πρόσκληση στην ομάδα · ${p.role}</p>
+          <p style="margin:0;font-size:24px;line-height:1.25;font-weight:bold;color:#ffffff;">${p.name}, ένα βήμα μένει</p>
+        </td></tr>
+        <tr><td style="padding:24px 28px 8px;${F}font-size:15px;line-height:1.55;color:${ink};">
+          <p style="margin:0 0 22px;color:${ink};">${p === people.owner ? 'Η ομάδα του Kaiki άνοιξε τον λογαριασμό της εταιρείας σας.' : `Πρόσκληση από ${p.inviter}. Να τι γίνεται από εδώ:`}</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            ${step(1, 'Ορίστε τον κωδικό σας', `<p style="margin:0 0 12px;color:${muted};">Τον επιλέγετε εσείς. Ισχύει 7 ημέρες.</p>${btn('Ορισμός κωδικού')}`)}
+            ${step(2, 'Μπαίνετε με αυτό το email', `<p style="margin:0;color:${muted};">${p.email}<br>στο ${link('aegeanblue.kaiki.gr/app')}</p>`)}
+            ${step(3, p === people.owner ? 'Ο οδηγός σας περιμένει' : 'Τι βλέπετε πρώτα', `<p style="margin:0;color:${muted};">${p.first_screen}</p>`, true)}
+          </table>
+        </td></tr>
+        <tr><td style="padding:22px 28px 24px;${F}">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F6F8FA;border-radius:8px;"><tr><td style="padding:14px 16px;${F}font-size:13px;line-height:1.55;color:${muted};">
+            <p style="margin:0 0 6px;">Ερωτήσεις; Απαντήστε σε αυτό το email, φτάνει στο ${p.inviterEmail}.</p>
+            <p style="margin:0 0 6px;">Δεν το περιμένατε; Αγνοήστε το.</p>
+            ${smallUrl}
+          </td></tr></table>
+        </td></tr>
+      </table></td></tr></table>`);
+    },
+
+    // Γ · Ο ρόλος σας: welcome, a two-column fact table, the role with can / cannot.
+    c: (p) => {
+      const fact = (k, v, first) => `<tr><td valign="top" style="padding:10px 12px 10px 0;${first ? '' : `border-top:1px solid ${line};`}${F}font-size:14px;color:${muted};width:38%;">${k}</td><td valign="top" style="padding:10px 0;${first ? '' : `border-top:1px solid ${line};`}${F}font-size:15px;color:${ink};font-weight:bold;">${v}</td></tr>`;
+      const tick = (t) => `<tr><td valign="top" width="26" style="padding:4px 0;${F}font-size:15px;font-weight:bold;color:#0E7C5A;">✓</td><td valign="top" style="padding:4px 0;${F}font-size:15px;line-height:1.5;color:${ink};">${t}</td></tr>`;
+      return doc(`<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F2F5F7;"><tr><td align="center" style="padding:24px 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border:1px solid #DBE3E9;border-top:4px solid ${B};border-radius:10px;">
+        <tr><td style="padding:24px 28px 6px;${F}font-size:14px;font-weight:bold;color:${muted};">Aegean Blue Cruises</td></tr>
+        <tr><td style="padding:6px 28px 4px;${F}font-size:15px;line-height:1.55;color:${ink};">
+          <p style="margin:0 0 8px;font-size:24px;line-height:1.25;font-weight:bold;">Καλώς ήρθατε στην ομάδα</p>
+          <p style="margin:0 0 18px;color:${muted};">${p === people.owner ? 'Ο λογαριασμός της εταιρείας σας είναι έτοιμος.' : 'Έχετε πλέον λογαριασμό στον πίνακα της εταιρείας.'}</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 22px;">
+            ${fact('Όνομα', p.name, true)}
+            ${fact('Εταιρεία', 'Aegean Blue Cruises')}
+            ${fact('Email σύνδεσης', `<span style="word-break:break-all;">${p.email}</span>`)}
+            ${fact('Σας πρόσθεσε', p.inviter)}
+          </table>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F4F7FB;border:1px solid #DCE5EF;border-radius:10px;margin:0 0 24px;"><tr><td style="padding:18px 20px;${F}">
+            <p style="margin:0 0 2px;font-size:13px;color:${muted};">Ο ρόλος σας</p>
+            <p style="margin:0 0 12px;font-size:20px;font-weight:bold;color:${B};">${p.role}</p>
+            <p style="margin:0 0 8px;font-size:14px;color:${muted};">${p === people.owner ? 'Μπορείτε να κάνετε τα πάντα, όπως:' : 'Μπορείτε:'}</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${p.can.map(tick).join('')}</table>
+            ${p.cannot ? `<p style="margin:12px 0 0;padding-top:12px;border-top:1px solid #DCE5EF;font-size:14px;line-height:1.5;color:${muted};">${p.cannot}</p>` : ''}
+          </td></tr></table>
+          ${btn('Ορισμός κωδικού και σύνδεση', true)}
+          <p style="margin:12px 0 22px;font-size:13px;color:${muted};text-align:center;">Ο σύνδεσμος ισχύει 7 ημέρες.</p>
+        </td></tr>
+        <tr><td style="padding:16px 28px 22px;border-top:1px solid ${line};${F}font-size:13px;line-height:1.55;color:${muted};">
+          <p style="margin:0 0 8px;">Κάτι δεν ταιριάζει; Απαντήστε σε αυτό το email ή γράψτε στο ${link(p.inviterEmail)}.</p>
+          ${smallUrl}
+        </td></tr>
+      </table></td></tr></table>`);
+    },
+  };
+
+  let who = people.manager;
+  const frames = [...document.querySelectorAll('iframe[data-mail]')];
+
+  function fit(frame) {
+    const w = Number(frame.dataset.w);
+    const box = frame.parentElement;
+    const scale = Math.min(1, box.clientWidth / w);
+    frame.style.width = w + 'px';
+    const d = frame.contentDocument;
+    const h = d && d.body ? d.body.scrollHeight : 900;
+    frame.style.height = h + 'px';
+    frame.style.transform = `scale(${scale})`;
+    box.style.height = Math.ceil(h * scale) + 'px';
+  }
+
+  function render() {
+    document.querySelectorAll('[data-from]').forEach((el) => {
+      el.textContent = 'Aegean Blue Cruises';
+    });
+    document.querySelectorAll('[data-subject]').forEach((el) => {
+      el.textContent = subjects[el.dataset.subject](who) + ' · απάντηση: ' + who.inviterEmail;
+    });
+    frames.forEach((f) => { f.srcdoc = mails[f.dataset.mail](who); });
+  }
+
+  frames.forEach((f) => f.addEventListener('load', () => fit(f)));
+  document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => {
+    who = people[b.dataset.role];
+    document.querySelectorAll('.seg button').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    render();
+  }));
+  window.addEventListener('resize', () => frames.forEach(fit));
+  render();
+})();
+</script>
+</body>
+</html>

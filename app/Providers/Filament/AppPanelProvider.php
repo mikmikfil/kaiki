@@ -8,6 +8,7 @@ use App\Domain\Hosted\Support\HostedAsset;
 use App\Filament\App\Auth\EditProfile;
 use App\Filament\App\Auth\Login;
 use App\Filament\App\Auth\RequestPasswordReset;
+use App\Filament\App\Auth\ResetPassword;
 use App\Filament\App\Pages\CheckIn;
 use App\Filament\App\Pages\Settings;
 use App\Filament\Avatars\InitialsAvatarProvider;
@@ -247,7 +248,7 @@ class AppPanelProvider extends PanelProvider
              * The request page is ours (2026-09-23) so it arrives with the
              * email the sign-in form already had. See {@see RequestPasswordReset}.
              */
-            ->passwordReset(RequestPasswordReset::class)
+            ->passwordReset(RequestPasswordReset::class, ResetPassword::class)
             // «Το προφίλ μου» in the user menu (product owner, 2026-09-17): every
             // person can set their own name, an optional «Προσφώνηση» the home
             // page greets them by, and their own password. Not a simple page, so

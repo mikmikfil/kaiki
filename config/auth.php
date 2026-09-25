@@ -101,6 +101,24 @@ return [
             'expire' => 60,
             'throttle' => 60,
         ],
+
+        /*
+         * An invitation's link: seven days, not sixty minutes (25/9). The
+         * «forgot password» link is asked for by the person about to use it;
+         * an invitation is read that evening, or on Monday, and a link that
+         * died after an hour was an invitation nobody could accept.
+         *
+         * The same table, so a new invitation or a reset request replaces
+         * the one before. Only a link we signed with `invite=1` is checked
+         * against this broker ({@see \App\Filament\App\Auth\ResetPassword}),
+         * so a reset token never gets the longer life.
+         */
+        'invitations' => [
+            'provider' => 'users',
+            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            'expire' => 7 * 24 * 60,
+            'throttle' => 0,
+        ],
     ],
 
     /*

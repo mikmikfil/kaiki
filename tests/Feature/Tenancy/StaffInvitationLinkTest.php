@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 use App\Domain\Tenancy\Actions\InviteStaffMember;
 use App\Enums\Role;
+use App\Filament\App\Auth\ResetPassword;
 use App\Mail\StaffInvitationMail;
 use App\Models\User;
 use App\Support\Tenancy;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
 use function Pest\Laravel\get;
@@ -122,3 +124,71 @@ it('lets the invited colleague sign in once they have set a password', function 
             ->and($invited->tenant_id)->toBe($owner->tenant->getKey());
     });
 });
+
+/**
+ * Set a password through the reset page, as the link would, a few days on.
+ *
+ * @return bool whether the password took
+ */
+function setPasswordFromLink(string $url, string $email, bool $withInviteFlag): bool
+{
+    parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
+    Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('app'));
+
+    Livewire\Livewire::withQueryParams($withInviteFlag ? ['invite' => 1] : [])
+        ->test(ResetPassword::class, ['email' => $email, 'token' => $query['token']])
+        ->set('password', 'a-long-new-password-1')
+        ->set('passwordConfirmation', 'a-long-new-password-1')
+        ->call('resetPassword');
+
+    $user = User::query()->withoutGlobalScopes()->where('email', $email)->firstOrFail();
+
+    return Hash::check('a-long-new-password-1', $user->password);
+}
+
+it('still opens three days later: an invitation lives seven days, not an hour', function (): void {
+    // 25/9: the invitation used the reset broker, whose token dies after sixty
+    // minutes — an invitation opened that evening was already dead.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $url = Tenancy::forTenant($owner->tenant, fn (): string => invitationLinkFor(
+        fn () => app(InviteStaffMember::class)(
+            name: 'Αργός Αναγνώστης',
+            email: 'monday@example.test',
+            roles: [Role::Crew],
+            invitedBy: $owner,
+        ),
+    ));
+
+    expect($url)->toContain('invite=1');
+
+    $this->travel(3)->days();
+
+    expect(setPasswordFromLink($url, 'monday@example.test', withInviteFlag: true))->toBeTrue();
+});
+
+it('gives a reset token no longer life than an hour, whatever the page is told', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $url = Tenancy::forTenant($owner->tenant, fn (): string => invitationLinkFor(
+        fn () => app(InviteStaffMember::class)(
+            name: 'Χωρίς Σημαία',
+            email: 'noflag@example.test',
+            roles: [Role::Crew],
+            invitedBy: $owner,
+        ),
+    ));
+
+    $this->travel(3)->days();
+
+    // Without the signed flag the page checks the reset broker, and its hour
+    // is long gone.
+    expect(setPasswordFromLink($url, 'noflag@example.test', withInviteFlag: false))->toBeFalse();
+
+    // And the flag cannot be added to a link by hand: it is inside the
+    // signature, so the edited address is refused before the page renders.
+    $withoutFlag = str_replace(['&invite=1', 'invite=1&'], '', $url);
+
+    get($withoutFlag)->assertForbidden();
+})->group('fast');

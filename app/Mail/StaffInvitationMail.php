@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Mail;
 
 use App\Domain\Branding\Actions\GetBrandPayload;
+use App\Domain\Tenancy\Actions\InviteStaffMember;
+use App\Enums\Role;
 use App\Mail\Support\OperatorSender;
 use App\Models\Tenant;
 use App\Models\User;
@@ -86,12 +88,24 @@ class StaffInvitationMail extends Mailable
             ? app(GetBrandPayload::class)($tenant, $this->invitee->locale ?? (string) config('app.locale'))
             : [];
 
+        // One role per person (decisions of 18/9); `highest` is what the panel
+        // grants if an old account still carries two.
+        $role = Role::highest($this->invitee->roles());
+
         $data = [
             'invitee' => $this->invitee,
             'invitedBy' => $this->invitedBy,
             'resetUrl' => $this->resetUrl,
             'operator' => $this->operatorName(),
             'accent' => $brand['colors']['primary'] ?? '#123A5E',
+            'role' => $role,
+            // A new operator's owner is invited from /admin, by nobody in their
+            // company: «Σας πρόσθεσε» names the platform, not a person.
+            'addedBy' => $this->invitedBy->isSuperAdmin()
+                ? __('staff.invitation.platform_team', ['app' => config('app.name')])
+                : $this->invitedBy->name,
+            'askEmail' => filter_var($this->invitedBy->email, FILTER_VALIDATE_EMAIL) !== false ? $this->invitedBy->email : null,
+            'days' => InviteStaffMember::validDays(),
         ];
 
         // Both bodies, always — NTF-6. Set here rather than left to a template
