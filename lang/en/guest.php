@@ -110,6 +110,7 @@ return [
             'document_expires_on' => 'passport expiry date',
         ],
         'errors' => [
+            'passenger_missing' => 'Passenger :n: fill in their details.',
             'document_type' => 'Passenger :n: choose a passport or an ID card.',
             'document_number' => 'Passenger :n: enter the document number.',
             'expiry_required' => 'Passenger :n: enter the passport expiry date.',
@@ -255,6 +256,9 @@ return [
         'expired' => 'This quote has expired.',
         'replaced' => 'This quote was replaced by a newer one. Please use the most recent link the operator sent you.',
         'accepted' => 'You accepted this quote. The operator will be in touch.',
+        'accepted_pay' => 'You accepted this quote. Pay by :date to confirm the booking.',
+        'pay' => 'Pay',
+        'trip_started' => 'This trip has already started. The quote is no longer valid.',
         'declined' => 'You turned this quote down. Thank you for letting the operator know.',
         'unavailable' => 'That date is no longer available. A quote does not reserve the boat, and it has since been booked. Contact the operator and they will find you another date.',
         'request_new' => 'Ask for a new quote',

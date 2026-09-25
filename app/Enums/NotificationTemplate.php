@@ -86,6 +86,13 @@ enum NotificationTemplate: string
      */
     case PaymentUnfinished = 'payment_unfinished';
 
+    /*
+     * «Η πληρωμή σας επιστρέφεται» (2026-09-25): a payment that arrived when
+     * the booking could no longer take it, going back on its own, with the
+     * reason. See SendLatePaymentRefund.
+     */
+    case PaymentRefunded = 'payment_refunded';
+
     /**
      * Is this one of BKG-16's reminders, rather than something that fires on an
      * event?
@@ -119,6 +126,7 @@ enum NotificationTemplate: string
             && $this !== self::BookingCancelled
             && $this !== self::BookingChanged
             && $this !== self::WeatherChoiceApplied
+            && $this !== self::PaymentRefunded
             // Follows the trip rather than warning about it: nothing to be late for.
             && $this !== self::ReviewRequest;
     }

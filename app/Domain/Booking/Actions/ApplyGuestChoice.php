@@ -10,6 +10,7 @@ use App\Enums\RefundMethod;
 use App\Enums\WeatherChoice;
 use App\Events\WeatherChoiceApplied;
 use App\Models\Booking;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -75,6 +76,10 @@ final class ApplyGuestChoice
             ->where('id', $booking->getKey())
             // **The idempotency guarantee.** See the class docblock.
             ->whereNull('weather_choice')
+            // The guest's own answer counts only until the deadline; after it
+            // the operator's default is the answer, whether or not the hourly
+            // sweep has got there yet (the sweep passes `automatic`).
+            ->when(! $automatic, static fn (Builder $query) => $query->where('weather_choice_due_at', '>', now()))
             ->update([
                 'weather_choice' => $choice->value,
                 'weather_choice_at' => now(),

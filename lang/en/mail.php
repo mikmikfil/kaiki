@@ -245,4 +245,14 @@ return [
         'note' => 'Your seats are not held. We will check availability again when you press the button. You will not get another reminder for this booking.',
     ],
 
+    'payment_refunded' => [
+        'subject' => 'Your payment is being refunded — :reference',
+        'heading' => 'Your payment is being refunded',
+        'body' => 'We received a payment for booking :reference that cannot be used. We are refunding it to the payment method you used.',
+        'reason_label' => 'Reason',
+        'reason_cancelled' => 'The booking had already been cancelled.',
+        'reason_expired' => 'The time to pay ran out and the seats were no longer available.',
+        'reason_overpaid' => 'You paid more than the booking total.',
+    ],
+
 ];

@@ -83,7 +83,11 @@ final class BuildQuote
                 'total_cents' => 0,
                 'deposit_cents' => 0,
                 'vat_rate_bp' => $booking->vat_rate_bp,
-                'valid_until' => now()->addDays(self::defaultValidityDays()),
+                // Never past the trip's start (2026-09-25): an offer still
+                // open after the boat has left is one a guest could pay for.
+                'valid_until' => now()->addDays(self::defaultValidityDays())->lessThan($booking->starts_at_utc)
+                    ? now()->addDays(self::defaultValidityDays())
+                    : $booking->starts_at_utc->copy(),
                 'created_by_user_id' => $byUserId,
             ])->save();
 

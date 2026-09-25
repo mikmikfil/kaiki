@@ -335,11 +335,15 @@ final class CheckoutController extends GuestPageController
                     ->route('guest.checkout', ['token' => $token])
                     ->withInput()
                     ->withErrors(['discount_code' => $refused->getMessage()]);
-            } catch (CheckoutRefused|IllegalStateTransition) {
+            } catch (CheckoutRefused|IllegalStateTransition $refused) {
+                // Too late is said as such (2026-09-25); everything else is the
+                // general sentence.
                 return redirect()
                     ->route('guest.checkout', ['token' => $token])
                     ->withInput()
-                    ->withErrors(['checkout' => __('guest.checkout.refused')]);
+                    ->withErrors(['checkout' => $refused instanceof CheckoutRefused && $refused->errorCode === 'lead_time_too_short'
+                        ? $refused->getMessage()
+                        : __('guest.checkout.refused')]);
             } catch (HoldRefused $refused) {
                 // A charter whose hold lapsed on this page while somebody else
                 // took the boat (2026-09-25). Its own sentence, and no charge.

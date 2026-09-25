@@ -9,6 +9,7 @@ use App\Domain\Availability\Actions\CheckVesselAvailability;
 use App\Domain\Availability\LocalDateTimeResolver;
 use App\Domain\Pricing\Support\RatePlanResolver;
 use App\Enums\AvailabilityRejection;
+use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Product;
 use App\Models\RatePlan;
@@ -114,5 +115,34 @@ final class BookingCutoff
         ['plans' => $plans, 'seasons' => $seasons] = RatePlanResolver::load($product);
 
         return self::checkAgainst($plans, $seasons, $startsAtUtc, $localDate, $timezone);
+    }
+
+    /**
+     * Is it too late to pay for this booking (2026-09-25)?
+     *
+     * The lead time only (AVL-19): the advance window was asked when the draft
+     * was made, and only shrinks from there. `$leadTime: false` asks only
+     * whether the trip has started — for a booking the operator priced (an
+     * accepted quote, BKG-32's override) or one already at the gateway.
+     */
+    public static function forBooking(Booking $booking, bool $leadTime = true): ?AvailabilityRejection
+    {
+        if (! $booking->starts_at_utc->isFuture()) {
+            return AvailabilityRejection::LeadTimeTooShort;
+        }
+
+        $product = $leadTime ? Product::query()->find($booking->product_id) : null;
+
+        if (! $product instanceof Product) {
+            return null;
+        }
+
+        ['plans' => $plans, 'seasons' => $seasons] = RatePlanResolver::load($product);
+        $date = Carbon::parse($booking->local_date->toDateString());
+        $plan = RatePlanResolver::resolve($plans, $seasons, $date)->plan;
+
+        return self::check($plan, $booking->starts_at_utc, $date, LocalDateTimeResolver::timezone()) === AvailabilityRejection::LeadTimeTooShort
+            ? AvailabilityRejection::LeadTimeTooShort
+            : null;
     }
 }

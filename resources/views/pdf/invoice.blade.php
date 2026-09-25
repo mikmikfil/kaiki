@@ -144,7 +144,8 @@
     </tr>
     <tr>
         <td class="label">Ημερομηνία έκδοσης</td>
-        <td>{{ $invoice->issued_at?->format('d/m/Y H:i') ?? '—' }}</td>
+        {{-- On the operator's clock: 00:30 on 1 January is not 31 December. --}}
+        <td>{{ $invoice->issued_at?->copy()->setTimezone(\App\Domain\Availability\LocalDateTimeResolver::timezone($tenant))->format('d/m/Y H:i') ?? '—' }}</td>
     </tr>
 </table>
 

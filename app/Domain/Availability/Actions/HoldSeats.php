@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Domain\Availability\Actions;
 
 use App\Domain\Availability\Support\HoldLock;
+use App\Domain\Availability\Support\OccupationCollector;
 use App\Domain\Availability\Support\PartyGuard;
+use App\Domain\Availability\Support\Window;
 use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
 use App\Exceptions\HoldLockUnavailable;
 use App\Exceptions\HoldRefused;
 use App\Models\Booking;
 use App\Models\Departure;
+use App\Models\Vessel;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -85,8 +88,26 @@ final class HoldSeats
 
         return HoldLock::run(HoldLock::forDeparture($departure->getKey()), function () use ($booking, $departure, $seats, $allowOvercapacity): Booking {
             return DB::transaction(function () use ($booking, $departure, $seats, $allowOvercapacity): Booking {
+                // AVL-45's order: the vessel before the departure. The same row
+                // a charter's draft, checkout and confirmation take before they
+                // ask whether the boat is free, so a charter and a sailing on
+                // one boat cannot both find it free at once (2026-09-25).
+                $vessel = $departure->vessel_id === null
+                    ? null
+                    : Vessel::query()->lockForUpdate()->find($departure->vessel_id);
+
                 /** @var Departure $locked */
                 $locked = Departure::query()->lockForUpdate()->findOrFail($departure->getKey());
+
+                // A sailing on a boat that is chartered, held by a charter at
+                // the checkout, or blocked (maintenance, a quote's hold) is not
+                // on sale, whatever its seat count says. Asked through the
+                // same collector the calendar asks (AVL-22.1), with the sailing
+                // itself left out (AVL-9). No override reaches it: BKG-32 lifts
+                // the trip's seat count, not somebody else's boat.
+                if ($vessel instanceof Vessel && ! self::vesselIsFreeFor($vessel, $locked)) {
+                    throw HoldRefused::departureUnavailable();
+                }
 
                 $liveHeld = $this->liveHeldSeats($locked, exceptBooking: $booking->getKey());
                 $free = $locked->capacity - $locked->seats_sold - $liveHeld;
@@ -128,6 +149,18 @@ final class HoldSeats
                 return $booking;
             });
         });
+    }
+
+    /**
+     * Is the sailing's boat free of everything but the sailing itself
+     * (2026-09-25)? Public so `StartCheckout` asks the per-seat side of the
+     * question with the same words, under the locks it already holds.
+     */
+    public static function vesselIsFreeFor(Vessel $vessel, Departure $departure): bool
+    {
+        $window = Window::of($departure->starts_at_utc, $departure->ends_at_utc);
+
+        return OccupationCollector::forRange($vessel, $window)->isFree($window, $departure);
     }
 
     /**

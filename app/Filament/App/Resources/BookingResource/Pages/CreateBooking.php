@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources\BookingResource\Pages;
 
 use App\Domain\Booking\Actions\CreateManualBooking;
+use App\Exceptions\CapacityExceeded;
 use App\Exceptions\HoldRefused;
 use App\Exceptions\PartyRefused;
 use App\Filament\App\Resources\BookingResource;
@@ -48,10 +49,12 @@ class CreateBooking extends CreateRecord
     {
         try {
             return BookingResource::createFromForm($data);
-        } catch (HoldRefused|PartyRefused $refused) {
+        } catch (CapacityExceeded|HoldRefused|PartyRefused $refused) {
             // PartyRefused (2026-09-25): too few or too many for the trip, or
             // a charter party past the boat's certificate. The override lifts
-            // the trip's maximum, never the certificate.
+            // the trip's maximum, never the certificate. CapacityExceeded: the
+            // seats went between the hold and the confirmation — a sentence,
+            // not an error page.
             Notification::make()
                 ->danger()
                 ->title($refused->getMessage())

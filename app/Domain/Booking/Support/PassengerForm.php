@@ -131,6 +131,17 @@ final class PassengerForm
     {
         $byPosition = collect(self::rows($booking, app()->getLocale()))->keyBy('position');
         $tripDate = Carbon::parse($booking->local_date->toDateString());
+        $submitted = collect((array) ($validator->getData()['guests'] ?? []))
+            ->map(static fn (mixed $input): int => is_array($input) ? (int) ($input['position'] ?? 0) : 0);
+
+        // Every person on the booking, not only the rows that were posted
+        // (2026-09-25). The page renders them all; a request with rows left out
+        // would otherwise pay with blanks on the Λιμεναρχείο's list.
+        foreach ($byPosition->keys() as $position) {
+            if (! $submitted->contains((int) $position)) {
+                $validator->errors()->add("guests.missing.$position", __('guest.checkout.errors.passenger_missing', ['n' => $position]));
+            }
+        }
 
         foreach ((array) ($validator->getData()['guests'] ?? []) as $i => $input) {
             if (! is_array($input)) {

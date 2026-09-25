@@ -116,6 +116,7 @@ return [
         'no_email' => 'No customer email.',
         'no_total' => 'No amount found; the booking is imported at zero.',
         'over_certificate' => 'Imported, but :aboard people are now booked on a boat licensed for :max (infants included). Move some to another sailing before it leaves.',
+        'over_capacity' => 'Imported, but the sailing now has :sold seats booked out of :capacity. It sells no more.',
     ],
 
     'reasons' => [

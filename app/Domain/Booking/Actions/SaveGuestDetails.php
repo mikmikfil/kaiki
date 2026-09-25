@@ -131,16 +131,18 @@ final class SaveGuestDetails
      * `pending` or `complete`, asked of the stored rows (TOK-8).
      *
      * Never `not_required` from here: that is a property of the **product**
-     * (`guest_details_required`), decided at confirmation, and a guest filling
-     * in half a form must not be able to turn the requirement off.
+     * (`guest_details_required`), and a guest filling in half a form must not
+     * be able to turn the requirement off. Read from the product, not from a
+     * stored `not_required` (2026-09-25): every booking used to be written
+     * that way, and trusting it meant no manifest was ever chased.
      */
     public function syncStatus(Booking $booking): GuestDetailsStatus
     {
-        if ($booking->guest_details_status === GuestDetailsStatus::NotRequired) {
+        $needsDocuments = self::documentsRequiredFor($booking);
+
+        if ($booking->guest_details_status === GuestDetailsStatus::NotRequired && ! $needsDocuments) {
             return GuestDetailsStatus::NotRequired;
         }
-
-        $needsDocuments = self::documentsRequiredFor($booking);
 
         $incomplete = BookingGuest::query()
             ->where('booking_id', $booking->getKey())

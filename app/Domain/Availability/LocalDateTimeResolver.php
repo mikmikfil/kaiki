@@ -7,6 +7,7 @@ namespace App\Domain\Availability;
 use App\Data\Availability\LocalInstantData;
 use App\Models\Tenant;
 use App\Support\Tenancy;
+use Carbon\CarbonInterface;
 use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Support\Carbon;
@@ -111,6 +112,18 @@ final class LocalDateTimeResolver
     public static function localTime(Carbon $instantUtc, string $timezone): string
     {
         return $instantUtc->copy()->setTimezone($timezone)->format('H:i:s');
+    }
+
+    /**
+     * A stored UTC instant on the tenant's clock, for display only (CNV-2).
+     *
+     * Every page, email and export that prints a `*_at` goes through here: a
+     * balance due at 01:30 Athens is 22:30 the day before in UTC, and printed
+     * raw it names the wrong day.
+     */
+    public static function inTenantZone(?CarbonInterface $instant, ?Tenant $tenant = null): ?Carbon
+    {
+        return $instant === null ? null : Carbon::instance($instant)->copy()->setTimezone(self::timezone($tenant));
     }
 
     /**

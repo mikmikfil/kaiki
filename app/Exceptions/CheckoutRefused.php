@@ -76,4 +76,14 @@ final class CheckoutRefused extends RuntimeException
     {
         return new self((string) trans('api.errors.lead_guest_required'), 'lead_guest_required');
     }
+
+    /**
+     * The trip has started, or is inside its lead time (AVL-19, 2026-09-25).
+     * Asked again at the line money crosses: an old link, a resumed checkout
+     * or an accepted quote can reach it long after the draft was made.
+     */
+    public static function tooLate(): self
+    {
+        return new self((string) trans('api.errors.lead_time_too_short'), 'lead_time_too_short');
+    }
 }

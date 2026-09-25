@@ -790,6 +790,7 @@ return [
         'quote_sent' => ['label' => 'Quote sent'],
         'review_request' => ['label' => 'Google review request'],
         'payment_unfinished' => ['label' => 'Payment not completed'],
+        'payment_refunded' => ['label' => 'Late payment refunded'],
     ],
 
     'webhook_event' => [

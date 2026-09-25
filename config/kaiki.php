@@ -717,6 +717,15 @@ return [
         'checkout_expiry_minutes' => (int) env('KAIKI_CHECKOUT_EXPIRY_MINUTES', 60),
 
         /*
+         * How long an accepted quote stays payable online, in days after
+         * acceptance (2026-09-25). The quote's own `valid_until` wins when it
+         * is later, and the trip's start always caps both. Not the sixty
+         * minutes above: an accepted quote is a sale waiting for the guest's
+         * money, not a checkout somebody walked away from.
+         */
+        'accepted_quote_payment_days' => (int) env('KAIKI_ACCEPTED_QUOTE_PAYMENT_DAYS', 3),
+
+        /*
          * The weather-cancellation choice deadline, in days (CXL-7).
          *
          * Fourteen, and the requirement is marked RESOLVED with its own

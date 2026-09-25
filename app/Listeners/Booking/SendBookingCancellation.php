@@ -57,7 +57,9 @@ class SendBookingCancellation implements ShouldQueue
         Tenancy::forTenant($tenant, function () use ($event): void {
             $booking = Booking::query()->find($event->bookingId);
 
-            if (! $booking instanceof Booking || trim((string) $booking->guest_email) === '') {
+            // Only a booking the guest was told they had: a draft, a quote
+            // request or an unpaid checkout was never "your booking".
+            if (! $booking instanceof Booking || trim((string) $booking->guest_email) === '' || ! $booking->wasBooked()) {
                 return;
             }
 

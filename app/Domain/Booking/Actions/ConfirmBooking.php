@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Domain\Booking\Actions;
 
 use App\Domain\Booking\Support\CharterOccupancy;
+use App\Domain\Booking\Support\GuestDetailsTracking;
 use App\Domain\Booking\Support\LockOrder;
 use App\Domain\Booking\Support\SeatCommitment;
+use App\Domain\Booking\Support\TestSeats;
 use App\Domain\Pricing\Actions\ApplyVoucher;
 use App\Enums\BookingStatus;
 use App\Enums\DepartureStatus;
@@ -174,6 +176,11 @@ final class ConfirmBooking
             return ['booking' => $locked, 'guaranteed' => $guaranteed];
         });
 
+        // The passenger list, on a trip that asks for one (BKG-15, 2026-09-25):
+        // its deadline and its `/g/` link, before the confirmation that carries
+        // the link is sent.
+        GuestDetailsTracking::open($result['booking']);
+
         // **After commit, never inside.** AVL-46, and every listener is queued
         // (BKG-13) so a failing one cannot roll the confirmation back (BKG-14).
         BookingConfirmed::dispatch($result['booking']->getKey(), (int) $result['booking']->tenant_id);
@@ -217,8 +224,12 @@ final class ConfirmBooking
         $minPax = (int) ($departure->min_pax ?? 0);
 
         // AVL-48 inside the transaction, because the count it reads is only
-        // true in here. AVL-49: once guaranteed, never reversed.
-        if ($minPax > 0 && $departure->seats_sold >= $minPax && $departure->status === DepartureStatus::Scheduled) {
+        // true in here. AVL-49: once guaranteed, never reversed — so only real
+        // guests count towards it: six sandbox tests must not guarantee a
+        // sailing that then goes out below its minimum (see TestSeats).
+        $testSeats = TestSeats::on($departure, except: $booking) + ($booking->is_test ? $seats : 0);
+
+        if ($minPax > 0 && $departure->seats_sold - $testSeats >= $minPax && $departure->status === DepartureStatus::Scheduled) {
             $departure->forceFill(['status' => DepartureStatus::Guaranteed])->save();
 
             return true;

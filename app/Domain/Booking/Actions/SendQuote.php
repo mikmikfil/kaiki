@@ -28,10 +28,12 @@ use RuntimeException;
  * have a boat that cannot be sold to anybody.
  *
  * So the hold is a deliberate act at the moment of sending, it is a
- * `vessel_blocks` row with reason `manual`, and **its expiry equals the
- * quote's `valid_until`**. Not "roughly", not "the operator can set it": equal,
- * because two dates that are supposed to match and are entered separately are
- * two dates that will not match.
+ * `vessel_blocks` row with reason `manual`, and **it lasts as long as the
+ * quote does**: `ExpireQuotes` deletes it when `valid_until` passes, and
+ * `AcceptQuote` and `DeclineQuote` when the guest answers. What it covers is
+ * the charter's own window (2026-09-25). Until then the block ran from the
+ * charter's start to `valid_until`, which for a charter further out than the
+ * quote's validity ended before it began and held nothing at all.
  *
  * ## Superseding, in the same transaction
  *
@@ -67,13 +69,19 @@ final class SendQuote
 
             $this->supersedeOlderVersions($locked);
 
+            /** @var Booking $booking */
+            $booking = Booking::query()->lockForUpdate()->findOrFail($locked->booking_id);
+
             $locked->forceFill([
                 'status' => QuoteStatus::Sent,
                 'sent_at' => now(),
+                // Never open past the trip's start (2026-09-25), whatever date
+                // the form was given: the guest could otherwise accept, and
+                // pay, after the boat has left.
+                'valid_until' => $locked->valid_until->greaterThan($booking->starts_at_utc)
+                    ? $booking->starts_at_utc->copy()
+                    : $locked->valid_until,
             ])->save();
-
-            /** @var Booking $booking */
-            $booking = Booking::query()->lockForUpdate()->findOrFail($locked->booking_id);
 
             if ($booking->status === BookingStatus::QuoteRequested) {
                 $booking->forceFill(['status' => BookingStatus::QuoteSent])->save();
@@ -116,6 +124,12 @@ final class SendQuote
         if ($quote->valid_until->isPast()) {
             throw new RuntimeException('A quote cannot be sent already expired (§4.4).');
         }
+
+        $startsAt = Booking::query()->find($quote->booking_id)?->starts_at_utc;
+
+        if ($startsAt !== null && ! $startsAt->isFuture()) {
+            throw new RuntimeException('A quote cannot be sent for a trip that has already started.');
+        }
     }
 
     /**
@@ -138,7 +152,8 @@ final class SendQuote
     }
 
     /**
-     * BKG-25's opt-in hold: a `vessel_blocks` row expiring with the quote.
+     * BKG-25's opt-in hold: a `vessel_blocks` row over the charter's window,
+     * removed when the quote expires or is answered.
      *
      * Reason `manual`, because that is what it is — an operator taking a boat
      * off sale on purpose, visible in the vessel calendar beside every other
@@ -160,12 +175,15 @@ final class SendQuote
             ['booking_id' => $booking->getKey()],
             [
                 'vessel_id' => $booking->vessel_id,
+                // The charter's own window, not the quote's life: how long
+                // the hold lasts is the quote's, where it sits is the trip's.
                 'starts_at_utc' => $booking->starts_at_utc,
-                // **Equal to `valid_until`**, not merely near it. See the class
-                // docblock: this is the whole of BKG-25's resolution.
-                'ends_at_utc' => $quote->valid_until,
+                'ends_at_utc' => $booking->ends_at_utc,
                 'local_date' => $booking->local_date,
-                'local_end_date' => $quote->valid_until->toDateString(),
+                // The local date of the end, in the operator's zone.
+                'local_end_date' => $booking->ends_at_utc->copy()
+                    ->setTimezone($booking->tenant->timezone ?? (string) config('kaiki.defaults.timezone'))
+                    ->toDateString(),
                 'is_all_day' => false,
                 'reason' => BlockReason::Manual,
                 'title' => Str::limit('Quote ' . $booking->reference, 120),

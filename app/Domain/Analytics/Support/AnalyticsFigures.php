@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Analytics\Support;
 
+use App\Domain\Booking\Support\TestSeats;
 use App\Domain\Operations\Support\DashboardFigures;
 use App\Enums\BookingSource;
 use App\Enums\BookingStatus;
@@ -264,7 +265,7 @@ final class AnalyticsFigures
     public function occupancy(LocalRange $range): array
     {
         $row = $this->sailings($range)
-            ->selectRaw('COUNT(*) as departures, COALESCE(SUM(capacity), 0) as capacity, COALESCE(SUM(seats_sold), 0) as sold')
+            ->selectRaw('COUNT(*) as departures, COALESCE(SUM(capacity), 0) as capacity, COALESCE(SUM(' . TestSeats::realSoldSql() . '), 0) as sold')
             ->first();
 
         $capacity = (int) ($row->capacity ?? 0);
@@ -292,7 +293,7 @@ final class AnalyticsFigures
     public function occupancyByMonth(LocalRange $range): array
     {
         $rows = $this->sailings($range)
-            ->selectRaw('substr(local_date, 1, 7) as month, COALESCE(SUM(capacity), 0) as capacity, COALESCE(SUM(seats_sold), 0) as sold')
+            ->selectRaw('substr(local_date, 1, 7) as month, COALESCE(SUM(capacity), 0) as capacity, COALESCE(SUM(' . TestSeats::realSoldSql() . '), 0) as sold')
             ->groupBy('month')
             ->orderBy('month')
             ->get();
@@ -322,7 +323,7 @@ final class AnalyticsFigures
     public function occupancyByProduct(LocalRange $range): array
     {
         $rows = $this->sailings($range)
-            ->selectRaw('product_id, COALESCE(SUM(capacity), 0) as capacity, COALESCE(SUM(seats_sold), 0) as sold')
+            ->selectRaw('product_id, COALESCE(SUM(capacity), 0) as capacity, COALESCE(SUM(' . TestSeats::realSoldSql() . '), 0) as sold')
             ->groupBy('product_id')
             ->get();
 

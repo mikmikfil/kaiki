@@ -27,10 +27,11 @@ use Tests\Support\Booking\QuoteScenario;
 | have a boat nobody could buy, and nothing in the panel would say why.
 |
 | So the hold is **opt-in at the moment of sending**, it is an ordinary
-| `vessel_blocks` row an operator can see in their calendar, and its expiry is
-| **equal** to the quote's `valid_until` — not close to it, not separately
-| entered. Two dates that are supposed to match and are typed in twice are two
-| dates that will not match.
+| `vessel_blocks` row an operator can see in their calendar, it covers the
+| charter's own window, and it lives exactly as long as the quote: expiry,
+| decline and acceptance each remove it (2026-09-25 — until then the block ran
+| from the charter's start to `valid_until`, and held nothing at all when the
+| charter was further out than the quote's validity).
 |
 | §4.4's own note calls the acceptance re-check *"the single most important
 | behaviour to get right in quote mode"*, and it has its own test at the bottom
@@ -73,22 +74,21 @@ it('holds nothing when the quote is sent without the opt-in', function (): void 
     });
 })->group('fast');
 
-it('holds the window on the explicit opt-in, expiring exactly with the quote', function (): void {
+it('holds the charter window on the explicit opt-in', function (): void {
     [$tenant, $booking, $quote] = QuoteScenario::drafted();
 
     Tenancy::forTenant($tenant, function () use ($booking, $quote): void {
-        $sent = app(SendQuote::class)($quote, holdVessel: true);
+        app(SendQuote::class)($quote, holdVessel: true);
 
         $block = VesselBlock::query()->sole();
 
         expect($block->reason)->toBe(BlockReason::Manual)
             ->and($block->booking_id)->toBe($booking->getKey())
             ->and($block->vessel_id)->toBe($booking->vessel_id)
-            // **Equal**, to the second. This is the assertion BKG-25's
-            // resolution rests on: a hold that outlived its quote would be the
-            // indefinite block the requirement exists to prevent.
-            ->and($block->ends_at_utc->toIso8601String())
-            ->toBe($sent->valid_until->toIso8601String());
+            // The trip's own hours: where the hold sits is the charter's, how
+            // long it lives is the quote's (the expiry test below).
+            ->and($block->starts_at_utc->toIso8601String())->toBe($booking->starts_at_utc->toIso8601String())
+            ->and($block->ends_at_utc->toIso8601String())->toBe($booking->ends_at_utc->toIso8601String());
     });
 })->group('fast');
 
@@ -111,11 +111,11 @@ it('does not leave the first hold behind when the quote is revised', function ()
 
         app(SendQuote::class)($second->refresh(), holdVessel: true);
 
-        // One block, refreshed — not two. A second row would take the boat off
-        // sale until the *later* of two dates with nothing saying which.
+        // One block, refreshed — not two. A second row would outlive the
+        // revision that replaced it.
         $block = VesselBlock::query()->sole();
 
-        expect($block->ends_at_utc->toDateString())->toBe(now()->addDays(21)->toDateString());
+        expect($block->ends_at_utc->toIso8601String())->toBe($booking->ends_at_utc->toIso8601String());
     });
 })->group('fast');
 

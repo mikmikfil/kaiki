@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Booking\Support\QuotePaymentDeadline;
 use App\Domain\Booking\Support\SeatCommitment;
 use App\Enums\BookingStatus;
 use App\Enums\CancelReason;
@@ -135,6 +136,17 @@ final class ExpireAbandonedCheckouts
                     return false;
                 }
 
+                // An accepted quote (2026-09-25) is a sale waiting for the
+                // guest's money, not a checkout somebody walked away from. It
+                // keeps its own deadline ({@see QuotePaymentDeadline}) and,
+                // past it, lapses as a hold rather than as a failed payment:
+                // «δεν ολοκληρώθηκε» and a fresh draft make no sense for it.
+                $quoteDeadline = QuotePaymentDeadline::for($locked);
+
+                if ($quoteDeadline !== null && $quoteDeadline->isFuture()) {
+                    return false;
+                }
+
                 if ($departure instanceof Departure) {
                     SeatCommitment::release($departure, $locked->pax_capacity_total);
                 }
@@ -149,7 +161,7 @@ final class ExpireAbandonedCheckouts
 
                 $locked->forceFill([
                     'status' => BookingStatus::Expired,
-                    'cancel_reason' => CancelReason::PaymentFailed,
+                    'cancel_reason' => $quoteDeadline === null ? CancelReason::PaymentFailed : CancelReason::HoldExpired,
                     'hold_expires_at' => null,
                 ])->save();
 

@@ -136,6 +136,8 @@ return [
             // BKG-32's "may exceed", said plainly. The operator needs to know
             // this list is wider than the website's, and why.
             'departure_help' => 'Every departure of this trip, including ones the website no longer offers because they are too soon or too far ahead.',
+            'date' => 'Date',
+            'start_time' => 'Start time',
             'pax' => 'Who is coming',
             'band' => 'Ticket type',
             'qty' => 'How many',

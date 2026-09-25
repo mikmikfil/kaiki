@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources;
 use App\Domain\Booking\Actions\CreateManualBooking;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Booking\Data\ManualBookingAdjustment;
+use App\Enums\BookingMode;
 use App\Enums\BookingSource;
 use App\Enums\BookingStatus;
 use App\Enums\PaymentGatewayName;
@@ -20,15 +21,19 @@ use App\Models\User;
 use App\Support\Authorization\Capability;
 use App\Support\Authorization\CrewWindow;
 use App\Support\Format\MoneyFormatter;
+use App\Support\Tenancy;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
 use Filament\Tables\Columns\TextColumn;
@@ -135,6 +140,14 @@ class BookingResource extends Resource
                             ->all())
                         ->searchable()
                         ->live()
+                        // A charter's own start, filled in from the trip and
+                        // left for the operator to change (2026-09-25).
+                        ->afterStateUpdated(static function (Set $set, mixed $state): void {
+                            $product = is_numeric($state) ? Product::query()->find((int) $state) : null;
+                            $default = trim((string) $product?->default_start_time);
+
+                            $set('start_time', $default !== '' ? substr($default, 0, 5) : null);
+                        })
                         ->required(),
 
                     Select::make('departure_id')
@@ -154,7 +167,29 @@ class BookingResource extends Resource
                             ->all())
                         ->searchable()
                         ->helperText(__('bookings.form.trip.departure_help'))
-                        ->visible(fn (Get $get): bool => $get('product_id') !== null),
+                        // A per-seat booking is always on a sailing: never
+                        // today's first by default (2026-09-25).
+                        ->required(fn (Get $get): bool => self::modeOf($get('product_id')) === BookingMode::PerSeat)
+                        ->visible(fn (Get $get): bool => self::modeOf($get('product_id')) === BookingMode::PerSeat),
+
+                    // A charter has no departures, so its day and hour are asked
+                    // here, on the operator's calendar (2026-09-25). Until then
+                    // every phone charter landed on today's UTC date.
+                    DatePicker::make('date')
+                        ->label(__('bookings.form.trip.date'))
+                        ->timezone('UTC')
+                        ->native(false)
+                        ->default(static fn (): string => self::tenantToday())
+                        ->required(fn (Get $get): bool => self::isCharter($get('product_id')))
+                        ->visible(fn (Get $get): bool => self::isCharter($get('product_id'))),
+
+                    TimePicker::make('start_time')
+                        ->label(__('bookings.form.trip.start_time'))
+                        ->timezone('UTC')
+                        ->seconds(false)
+                        ->native(false)
+                        ->required(fn (Get $get): bool => self::isCharter($get('product_id')))
+                        ->visible(fn (Get $get): bool => self::isCharter($get('product_id'))),
 
                     Repeater::make('pax')
                         ->label(__('bookings.form.trip.pax'))
@@ -355,6 +390,26 @@ class BookingResource extends Resource
             ]);
     }
 
+    /** The trip's booking mode, or null before one is picked. */
+    private static function modeOf(mixed $productId): ?BookingMode
+    {
+        return is_numeric($productId) ? Product::query()->find((int) $productId)?->mode : null;
+    }
+
+    /** A trip sold whole (or on request), which has no departures to pick. */
+    private static function isCharter(mixed $productId): bool
+    {
+        $mode = self::modeOf($productId);
+
+        return $mode !== null && $mode !== BookingMode::PerSeat;
+    }
+
+    /** Today on the operator's calendar, not the server's. */
+    private static function tenantToday(): string
+    {
+        return Carbon::now(Tenancy::current()->timezone ?? (string) config('kaiki.defaults.timezone'))->toDateString();
+    }
+
     /**
      * Take the booking, through the Action that knows how.
      *
@@ -398,7 +453,11 @@ class BookingResource extends Resource
         return app(CreateManualBooking::class)(
             new BookingDraftData(
                 product: $product,
-                date: $departure instanceof Departure ? $departure->local_date->copy() : Carbon::today(),
+                // A charter's day as the operator typed it; never the server's
+                // UTC today (2026-09-25).
+                date: $departure instanceof Departure
+                    ? $departure->local_date->copy()
+                    : Carbon::parse(isset($data['date']) && $data['date'] !== '' ? substr((string) $data['date'], 0, 10) : self::tenantToday()),
                 guestName: (string) $data['guest_name'],
                 guestEmail: (string) $data['guest_email'],
                 guestPhone: isset($data['guest_phone']) ? (string) $data['guest_phone'] : null,
@@ -406,7 +465,9 @@ class BookingResource extends Resource
                 paxByCode: $pax,
                 // The picked departure's own time (2026-09-24): without it, a day
                 // with two sailings of the same trip put the booking on the first.
-                startTime: $departure instanceof Departure ? (string) $departure->local_time : null,
+                startTime: $departure instanceof Departure
+                    ? (string) $departure->local_time
+                    : (isset($data['start_time']) && $data['start_time'] !== '' ? substr((string) $data['start_time'], 0, 5) : null),
                 // And the departure itself (2026-09-25), used as it is: a
                 // cancelled or blocked sailing is refused, never swapped.
                 departure: $departure,

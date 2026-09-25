@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Availability\LocalDateTimeResolver;
 use App\Domain\Booking\Data\BookingDraftData;
+use App\Domain\Booking\Support\GuestDetailsTracking;
 use App\Domain\Booking\Support\GuestTokenResolver;
 use App\Domain\Booking\Support\SeatCommitment;
 use App\Enums\BookingSource;
@@ -113,13 +115,18 @@ final class ImportBooking
                 'source' => BookingSource::Import,
                 'locale' => $data->locale,
 
-                'local_date' => $departure === null ? $data->date->toDateString() : $departure->local_date->toDateString(),
+                // Without a departure `date` is the charter's UTC instant, and
+                // a 01:00 start in Athens is the previous day in UTC: the local
+                // date is read back on the tenant's clock (AVL-16).
+                'local_date' => $departure === null
+                    ? LocalDateTimeResolver::localDate($data->date, LocalDateTimeResolver::timezone())
+                    : $departure->local_date->toDateString(),
                 'local_time' => $departure === null
                     ? ($data->startTime ?? $product->default_start_time)
                     : (string) $departure->local_time,
                 'starts_at_utc' => $departure === null ? $data->date->copy() : $departure->starts_at_utc,
                 'ends_at_utc' => $departure === null
-                    ? $data->date->copy()->addMinutes($product->duration_minutes)
+                    ? LocalDateTimeResolver::endsAt($data->date, $product->duration_minutes + $data->extraHours * 60)
                     : $departure->ends_at_utc,
 
                 'guest_name' => trim($data->guestName),
@@ -162,6 +169,13 @@ final class ImportBooking
             $this->createManifestRows($booking, $pax);
             $this->recordPaidAtSource($booking, $paidCents);
 
+            // A trip still ahead that asks for a passenger list is chased for
+            // one like any other booking (BKG-15, 2026-09-25). Last season's
+            // history is not.
+            if ($booking->starts_at_utc->isFuture()) {
+                GuestDetailsTracking::open($booking);
+            }
+
             // An imported booking describes a trip somebody is actually going
             // on, so its seats are sold. Through the same statement every other
             // committed booking writes — `seats_sold` has one writer for the
@@ -171,12 +185,11 @@ final class ImportBooking
             // Deliberately **not** refused when it oversells. An operator
             // migrating last season's spreadsheet needs their history to land;
             // half an import is worse than an import that shows a departure
-            // over its capacity, which the departure list already surfaces.
-            // The return value is therefore ignored on purpose rather than
-            // forgotten — an import is a statement about what happened, not a
-            // request for permission.
+            // over its capacity. But the seats are always counted
+            // (2026-09-25): an oversell left out of `seats_sold` is one the
+            // widget goes on selling. `CommitImport` names it in the report.
             if ($departure instanceof Departure) {
-                SeatCommitment::commit($departure, $counted);
+                SeatCommitment::commitImported($departure, $counted);
             }
 
             return $booking;

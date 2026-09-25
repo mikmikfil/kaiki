@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Events\BookingCancelled;
 use App\Events\BookingConfirmed;
 use App\Events\BookingGuestsRemoved;
+use App\Events\LatePaymentRefunded;
 use App\Events\QuoteSent;
 use App\Events\WeatherChoiceApplied;
 use App\Events\WeatherChoiceReminderDue;
@@ -16,6 +17,7 @@ use App\Listeners\Booking\RegenerateETicketOnChange;
 use App\Listeners\Booking\SendBookingCancellation;
 use App\Listeners\Booking\SendBookingChange;
 use App\Listeners\Booking\SendBookingConfirmation;
+use App\Listeners\Booking\SendLatePaymentRefund;
 use App\Listeners\Booking\SendQuoteEmail;
 use App\Listeners\Booking\SendWeatherChoiceApplied;
 use App\Listeners\Booking\SendWeatherChoiceReminder;
@@ -85,5 +87,9 @@ class NotificationServiceProvider extends ServiceProvider
         Event::listen(WeatherChoiceReminderDue::class, SendWeatherChoiceReminder::class);
         Event::listen(WeatherChoiceApplied::class, SendWeatherChoiceApplied::class);
         Event::listen(QuoteSent::class, SendQuoteEmail::class);
+
+        // Money that came in too late and is going back on its own
+        // (2026-09-25): the guest is told, with the reason.
+        Event::listen(LatePaymentRefunded::class, SendLatePaymentRefund::class);
     }
 }

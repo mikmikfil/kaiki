@@ -22,6 +22,7 @@ use App\Exceptions\DiscountCodeRefused;
 use App\Exceptions\HoldRefused;
 use App\Exceptions\IllegalStateTransition;
 use App\Exceptions\PartyRefused;
+use App\Http\Controllers\Guest\ManageBookingController;
 use App\Http\Middleware\AuthenticateGuestToken;
 use App\Http\Middleware\EnforceIdempotencyKey;
 use App\Http\Requests\Api\V1\BookingCreateRequest;
@@ -311,6 +312,18 @@ final class BookingController
                 ->withEntitlement($entitlement, performed: false)
                 ->response()
                 ->header('Cache-Control', 'no-store');
+        }
+
+        // CXL-4 (2026-09-25): once the boat has left, or the booking has ended,
+        // a cancellation is the operator's to record. The same rule the
+        // manage page's button follows. A second cancel of a cancelled booking
+        // is still let through: `CancelBooking` answers it idempotently.
+        if ($booking->status !== BookingStatus::Cancelled && ! ManageBookingController::canCancel($booking)) {
+            return ApiErrorResponse::fromKey(
+                key: 'api.errors.booking_not_cancellable',
+                code: 'booking_not_cancellable',
+                status: SymfonyResponse::HTTP_CONFLICT,
+            );
         }
 
         try {

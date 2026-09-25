@@ -84,14 +84,32 @@ final class ExpireStaleHolds
         }
 
         try {
-            Tenancy::forTenant($tenant, function () use ($booking): void {
-                ($this->releaseHold)($booking);
+            $moved = (bool) Tenancy::forTenant($tenant, function () use ($booking): bool {
+                // One conditional statement, not a save of the row read above
+                // (2026-09-25): a guest who pressed «Πληρωμή» in the meantime
+                // has a `pending_payment` booking with its seats sold, and a
+                // stale model saved over it would expire a checkout in flight.
+                $moved = Booking::query()
+                    ->whereKey($booking->getKey())
+                    ->withExpiredHold()
+                    ->update([
+                        'status' => BookingStatus::Expired->value,
+                        'cancel_reason' => CancelReason::HoldExpired->value,
+                        'updated_at' => now(),
+                    ]);
 
-                $booking->forceFill([
-                    'status' => BookingStatus::Expired,
-                    'cancel_reason' => CancelReason::HoldExpired,
-                ])->save();
+                if ($moved === 0) {
+                    return false;
+                }
+
+                ($this->releaseHold)($booking->refresh());
+
+                return true;
             });
+
+            if (! $moved) {
+                return false;
+            }
 
             BookingHoldExpired::dispatch($booking->getKey(), (int) $booking->tenant_id);
 

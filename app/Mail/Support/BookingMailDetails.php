@@ -16,6 +16,7 @@ use App\Enums\PaymentStatus;
 use App\Enums\QuoteLineKind;
 use App\Enums\QuoteStatus;
 use App\Enums\WeatherChoice;
+use App\Events\LatePaymentRefunded;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Models\Payment;
@@ -436,6 +437,22 @@ final class BookingMailDetails
                 $action = [__('mail.payment_unfinished.button', [], $locale), route('guest.checkout', ['token' => $booking->manage_token])];
                 break;
 
+            case NotificationTemplate::PaymentRefunded:
+                // How much, why, and where it goes. A preview has no event, so
+                // the booking's own state stands in for the reason.
+                $amount = (int) ($extra['amount_cents'] ?? 0);
+                $reasons = [LatePaymentRefunded::REASON_CANCELLED, LatePaymentRefunded::REASON_EXPIRED, LatePaymentRefunded::REASON_OVERPAID];
+                $reason = in_array($extra['reason'] ?? null, $reasons, true)
+                    ? (string) $extra['reason']
+                    : ($booking->status->isLive() ? LatePaymentRefunded::REASON_OVERPAID : LatePaymentRefunded::REASON_CANCELLED);
+
+                if ($amount > 0) {
+                    $facts[] = ['label' => __('mail.common.amount', [], $locale), 'value' => $euros($amount)];
+                }
+                $facts[] = ['label' => __('mail.payment_refunded.reason_label', [], $locale), 'value' => __("mail.payment_refunded.reason_{$reason}", [], $locale)];
+                $facts[] = ['label' => __('mail.common.refund_method', [], $locale), 'value' => __('mail.common.refund_to_card', [], $locale)];
+                break;
+
             case NotificationTemplate::ReviewRequest:
                 // Only to the operator's own review page. Without one the request
                 // is never sent (ReviewRequestSettings::active()); a preview
@@ -489,8 +506,10 @@ final class BookingMailDetails
                 ? route('guest.ticket', ['token' => $booking->manage_token])
                 : null,
             detailsUrl: $detailsPending ? $formUrl : null,
-            detailsBy: $detailsPending && $booking->guest_details_deadline_at !== null
-                ? $booking->guest_details_deadline_at->copy()->locale($locale)->isoFormat('D/M')
+            // On the operator's clock. Bookings confirmed before the column was
+            // written fall back to the deadline the reminders are scheduled by.
+            detailsBy: $detailsPending
+                ? $at($booking->guest_details_deadline_at ?? self::detailsDeadline($booking, $starts), 'D/M')
                 : null,
             reviewUrl: $reviewUrl,
             operator: $operator,

@@ -355,6 +355,7 @@ return [
             'end_time' => ['label' => 'To time'],
             'title' => ['label' => 'Title'],
             'notes' => ['label' => 'Notes'],
+            'confirm_overlap' => ['label' => 'Block it despite the bookings'],
         ],
 
         'table' => [
@@ -372,6 +373,8 @@ return [
             'times_required' => 'Please give a start and end time, or choose "All day".',
             'dst_nonexistent' => 'The clocks change that day and the time you chose does not exist. Please pick another.',
             'sold_departures_blocked' => 'Careful: this block covers :count departures that already have bookings. Nothing was cancelled — the decision is yours.',
+            'bookings_under' => 'There are bookings in this window: :references. Confirm to add the block. None is cancelled.',
+            'bookings_named' => 'Bookings under the block: :references.',
         ],
     ],
 

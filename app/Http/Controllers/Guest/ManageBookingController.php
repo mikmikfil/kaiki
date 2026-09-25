@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Guest;
 
 use App\Domain\Booking\Actions\ApplyGuestChoice;
 use App\Domain\Booking\Actions\CancelBooking;
+use App\Domain\Booking\Actions\CancelDeparture;
 use App\Domain\Booking\Actions\GenerateETicket;
 use App\Domain\Booking\Actions\MintBalanceSession;
 use App\Domain\Booking\Support\BoardingPasses;
@@ -451,13 +452,30 @@ final class ManageBookingController extends GuestPageController
             return redirect()->route('guest.booking', ['token' => $token]);
         }
 
-        Tenancy::forTenant($tenant, function () use ($booking, $choice, $request): void {
-            app(ApplyGuestChoice::class)(
-                booking: $booking,
-                choice: $choice,
-                // CXL-7's evidence, recorded with the choice itself.
-                ip: $request->ip(),
-            );
+        Tenancy::forTenant($tenant, function () use ($booking, $choice, $request, $tenant): void {
+            if (self::weatherChoiceIsOpen($booking)) {
+                app(ApplyGuestChoice::class)(
+                    booking: $booking,
+                    choice: $choice,
+                    // CXL-7's evidence, recorded with the choice itself.
+                    ip: $request->ip(),
+                );
+
+                return;
+            }
+
+            // Past `weather_choice_due_at` the operator's default is the
+            // answer. Applied now rather than at the next hourly sweep, so the
+            // guest sees the outcome instead of three buttons that do nothing.
+            if ($booking->cancel_reason === CancelReason::Weather
+                && $booking->weather_choice === null
+                && $booking->weather_choice_due_at !== null) {
+                app(ApplyGuestChoice::class)(
+                    booking: $booking,
+                    choice: CancelDeparture::defaultChoiceFor($tenant),
+                    automatic: true,
+                );
+            }
         });
 
         return redirect()->route('guest.booking', ['token' => $token]);
@@ -512,11 +530,19 @@ final class ManageBookingController extends GuestPageController
             && $booking->starts_at_utc->isFuture();
     }
 
-    /** Is this guest still being asked what they want after a cancelled sailing? */
+    /**
+     * Is this guest still being asked what they want after a cancelled sailing?
+     *
+     * Until `weather_choice_due_at` and no longer: that is when the operator's
+     * default applies. A booking with no deadline was never asked (a draft or
+     * an unpaid hold on the cancelled sailing).
+     */
     public static function weatherChoiceIsOpen(Booking $booking): bool
     {
         return $booking->cancel_reason === CancelReason::Weather
-            && $booking->weather_choice === null;
+            && $booking->weather_choice === null
+            && $booking->weather_choice_due_at !== null
+            && $booking->weather_choice_due_at->isFuture();
     }
 
     /** @return array{0: Booking|null, 1: Tenant|null} */

@@ -36,7 +36,7 @@
             <dd class="total">{{ $money($voucher->remaining_cents) }}</dd>
 
             <dt>{{ __('guest.voucher.expires') }}</dt>
-            <dd>{{ $voucher->expires_at?->format('d/m/Y') ?? __('guest.voucher.no_expiry') }}</dd>
+            <dd>{{ \App\Domain\Availability\LocalDateTimeResolver::inTenantZone($voucher->expires_at)?->format('d/m/Y') ??__('guest.voucher.no_expiry') }}</dd>
         </dl>
 
         {{-- A voucher that has run out still renders, with a sentence saying so.

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Booking\Support\OpenGatewayOrders;
 use App\Domain\Booking\Support\SeatCommitment;
 use App\Domain\Catalog\Support\AgeBandResolver;
 use App\Domain\Pricing\Actions\RestoreVoucher;
@@ -211,6 +212,14 @@ final class RemoveGuestsFromBooking
                 'deposit_cents' => min($locked->deposit_cents, $newTotal),
                 'balance_cents' => max(0, $newTotal - $locked->paid_cents),
             ])->save();
+
+            // A guest still at the gateway (2026-09-25): that order was minted
+            // for the old party and would charge the old total. Withdrawn, so
+            // the next «Πληρωμή» mints one at the new amount; paid anyway, the
+            // difference goes back (`ConfirmFromWebhook`).
+            if ($locked->status === BookingStatus::PendingPayment) {
+                OpenGatewayOrders::withdraw($locked);
+            }
 
             return $locked;
         });

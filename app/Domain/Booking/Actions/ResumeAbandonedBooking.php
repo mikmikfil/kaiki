@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Availability\Support\BookingCutoff;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Enums\BookingStatus;
 use App\Enums\CancelReason;
@@ -77,6 +78,13 @@ final class ResumeAbandonedBooking
 
         if ($existing instanceof Booking) {
             return $existing;
+        }
+
+        // AVL-19 (2026-09-25): the email's button can be pressed after the boat
+        // has left, or inside the lead time. `POST /bookings` asks this; a
+        // resumed draft does not come through there.
+        if (BookingCutoff::forBooking($booking) !== null) {
+            throw ValidationException::withMessages(['date' => [__('api.errors.lead_time_too_short')]]);
         }
 
         $booking->loadMissing(['product', 'departure', 'voucher', 'discountCode', 'extras']);

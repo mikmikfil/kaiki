@@ -143,7 +143,7 @@
             </div>
         @elseif ($booking->terms_accepted_at)
             <div class="notice">
-                {{ __('guest.details.charter_agreement.accepted', ['date' => $booking->terms_accepted_at->format('d/m/Y')]) }}
+                {{ __('guest.details.charter_agreement.accepted', ['date' => \App\Domain\Availability\LocalDateTimeResolver::inTenantZone($booking->terms_accepted_at)?->format('d/m/Y')]) }}
             </div>
         @endif
 

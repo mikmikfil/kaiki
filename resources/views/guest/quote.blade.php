@@ -34,12 +34,18 @@
              while the guest was thinking — said in a sentence, with a way
              forward, rather than as a failure. --}}
         <div class="notice bad">{{ __('guest.quote.unavailable') }}</div>
+    @elseif (session('quote_error') === 'trip_started')
+        <div class="notice bad">{{ __('guest.quote.trip_started') }}</div>
     @endif
 
     @if ($wasReplaced)
         <div class="notice">{{ __('guest.quote.replaced') }}</div>
     @elseif ($quote->status === QuoteStatus::Expired)
         <div class="notice">{{ __('guest.quote.expired') }}</div>
+    @elseif ($quote->status === QuoteStatus::Accepted && $payBy !== null && $payBy->isFuture())
+        {{-- Accepted and not yet paid for (2026-09-25): payable online until
+             the date below, which never passes the trip's start. --}}
+        <div class="notice">{{ __('guest.quote.accepted_pay', ['date' => \App\Domain\Availability\LocalDateTimeResolver::inTenantZone($payBy)?->format('d/m/Y H:i')]) }}</div>
     @elseif ($quote->status === QuoteStatus::Accepted)
         <div class="notice">{{ __('guest.quote.accepted') }}</div>
     @elseif ($quote->status === QuoteStatus::Declined)
@@ -62,7 +68,7 @@
             @endif
         </dl>
 
-        <p class="muted">{{ __('guest.quote.valid_until', ['date' => $quote->valid_until->format('d/m/Y')]) }}</p>
+        <p class="muted">{{ __('guest.quote.valid_until', ['date' => \App\Domain\Availability\LocalDateTimeResolver::inTenantZone($quote->valid_until)?->format('d/m/Y')]) }}</p>
 
         @if ($quote->terms)
             <p class="muted">{{ $quote->terms }}</p>
@@ -83,6 +89,10 @@
                 <p></p>
                 <button class="btn secondary" type="submit">{{ __('guest.quote.decline') }}</button>
             </form>
+        </div>
+    @elseif ($quote->status === QuoteStatus::Accepted && $payBy !== null && $payBy->isFuture())
+        <div class="card">
+            <a class="btn" href="{{ route('guest.checkout', ['token' => $booking->manage_token]) }}">{{ __('guest.quote.pay') }}</a>
         </div>
     @else
         {{--

@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Availability\Actions\HoldSeats;
+use App\Domain\Availability\Support\BookingCutoff;
 use App\Domain\Booking\Support\CharterOccupancy;
+use App\Domain\Booking\Support\OpenGatewayOrders;
 use App\Domain\Booking\Support\SeatCommitment;
 use App\Domain\Pricing\Actions\ApplyDiscountCode;
 use App\Domain\Pricing\Actions\ApplyVoucher;
@@ -73,14 +76,25 @@ final class StartCheckout
      * @return array{booking: Booking, payment: Payment|null}
      *
      * @throws CapacityExceeded when the seats went while the guest was deciding
-     * @throws CheckoutRefused when nobody has said whose booking this is
+     * @throws CheckoutRefused when nobody has said whose booking this is, or it is too late (AVL-19)
      * @throws HoldRefused when a charter's boat went to somebody else (2026-09-25)
-     * @throws IllegalStateTransition when the booking is not a live draft
+     * @throws IllegalStateTransition when the booking is neither a live draft nor at the gateway
      */
     public function __invoke(Booking $booking, PaymentGatewayName $gateway = PaymentGatewayName::Viva): array
     {
-        if (! $booking->status->canTransitionTo(BookingStatus::PendingPayment)) {
+        if (! self::canCheckOut($booking)) {
             throw IllegalStateTransition::forBooking($booking->status, BookingStatus::PendingPayment);
+        }
+
+        // AVL-19 at the line money crosses (2026-09-25). An old link, a resumed
+        // checkout or a charter draft left by a declined card can reach this
+        // long after the draft was made. A guest's own draft keeps the lead
+        // time; a booking already at the gateway, or one the operator priced
+        // (an accepted quote, BKG-32), is refused only once the trip starts.
+        $leadTime = $booking->status === BookingStatus::Draft && $booking->source->isGuestInitiated();
+
+        if (BookingCutoff::forBooking($booking, $leadTime) !== null) {
+            throw CheckoutRefused::tooLate();
         }
 
         // ADR-0030's invariant, and it lives here rather than at draft creation
@@ -112,12 +126,33 @@ final class StartCheckout
             /** @var Booking $locked */
             $locked = Booking::query()->lockForUpdate()->findOrFail($booking->getKey());
 
+            // The status again, under the lock (2026-09-25). A double tap on
+            // «Πληρωμή», or the hold sweeper, may have moved it since the read
+            // above; the answer that counts is this one.
+            if (! self::canCheckOut($locked)) {
+                throw IllegalStateTransition::forBooking($locked->status, BookingStatus::PendingPayment);
+            }
+
+            // Already at the gateway: an accepted quote with no card page yet,
+            // a guest back from Viva, a total changed under an open order. The
+            // seats were committed when it got here, so they are not taken
+            // again; the old order, if any, is withdrawn, and a new one is
+            // minted below at what is owed now.
+            $again = $locked->status === BookingStatus::PendingPayment;
+
             // A private charter, the line before money (2026-09-25): its hold
             // may have lapsed on the checkout page while somebody else took the
             // boat. Asked under the vessel lock, leaving this booking's own
             // hold out of the answer.
             if ($departure === null && $vessel instanceof Vessel && ! CharterOccupancy::isFreeFor($vessel, $locked)) {
                 throw HoldRefused::vesselUnavailable();
+            }
+
+            // And the per-seat side of the same question (2026-09-25): a sailing
+            // on a boat chartered or blocked since the hold was taken — or held
+            // on a page opened before — does not reach the gateway.
+            if ($departure instanceof Departure && $vessel instanceof Vessel && ! HoldSeats::vesselIsFreeFor($vessel, $departure)) {
+                throw HoldRefused::departureUnavailable();
             }
 
             // Re-verified here as well as at confirmation, because the voucher
@@ -134,7 +169,9 @@ final class StartCheckout
                 throw new DiscountCodeRefused(__('discount_codes.refused.no_longer'));
             }
 
-            if ($departure instanceof Departure) {
+            if ($again) {
+                OpenGatewayOrders::withdraw($locked);
+            } elseif ($departure instanceof Departure) {
                 // The move from held to sold (BKG-9). The guest's own hold is
                 // passed in so their seats are not competed for twice.
                 $ownHeld = $locked->holdsSeats() ? $locked->pax_capacity_total : 0;
@@ -154,6 +191,9 @@ final class StartCheckout
                 'status' => BookingStatus::PendingPayment,
                 // The hold is over: these seats are sold now, not held.
                 'hold_expires_at' => null,
+                // Written even when the status is already this one: BKG-10's
+                // sixty minutes run from the newest card page, not the first.
+                'updated_at' => now(),
             ])->save();
 
             $payment = new Payment;
@@ -190,5 +230,18 @@ final class StartCheckout
         }
 
         return ['booking' => $result['booking'], 'payment' => $result['payment']];
+    }
+
+    /**
+     * A live draft, or a booking already at the gateway being sent there again.
+     *
+     * `pending_payment` is let back in on purpose (2026-09-25): an accepted
+     * quote reaches it with no card page at all, and a guest who pressed Back
+     * on Viva, or whose total changed, needs a new order rather than a refusal.
+     */
+    private static function canCheckOut(Booking $booking): bool
+    {
+        return $booking->status === BookingStatus::PendingPayment
+            || $booking->status->canTransitionTo(BookingStatus::PendingPayment);
     }
 }

@@ -43,6 +43,7 @@ return [
         'no_balance_due' => 'There is no balance left to pay on this booking.',
         'no_gateway_configured' => 'The operator has not connected a payment provider yet. Contact them to complete this booking.',
         'lead_guest_required' => 'Fill in your details first to go on to payment.',
+        'lead_time_too_short' => 'Booking has closed for this departure.',
     ],
 
 ];

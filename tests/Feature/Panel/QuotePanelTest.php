@@ -102,14 +102,16 @@ it('does not hold the boat unless the operator asks', function (): void {
     });
 })->group('fast');
 
-it('holds the boat when the operator does ask, and expires it with the quote', function (): void {
+it('holds the boat when the operator does ask, for the charter hours', function (): void {
     [$tenant, $booking, $quote] = QuoteScenario::drafted();
 
-    Tenancy::forTenant($tenant, function () use ($quote): void {
+    Tenancy::forTenant($tenant, function () use ($booking, $quote): void {
         QuoteResource::sendAction()->record($quote)->call(['data' => ['hold_vessel' => true]]);
 
+        // The charter's own window (2026-09-25); the quote's expiry removes
+        // it, which `QuoteHoldsNothingTest` covers.
         expect(VesselBlock::query()->sole()->ends_at_utc->toIso8601String())
-            ->toBe($quote->refresh()->valid_until->toIso8601String());
+            ->toBe($booking->ends_at_utc->toIso8601String());
     });
 })->group('fast');
 
