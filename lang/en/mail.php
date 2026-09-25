@@ -52,6 +52,7 @@ return [
         // the word somebody who has met a calendar file before recognises, and
         // the app names tell everybody else which of the two is theirs.
         'add_to_calendar' => 'Add to calendar',
+        'min_pax' => 'Runs with at least :count people. If not enough book, you get all your money back.',
         'calendar_ics' => 'Apple, Outlook and phone (.ics)',
         'calendar_google' => 'Google Calendar',
         'how_to_find' => 'How to find us',

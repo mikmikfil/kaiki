@@ -306,7 +306,7 @@ class SearchCatalogue
      * CAT-5's party bounds: too many for the boat, or fewer than the operator
      * will sail for.
      */
-    private function fitsParty(Product $product, int $pax): bool
+    public static function fitsParty(Product $product, int $pax): bool
     {
         if ($product->max_pax > 0 && $pax > $product->max_pax) {
             return false;

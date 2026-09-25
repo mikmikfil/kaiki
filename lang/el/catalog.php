@@ -376,7 +376,7 @@ return [
                 'help' => 'Δημοσιευμένη γίνεται μόνο όταν συμπληρωθούν όλα τα παρακάτω.',
             ],
             'is_featured' => [
-                'label' => 'Προβεβλημένη',
+                'label' => 'Featured',
                 'help' => 'Εμφανίζεται πρώτη στη λίστα.',
             ],
             'meta_title' => [
@@ -416,10 +416,11 @@ return [
             'max_pax' => 'Άτομα',
             'price_from' => 'Τιμή από',
             'price_from_value' => 'από :price',
-            'featured' => 'Προβεβλημένη',
+            'featured' => 'Featured',
             'missing' => 'Λείπει: :items|Λείπουν :count: :items',
             'tabs' => [
                 'all' => 'Όλες',
+                'trashed' => 'Διαγραμμένες',
             ],
         ],
 

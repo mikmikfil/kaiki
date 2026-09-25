@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Pages;
 
 use App\Domain\Catalog\Support\SearchFilters;
+use App\Domain\Hosted\Support\CalendarPage;
 use App\Models\BrandProfile;
 use App\Support\Tenancy;
 use Filament\Forms\Components\Component;
@@ -96,7 +97,12 @@ class SearchSettings extends Page implements HasForms
     {
         abort_unless(static::canAccess(), 403);
 
-        $this->getForm('form')?->fill(['filters' => SearchFilters::for()]);
+        $tenant = Tenancy::current();
+
+        $this->getForm('form')?->fill([
+            'filters' => SearchFilters::for(),
+            'calendar' => ['in_menu' => $tenant === null || CalendarPage::inMenu($tenant)],
+        ]);
     }
 
     public function form(Form $form): Form
@@ -107,6 +113,18 @@ class SearchSettings extends Page implements HasForms
                 ->description(__('search_settings.sections.filters_help'))
                 ->schema($this->toggles())
                 ->columns(2),
+
+            // «Ημερολόγιο» in the site menu (2026-09-25): the other way a
+            // visitor browses, so the same screen.
+            Section::make(__('search_settings.sections.calendar'))
+                ->icon('heroicon-o-calendar-days')
+                ->description(__('search_settings.sections.calendar_help'))
+                ->schema([
+                    Toggle::make('calendar.in_menu')
+                        ->label(__('search_settings.calendar.in_menu.label'))
+                        ->helperText(__('search_settings.calendar.in_menu.help'))
+                        ->default(true),
+                ]),
         ])->statePath('data');
     }
 
@@ -126,18 +144,28 @@ class SearchSettings extends Page implements HasForms
 
         /** @var array<string, mixed> $filters */
         $filters = (array) ($state['filters'] ?? []);
+        $calendar = (array) ($state['calendar'] ?? []);
 
         $tenant->forceFill([
             'settings' => [
                 ...(array) $tenant->settings,
                 SearchFilters::SETTINGS_KEY => ['filters' => SearchFilters::normalise($filters)],
+                CalendarPage::SETTINGS_KEY => [
+                    ...(array) (($tenant->settings ?? [])[CalendarPage::SETTINGS_KEY] ?? []),
+                    'in_menu' => filter_var($calendar['in_menu'] ?? true, FILTER_VALIDATE_BOOL),
+                ],
             ],
         ])->save();
+
+        $tenant->refresh();
 
         // Refilled from the normaliser rather than left as submitted, so the
         // two fixed filters snap back to on in front of the operator instead of
         // appearing to have been turned off.
-        $this->getForm('form')?->fill(['filters' => SearchFilters::for($tenant->refresh())]);
+        $this->getForm('form')?->fill([
+            'filters' => SearchFilters::for($tenant),
+            'calendar' => ['in_menu' => CalendarPage::inMenu($tenant)],
+        ]);
 
         Notification::make()
             ->title(__('search_settings.saved'))

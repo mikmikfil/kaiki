@@ -57,6 +57,11 @@ function lockedActions(): array
         // still an order it has to be in.
         'app/Domain/Booking/Actions/CancelBooking.php',
         'app/Domain/Booking/Actions/CancelDeparture.php',
+
+        // 2026-09-25: a private charter's draft is its hold on the whole boat,
+        // so the draft locks the vessel before it asks and before it writes —
+        // the same row `StartCheckout` and `ConfirmBooking` take first.
+        'app/Domain/Booking/Actions/CreateBookingDraft.php',
     ];
 }
 

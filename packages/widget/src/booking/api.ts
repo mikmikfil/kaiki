@@ -141,6 +141,22 @@ export function isPartyRefused(error: unknown): boolean {
   return code === 'needs_adult' || code === 'no_counted_pax';
 }
 
+/**
+ * `422` on **when** (AVL-19, AVL-20; 2026-09-25): the date is past its lead
+ * time, or too far ahead. The calendar greys these out, but a calendar can be
+ * a few minutes old, so the server's own sentence is shown where the guest is
+ * rather than the whole walk being thrown away on an error screen.
+ *
+ * And `409 vessel_unavailable` (2026-09-25): another guest took the whole boat
+ * for this charter while this one was choosing. Same remedy — another day — so
+ * the same place and a fresh calendar, in which the day now shows as taken.
+ */
+export function isDateRefused(error: unknown): boolean {
+  const code = (error as ApiError | null)?.code;
+
+  return code === 'lead_time_too_short' || code === 'too_far_ahead' || code === 'vessel_unavailable';
+}
+
 /** The server's sentence for a refusal, in the guest's language, when it sent one. */
 export function refusalMessage(error: unknown): string | null {
   const detail = (error as ApiError | null)?.detail;

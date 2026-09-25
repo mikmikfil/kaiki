@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Support;
 
+use App\Domain\Availability\Contracts\BulkVesselHoldSource;
 use App\Domain\Availability\Contracts\DepartureExpiredHolds;
 use App\Domain\Availability\Contracts\DeparturePersonsAboard;
+use App\Domain\Availability\Contracts\ExcludingVesselHoldSource;
 use App\Domain\Availability\Contracts\VesselHoldSource;
 use App\Domain\Availability\Support\Window;
 use App\Enums\BookingMode;
@@ -57,7 +59,7 @@ use Illuminate\Support\Carbon;
  * different answers and different owners, which is why they are different
  * methods on different contracts.
  */
-final class BookingHoldSource implements DepartureExpiredHolds, DeparturePersonsAboard, VesselHoldSource
+final class BookingHoldSource implements BulkVesselHoldSource, DepartureExpiredHolds, DeparturePersonsAboard, ExcludingVesselHoldSource
 {
     public function personsAboard(Departure $departure): int
     {
@@ -109,25 +111,86 @@ final class BookingHoldSource implements DepartureExpiredHolds, DeparturePersons
     /** @return list<Window> */
     public function holdWindows(Vessel $vessel, Window $range, Carbon $now): array
     {
+        return $this->holdWindowsByVessel([(int) $vessel->getKey()], $range, $now)[(int) $vessel->getKey()] ?? [];
+    }
+
+    /**
+     * The same read for a whole fleet, in one query (the departures calendar,
+     * 2026-09-25). {@see self::holdWindows()} is this with one boat, so the two
+     * cannot disagree about what a live private hold is.
+     *
+     * @param  list<int>  $vesselIds
+     * @return array<int, list<Window>>
+     */
+    public function holdWindowsByVessel(array $vesselIds, Window $range, Carbon $now): array
+    {
+        return $this->occupyingWindows($vesselIds, $range, $now, null);
+    }
+
+    /**
+     * {@see self::holdWindows()} without one booking — a charter asking, at its
+     * own confirmation, whether anybody **else** has the boat (2026-09-25).
+     *
+     * @return list<Window>
+     */
+    public function holdWindowsExcluding(Vessel $vessel, Window $range, Carbon $now, int $bookingId): array
+    {
+        return $this->occupyingWindows([(int) $vessel->getKey()], $range, $now, $bookingId)[(int) $vessel->getKey()] ?? [];
+    }
+
+    /**
+     * Every private-charter booking occupying these boats in `$range`.
+     *
+     * {@see Booking::occupiesVesselWindow()}, as a query (2026-09-25): a
+     * charter that is not per-seat occupies its window while its draft hold is
+     * live **and** from the redirect to the gateway onwards — `pending_payment`,
+     * `confirmed`, `checked_in`, `completed`. Until then only the draft counted,
+     * and no charter draft was ever given a hold, so a charter booked online
+     * occupied its boat in no state at all: the calendar went on offering the
+     * day and a second guest could pay for it.
+     *
+     * Quote-mode bookings are included on purpose: `SendQuote`'s block is
+     * deleted when the quote is accepted, and from then on the booking itself
+     * is what holds the boat.
+     *
+     * @param  list<int>  $vesselIds
+     * @return array<int, list<Window>>
+     */
+    private function occupyingWindows(array $vesselIds, Window $range, Carbon $now, ?int $excludingBookingId): array
+    {
+        if ($vesselIds === []) {
+            return [];
+        }
+
         $bookings = Booking::query()
-            ->where('vessel_id', $vessel->getKey())
-            ->where('mode', BookingMode::PerVessel->value)
-            ->where('status', BookingStatus::Draft->value)
-            ->whereNotNull('hold_expires_at')
-            // `$now` rather than `now()`: the caller decides what "currently"
-            // means, and a test freezing time must be able to move the boundary
-            // without the answer being read off the wall clock instead.
-            ->where('hold_expires_at', '>', $now)
+            ->whereIn('vessel_id', $vesselIds)
+            ->where('mode', '!=', BookingMode::PerSeat->value)
+            ->where(static function (Builder $query) use ($now): void {
+                $query
+                    ->where(static fn (Builder $held): Builder => $held
+                        ->where('status', BookingStatus::Draft->value)
+                        ->whereNotNull('hold_expires_at')
+                        // `$now` rather than `now()`: the caller decides what
+                        // "currently" means, and a test freezing time must be
+                        // able to move the boundary without the answer being
+                        // read off the wall clock instead.
+                        ->where('hold_expires_at', '>', $now))
+                    ->orWhereIn('status', self::committingStatuses());
+            })
+            ->when($excludingBookingId !== null, static fn (Builder $query): Builder => $query->whereKeyNot($excludingBookingId))
             // Overlap, not containment: a hold starting before the range and
             // ending inside it occupies the boat just as much.
             ->where('starts_at_utc', '<', $range->endUtc)
             ->where('ends_at_utc', '>', $range->startUtc)
             ->get();
 
-        return $bookings
-            ->map(static fn (Booking $booking): Window => Window::of($booking->starts_at_utc, $booking->ends_at_utc))
-            ->values()
-            ->all();
+        $windows = [];
+
+        foreach ($bookings as $booking) {
+            $windows[(int) $booking->vessel_id][] = Window::of($booking->starts_at_utc, $booking->ends_at_utc);
+        }
+
+        return $windows;
     }
 
     /**

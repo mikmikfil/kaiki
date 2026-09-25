@@ -7,7 +7,10 @@ namespace App\Domain\Operations\Support;
 use App\Domain\Availability\Actions\SailBelowMinimum;
 use App\Domain\Booking\Actions\ConfirmManualRefund;
 use App\Domain\Booking\Actions\RefundBooking;
+use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
+use App\Enums\CancelledBy;
+use App\Enums\CancelReason;
 use App\Enums\CrewSpecialty;
 use App\Enums\DepartureStatus;
 use App\Enums\GuestDetailsStatus;
@@ -117,6 +120,7 @@ final class AttentionItems
             + $this->overdueBalancesQuery($now)->count()
             + $this->expiringQuotesQuery($now)->count()
             + $this->owedRefundsQuery()->count()
+            + $this->lostChartersQuery($now)->count()
             + $this->brokenCalendarsQuery()->count()
             + count($this->captainlessGroups($now));
     }
@@ -149,6 +153,7 @@ final class AttentionItems
             ...$this->overdueBalances($now),
             ...$this->expiringQuotes($now),
             ...$this->owedRefunds(),
+            ...$this->lostCharters($now),
             ...$this->brokenCalendars(),
             ...$this->withoutCaptain($now),
         ];
@@ -443,6 +448,31 @@ final class AttentionItems
         ))->all();
     }
 
+    /** @return list<AttentionItem> */
+    private function lostCharters(Carbon $now): array
+    {
+        $bookings = $this->lostChartersQuery($now)
+            ->with('product')
+            ->orderBy('starts_at_utc')
+            ->limit(self::SOURCE_LIMIT)
+            ->get();
+
+        return $bookings->map(fn (Booking $booking): AttentionItem => new AttentionItem(
+            key: 'charter_lost:' . $booking->getKey(),
+            severity: AttentionSeverity::Critical,
+            title: (string) __('attention.charter_lost.title', [
+                'trip' => (string) $booking->product?->title,
+                'time' => $booking->local_date->toDateString() . ' ' . substr((string) $booking->local_time, 0, 5),
+            ]),
+            detail: (string) __('attention.charter_lost.detail', [
+                'guest' => (string) $booking->guest_name,
+                'reference' => $booking->reference,
+            ]),
+            deadline: $this->local($booking->starts_at_utc),
+            subject: $booking,
+        ))->all();
+    }
+
     /*
     |--------------------------------------------------------------------------
     | The questions themselves, shared by the rows and by count()
@@ -519,6 +549,26 @@ final class AttentionItems
                 PaymentGatewayName::BankTransfer->value,
                 PaymentGatewayName::Pos->value,
             ]);
+    }
+
+    /**
+     * A paid charter that found its boat taken at confirmation (2026-09-25).
+     *
+     * `ConfirmFromWebhook` cancels it and refunds it in full on its own; the
+     * operator is told because a guest who paid and was then refused will
+     * call, and the operator should know why before they do. The row goes
+     * when the day it was for has passed.
+     *
+     * @return Builder<Booking>
+     */
+    private function lostChartersQuery(Carbon $now): Builder
+    {
+        return Booking::query()
+            ->where('mode', '!=', BookingMode::PerSeat->value)
+            ->where('status', BookingStatus::Cancelled->value)
+            ->where('cancel_reason', CancelReason::VesselBookedPrivately->value)
+            ->where('cancelled_by', CancelledBy::System->value)
+            ->where('starts_at_utc', '>=', $now);
     }
 
     /** @return Builder<IcalSource> */

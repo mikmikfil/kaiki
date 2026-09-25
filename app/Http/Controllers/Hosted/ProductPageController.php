@@ -90,7 +90,8 @@ class ProductPageController extends HostedController
                 $locale,
                 $page['fromPriceCents'],
             ),
-            'initialDate' => $this->initialDate($request, $tenant),
+            'initialDate' => $initialDate = $this->initialDate($request, $tenant),
+            'initialDeparture' => $initialDate === null ? null : $this->initialDeparture($request),
         ], $locale);
     }
 
@@ -115,6 +116,24 @@ class ProductPageController extends HostedController
         }
 
         return $raw >= Carbon::now($tenant->timezone)->toDateString() ? $raw : null;
+    }
+
+    /**
+     * The sailing a guest pressed «Κράτηση» on in the departures calendar
+     * (2026-09-25), passed to the widget as `data-departure` beside the day.
+     *
+     * Only its shape is checked here. Whether it is this trip's, on that day,
+     * and still has room is the widget's question to `GET /availability` — the
+     * same read it makes anyway — and a sailing that fails it sends the guest
+     * back to the day's times rather than to an error.
+     */
+    protected function initialDeparture(Request $request): ?string
+    {
+        $raw = $request->query('departure');
+
+        return is_string($raw) && preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/', strtolower($raw)) === 1
+            ? strtolower($raw)
+            : null;
     }
 
     /**

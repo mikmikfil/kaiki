@@ -62,6 +62,13 @@ return [
         'detail' => ':guest still owes :amount.',
     ],
 
+    // A charter paid for after its boat had gone to somebody else (2026-09-25).
+    // Cancelled and refunded in full on its own; the guest will call.
+    'charter_lost' => [
+        'title' => 'Charter without its boat · :trip, :time',
+        'detail' => ':guest (:reference) paid, but the boat had already been booked. The booking was cancelled and refunded in full.',
+    ],
+
     // Money that came in as cash or by transfer and has to go back by hand
     // (2026-09-23). A card refunds itself; these do not.
     'refund' => [

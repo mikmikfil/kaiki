@@ -6,6 +6,8 @@ namespace App\Domain\Booking\Actions;
 
 use App\Domain\Availability\Actions\HoldSeats;
 use App\Domain\Availability\Support\CountedSeats;
+use App\Domain\Availability\Support\OccupationCollector;
+use App\Domain\Availability\Support\Window;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Booking\Support\LeadGuest;
 use App\Domain\Booking\Support\ManifestRows;
@@ -20,6 +22,7 @@ use App\Models\AgeBand;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\DiscountCode;
+use App\Models\Vessel;
 use App\Support\Booking\BookingReference;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
@@ -103,6 +106,30 @@ final class CreateBookingDraft
         $booking = $this->insertWithReference(function (string $reference) use ($data, $product, $bands, $pax, $quote, $departure, $isQuoteMode): Booking {
             $window = $this->window($data, $departure);
 
+            // A private charter holds the whole boat (2026-09-25). Its draft is
+            // the hold, so the boat is locked first — AVL-45's order, and the
+            // same row `StartCheckout` and `ConfirmBooking` lock — then asked
+            // whether anybody has it, and the row is written under that same
+            // lock. A second guest for the same window waits here and then
+            // finds the first one's hold. Until this, nothing asked at all.
+            //
+            // Not waived by `skipHold`: that is BKG-32's seat override, and a
+            // boat cannot be over-sold to two parties the way a sailing can
+            // take one more passenger.
+            $isCharter = $product->mode === BookingMode::PerVessel;
+
+            if ($isCharter) {
+                $vessel = Vessel::query()->lockForUpdate()->find($product->vessel_id);
+
+                if ($vessel instanceof Vessel) {
+                    $occupied = Window::of($window['starts_at_utc'], $window['ends_at_utc']);
+
+                    if (! OccupationCollector::forRange($vessel, $occupied)->isFree($occupied)) {
+                        throw HoldRefused::vesselUnavailable();
+                    }
+                }
+            }
+
             $booking = new Booking;
 
             $booking->forceFill([
@@ -168,6 +195,14 @@ final class CreateBookingDraft
                 'origin_url' => $data->originUrl,
                 ...$data->utmColumns(),
             ])->save();
+
+            // The charter's hold, in the same transaction and under the same
+            // vessel lock as the question above — so the next guest for this
+            // boat, waiting on that lock, finds it held. A sailing's hold is
+            // taken below, against the departure's counter.
+            if ($isCharter) {
+                $this->holdSeats->holdVessel($booking);
+            }
 
             return $booking;
         });
@@ -334,7 +369,14 @@ final class CreateBookingDraft
 
         $tenant = $data->product->tenant;
         $timezone = $tenant === null ? (string) config('kaiki.defaults.timezone') : $tenant->timezone;
-        $time = $data->startTime ?? (string) config('kaiki.availability.operating_window.earliest');
+        // The start a caller named, else the trip's own — the time the charter
+        // calendar offered (`ProposedWindowBuilder`). Until 2026-09-25 a missing
+        // start fell straight to the operating window's earliest, 06:00: the
+        // widget sends no time for a fixed-start charter, so a 09:00 charter was
+        // booked, held and shown to the guest as 06:00.
+        $default = trim((string) $data->product->default_start_time);
+        $time = $data->startTime
+            ?? ($default !== '' ? substr($default, 0, 5) : (string) config('kaiki.availability.operating_window.earliest'));
 
         $start = Carbon::parse($data->date->toDateString() . ' ' . $time, $timezone)->utc();
         $hours = ($data->product->duration_minutes ?? 0) / 60 + $data->extraHours;

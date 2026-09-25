@@ -897,6 +897,17 @@ return [
         'powered_by' => (bool) env('KAIKI_HOSTED_POWERED_BY', true),
 
         /*
+         * The departures calendar (`/{slug}/calendar`, 2026-09-25).
+         *
+         * `few_seats`: from this many seats down a sailing says «Τελευταίες 3
+         * θέσεις» instead of «Διαθέσιμη». Above it the number is not shown at
+         * all — «22 από 24 ελεύθερες» advertises an empty boat.
+         */
+        'calendar' => [
+            'few_seats' => (int) env('KAIKI_CALENDAR_FEW_SEATS', 5),
+        ],
+
+        /*
          * The origins HOS-8's Content-Security-Policy names.
          *
          * Null means "the same origin", which is the ordinary deployment: the

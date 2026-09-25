@@ -2714,9 +2714,24 @@
 
         /* The burger takes over below 52rem rather than 40: with the phone and
            the booking button in the row, the name and the links ran out of room
-           well before a phone's width. */
+           well before a phone's width.
+
+           …and the links fold into it at 73.75rem (1180px) and below since
+           «Ημερολόγιο» joined them (2026-09-25): four links, the language
+           switch and «Κλείστε θέση» pushed the button off a 1024px screen and
+           overflowed the page, and 834px overflowed already with three. Measured:
+           at 1160px the operator's name wraps to two lines, at 1170px it does not. The
+           button stays in the row down to 52rem; below that it is in the panel. */
         @media (max-width: 52rem) {
-            .site-nav, .header-book { display: none; }
+            .header-book { display: none; }
+        }
+
+        @media (max-width: 73.75rem) {
+            .site-nav { display: none; }
+            /* With the links folded away, the name takes the room and the
+               language switch, the button and the burger sit together at the end. */
+            header.site .wrap > .brand { flex: 1 1 auto; }
+            header.site .wrap > .header-end { flex: none; }
             .brand { min-width: 0; flex: 1 1 auto; }
             .brand .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             .langs { flex: 0 0 auto; margin-left: auto; }
@@ -2750,7 +2765,8 @@
             .menu-panel .menu-book:hover { background: color-mix(in srgb, var(--kaiki-accent) 82%, #000); }
         }
 
-        @media (min-width: 52.01rem) { .menu-panel .menu-phone, .menu-panel .menu-book { display: none; } }
+        @media (min-width: 52.01rem) { .menu-panel .menu-book { display: none; } }
+        @media (min-width: 73.76rem) { .menu-panel .menu-phone { display: none; } }
         @media (max-width: 26rem) { .brand-tag { display: none; } }
 
         /* --- the eyebrow and section heads ------------------------------ */
@@ -4008,7 +4024,10 @@
         .page-head .lede, .search-head .standfirst, .trip-intro .standfirst { font-size: var(--t-lead); line-height: 1.5; }
 
         /* ---- measure ---- */
-        .story-copy .prose, .product-main .prose, .faq-item .prose, .page-head .lede { max-width: var(--measure); }
+        .story-copy .prose, .faq-item .prose, .page-head .lede { max-width: var(--measure); }
+        /* The trip's own text runs wider (Mike, 25/9: «more width»): 32rem left
+           «Για την εκδρομή» a thin column beside a wide empty page. */
+        .product-main .prose { max-width: 48rem; }
 
         /* ---- the legal page: prose, not sections ----
            It is the one page whose column holds its h1, h2 and paragraphs
@@ -4335,6 +4354,9 @@
                         <li><a href="{{ route('hosted.index', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.footer.home') }}</a></li>
                     @endif
                     <li><a href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.search.nav') }}</a></li>
+                    @if ($hasCalendar ?? true)
+                        <li><a href="{{ route('hosted.calendar', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.calendar.nav') }}</a></li>
+                    @endif
                     <li><a href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.contact.nav') }}</a></li>
                 </ul>
             </div>

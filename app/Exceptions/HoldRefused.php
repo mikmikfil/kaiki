@@ -85,4 +85,18 @@ final class HoldRefused extends RuntimeException
     {
         return new self((string) trans('booking.hold.nothing_to_hold'), 'nothing_to_hold');
     }
+
+    /**
+     * The whole boat is already taken for this window (2026-09-25).
+     *
+     * A private charter's hold is the boat itself, so the refusal is the boat's:
+     * another charter is at the checkout, or booked, or a block or a sailing
+     * with passengers covers the window. Raised at the draft, at the redirect
+     * to the gateway and at confirmation — the three places a second guest
+     * could otherwise have paid for a boat the first one had.
+     */
+    public static function vesselUnavailable(): self
+    {
+        return new self((string) trans('booking.hold.vessel_unavailable'), 'vessel_unavailable');
+    }
 }

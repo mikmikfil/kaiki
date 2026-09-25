@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 
-import type { Api } from '../api-client';
+import type { Api, ApiError } from '../api-client';
 import { countedPax, draftPayload, type BookingState } from './machine';
 
 /**
@@ -48,6 +48,13 @@ export interface Quote {
   readonly total: string | null;
   readonly loading: boolean;
   readonly failed: boolean;
+  /**
+   * The server's sentence when it refused the question itself — a date past
+   * its lead time, a party that may not sail (2026-09-25) — rather than
+   * failing to answer it. Null for a malformed body or a network failure,
+   * where the from-price fallback is the whole answer.
+   */
+  readonly refusal: string | null;
 }
 
 interface QuotePayload {
@@ -66,6 +73,7 @@ export function usePriceQuote(
   const [total, setTotal] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [refusal, setRefusal] = useState<string | null>(null);
 
   // Bumped per request; an answer whose number is not the current one is late.
   const seq = useRef(0);
@@ -80,6 +88,7 @@ export function usePriceQuote(
       setTotal(null);
       setLoading(false);
       setFailed(false);
+      setRefusal(null);
 
       return;
     }
@@ -99,14 +108,16 @@ export function usePriceQuote(
 
           setTotal(typeof formatted === 'string' ? formatted : null);
           setFailed(typeof formatted !== 'string');
+          setRefusal(null);
           setLoading(false);
         })
-        .catch(() => {
+        .catch((error: unknown) => {
           if (mine !== seq.current) {
             return;
           }
 
           setFailed(true);
+          setRefusal(quoteRefusal(error));
           setLoading(false);
         });
     }, SETTLE_MS);
@@ -116,5 +127,20 @@ export function usePriceQuote(
     };
   }, [client, key]);
 
-  return { total, loading, failed };
+  return { total, loading, failed, refusal };
+}
+
+/**
+ * A `422` with a code of its own and a sentence beside it. `validation_failed`
+ * is excluded: its sentence is about the request body, which the guest did not
+ * write and cannot fix.
+ */
+function quoteRefusal(error: unknown): string | null {
+  const e = error as ApiError | null;
+
+  if (e?.status !== 422 || e.code === null || e.code === 'validation_failed') {
+    return null;
+  }
+
+  return typeof e.detail === 'string' && e.detail.trim() !== '' ? e.detail : null;
 }

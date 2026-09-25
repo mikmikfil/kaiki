@@ -4,6 +4,10 @@ import type { Api } from '../../../api-client';
 import type { BookingState } from '../../../booking/machine';
 import type { Translator } from '../../../i18n';
 import { MonthGrid, startOfMonth, useAvailability } from '../../calendar/MonthGrid';
+import type { DepartureOption } from '../../calendar/MonthGrid';
+
+/** A sailing with the one field this step reads beyond the grid's own. */
+type Sailing = DepartureOption & { readonly is_guaranteed?: boolean };
 
 /**
  * Step one: when.
@@ -181,6 +185,14 @@ export function DateStep({
                       ? t('booking.party.seats_left_one')
                       : t('booking.party.seats_left_many').replace(':count', String(option.seats_available))}
                 </span>
+              ) : null}
+
+              {/* «Εγγυημένη» (2026-09-25): the minimum is reached, or the
+                  operator waived it, so this one sails. `is_guaranteed` has
+                  been on the API's DepartureOption all along; the minimum
+                  itself is said on the trip page and at checkout. */}
+              {(option as Sailing).is_guaranteed === true ? (
+                <span class="kaiki-time-left">{t('booking.date.guaranteed')}</span>
               ) : null}
             </label>
           ))}

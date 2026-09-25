@@ -52,6 +52,10 @@
 @if ($d->factsNote !== null)
 {{ $d->factsNote }}
 @endif
+@if ($d->full && ($minimumParty = \App\Domain\Booking\Support\MinimumParty::stillNeededFor($booking)))
+
+{{ __('mail.common.min_pax', ['count' => $minimumParty]) }}
+@endif
 @if (! $d->full && $d->showParty)
 
 @include('mail.booking.partials.party-text')

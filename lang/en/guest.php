@@ -68,6 +68,9 @@ return [
         'discount' => 'Discount',
         'total' => 'Total',
         'vat_included' => 'VAT is included in the price.',
+        // The departure's minimum (2026-09-25): said positively once reached.
+        'guaranteed' => 'This departure is guaranteed.',
+        'min_pax' => 'Runs with at least :count people. If not enough book, you get all your money back.',
         'deposit_note' => 'You pay :deposit now and :balance before departure.',
         'your_details' => 'Your details',
         'name' => 'Full name',

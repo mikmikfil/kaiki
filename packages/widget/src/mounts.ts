@@ -39,6 +39,8 @@ export interface MountProps {
   readonly link?: 'trip' | null;
   /** The embed's `data-date` — only the booking walk reads it. */
   readonly date?: string | null;
+  /** The embed's `data-departure` — the sailing chosen on that day; only the booking walk reads it. */
+  readonly departure?: string | null;
   /** False for `data-vessel="hide"` — only the booking walk's four lines read it. */
   readonly showVessel?: boolean;
   /** False for `data-details="hide"` — the booking and enquiry forms leave out their four lines. */

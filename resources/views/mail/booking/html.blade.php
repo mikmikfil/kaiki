@@ -181,6 +181,12 @@
                             <div style="height:18px;line-height:18px;font-size:1px;">&nbsp;</div>
                         @endif
 
+                        {{-- The departure's minimum, while it is not yet reached
+                             (2026-09-25). Only on the messages carrying the trip. --}}
+                        @if ($d->full && ($minimumParty = \App\Domain\Booking\Support\MinimumParty::stillNeededFor($booking)))
+                            <p style="margin:0 0 18px;font-size:14px;color:#14202b;">{{ __('mail.common.min_pax', ['count' => $minimumParty]) }}</p>
+                        @endif
+
                         {{-- The boarding codes (2026-09-23): one per passenger,
                              each a PNG inside the message (see the file
                              docblock). 200 px on screen, drawn at about twice

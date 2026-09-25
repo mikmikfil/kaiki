@@ -114,9 +114,15 @@ export function useAvailability(
 
   const statuses = useMemo(() => {
     const map = new Map<string, string>();
+    // Defensive (2026-09-25): a day before today is never offered, whatever
+    // the server said. A charter calendar once answered `available` for every
+    // day of the month, yesterday included, and the guest who chose one met
+    // an error two taps later. The server is still the authority for today
+    // and the lead time; this only stops a day already gone becoming a button.
+    const today = iso(new Date());
 
     for (const day of days ?? []) {
-      map.set(day.local_date, day.status);
+      map.set(day.local_date, day.local_date < today ? 'past' : day.status);
     }
 
     return map;

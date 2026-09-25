@@ -351,12 +351,6 @@ const BASE_STYLES = `
    the day and the people side by side in one bordered box, email and phone on
    one row, the optional line marked as such, and the button in the accent. */
 .kaiki-enquiry .kaiki-enquiry-sub { margin-top: -.5rem; }
-.kaiki-enquiry-step { display: flex; align-items: center; gap: .55rem; margin: .4rem 0 -.1rem; font-size: .82rem; font-weight: 700; color: var(--kaiki-accent); }
-.kaiki-enquiry-step i {
-  font-style: normal; inline-size: 1.4rem; block-size: 1.4rem; border-radius: 50%;
-  display: grid; place-items: center; font-size: .75rem;
-  background: color-mix(in srgb, var(--kaiki-accent) 12%, var(--kaiki-background));
-}
 .kaiki-enquiry-pick {
   display: grid; grid-template-columns: 1fr 1fr;
   border: 1.5px solid color-mix(in srgb, var(--kaiki-text) 16%, transparent);
@@ -667,6 +661,18 @@ const BASE_STYLES = `
 .kaiki-time-at { font-size: 1.02rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .kaiki-time:has(input:checked) .kaiki-time-at { color: var(--kaiki-primary); }
 .kaiki-time-left { font-size: .76rem; color: var(--kaiki-secondary-text); }
+
+/* The day and time already chosen, above «Πόσα άτομα;» (2026-09-25). */
+.kaiki-picked {
+  display: flex; align-items: center; justify-content: space-between; gap: .6rem;
+  margin: 0 0 .9rem; padding: .35rem .35rem .35rem .8rem; border-radius: var(--kaiki-radius, 10px);
+  background: color-mix(in srgb, var(--kaiki-primary) 7%, var(--kaiki-background));
+  font-weight: 600; font-size: .95rem;
+}
+.kaiki-link {
+  font: inherit; font-weight: 700; color: var(--kaiki-primary); background: none; border: 0;
+  min-height: 44px; padding: 0 .6rem; cursor: pointer; text-decoration: none;
+}
 /* One sailing: nothing to choose, so it reads as a fact, not a button. */
 .kaiki-times-one .kaiki-time { cursor: default; }
 .kaiki-times-one .kaiki-time input { cursor: default; }
@@ -994,7 +1000,6 @@ const BASE_STYLES = `
 .kaiki-field input,
 .kaiki-field textarea,
 .kaiki-enquiry-cell input { font-size: 1rem; }
-.kaiki-enquiry-step { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; }
 .kaiki-enquiry-optional { color: var(--kaiki-secondary-text); }
 .kaiki-enquiry-note { font-size: .8125rem; }
 .kaiki-weekdays { font-size: .8125rem; }

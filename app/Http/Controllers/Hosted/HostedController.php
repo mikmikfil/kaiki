@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Hosted;
 
 use App\Domain\Branding\Actions\GetBrandPayload;
+use App\Domain\Hosted\Support\CalendarPage;
 use App\Domain\Hosted\Support\HostedEmbedToken;
 use App\Domain\Hosted\Support\HostedHost;
 use App\Domain\Tenancy\Resolvers\HostedSlugResolver;
@@ -93,6 +94,9 @@ abstract class HostedController
             // the site has pages at all.
             'hasAbout' => $tenant->hosted_site_mode->servesHomePage()
                 && HomePageBlock::query()->onPage(HomePageBlock::PAGE_ABOUT)->where('is_visible', true)->exists(),
+            // «Ημερολόγιο» (2026-09-25), unless the operator took it out of the
+            // menu on «Η σελίδα αναζήτησής σας».
+            'hasCalendar' => CalendarPage::inMenu($tenant),
         ];
 
         return response(view($view, [...$shared, ...$data()])->render());

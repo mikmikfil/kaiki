@@ -214,7 +214,6 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale, date =
         </p>
       )}
 
-      <p class="kaiki-enquiry-step"><i aria-hidden="true">1</i>{t('enquiry.step.trip')}</p>
       <div class="kaiki-enquiry-pick">
         <label class="kaiki-enquiry-cell">
           <span>{t('enquiry.date')}</span>
@@ -238,7 +237,6 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale, date =
         </div>
       </div>
 
-      <p class="kaiki-enquiry-step"><i aria-hidden="true">2</i>{t('enquiry.step.you')}</p>
       <label class="kaiki-field">
         <span>{t('booking.contact.name')}</span>
         <input type="text" autocomplete="name" required value={fields.name} onInput={(e) => patch({ name: (e.currentTarget as HTMLInputElement).value })} />

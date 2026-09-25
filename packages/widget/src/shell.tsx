@@ -31,6 +31,7 @@ interface ShellProps {
   readonly locale: string;
   readonly link?: 'trip' | null;
   readonly date?: string | null;
+  readonly departure?: string | null;
   readonly showVessel?: boolean;
   readonly showDetails?: boolean;
 }
@@ -46,6 +47,7 @@ export function Shell({
   locale,
   link = null,
   date = null,
+  departure = null,
   showVessel = true,
   showDetails = true,
 }: ShellProps) {
@@ -65,6 +67,7 @@ export function Shell({
           locale={locale}
           link={link}
           date={date}
+          departure={departure}
           showVessel={showVessel}
           showDetails={showDetails}
         />

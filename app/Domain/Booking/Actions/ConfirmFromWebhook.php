@@ -7,8 +7,10 @@ namespace App\Domain\Booking\Actions;
 use App\Domain\Availability\Actions\HoldSeats;
 use App\Domain\Booking\Support\SeatCommitment;
 use App\Enums\BookingStatus;
+use App\Enums\CancelledBy;
 use App\Enums\CancelReason;
 use App\Enums\PaymentStatus;
+use App\Exceptions\HoldRefused;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Payment;
@@ -51,6 +53,7 @@ final class ConfirmFromWebhook
         private readonly ConfirmBooking $confirmBooking,
         private readonly ComputeBalanceDueAt $computeBalanceDueAt,
         private readonly HoldSeats $holdSeats,
+        private readonly CancelBooking $cancelBooking,
     ) {}
 
     public function __invoke(Payment $payment, bool $succeeded): void
@@ -85,7 +88,39 @@ final class ConfirmFromWebhook
 
         // `fromCheckout: true` — the seats moved into `seats_sold` at redirect
         // (BKG-9), so confirmation must not take them again.
-        $confirmed = ($this->confirmBooking)($booking->refresh(), fromCheckout: true);
+        try {
+            $confirmed = ($this->confirmBooking)($booking->refresh(), fromCheckout: true);
+        } catch (HoldRefused $refused) {
+            if ($refused->reason !== 'vessel_unavailable') {
+                throw $refused;
+            }
+
+            // A private charter paid for after its boat had gone to somebody
+            // else (2026-09-25). The money is in; the boat is not. So the
+            // booking is cancelled and refunded in full — the operator did not
+            // choose this and neither did the guest, so no policy applies — and
+            // `AttentionItems` puts it in front of the operator before the
+            // guest's call does. The `CancelDeparture` shape, for one booking.
+            //
+            // The money first: PAY-10's figure from the rows, since the
+            // confirmation that would have written it never happened, and a
+            // refund is computed from what the booking says was paid.
+            $paid = Payment::paidCentsFor($booking->getKey());
+
+            $booking->refresh()->forceFill([
+                'paid_cents' => $paid,
+                'balance_cents' => max(0, $booking->total_cents - $paid),
+            ])->save();
+
+            ($this->cancelBooking)(
+                booking: $booking->refresh(),
+                reason: CancelReason::VesselBookedPrivately,
+                by: CancelledBy::System,
+                refundInFull: true,
+            );
+
+            return;
+        }
 
         // PRC-27.2: computed and written at confirmation, never derived on read.
         $confirmed->forceFill([

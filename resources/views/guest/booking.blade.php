@@ -45,6 +45,13 @@
             @endif
         </p>
 
+        {{-- The departure's minimum, while it is not yet reached (2026-09-25).
+             Only on a booking still going ahead. --}}
+        @if (in_array($booking->status, [BookingStatus::Confirmed, BookingStatus::PendingPayment], true)
+            && ($minimumParty = \App\Domain\Booking\Support\MinimumParty::stillNeededFor($booking)))
+            <p class="muted min-pax">{{ __('guest.checkout.min_pax', ['count' => $minimumParty]) }}</p>
+        @endif
+
         @unless ($booking->status === BookingStatus::Confirmed)
             <p class="muted">{{ __('guest.booking.status') }}: {{ $booking->status->label() }}</p>
         @endunless

@@ -51,6 +51,21 @@ export function PartyStep({
 
   return (
     <div class="kaiki-step">
+      {/*
+        The day and the time already chosen, with a way back to the day's other
+        times (2026-09-25). A guest who arrives from the departures calendar
+        lands here without having seen the date step, and «Σάββατο 10 Οκτωβρίου
+        · 09:30» is what tells them the calendar's choice came with them.
+      */}
+      {state.localDate !== null && state.localTime !== null ? (
+        <p class="kaiki-picked">
+          <span>{pickedLabel(state.localDate, state.localTime, t.locale)}</span>
+          <button type="button" class="kaiki-link" onClick={() => onChange({ step: 'date' })}>
+            {t('booking.party.change')}
+          </button>
+        </p>
+      ) : null}
+
       <h3 class="kaiki-heading">{t('booking.party.heading')}</h3>
 
       {bands.map((band) => {
@@ -136,6 +151,23 @@ export function PartyStep({
       ) : null}
     </div>
   );
+}
+
+/**
+ * «Σάββατο 10 Οκτωβρίου · 09:30», in the guest's language, from `Intl`.
+ */
+export function pickedLabel(localDate: string, localTime: string, locale: string): string {
+  const date = new Date(`${localDate}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return `${localDate} · ${localTime}`;
+  }
+
+  try {
+    return `${new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(date)} · ${localTime}`;
+  } catch {
+    return `${localDate} · ${localTime}`;
+  }
 }
 
 /**

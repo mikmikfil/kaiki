@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiClient } from '../src/api-client';
-import { BookingApi, isPartyRefused, isSoldOut, refusalMessage } from '../src/booking/api';
+import { BookingApi, isDateRefused, isPartyRefused, isSoldOut, refusalMessage } from '../src/booking/api';
 import { pollForConfirmation } from '../src/booking/confirmation';
 import { holdState, WARN_AT_MS } from '../src/booking/countdown';
 import { draftFingerprint, IdempotencyKeys } from '../src/booking/idempotency';
@@ -309,5 +309,43 @@ describe('the confirmation poll', () => {
     // cached read would re-read the first response and conclude nothing ever
     // happened.
     expect(fetchMock.mock.calls.length).toBeGreaterThan(1);
+  });
+});
+
+describe('the date refusal', () => {
+  it('covers a day past its lead time, too far ahead, or a boat already taken', () => {
+    expect(isDateRefused({ code: 'lead_time_too_short', status: 422 })).toBe(true);
+    expect(isDateRefused({ code: 'too_far_ahead', status: 422 })).toBe(true);
+    // 2026-09-25: a second guest for the same whole-boat charter.
+    expect(isDateRefused({ code: 'vessel_unavailable', status: 409 })).toBe(true);
+    // Sold-out seats have their own screen.
+    expect(isDateRefused({ code: 'insufficient_capacity', status: 409 })).toBe(false);
+    expect(isDateRefused(new Error('boom'))).toBe(false);
+  });
+
+  it('carries the boat-taken sentence in Greek', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        jsonResponse(
+          {
+            error: {
+              code: 'vessel_unavailable',
+              message: 'The boat has just been booked for this time. Please choose another day.',
+              message_el: 'Το σκάφος μόλις κλείστηκε για αυτή την ώρα. Διαλέξτε άλλη μέρα.',
+            },
+          },
+          409,
+        ),
+      ),
+    );
+    const client = new ApiClient('https://api.kaiki.app/api/v1', 'pk_test', fetchMock as unknown as typeof fetch);
+    client.setLocale('el');
+
+    const error = await new BookingApi(client).createDraft(state(), 'product-uuid', 'el').catch((thrown: unknown) => thrown);
+
+    expect(isDateRefused(error)).toBe(true);
+    expect(isSoldOut(error)).toBe(false);
+    expect(refusalMessage(error)).toBe('Το σκάφος μόλις κλείστηκε για αυτή την ώρα. Διαλέξτε άλλη μέρα.');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });

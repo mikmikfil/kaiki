@@ -102,6 +102,16 @@
             <dd>{{ trans_choice('guest.checkout.people', $booking->pax_total, ['count' => $booking->pax_total]) }}</dd>
         </dl>
 
+        {{-- The departure's minimum (2026-09-25), or — once it is reached —
+             that it sails. See `MinimumParty` for when neither is said. --}}
+        @if ($minimumParty = \App\Domain\Booking\Support\MinimumParty::ofBooking($booking))
+            <p class="muted min-pax">
+                {{ $minimumParty['guaranteed']
+                    ? __('guest.checkout.guaranteed')
+                    : __('guest.checkout.min_pax', ['count' => $minimumParty['minimum']]) }}
+            </p>
+        @endif
+
         @if ($booking->hold_expires_at)
             {{-- ADR-0005's hold, in the unit the question is asked in.
 

@@ -12,6 +12,10 @@
     accessibility tree and the tab order together.
 --}}
 <a href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.search.nav') }}</a>
+{{-- «Ημερολόγιο» (2026-09-25), unless the operator took it out of the menu. --}}
+@if ($hasCalendar ?? true)
+    <a href="{{ route('hosted.calendar', ['operator' => $tenant->slug, 'lang' => $locale]) }}" @if (request()->routeIs('hosted.calendar', 'hosted.custom.calendar')) aria-current="page" @endif>{{ __('hosted.calendar.nav') }}</a>
+@endif
 {{-- «Σχετικά με εμάς», once the operator has one (2026-09-24). --}}
 @if ($hasAbout ?? false)
     <a href="{{ route('hosted.about', ['operator' => $tenant->slug, 'lang' => $locale]) }}" @if (request()->routeIs('hosted.about', 'hosted.custom.about')) aria-current="page" @endif>{{ __('hosted.about.nav') }}</a>
