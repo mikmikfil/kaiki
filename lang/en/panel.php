@@ -25,7 +25,6 @@ return [
     'nav' => [
         'home' => 'Home',
         'scan' => 'Scan tickets',
-        'prices' => 'Prices',
         'ports' => 'Ports',
         'related' => 'Related screens',
     ],
