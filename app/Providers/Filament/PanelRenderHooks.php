@@ -124,6 +124,12 @@ final class PanelRenderHooks
             static fn (): View => view('filament.touch-targets'),
         );
 
+        // No stray line below the layout, so the sidebar reaches the bottom.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View => view('filament.page-height'),
+        );
+
         // A photo already in a single-file field can be removed with its ×.
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
