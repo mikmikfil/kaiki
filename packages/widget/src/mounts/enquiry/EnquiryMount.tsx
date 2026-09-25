@@ -27,6 +27,14 @@ import { Peek, useSettled, useSheetMode } from '../booking/Sheet';
  * skips the trap too. A guest never sees it; a script filling every input fills
  * it.
  *
+ * ## Two steps (Mike, 2026-09-24, version 3 of docs/mockups/enquiry-form.html)
+ *
+ * The trip first (the day and how many, the people as − / +), then how to
+ * answer (name, email, phone), and «Κάτι ακόμα;» optional. The API still wants
+ * a message of five characters or more, so an empty one is sent as a line made
+ * from the two choices — «Ερώτηση για την εκδρομή: 27/09/2026, 4 άτομα.» — which
+ * is what the operator needs to answer anyway.
+ *
  * ## A rejection is the API's sentence, not ours
  *
  * The acceptance criterion is explicit: *"a rejection renders the same localised
@@ -99,7 +107,7 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale, date =
     phone: '',
     // The day pressed on the operator's calendar, if the embed carried one.
     preferred_date: initialPreferredDate(date),
-    pax: '',
+    pax: '2',
     message: '',
     company_website: '',
   });
@@ -108,6 +116,18 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale, date =
   const [error, setError] = useState<string | null>(null);
 
   const patch = (values: Partial<EnquiryFields>) => setFields({ ...fields, ...values });
+
+  const paxNumber = Math.max(1, Math.min(500, Number(fields.pax) || 1));
+  const stepPax = (by: number) => patch({ pax: String(Math.max(1, Math.min(500, paxNumber + by))) });
+
+  /** The message sent when «Κάτι ακόμα;» is left empty: the two choices, in words. */
+  const autoMessage = (): string => {
+    const day = /^\d{4}-\d{2}-\d{2}$/.test(fields.preferred_date)
+      ? fields.preferred_date.split('-').reverse().join('/')
+      : t('enquiry.auto_any_date');
+
+    return t('enquiry.auto_message').replace(':date', day).replace(':pax', String(paxNumber));
+  };
 
   const submit = async (event: Event): Promise<void> => {
     event.preventDefault();
@@ -122,7 +142,7 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale, date =
         phone: fields.phone.trim() === '' ? null : fields.phone.trim(),
         preferred_date: fields.preferred_date === '' ? null : fields.preferred_date,
         pax: fields.pax === '' ? null : Number(fields.pax),
-        message: fields.message.trim(),
+        message: fields.message.trim().length >= 5 ? fields.message.trim() : [fields.message.trim(), autoMessage()].filter(Boolean).join(' '),
         locale,
         company_website: fields.company_website,
         form_rendered_at: renderedAt,
@@ -158,7 +178,7 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale, date =
       ) : null}
 
       <form
-        class="kaiki-booking kaiki-step"
+        class="kaiki-booking kaiki-step kaiki-enquiry"
         ref={rootRef}
         data-sheet={sheet}
         data-open={sheet && open}
@@ -186,6 +206,7 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale, date =
       )}
 
       <h3 class="kaiki-heading">{t('enquiry.heading')}</h3>
+      <p class="kaiki-muted kaiki-enquiry-sub">{t('enquiry.sub')}</p>
 
       {error === null ? null : (
         <p class="kaiki-error" role="alert">
@@ -193,34 +214,53 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale, date =
         </p>
       )}
 
+      <p class="kaiki-enquiry-step"><i aria-hidden="true">1</i>{t('enquiry.step.trip')}</p>
+      <div class="kaiki-enquiry-pick">
+        <label class="kaiki-enquiry-cell">
+          <span>{t('enquiry.date')}</span>
+          <input type="date" value={fields.preferred_date} onInput={(e) => patch({ preferred_date: (e.currentTarget as HTMLInputElement).value })} />
+        </label>
+        <div class="kaiki-enquiry-cell">
+          <span id="kaiki-enquiry-pax">{t('enquiry.people')}</span>
+          <div class="kaiki-enquiry-stepper">
+            <button type="button" aria-label={t('enquiry.fewer')} disabled={paxNumber <= 1} onClick={() => stepPax(-1)}>−</button>
+            <input
+              type="number"
+              min="1"
+              max="500"
+              inputMode="numeric"
+              aria-labelledby="kaiki-enquiry-pax"
+              value={fields.pax}
+              onInput={(e) => patch({ pax: (e.currentTarget as HTMLInputElement).value })}
+            />
+            <button type="button" aria-label={t('enquiry.more_people')} disabled={paxNumber >= 500} onClick={() => stepPax(1)}>+</button>
+          </div>
+        </div>
+      </div>
+
+      <p class="kaiki-enquiry-step"><i aria-hidden="true">2</i>{t('enquiry.step.you')}</p>
       <label class="kaiki-field">
         <span>{t('booking.contact.name')}</span>
         <input type="text" autocomplete="name" required value={fields.name} onInput={(e) => patch({ name: (e.currentTarget as HTMLInputElement).value })} />
       </label>
 
-      <label class="kaiki-field">
-        <span>{t('booking.contact.email')}</span>
-        <input type="email" autocomplete="email" required value={fields.email} onInput={(e) => patch({ email: (e.currentTarget as HTMLInputElement).value })} />
-      </label>
+      <div class="kaiki-enquiry-two">
+        <label class="kaiki-field">
+          <span>{t('booking.contact.email')}</span>
+          <input type="email" autocomplete="email" required value={fields.email} onInput={(e) => patch({ email: (e.currentTarget as HTMLInputElement).value })} />
+        </label>
+
+        <label class="kaiki-field">
+          <span>{t('booking.contact.phone')}</span>
+          <input type="tel" autocomplete="tel" value={fields.phone} onInput={(e) => patch({ phone: (e.currentTarget as HTMLInputElement).value })} />
+        </label>
+      </div>
 
       <label class="kaiki-field">
-        <span>{t('booking.contact.phone')}</span>
-        <input type="tel" autocomplete="tel" value={fields.phone} onInput={(e) => patch({ phone: (e.currentTarget as HTMLInputElement).value })} />
-      </label>
-
-      <label class="kaiki-field">
-        <span>{t('enquiry.preferred_date')}</span>
-        <input type="date" value={fields.preferred_date} onInput={(e) => patch({ preferred_date: (e.currentTarget as HTMLInputElement).value })} />
-      </label>
-
-      <label class="kaiki-field">
-        <span>{t('enquiry.pax')}</span>
-        <input type="number" min="1" max="500" inputMode="numeric" value={fields.pax} onInput={(e) => patch({ pax: (e.currentTarget as HTMLInputElement).value })} />
-      </label>
-
-      <label class="kaiki-field">
-        <span>{t('enquiry.message')}</span>
-        <textarea rows={4} required value={fields.message} onInput={(e) => patch({ message: (e.currentTarget as HTMLTextAreaElement).value })} />
+        <span>
+          {t('enquiry.more')} <em class="kaiki-enquiry-optional">{t('enquiry.optional')}</em>
+        </span>
+        <textarea rows={2} placeholder={t('enquiry.more_placeholder')} value={fields.message} onInput={(e) => patch({ message: (e.currentTarget as HTMLTextAreaElement).value })} />
       </label>
 
       {/* The honeypot. Off-screen rather than `display: none`, so a form filler
@@ -241,10 +281,11 @@ export function EnquiryMount({ client, productUuid, t, analytics, locale, date =
 
         </div>
 
-        <div class="kaiki-actions">
+        <div class="kaiki-actions kaiki-enquiry-actions">
           <button type="submit" class="kaiki-button" disabled={state === 'sending'}>
             {t(state === 'sending' ? 'enquiry.sending' : 'enquiry.submit')}
           </button>
+          <p class="kaiki-muted kaiki-enquiry-note">{t('enquiry.note')}</p>
         </div>
       </form>
     </>

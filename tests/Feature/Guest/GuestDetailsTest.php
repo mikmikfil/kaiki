@@ -90,6 +90,7 @@ it('turns complete only when every required field is there for every guest', fun
         'full_name' => $name,
         'date_of_birth' => '1988-04-12',
         'nationality' => 'GR',
+        'sex' => 'f',
         'document_type' => 'passport',
         'document_number' => 'AB1234567',
         // A passport is complete with its expiry date (2026-09-17).

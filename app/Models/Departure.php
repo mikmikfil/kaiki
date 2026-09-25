@@ -64,6 +64,11 @@ use Illuminate\Support\Carbon;
  * @property bool $is_blocked
  * @property string|null $notes
  * @property Carbon|null $completed_at
+ * @property int|null $captain_user_id today's captain, when they have an account
+ * @property string|null $captain_name today's captain, typed, when they do not
+ * @property list<int>|null $crew_user_ids the operator's people sailing with it
+ * @property bool $crew_from_rule still follows its schedule's crew; false once changed by hand
+ * @property Carbon|null $crew_reminded_at when the 24-hours-before reminder went out
  */
 class Departure extends Model
 {
@@ -100,6 +105,9 @@ class Departure extends Model
             'starts_at_utc' => 'datetime',
             'ends_at_utc' => 'datetime',
             'dst_ambiguous' => 'boolean',
+            'crew_user_ids' => 'array',
+            'crew_from_rule' => 'boolean',
+            'crew_reminded_at' => 'datetime',
             'capacity' => 'integer',
             'min_pax' => 'integer',
             'seats_sold' => 'integer',
@@ -122,6 +130,41 @@ class Departure extends Model
     public function vessel(): BelongsTo
     {
         return $this->belongsTo(Vessel::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function captain(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'captain_user_id');
+    }
+
+    /**
+     * Who takes her out today (2026-09-24): the person chosen, else the name
+     * typed, else the boat's usual captain — the one the list printed before.
+     */
+    public function captainName(): ?string
+    {
+        $user = $this->captain_user_id === null ? null : $this->captain;
+        $name = $user instanceof User ? $user->name : ($this->captain_name ?? $this->vessel?->captain_name);
+
+        return is_string($name) && trim($name) !== '' ? trim($name) : null;
+    }
+
+    /** @return list<string> the crew's names, in the order they were chosen */
+    public function crewNames(): array
+    {
+        $ids = array_map('intval', (array) ($this->crew_user_ids ?? []));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $names = User::query()->whereKey($ids)->pluck('name', 'id');
+
+        return array_values(array_filter(array_map(
+            static fn (int $id): ?string => $names->get($id),
+            $ids,
+        )));
     }
 
     /** @return BelongsTo<ScheduleRule, $this> */

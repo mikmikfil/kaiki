@@ -71,6 +71,18 @@
                 @elseif ($needsDocuments)
                     <div class="field-pair">
                         <div>
+                            <label for="sex-{{ $index }}">{{ __('guest.details.sex') }}</label>
+                            <select id="sex-{{ $index }}" name="guests[{{ $index }}][sex]" @disabled($readOnly)>
+                                <option value=""></option>
+                                @foreach (\App\Enums\GuestSex::cases() as $sex)
+                                    <option value="{{ $sex->value }}" @selected($guest->sex === $sex)>{{ $sex->label() }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div></div>
+                    </div>
+                    <div class="field-pair">
+                        <div>
                             <label for="dob-{{ $index }}">{{ __('guest.details.date_of_birth') }}</label>
                             <input id="dob-{{ $index }}" type="date" name="guests[{{ $index }}][date_of_birth]"
                                    value="{{ $guest->date_of_birth?->toDateString() }}" @disabled($readOnly)>

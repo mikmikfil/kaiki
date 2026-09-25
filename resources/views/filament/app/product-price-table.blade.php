@@ -18,8 +18,6 @@
 @else
     @php
         $table = $page->priceTable();
-        $baseKey = $table->baseRowKey();
-        $baseLabel = collect($table->rows)->firstWhere('key', $baseKey)['label'] ?? '';
     @endphp
 
     @php($missing = $page->missingPriceCount())
@@ -39,11 +37,25 @@
                             <th scope="col" class="kpt-bandcol">{{ __('pricing.price_table.band') }}</th>
                             @foreach ($table->columns as $column)
                                 <th scope="col">
-                                    <span class="kpt-period">{{ $column['label'] }}</span>
-                                    <span class="kpt-dates">{{ $column['dates'] }}</span>
-                                    @unless ($column['active'])
-                                        <span class="kpt-tag">{{ __('pricing.price_table.inactive') }}</span>
-                                    @endunless
+                                    <span class="kpt-head">
+                                        <span>
+                                            <span class="kpt-period">{{ $column['label'] }}</span>
+                                            <span class="kpt-dates">{{ $column['dates'] }}</span>
+                                        </span>
+                                        {{-- A period's own deposit and deadlines. Only once it
+                                             is saved: a column just ticked has no plan yet. --}}
+                                        @if ($column['season_id'] !== null && $column['plan_id'] !== null)
+                                            <button type="button" class="kpt-more"
+                                                    wire:click="mountAction('periodTerms', { plan: {{ $column['plan_id'] }} })"
+                                                    aria-label="{{ __('pricing.periods.terms.open') }}: {{ $column['label'] }}"
+                                                    title="{{ __('pricing.periods.terms.open') }}">⋯</button>
+                                        @endif
+                                    </span>
+                                    @if ($column['season_id'] !== null && $column['plan_id'] === null)
+                                        <span class="kpt-tag">{{ __('pricing.periods.new_column') }}</span>
+                                    @elseif (! $column['follows'])
+                                        <span class="kpt-tag is-own">{{ __('pricing.periods.terms.own_tag') }}</span>
+                                    @endif
                                 </th>
                             @endforeach
                         </tr>
@@ -59,42 +71,18 @@
                                         @unless ($row['takes_seat']) · {{ __('pricing.price_table.no_seat') }} @endunless
                                     </span>
 
-                                    @unless ($row['is_base'])
-                                        <span class="kpt-fills">
-                                            @foreach (\App\Enums\PriceQuickFill::cases() as $fill)
-                                                <button type="button"
-                                                        @class(['kpt-fill', 'is-on' => ($page->priceFills[$row['key']] ?? null) === $fill->value])
-                                                        wire:click="fillPriceRow('{{ $row['key'] }}', '{{ $fill->value }}')">
-                                                    {{ $fill->label() }}
-                                                </button>
-                                            @endforeach
-                                        </span>
-
-                                        @if ($page->priceStale[$row['key']] ?? false)
-                                            <span class="kpt-stale">
-                                                {{ __('pricing.price_table.stale', ['base' => $baseLabel, 'band' => $row['label']]) }}
-                                                <button type="button" class="kpt-fill is-on"
-                                                        wire:click="refreshPriceRow('{{ $row['key'] }}')">
-                                                    {{ __('pricing.price_table.stale_action') }}
-                                                </button>
-                                            </span>
-                                        @endif
-                                    @endunless
                                 </th>
 
                                 @foreach ($table->columns as $column)
                                     @php($cell = "priceCells.{$row['key']}.{$column['key']}")
                                     <td>
-                                        @php($empty = $column['plan_id'] !== null && $column['active'] && trim((string) data_get($page, $cell)) === '')
+                                        @php($empty = trim((string) data_get($page, $cell)) === '')
                                         <label class="kpt-input @error($cell) is-error @enderror @if ($empty) is-missing @endif">
                                             <span aria-hidden="true">€</span>
                                             <input type="text" inputmode="decimal" autocomplete="off"
                                                    aria-label="{{ $row['label'] }} · {{ $column['label'] }}"
                                                    wire:model.blur="{{ $cell }}">
                                         </label>
-                                        @if ($table->derived[$row['key']][$column['key']] ?? false)
-                                            <span class="kpt-derived" title="{{ __('pricing.price_table.derived') }}">%</span>
-                                        @endif
                                         @error($cell)
                                             <span class="kpt-error">{{ $message }}</span>
                                         @enderror
@@ -108,8 +96,6 @@
                     </tbody>
                 </table>
             </div>
-
-            <p class="kpt-muted">{{ __('pricing.price_table.fill_hint') }}</p>
 
             @error('priceCells')
                 <p class="kpt-error kpt-block">{{ $message }}</p>
@@ -125,7 +111,6 @@
                 @endif
             </div>
 
-            <p class="kpt-muted">{{ __('pricing.price_table.periods_below') }}</p>
         </div>
 
         <aside class="kpt-guest" aria-label="{{ __('pricing.price_table.guest.heading') }}">
@@ -174,13 +159,12 @@
     .kpt-bandcol { min-width: 13rem; }
     .kpt-period, .kpt-band { display: block; font-weight: 600; color: rgb(var(--gray-950)); }
     .kpt-dates, .kpt-ages { display: block; font-size: .75rem; font-weight: 400; color: rgb(var(--gray-500)); }
-    .kpt-tag { display: inline-block; margin-top: .2rem; font-size: .7rem; padding: .05rem .4rem; border-radius: 999px; background: rgb(var(--gray-100)); color: rgb(var(--gray-600)); }
-
-    .kpt-fills { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .45rem; }
-    .kpt-fill { font-size: .72rem; padding: .15rem .5rem; border-radius: 999px; border: 1px solid rgb(var(--gray-300)); background: #fff; color: rgb(var(--gray-700)); }
-    .kpt-fill:hover { border-color: rgb(var(--primary-500)); color: rgb(var(--primary-700)); }
-    .kpt-fill.is-on { border-color: rgb(var(--primary-600)); background: rgb(var(--primary-50)); color: rgb(var(--primary-700)); }
-    .kpt-stale { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; margin-top: .45rem; font-size: .75rem; font-weight: 400; color: rgb(var(--warning-700)); }
+    .kpt-tag { display: inline-block; margin-top: .2rem; font-size: .7rem; padding: .05rem .4rem; border-radius: 999px; background: rgb(var(--primary-50)); color: rgb(var(--primary-700)); }
+    .kpt-tag.is-own { background: rgb(var(--warning-50)); color: rgb(var(--warning-800)); }
+    .kpt-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
+    .kpt-more { flex: none; width: 2rem; height: 2rem; margin: -.3rem -.2rem 0 0; border-radius: .5rem; font-size: 1.1rem; line-height: 1; color: rgb(var(--gray-500)); }
+    .kpt-more:hover { background: rgb(var(--gray-100)); color: rgb(var(--gray-900)); }
+    .kpt-more:focus-visible { outline: 2px solid rgb(var(--primary-600)); outline-offset: 1px; }
 
     .kpt-input { display: flex; align-items: center; gap: .3rem; min-width: 6.5rem; padding: .3rem .5rem; border-radius: .5rem; border: 1px solid rgb(var(--gray-300)); background: #fff; }
     .kpt-input:focus-within { border-color: rgb(var(--primary-600)); box-shadow: 0 0 0 1px rgb(var(--primary-600)); }
@@ -190,7 +174,6 @@
     .kpt-input span { color: rgb(var(--gray-400)); }
     .kpt-input input { width: 100%; border: 0; padding: 0; background: transparent; font-variant-numeric: tabular-nums; text-align: end; box-shadow: none; }
     .kpt-input input:focus { outline: none; box-shadow: none; }
-    .kpt-derived { display: inline-block; margin-top: .2rem; font-size: .7rem; color: rgb(var(--warning-700)); cursor: help; }
 
     .kpt-error { display: block; margin-top: .25rem; font-size: .75rem; color: rgb(var(--danger-600)); }
     .kpt-block { margin: .5rem 0 0; }
@@ -211,6 +194,6 @@
 
     .dark .kpt-period, .dark .kpt-band { color: #fff; }
     .dark .kpt-table th, .dark .kpt-table td { border-color: rgba(255, 255, 255, .1); }
-    .dark .kpt-input, .dark .kpt-fill, .dark .kpt-counter button { background: rgba(255, 255, 255, .05); border-color: rgba(255, 255, 255, .15); color: rgb(var(--gray-200)); }
+    .dark .kpt-input, .dark .kpt-counter button { background: rgba(255, 255, 255, .05); border-color: rgba(255, 255, 255, .15); color: rgb(var(--gray-200)); }
     .dark .kpt-guest { background: rgba(255, 255, 255, .03); border-color: rgba(255, 255, 255, .1); }
 </style>

@@ -57,7 +57,7 @@ class DemoHomePageSeeder extends Seeder
                 // Only for an operator who has never touched the editor.
                 // Overwriting a page somebody arranged by hand — including the
                 // one in this development database — is not a seeder's job.
-                if (HomePageBlock::query()->exists()) {
+                if (HomePageBlock::query()->onPage(HomePageBlock::PAGE_HOME)->exists()) {
                     return;
                 }
 
@@ -146,6 +146,24 @@ class DemoHomePageSeeder extends Seeder
                 'image_alt' => ['el' => 'Το καΐκι μας δεμένο στη μαρίνα', 'en' => 'Our kaiki moored in the marina'],
                 'settings' => ['image_side' => 'left'],
             ],
+            // A second story under the first, photograph on the other side, so
+            // the two read as a zig-zag (Mike, 2026-09-24).
+            $full ? [
+                'type' => HomeBlockType::Story->value,
+                'eyebrow' => ['el' => 'Πώς ταξιδεύουμε', 'en' => 'How we sail'],
+                'heading' => ['el' => 'Μικρές παρέες, μεγάλη θάλασσα', 'en' => 'Small groups, a big sea'],
+                'body' => [
+                    'el' => 'Δεν βάζουμε ποτέ πάνω από δώδεκα άτομα στο σκάφος. Έτσι χωράνε όλοι στην πλώρη, ο κυβερνήτης ξέρει τα ονόματά σας, και σταματάμε όπου η παρέα θέλει να κολυμπήσει.
+
+Το πρόγραμμα το κανονίζει ο καιρός, όχι το ρολόι: αν φυσάει βοριάς πάμε στην απάνεμη πλευρά, αν η θάλασσα είναι λάδι μένουμε λίγο παραπάνω.',
+                    'en' => 'We never take more than twelve people aboard. Everyone fits on the bow, the captain knows your names, and we stop wherever the group wants to swim.
+
+The weather sets the plan, not the clock: if the north wind blows we go to the sheltered side, and if the sea is like glass we stay a little longer.',
+                ],
+                'image_path' => $this->productImageOrNull('istioploia-me-pania'),
+                'image_alt' => ['el' => 'Τα πανιά ανοιχτά στο ηλιοβασίλεμα', 'en' => 'Sails up at sunset'],
+                'settings' => ['image_side' => 'right'],
+            ] : null,
             $full ? [
                 'type' => HomeBlockType::Features->value,
                 'eyebrow' => ['el' => 'Γιατί Aegean Blue', 'en' => 'Why Aegean Blue'],
@@ -191,7 +209,10 @@ class DemoHomePageSeeder extends Seeder
                     'el' => 'Γενέθλια, πρόταση γάμου, εταιρική εκδρομή ή απλώς μια μέρα χωρίς αγνώστους. Πείτε μας ημερομηνία και άτομα, και σας στέλνουμε προσφορά μέσα στη μέρα.',
                     'en' => 'A birthday, a proposal, a company outing or simply a day without strangers. Tell us the date and how many of you, and we send a quote the same day.',
                 ],
-                'image_path' => $this->productImageOrNull('idiotiki-imera-skafos'),
+                // Friends on deck at sunset (Mike, 24/9): the private-trips band's
+                // photograph, from the pool the demo images seeder copies.
+                'image_path' => $this->publicFileOrNull(sprintf('products/%d/ilioyasilema-me-krasi.jpg', $tenant->getKey()))
+                    ?? $this->productImageOrNull('idiotiki-imera-skafos'),
                 'image_alt' => ['el' => 'Ιστιοφόρο στη θάλασσα', 'en' => 'A sailing boat at sea'],
                 'buttons' => array_values(array_filter([
                     ['label' => ['el' => 'Ζητήστε προσφορά', 'en' => 'Ask for a quote'], 'target' => 'contact'],
@@ -236,6 +257,12 @@ class DemoHomePageSeeder extends Seeder
 
         $path = sprintf('branding/%d/%s', $tenant->getKey(), $file);
 
+        return Storage::disk('public')->exists($path) ? $path : null;
+    }
+
+    /** A file already on the public disk, or null. */
+    private function publicFileOrNull(string $path): ?string
+    {
         return Storage::disk('public')->exists($path) ? $path : null;
     }
 

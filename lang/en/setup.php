@@ -67,7 +67,7 @@ return [
             'why' => 'These are printed on your receipts and invoices and sent to the tax authority. Without a legal name and a VAT number no document can be issued — everything else here can wait.',
         ],
         'branding' => [
-            'label' => 'Styling',
+            'label' => 'Appearance',
             'description' => 'Logo and colours',
             'question' => 'How should your pages look?',
             'why' => 'Your logo and colours go on your booking pages and on the emails guests receive. Optional: the pages work without them.',
@@ -120,6 +120,14 @@ return [
             'caveat' => 'One price all year? Skip this: every trip already starts with an «All year» price.',
             'done' => 'You have already set up a period.',
             'action' => 'Add a period',
+        ],
+        'crew' => [
+            'label' => 'Crew',
+            'description' => 'Captains and deckhands',
+            'question' => 'Who is on the boat?',
+            'why' => 'Add your captains and deckhands under «Team». They do not need an email.',
+            'done' => 'You have already added crew.',
+            'action' => 'Add crew',
         ],
         'product' => [
             'label' => 'Your first trip',

@@ -46,6 +46,14 @@ use Illuminate\Http\Response;
  * where a scan survives the browser being killed; a worker replaying requests
  * from a cache would be a second queue with different semantics and no way for
  * the page to show what is in it.
+ *
+ * ## It shares the origin with the panel's worker
+ *
+ * `/app` has a worker too ({@see PanelServiceWorkerController}), with the
+ * shorter scope, so this one keeps `/app/boarding`. Cache Storage is one per
+ * origin, though, so on activate this worker deletes only caches named
+ * `kaiki-boarding…` — until 2026-09-23 it deleted everything but its own two,
+ * which would have taken the panel's offline page with it.
  */
 class BoardingServiceWorkerController
 {
@@ -88,7 +96,10 @@ class BoardingServiceWorkerController
         self.addEventListener('activate', (event) => {
             event.waitUntil(
                 caches.keys()
-                    .then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== ASSET_CACHE).map((k) => caches.delete(k))))
+                    // Only our own old ones: the panel's worker keeps its
+                    // caches in the same storage (`kaiki-panel-…`), and they
+                    // are not this worker's to clear.
+                    .then((keys) => Promise.all(keys.filter((k) => k.startsWith('kaiki-boarding') && k !== CACHE && k !== ASSET_CACHE).map((k) => caches.delete(k))))
                     // Last build's camera script, which no page asks for any more.
                     .then(() => caches.open(ASSET_CACHE))
                     .then((cache) => cache.keys().then((requests) => Promise.all(

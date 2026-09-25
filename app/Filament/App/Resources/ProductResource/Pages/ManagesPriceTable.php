@@ -4,49 +4,76 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources\ProductResource\Pages;
 
+use App\Domain\Catalog\Actions\SaveSeason;
+use App\Domain\Pricing\Actions\SavePeriodTerms;
 use App\Domain\Pricing\Actions\SavePriceTable;
 use App\Domain\Pricing\Support\PriceTable;
 use App\Enums\BookingMode;
-use App\Enums\PriceQuickFill;
+use App\Enums\DepositType;
 use App\Filament\Forms\MoneyInput;
 use App\Models\Product;
+use App\Models\RatePlan;
+use App\Models\Season;
 use App\Support\Format\MoneyFormatter;
+use Filament\Actions\Action;
+use Filament\Forms\Components\Field;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\ToggleButtons;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
 
 /**
- * The euro price table on the trip's edit page (product owner, 2026-09-17).
+ * Prices by group and period on the trip's edit page (product owner,
+ * 2026-09-17; the flow of `docs/mockups/pricing-flow.html` since 2026-09-24).
+ *
+ * ## Groups, then periods, then the table
+ *
+ * The groups are the form's «Ομάδες επιβατών». The periods are ticks — the
+ * operator's own, shared by all their trips, plus «Όλο τον χρόνο», which is
+ * always on — and a new one can be made here without leaving the page. The
+ * table has a row per group and a column per ticked period, and is saved with
+ * the deposit and deadlines below it on one button.
  *
  * ## Its own state and its own save button
  *
- * The cells are page properties rather than fields of the trip form. The form
- * saves the trip and its age bands; the table saves every rate plan's prices.
- * Mixing them would mean a new age band typed into the form had to be priced
- * in a table built before it existed. So the table saves on its own button,
- * says when it has unsaved changes, and is rebuilt after the trip is saved.
+ * The cells, ticks and terms are page properties rather than fields of the trip
+ * form. The form saves the trip and its groups; this saves the plans. So the
+ * table says when it has unsaved changes, and is rebuilt after the trip is saved.
  *
- * ## The quick buttons are arithmetic on the server
+ * ## Every price is typed
  *
- * «Μισή τιμή» runs {@see PriceQuickFill::apply()} on each period's base price,
- * so the cents are the engine's cents, rounded the engine's way, and a test can
- * hold them. Alpine could do it faster and would be a second rounding rule.
- *
- * ## A changed adult price asks, never pushes
- *
- * The button last pressed on a row is remembered for this visit only. When the
- * base price then changes, the row offers «Ενημέρωση» instead of rewriting the
- * child's fare behind the operator's back. Typing into the row forgets it.
+ * No quick buttons (Mike, 2026-09-24: *«ας το βάζουν κατευθείαν στον πίνακα την
+ * τιμή που θέλουν»*). A cell is the price, in euros.
  */
 trait ManagesPriceTable
 {
     /** @var array<string, array<string, string|null>> row key => column key => euros as typed */
     public array $priceCells = [];
 
-    /** @var array<string, string> row key => the quick-fill last pressed on it */
-    public array $priceFills = [];
+    /** @var list<int> the ticked periods */
+    public array $priceSeasonIds = [];
 
-    /** @var array<string, bool> row key => the base changed since its quick-fill */
-    public array $priceStale = [];
+    /**
+     * The trip's deposit and deadlines, as typed; the fixed deposit in euros.
+     *
+     * @var array{deposit_type: string, deposit_percent: int|string|null, deposit_fixed: string|null, balance_due_days_before_departure: int|string|null, min_lead_time_hours: int|string|null, max_advance_days: int|string|null}
+     */
+    public array $priceTerms = [
+        'deposit_type' => 'none',
+        'deposit_percent' => null,
+        'deposit_fixed' => null,
+        'balance_due_days_before_departure' => null,
+        'min_lead_time_hours' => 0,
+        'max_advance_days' => null,
+    ];
+
+    /** @var array{name: string, from: string, to: string} «Νέα περίοδος», before it is added */
+    public array $priceNewPeriod = ['name' => '', 'from' => '', 'to' => ''];
+
+    public bool $priceNewPeriodOpen = false;
 
     /** @var array<string, int> row key => how many, for «Τι πληρώνει ο επισκέπτης» */
     public array $pricePax = [];
@@ -55,25 +82,32 @@ trait ManagesPriceTable
 
     public bool $priceDirty = false;
 
-    /** Build the cells from what is saved. Anything typed and unsaved is lost. */
+    /** Build everything from what is saved. Anything typed and unsaved is lost. */
     public function loadPriceTable(): void
     {
-        $table = $this->priceTable();
+        $saved = PriceTable::for($this->priceProduct());
+
+        $this->priceSeasonIds = array_values(array_map(
+            static fn (array $period): int => $period['id'],
+            array_filter($saved->periods, static fn (array $period): bool => $period['ticked']),
+        ));
 
         $this->priceCells = [];
+        $this->fillPriceCells($saved);
 
-        foreach ($table->rows as $row) {
-            foreach ($table->columns as $column) {
-                $cents = $table->cents[$row['key']][$column['key']] ?? null;
-                $this->priceCells[$row['key']][$column['key']] = self::priceText($cents);
-            }
+        $default = $this->priceProduct()->ratePlans()->whereNull('season_id')->first();
+        $terms = $default instanceof RatePlan ? SavePriceTable::termsOf($default) : SavePriceTable::noTerms();
 
-            $this->pricePax[$row['key']] ??= $row['is_base'] ? 2 : 0;
-        }
+        $this->priceTerms = [
+            'deposit_type' => (string) ($terms['deposit_type'] ?? DepositType::None->value),
+            'deposit_percent' => $terms['deposit_percent'],
+            'deposit_fixed' => self::priceText($terms['deposit_fixed_cents'] ?? null),
+            'balance_due_days_before_departure' => $terms['balance_due_days_before_departure'],
+            'min_lead_time_hours' => $terms['min_lead_time_hours'] ?? 0,
+            'max_advance_days' => $terms['max_advance_days'],
+        ];
 
-        $this->pricePreviewColumn = $table->columns[0]['key'] ?? '';
-        $this->priceFills = [];
-        $this->priceStale = [];
+        $this->pricePreviewColumn = $saved->columns[0]['key'] ?? '';
         $this->priceDirty = false;
     }
 
@@ -88,16 +122,12 @@ trait ManagesPriceTable
         return $decimal === null ? null : str_replace('.', ',', $decimal);
     }
 
-    /** How many cells of a saved, active period are still empty. */
+    /** How many cells of the table as ticked are still empty. */
     public function missingPriceCount(): int
     {
         $missing = 0;
 
         foreach ($this->priceTable()->columns as $column) {
-            if ($column['plan_id'] === null || ! $column['active']) {
-                continue;
-            }
-
             foreach ($this->priceCells as $cells) {
                 if (trim((string) ($cells[$column['key']] ?? '')) === '') {
                     $missing++;
@@ -108,12 +138,13 @@ trait ManagesPriceTable
         return $missing;
     }
 
+    /** The table as ticked on this page, saved or not. */
     public function priceTable(): PriceTable
     {
-        return PriceTable::for($this->priceProduct());
+        return PriceTable::for($this->priceProduct(), $this->priceSeasonIds);
     }
 
-    /** Is there a table to show: a saved per-seat trip that has bands? */
+    /** Is there a table to show: a saved per-seat trip that has groups? */
     public function hasPriceTable(): bool
     {
         $product = $this->priceProduct();
@@ -121,63 +152,73 @@ trait ManagesPriceTable
         return $product->mode === BookingMode::PerSeat && $product->ageBands()->exists();
     }
 
-    /** One quick-fill button: that row, every period, in euros. */
-    public function fillPriceRow(string $rowKey, string $fill): void
+    /** A period ticked or unticked: its column comes or goes, typed prices kept. */
+    public function togglePriceSeason(int $seasonId): void
     {
-        $quickFill = PriceQuickFill::tryFrom($fill);
-        $base = $this->priceTable()->baseRowKey();
+        $this->priceSeasonIds = in_array($seasonId, $this->priceSeasonIds, true)
+            ? array_values(array_diff($this->priceSeasonIds, [$seasonId]))
+            : [...$this->priceSeasonIds, $seasonId];
 
-        if ($quickFill === null || $base === null || $base === $rowKey || ! isset($this->priceCells[$rowKey])) {
-            return;
-        }
-
-        foreach (array_keys($this->priceCells[$rowKey]) as $column) {
-            $baseCents = MoneyInput::toCents($this->priceCells[$base][$column] ?? null);
-
-            // A period with no adult price yet has nothing to take half of.
-            if ($baseCents === null) {
-                continue;
-            }
-
-            $this->priceCells[$rowKey][$column] = self::priceText($quickFill->apply($baseCents));
-        }
-
-        $this->priceFills[$rowKey] = $quickFill->value;
-        unset($this->priceStale[$rowKey]);
+        $this->fillPriceCells($this->priceTable());
         $this->priceDirty = true;
     }
 
-    /** «Ενημέρωση»: press the row's last quick-fill again, from the new base. */
-    public function refreshPriceRow(string $rowKey): void
+    /**
+     * «Νέα περίοδος», made here and ticked at once. Periods are the operator's
+     * and shared by their trips; the full editor stays at «Περίοδοι».
+     *
+     * A new period outranks the ones it overlaps: made from inside a trip, it
+     * is the exception to them, and two periods with equal priority on the
+     * same day would be refused anyway.
+     */
+    public function addPricePeriod(): void
     {
-        $fill = $this->priceFills[$rowKey] ?? null;
+        $this->authorizeAccess();
 
-        if ($fill !== null) {
-            $this->fillPriceRow($rowKey, $fill);
+        $name = trim($this->priceNewPeriod['name']);
+        $from = trim($this->priceNewPeriod['from']);
+        $to = trim($this->priceNewPeriod['to']);
+
+        $errors = [];
+
+        if ($name === '') {
+            $errors['priceNewPeriod.name'] = __('pricing.periods.new.name_required');
         }
+
+        if ($from === '' || $to === '' || Carbon::parse($to)->lt(Carbon::parse($from))) {
+            $errors['priceNewPeriod.to'] = __('pricing.periods.new.dates_required');
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        try {
+            $season = app(SaveSeason::class)(new Season, [
+                'name' => [app()->getLocale() => $name],
+                'priority' => (int) Season::query()->max('priority') + 1,
+                'is_active' => true,
+            ], [['starts_on' => $from, 'ends_on' => $to]]);
+        } catch (ValidationException $exception) {
+            throw ValidationException::withMessages([
+                'priceNewPeriod.to' => array_merge(...array_values($exception->errors())),
+            ]);
+        }
+
+        $this->priceNewPeriod = ['name' => '', 'from' => '', 'to' => ''];
+        $this->priceNewPeriodOpen = false;
+        $this->togglePriceSeason((int) $season->getKey());
     }
 
     /** Livewire's hook for a typed cell: `priceCells.b12.p5`. */
-    public function updatedPriceCells(mixed $value, string $key): void
+    public function updatedPriceCells(): void
     {
         $this->priceDirty = true;
+    }
 
-        [$rowKey] = explode('.', $key) + [null];
-
-        if ($rowKey === null) {
-            return;
-        }
-
-        if ($rowKey === $this->priceTable()->baseRowKey()) {
-            foreach (array_keys($this->priceFills) as $filled) {
-                $this->priceStale[$filled] = true;
-            }
-
-            return;
-        }
-
-        // Typed by hand: the row is no longer «half of the adult».
-        unset($this->priceFills[$rowKey], $this->priceStale[$rowKey]);
+    public function updatedPriceTerms(): void
+    {
+        $this->priceDirty = true;
     }
 
     public function changePricePax(string $rowKey, int $by): void
@@ -201,7 +242,7 @@ trait ManagesPriceTable
     public function savePrices(): void
     {
         $this->authorizeAccess();
-        $this->resetErrorBag('priceCells');
+        $this->resetErrorBag();
 
         $cents = [];
         $invalid = [];
@@ -225,11 +266,22 @@ trait ManagesPriceTable
         }
 
         try {
-            app(SavePriceTable::class)($this->priceProduct(), $cents);
+            app(SavePriceTable::class)(
+                $this->priceProduct(),
+                $cents,
+                $this->priceSeasonIds,
+                self::termsFromForm($this->priceTerms),
+            );
         } catch (ValidationException $exception) {
-            throw ValidationException::withMessages([
-                'priceCells' => $exception->errors()['prices'] ?? array_merge(...array_values($exception->errors())),
-            ]);
+            $errors = $exception->errors();
+            $terms = array_intersect_key($errors, array_flip(SavePriceTable::TERMS));
+
+            throw ValidationException::withMessages(
+                ['priceCells' => $errors['prices'] ?? []]
+                + collect($terms)->mapWithKeys(static fn (array $messages, string $key): array => [
+                    'priceTerms.' . ($key === 'deposit_fixed_cents' ? 'deposit_fixed' : $key) => $messages,
+                ])->all(),
+            );
         }
 
         $this->priceProduct()->refresh();
@@ -239,6 +291,159 @@ trait ManagesPriceTable
             ->success()
             ->title(__('pricing.price_table.saved'))
             ->send();
+    }
+
+    /**
+     * «⋯» on a period's column: its own deposit and deadlines, or the trip's.
+     * Offered only on a saved period — one just ticked has no plan to hold them
+     * until the table is saved.
+     */
+    public function periodTermsAction(): Action
+    {
+        return Action::make('periodTerms')
+            ->label(__('pricing.periods.terms.open'))
+            ->modalHeading(fn (array $arguments): string => __('pricing.periods.terms.heading', [
+                'period' => (string) ($this->periodPlan($arguments)?->season->name ?? ''),
+            ]))
+            ->modalWidth('lg')
+            ->fillForm(function (array $arguments): array {
+                $plan = $this->periodPlan($arguments);
+
+                if (! $plan instanceof RatePlan) {
+                    return [];
+                }
+
+                $terms = SavePriceTable::termsOf($plan);
+
+                return [
+                    'own' => ! $plan->follows_trip_terms,
+                    'deposit_type' => $terms['deposit_type'],
+                    'deposit_percent' => $terms['deposit_percent'],
+                    'deposit_fixed' => self::priceText($terms['deposit_fixed_cents']),
+                    'balance_due_days_before_departure' => $terms['balance_due_days_before_departure'],
+                    'min_lead_time_hours' => $terms['min_lead_time_hours'],
+                    'max_advance_days' => $terms['max_advance_days'],
+                ];
+            })
+            ->form([
+                Toggle::make('own')
+                    ->label(__('pricing.periods.terms.own'))
+                    ->helperText(__('pricing.periods.terms.own_help'))
+                    ->live(),
+                ...array_map(
+                    static fn ($field) => $field->visible(static fn (Get $get): bool => (bool) $get('own')),
+                    self::termFields(),
+                ),
+            ])
+            ->action(function (array $arguments, array $data): void {
+                $plan = $this->periodPlan($arguments);
+
+                if (! $plan instanceof RatePlan) {
+                    return;
+                }
+
+                app(SavePeriodTerms::class)($plan, (bool) ($data['own'] ?? false) ? self::termsFromForm($data) : null);
+
+                Notification::make()->success()->title(__('pricing.periods.terms.saved'))->send();
+            });
+    }
+
+    /**
+     * The deposit and deadline fields, shared by the modal. The same five the
+     * page shows under the table, in the same words.
+     *
+     * @return list<Field>
+     */
+    public static function termFields(): array
+    {
+        return [
+            ToggleButtons::make('deposit_type')
+                ->label(__('pricing.periods.terms.deposit'))
+                ->options(DepositType::class)
+                // Not grouped: three Greek labels side by side are wider than
+                // a phone, and a grouped row cannot wrap. The whole row, so
+                // the three stay on one line where there is room.
+                ->inline()
+                ->columnSpanFull()
+                ->live(),
+            TextInput::make('deposit_percent')
+                ->label(__('pricing.periods.terms.deposit_percent'))
+                ->integer()
+                ->minValue(1)
+                ->maxValue(100)
+                ->suffix('%')
+                ->visible(static fn (Get $get): bool => $get('deposit_type') === DepositType::Percent->value),
+            TextInput::make('deposit_fixed')
+                ->label(__('pricing.periods.terms.deposit_fixed'))
+                ->prefix('€')
+                ->visible(static fn (Get $get): bool => $get('deposit_type') === DepositType::Fixed->value),
+            TextInput::make('min_lead_time_hours')
+                ->label(__('pricing.periods.terms.lead'))
+                ->integer()
+                ->minValue(0)
+                ->suffix(__('pricing.periods.terms.hours')),
+            TextInput::make('max_advance_days')
+                ->label(__('pricing.periods.terms.advance'))
+                ->helperText(__('pricing.periods.terms.advance_help'))
+                ->integer()
+                ->minValue(1)
+                ->suffix(__('pricing.periods.terms.days')),
+        ];
+    }
+
+    /**
+     * What the page or the modal holds, as the plan's columns.
+     *
+     * @param  array<string, mixed>  $form
+     * @return array<string, mixed>
+     */
+    public static function termsFromForm(array $form): array
+    {
+        $type = DepositType::tryFrom((string) ($form['deposit_type'] ?? '')) ?? DepositType::None;
+        $int = static fn (mixed $value): ?int => $value === null || $value === '' ? null : (int) $value;
+
+        return [
+            'deposit_type' => $type->value,
+            'deposit_percent' => $type === DepositType::Percent ? $int($form['deposit_percent'] ?? null) : null,
+            'deposit_fixed_cents' => $type === DepositType::Fixed ? MoneyInput::toCents($form['deposit_fixed'] ?? null) : null,
+            'balance_due_days_before_departure' => $int($form['balance_due_days_before_departure'] ?? null),
+            'min_lead_time_hours' => $int($form['min_lead_time_hours'] ?? null) ?? 0,
+            'max_advance_days' => $int($form['max_advance_days'] ?? null),
+        ];
+    }
+
+    /** Typed prices stay; a column new on the page starts from what is saved, or empty. */
+    private function fillPriceCells(PriceTable $table): void
+    {
+        $cells = [];
+
+        foreach ($table->rows as $row) {
+            foreach ($table->columns as $column) {
+                $cells[$row['key']][$column['key']] = array_key_exists($column['key'], $this->priceCells[$row['key']] ?? [])
+                    ? $this->priceCells[$row['key']][$column['key']]
+                    : self::priceText($table->cents[$row['key']][$column['key']] ?? null);
+            }
+
+            $this->pricePax[$row['key']] ??= $row['is_base'] ? 2 : 0;
+        }
+
+        $this->priceCells = $cells;
+
+        if (! in_array($this->pricePreviewColumn, array_column($table->columns, 'key'), true)) {
+            $this->pricePreviewColumn = $table->columns[0]['key'] ?? '';
+        }
+    }
+
+    /** @param  array<string, mixed>  $arguments */
+    private function periodPlan(array $arguments): ?RatePlan
+    {
+        $plan = RatePlan::query()->with('season')->find($arguments['plan'] ?? null);
+
+        return $plan instanceof RatePlan
+            && (int) $plan->product_id === (int) $this->priceProduct()->getKey()
+            && $plan->season_id !== null
+            ? $plan
+            : null;
     }
 
     private function priceProduct(): Product

@@ -15,10 +15,20 @@
     $day = $this->getDay();
     $now = $day->nowFraction();
     $calendarUrl = $this->getCalendarUrl();
+    $crew = $this->isCrew();
 @endphp
 
 <x-filament-widgets::widget>
-    <div class="kd">
+    <div @class(['kd', 'is-crew' => $crew])>
+        {{-- Crew: the scan comes first and alone, above everything (Mike,
+             2026-09-24: «πρώτο πράγμα στην οθόνη του πληρώματος»). --}}
+        @if ($crew && $boarding)
+            <a class="kd-scan" href="{{ $boarding['url'] }}">
+                <x-filament::icon :icon="$boarding['icon']" class="kd-scan-ic" />
+                <span>{{ $boarding['label'] }}</span>
+            </a>
+        @endif
+
         <div class="kd-top">
             {{-- 1. The next departure --}}
             <div class="kd-next">
@@ -28,7 +38,7 @@
                      blue card, the one about the boat that is leaving. --}}
                 <img class="kd-helm" src="{{ asset('images/nautical/helm.svg') }}" alt="" aria-hidden="true">
                 @if ($next)
-                    <div class="kd-next-when">{{ __('dashboard.home.next.label') }} · {{ $next['when'] }}</div>
+                    <div class="kd-next-when">{{ $next['mine'] ? __('dashboard.home.next.mine') : __('dashboard.home.next.label') }} · {{ $next['when'] }}</div>
 
                     <div class="kd-next-row">
                         <div>
@@ -39,6 +49,9 @@
                                 <div class="kd-next-trip">{{ $next['trip'] }}</div>
                             @endif
                             <div class="kd-next-where">{{ $next['where'] }}</div>
+                            @if ($next['role'] !== null)
+                                <span class="kd-role">{{ $next['role'] }}</span>
+                            @endif
                         </div>
 
                         {{-- Nobody booked yet: "0/0 aboard" would be a number
@@ -57,6 +70,10 @@
                         @endif
                     </div>
 
+                    @if ($next['sell_url'])
+                        <a class="kd-sell" href="{{ $next['sell_url'] }}">{{ __('calendar.sell.title') }} →</a>
+                    @endif
+
                     @if ($next['boards'] && $next['expected'] > 0)
                         <div class="kd-progress" role="progressbar" aria-valuenow="{{ $next['percent'] }}" aria-valuemin="0" aria-valuemax="100">
                             <i style="width: {{ $next['percent'] }}%"></i>
@@ -67,7 +84,7 @@
                     <div class="kd-next-trip">{{ __('dashboard.home.next.none') }}</div>
                 @endif
 
-                @if ($boarding)
+                @if ($boarding && ! $crew)
                     <a class="kd-bigbtn" href="{{ $boarding['url'] }}">
                         <x-filament::icon :icon="$boarding['icon']" class="kd-ic" />
                         <span>{{ $boarding['label'] }}</span>
@@ -76,6 +93,7 @@
             </div>
 
             {{-- 2. Four boxes, one question each --}}
+            @if ($boxes !== [])
             <div class="kd-boxes">
                 @foreach ($boxes as $box)
                     <a class="kd-box" href="{{ $box['url'] }}">
@@ -92,6 +110,7 @@
                     </a>
                 @endforeach
             </div>
+            @endif
         </div>
 
         {{-- 3. Today, by boat --}}
@@ -299,11 +318,19 @@
         .kd-next-time { font-size: 2.25rem; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
         .kd-next-trip { display: block; margin-top: .3rem; font-size: 1.0625rem; font-weight: 700; color: #fff; }
         .kd-next-where { font-size: .8125rem; color: #C4D3E8; }
+        .kd-role { display: inline-block; margin-top: .45rem; padding: .1rem .6rem; border-radius: 999px; background: #23497D; color: #fff; font-size: .75rem; font-weight: 700; }
         .kd-next-aboard { text-align: right; flex: none; }
         .kd-next-count { font-size: 1.35rem; font-weight: 700; font-variant-numeric: tabular-nums; }
         .kd-progress { height: .4rem; border-radius: 99px; background: #23497D; overflow: hidden; }
         .kd-progress i { display: block; height: 100%; border-radius: inherit; background: #7FB0EE; }
 
+        /* «Πώληση τώρα» on the next departure's card (24/9): a white pill on the blue. */
+        .kd-sell {
+            position: relative; z-index: 1; display: inline-flex; align-items: center; min-height: 2.5rem; margin-top: .9rem;
+            padding: 0 1rem; border-radius: 999px; background: #fff; color: rgb(var(--primary-700));
+            font-weight: 700; font-size: .9rem;
+        }
+        .kd-sell:hover { background: rgba(255, 255, 255, .9); }
         .kd-bigbtn {
             display: flex; align-items: center; justify-content: center; gap: .55rem;
             min-height: 3.125rem; margin-top: .35rem; border-radius: .75rem;
@@ -311,6 +338,21 @@
         }
         .kd-bigbtn:hover { background: var(--kd-btn-hover); }
         .kd-ic { width: 1.25rem; height: 1.25rem; }
+
+        /* Crew: one big button, the width of the page, before anything else.
+           Navy like the departure card, so the two read as one thing: the boat
+           that is leaving, and the way to put people on it. */
+        .kd.is-crew > .kd-scan { margin-bottom: .875rem; }
+        /* No boxes beside it, so the departure card takes the whole row. */
+        .kd.is-crew .kd-top { grid-template-columns: minmax(0, 1fr); }
+        .kd-scan {
+            display: flex; align-items: center; justify-content: center; gap: .75rem;
+            min-height: 4.5rem; border-radius: 1rem; padding: 0 1.25rem;
+            background: var(--kd-next); color: #fff; font-weight: 700; font-size: 1.2rem;
+            border: 1px solid var(--kd-next-line);
+        }
+        .kd-scan:hover { filter: brightness(1.12); }
+        .kd-scan-ic { width: 1.75rem; height: 1.75rem; }
 
         .kd-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
         .kd-box {

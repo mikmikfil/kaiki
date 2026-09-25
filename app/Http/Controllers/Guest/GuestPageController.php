@@ -90,16 +90,62 @@ abstract class GuestPageController
      *
      * Decided here rather than in the view, so the checkout and booking pages
      * cannot disagree about it.
+     *
+     * ## A page of ours is rebuilt on today's host (2026-09-24)
+     *
+     * `origin_url` is stored as the browser reported it, host and all. When
+     * the page was one of Kaiki's own hosted pages, that host is whatever the
+     * hosted site was served on *that day* — and a booking made while the
+     * site was reached through a tunnel kept sending its guest, for ever, to
+     * `https://yellow-northeast-buyer-observe.trycloudflare.com/aegean-blue/…`,
+     * an address that stopped existing when the tunnel closed. The same would
+     * happen to every booking the day the hosted host is changed.
+     *
+     * So a stored URL whose path is one of this operator's hosted pages
+     * (`/{slug}` or `/{slug}/…`) is answered on the hosted origin as it is
+     * configured now, with its path and query kept. The operator's own site
+     * (a WordPress page, their domain) is left exactly as the widget sent it:
+     * that address is theirs, and it is not ours to move.
      */
     protected function backToSiteUrl(Booking $booking, Tenant $tenant): ?string
     {
         $origin = $booking->origin_url;
 
         if (is_string($origin) && $origin !== '') {
-            return $origin;
+            return self::ownPageOnCurrentHost($origin, $tenant) ?? $origin;
         }
 
         return HostedUrl::homeEnabledFor($tenant) ? HostedUrl::operator($tenant) : null;
+    }
+
+    /** The same hosted page on today's hosted origin, or null when the URL is not one of ours. */
+    private static function ownPageOnCurrentHost(string $url, Tenant $tenant): ?string
+    {
+        $parts = parse_url($url);
+
+        if (! is_array($parts) || ! isset($parts['host'])) {
+            return null;
+        }
+
+        $host = strtolower((string) $parts['host']);
+        $customDomain = strtolower((string) $tenant->custom_domain);
+
+        // The operator's own domain: theirs, and already where they want it.
+        if ($customDomain !== '' && $host === $customDomain) {
+            return null;
+        }
+
+        $path = (string) ($parts['path'] ?? '');
+        $prefix = '/' . $tenant->slug;
+
+        if ($path !== $prefix && ! str_starts_with($path, $prefix . '/')) {
+            return null;
+        }
+
+        $query = isset($parts['query']) ? '?' . $parts['query'] : '';
+        $fragment = isset($parts['fragment']) ? '#' . $parts['fragment'] : '';
+
+        return HostedUrl::operator($tenant) . substr($path, strlen($prefix)) . $query . $fragment;
     }
 
     /**

@@ -1,0 +1,275 @@
+<title>Εισιτήριο, παραλλαγές</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* «Από την οθόνη σας στο κατάστρωμα» as a ticket: five variations of
+   direction Γ (Mike, 24/9: «καλή πρώτη ιδέα το εισιτήριο αλλά θέλει κι άλλη
+   δουλειά»). Aegean Blue's tokens, light page, no uppercase, no underlines. */
+:root{
+  --primary:#123A5E; --deep:#0E2C48; --accent:#1B5FD1; --accent-soft:#E8F0FC; --sky:#8DB4F2;
+  --sand:#F7F3EC; --ink:#131A22; --soft:#4A5D5A; --faint:#7B8D8A; --rule:#E1E9E7; --paper:#FFFFFF; --ground:#E6ECF0;
+  --sans:Inter,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;padding-block:22px 64px;padding-inline:16px;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:is(button,a):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+p{margin:0}
+.page{max-width:1240px;margin:0 auto;display:grid;gap:18px}
+.intro h1{font-size:25px;line-height:1.2;margin:0 0 6px;letter-spacing:-.015em}
+.intro p{color:var(--soft);font-size:15px;max-width:76ch}
+.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:#fff;border:1px solid #CFDAE8;border-radius:10px;padding:3px}
+.seg button{padding:7px 12px;border-radius:7px;font-weight:600;font-size:14px;color:var(--soft)}
+.seg button[aria-pressed="true"]{background:var(--primary);color:#fff}
+.why{font-size:14.5px;color:var(--soft);background:#fff;border-radius:12px;padding:12px 16px;box-shadow:0 1px 0 #CBD5DE}
+.why b{color:var(--ink)}
+.device{margin:0 auto;width:100%;background:var(--paper);border-radius:18px;overflow:hidden;box-shadow:0 1px 0 #CBD5DE,0 18px 50px rgba(14,44,72,.12);transition:max-width .3s}
+.device.phone{max-width:390px}
+.device.desk{max-width:1240px}
+.site{container:site/inline-size}
+.col{padding-inline:clamp(18px,3.4cqi,44px)}
+.ctx,.ctx2{padding-block:20px;color:var(--faint);font-size:13.5px}
+.ctx{border-bottom:1px dashed var(--rule)}
+.ctx2{border-top:1px dashed var(--rule)}
+
+.sec{padding-block:clamp(52px,7cqi,88px)}
+.sec.sand{background:var(--sand)}
+.head{text-align:center;margin:0 auto 32px;max-width:40rem}
+.kick{font-size:14px;font-weight:600;color:var(--accent);margin:0 0 10px;display:inline-flex;align-items:center;gap:10px}
+.kick::before{content:"";width:22px;height:2px;background:currentColor;border-radius:2px}
+h2{font-weight:800;font-size:clamp(28px,3.8cqi,42px);line-height:1.1;letter-spacing:-.03em;color:var(--primary);margin:0;text-wrap:balance}
+h3{font-size:17.5px;letter-spacing:-.01em;color:var(--primary);margin:0 0 4px}
+.lead{color:var(--soft);margin-top:12px}
+.num{font-variant-numeric:tabular-nums}
+.ic{color:var(--accent);flex:none}
+.btn{display:inline-flex;align-items:center;gap:9px;background:var(--accent);color:#fff!important;font-weight:700;font-size:15px;padding:13px 20px;border-radius:10px}
+
+/* the perforation: a dashed rule with two notches cut out of the paper.
+   --notch is the colour behind the ticket, so the notch looks like a hole. */
+.perf-v{position:relative;border-left:2px dashed var(--rule)}
+.perf-v::before,.perf-v::after{content:"";position:absolute;left:-13px;width:24px;height:24px;border-radius:50%;background:var(--notch,var(--sand))}
+.perf-v::before{top:-12px}
+.perf-v::after{bottom:-12px}
+.perf-h{position:relative;border-top:2px dashed var(--rule)}
+.perf-h::before,.perf-h::after{content:"";position:absolute;top:-13px;width:24px;height:24px;border-radius:50%;background:var(--notch,var(--sand))}
+.perf-h::before{left:-12px}
+.perf-h::after{right:-12px}
+
+/* ===== 1. Boarding pass with a header ===== */
+.t1{background:#fff;border-radius:22px;box-shadow:0 2px 6px rgba(14,44,72,.05),0 22px 48px rgba(14,44,72,.12);overflow:visible}
+.t1 .hdr{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;justify-content:space-between;padding:18px 26px;background:var(--primary);color:#fff;border-radius:22px 22px 0 0}
+.t1 .hdr .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.01em}
+.t1 .hdr .brand span{width:30px;height:30px;border-radius:8px;background:rgba(255,255,255,.14);display:grid;place-items:center}
+.t1 .hdr .route{display:flex;align-items:center;gap:12px;font-weight:700;font-size:15px}
+.t1 .hdr .route small{display:block;font-weight:500;font-size:12px;color:#B9CADC}
+.t1 .hdr .route svg{color:var(--sky)}
+.t1 .hdr .kind{font-size:13px;color:#B9CADC}
+.t1 .body{display:grid;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:760px){.t1 .body{grid-template-columns:repeat(3,minmax(0,1fr))}.t1 .st.perf-v::before{display:none}}
+.t1 .st{padding:24px 26px 26px}
+.t1 .st .n{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.t1 .st .n b{font-size:13px;color:var(--accent);font-weight:700}
+.t1 .st p{color:var(--soft);font-size:15px}
+.t1 .fld{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:16px;padding-top:12px;border-top:1px solid var(--rule)}
+.t1 .fld span{font-size:12px;color:var(--faint)}
+.t1 .fld b{display:block;font-size:14.5px;color:var(--primary)}
+@container site (max-width:759px){.t1 .st + .st{border-left:0;border-top:2px dashed var(--rule)}
+  .t1 .st + .st::before{left:-12px;top:-13px}.t1 .st + .st::after{left:auto;right:-12px;top:-13px;bottom:auto}}
+
+/* ===== 2. The dark ticket ===== */
+.t2{display:grid;grid-template-columns:minmax(0,1fr);background:var(--deep);color:#fff;border-radius:22px;box-shadow:0 22px 50px rgba(14,44,72,.25)}
+@container site (min-width:760px){.t2{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.t2 .st{padding:30px 28px}
+.t2 .perf-v,.t2 .perf-h{border-color:rgba(255,255,255,.18)}
+.t2 .big{font-size:56px;font-weight:300;line-height:1;color:var(--sky);letter-spacing:-.04em;margin-bottom:18px}
+.t2 h3{color:#fff}
+.t2 p{color:#B9CADC;font-size:15px}
+.t2 .tag{display:inline-flex;margin-top:18px;font-size:12.5px;font-weight:600;color:#fff;background:rgba(255,255,255,.1);border-radius:99px;padding:4px 11px}
+@container site (max-width:759px){.t2 .st + .st{border-left:0;border-top:2px dashed rgba(255,255,255,.18)}
+  .t2 .st + .st::before{left:-12px;top:-13px}.t2 .st + .st::after{left:auto;right:-12px;top:-13px;bottom:auto}}
+
+/* ===== 3. Three coupons torn from one book ===== */
+.t3{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:760px){.t3{grid-template-columns:repeat(3,minmax(0,1fr));gap:22px}}
+.cp{position:relative;background:#fff;border-radius:16px;padding:22px 24px 24px 24px;box-shadow:0 2px 5px rgba(14,44,72,.05),0 16px 34px rgba(14,44,72,.1)}
+.cp::before,.cp::after{content:"";position:absolute;top:50%;width:22px;height:22px;margin-top:-11px;border-radius:50%;background:var(--sand)}
+.cp::before{left:-11px}
+.cp::after{right:-11px}
+@container site (min-width:760px){.cp:nth-child(1){transform:rotate(-1.4deg)}.cp:nth-child(2){transform:translateY(10px)}.cp:nth-child(3){transform:rotate(1.2deg)}}
+.cp .top{display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;margin-bottom:14px;border-bottom:2px dashed var(--rule)}
+.cp .top b{font-size:13px;color:var(--faint);font-weight:600}
+.cp .top .no{font-size:30px;font-weight:800;color:var(--accent);letter-spacing:-.03em;line-height:1}
+.cp p{color:var(--soft);font-size:15px}
+.cp .foot{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:13px;color:var(--faint)}
+
+/* ===== 4. The ticket with the route ===== */
+.t4{background:#fff;border-radius:22px;box-shadow:0 2px 6px rgba(14,44,72,.05),0 22px 48px rgba(14,44,72,.12);padding:28px 28px 30px}
+.t4 .route{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:6px 0 26px}
+.t4 .route::before{content:"";position:absolute;left:8%;right:8%;top:11px;border-top:2px dashed #C9D6EA}
+.t4 .stop{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+.t4 .stop i{width:24px;height:24px;border-radius:50%;background:#fff;border:2px solid var(--accent);display:grid;place-items:center}
+.t4 .stop:last-child i{background:var(--accent)}
+.t4 .stop:last-child i svg{color:#fff}
+.t4 .stop span{font-size:12.5px;font-weight:600;color:var(--faint)}
+.t4 .cols{display:grid;gap:20px;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:760px){.t4 .cols{grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;text-align:center}}
+.t4 .cols p{color:var(--soft);font-size:15px;max-width:22rem;margin-inline:auto}
+@container site (max-width:759px){.t4 .route{grid-template-columns:repeat(3,minmax(0,1fr))}.t4 .cols > div{border-top:1px solid var(--rule);padding-top:16px}}
+
+/* ===== 5. Ticket and stub ===== */
+.t5{display:grid;grid-template-columns:minmax(0,1fr);background:#fff;border-radius:22px;box-shadow:0 2px 6px rgba(14,44,72,.05),0 22px 48px rgba(14,44,72,.12)}
+@container site (min-width:860px){.t5{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}}
+.t5 .main{padding:28px 30px;display:grid;gap:22px;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:600px){.t5 .main{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.t5 .main .lbl{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--faint);padding-bottom:14px;border-bottom:1px solid var(--rule)}
+.t5 .main .lbl b{color:var(--primary);font-size:15px}
+.t5 .st .n{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:8px;display:block}
+.t5 .st p{color:var(--soft);font-size:15px}
+.t5 .stub{padding:28px 30px;background:var(--accent-soft);border-radius:0 22px 22px 0;display:flex;flex-direction:column;justify-content:space-between;gap:18px}
+@container site (max-width:859px){.t5 .stub{border-radius:0 0 22px 22px;border-left:0;border-top:2px dashed #C9D6EA}
+  .t5 .stub::before{left:-12px;top:-13px}.t5 .stub::after{left:auto;right:-12px;top:-13px;bottom:auto}}
+.t5 .stub .n{font-size:13px;font-weight:700;color:var(--accent)}
+.t5 .stub p{color:var(--soft);font-size:15px}
+.t5 .stub .meta{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.t5 .stub .meta span{font-size:12px;color:var(--faint)}
+.t5 .stub .meta b{display:block;font-size:17px;color:var(--primary)}
+.t5 .stub .tear{font-size:12.5px;color:var(--faint);display:flex;align-items:center;gap:6px}
+
+.qs{background:#fff;border-radius:16px;padding:18px 20px;box-shadow:0 1px 0 #CBD5DE;font-size:15px;display:grid;gap:8px}
+.qs b{display:block}
+.qs span{color:var(--soft)}
+</style>
+
+<div class="page">
+  <header class="intro">
+    <h1>Το εισιτήριο: πέντε παραλλαγές</h1>
+    <p>Η ιδέα Γ του προηγούμενου mockup, δουλεμένη. Τα κείμενα των βημάτων είναι αυτά που έχει σήμερα το Aegean Blue.</p>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Παραλλαγή">
+      <button type="button" id="b1" aria-pressed="true" data-v="1">1. Κάρτα επιβίβασης</button>
+      <button type="button" id="b2" aria-pressed="false" data-v="2">2. Σκούρο</button>
+      <button type="button" id="b3" aria-pressed="false" data-v="3">3. Τρία κουπόνια</button>
+      <button type="button" id="b4" aria-pressed="false" data-v="4">4. Με διαδρομή</button>
+      <button type="button" id="b5" aria-pressed="false" data-v="5">5. Με κοτσάνι</button>
+    </div>
+    <div class="seg" role="group" aria-label="Οθόνη">
+      <button type="button" id="v-phone" aria-pressed="false" data-view="phone">Κινητό</button>
+      <button type="button" id="v-desk" aria-pressed="true" data-view="desk">Υπολογιστής</button>
+    </div>
+  </div>
+  <p class="why" id="why"></p>
+
+  <div class="device desk" id="device">
+   <div class="site">
+    <div class="ctx col">… οι κάρτες των εκδρομών</div>
+
+    <!-- 1 -->
+    <section class="sec sand col" data-v="1">
+      <div class="head"><p class="kick">Πώς λειτουργεί</p><h2>Από την οθόνη σας στο κατάστρωμα</h2></div>
+      <div class="t1">
+        <div class="hdr">
+          <div class="brand"><span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14M12 4l7 11h-7M4 18h16l-2 3H6z"/></svg></span>Aegean Blue Cruises</div>
+          <div class="route"><div>Πειραιάς<small>Μαρίνα Ζέας</small></div><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M14 6l6 6-6 6"/></svg><div>Αίγινα<small>και πίσω</small></div></div>
+          <div class="kind">Κάρτα επιβίβασης</div>
+        </div>
+        <div class="body">
+          <div class="st"><div class="n"><b>Βήμα 1</b><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></div><h3>Διαλέξτε εκδρομή</h3><p>Δείτε τις ελεύθερες θέσεις κάθε μέρας και την τιμή για την παρέα σας.</p><div class="fld"><div><span>Ημερομηνία</span><b class="num">Σάβ 27/9</b></div><div><span>Άτομα</span><b class="num">2</b></div></div></div>
+          <div class="st perf-v"><div class="n"><b>Βήμα 2</b><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/></svg></div><h3>Πληρώστε online</h3><p>Με κάρτα, με ασφάλεια. Το εισιτήριο έρχεται αμέσως στο email σας.</p><div class="fld"><div><span>Κράτηση</span><b class="num">ABC-4821</b></div><div><span>Πληρωμή</span><b>Κάρτα</b></div></div></div>
+          <div class="st perf-v"><div class="n"><b>Βήμα 3</b><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v14M5 13a7 7 0 0 0 14 0M8.5 11h7"/></svg></div><h3>Ελάτε στη Μαρίνα Ζέας</h3><p>15 λεπτά πριν. Εμείς φέρνουμε τον καφέ, εσείς το μαγιό.</p><div class="fld"><div><span>Επιβίβαση</span><b class="num">09:45</b></div><div><span>Προβλήτα</span><b>Β</b></div></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="sec col" data-v="2" hidden style="--notch:#fff">
+      <div class="head"><p class="kick">Πώς λειτουργεί</p><h2>Από την οθόνη σας στο κατάστρωμα</h2></div>
+      <div class="t2">
+        <div class="st"><div class="big num">1</div><h3>Διαλέξτε εκδρομή</h3><p>Δείτε τις ελεύθερες θέσεις κάθε μέρας και την τιμή για την παρέα σας.</p><span class="tag">Σε ένα λεπτό</span></div>
+        <div class="st perf-v"><div class="big num">2</div><h3>Πληρώστε online</h3><p>Με κάρτα, με ασφάλεια. Το εισιτήριο έρχεται αμέσως στο email σας.</p><span class="tag">Εισιτήριο στο email</span></div>
+        <div class="st perf-v"><div class="big num">3</div><h3>Ελάτε στη Μαρίνα Ζέας</h3><p>15 λεπτά πριν. Εμείς φέρνουμε τον καφέ, εσείς το μαγιό.</p><span class="tag">Προβλήτα Β</span></div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="sec sand col" data-v="3" hidden>
+      <div class="head"><p class="kick">Πώς λειτουργεί</p><h2>Από την οθόνη σας στο κατάστρωμα</h2></div>
+      <div class="t3">
+        <div class="cp"><div class="top"><b>Κουπόνι</b><span class="no num">1</span></div><h3>Διαλέξτε εκδρομή</h3><p>Δείτε τις ελεύθερες θέσεις κάθε μέρας και την τιμή για την παρέα σας.</p><div class="foot"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>Στο site, όποτε θέλετε</div></div>
+        <div class="cp"><div class="top"><b>Κουπόνι</b><span class="no num">2</span></div><h3>Πληρώστε online</h3><p>Με κάρτα, με ασφάλεια. Το εισιτήριο έρχεται αμέσως στο email σας.</p><div class="foot"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18"/></svg>Κάρτα, με ασφάλεια</div></div>
+        <div class="cp"><div class="top"><b>Κουπόνι</b><span class="no num">3</span></div><h3>Ελάτε στη Μαρίνα Ζέας</h3><p>15 λεπτά πριν. Εμείς φέρνουμε τον καφέ, εσείς το μαγιό.</p><div class="foot"><svg class="ic" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Προβλήτα Β</div></div>
+      </div>
+    </section>
+
+    <!-- 4 -->
+    <section class="sec sand col" data-v="4" hidden>
+      <div class="head"><p class="kick">Πώς λειτουργεί</p><h2>Από την οθόνη σας στο κατάστρωμα</h2></div>
+      <div class="t4">
+        <div class="route" aria-hidden="true">
+          <div class="stop"><i></i><span>Σήμερα</span></div>
+          <div class="stop"><i></i><span>Ένα λεπτό μετά</span></div>
+          <div class="stop"><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg></i><span>Την ημέρα της εκδρομής</span></div>
+        </div>
+        <div class="cols">
+          <div><h3>Διαλέξτε εκδρομή</h3><p>Δείτε τις ελεύθερες θέσεις κάθε μέρας και την τιμή για την παρέα σας.</p></div>
+          <div><h3>Πληρώστε online</h3><p>Με κάρτα, με ασφάλεια. Το εισιτήριο έρχεται αμέσως στο email σας.</p></div>
+          <div><h3>Ελάτε στη Μαρίνα Ζέας</h3><p>15 λεπτά πριν. Εμείς φέρνουμε τον καφέ, εσείς το μαγιό.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 -->
+    <section class="sec sand col" data-v="5" hidden>
+      <div class="head"><p class="kick">Πώς λειτουργεί</p><h2>Από την οθόνη σας στο κατάστρωμα</h2></div>
+      <div class="t5">
+        <div class="main">
+          <div class="lbl"><b>Aegean Blue Cruises</b><span>Εισιτήριο</span></div>
+          <div class="st"><span class="n">Βήμα 1</span><h3>Διαλέξτε εκδρομή</h3><p>Δείτε τις ελεύθερες θέσεις κάθε μέρας και την τιμή για την παρέα σας.</p></div>
+          <div class="st"><span class="n">Βήμα 2</span><h3>Πληρώστε online</h3><p>Με κάρτα, με ασφάλεια. Το εισιτήριο έρχεται αμέσως στο email σας.</p></div>
+        </div>
+        <div class="stub perf-v">
+          <div><span class="n">Βήμα 3</span><h3>Ελάτε στη Μαρίνα Ζέας</h3><p>15 λεπτά πριν. Εμείς φέρνουμε τον καφέ, εσείς το μαγιό.</p></div>
+          <div class="meta"><div><span>Επιβίβαση</span><b class="num">09:45</b></div><div><span>Προβλήτα</span><b>Β</b></div></div>
+          <div class="tear"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v10H4zM8 12h8"/></svg>Αυτό το κομμάτι το κρατάει ο κυβερνήτης</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="ctx2 col">… «Ένα ξύλινο καΐκι και δύο αδέρφια»</div>
+   </div>
+  </div>
+
+  <div class="qs">
+    <div><b>Ημερομηνία, κωδικός, ώρα, προβλήτα:</b><span>στο 1 και στο 5 είναι παράδειγμα, για να μοιάζει με εισιτήριο. Στο live θα βγαίνουν από το ίδιο το Kaiki, με την επόμενη αναχώρηση και το λιμάνι του διοργανωτή, ή θα φύγουν αν προτιμάς.</span></div>
+    <div><b>Στο κινητό</b><span>όλες στοιβάζονται, και οι διάτρητες γραμμές γίνονται οριζόντιες.</span></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var why = {
+    1: '<b>1. Κάρτα επιβίβασης.</b> Κεφαλίδα στο χρώμα του διοργανωτή με το όνομα και τη διαδρομή, και από κάτω τρία κομμάτια με διάτρητες γραμμές. Κάθε βήμα έχει δύο «πεδία» σαν εισιτήριο.',
+    2: '<b>2. Σκούρο.</b> Το ίδιο εισιτήριο σε navy, με μεγάλους λεπτούς γαλάζιους αριθμούς και μια μικρή ετικέτα κάτω από κάθε βήμα. Ξεχωρίζει πάνω σε λευκή σελίδα.',
+    3: '<b>3. Τρία κουπόνια.</b> Τρία ξεχωριστά κουπόνια με τρύπες στα πλάγια, λίγο στραβά, σαν κομμένα από το ίδιο μπλοκ. Πιο παιχνιδιάρικο.',
+    4: '<b>4. Με διαδρομή.</b> Ένα εισιτήριο με διακεκομμένη γραμμή πάνω: «Σήμερα», «Ένα λεπτό μετά», «Την ημέρα της εκδρομής». Τα βήματα κάτω από κάθε στάση.',
+    5: '<b>5. Με κοτσάνι.</b> Τα δύο πρώτα βήματα στο κυρίως εισιτήριο, και η επιβίβαση στο κομμάτι που κόβεται, με ώρα και προβλήτα.'
+  };
+  var device = document.getElementById('device');
+  function press(sel, b) { document.querySelectorAll(sel).forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); }); }
+  function show(v) {
+    document.querySelectorAll('section[data-v]').forEach(function (s) { s.hidden = s.dataset.v !== v; });
+    document.getElementById('why').innerHTML = why[v];
+  }
+  document.querySelectorAll('button[data-v]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-v]', b); show(b.dataset.v); }); });
+  document.querySelectorAll('button[data-view]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-view]', b); device.classList.remove('phone', 'desk'); device.classList.add(b.dataset.view); }); });
+  show('1');
+  if (window.innerWidth < 700) document.getElementById('v-phone').click();
+})();
+</script>

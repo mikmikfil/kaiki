@@ -92,6 +92,7 @@ class ReviewSettings extends Page implements HasForms
     {
         return $form->schema([
             Section::make(__('review_settings.sections.request'))
+                ->icon('heroicon-o-star')
                 ->description(__('review_settings.sections.request_help'))
                 ->schema([
                     Toggle::make('enabled')

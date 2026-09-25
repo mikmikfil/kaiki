@@ -114,16 +114,30 @@ return [
         'free' => ['label' => 'Δωρεάν'],
     ],
 
+    'guest_sex' => [
+        'm' => ['label' => 'Άνδρας', 'letter' => 'Α'],
+        'f' => ['label' => 'Γυναίκα', 'letter' => 'Θ'],
+    ],
+
+    'vessel_licence' => [
+        'day_cruise' => ['label' => 'Ημερόπλοιο'],
+        'professional_pleasure' => ['label' => 'Επαγγελματικό πλοίο αναψυχής'],
+    ],
+
+    'crew_specialty' => [
+        'captain' => ['label' => 'Κυβερνήτης'],
+        'deckhand' => ['label' => 'Ναύτης'],
+        'other' => ['label' => 'Άλλο'],
+    ],
+
+    'age_band_kind' => [
+        'age' => ['label' => 'Με ηλικία'],
+        'status' => ['label' => 'Με ιδιότητα'],
+    ],
+
     'age_band_pricing' => [
         'multiplier' => ['label' => 'Ποσοστό της βασικής τιμής'],
         'fixed' => ['label' => 'Δική της τιμή'],
-    ],
-
-    'price_quick_fill' => [
-        'same' => ['label' => 'Ίδια'],
-        'half' => ['label' => 'Μισή τιμή'],
-        'less_thirty' => ['label' => '−30%'],
-        'free' => ['label' => 'Δωρεάν'],
     ],
 
     'booking_mode' => [
@@ -225,6 +239,7 @@ return [
 
     'manifest_column' => [
         'full_name' => ['label' => 'Ονοματεπώνυμο'],
+        'sex' => ['label' => 'Φύλο'],
         'date_of_birth' => ['label' => 'Ημερομηνία γέννησης'],
         'nationality' => ['label' => 'Υπηκοότητα'],
         'document_type' => ['label' => 'Έγγραφο'],
@@ -321,6 +336,26 @@ return [
             'label' => 'Κάλεσμα',
             'description' => 'Φωτογραφία με τίτλο, μια πρόταση και ένα ή δύο κουμπιά.',
         ],
+        'timeline' => [
+            'label' => 'Χρονολόγιο',
+            'description' => 'Έως οκτώ χρονιές, με τίτλο και μια γραμμή η καθεμία.',
+        ],
+        'fleet' => [
+            'label' => 'Τα σκάφη μας',
+            'description' => 'Γεμίζει μόνο του από τα «Σκάφη»: φωτογραφία, άτομα, μήκος, άδεια.',
+        ],
+        'crew' => [
+            'label' => 'Οι άνθρωποί μας',
+            'description' => 'Γεμίζει μόνο του από την «Ομάδα»: κυβερνήτες και ναύτες, με φωτογραφία και λίγα λόγια.',
+        ],
+        'credentials' => [
+            'label' => 'Άδειες και ασφάλεια',
+            'description' => 'Γεμίζει μόνο του: επωνυμία, ΑΦΜ, ΓΕΜΗ και οι άδειες των σκαφών.',
+        ],
+        'meeting_point' => [
+            'label' => 'Σημείο συνάντησης',
+            'description' => 'Ένα λιμάνι από τα «Λιμάνια», με φωτογραφία, διεύθυνση και οδηγίες.',
+        ],
     ],
 
     'font_source' => [
@@ -404,6 +439,7 @@ return [
         'wordpress' => ['label' => 'WordPress'],
         'manual' => ['label' => 'Καταχωρήθηκε από εσάς'],
         'import' => ['label' => 'Εισαγωγή'],
+        'quay' => ['label' => 'Προβλήτα'],
     ],
 
     'guest_details_status' => [
@@ -492,6 +528,7 @@ return [
         'viva' => ['label' => 'Viva Wallet'],
         'cash' => ['label' => 'Μετρητά'],
         'bank_transfer' => ['label' => 'Τραπεζικό έμβασμα'],
+        'pos' => ['label' => 'Κάρτα (POS)'],
     ],
 
     /*
@@ -723,6 +760,7 @@ return [
         'weather_choice_applied' => ['label' => 'Ακύρωση λόγω καιρού, τακτοποιήθηκε'],
         'quote_sent' => ['label' => 'Αποστολή προσφοράς'],
         'review_request' => ['label' => 'Αίτημα αξιολόγησης στην Google'],
+        'payment_unfinished' => ['label' => 'Η πληρωμή δεν ολοκληρώθηκε'],
     ],
 
     'webhook_event' => [

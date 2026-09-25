@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\GuestDocumentType;
+use App\Enums\GuestSex;
 use App\Models\Concerns\BelongsToTenant;
 use App\Support\Tenancy;
 use Database\Factories\BookingGuestFactory;
@@ -43,6 +44,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $full_name
  * @property Carbon|null $date_of_birth
  * @property string|null $nationality
+ * @property GuestSex|null $sex «Φύλο» on the passenger list
  * @property GuestDocumentType|null $document_type
  * @property string|null $document_number encrypted
  * @property Carbon|null $document_expires_on
@@ -74,6 +76,7 @@ class BookingGuest extends Model
     {
         return [
             'document_type' => GuestDocumentType::class,
+            'sex' => GuestSex::class,
             'document_number' => 'encrypted',
             'date_of_birth' => 'date',
             'document_expires_on' => 'date',

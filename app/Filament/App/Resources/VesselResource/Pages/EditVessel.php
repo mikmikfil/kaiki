@@ -6,6 +6,7 @@ namespace App\Filament\App\Resources\VesselResource\Pages;
 
 use App\Filament\App\Resources\VesselResource;
 use App\Filament\App\Resources\VesselResource\Pages\Concerns\TranslatesVesselFormData;
+use App\Filament\App\Support\TitledByRecord;
 use App\Filament\Support\MoreActions;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -15,6 +16,7 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditVessel extends EditRecord
 {
+    use TitledByRecord;
     use TranslatesVesselFormData;
 
     protected static string $resource = VesselResource::class;

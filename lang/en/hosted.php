@@ -15,6 +15,12 @@ declare(strict_types=1);
 
 return [
 
+    'not_found' => [
+        'title' => 'This page does not exist',
+        'lede' => 'The address may have changed, or the trip is no longer available.',
+        'back' => 'See our trips',
+    ],
+
     'nav' => [
         'language' => 'Language',
         'menu' => 'Menu',
@@ -34,11 +40,19 @@ return [
         'all_trips' => 'All our trips',
         'search_prompt' => 'When would you like to sail?',
         'from' => 'from',
+        'per_person' => '/ person',
+        'per_boat' => '/ boat',
     ],
 
     // HOS-10. It says who to contact rather than what went wrong — the visitor
     // cannot fix an operator's subscription and does not need to know about it.
     'blocks' => [
+        // «About us» (2026-09-24): the lines a new section starts with.
+        'timeline' => ['eyebrow' => 'Our story', 'heading' => 'How we got here'],
+        'fleet' => ['eyebrow' => 'The fleet', 'heading' => 'Our boats'],
+        'crew' => ['eyebrow' => 'At the helm', 'heading' => 'Our people'],
+        'credentials' => ['eyebrow' => 'Licences and insurance', 'heading' => 'All in order'],
+        'meeting_point' => ['eyebrow' => 'Meeting point', 'heading' => 'Where we leave from'],
         'hero' => [
             'cta' => [
                 'trips' => 'See our trips',
@@ -250,6 +264,8 @@ return [
     'read_only' => 'Online booking is unavailable just now. Please contact us at :email and we will take your booking directly.',
 
     'footer' => [
+        'reach' => 'A question? We are here.',
+        'whatsapp' => 'WhatsApp',
         'operator' => 'Operator',
         'contact' => 'Contact',
         'legal' => 'Legal',
@@ -294,6 +310,31 @@ return [
         'honeypot' => 'Company website',
     ],
 
+    // «About us» (2026-09-24).
+    'about' => [
+        'nav' => 'About us',
+        'title' => 'About us · :operator',
+        'fleet' => [
+            'capacity' => 'People',
+            'length' => 'Length',
+            'metres' => ':value m',
+            'more' => '{1} and 1 more|[2,*] and :count more',
+            'trips' => '{1} 1 trip on this boat|[2,*] :count trips on this boat',
+        ],
+        'credentials' => [
+            'boats' => '{1} 1 boat|[2,*] :count boats',
+            'vat' => 'VAT :number',
+            'gemi' => 'GEMI number',
+        ],
+        'port' => [
+            'directions' => 'Directions in Maps',
+            'north' => 'N',
+            'south' => 'S',
+            'east' => 'E',
+            'west' => 'W',
+        ],
+    ],
+
     'legal' => [
         'title' => 'Legal information',
         'gemi' => 'Company registry (ΓΕΜΗ)',
@@ -303,6 +344,15 @@ return [
         // only one.
         'cancellation_body' => 'Each trip carries its own cancellation policy. It is shown in full on the trip page and again before you pay, and the terms recorded with your booking are the ones that apply — not any later change.',
         'privacy_body' => 'We hold the details you give us in order to run your trip: your name, your contact details, and the passenger information the coastguard requires. We do not sell them and we do not use them for marketing. Write to :email to see, correct or delete what we hold.',
+    ],
+
+    /* The dark band at the top of the search and contact pages (2026-09-24,
+       direction A of docs/mockups/page-tops.html). */
+    'page_top' => [
+        'breadcrumb' => 'Breadcrumb',
+        'home' => 'Home',
+        'search_eyebrow' => 'All our trips',
+        'contact_eyebrow' => 'Contact',
     ],
 
 ];

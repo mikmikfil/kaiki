@@ -45,6 +45,8 @@ class SeasonResource extends Resource
 {
     protected static ?string $model = Season::class;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
     protected static ?int $navigationSort = 30;
@@ -93,6 +95,7 @@ class SeasonResource extends Resource
     {
         return [
             Section::make(__('pricing.season.model.singular'))
+                ->icon('heroicon-o-calendar-days')
                 ->schema([
                     TranslatableInput::text(
                         'name',
@@ -123,6 +126,7 @@ class SeasonResource extends Resource
                 ->columns(2),
 
             Section::make(__('pricing.season.form.ranges.label'))
+                ->icon('heroicon-o-arrows-right-left')
                 ->description(__('pricing.season.form.ranges.help'))
                 ->schema([
                     Repeater::make('dateRanges')

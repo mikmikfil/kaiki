@@ -125,16 +125,30 @@ return [
         'free' => ['label' => 'Free'],
     ],
 
+    'guest_sex' => [
+        'm' => ['label' => 'Male', 'letter' => 'M'],
+        'f' => ['label' => 'Female', 'letter' => 'F'],
+    ],
+
+    'vessel_licence' => [
+        'day_cruise' => ['label' => 'Day passenger boat'],
+        'professional_pleasure' => ['label' => 'Professional pleasure boat'],
+    ],
+
+    'crew_specialty' => [
+        'captain' => ['label' => 'Captain'],
+        'deckhand' => ['label' => 'Deckhand'],
+        'other' => ['label' => 'Other'],
+    ],
+
+    'age_band_kind' => [
+        'age' => ['label' => 'By age'],
+        'status' => ['label' => 'By status'],
+    ],
+
     'age_band_pricing' => [
         'multiplier' => ['label' => 'Share of the base price'],
         'fixed' => ['label' => 'Its own price'],
-    ],
-
-    'price_quick_fill' => [
-        'same' => ['label' => 'Same'],
-        'half' => ['label' => 'Half price'],
-        'less_thirty' => ['label' => '−30%'],
-        'free' => ['label' => 'Free'],
     ],
 
     'booking_mode' => [
@@ -236,6 +250,7 @@ return [
 
     'manifest_column' => [
         'full_name' => ['label' => 'Full name'],
+        'sex' => ['label' => 'Sex'],
         'date_of_birth' => ['label' => 'Date of birth'],
         'nationality' => ['label' => 'Nationality'],
         'document_type' => ['label' => 'Document'],
@@ -332,6 +347,26 @@ return [
             'label' => 'Call to action',
             'description' => 'A photograph with a heading, a sentence and one or two buttons.',
         ],
+        'timeline' => [
+            'label' => 'Timeline',
+            'description' => 'Up to eight years, each with a title and a line.',
+        ],
+        'fleet' => [
+            'label' => 'Our boats',
+            'description' => 'Fills itself from «Boats»: photo, capacity, length, licence.',
+        ],
+        'crew' => [
+            'label' => 'Our people',
+            'description' => 'Fills itself from «Team»: captains and deckhands, with photo and a few words.',
+        ],
+        'credentials' => [
+            'label' => 'Licences and insurance',
+            'description' => 'Fills itself: company name, VAT number, GEMI and the boats\' licences.',
+        ],
+        'meeting_point' => [
+            'label' => 'Meeting point',
+            'description' => 'One port from «Ports», with photo, address and directions.',
+        ],
     ],
 
     'font_source' => [
@@ -415,6 +450,7 @@ return [
         'wordpress' => ['label' => 'WordPress'],
         'manual' => ['label' => 'Entered by you'],
         'import' => ['label' => 'Imported'],
+        'quay' => ['label' => 'Quay'],
     ],
 
     'guest_details_status' => [
@@ -501,6 +537,7 @@ return [
         'viva' => ['label' => 'Viva Wallet'],
         'cash' => ['label' => 'Cash'],
         'bank_transfer' => ['label' => 'Bank transfer'],
+        'pos' => ['label' => 'Card (POS)'],
     ],
 
     /*
@@ -738,6 +775,7 @@ return [
         'weather_choice_applied' => ['label' => 'Weather cancellation, settled'],
         'quote_sent' => ['label' => 'Quote sent'],
         'review_request' => ['label' => 'Google review request'],
+        'payment_unfinished' => ['label' => 'Payment not completed'],
     ],
 
     'webhook_event' => [

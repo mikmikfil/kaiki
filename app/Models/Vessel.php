@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\VesselLicence;
 use App\Enums\VesselStatus;
 use App\Enums\VesselType;
 use App\Models\Concerns\BelongsToTenant;
@@ -39,6 +40,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int $capacity_max
  * @property int $crew_count
  * @property string|null $captain_name
+ * @property VesselLicence|null $licence_type ημερόπλοιο or επαγγελματικό πλοίο αναψυχής, for the passenger list
  * @property int|null $home_port_id
  * @property int|null $turnaround_buffer_minutes
  * @property int|null $max_wind_bft the Beaufort force this boat stops sailing in (ADR-0027); null = not set
@@ -97,6 +99,7 @@ class Vessel extends Model implements TranslatableSearchable
     {
         return [
             'type' => VesselType::class,
+            'licence_type' => VesselLicence::class,
             'status' => VesselStatus::class,
             'length_cm' => 'integer',
             'capacity_max' => 'integer',

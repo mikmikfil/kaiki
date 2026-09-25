@@ -32,6 +32,7 @@ return [
         'payments' => 'What a guest pays, and when',
         'integrations' => 'Payment, invoicing and email accounts',
         'home_page' => 'The first page a guest sees',
+        'about_page' => 'Your story, your boats and your people',
         'faq' => 'Answers to what you are asked most',
         'search' => 'How guests can filter your trips',
         'reviews' => 'An email after the trip asking for a Google review',

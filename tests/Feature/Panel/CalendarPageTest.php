@@ -415,3 +415,25 @@ it('lists each boat and its departures for a phone, with the status in words', f
         // The row opens the same passenger list the bar does.
         ->assertSeeHtml("mountAction('pax', { departure: '{$uuid}' })");
 });
+
+it('fills the block form with what the drag measured, and gives each boat a button on the phone', function (): void {
+    // The drag always sent its boat and times; nothing put them into the form
+    // until 2026-09-24. The phone's list has no track to drag on, so each
+    // boat's card carries «Δέσμευση σκάφους», which sends the boat alone.
+    $user = OperatorUser::withRole(Role::Owner);
+
+    $vessel = Tenancy::forTenant($user->tenant, fn (): Vessel => Vessel::factory()->create(['name' => 'Θάλασσα']));
+
+    calendarAs($user)
+        ->assertSeeHtml("mountAction('block', { vessel: '{$vessel->uuid}' })")
+        ->mountAction('block', ['vessel' => $vessel->uuid, 'starts_at' => '09:00', 'ends_at' => '11:30'])
+        ->assertActionDataSet(['vessel' => $vessel->uuid, 'starts_at' => '09:00', 'ends_at' => '11:30']);
+});
+
+it('gives crew no block button on the phone either', function (): void {
+    $crew = OperatorUser::withRole(Role::Crew);
+
+    $vessel = Tenancy::forTenant($crew->tenant, fn (): Vessel => Vessel::factory()->create());
+
+    calendarAs($crew)->assertDontSeeHtml("mountAction('block', { vessel: '{$vessel->uuid}' })");
+});

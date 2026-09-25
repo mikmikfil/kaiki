@@ -29,12 +29,6 @@ return [
         // of a plan, the same word on a Greek invoice as on an English one.
         'enums.plan.solo.label' => 'Plan name, a proper noun in both locales.',
 
-        // «Styling» is what the product owner calls that step, in both
-        // languages (2026-09-22). Greek operators use the English word for this
-        // — «εμφάνιση» reads like the display settings of a screen — so a
-        // translation here would be a word nobody uses.
-        'setup.steps.branding.label' => 'The word the product owner uses, in both locales.',
-
         // Each language is written in its own language, in both files — someone
         // reading the English panel and hunting for Greek must recognise
         // "Ελληνικά", not the word "Greek". That is the whole point of a
@@ -54,6 +48,7 @@ return [
         'branding.form.social.facebook' => 'Company name, identical in both locales.',
         'branding.form.social.tripadvisor' => 'Company name, identical in both locales.',
         'branding.form.social.whatsapp' => 'Company name, identical in both locales.',
+        'hosted.footer.whatsapp' => 'Company name, identical in both locales.',
 
         // The same wordmarks again, on the guest-facing contact block. They are
         // the accessible names of the icon buttons, so a screen reader says the

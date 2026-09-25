@@ -7,6 +7,7 @@ namespace App\Domain\Booking\Actions;
 use App\Domain\Booking\Support\ManifestRows;
 use App\Enums\GuestDetailsStatus;
 use App\Enums\GuestDocumentType;
+use App\Enums\GuestSex;
 use App\Events\GuestDetailsCompleted;
 use App\Models\Booking;
 use App\Models\BookingGuest;
@@ -114,6 +115,7 @@ final class SaveGuestDetails
             // A two-letter country code or nothing: `/g/` posts without the
             // checkout's validation, and anything longer is refused by MySQL.
             'nationality' => Countries::normalise($row['nationality'] ?? null),
+            'sex' => GuestSex::tryFrom((string) ($row['sex'] ?? '')),
             'document_type' => $type,
             'document_number' => self::nullIfBlank($row['document_number'] ?? null),
             // Only a passport keeps an expiry (2026-09-17). An identity card is
@@ -192,8 +194,10 @@ final class SaveGuestDetails
             return true;
         }
 
+        // Sex joined the list on 2026-09-24 (ν. 4926/2022 άρθρο 13).
         $person = $guest->date_of_birth !== null
-            && self::nullIfBlank($guest->nationality) !== null;
+            && self::nullIfBlank($guest->nationality) !== null
+            && $guest->sex !== null;
 
         // «Χωρίς έγγραφο» bands (2026-09-17): a baby is complete with a name,
         // a nationality and a date of birth.

@@ -61,17 +61,20 @@ function completeTripWithStatus(ProductStatus $status): Product
     return $product;
 }
 
-it('opens a new trip as a four-step guide, and offers no «create another»', function (): void {
-    // «Συνέχεια στις τιμές» was the single button of the old one-page form. The
-    // guide (2026-09-22) names its four steps instead, and the last one asks
-    // whether to publish — so what a new trip shows first is step one.
+it('opens a new trip as the edit page’s tabs in steps, and offers no «create another»', function (): void {
+    // The guide (2026-09-22) names its steps; since 2026-09-24 they are the
+    // edit page's tabs — Βασικά, Πότε φεύγει, Τιμές, Όροι, Σελίδα — then
+    // «Δημοσίευση», with «Αποθήκευση ως πρόχειρη» beside them at every step.
     $owner = OperatorUser::withRole(Role::Owner);
 
     statusPageAs($owner, CreateProduct::class)
-        ->assertSee(__('catalog.product.wizard.basics.label'))
-        ->assertSee(__('catalog.product.wizard.when.label'))
-        ->assertSee(__('catalog.product.wizard.prices.label'))
+        ->assertSee(__('catalog.product.tabs.basics'))
+        ->assertSee(__('catalog.product.tabs.when'))
+        ->assertSee(__('catalog.product.tabs.prices'))
+        ->assertSee(__('catalog.product.tabs.terms'))
+        ->assertSee(__('catalog.product.tabs.page'))
         ->assertSee(__('catalog.product.wizard.publish.label'))
+        ->assertSee(__('catalog.product.status_actions.save_draft'))
         ->assertDontSee(__('filament-panels::resources/pages/create-record.form.actions.create_another.label'));
 })->group('fast');
 

@@ -61,7 +61,7 @@ final class InviteStaffMember
      */
     public function __invoke(
         string $name,
-        string $email,
+        ?string $email,
         array $roles,
         User $invitedBy,
         ?string $locale = null,
@@ -97,7 +97,11 @@ final class InviteStaffMember
             return $user;
         });
 
-        $this->sendInvitation($user, $invitedBy);
+        // «Χωρίς σύνδεση» (2026-09-24): a person with no email is on the team
+        // and on the lists, and has nothing to be invited to.
+        if ($email !== null && $email !== '') {
+            $this->sendInvitation($user, $invitedBy);
+        }
 
         return $user->refresh();
     }

@@ -84,8 +84,12 @@
              where three dot-separated values wrapped. --}}
         <p class="facts">
             <span>@include('hosted.partials.icon', ['name' => 'clock']){{ \App\Domain\Hosted\Support\TripDuration::format((int) $product->duration_minutes) }}</span>
-            @if ($product->meetingPoint || $product->vessel)
-                <span>@include('hosted.partials.icon', ['name' => 'pin'])@if ($product->meetingPoint){{ $product->meetingPoint->name }}@endif@if ($product->meetingPoint && $product->vessel) · @endif@if ($product->vessel){{ $product->vessel->name }}@endif</span>
+            {{-- The port behind its pin, on the one line the duration is on.
+                 No boat (Mike, 2026-09-24: «ας βγει το πλοίο από τα icons»):
+                 the vessel is on the trip page, and a third fact is what made
+                 the row cut the port to «Μαρίνα…». --}}
+            @if ($product->meetingPoint)
+                <span class="fact-port">@include('hosted.partials.icon', ['name' => 'pin']){{ $product->meetingPoint->name }}</span>
             @endif
 
             {{-- Search only. The date is already the guest's own choice in the
@@ -107,6 +111,12 @@
                     <p class="trip-price">
                         <span class="from">{{ __('hosted.index.from') }}</span>
                         <strong>{{ MoneyFormatter::format($product->price_from_cents, $locale, MoneyFormatter::currency()) }}</strong>
+                        {{-- What the price is for (2026-09-24): a seat, or the whole boat. --}}
+                        @if ($product->mode === \App\Enums\BookingMode::PerSeat)
+                            <span class="per">{{ __('hosted.index.per_person') }}</span>
+                        @elseif ($product->mode === \App\Enums\BookingMode::PerVessel)
+                            <span class="per">{{ __('hosted.index.per_boat') }}</span>
+                        @endif
                     </p>
                 @elseif ($product->mode === \App\Enums\BookingMode::Quote)
                     {{-- Said in words, where the price would be (Mike,
@@ -124,7 +134,15 @@
                 </p>
             @endif
 
-            <a class="button button-small arrow" href="{{ $url }}">{{ __('hosted.index.view') }}</a>
+            {{-- A round arrow beside the price (Mike, 2026-09-24, from the first
+                 home mockup) rather than a full-width button under it. The words
+                 are still there for a screen reader, with the trip's name, so
+                 twelve identical «Δείτε την εκδρομή» links are twelve different
+                 ones. --}}
+            <a class="trip-go" href="{{ $url }}">
+                <span class="sr-only">{{ __('hosted.index.view') }}: {{ $product->title }}</span>
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
         </div>
     </div>
 </li>

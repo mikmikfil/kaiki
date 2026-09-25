@@ -67,7 +67,7 @@
         <ul class="contact-list">
             @if ($block->setting('show_phone') && $tenant->phone)
                 <li>
-                @include('hosted.partials.icon', ['name' => 'phone-solid'])
+                @include('hosted.partials.icon', ['name' => 'phone'])
                 <span class="contact-label">{{ __('hosted.blocks.contact.phone') }}</span>
                 <a href="tel:{{ $tenant->phone }}">{{ $tenant->phone }}</a>
                 </li>
@@ -75,7 +75,7 @@
 
             @if ($block->setting('show_email') && $tenant->email)
                 <li>
-                @include('hosted.partials.icon', ['name' => 'mail-solid'])
+                @include('hosted.partials.icon', ['name' => 'mail'])
                 <span class="contact-label">{{ __('hosted.blocks.contact.email') }}</span>
                 <a href="mailto:{{ $tenant->email }}">{{ $tenant->email }}</a>
                 </li>
@@ -83,7 +83,7 @@
 
             @if ($block->setting('show_address') && $tenant->address_line1)
                 <li>
-                @include('hosted.partials.icon', ['name' => 'pin-solid'])
+                @include('hosted.partials.icon', ['name' => 'pin'])
                 <span class="contact-label">{{ __('hosted.blocks.contact.address') }}</span>
                 {{-- Street, then a comma, then postcode and town. Joined with
                      spaces it read «Ακτή Θεμιστοκλέους 42 18538 Πειραιάς» —

@@ -71,13 +71,14 @@ final class CreateManualBooking
         ?ManualBookingAdjustment $adjustment = null,
         ?string $capacityOverrideReason = null,
         ?PaymentGatewayName $paidBy = null,
+        BookingSource $source = BookingSource::Manual,
     ): Booking {
         // The source is this Action's to set, not the caller's. A manual
         // booking that arrived claiming to be a widget booking would be
         // invisible in every report that separates the two — and
         // `BookingCreateRequest` rejects `manual` from the public API for the
         // mirror-image reason.
-        $data = $this->asManual($data, $capacityOverrideReason !== null);
+        $data = $this->asManual($data, $capacityOverrideReason !== null, $source);
 
         $booking = ($this->createDraft)($data);
 
@@ -110,7 +111,7 @@ final class CreateManualBooking
      * Action ever reached its own hold. Skipping it there and taking it here is
      * the only ordering in which the override can apply at all.
      */
-    private function asManual(BookingDraftData $data, bool $overriding): BookingDraftData
+    private function asManual(BookingDraftData $data, bool $overriding, BookingSource $source): BookingDraftData
     {
         return new BookingDraftData(
             product: $data->product,
@@ -120,7 +121,8 @@ final class CreateManualBooking
             guestPhone: $data->guestPhone,
             guestCountry: $data->guestCountry,
             locale: $data->locale,
-            source: BookingSource::Manual,
+            // Manual, or the quay (2026-09-24): never a guest-initiated source.
+            source: $source === BookingSource::Quay ? BookingSource::Quay : BookingSource::Manual,
             paxByCode: $data->paxByCode,
             extraQuantities: $data->extraQuantities,
             startTime: $data->startTime,

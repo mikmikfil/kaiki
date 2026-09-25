@@ -110,6 +110,7 @@ class PaymentSettings extends Page implements HasForms
     {
         return $form->schema([
             Section::make(__('payment_settings.sections.deposits'))
+                ->icon('heroicon-o-banknotes')
                 ->description(__('payment_settings.sections.deposits_help'))
                 ->schema([
                     Toggle::make('deposits_enabled')
@@ -148,6 +149,7 @@ class PaymentSettings extends Page implements HasForms
              * This is only what a new product starts on.
              */
             Section::make(__('payment_settings.sections.vat'))
+                ->icon('heroicon-o-receipt-percent')
                 ->description(__('payment_settings.sections.vat_help'))
                 ->schema([
                     Select::make('default_vat_rate_id')

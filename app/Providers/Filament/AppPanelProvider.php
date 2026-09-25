@@ -8,11 +8,15 @@ use App\Domain\Hosted\Support\HostedAsset;
 use App\Filament\App\Auth\EditProfile;
 use App\Filament\App\Auth\Login;
 use App\Filament\App\Auth\RequestPasswordReset;
+use App\Filament\App\Pages\CheckIn;
 use App\Filament\App\Pages\Settings;
 use App\Filament\Avatars\InitialsAvatarProvider;
 use App\Http\Controllers\App\BoardingController;
 use App\Http\Controllers\App\BoardingServiceWorkerController;
 use App\Http\Controllers\App\DismissAnnouncementController;
+use App\Http\Controllers\App\PanelManifestController;
+use App\Http\Controllers\App\PanelOfflineController;
+use App\Http\Controllers\App\PanelServiceWorkerController;
 use App\Http\Controllers\ExportDownloadController;
 use App\Http\Middleware\AddSecurityHeaders;
 use App\Http\Middleware\EndExpiredImpersonation;
@@ -34,6 +38,7 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Infolists\Infolist;
 use Filament\Navigation\NavigationGroup;
+use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Resources\Resource;
@@ -268,6 +273,11 @@ class AppPanelProvider extends PanelProvider
             ->darkModeBrandLogo(fn (): ?string => PlatformBrand::logoUrl(dark: true))
             ->favicon(fn (): string => PlatformBrand::faviconUrl() ?? asset('favicon.svg'))
             ->brandName(config('app.name'))
+            // No global search. Filament switches it on by itself the moment a
+            // resource names its records (`$recordTitleAttribute`, 2026-09-24),
+            // and on a phone the box sat on top of «Μενού» (Mike, same day).
+            // Nobody asked for it; each list has its own search.
+            ->globalSearch(false)
             ->discoverResources(in: app_path('Filament/App/Resources'), for: 'App\\Filament\\App\\Resources')
             ->discoverPages(in: app_path('Filament/App/Pages'), for: 'App\\Filament\\App\\Pages')
             ->discoverWidgets(in: app_path('Filament/App/Widgets'), for: 'App\\Filament\\App\\Widgets')
@@ -318,6 +328,40 @@ class AppPanelProvider extends PanelProvider
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.catalogue')),
                 NavigationGroup::make()->label(fn (): string => __('panel.groups.fleet')),
             ])
+            /*
+             * «Σάρωση εισιτηρίων» alone at the top of the menu, above every
+             * group (Mike, 2026-09-24): it is the one thing done forty times a
+             * morning on the quay. The same place the home page's button goes —
+             * the camera on the boarding page — and only where there is
+             * scanning at all: boarding on, QR on, and somebody allowed to board.
+             */
+            ->navigationItems([
+                NavigationItem::make('scan')
+                    ->label(fn (): string => __('panel.nav.scan'))
+                    ->icon('heroicon-o-qr-code')
+                    ->url(fn (): string => route('filament.app.boarding', ['camera' => 1]))
+                    ->isActiveWhen(fn (): bool => request()->routeIs('filament.app.boarding'))
+                    ->sort(-100)
+                    ->visible(fn (): bool => CheckIn::canAccess() && CheckIn::qrEnabled()),
+            ])
+            /*
+             * The panel as an app on a phone (PWA, 2026-09-23): its manifest,
+             * its service worker and the page that worker shows with no
+             * network. `routes` rather than `authenticatedRoutes`: the sign-in
+             * page links the manifest and registers the worker too, and none of
+             * the three is about anybody. The worker at `/app/sw.js` is allowed
+             * the scope `/app`; see {@see PanelServiceWorkerController}.
+             */
+            ->routes(function (): void {
+                Route::get('manifest.webmanifest', PanelManifestController::class)
+                    ->name('manifest');
+
+                Route::get('sw.js', PanelServiceWorkerController::class)
+                    ->name('sw');
+
+                Route::get('offline', PanelOfflineController::class)
+                    ->name('offline');
+            })
             /*
              * The export download (OPS-18).
              *

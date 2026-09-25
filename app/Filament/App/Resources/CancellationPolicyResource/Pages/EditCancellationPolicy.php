@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources\CancellationPolicyResource\Pages;
 
 use App\Filament\App\Resources\CancellationPolicyResource;
+use App\Filament\App\Support\TitledByRecord;
 use App\Filament\Support\MoreActions;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Model;
 class EditCancellationPolicy extends EditRecord
 {
     use ConsumesTierRepeater;
+    use TitledByRecord;
 
     protected static string $resource = CancellationPolicyResource::class;
 

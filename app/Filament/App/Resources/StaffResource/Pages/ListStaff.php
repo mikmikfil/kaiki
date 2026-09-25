@@ -49,20 +49,26 @@ class ListStaff extends ListRecords
 
                     $user = app(InviteStaffMember::class)(
                         name: $data['name'],
-                        email: $data['email'],
+                        email: filled($data['email'] ?? null) ? (string) $data['email'] : null,
                         roles: [Role::from($data['role'])],
                         invitedBy: $actor,
                         locale: $data['locale'],
                     );
 
-                    if (($data['salutation'] ?? null) !== null) {
-                        $user->forceFill(['salutation' => $data['salutation']])->save();
-                    }
+                    $user->forceFill([
+                        'salutation' => $data['salutation'] ?? null,
+                        'specialty' => $data['specialty'] ?? null,
+                        ...StaffResource::publicProfile($data),
+                        'phone' => $data['phone'] ?? null,
+                    ])->save();
 
+                    // No email: added to the team, not invited (2026-09-24).
                     Notification::make()
                         ->success()
-                        ->title(__('staff.actions.invite.done', ['email' => $user->email]))
-                        ->body(__('staff.actions.invite.done_body'))
+                        ->title(filled($user->email)
+                            ? __('staff.actions.invite.done', ['email' => $user->email])
+                            : __('staff.actions.invite.done_offline', ['name' => $user->name]))
+                        ->body(filled($user->email) ? __('staff.actions.invite.done_body') : __('staff.actions.invite.done_offline_body'))
                         ->send();
                 }),
         ];

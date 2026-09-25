@@ -120,6 +120,7 @@ class RatePlanResource extends Resource
     {
         return [
             Section::make(__('pricing.rate_plan.sections.identity'))
+                ->icon('heroicon-o-calendar-days')
                 ->schema([
                     /*
                      * **Shown, never changed** (Mike, 2026-09-23).
@@ -168,6 +169,7 @@ class RatePlanResource extends Resource
                 ->columns(2),
 
             Section::make(__('pricing.rate_plan.sections.pricing'))
+                ->icon('heroicon-o-currency-euro')
                 ->schema([
                     MoneyInput::make(
                         'vessel_price_cents',
@@ -273,6 +275,7 @@ class RatePlanResource extends Resource
                 ]),
 
             Section::make(__('pricing.rate_plan.sections.deposit'))
+                ->icon('heroicon-o-banknotes')
                 ->schema([
                     Select::make('deposit_type')
                         ->label(__('pricing.rate_plan.form.deposit_type.label'))
@@ -302,6 +305,7 @@ class RatePlanResource extends Resource
                 ->columns(2),
 
             Section::make(__('pricing.rate_plan.sections.window'))
+                ->icon('heroicon-o-clock')
                 ->schema([
                     TextInput::make('min_lead_time_hours')
                         ->label(__('pricing.rate_plan.form.min_lead_time_hours.label'))

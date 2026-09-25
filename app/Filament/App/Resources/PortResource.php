@@ -45,6 +45,8 @@ class PortResource extends Resource
 {
     protected static ?string $model = Port::class;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     protected static ?string $navigationIcon = 'heroicon-o-map-pin';
 
     protected static ?int $navigationSort = 30;
@@ -79,6 +81,7 @@ class PortResource extends Resource
     {
         return [
             Section::make(__('catalog.port.sections.identity'))
+                ->icon('heroicon-o-map-pin')
                 ->schema([
                     TranslatableInput::text(
                         'name',
@@ -104,6 +107,7 @@ class PortResource extends Resource
                 ->columns(2),
 
             Section::make(__('catalog.port.sections.location'))
+                ->icon('heroicon-o-globe-europe-africa')
                 ->schema([
                     TextInput::make('address')
                         ->label(__('catalog.port.form.address.label'))
@@ -145,6 +149,7 @@ class PortResource extends Resource
                 ->columns(2),
 
             Section::make(__('catalog.port.sections.media'))
+                ->icon('heroicon-o-photo')
                 ->schema([
                     // A path column, not a media row (ADR-0021 Option A). No
                     // resizing here: conversions arrive with StoreUploadedImage
