@@ -375,6 +375,7 @@ class EditTenant extends EditRecord
                 ->visible(fn (): bool => ! $this->tenant()->trashed()
                     && auth()->user()?->can('delete', $this->tenant()) === true)
                 ->modalHeading(__('tenants.edit.delete'))
+                ->modalSubmitActionLabel(__('tenants.edit.delete'))
                 ->modalDescription(__('tenants.edit.delete_body'))
                 ->form([
                     TextInput::make('confirmName')
@@ -416,6 +417,7 @@ class EditTenant extends EditRecord
                 ->visible(fn (): bool => $this->tenant()->trashed()
                     && auth()->user()?->can('restore', $this->tenant()) === true)
                 ->modalHeading(__('tenants.edit.restore'))
+                ->modalSubmitActionLabel(__('tenants.edit.restore'))
                 ->modalDescription(__('tenants.edit.restore_body'))
                 ->form([
                     Textarea::make('reason')
