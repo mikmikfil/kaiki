@@ -8,6 +8,7 @@ use App\Filament\App\Auth\ResetPassword;
 use App\Mail\StaffInvitationMail;
 use App\Models\User;
 use App\Support\Tenancy;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
@@ -31,6 +32,10 @@ use Tests\Support\OperatorUser;
 | at all, because a future refactor back to `route()` would look harmless.
 |
 */
+
+afterEach(function (): void {
+    Carbon::setTestNow();
+});
 
 /** The link out of the mail the Action actually sends. */
 function invitationLinkFor(callable $invite): string
@@ -163,7 +168,7 @@ it('still opens three days later: an invitation lives seven days, not an hour', 
 
     expect($url)->toContain('invite=1');
 
-    $this->travel(3)->days();
+    Carbon::setTestNow(Carbon::now()->addDays(3));
 
     expect(setPasswordFromLink($url, 'monday@example.test', withInviteFlag: true))->toBeTrue();
 });
@@ -180,7 +185,7 @@ it('gives a reset token no longer life than an hour, whatever the page is told',
         ),
     ));
 
-    $this->travel(3)->days();
+    Carbon::setTestNow(Carbon::now()->addDays(3));
 
     // Without the signed flag the page checks the reset broker, and its hour
     // is long gone.

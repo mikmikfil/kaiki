@@ -29,6 +29,7 @@ use App\Support\Tenancy;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
+use Livewire\Mechanisms\ComponentRegistry;
 
 use function Pest\Laravel\actingAs;
 
@@ -597,7 +598,7 @@ it('takes «up to N people, plus each extra» on a charter, where the operator s
 
     // The list is on the trip's page…
     productPageAs($owner, EditProduct::class, ['record' => $charter->getRouteKey()])
-        ->assertSeeLivewire(RatePlansRelationManager::class);
+        ->assertSeeHtml(app(ComponentRegistry::class)->getName(RatePlansRelationManager::class));
 
     // …and takes the three numbers.
     Livewire::actingAs($owner)
