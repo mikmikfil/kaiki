@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Γρήγορες ενέργειες</title>
+<meta name="description" content="Πού πάνε το «Πώληση τώρα» και η «Σάρωση εισιτηρίων» όταν βγουν από τη μπλε κάρτα της αρχικής: σήμερα και τρεις κατευθύνσεις, σε κινητό και υπολογιστή.">
+<style>
+:root{
+  --deep:#0F2E57; --active:#1C4378; --blue:#1E5AA8; --ink:#15233A; --muted:#5B6B82; --faint:#94A3B8;
+  --line:#E1E8F2; --line-hover:#B9CBE3; --rule:#EEF3F9; --ground:#EEF3F9; --page:#F5F8FC; --card:#FFFFFF;
+  --soft:#EAF1FA; --soft-ink:#0F2E57; --alert:#FDECEC; --alert-ink:#B42318; --now:#D97706;
+  --good:#1F7A4D; --goodbg:#E3F2EA; --bad:#B42318; --badbg:#FBE7E5;
+  --next-when:#9FBBE0; --next-where:#C4D3E8; --side-ink:#DCE6F3; --side-group:#9FBBE0;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --waves:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='170' viewBox='0 0 520 170'%3E%3Cg fill='none' stroke='%23C9DAEE' stroke-width='1.3'%3E%3Cpath d='M0 150 Q65 132 130 150 T260 150 T390 150 T520 150' opacity='.9'/%3E%3Cpath d='M0 120 Q65 104 130 120 T260 120 T390 120 T520 120' opacity='.65'/%3E%3Cpath d='M-65 90 Q0 76 65 90 T195 90 T325 90 T455 90 T585 90' opacity='.45'/%3E%3Cpath d='M0 60 Q65 48 130 60 T260 60 T390 60 T520 60' opacity='.28'/%3E%3Cpath d='M-65 30 Q0 20 65 30 T195 30 T325 30 T455 30 T585 30' opacity='.15'/%3E%3C/g%3E%3C/svg%3E");
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding:0 16px 80px}
+a{color:inherit;text-decoration:none}
+a:hover{text-decoration:none}
+h1,h2,h3{letter-spacing:-.02em;text-wrap:balance;margin:0}
+p{margin:0}
+.wrap{max-width:1320px;margin:0 auto}
+.top{padding:44px 0 8px;display:grid;gap:14px}
+.kick{color:var(--blue);font-weight:700;font-size:14px}
+h1{font-size:clamp(28px,5vw,42px);font-weight:800;line-height:1.1}
+.lead{font-size:17px;color:var(--muted);max-width:72ch}
+.lead q{color:var(--ink);font-weight:600}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:6px}
+.rules div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-size:14px;color:var(--muted)}
+.rules b{display:block;color:var(--ink);font-size:14px}
+.toc{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.toc a{font-size:14px;font-weight:600;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 14px;color:var(--active)}
+.toc a:hover{border-color:var(--line-hover)}
+
+section{padding-top:52px}
+.shead{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:16px}
+.tag{font-size:14px;font-weight:700;color:#fff;background:var(--blue);border-radius:8px;padding:2px 11px}
+.tag.now{background:var(--muted)}
+.shead h2{font-size:24px;font-weight:800}
+.shead p{flex-basis:100%;color:var(--muted);max-width:80ch}
+.stage{border-radius:20px;background:#DDE6F1;padding:20px;display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start;overflow:hidden}
+.slot{min-width:0;display:grid;gap:8px}
+.slot.phone-slot{flex:0 1 410px}
+.slot.desk-slot{flex:1 1 640px}
+.cap{font-size:13px;color:var(--muted)}
+.cap b{color:var(--ink)}
+.states{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;margin-top:18px}
+.states .slot{background:#E7EEF7;border-radius:16px;padding:14px}
+.verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-top:14px}
+.verdict div{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;font-size:14px;color:var(--muted)}
+.verdict b{display:block;font-size:13px;font-weight:700;margin-bottom:3px}
+.verdict .pro b{color:var(--good)}
+.verdict .con b{color:var(--bad)}
+.verdict .who b{color:var(--active)}
+.pick{margin-top:52px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px 24px;display:grid;gap:10px;max-width:900px}
+.pick h2{font-size:22px;font-weight:800}
+.pick p{color:var(--muted)}
+.pick p b{color:var(--ink)}
+
+/* ---------- frames: scaled to fit by the script at the bottom ---------- */
+.fit{transform-origin:top left}
+.fitbox{overflow:hidden}
+.phone{width:410px;border-radius:44px;background:#0B1B33;padding:10px;box-shadow:0 30px 60px -30px rgba(15,46,87,.55)}
+.desk{width:1280px;border-radius:14px;background:#0B1B33;padding:8px;box-shadow:0 30px 60px -30px rgba(15,46,87,.55)}
+
+/* ---------- inside the screens: the real panel ---------- */
+.scr{position:relative;overflow:hidden;background:var(--page);color:var(--ink);font-size:14px;line-height:1.35;isolation:isolate}
+.phone .scr{width:390px;border-radius:34px}
+.desk .scr{width:1264px;height:800px;border-radius:8px;display:grid;grid-template-columns:320px 1fr}
+.scr::after{content:"";position:absolute;left:0;right:0;bottom:0;height:170px;background:var(--waves) repeat-x;background-size:520px 170px;pointer-events:none;z-index:-1}
+.status{height:44px;display:flex;justify-content:space-between;align-items:center;padding:0 30px;font-size:14px;font-weight:600;background:#fff}
+.tb{height:56px;display:flex;align-items:center;gap:10px;padding:0 16px;background:#fff;border-bottom:1px solid var(--line)}
+.menu-btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:10px;background:var(--deep);color:#fff;font-weight:600;font-size:14px}
+.menu-btn svg{width:18px;height:18px}
+.tb .sp{flex:1}
+.av{width:34px;height:34px;border-radius:50%;background:var(--deep);color:#fff;display:grid;place-items:center;font-size:12px;font-weight:700}
+.lang{font-size:12px;font-weight:600;color:var(--muted)}
+.lang b{color:var(--ink)}
+.pg{padding:16px 16px 28px;display:grid;gap:14px}
+.greet{display:grid;gap:2px}
+.greet h3{display:flex;align-items:center;gap:10px;font-size:23px;font-weight:700}
+.greet h3 svg{width:28px;height:28px;color:#E6A23C}
+.greet small{font-size:13px;color:var(--muted)}
+
+.ic{display:inline-block;width:20px;height:20px;flex:none;vertical-align:middle}
+.ic svg{width:100%;height:100%;display:block}
+
+/* the next departure — the one blue card */
+.next{position:relative;overflow:hidden;isolation:isolate;display:grid;gap:8px;align-content:start;padding:18px;border-radius:16px;background:var(--deep);color:#fff}
+.helm{position:absolute;z-index:-1;width:min(26rem,95%);top:-140px;right:-124px;opacity:.05;color:#fff;pointer-events:none}
+.next-when{font-size:13px;font-weight:600;color:var(--next-when)}
+.next-row{display:flex;justify-content:space-between;align-items:flex-end;gap:16px}
+.next-time{font-size:36px;line-height:1;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.next-trip{display:block;margin-top:5px;font-size:17px;font-weight:700}
+.next-where{font-size:13px;color:var(--next-where)}
+.next-count{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;text-align:right}
+.role{display:inline-block;margin-top:7px;padding:2px 10px;border-radius:999px;background:#23497D;font-size:12px;font-weight:700}
+.next-none{font-size:17px;font-weight:700;margin-top:2px}
+/* today's two buttons inside the card */
+.sell-pill{display:inline-flex;align-items:center;min-height:40px;margin-top:14px;padding:0 16px;border-radius:999px;background:#fff;color:var(--active);font-weight:700;font-size:14.5px}
+.bigbtn{display:flex;align-items:center;justify-content:center;gap:9px;min-height:50px;margin-top:5px;border-radius:12px;background:#fff;color:var(--deep);font-weight:700;font-size:16px}
+/* the card as a strip (direction Γ, desktop) */
+.next.strip{grid-template-columns:auto 1fr auto;align-items:center;gap:22px;padding:16px 22px}
+.next.strip .helm{width:300px;top:-110px;right:-70px}
+.next.strip .next-trip{margin-top:0}
+
+/* four boxes, one question each */
+.boxes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.box{position:relative;display:flex;flex-direction:column;gap:10px;min-height:104px;padding:14px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.box-ic{display:grid;place-items:center;width:36px;height:36px;border-radius:10px;background:var(--soft);color:var(--soft-ink)}
+.box-ic.al{background:var(--alert);color:var(--alert-ink)}
+.box-t{display:grid;gap:1px}
+.box-t b{font-size:15.5px}
+.box-t small{font-size:13px;color:var(--muted)}
+.count{position:absolute;top:11px;right:11px;min-width:22px;padding:0 6px;border-radius:99px;background:var(--alert);color:var(--alert-ink);font-size:12px;font-weight:700;line-height:22px;text-align:center}
+
+/* A: two white action tiles hung under the card */
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.acts.one{grid-template-columns:1fr}
+.act{position:relative;display:flex;flex-direction:column;gap:10px;min-height:108px;padding:14px;border-radius:16px;background:#fff;border:1.5px solid var(--line-hover);box-shadow:0 1px 0 rgba(15,46,87,.04)}
+.act .act-ic{display:grid;place-items:center;width:40px;height:40px;border-radius:11px;background:var(--deep);color:#fff}
+.act .act-ic .ic{width:22px;height:22px}
+.act b{font-size:16px;line-height:1.2}
+.act small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.act .arr{position:absolute;top:14px;right:14px;color:var(--active)}
+.acts.one .act{flex-direction:row;align-items:center;min-height:72px}
+
+/* B: header buttons (desktop) and a bar at the bottom (phone) */
+.hrow{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.hbtns{display:flex;gap:10px}
+.hbtn{display:inline-flex;align-items:center;gap:8px;height:44px;padding:0 18px;border-radius:10px;font-weight:700;font-size:15px;white-space:nowrap}
+.hbtn.pri{background:var(--deep);color:#fff}
+.hbtn.sec{background:#fff;color:var(--deep);border:1.5px solid var(--line-hover)}
+.hbtn .dim{font-weight:500;color:var(--muted)}
+.bar{position:absolute;left:0;right:0;bottom:0;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 16px 34px;background:rgba(255,255,255,.96);border-top:1px solid var(--line);box-shadow:0 -8px 24px -18px rgba(15,46,87,.5)}
+.bar.one{grid-template-columns:1fr}
+.bar::after{content:"";position:absolute;left:50%;bottom:9px;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:#0B1B33}
+.bbtn{display:flex;align-items:center;justify-content:center;gap:8px;height:54px;border-radius:14px;font-weight:700;font-size:15px}
+.bbtn.pri{background:var(--deep);color:#fff}
+.bbtn.sec{background:#fff;color:var(--deep);border:1.5px solid var(--line-hover)}
+.pg.has-bar{padding-bottom:120px}
+
+/* Γ: the actions are the first tiles of the grid */
+.six{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.six .box.go{background:var(--blue);border-color:var(--blue);color:#fff}
+.six .box.go .box-ic{background:rgba(255,255,255,.16);color:#fff}
+.six .box.go small{color:#D6E4F7}
+.six .box.go.wide{grid-column:1/-1;flex-direction:row;align-items:center;min-height:76px}
+.six.row6{grid-template-columns:repeat(6,1fr)}
+
+/* today by boat, on a phone */
+.sect{display:flex;justify-content:space-between;align-items:baseline}
+.sect h4{margin:0;font-size:17px;font-weight:700}
+.sect a{font-size:14px;font-weight:600;color:var(--active)}
+.boat{display:grid;gap:8px;padding:13px 14px 4px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.boat-h b{font-size:16px}
+.boat-h span{font-size:13px;color:var(--muted);margin-left:6px}
+.mini{position:relative;height:9px;border-radius:99px;background:var(--rule)}
+.mini i{position:absolute;top:0;bottom:0;border-radius:99px;background:var(--active)}
+.mini i.bl{background:#CBD5E1}
+.mini .nw{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--now)}
+.dep{display:grid;grid-template-columns:52px 1fr auto;gap:8px;align-items:center;min-height:42px;border-top:1px solid var(--rule);font-size:14.5px}
+.dep .t{font-weight:700;font-variant-numeric:tabular-nums}
+.dep .p{color:var(--muted);font-size:13.5px;font-variant-numeric:tabular-nums}
+
+/* desktop panel */
+.side{background:var(--deep);color:var(--side-ink);padding:22px 16px;display:flex;flex-direction:column;gap:4px;overflow:hidden}
+.logo{font-weight:800;font-size:19px;color:#fff;padding:0 8px 18px}
+.site{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid rgba(255,255,255,.14);border-radius:12px;background:rgba(255,255,255,.05);margin-bottom:14px}
+.site .g{width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.1);display:grid;place-items:center}
+.site .g .ic{width:17px;height:17px}
+.site b{font-size:14px;color:#fff;display:flex;align-items:center;gap:6px}
+.site b::after{content:"";width:7px;height:7px;border-radius:50%;background:#4ADE80}
+.site small{display:block;font-size:12px;color:var(--next-when)}
+.nav{display:flex;align-items:center;gap:12px;height:35px;padding:0 10px;border-radius:9px;font-size:15px;font-weight:500}
+.nav .ic{width:19px;height:19px;opacity:.85}
+.nav.on{background:var(--active);color:#fff;font-weight:600}
+.nav .badge{margin-left:auto;font-size:12px;font-weight:700;background:#23497D;color:#fff;border-radius:7px;padding:1px 8px}
+.grp{font-size:13px;color:var(--side-group);padding:12px 10px 4px}
+.dmain{display:flex;flex-direction:column;min-width:0}
+.dtb{height:64px;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:18px;padding:0 40px;background:#fff;border-bottom:1px solid var(--line)}
+.dpg{padding:28px 32px;display:grid;gap:22px;align-content:start}
+.dgreet{display:flex;justify-content:space-between;align-items:center}
+.dgreet h3{display:flex;align-items:center;gap:14px;font-size:28px;font-weight:700}
+.dgreet h3 svg{width:34px;height:34px;color:#E6A23C}
+.dgreet small{font-size:14px;color:var(--muted)}
+.dtop{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:14px;align-items:stretch}
+.dtop .boxes{align-content:stretch}
+.dtop .box{min-height:0}
+.dleft{display:grid;gap:10px;align-content:start}
+.lanes{display:grid;gap:8px;padding:16px;border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.lrow{display:grid;grid-template-columns:120px 1fr;gap:12px;align-items:center}
+.lname b{display:block;font-size:14.5px}
+.lname span{font-size:12.5px;color:var(--muted)}
+.lane{position:relative;height:44px;border-radius:10px;background:#F3F6FA}
+.lane.ruler{height:16px;background:transparent}
+.tick{position:absolute;top:0;font-size:11.5px;color:#64748B;transform:translateX(-50%)}
+.ev{position:absolute;top:4px;bottom:4px;border-radius:7px;background:var(--active);color:#fff;padding:0 8px;display:grid;align-content:center;font-size:12px;white-space:nowrap;overflow:hidden}
+.ev b{font-size:12.5px;overflow:hidden;text-overflow:ellipsis}
+.ev.bl{background:#CBD5E1;color:#475569}
+.lane .nw{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--now);z-index:2}
+
+.note{position:absolute;z-index:6;font-size:12px;font-weight:700;color:#fff;background:#B26A12;border-radius:8px;padding:3px 9px;box-shadow:0 6px 16px -6px rgba(0,0,0,.35)}
+
+@media (max-width:640px){
+  .stage{padding:12px;gap:18px;border-radius:16px}
+  .shead h2{font-size:21px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="kick">Αρχική του διοργανωτή · 25 Σεπτεμβρίου</div>
+    <h1>Γρήγορες ενέργειες</h1>
+    <p class="lead">Mike: <q>Στην αρχική, το «Πώληση τώρα» και το «Σάρωση εισιτηρίων» δεν μου αρέσουν μέσα στο μπλε πλαίσιο.</q> Πρώτα η αρχική όπως είναι σήμερα, μετά τρεις διαφορετικές θέσεις για τα δύο κουμπιά, η καθεμία σε κινητό και σε υπολογιστή, και πώς φαίνεται για το πλήρωμα, χωρίς QR και χωρίς αναχώρηση.</p>
+    <div class="rules">
+      <div><b>Στην προβλήτα, στο κινητό</b>Πώληση και σάρωση 40 φορές το πρωί: ένα πάτημα, τουλάχιστον 44px.</div>
+      <div><b>Η μπλε κάρτα μένει</b>Μία μπλε κάρτα, με το τιμόνι στο 5%. Γίνεται μόνο πληροφορία.</div>
+      <div><b>Ήρεμη αρχική</b>Λίγα νούμερα, κανένα γράφημα, καμία εικονογράφηση, κύματα στο φόντο.</div>
+      <div><b>Ίδια λογική παντού</b>Όποιος δεν πουλά δεν βλέπει «Πώληση». Χωρίς QR, «Λίστα επιβίβασης».</div>
+    </div>
+    <nav class="toc"><a href="#now">Τώρα</a><a href="#a">Α · Κάτω από την κάρτα</a><a href="#b">Β · Κεφαλίδα και μπάρα</a><a href="#c">Γ · Πρώτα τα κουμπιά</a><a href="#pick">Τι θα διάλεγα</a></nav>
+  </header>
+
+  <section id="now">
+    <div class="shead"><span class="tag now">Τώρα</span><h2>Τα κουμπιά μέσα στη μπλε κάρτα</h2>
+      <p>Όπως είναι σήμερα στο <code>day-by-boat.blade.php</code>: λευκό «Πώληση τώρα →» και από κάτω λευκό «Σάρωση εισιτηρίων», και τα δύο πάνω στο σκούρο μπλε. Η κάρτα κάνει τρεις δουλειές: λέει ποια αναχώρηση φεύγει, πουλά και επιβιβάζει. Τα δύο λευκά σχήματα διαφέρουν μεταξύ τους χωρίς λόγο και κάνουν την κάρτα βαριά.</p></div>
+    <div class="stage">
+      <div class="slot phone-slot"><div class="fitbox"><div class="fit" data-render="phone" data-dir="now"></div></div><div class="cap"><b>Κινητό, 390px.</b> Η κάρτα πιάνει 290px.</div></div>
+      <div class="slot desk-slot"><div class="fitbox"><div class="fit" data-render="desk" data-dir="now"></div></div><div class="cap"><b>Υπολογιστής, 1280px.</b> Η κάρτα δίπλα στα τέσσερα κουτιά.</div></div>
+    </div>
+  </section>
+
+  <section id="a">
+    <div class="shead"><span class="tag">Α</span><h2>Δύο κουμπιά κάτω από την κάρτα</h2>
+      <p>Η κάρτα γίνεται μόνο πληροφορία. Ακριβώς από κάτω, δεμένα μαζί της, δύο ίσα λευκά κουμπιά-κουτιά με σκούρο μπλε εικονίδιο, όνομα και μία γραμμή. Η πώληση λέει για ποια αναχώρηση είναι: «08:30 · 40 ελεύθερες». Τα τέσσερα κουτιά μένουν όπως είναι.</p></div>
+    <div class="stage">
+      <div class="slot phone-slot"><div class="fitbox"><div class="fit" data-render="phone" data-dir="a"></div></div><div class="cap"><b>Κινητό.</b> Κουμπιά 108px ύψος, στο πάνω μισό της οθόνης.</div></div>
+      <div class="slot desk-slot"><div class="fitbox"><div class="fit" data-render="desk" data-dir="a"></div></div><div class="cap"><b>Υπολογιστής.</b> Αριστερά η κάρτα και τα δύο κουμπιά, δεξιά τα τέσσερα κουτιά.</div></div>
+    </div>
+    <div class="states">
+      <div class="slot"><div class="fitbox"><div class="fit" data-render="mini" data-dir="a" data-state="crew"></div></div><div class="cap"><b>Πλήρωμα.</b> Τα κουμπιά πάνε πάνω από την κάρτα (ο κανόνας της 24/9: πρώτο πράγμα η σάρωση). Κανένα κουτί, κανένα ποσό.</div></div>
+      <div class="slot"><div class="fitbox"><div class="fit" data-render="mini" data-dir="a" data-state="noqr"></div></div><div class="cap"><b>Χωρίς QR.</b> Αριστερά «Λίστα επιβίβασης». Με την επιβίβαση κλειστή, μένει μόνο η πώληση σε όλο το πλάτος.</div></div>
+      <div class="slot"><div class="fitbox"><div class="fit" data-render="mini" data-dir="a" data-state="none"></div></div><div class="cap"><b>Καμία αναχώρηση.</b> Η πώληση φεύγει. Η σάρωση μένει σε όλο το πλάτος.</div></div>
+    </div>
+    <div class="verdict">
+      <div class="pro"><b>Υπέρ</b>Η μικρότερη αλλαγή: ίδιο widget, δύο στοιχεία αλλάζουν θέση. Τα κουμπιά μένουν δίπλα στην αναχώρηση που αφορούν και φαίνονται χωρίς κύλιση.</div>
+      <div class="con"><b>Κατά</b>Αν κατεβείτε στα σκάφη, τα κουμπιά βγαίνουν από την οθόνη. Στο κινητό το «Σάρωση εισιτηρίων» πιάνει δύο γραμμές, και η σελίδα μακραίνει 120px.</div>
+      <div class="who"><b>Πλήρωμα / χωρίς QR / καμία αναχώρηση</b>Το πλήρωμα βλέπει τα κουμπιά πρώτα, μετά τη δική του αναχώρηση, και καθόλου κουτιά. Χωρίς QR: «Λίστα επιβίβασης». Χωρίς αναχώρηση μέσα στην εβδομάδα: μόνο σάρωση.</div>
+    </div>
+  </section>
+
+  <section id="b">
+    <div class="shead"><span class="tag">Β</span><h2>Στην κεφαλίδα, και μπάρα στο κάτω μέρος του κινητού</h2>
+      <p>Τα κουμπιά φεύγουν από το σώμα της σελίδας. Στον υπολογιστή πάνε στη γραμμή του χαιρετισμού, πάνω δεξιά, όπου τα έχει κάθε σελίδα του Filament: σκούρο μπλε «Σάρωση εισιτηρίων» και λευκό «Πώληση τώρα · 08:30». Στο κινητό μπαίνουν σε μπάρα κολλημένη στο κάτω μέρος, δύο κουμπιά δίπλα δίπλα, πάνω από τη γραμμή του iPhone (safe area).</p></div>
+    <div class="stage">
+      <div class="slot phone-slot"><div class="fitbox"><div class="fit" data-render="phone" data-dir="b"></div></div><div class="cap"><b>Κινητό.</b> Η μπάρα μένει στη θέση της όσο κυλάτε. Κουμπιά 54px.</div></div>
+      <div class="slot desk-slot"><div class="fitbox"><div class="fit" data-render="desk" data-dir="b"></div></div><div class="cap"><b>Υπολογιστής.</b> Η ημερομηνία πάει κάτω από τον χαιρετισμό, για να χωρέσουν τα κουμπιά δεξιά.</div></div>
+    </div>
+    <div class="states">
+      <div class="slot"><div class="fitbox"><div class="fit" data-render="mini" data-dir="b" data-state="crew"></div></div><div class="cap"><b>Πλήρωμα.</b> Η μεγάλη σάρωση στην κορυφή φεύγει: τη δουλειά της την κάνει η μπάρα. Μένουν η δική τους αναχώρηση και τα σκάφη.</div></div>
+      <div class="slot"><div class="fitbox"><div class="fit" data-render="mini" data-dir="b" data-state="noqr"></div></div><div class="cap"><b>Χωρίς QR.</b> Δεξιά «Λίστα επιβίβασης». Με την επιβίβαση κλειστή, η μπάρα έχει μόνο πώληση.</div></div>
+      <div class="slot"><div class="fitbox"><div class="fit" data-render="mini" data-dir="b" data-state="none"></div></div><div class="cap"><b>Καμία αναχώρηση.</b> Ένα κουμπί σε όλο το πλάτος. Αν δεν μένει κανένα, δεν υπάρχει μπάρα.</div></div>
+    </div>
+    <div class="verdict">
+      <div class="pro"><b>Υπέρ</b>Στο κινητό τα κουμπιά είναι πάντα στον αντίχειρα, όσο κι αν κυλήσετε στα σκάφη ή στις εκκρεμότητες. Στον υπολογιστή ακολουθούν τη θέση που έχουν τα κουμπιά σε κάθε άλλη οθόνη.</div>
+      <div class="con"><b>Κατά</b>Η μπάρα πιάνει περίπου 100px από κάθε οθόνη του κινητού. Μοιάζει με την κάτω μπάρα της κατεύθυνσης B της 17/9, που δεν την κρατήσατε. Στον υπολογιστή τα κουμπιά είναι πιο μικρά και πιο μακριά από την κάρτα.</div>
+      <div class="who"><b>Πλήρωμα / χωρίς QR / καμία αναχώρηση</b>Ίδια μπάρα για το πλήρωμα, που χάνει τη μεγάλη σάρωση στην κορυφή. Χωρίς QR: «Λίστα επιβίβασης». Χωρίς αναχώρηση: ένα κουμπί. Χωρίς κανένα κουμπί: καμία μπάρα.</div>
+    </div>
+  </section>
+
+  <section id="c">
+    <div class="shead"><span class="tag">Γ</span><h2>Πρώτα τα κουμπιά, μετά η μέρα</h2>
+      <p>Τα δύο κουμπιά γίνονται τα δύο πρώτα από έξι κουτιά, στο ίδιο σχήμα με τα άλλα τέσσερα αλλά γεμάτα μπλε. Τα κουτιά ανεβαίνουν πάνω από την κάρτα. Στον υπολογιστή μπαίνουν και τα έξι σε μία σειρά, και η κάρτα γίνεται λωρίδα σε όλο το πλάτος. Η σελίδα λέει πρώτα «τι κάνω» και μετά «τι γίνεται».</p></div>
+    <div class="stage">
+      <div class="slot phone-slot"><div class="fitbox"><div class="fit" data-render="phone" data-dir="c"></div></div><div class="cap"><b>Κινητό.</b> Τα δύο μπλε κουτιά είναι αμέσως κάτω από τον χαιρετισμό.</div></div>
+      <div class="slot desk-slot"><div class="fitbox"><div class="fit" data-render="desk" data-dir="c"></div></div><div class="cap"><b>Υπολογιστής.</b> Έξι κουτιά σε μία σειρά, από κάτω η κάρτα ως λωρίδα.</div></div>
+    </div>
+    <div class="states">
+      <div class="slot"><div class="fitbox"><div class="fit" data-render="mini" data-dir="c" data-state="crew"></div></div><div class="cap"><b>Πλήρωμα.</b> Το πλήρωμα έχει μόνο τα δύο μπλε κουτιά, άρα η σάρωση είναι ήδη πρώτη. Κανένα ποσό.</div></div>
+      <div class="slot"><div class="fitbox"><div class="fit" data-render="mini" data-dir="c" data-state="noqr"></div></div><div class="cap"><b>Χωρίς QR.</b> Πρώτο κουτί η «Λίστα επιβίβασης». Με την επιβίβαση κλειστή, η πώληση πιάνει όλη τη σειρά.</div></div>
+      <div class="slot"><div class="fitbox"><div class="fit" data-render="mini" data-dir="c" data-state="none"></div></div><div class="cap"><b>Καμία αναχώρηση.</b> Η σάρωση πιάνει όλη την πρώτη σειρά. Πέντε κουτιά, όχι έξι.</div></div>
+    </div>
+    <div class="verdict">
+      <div class="pro"><b>Υπέρ</b>Αυτό που πατιέται 40 φορές το πρωί είναι το πρώτο πράγμα στη σελίδα, με το ίδιο σχήμα κουτιού που έχει ήδη η σελίδα. Η κάρτα, χωρίς κουμπιά, ηρεμεί.</div>
+      <div class="con"><b>Κατά</b>Η μπλε κάρτα χάνει την πρώτη θέση και στο κινητό κατεβαίνει περίπου 250px. Μπλε κουτιά δίπλα στη σκούρα κάρτα κάνουν δύο «δυνατά» μπλε. Στα 1280px τα έξι κουτιά είναι στενά (136px).</div>
+      <div class="who"><b>Πλήρωμα / χωρίς QR / καμία αναχώρηση</b>Το πλήρωμα έχει δύο κουτιά, πάνω από τη δική του αναχώρηση. Χωρίς QR: «Λίστα επιβίβασης». Χωρίς αναχώρηση: πέντε κουτιά, με τη σάρωση σε όλο το πλάτος.</div>
+    </div>
+  </section>
+
+  <section id="pick" class="pick">
+    <h2>Τι θα διάλεγα: Α</h2>
+    <p><b>Α είναι η πιο ήρεμη λύση και η μικρότερη αλλαγή.</b> Η κάρτα γίνεται μόνο πληροφορία, όπως ζητάτε. Τα δύο κουμπιά μένουν δίπλα στην αναχώρηση που αφορούν, με ύψος 108px, και στο κινητό φαίνονται χωρίς κύλιση μόλις ανοίξει η αρχική. Το πλήρωμα κρατά τον κανόνα της 24/9, γιατί τα κουμπιά του πάνε πάνω από την κάρτα.</p>
+    <p><b>Αν στην προβλήτα κυλάτε συχνά προς τα κάτω</b> και ψάχνετε τα κουμπιά, η μπάρα του Β μπορεί να μπει αργότερα μόνο στο κινητό, πάνω από το Α. Το Γ δίνει στα κουμπιά την πρώτη θέση αλλά την παίρνει από την κάρτα.</p>
+  </section>
+</div>
+
+<script>
+const I = {"qr-code":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 3.75 9.375v-4.5ZM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 0 1-1.125-1.125v-4.5ZM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0 1 13.5 9.375v-4.5Z\"/> <path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M6.75 6.75h.75v.75h-.75v-.75ZM6.75 16.5h.75v.75h-.75v-.75ZM16.5 6.75h.75v.75h-.75v-.75ZM13.5 13.5h.75v.75h-.75v-.75ZM13.5 19.5h.75v.75h-.75v-.75ZM19.5 13.5h.75v.75h-.75v-.75ZM19.5 19.5h.75v.75h-.75v-.75ZM16.5 16.5h.75v.75h-.75v-.75Z\"/>","list-bullet":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0ZM3.75 12h.007v.008H3.75V12Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm-.375 5.25h.007v.008H3.75v-.008Zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z\"/>","flag":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5\"/>","ticket":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z\"/>","calendar-days":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z\"/>","exclamation-triangle":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z\"/>","currency-euro":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M14.25 7.756a4.5 4.5 0 1 0 0 8.488M7.5 10.5h5.25m-5.25 3h5.25M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z\"/>","home":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25\"/>","sun":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z\"/>","squares-2x2":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z\"/>","arrow-right":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3\"/>","clipboard-document-check":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M11.35 3.836c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m8.9-4.414c.376.023.75.05 1.124.08 1.131.094 1.976 1.057 1.976 2.192V16.5A2.25 2.25 0 0 1 18 18.75h-2.25m-7.5-10.5H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V18.75m-7.5-10.5h6.375c.621 0 1.125.504 1.125 1.125v9.375m-8.25-3 1.5 1.5 3-3.75\"/>","document-text":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z\"/>","gift":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125Z\"/>","map":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0Z\"/>","chart-bar":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z\"/>","cog-6-tooth":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z\"/> <path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z\"/>","globe-alt":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M12 21a9.004 9.004 0 0 0 8.716-6.747M12 21a9.004 9.004 0 0 1-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 0 1 7.843 4.582M12 3a8.997 8.997 0 0 0-7.843 4.582m15.686 0A11.953 11.953 0 0 1 12 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0 1 21 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0 1 12 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 0 1 3 12c0-1.605.42-3.113 1.157-4.418\"/>","banknotes":"<path stroke-linecap=\"round\" stroke-linejoin=\"round\" d=\"M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z\"/>"};
+const HELM = '<svg viewBox="0 0 200 200" fill="none" stroke="currentColor" stroke-width="6"><circle cx="100" cy="100" r="62"/><circle cx="100" cy="100" r="18"/><g stroke-linecap="round"><path d="M100 10v172M10 100h172M36 36l128 128M164 36L36 164"/></g><circle cx="100" cy="100" r="44" stroke-width="3"/></svg>';
+function ic(n){return '<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">'+(I[n]||'')+'</svg></span>';}
+function sun(){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">'+I['sun']+'</svg>';}
+
+// -- the pieces ------------------------------------------------------------
+function card(o){
+  o=o||{};
+  const helm='<span class="helm">'+HELM+'</span>';
+  if(o.none) return '<div class="next">'+helm+'<div class="next-when">Επόμενη αναχώρηση</div><div class="next-none">Καμία αναχώρηση τις επόμενες επτά μέρες.</div></div>';
+  const when=(o.crew?'Η επόμενη δική μου':'Επόμενη αναχώρηση')+' · εν πλω τώρα';
+  if(o.strip) return '<div class="next strip">'+helm+'<div class="next-time">08:30</div><div><div class="next-when">'+when+'</div><span class="next-trip">Ολοήμερη στα τρία νησιά</span><div class="next-where">Ποσειδών · Μαρίνα Ζέας</div></div><div></div></div>';
+  let h='<div class="next">'+helm+'<div class="next-when">'+when+'</div><div class="next-row"><div><div class="next-time">08:30</div><span class="next-trip">Ολοήμερη στα τρία νησιά</span><div class="next-where">Ποσειδών · Μαρίνα Ζέας</div>'+(o.crew?'<span class="role">Είστε στο πλήρωμα</span>':'')+'</div></div>';
+  if(o.buttons){h+='<div><a class="sell-pill">Πώληση τώρα →</a></div><a class="bigbtn">'+ic('qr-code')+'<span>Σάρωση εισιτηρίων</span></a>';}
+  return h+'</div>';
+}
+function boxes(){
+  const b=[['flag','Αναχωρήσεις','5 σήμερα'],['ticket','Κρατήσεις','0 νέες από χθες'],['calendar-days','Ημερολόγιο','Η εβδομάδα'],['exclamation-triangle','Προσοχή','8 εκκρεμότητες',8]];
+  return b.map(x=>'<a class="box">'+(x[3]?'<span class="count">'+x[3]+'</span>':'')+'<span class="box-ic'+(x[3]?' al':'')+'">'+ic(x[0])+'</span><span class="box-t"><b>'+x[1]+'</b><small>'+x[2]+'</small></span></a>').join('');
+}
+function actionList(s){
+  const a=[];
+  a.push(s==='noqr'?{i:'list-bullet',l:'Λίστα επιβίβασης',d:'Τσεκάρετε ονόματα',k:'scan'}:{i:'qr-code',l:'Σάρωση εισιτηρίων',d:'Ανοίγει την κάμερα',k:'scan'});
+  if(s!=='none') a.push({i:'currency-euro',l:'Πώληση τώρα',d:'08:30 · 40 ελεύθερες',k:'sell'});
+  return a;
+}
+function actsA(s){
+  const a=actionList(s);
+  return '<div class="acts'+(a.length===1?' one':'')+'">'+a.map(x=>'<a class="act"><span class="act-ic">'+ic(x.i)+'</span><span><b>'+x.l+'</b><small>'+x.d+'</small></span><span class="arr">'+ic('arrow-right')+'</span></a>').join('')+'</div>';
+}
+function tilesG(s,row6){
+  const a=actionList(s);
+  let h=a.map(x=>'<a class="box go'+(a.length===1?' wide':'')+'"><span class="box-ic">'+ic(x.i)+'</span><span class="box-t"><b>'+x.l+'</b><small>'+x.d+'</small></span></a>').join('');
+  if(s!=='crew') h+=boxes();
+  return '<div class="six'+(row6?' row6':'')+'">'+h+'</div>';
+}
+function bar(s){
+  const a=actionList(s);
+  // the one used most goes under the right thumb
+  const sell=a.find(x=>x.k==='sell'), scan=a.find(x=>x.k==='scan');
+  let h='';
+  if(sell) h+='<a class="bbtn sec">'+ic(sell.i)+'<span>'+sell.l+'</span></a>';
+  if(scan) h+='<a class="bbtn pri">'+ic(scan.i)+'<span>'+(scan.k==='scan'&&s!=='noqr'?'Σάρωση':scan.l)+'</span></a>';
+  return '<div class="bar'+(a.length===1?' one':'')+'">'+h+'</div>';
+}
+function boatsPhone(){
+  return '<div class="sect"><h4>Σήμερα ανά σκάφος</h4><a>Ημερολόγιο</a></div>'+
+  '<div class="boat"><div class="boat-h"><b>Οδυσσέας</b><span>42 θέσεις</span></div><div class="mini"><i class="bl" style="left:37%;width:12%"></i><i style="left:76%;width:10%"></i><span class="nw" style="left:51%"></span></div><div class="dep"><span class="t">09:00</span><span>Πρωινό κολυμβητικό</span><span class="p">0/24</span></div><div class="dep"><span class="t">18:30</span><span>Ηλιοβασίλεμα στην Αίγινα</span><span class="p">0/20</span></div></div>'+
+  '<div class="boat"><div class="boat-h"><b>Ποσειδών</b><span>60 θέσεις</span></div><div class="mini"><i style="left:35%;width:27%"></i><span class="nw" style="left:51%"></span></div><div class="dep"><span class="t">08:30</span><span>Ολοήμερη στα τρία νησιά</span><span class="p">0/40</span></div></div>'+
+  '<div class="boat"><div class="boat-h"><b>Ποσειδώνας</b><span>42 θέσεις</span></div><div class="mini"><i style="left:80%;width:9%"></i><span class="nw" style="left:51%"></span></div><div class="dep"><span class="t">19:30</span><span>Ρομαντικό δείπνο εν πλω</span><span class="p">0/8</span></div></div>';
+}
+function lanes(n){
+  const rows=[['Οδυσσέας','42 θέσεις',[[37,15,'','09:00 · 0/24',1],[76,10,'','18:30 · 0/20']]],['Ποσειδών','60 θέσεις',[[35,32,'Ολοήμερη στα τρία νησιά','08:30 · 0/40']]],['Ποσειδώνας','42 θέσεις',[[80,13,'','19:30 · 0/8']]],['Γαλήνη','28 θέσεις',[[62,20,'Απογευματινό ψάρεμα','15:00 · 0/12']]],['Αμφιτρίτη','18 θέσεις',[[41,33,'Ιδιωτική ημέρα με σκάφος','10:00 · 0/12',1]]],['Θαλασσινός','12 θέσεις',[[47,12,'','11:30 · 0/10',1]]]].slice(0,n);
+  let h='<div class="lanes"><div class="lrow"><div></div><div class="lane ruler">'+['00:00','03:00','06:00','09:00','12:00','15:00','18:00','21:00','00:00'].map((t,i)=>'<span class="tick" style="left:'+(i*12.5)+'%">'+t+'</span>').join('')+'</div></div>';
+  rows.forEach(r=>{h+='<div class="lrow"><div class="lname"><b>'+r[0]+'</b><span>'+r[1]+'</span></div><div class="lane"><span class="nw" style="left:51%"></span>'+r[2].map(e=>'<div class="ev'+(e[4]?' bl':'')+'" style="left:'+e[0]+'%;width:'+e[1]+'%">'+(e[2]?'<b>'+e[2]+'</b>':'')+'<span>'+e[3]+'</span></div>').join('')+'</div></div>';});
+  return h+'</div>';
+}
+function greetPhone(){return '<div class="greet"><h3>'+sun()+'Γεια σου, Μαρία</h3><small>Παρασκευή 25 Σεπτεμβρίου · 12:16</small></div>';}
+function phoneChrome(inner,height,extra){
+  return '<div class="phone"><div class="scr" style="height:'+height+'px"><div class="status"><span>12:16</span><span>5G ▮▮▮</span></div><div class="tb"><span class="menu-btn">'+ic('squares-2x2')+'Μενού</span><span class="sp"></span><span class="av">ΜΠ</span><span class="lang"><b>ΕΛ</b> · EN</span></div>'+inner+(extra||'')+'</div></div>';
+}
+
+// -- whole pages -------------------------------------------------------------
+function phonePage(dir,s,height){
+  s=s||'full';
+  const crew=s==='crew', none=s==='none';
+  let body='';
+  if(dir==='now'){ body=greetPhone()+card({buttons:true})+'<div class="boxes">'+boxes()+'</div>'+boatsPhone(); }
+  if(dir==='a'){
+    body=greetPhone();
+    body+= crew ? actsA(s)+card({crew:true}) : card({crew:crew,none:none})+actsA(s)+'<div class="boxes">'+boxes()+'</div>';
+    body+=boatsPhone();
+  }
+  if(dir==='b'){
+    body=greetPhone()+card({crew:crew,none:none})+(crew?'':'<div class="boxes">'+boxes()+'</div>')+boatsPhone();
+    return phoneChrome('<div class="pg has-bar">'+body+'</div>',height,bar(s));
+  }
+  if(dir==='c'){ body=greetPhone()+tilesG(s)+card({crew:crew,none:none})+boatsPhone(); }
+  return phoneChrome('<div class="pg">'+body+'</div>',height);
+}
+
+function sidebar(){
+  const n=(i,l,on,b)=>'<div class="nav'+(on?' on':'')+'">'+ic(i)+'<span>'+l+'</span>'+(b?'<span class="badge">'+b+'</span>':'')+'</div>';
+  return '<aside class="side"><div class="logo">Kaiki</div><div class="site"><span class="g">'+ic('globe-alt')+'</span><span><b>Η σελίδα σας</b><small>192.168.1.43:8001/aegean-blue</small></span></div>'+
+    n('qr-code','Σάρωση εισιτηρίων')+n('home','Αρχική',1)+'<div class="grp">Σήμερα</div>'+n('clipboard-document-check','Επιβίβαση')+n('flag','Αναχωρήσεις')+n('calendar-days','Ημερολόγιο')+
+    '<div class="grp">Πωλήσεις</div>'+n('ticket','Κρατήσεις')+n('document-text','Προσφορές')+n('gift','Κουπόνια επιστροφής')+n('ticket','Κουπόνια')+n('document-text','Παραστατικά',0,4)+
+    '<div class="grp">Κατάλογος</div>'+n('map','Εκδρομές')+n('banknotes','Τιμοκατάλογοι')+'</aside>';
+}
+function deskPage(dir){
+  let greet='<div class="dgreet"><h3>'+sun()+'Γεια σου, Μαρία</h3><small>Παρασκευή 25 Σεπτεμβρίου · 12:16</small></div>';
+  let body='';
+  if(dir==='now'){ body=greet+'<div class="dtop">'+card({buttons:true})+'<div class="boxes">'+boxes()+'</div></div>'+lanes(5); }
+  if(dir==='a'){ body=greet+'<div class="dtop"><div class="dleft">'+card()+actsA('full')+'</div><div class="boxes">'+boxes()+'</div></div>'+lanes(4); }
+  if(dir==='b'){
+    body='<div class="hrow"><div class="greet"><h3 style="font-size:28px">'+sun()+'Γεια σου, Μαρία</h3><small style="font-size:14px">Παρασκευή 25 Σεπτεμβρίου · 12:16</small></div><div class="hbtns"><a class="hbtn sec">'+ic('currency-euro')+'Πώληση τώρα <span class="dim">· 08:30</span></a><a class="hbtn pri">'+ic('qr-code')+'Σάρωση εισιτηρίων</a></div></div>'+
+      '<div class="dtop">'+card()+'<div class="boxes">'+boxes()+'</div></div>'+lanes(5);
+  }
+  if(dir==='c'){ body=greet+tilesG('full',true)+card({strip:true})+lanes(5); }
+  return '<div class="desk"><div class="scr">'+sidebar()+'<div class="dmain"><div class="dtb"><span class="av">ΜΠ</span><span class="lang"><b>ΕΛ</b> · EN</span></div><div class="dpg">'+body+'</div></div></div></div>';
+}
+
+// -- render and fit ----------------------------------------------------------
+document.querySelectorAll('[data-render]').forEach(el=>{
+  const r=el.dataset.render, d=el.dataset.dir, s=el.dataset.state;
+  if(r==='phone'){el.innerHTML=phonePage(d,'full',844);el.dataset.w=410;}
+  if(r==='mini'){el.innerHTML=phonePage(d,s,640);el.dataset.w=410;}
+  if(r==='desk'){el.innerHTML=deskPage(d);el.dataset.w=1280;}
+});
+function fit(){
+  document.querySelectorAll('.fit').forEach(el=>{
+    const box=el.parentElement, w=+el.dataset.w;
+    el.style.transform='none';box.style.height='';
+    const avail=box.clientWidth, z=Math.min(1,avail/w);
+    el.style.width=w+'px';
+    el.style.transform='scale('+z+')';
+    box.style.height=(el.offsetHeight*z)+'px';
+  });
+}
+fit();addEventListener('resize',fit);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(fit);
+</script>
+</body>
+</html>

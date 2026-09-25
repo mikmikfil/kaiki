@@ -214,12 +214,13 @@ return [
         'sections' => [
             'extras' => 'Extras',
             'extras_intro' => 'Whatever is offered alongside the seat, free or paid.',
-            'questions' => 'Extra questions',
-            'questions_intro' => 'Anything you want to ask the guest at checkout.',
+            'questions' => 'Questions at booking',
+            'questions_intro' => "The guest answers them when booking, and you see the answers on the booking. Not the page's FAQ.",
             'basics' => 'The basics',
             'schedule' => 'Times and duration',
             'schedule_per_seat' => 'Duration and check-in',
             'content' => 'What the guest sees',
+            'vessel' => 'Boat',
             'capacity' => 'How many people',
             'policy' => 'Terms and cancellation',
             'seo' => 'How it appears on Google',
@@ -275,8 +276,8 @@ return [
             'locale_switch' => 'Form language',
             'vessel' => [
                 'pleasure_per_seat' => 'This boat is licensed as a professional pleasure boat. Those are usually chartered whole and do not sell seats. Ask your lawyer before publishing.',
-                'label' => 'Vessel',
-                'help' => 'The boat that runs this trip. Its passenger certificate is a legal ceiling and is never exceeded.',
+                'label' => 'Usual boat',
+                'help' => 'The boat the schedules use, unless a schedule names its own. It also sets the passenger limit.',
             ],
             'slug' => [
                 'label' => 'Slug',
@@ -430,7 +431,22 @@ return [
         ],
 
         // The form's two tabs (2026-09-17).
+        'force_delete' => [
+            'label' => 'Delete for good',
+            'heading' => 'Delete this trip for good',
+            'body' => 'It goes for ever, with its prices, schedules and departures. This cannot be undone.',
+            'done' => 'Deleted for good',
+            'refused' => 'Not deleted',
+            'has_bookings' => 'It has bookings, and a booking keeps its trip. It stays in deleted trips, off sale.',
+            'in_use' => 'Something else still uses this trip. Nothing was changed.',
+        ],
+        'steps' => [
+            'back' => ':tab',
+            'next' => 'Next: :tab',
+            'last' => 'When you are ready, press «Publish» below.',
+        ],
         'wizard' => [
+            'continue' => 'Continue',
             'title' => 'New trip',
             // The new-trip guide (product owner, 2026-09-22, direction Α).
             'basics' => [

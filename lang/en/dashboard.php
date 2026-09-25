@@ -52,6 +52,11 @@ return [
         'heading' => 'Your first steps',
         'description' => 'Do them in this order — each one needs the one before it.',
         'optional' => 'optional',
+        'port' => [
+            'title' => 'Add your port',
+            'why' => "The boat's home port and the trip's meeting point are both picked from here.",
+            'action' => 'Add a port',
+        ],
         'vessel' => [
             'title' => 'Add your boat',
             'why' => 'A trip has to sail on something, and its capacity comes from here.',
@@ -60,7 +65,7 @@ return [
         'season' => [
             'title' => 'Set your periods',
             'why' => 'So August is priced differently from May. If the price is the same all year, skip it.',
-            'action' => 'Open periods',
+            'action' => 'New period',
         ],
         'product' => [
             'title' => 'Create a trip',
@@ -102,6 +107,13 @@ return [
             'none' => 'No departures in the next seven days.',
             'scan' => 'Scan tickets',
             'board' => 'Boarding list',
+        ],
+        'actions' => [
+            'bar_label' => 'Quick actions',
+            'scan_short' => 'Scan',
+            'scan_hint' => 'Opens the camera',
+            'board_hint' => 'Tick off names',
+            'sell_hint' => ':time · :count seat free|:time · :count seats free',
         ],
         'boxes' => [
             'departures' => 'Departures',

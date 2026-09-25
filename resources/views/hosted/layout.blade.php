@@ -43,6 +43,10 @@
     $fontCss = $brand['font']['css_url'] ?? null;
     $fontFamily = $brand['font']['family'] ?? 'Inter';
     $logo = $brand['logo']['light_url'] ?? null;
+    // The footer is dark: the logo made for a dark background when there is
+    // one («Λογότυπο για σκούρο φόντο», the light-coloured version), else the
+    // same one as the header (Mike, 25/9: the footer showed the dark logo).
+    $footLogo = ($brand['logo']['dark_url'] ?? null) ?: $logo;
 @endphp
 <!doctype html>
 <html lang="{{ $locale }}">
@@ -1818,7 +1822,10 @@
         .lightbox { display: none; }
 
         .lightbox:target {
-            position: fixed; inset: 0; z-index: 60;
+            /* Above the widget's payment bar on a phone, which sits at
+               2147483000 (`packages/widget/src/shadow.ts`) — at 60 the bar
+               covered the bottom of the photograph and took its taps. */
+            position: fixed; inset: 0; z-index: 2147483100;
             display: grid; place-items: center;
             padding: clamp(1rem, 4vw, 3rem);
         }
@@ -1832,14 +1839,43 @@
             position: relative; z-index: 1; margin: 0;
             max-inline-size: min(94vw, 68rem);
             max-block-size: 88vh;
-            display: flex; align-items: center; justify-content: center;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: .6rem;
         }
 
         .lightbox figure img {
-            max-inline-size: 100%; max-block-size: 88vh;
+            max-inline-size: 100%; max-block-size: 80vh;
             inline-size: auto; block-size: auto;
             object-fit: contain; border-radius: 10px; display: block;
         }
+
+        /* The photograph's alt text, when the operator wrote one. */
+        .lightbox figcaption {
+            color: rgba(255, 255, 255, .9); font-size: .9rem; text-align: center;
+            max-inline-size: 40rem;
+        }
+
+        /* «2 / 5», level with the close button. */
+        .lightbox-count {
+            position: absolute; z-index: 2; margin: 0;
+            inset-block-start: clamp(.75rem, 3vw, 1.5rem); inset-inline-start: clamp(.75rem, 3vw, 1.5rem);
+            padding: .45rem .2rem;
+            color: rgba(255, 255, 255, .85); font-size: .9rem; font-variant-numeric: tabular-nums;
+        }
+
+        .lightbox-close:focus-visible,
+        .lightbox-step a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
+        /* The page under an open photograph does not scroll. Without a script:
+           `:has()` sees the open panel and holds the document still. */
+        html:has(.lightbox:target) { overflow: hidden; }
+
+        /* A short fade in, and none for anyone who asked for less motion. */
+        @media (prefers-reduced-motion: no-preference) {
+            .lightbox:target { animation: lightbox-in .18s ease-out; }
+        }
+
+        @keyframes lightbox-in { from { opacity: 0; } to { opacity: 1; } }
 
         .lightbox-close {
             position: absolute; z-index: 2;
@@ -1854,9 +1890,12 @@
             position: absolute; z-index: 2; inset-block-start: 50%; translate: 0 -50%;
             color: #fff; text-decoration: none; font-size: 2rem; line-height: 1;
             padding: .6rem .9rem; border-radius: 999px;
+            /* On a phone the arrows sit on the photograph itself, and a white
+               glyph on a white sail is not there at all. */
+            background: rgba(6, 16, 20, .45);
         }
 
-        .lightbox-step a:hover { background: rgba(255, 255, 255, .14); }
+        .lightbox-step a:hover { background: rgba(6, 16, 20, .7); }
         .lightbox-step .prev { inset-inline-start: clamp(.25rem, 2vw, 1.5rem); }
         .lightbox-step .next { inset-inline-end: clamp(.25rem, 2vw, 1.5rem); }
 
@@ -1987,6 +2026,17 @@
            ένα αρνητικό περιθώριο «στο περίπου» είναι ακριβώς ο τρόπος που μια
            σελίδα αποκτά οριζόντιο scroll σε ένα τηλέφωνο. */
         .boat-rail > li { flex: none; width: min(17rem, 72vw); scroll-snap-align: start; }
+
+        /* Each photograph is a link to its lightbox panel (2026-09-25). */
+        .boat-open { display: block; border-radius: 10px; overflow: hidden; }
+        /* Drawn inside the photograph: the rail scrolls, so it clips anything
+           outside its own box, an outline included. */
+        .boat-open:focus-visible { outline: 3px solid var(--kaiki-primary); outline-offset: -3px; }
+
+        @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+            .boat-open img { transition: scale .4s ease; }
+            .boat-open:hover img { scale: 1.03; }
+        }
 
         .boat-rail img {
             width: 100%; height: 100%;
@@ -3757,6 +3807,24 @@
            the white gap between them read as a hole (Mike, 24/9). */
         .story.has-image + .band, .band + .story.has-image,
         .story.has-image + .steps-route:not(.has-image), .steps-route:not(.has-image) + .story.has-image { margin-block-start: calc(-1 * var(--section-gap)); }
+        /* The figures card over the masthead's edge, with an edge-to-edge story
+           straight under it (the about page). The card took up its own lower
+           half in the flow, so the story started below it and a white strip
+           showed between masthead and photograph (Mike, 25/9). Now the card
+           takes no room: the story meets the masthead, and the card sits
+           across the join — as far into the masthead as before, so it never
+           reaches the masthead's text, and the rest over the photograph. */
+        /* Wherever the card is one row (from 47.5rem, see the figures card):
+           on a phone it is two rows tall and would cover the photograph's
+           people, and the strip beside a card that nearly fills the width
+           does not read as a gap. */
+        @media (min-width: 47.51rem) {
+            .hero + .stats-block:has(+ .story.has-image) { block-size: 0; margin-block-start: calc(-1 * var(--section-gap)); }
+            .hero + .stats-block:has(+ .story.has-image) .stats { transform: translateY(-4rem); }
+            .hero + .stats-block + .story.has-image { margin-block-start: calc(-1 * var(--section-gap)); }
+            /* The card's lower half now lies over the story's top edge. */
+            .hero + .stats-block + .story.has-image .story-copy { padding-block-start: calc(clamp(2.5rem, 6vw, 6rem) + 5rem); }
+        }
         @media (min-width: 62rem) {
             .story.has-image, .story.side-left.has-image { grid-template-columns: 1fr 1fr; min-block-size: 34rem; }
             .story.has-image .story-image { min-block-size: 34rem; }
@@ -4221,8 +4289,8 @@
              legally — and the legal links in a row of their own underneath. --}}
         <div class="cols">
             <div class="foot-brand">
-                @if ($logo)
-                    <img class="foot-logo" src="{{ $logo }}" alt="{{ $tenant->name }}">
+                @if ($footLogo)
+                    <img class="foot-logo" src="{{ $footLogo }}" alt="{{ $tenant->name }}">
                 @else
                     <p class="foot-wordmark">
                         <span class="brand-mark" aria-hidden="true">@include('hosted.partials.icon', ['name' => 'boat'])</span>

@@ -210,7 +210,7 @@ const PANEL_SHOTS = [
   ['products', '/app/products'],
   ['vessels', '/app/vessels'],
   ['ports', '/app/ports'],
-  // «Τιμές» in the sidebar: every trip's price lists in one place. Made inside
+  // «Τιμοκατάλογοι» in the sidebar: every trip's price lists in one place. Made inside
   // the trip since 2026-09-22, so this list has no «Νέο» of its own.
   ['rate-plans', '/app/rate-plans'],
   ['seasons', '/app/seasons'],

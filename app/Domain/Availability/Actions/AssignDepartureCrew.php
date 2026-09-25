@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Availability\Actions;
 
+use App\Domain\Availability\Support\CrewNames;
 use App\Enums\DepartureStatus;
 use App\Mail\CrewAssignedMail;
 use App\Models\Departure;
@@ -29,15 +30,20 @@ use Illuminate\Validation\ValidationException;
  *
  * **An email to whoever is newly added** (Mike, same day). Saving again sends
  * nothing to the people already on it.
+ *
+ * **Crew typed by name** (Mike, 2026-09-25): people with no account, the
+ * crew's `captain_name`. Cleaned by {@see CrewNames}; they get no email.
+ * Null leaves the departure's as they are.
  */
 final class AssignDepartureCrew
 {
     /**
      * @param  list<int|string>  $crewUserIds
+     * @param  list<string>|null  $crewNames  null = leave them as they are
      *
      * @throws ValidationException
      */
-    public function __invoke(Departure $departure, int|string|null $captainUserId, ?string $captainName, array $crewUserIds): Departure
+    public function __invoke(Departure $departure, int|string|null $captainUserId, ?string $captainName, array $crewUserIds, ?array $crewNames = null): Departure
     {
         $captainUserId = $captainUserId === null || $captainUserId === '' ? null : (int) $captainUserId;
         $crew = array_values(array_diff(array_unique(array_map('intval', $crewUserIds)), [$captainUserId]));
@@ -69,6 +75,7 @@ final class AssignDepartureCrew
             'captain_user_id' => $captainUserId,
             'captain_name' => $captainUserId === null && $name !== '' ? $name : null,
             'crew_user_ids' => $crew === [] ? null : $crew,
+            'crew_names' => $crewNames === null ? CrewNames::clean($departure->crew_names) : CrewNames::clean($crewNames),
             // Changed by hand for this one day: the schedule's crew no longer
             // reaches it.
             'crew_from_rule' => false,

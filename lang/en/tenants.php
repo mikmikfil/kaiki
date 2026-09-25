@@ -120,6 +120,11 @@ return [
         'group_money' => 'Pricing and messages',
         'group_start' => 'Getting started',
 
+        // The logo and the colours (25 September): set by the platform when
+        // it opens the account, and changed later by the operator.
+        'branding' => 'Appearance',
+        'branding_help' => 'Logo and colours for their pages and emails. The operator can change them too, in Settings.',
+
         'channels' => 'Sales channels',
         'channels_help' => 'Where this operator sells besides their own pages. Anything sold here comes out of the same availability.',
         'channels_locked' => 'Locked by the platform',
@@ -149,7 +154,7 @@ return [
     'create' => [
         'action' => 'New operator',
         'business' => 'The business',
-        'business_help' => 'The rest — legal name, VAT number, tax office, logo, colours — the operator fills in themselves.',
+        'business_help' => 'The rest — legal name, VAT number, tax office — the operator fills in themselves.',
         'slug_help' => 'Their public address. Lower case, digits and hyphens. Hard to change later, because it goes into every link.',
         'billing_email' => 'Business email',
         'billing_email_help' => 'Where invoices and subscription notices go.',

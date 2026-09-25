@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Μειωμένα, γύρος 3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Same tokens as reduced-fares-v2.html: light only, blue panel, Inter. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57; --active:#1C4378;
+  --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --line2:#CFDAE8; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA; --strip:#F1F5FA;
+  --warn:#9A5B0C; --warnbg:#FBF0DF; --good:#1F7A4D; --goodbg:#E3F2EA; --bad:#B42318; --badbg:#FDECEA;
+  --op:#0E6E8C; --opdeep:#0A4F66; --opwash:#E4F2F6;
+  --scrim:rgba(15,46,87,.38);
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--ground)}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-block:32px 72px;padding-inline:16px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+a,a:hover,a:focus{color:var(--blue);text-decoration:none;font-weight:600}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:22px}
+.intro h1{font-size:28px;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.intro p{margin:0 0 8px;color:var(--muted);max-width:80ch}
+.answer{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--good);border-radius:12px;padding:12px 16px;max-width:900px}
+.answer b{color:var(--good)}
+.answer p{margin:4px 0 0;color:var(--ink)}
+
+.tabs{display:flex;flex-wrap:wrap;gap:0 4px;border-bottom:1px solid var(--line2);position:sticky;top:0;background:var(--ground);z-index:5}
+@media(max-width:699px){.tabs{position:static}.tab{padding:9px 10px 8px!important;font-size:14px!important}}
+.tab{padding:12px 14px 11px;font-weight:600;font-size:15px;color:#4F607A;border-bottom:3px solid transparent;white-space:nowrap;margin-bottom:-1px;min-height:44px}
+.tab[aria-selected="true"]{color:var(--deep);border-bottom-color:var(--deep)}
+
+.panel{display:grid;gap:18px;min-width:0}
+.lead{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.lead h2{margin:0 0 6px;font-size:20px}
+.lead p{margin:0 0 6px;color:var(--muted);max-width:80ch}
+.lead p:last-child{margin-bottom:0}
+.says{display:inline-block;margin-top:4px;background:var(--wash);color:var(--deep);border-radius:8px;padding:4px 10px;font-weight:600;font-size:14px}
+
+.sec{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.sec-h{padding:14px 18px;background:var(--strip);border-bottom:1px solid var(--line)}
+.sec-h h3{margin:0;font-size:17px}
+.sec-h p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.sec-b{padding:18px;display:grid;gap:16px;min-width:0}
+@media(max-width:520px){.sec-b{padding:12px}.lead{padding:14px}}
+.cols{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:900px){.cols.dev{grid-template-columns:375px minmax(0,1fr)}}
+.cap{font-size:12.5px;font-weight:600;color:var(--muted);margin:0 0 6px}
+.note{font-size:13px;color:var(--muted);margin:0}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--wash);color:var(--blue);white-space:nowrap}
+.tag.warn{background:var(--warnbg);color:var(--warn)}.tag.good{background:var(--goodbg);color:var(--good)}
+.num{font-variant-numeric:tabular-nums}
+
+/* Try-it controls above each guest section */
+.ctl{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-top:10px}
+.ctl>span{font-size:13px;font-weight:600;color:var(--ink)}
+.seg2{display:inline-flex;flex-wrap:wrap;gap:3px;background:var(--card);border:1px solid var(--line2);border-radius:10px;padding:3px}
+.seg2 button{min-height:36px;padding:4px 12px;border-radius:8px;font-size:13px;font-weight:600;color:var(--muted)}
+.seg2 button[aria-checked="true"]{background:var(--deep);color:#fff}
+
+/* ---------- Operator panel frame (from v2) ---------- */
+.pn{border:1px solid var(--line2);border-radius:12px;overflow:hidden;background:var(--paper);min-width:0}
+.pn-top{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:10px 14px;background:var(--card);border-bottom:1px solid var(--line)}
+.pn-top b{font-size:15px}
+.pn-tabs{display:flex;gap:2px;overflow-x:auto;padding:0 10px;background:var(--card);border-bottom:1px solid var(--line)}
+.pn-tabs span{padding:9px 10px;font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent}
+.pn-tabs span.on{color:var(--deep);border-bottom-color:var(--blue)}
+.pn-b{padding:14px;display:grid;gap:14px;min-width:0}
+.pn-sec h4{margin:0 0 2px;font-size:15px}
+.pn-sec>p{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.fare{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:10px;min-width:0}
+.fare-h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between}
+.fare-h b{font-size:15px}
+.fgrid{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:620px){.fgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.f{display:grid;gap:4px;min-width:0}
+.f .l{font-size:12.5px;font-weight:600}
+.f .v{border:1px solid var(--line2);border-radius:8px;padding:7px 10px;background:#fff;font-size:14px;min-height:36px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.f .h{font-size:12px;color:var(--muted)}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--strip);border:1px solid var(--line2);border-radius:8px;padding:2px}
+.seg span{padding:4px 9px;border-radius:6px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.seg span.on{background:var(--deep);color:#fff}
+.chk{display:inline-flex;align-items:center;gap:5px;font-size:13.5px}
+.chk i{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--line2);display:inline-grid;place-items:center;font-style:normal;font-size:11px;background:#fff;flex:none}
+.chk i.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.sw{display:inline-flex;align-items:flex-start;gap:8px;font-size:13.5px}
+.sw i{width:32px;height:18px;border-radius:99px;background:var(--line2);position:relative;flex:none;margin-top:2px}
+.sw i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff}
+.sw i.on{background:var(--blue)}.sw i.on::after{left:16px}
+.sw small{display:block;color:var(--muted);font-size:12px}
+.addrow{font-size:13.5px;font-weight:600;color:var(--blue)}
+.ptable{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--card)}
+.ptable th,.ptable td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.ptable th{font-size:12.5px;color:var(--muted);font-weight:600;background:var(--strip);white-space:nowrap}
+.ptable td.r,.ptable th.r{text-align:right}
+.ptable .sub{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.ptable .cell{display:inline-block;min-width:62px;border:1px solid var(--line2);border-radius:6px;padding:3px 7px;background:#fff;text-align:right}
+.ptable .cell.auto{color:var(--muted);background:var(--paper);border-style:dashed}
+.ptable .cell.own{border-color:var(--blue);font-weight:700}
+.tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;max-width:100%}
+.rules{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
+
+/* ---------- Guest frames ---------- */
+.phone{position:relative;width:100%;max-width:375px;border:1px solid var(--line2);border-radius:22px;background:#fff;overflow:hidden;box-shadow:0 1px 0 var(--line)}
+.phone.tall{min-height:700px}
+.ph-bar{height:22px;background:var(--paper);border-bottom:1px solid var(--line)}
+.desk{position:relative;border:1px solid var(--line2);border-radius:12px;background:#fff;overflow:hidden;min-width:0}
+.desk.tall{min-height:640px}
+.desk-bar{display:flex;gap:6px;align-items:center;padding:8px 12px;background:var(--paper);border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.desk-bar i{width:9px;height:9px;border-radius:50%;background:var(--line2);flex:none}
+.desk-in{display:grid;gap:18px;padding:18px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:700px){.desk-in{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}}
+.tripcard{display:grid;gap:4px;align-content:start}
+.tripcard .band{height:92px;border-radius:10px;background:linear-gradient(135deg,var(--op),#5BB3C9)}
+.tripcard b{font-size:17px;margin-top:6px}
+.tripcard span{font-size:13.5px;color:var(--muted)}
+
+.g{padding:16px;display:grid;gap:12px;font-size:15px;min-width:0;align-content:start}
+.desk .g{padding:0}
+.g h5{margin:0;font-size:18px;line-height:1.3}
+.crumbs{font-size:12.5px;color:var(--muted)}
+.crumbs b{color:var(--op)}
+.pax{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);min-height:56px}
+.pax:last-child{border-bottom:0}
+.pax .who{display:grid;min-width:0}
+.pax .who b{font-size:15px;font-weight:600}
+.pax .who span{font-size:12.5px;color:var(--muted)}
+/* 44px targets everywhere a finger lands */
+.stepper{display:inline-flex;align-items:center;flex:none}
+.stepper button{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--op);color:var(--op);font-size:20px;font-weight:600;line-height:1;display:grid;place-items:center}
+.stepper button[disabled]{border-color:var(--line2);color:var(--faint);cursor:default}
+.stepper output{min-width:32px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.sum{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 12px;border-radius:10px;background:var(--opwash)}
+.sum span{font-size:13.5px;color:var(--opdeep)}
+.sum b{font-size:18px;font-variant-numeric:tabular-nums;color:var(--opdeep);white-space:nowrap}
+.gbtn{display:block;width:100%;min-height:48px;text-align:center;background:var(--op);color:#fff;font-weight:700;border-radius:10px;padding:13px}
+.gbtn.off{background:var(--line2);color:var(--muted)}
+.hint{font-size:13px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:9px 11px;color:var(--muted)}
+.hint b{color:var(--ink)}
+.gwarn{font-size:13px;background:var(--warnbg);color:var(--warn);border-radius:10px;padding:8px 11px;font-weight:600}
+.proof{font-size:12.5px;color:var(--warn);background:var(--warnbg);border-radius:6px;padding:1px 7px;display:inline-block;justify-self:start}
+.more{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;min-height:52px;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--paper);font-size:14.5px;font-weight:600;color:var(--opdeep);text-align:left}
+.more small{font-weight:400;color:var(--muted);font-size:12.5px;display:block}
+.more em{font-style:normal;font-size:13.5px;color:var(--op);white-space:nowrap}
+.more[aria-expanded="true"]{border-radius:10px 10px 0 0;border-bottom-color:transparent}
+.compan{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13.5px;text-align:left;width:100%;min-height:52px;background:#fff}
+.compan i{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--line2);display:grid;place-items:center;font-style:normal;font-size:12px;flex:none;margin-top:1px;background:#fff;color:transparent}
+.compan[aria-pressed="true"]{border-color:var(--op);background:var(--opwash)}
+.compan[aria-pressed="true"] i{background:var(--op);border-color:var(--op);color:#fff}
+.compan[disabled]{opacity:.55;cursor:default}
+.compan small{display:block;color:var(--muted);font-size:12px}
+
+/* Β1: the one group under the ages */
+.redbox{border:1px solid var(--line);border-top:0;border-radius:0 0 10px 10px;background:var(--paper);padding:0 12px 10px;margin-top:-12px;display:grid;gap:0}
+.redbox .lbl{font-size:12.5px;color:var(--muted);padding:2px 0 4px;border-bottom:1px solid var(--line)}
+.redbox .pax{min-height:60px}
+.redbox .rp{color:var(--opdeep);font-weight:700}
+.redbox .full{font-size:12.5px;color:var(--muted);padding:6px 0 0}
+.redbox .compan{margin-top:10px}
+
+/* Β2: bottom sheet (desktop: centred dialog) */
+.scrim{position:absolute;inset:0;background:var(--scrim);display:flex;align-items:flex-end;justify-content:center;z-index:4}
+.desk .scrim{align-items:center;padding:24px}
+.sheet{background:#fff;width:100%;max-height:94%;border-radius:18px 18px 0 0;display:flex;flex-direction:column;box-shadow:0 -6px 24px rgba(15,46,87,.18)}
+.desk .sheet{max-width:460px;border-radius:14px;max-height:100%}
+.grip{width:40px;height:4px;border-radius:99px;background:var(--line2);margin:8px auto 0}
+.desk .grip{display:none}
+.sheet-h{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:8px 8px 6px 16px}
+.sheet-h b{font-size:17px;display:block;padding-top:8px}
+.sheet-h small{display:block;font-size:12.5px;color:var(--muted)}
+.x{width:44px;height:44px;border-radius:50%;font-size:24px;line-height:1;color:var(--muted);flex:none}
+.sheet-b{overflow-y:auto;padding:0 16px;display:grid;gap:0;min-height:0}
+.sheet-f{border-top:1px solid var(--line);padding:10px 16px 14px;display:grid;gap:8px;background:#fff;border-radius:0 0 14px 14px}
+.person{display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)}
+.person:last-child{border-bottom:0}
+.person-h{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 8px;font-size:14px}
+.person-h b{font-size:14.5px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{flex:1 1 auto;min-width:76px;min-height:48px;border:1.5px solid var(--line2);border-radius:10px;padding:5px 9px;display:grid;justify-items:start;align-content:center;text-align:left;background:#fff}
+.chip span{font-size:13.5px;font-weight:600;line-height:1.3}
+.chip em{font-style:normal;font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1.3}
+.chip[aria-checked="true"]{border-color:var(--op);background:var(--opwash)}
+.chip[aria-checked="true"] em{color:var(--opdeep);font-weight:600}
+.sheet .compan{margin:6px 0 12px}
+
+/* Β3: passenger cards at checkout */
+.back{min-height:44px;font-weight:600;color:var(--op);justify-self:start;padding:0 2px;font-size:14.5px}
+.pcard{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:8px;min-width:0}
+.pcard-h{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 8px;font-size:14px}
+.pcard-h b{font-size:15px}
+.pcard-h span{color:var(--muted);font-size:13px}
+.in{border:1px solid var(--line2);border-radius:8px;padding:10px;font-size:14.5px;color:var(--ink);min-height:44px}
+.in.ph{color:var(--faint)}
+.flbl{font-size:12.5px;font-weight:600;margin-bottom:-4px}
+.paybar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid var(--line);background:#fff;position:sticky;bottom:0}
+.paybar b{font-size:17px;font-variant-numeric:tabular-nums}
+.paybar span{background:var(--op);color:#fff;font-weight:700;border-radius:10px;padding:12px 16px;font-size:14px}
+.b3desk{display:grid;gap:18px;padding:18px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:760px){.b3desk{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}}
+.b3desk h6{margin:0 0 4px;font-size:14px;color:var(--muted);font-weight:600}
+.b3desk .col{display:grid;gap:10px;align-content:start;min-width:0}
+
+/* ---------- Facts per variant ---------- */
+.facts{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:760px){.facts{grid-template-columns:1fr 1fr}}
+.fact{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--paper);display:grid;gap:6px;align-content:start}
+.fact h4{margin:0;font-size:15px}
+.fact p{margin:0;font-size:14px}
+.fact ul{margin:0;padding-left:18px;display:grid;gap:4px;font-size:14px}
+.taps{width:100%;border-collapse:collapse;font-size:14px}
+.taps td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:top}
+.taps td:last-child{text-align:right;font-weight:700;white-space:nowrap;padding-left:10px;font-variant-numeric:tabular-nums}
+.taps tr:last-child td{border-bottom:0}
+.pc{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:760px){.pc{grid-template-columns:1fr 1fr}}
+.pc h4{margin:0 0 6px;font-size:15px}
+.pc ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
+.pc .plus h4{color:var(--good)}.pc .minus h4{color:var(--bad)}
+.effort{font-size:13.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+.effort b{color:var(--ink)}
+
+/* ---------- Comparison ---------- */
+.cmp{width:100%;border-collapse:collapse;font-size:14px;background:#fff;min-width:680px}
+.cmp th,.cmp td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.cmp th{background:var(--strip);font-size:12.5px;color:var(--muted)}
+.cmp td.best{background:var(--goodbg)}
+.rec{border:1px solid var(--line);border-left:4px solid var(--good);border-radius:14px;background:var(--card);padding:18px 20px;display:grid;gap:8px}
+.rec h3{margin:0;font-size:18px}
+.rec p{margin:0;max-width:85ch}
+.rec ul{margin:0;padding-left:18px;display:grid;gap:5px;font-size:14px}
+.q{margin:0;padding:0;list-style:none;display:grid;gap:8px;counter-reset:q}
+.q li{padding:10px 12px 10px 40px;border:1px solid var(--line);border-radius:10px;background:var(--paper);position:relative;counter-increment:q}
+.q li::before{content:counter(q);position:absolute;left:12px;top:10px;width:20px;height:20px;border-radius:50%;background:var(--deep);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+.q b{display:block;font-size:14px}
+.q span{font-size:13.5px;color:var(--muted)}
+code{font-size:12.5px;background:var(--strip);border:1px solid var(--line);border-radius:5px;padding:0 4px;word-break:break-word}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="intro">
+    <h1>Μειωμένα, γύρος 3</h1>
+    <p>Ο Mike, 25/9: «Από τα μειωμένα μου αρέσει το Β, αλλά όντως θα είναι πρόβλημα στο κινητό.» Κρατάμε το μοντέλο του Β όπως είναι. Αλλάζει μόνο αυτό που βλέπει ο επισκέπτης: το δεύτερο επίπεδο μέσα σε κάθε ηλικία («Από αυτούς: ΑμεΑ 1») φεύγει.</p>
+    <div class="answer"><b>Τι μένει ίδιο</b>
+      <p>Το μειωμένο είναι έκπτωση πάνω στην τιμή της ηλικίας του ίδιου. ΑμεΑ −50&nbsp;%: ενήλικας 25 €, παιδί 12,50 €, σε κάθε περίοδο, με «Τιμή ανά ηλικία» για όποιον θέλει άλλο ποσό. Ο δωρεάν συνοδός είναι διακόπτης. Η ηλικία δεν χάνεται ποτέ, οπότε ο κανόνας συνοδείας δεν αγγίζεται. Η ρύθμιση είναι στην τελευταία καρτέλα πριν τη σύγκριση.</p>
+    </div>
+    <p style="margin-top:10px">Παράδειγμα παντού: «Ιστιοπλοΐα με πανιά», Σάββατο 12 Ιουλίου. Ιούλ–Αύγ: Ενήλικας 50 €, Παιδί 25 €, Βρέφος δωρεάν. ΑμεΑ −50&nbsp;%, Φοιτητικό −20&nbsp;% μόνο για ενήλικες. Κράτηση: <b>2 ενήλικες (ο ένας ΑμεΑ), 2 παιδιά (το ένα ΑμεΑ) = 112,50 €</b>.</p>
+    <p>Τρεις τρόποι, όλοι ίσιοι: <b>Β1</b> μία λίστα μειωμένων κάτω από τις ηλικίες, <b>Β2</b> φύλλο από κάτω με ένα άτομο ανά σειρά, <b>Β3</b> το μειωμένο πάει στα στοιχεία κάθε επιβάτη. Όλα δουλεύουν: − / +, όρια, σύνολο και φράση.</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-tab="b1">Β1 · Μία λίστα από κάτω</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="b2">Β2 · Φύλλο από κάτω</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="b3">Β3 · Στα στοιχεία επιβατών</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="set">Η ρύθμιση (ίδια με το Β)</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="cmp">Σύγκριση και επιλογή</button>
+  </nav>
+
+  <!-- ======================================================= Β1 -->
+  <section class="panel" data-panel="b1">
+    <div class="lead">
+      <h2>Β1 · Μία λίστα μειωμένων, κάτω από τις ηλικίες</h2>
+      <p>Οι ηλικίες μένουν όπως σήμερα. Από κάτω, μία κλειστή γραμμή «Μειωμένα εισιτήρια». Ανοιχτή, δείχνει μια ίσια λίστα: κάθε γραμμή είναι ηλικία + μειωμένο, με την τιμή της ήδη υπολογισμένη. Κάθε − / + έχει όριο τα άτομα αυτής της ηλικίας.</p>
+      <span class="says">«2 ενήλικες (ο ένας ΑμεΑ), 2 παιδιά (το ένα ΑμεΑ)»</span>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Κράτηση, κινητό και υπολογιστής</h3><p>Δοκιμάστε: 3 ενήλικες, 2 φοιτητές, και μετά κατεβάστε τους ενήλικες σε 1.</p>
+        <div class="ctl"><span>Μειωμένα στην εκδρομή</span><span class="seg2 modebar" role="radiogroup" aria-label="Πόσα μειωμένα"><button role="radio" aria-checked="true" data-mode="2">2: ΑμεΑ, φοιτητικό</button><button role="radio" aria-checked="false" data-mode="4">4: και πολύτεκνοι, άνω των 65</button></span>
+          <span class="seg2" role="group" aria-label="Κατάσταση"><button data-reset="b1" data-to="ex">Το παράδειγμα</button><button data-reset="b1" data-to="none">Κανείς μειωμένος</button></span></div>
+      </div>
+      <div class="sec-b">
+        <div class="cols dev">
+          <div>
+            <p class="cap">Κινητό, 375</p>
+            <div class="phone"><div class="ph-bar"></div><div data-inst="b1p"></div></div>
+          </div>
+          <div>
+            <p class="cap">Υπολογιστής</p>
+            <div class="desk"><div class="desk-bar"><i></i><i></i><i></i>&nbsp;aegeanblue.gr/ekdromes/istioploia</div><div data-inst="b1d"></div></div>
+            <p class="note" style="margin-top:10px">Η γραμμή είναι κλειστή όταν ανοίγει η σελίδα· εδώ φαίνεται ανοιχτή. Γραμμές για ηλικία με 0 άτομα δεν εμφανίζονται. Στο checkout οι κάρτες έχουν ήδη τίτλο («Επιβάτης 2 · Ενήλικας · ΑμεΑ») και ο επισκέπτης γράφει το όνομα στη σωστή.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Κλικ, πολλά μειωμένα, προσβασιμότητα</h3></div>
+      <div class="sec-b">
+        <div class="facts">
+          <div class="fact"><h4>Κλικ πέρα από τα − / + των ηλικιών</h4>
+            <table class="taps"><tbody>
+              <tr><td>Κανείς μειωμένος</td><td>0</td></tr>
+              <tr><td>Το παράδειγμα (ένας ΑμεΑ ενήλικας, ένα ΑμεΑ παιδί)</td><td>3</td></tr>
+              <tr><td>Και ο δωρεάν συνοδός</td><td>+1</td></tr>
+            </tbody></table>
+            <p class="note">Άνοιγμα της γραμμής, + στο «Ενήλικας ΑμεΑ», + στο «Παιδί ΑμεΑ».</p></div>
+          <div class="fact"><h4>Με 4 μειωμένα</h4>
+            <p>Η λίστα γίνεται 6 γραμμές (ΑμεΑ και πολύτεκνοι σε δύο ηλικίες, φοιτητές και άνω των 65 σε μία). Στο κινητό είναι περίπου μία οθόνη. Τη βλέπει μόνο όποιος την ανοίξει.</p>
+            <p class="note">Αν κάποτε γίνουν 6–8, οι γραμμές μπαίνουν κάτω από δύο τίτλους «Ενήλικες» και «Παιδιά», πάλι σε ένα επίπεδο.</p></div>
+          <div class="fact"><h4>Προσβασιμότητα</h4>
+            <ul>
+              <li>Όλα τα − / + είναι 44 × 44. Η γραμμή που ανοίγει είναι 52 ύψος.</li>
+              <li>Η γραμμή έχει <code>aria-expanded</code>. Το σύνολο ανακοινώνεται (<code>aria-live</code>).</li>
+              <li>Κάθε κουμπί λέει τι αλλάζει: «Περισσότερα: Ενήλικας ΑμεΑ».</li>
+              <li>Όταν γεμίσει μια ηλικία, το + σβήνει και μια φράση λέει γιατί.</li>
+            </ul></div>
+          <div class="fact"><h4>Κανόνες</h4>
+            <ul>
+              <li>Κάθε μειωμένο είναι ένας από τους ανθρώπους πάνω, όχι επιπλέον.</li>
+              <li>Κατεβαίνουν οι ενήλικες κάτω από τα μειωμένα; Φεύγει πρώτα ένας κανονικός, μετά το τελευταίο μειωμένο.</li>
+              <li>Ο συνοδός εμφανίζεται μόλις υπάρχει ένας ΑμεΑ και σβήνει αν δεν μείνει κανονικός ενήλικας.</li>
+            </ul></div>
+        </div>
+        <div class="pc">
+          <div class="plus"><h4>Υπέρ</h4><ul>
+            <li>Ένα επίπεδο. Ίδια − / + με τις ηλικίες, τίποτα καινούργιο να μάθει ο επισκέπτης.</li>
+            <li>Η σωστή τιμή από το πρώτο βήμα: 112,50 € πριν πατήσει «Συνέχεια».</li>
+            <li>Κάθε γραμμή γράφει την τιμή της: «Παιδί ΑμεΑ 12,50 €». Φαίνεται αμέσως ότι το παιδί πληρώνει λιγότερο.</li>
+            <li>Όποιος δεν δικαιούται τίποτα βλέπει μία κλειστή γραμμή.</li>
+            <li>Δουλεύει και χωρίς στοιχεία επιβατών (ναυλώσεις, κρατήσεις από το γραφείο).</li>
+          </ul></div>
+          <div class="minus"><h4>Κατά</h4><ul>
+            <li>Ο επισκέπτης πρέπει να καταλάβει ότι το «Ενήλικας ΑμεΑ» είναι ένας από τους 2, όχι τρίτος. Το λέει η φράση πάνω από τη λίστα και το όριο.</li>
+            <li>Με πολλά μειωμένα η λίστα μακραίνει (6 γραμμές με 4 μειωμένα).</li>
+            <li>Ποιος είναι ο ΑμεΑ λέγεται στο checkout, γράφοντας το όνομα στην κάρτα με τον σωστό τίτλο.</li>
+          </ul></div>
+        </div>
+        <p class="effort"><b>Δουλειά στο widget:</b> η λίστα βγαίνει από τα μειωμένα της εκδρομής × ηλικίες, όρια, φράση. Λιγότερη από το v2 Β, γιατί δεν υπάρχει δεύτερο επίπεδο. Όλο το Β1 μαζί με τη ρύθμιση: περίπου 3 συνεδρίες.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= Β2 -->
+  <section class="panel" data-panel="b2" hidden>
+    <div class="lead">
+      <h2>Β2 · Φύλλο από κάτω, ένα άτομο ανά σειρά</h2>
+      <p>Το βήμα «Άτομα» έχει μόνο ηλικίες και από κάτω μία γραμμή «Έχει κάποιος μειωμένο;». Ανοίγει ένα φύλλο από το κάτω μέρος της οθόνης: μία σειρά για κάθε άτομο («Ενήλικας 1», «Ενήλικας 2», «Παιδί 1»…) και για τον καθένα Κανονικό ή μειωμένο, μόνο όσα ταιριάζουν στην ηλικία του, με την τιμή του. «Έτοιμο» και γυρνάει με τη φράση.</p>
+      <span class="says">«Ενήλικας 2 · ΑμεΑ · 25 €»</span>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Κράτηση, κινητό και υπολογιστής</h3><p>Πατήστε «Μειωμένα» ή «Έχει κάποιος μειωμένο;». Στον υπολογιστή το φύλλο γίνεται παράθυρο στη μέση.</p>
+        <div class="ctl"><span>Μειωμένα στην εκδρομή</span><span class="seg2 modebar" role="radiogroup" aria-label="Πόσα μειωμένα"><button role="radio" aria-checked="true" data-mode="2">2: ΑμεΑ, φοιτητικό</button><button role="radio" aria-checked="false" data-mode="4">4: και πολύτεκνοι, άνω των 65</button></span>
+          <span class="seg2" role="group" aria-label="Κατάσταση"><button data-reset="b2" data-to="ex">Το παράδειγμα</button><button data-reset="b2" data-to="none">Κανείς μειωμένος</button></span></div>
+      </div>
+      <div class="sec-b">
+        <div class="cols dev">
+          <div>
+            <p class="cap">Κινητό, 375</p>
+            <div class="phone tall"><div class="ph-bar"></div><div data-inst="b2p"></div></div>
+          </div>
+          <div>
+            <p class="cap">Υπολογιστής</p>
+            <div class="desk tall"><div class="desk-bar"><i></i><i></i><i></i>&nbsp;aegeanblue.gr/ekdromes/istioploia</div><div data-inst="b2d"></div></div>
+            <p class="note" style="margin-top:10px">Το «Ενήλικας 2 · ΑμεΑ» περνάει ίδιο στην κάρτα του επιβάτη 2 στο checkout. Ο επισκέπτης γράφει μόνο το όνομα. Τα βρέφη δεν έχουν σειρά στο φύλλο: είναι ήδη δωρεάν.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Κλικ, πολλά μειωμένα, προσβασιμότητα</h3></div>
+      <div class="sec-b">
+        <div class="facts">
+          <div class="fact"><h4>Κλικ πέρα από τα − / + των ηλικιών</h4>
+            <table class="taps"><tbody>
+              <tr><td>Κανείς μειωμένος</td><td>0</td></tr>
+              <tr><td>Το παράδειγμα</td><td>4</td></tr>
+              <tr><td>Και ο δωρεάν συνοδός</td><td>+1</td></tr>
+            </tbody></table>
+            <p class="note">Άνοιγμα, «ΑμεΑ» στον Ενήλικα 2, «ΑμεΑ» στο Παιδί 2, «Έτοιμο».</p></div>
+          <div class="fact"><h4>Με 4 μειωμένα</h4>
+            <p>Κάθε ενήλικας έχει 5 επιλογές σε δύο σειρές, κάθε παιδί 3 σε μία. Το φύλλο κυλάει, το «Έτοιμο» μένει πάντα κάτω.</p>
+            <p class="note">Μεγαλώνει με τα άτομα, όχι με τα μειωμένα: 8 άτομα θέλουν 8 σειρές. Για ομάδες 10+ είναι βαρύ.</p></div>
+          <div class="fact"><h4>Προσβασιμότητα</h4>
+            <ul>
+              <li>Επιλογές 48 ύψος, κουμπί κλεισίματος 44 × 44.</li>
+              <li>Το φύλλο είναι <code>role="dialog"</code>, <code>aria-modal</code>. Ανοίγοντας, η εστίαση πάει στο πρώτο άτομο· κλείνει με Esc, με × και πατώντας έξω, και γυρνάει στη γραμμή που το άνοιξε.</li>
+              <li>Κάθε άτομο είναι <code>radiogroup</code> με όνομα («Εισιτήριο: Ενήλικας 2»).</li>
+            </ul></div>
+          <div class="fact"><h4>Κανόνες</h4>
+            <ul>
+              <li>Κανένα όριο να θυμάται ο επισκέπτης: κάθε άτομο έχει ένα εισιτήριο.</li>
+              <li>Κατεβαίνουν οι ενήλικες; Φεύγει πρώτα ένας κανονικός.</li>
+              <li>Ο συνοδός είναι ο πρώτος κανονικός ενήλικας· το φύλλο τού βάζει ετικέτα «συνοδός · δωρεάν».</li>
+            </ul></div>
+        </div>
+        <div class="pc">
+          <div class="plus"><h4>Υπέρ</h4><ul>
+            <li>Μιλάει για ανθρώπους, όχι για πλήθη: «Ενήλικας 2 είναι ΑμεΑ». Δεν χρειάζεται όριο ούτε εξήγηση «μέσα στους 2».</li>
+            <li>Η επιλογή δένεται με θέση επιβάτη. Στο checkout δεν ξαναρωτάμε ποιος.</li>
+            <li>Το βήμα «Άτομα» μένει καθαρό, όπως σήμερα συν μία γραμμή.</li>
+            <li>Σωστή τιμή πριν τη «Συνέχεια».</li>
+          </ul></div>
+          <div class="minus"><h4>Κατά</h4><ul>
+            <li>Ένα κλικ παραπάνω («Έτοιμο») και ένα παράθυρο πάνω από τη σελίδα.</li>
+            <li>Το «Ενήλικας 1 / Ενήλικας 2» είναι λίγο αφηρημένο πριν γραφτούν ονόματα.</li>
+            <li>Με πολλά άτομα το φύλλο μακραίνει.</li>
+            <li>Το φύλλο θέλει προσοχή στο κινητό: πληκτρολόγιο, κύλιση πίσω του, πίσω κουμπί του Android.</li>
+          </ul></div>
+        </div>
+        <p class="effort"><b>Δουλειά στο widget:</b> το φύλλο (dialog με εστίαση), επιλογή ανά άτομο, μεταφορά στο checkout. Περίπου όσο το Β1 και μισή συνεδρία παραπάνω.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= Β3 -->
+  <section class="panel" data-panel="b3" hidden>
+    <div class="lead">
+      <h2>Β3 · Το μειωμένο μπαίνει στα στοιχεία κάθε επιβάτη</h2>
+      <p>Η θέση του Γ του γύρου 2, με την τιμή του Β. Το βήμα «Άτομα» είναι όπως σήμερα και δείχνει από πριν τι κοστίζουν τα μειωμένα. Στο checkout, όπου γράφουμε ήδη όνομα για κάθε επιβάτη, από κάτω έχει «Εισιτήριο»: Κανονικό ή όσα μειωμένα ταιριάζουν στην ηλικία του.</p>
+      <span class="says">«Άννα Παπαδάκη · Παιδί · ΑμεΑ · 12,50 €»</span>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Κράτηση, κινητό και υπολογιστής</h3><p>Στο κινητό είναι δύο οθόνες: «Άτομα» και «Στοιχεία». Πατήστε «‹ Άτομα» και «Συνέχεια». Στον υπολογιστή φαίνονται δίπλα-δίπλα.</p>
+        <div class="ctl"><span>Μειωμένα στην εκδρομή</span><span class="seg2 modebar" role="radiogroup" aria-label="Πόσα μειωμένα"><button role="radio" aria-checked="true" data-mode="2">2: ΑμεΑ, φοιτητικό</button><button role="radio" aria-checked="false" data-mode="4">4: και πολύτεκνοι, άνω των 65</button></span>
+          <span class="seg2" role="group" aria-label="Κατάσταση"><button data-reset="b3" data-to="ex">Το παράδειγμα</button><button data-reset="b3" data-to="none">Κανείς μειωμένος</button></span></div>
+      </div>
+      <div class="sec-b">
+        <div class="cols dev">
+          <div>
+            <p class="cap">Κινητό, 375</p>
+            <div class="phone"><div class="ph-bar"></div><div data-inst="b3p"></div></div>
+          </div>
+          <div>
+            <p class="cap">Υπολογιστής · άτομα και στοιχεία</p>
+            <div class="desk"><div class="desk-bar"><i></i><i></i><i></i>&nbsp;aegeanblue.gr/kratisi/K7Q-4821</div><div data-inst="b3d"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Κλικ, πολλά μειωμένα, προσβασιμότητα</h3></div>
+      <div class="sec-b">
+        <div class="facts">
+          <div class="fact"><h4>Κλικ πέρα από τα − / + των ηλικιών</h4>
+            <table class="taps"><tbody>
+              <tr><td>Κανείς μειωμένος</td><td>0</td></tr>
+              <tr><td>Το παράδειγμα</td><td>2</td></tr>
+              <tr><td>Και ο δωρεάν συνοδός</td><td>+1</td></tr>
+            </tbody></table>
+            <p class="note">«ΑμεΑ» στην Ελένη, «ΑμεΑ» στην Άννα. Οι κάρτες ανοίγουν ούτως ή άλλως για τα ονόματα.</p></div>
+          <div class="fact"><h4>Με 4 μειωμένα</h4>
+            <p>Ίδιο με το Β2: 5 επιλογές στον ενήλικα, 3 στο παιδί, μέσα σε κάρτα που υπάρχει ήδη. Το βήμα «Άτομα» δεν αλλάζει καθόλου.</p>
+            <p class="note">Η υπόδειξη στο «Άτομα» μακραίνει κατά μία γραμμή ανά μειωμένο.</p></div>
+          <div class="fact"><h4>Προσβασιμότητα</h4>
+            <ul>
+              <li>Επιλογές 48 ύψος, «‹ Άτομα» 44.</li>
+              <li>Κάθε κάρτα έχει ένα <code>radiogroup</code> «Εισιτήριο: Επιβάτης 2».</li>
+              <li>Κανένα παράθυρο, καμία κρυφή λίστα: ό,τι υπάρχει φαίνεται στη σειρά της σελίδας.</li>
+            </ul></div>
+          <div class="fact"><h4>Κανόνες</h4>
+            <ul>
+              <li>Η ηλικία του επιβάτη έρχεται από το βήμα «Άτομα» (ή από την ημερομηνία γέννησης, όπου τη ζητάμε).</li>
+              <li>Ένα μειωμένο ανά επιβάτη, δηλωμένο μία φορά, με όνομα.</li>
+              <li>Ο συνοδός είναι ο πρώτος κανονικός ενήλικας.</li>
+            </ul></div>
+        </div>
+        <div class="pc">
+          <div class="plus"><h4>Υπέρ</h4><ul>
+            <li>Τα λιγότερα κλικ: το μειωμένο πάει στην κάρτα που ο επισκέπτης γεμίζει έτσι κι αλλιώς.</li>
+            <li>Μία δήλωση, με όνομα. Κατευθείαν στη λίστα επιβίβασης.</li>
+            <li>Το βήμα «Άτομα» μένει όπως σήμερα, για όλους.</li>
+            <li>Γνώριμο από τα πλοία (ferryhopper, Blue Star).</li>
+          </ul></div>
+          <div class="minus"><h4>Κατά</h4><ul>
+            <li>Στο «Άτομα» το σύνολο είναι 150 €, όχι 112,50 €. Η σωστή τιμή έρχεται στο επόμενο βήμα.</li>
+            <li>Όπου δεν ζητάμε στοιχεία ανά επιβάτη (ναύλωση, κράτηση από γραφείο), δεν έχει πού να μπει.</li>
+            <li>Η τιμή αλλάζει αφού έχει δεσμευτεί η θέση: επανυπολογισμός στο checkout.</li>
+          </ul></div>
+        </div>
+        <p class="effort"><b>Δουλειά στο widget:</b> σχεδόν καμία στο «Άτομα»· επιλογή στην κάρτα επιβάτη και επανυπολογισμός στο checkout. Περίπου όσο το Β1.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= Ρύθμιση -->
+  <section class="panel" data-panel="set" hidden>
+    <div class="lead">
+      <h2>Η ρύθμιση: ίδια με το Β του γύρου 2</h2>
+      <p>Δεν αλλάζει τίποτα εδώ. Ο πίνακας τιμών μένει μόνο με ηλικίες. Από κάτω, μία κάρτα ανά μειωμένο: ποσοστό, ποσό ή «Τιμή ανά ηλικία», για ποιες ηλικίες, τι δείχνει στην επιβίβαση. Και τα τρία Β1, Β2, Β3 διαβάζουν τα ίδια δεδομένα.</p>
+    </div>
+    <div class="sec">
+      <div class="sec-h"><h3>Καρτέλα «Τιμές»</h3></div>
+      <div class="sec-b">
+        <div class="pn">
+          <div class="pn-top"><b>Ιστιοπλοΐα με πανιά</b><span class="tag good">Δημοσιευμένη</span></div>
+          <div class="pn-tabs"><span>Τα βασικά</span><span>Πότε φεύγει</span><span class="on">Τιμές</span><span>Σελίδα</span><span>Πρόσθετα</span></div>
+          <div class="pn-b">
+            <div class="pn-sec">
+              <h4>Τιμές κατά ηλικία</h4>
+              <div class="tscroll"><table class="ptable">
+                <thead><tr><th>Ηλικία</th><th class="r">Μάι–Ιούν</th><th class="r">Ιούλ–Αύγ</th></tr></thead>
+                <tbody>
+                  <tr><td><b>Ενήλικας</b> <span class="sub">12 και άνω</span></td><td class="r"><span class="cell own num">42 €</span></td><td class="r"><span class="cell own num">50 €</span></td></tr>
+                  <tr><td><b>Παιδί</b> <span class="sub">3–11</span></td><td class="r"><span class="cell own num">21 €</span></td><td class="r"><span class="cell own num">25 €</span></td></tr>
+                  <tr><td><b>Βρέφος</b> <span class="sub">0–2, χωρίς θέση</span></td><td class="r"><span class="cell own num">0 €</span></td><td class="r"><span class="cell own num">0 €</span></td></tr>
+                </tbody>
+              </table></div>
+            </div>
+            <div class="pn-sec">
+              <h4>Μειωμένα</h4>
+              <p>Μία έκπτωση, για κάθε ηλικία και κάθε περίοδο. Αν θέλετε άλλη τιμή για το παιδί, γράψτε τη.</p>
+              <div style="display:grid;gap:10px">
+                <div class="fare">
+                  <div class="fare-h"><b>ΑμεΑ</b><span class="tag warn">Κάρτα αναπηρίας στην επιβίβαση</span></div>
+                  <div class="fgrid">
+                    <div class="f"><span class="l">Έκπτωση</span><div class="v"><span class="seg"><span class="on">Ποσοστό</span><span>Ποσό</span><span>Τιμή ανά ηλικία</span></span> −50&nbsp;%</div></div>
+                    <div class="f"><span class="l">Για ποιους</span><div class="v"><span class="chk"><i class="on">✓</i>Ενήλικας</span><span class="chk"><i class="on">✓</i>Παιδί</span></div><span class="h">Το βρέφος είναι ήδη δωρεάν.</span></div>
+                    <div class="f"><span class="l">Τι δείχνει</span><div class="v">Κάρτα αναπηρίας</div></div>
+                  </div>
+                  <div class="tscroll"><table class="ptable">
+                    <thead><tr><th>Βγαίνει</th><th class="r">Μάι–Ιούν</th><th class="r">Ιούλ–Αύγ</th></tr></thead>
+                    <tbody>
+                      <tr><td>Ενήλικας ΑμεΑ</td><td class="r"><span class="cell auto num">21 €</span></td><td class="r"><span class="cell auto num">25 €</span></td></tr>
+                      <tr><td>Παιδί ΑμεΑ</td><td class="r"><span class="cell auto num">10,50 €</span></td><td class="r"><span class="cell auto num">12,50 €</span></td></tr>
+                    </tbody>
+                  </table></div>
+                  <p class="note">Με «Τιμή ανά ηλικία» τα κελιά ανοίγουν και γράφετε π.χ. παιδί ΑμεΑ 10 €.</p>
+                  <span class="sw"><i class="on"></i><span>Ένας συνοδός ανά ΑμεΑ ταξιδεύει δωρεάν<small>Ένας από τους ενήλικες της κράτησης, 0 €. Πιάνει θέση κανονικά.</small></span></span>
+                </div>
+                <div class="fare">
+                  <div class="fare-h"><b>Φοιτητικό</b><span class="tag warn">Φοιτητική ταυτότητα στην επιβίβαση</span></div>
+                  <div class="fgrid">
+                    <div class="f"><span class="l">Έκπτωση</span><div class="v"><span class="seg"><span class="on">Ποσοστό</span><span>Ποσό</span><span>Τιμή ανά ηλικία</span></span> −20&nbsp;%</div><span class="h">Ιούλ–Αύγ 40 € · Μάι–Ιούν 33,60 €</span></div>
+                    <div class="f"><span class="l">Για ποιους</span><div class="v"><span class="chk"><i class="on">✓</i>Ενήλικας</span><span class="chk"><i></i>Παιδί</span></div></div>
+                    <div class="f"><span class="l">Τι δείχνει</span><div class="v">Φοιτητική ταυτότητα</div></div>
+                  </div>
+                </div>
+                <span class="addrow">+ Μειωμένο από τη λίστα (Πολύτεκνοι, Άνω των 65, Κάτοικος νησιού…)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ul class="rules">
+          <li><b>Ο κανόνας συνοδείας δεν αλλάζει.</b> Ο ΑμεΑ μετριέται μέσα στους ενήλικες ή στα παιδιά· το <code>escortMissing()</code> διαβάζει μόνο ηλικίες.</li>
+          <li><b>Ένα μειωμένο ανά άτομο.</b> Τα μειωμένα μιας ηλικίας δεν ξεπερνούν τα άτομα αυτής της ηλικίας.</li>
+          <li><b>Συνοδός:</b> ένας ενήλικας που δεν είναι ήδη μειωμένος, 0 €, ένας ανά ΑμεΑ το πολύ. Αν δεν υπάρχει τέτοιος, ο διακόπτης σβήνει.</li>
+          <li><b>Δεδομένα:</b> όπως στο v2 — <code>fare_types</code> ανά εκδρομή, <code>fare_type_id</code> στον επιβάτη και στη γραμμή τιμής.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= Σύγκριση -->
+  <section class="panel" data-panel="cmp" hidden>
+    <div class="sec">
+      <div class="sec-h"><h3>Οι τρεις με μια ματιά</h3><p>Πράσινο: το καλύτερο σε κάθε γραμμή.</p></div>
+      <div class="sec-b"><div class="tscroll"><table class="cmp">
+        <thead><tr><th></th><th>Β1 · Μία λίστα από κάτω</th><th>Β2 · Φύλλο από κάτω</th><th>Β3 · Στα στοιχεία</th></tr></thead>
+        <tbody>
+          <tr><td><b>Πού το λέει</b></td><td>Βήμα «Άτομα», στην ίδια σελίδα</td><td>Βήμα «Άτομα», σε φύλλο</td><td>Checkout, σε κάθε επιβάτη</td></tr>
+          <tr><td><b>Επίπεδα στο κινητό</b></td><td class="best">Ένα</td><td>Ένα, πάνω από τη σελίδα</td><td class="best">Ένα, σε άλλη οθόνη</td></tr>
+          <tr><td><b>Κλικ, κανείς μειωμένος</b></td><td class="best">0</td><td class="best">0</td><td class="best">0</td></tr>
+          <tr><td><b>Κλικ, το παράδειγμα</b></td><td>3</td><td>4</td><td class="best">2</td></tr>
+          <tr><td><b>Σωστή τιμή από νωρίς</b></td><td class="best">Ναι</td><td class="best">Ναι</td><td>Όχι, στο 2ο βήμα</td></tr>
+          <tr><td><b>Με 4 μειωμένα</b></td><td>6 γραμμές στη λίστα</td><td class="best">5 επιλογές ανά ενήλικα</td><td class="best">5 επιλογές ανά ενήλικα</td></tr>
+          <tr><td><b>Με 10 άτομα</b></td><td class="best">Ίδιο μέγεθος</td><td>10 σειρές στο φύλλο</td><td>10 κάρτες (υπάρχουν ήδη)</td></tr>
+          <tr><td><b>Ποιος είναι ο ΑμεΑ</b></td><td>Όνομα στην κάρτα με τίτλο «ΑμεΑ»</td><td class="best">Δεμένο στη θέση (Ενήλικας 2)</td><td class="best">Μία δήλωση, με όνομα</td></tr>
+          <tr><td><b>Χωρίς στοιχεία επιβατών</b></td><td class="best">Δουλεύει</td><td class="best">Δουλεύει</td><td>Δεν έχει πού να μπει</td></tr>
+          <tr><td><b>Νέο στοιχείο στο widget</b></td><td class="best">Καμία (ίδια − / +)</td><td>Φύλλο με εστίαση</td><td>Επιλογή στην κάρτα</td></tr>
+          <tr><td><b>Μοιάζει με</b></td><td>Ταμείο μουσείου, v2 Α</td><td>Επιλογή θέσης σε αεροπορικές</td><td>ferryhopper, Blue Star</td></tr>
+        </tbody>
+      </table></div></div>
+    </div>
+
+    <div class="rec">
+      <h3>Επιλογή: Β1, μία λίστα από κάτω</h3>
+      <p>Το Β1 λύνει ακριβώς αυτό που ενόχλησε: δεν υπάρχει τίποτα μέσα στις ηλικίες. Ο επισκέπτης βλέπει τα ίδια − / + που ήδη ξέρει, σε μία στήλη, και η σωστή τιμή (112,50 €) είναι εκεί πριν τη «Συνέχεια».</p>
+      <ul>
+        <li>Όποιος δεν δικαιούται τίποτα βλέπει μία κλειστή γραμμή. Κανένα παράθυρο, κανένα βήμα παραπάνω.</li>
+        <li>Κάθε γραμμή γράφει την τιμή της («Παιδί ΑμεΑ 12,50 €»), άρα το μοντέλο του Β φαίνεται χωρίς εξήγηση.</li>
+        <li>Δουλεύει και εκεί που δεν ζητάμε ονόματα (ναυλώσεις, κράτηση από γραφείο), όπου το Β3 δεν έχει θέση.</li>
+        <li>Η πιο μικρή δουλειά στο widget: δεν χρειάζεται νέο στοιχείο.</li>
+      </ul>
+      <p>Δεύτερο το Β2: πιο καθαρό για «ποιος», καλύτερο με 4+ μειωμένα, αλλά με ένα κλικ και ένα παράθυρο παραπάνω. Από το Β2 κρατάμε μία ιδέα για το checkout: οι κάρτες έρχονται με τίτλο («Επιβάτης 2 · Ενήλικας · ΑμεΑ»), ώστε ο ΑμεΑ να μη δηλώνεται δεύτερη φορά.</p>
+      <p class="note">Αν κάποτε οι εκδρομές έχουν συχνά 4+ μειωμένα, το Β2 γίνεται καλύτερο. Τα δεδομένα είναι ίδια, οπότε η αλλαγή είναι μόνο στο widget.</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Τι αφήσαμε έξω</h3></div>
+      <div class="sec-b">
+        <ul class="rules">
+          <li><b>«Ετικέτα στον αριθμό»</b> (κάτω από κάθε ηλικία μια γραμμή «0 μειωμένα · αλλαγή» που ανοίγει επιλογή για αυτή την ηλικία): είναι πάλι δεύτερο επίπεδο μέσα στις ηλικίες, αυτό που δεν άρεσε. Με ΑμεΑ σε ενήλικα και παιδί ανοίγουν δύο τέτοια κουτιά και η οθόνη διπλασιάζεται.</li>
+          <li><b>Ένα κουμπί ανά άτομο στη σειρά της ηλικίας</b> (κουκκίδες «Ε1 Ε2»): πολύ μικροί στόχοι στο κινητό, κάτω από 44.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Ερωτήσεις για τον Mike</h3></div>
+      <div class="sec-b">
+        <ol class="q">
+          <li><b>Β1, Β2 ή Β3;</b><span>Προτείνουμε Β1. Β2 αν σας αρέσει το «ένα άτομο ανά σειρά». Β3 αν δεν σας πειράζει το 150 € μέχρι το checkout.</span></li>
+          <li><b>Ανοιχτή ή κλειστή η λίστα όταν η εκδρομή έχει μόνο ένα μειωμένο;</b><span>Με ένα μόνο (π.χ. ΑμεΑ) η λίστα έχει 2 γραμμές. Θα μπορούσε να είναι πάντα ανοιχτή.</span></li>
+          <li><b>Οι ερωτήσεις του γύρου 2 μένουν:</b><span>ο νόμος της ακτοπλοΐας, ηλικία συνοδού (18+), ένα μειωμένο ανά άτομο, χωρίς κάρτα στην επιβίβαση, GetYourGuide/Viator, ναυλώσεις.</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// Tabs
+const tabs = document.querySelectorAll('.tab');
+tabs.forEach(t => t.addEventListener('click', () => {
+  tabs.forEach(x => x.setAttribute('aria-selected', x === t ? 'true' : 'false'));
+  document.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== t.dataset.tab);
+}));
+
+// ---------- Model: Β of round 2 ----------
+const AGES = {
+  ad: {one: 'Ενήλικας', many: 'Ενήλικες', span: '12 ετών και άνω', price: 5000},
+  ch: {one: 'Παιδί', many: 'Παιδιά', span: '3–11 ετών', price: 2500},
+  inf: {one: 'Βρέφος', many: 'Βρέφη', span: '0–2 ετών', price: 0},
+};
+// adj: the word after the age ("Παιδί ΑμεΑ"); person: the row label when only one age can have it.
+// w: summary-sentence words [one, many] per age.
+const ALL = [
+  {k: 'da', chip: 'ΑμεΑ', pct: 50, ages: ['ad', 'ch'], adj: {ad: 'ΑμεΑ', ch: 'ΑμεΑ'}, proof: 'κάρτα αναπηρίας', w: {ad: ['ΑμεΑ', 'ΑμεΑ'], ch: ['ΑμεΑ', 'ΑμεΑ']}},
+  {k: 'st', chip: 'Φοιτητικό', person: 'Φοιτητής', pct: 20, ages: ['ad'], proof: 'φοιτητική ταυτότητα', w: {ad: ['φοιτητής', 'φοιτητές']}},
+  {k: 'pf', chip: 'Πολύτεκνοι', pct: 20, ages: ['ad', 'ch'], adj: {ad: 'πολύτεκνος', ch: 'πολύτεκνο'}, proof: 'πάσο πολυτέκνων', w: {ad: ['πολύτεκνος', 'πολύτεκνοι'], ch: ['πολύτεκνο', 'πολύτεκνα']}},
+  {k: 'sr', chip: 'Άνω των 65', person: 'Άνω των 65', pct: 30, ages: ['ad'], proof: 'ταυτότητα', w: {ad: ['άνω των 65', 'άνω των 65']}},
+];
+let four = false;
+const fares = () => four ? ALL : ALL.slice(0, 2);
+const F = k => ALL.find(f => f.k === k);
+const price = (age, k) => k ? Math.round(AGES[age].price * (100 - F(k).pct) / 100) : AGES[age].price;
+const euro = c => (c / 100).toLocaleString('el-GR', {minimumFractionDigits: c % 100 ? 2 : 0, maximumFractionDigits: 2}) + ' €';
+const pl = (x, one, many) => x === 1 ? one : many;
+const cnt = (arr, k) => arr.filter(x => x === k).length;
+const NAMES = {ad: ['Νίκος Παπαδάκης', 'Ελένη Παπαδάκη'], ch: ['Γιώργος Παπαδάκης', 'Άννα Παπαδάκη']};
+
+// Every person is one entry: '' = full fare, or a fare key.
+const example = () => ({ad: ['', 'da'], ch: ['', 'da'], inf: 0, co: false});
+const nobody = () => ({ad: ['', ''], ch: ['', ''], inf: 0, co: false});
+
+function settle(s) {
+  const keys = fares().map(f => f.k);
+  ['ad', 'ch'].forEach(a => { s[a] = s[a].map(k => (k && keys.includes(k) && F(k).ages.includes(a)) ? k : ''); });
+  const amea = cnt(s.ad, 'da') + cnt(s.ch, 'da');
+  s.canCo = amea > 0 && cnt(s.ad, '') >= 1;
+  s.showCo = amea > 0;
+  if (!s.canCo) s.co = false;
+  s.coIdx = s.co ? s.ad.indexOf('') : -1;
+  let t = 0;
+  ['ad', 'ch'].forEach(a => s[a].forEach(k => t += price(a, k)));
+  if (s.co) t -= AGES.ad.price;
+  s.total = t;
+}
+
+// "ο ένας ΑμεΑ", "οι 2 φοιτητές", "όλα ΑμεΑ"
+function sub(count, of, words, male) {
+  const w = count === 1 ? words[0] : words[1];
+  if (count === of) return of === 1 ? w : (male ? 'όλοι ' : 'όλα ') + w;
+  if (count === 1) return (male ? 'ο ένας ' : 'το ένα ') + w;
+  return (male ? 'οι ' : 'τα ') + count + ' ' + w;
+}
+function sentence(s) {
+  const ad = s.ad.length, ch = s.ch.length, parts = [];
+  const exA = [], exC = [];
+  fares().forEach(f => {
+    const a = cnt(s.ad, f.k), c = cnt(s.ch, f.k);
+    if (a) exA.push(sub(a, ad, f.w.ad, true));
+    if (c) exC.push(sub(c, ch, f.w.ch, false));
+  });
+  if (s.co) exA.push(ad === 1 ? 'συνοδός' : (ad === 2 && exA.length) ? 'ο άλλος συνοδός' : exA.length ? 'ένας συνοδός' : 'ο ένας συνοδός');
+  if (ad) parts.push(`${ad} ${pl(ad, 'ενήλικας', 'ενήλικες')}` + (exA.length ? ` (${exA.join(', ')})` : ''));
+  if (ch) parts.push(`${ch} ${pl(ch, 'παιδί', 'παιδιά')}` + (exC.length ? ` (${exC.join(', ')})` : ''));
+  if (s.inf) parts.push(`${s.inf} ${pl(s.inf, 'βρέφος', 'βρέφη')}`);
+  return parts.join(', ') || 'Κανένα άτομο ακόμα';
+}
+
+// ---------- Pieces ----------
+function stepper(label, val, key, max, extra = '') {
+  return `<span class="stepper" role="group" aria-label="${label}">`
+    + `<button type="button" data-act="dec" data-key="${key}" ${extra} aria-label="Λιγότερα: ${label}" ${val <= 0 ? 'disabled' : ''}>−</button>`
+    + `<output aria-live="polite">${val}</output>`
+    + `<button type="button" data-act="inc" data-key="${key}" ${extra} aria-label="Περισσότερα: ${label}" ${val >= max ? 'disabled' : ''}>+</button></span>`;
+}
+function ageRows(s, withReduced) {
+  return '<div>' + ['ad', 'ch', 'inf'].map(a => {
+    const A = AGES[a], v = a === 'inf' ? s.inf : s[a].length;
+    let line = `${A.span} · ${A.price ? euro(A.price) : 'δωρεάν'}`;
+    return `<div class="pax"><div class="who"><b>${A.many}</b><span>${line}</span></div>${stepper(A.many, v, a, 12)}</div>`;
+  }).join('') + '</div>';
+}
+function compan(s) {
+  if (!s.showCo) return '';
+  return `<button type="button" class="compan" data-act="co" aria-pressed="${s.co}" ${s.canCo ? '' : 'disabled'}><i>✓</i><span><b>Ένας ενήλικας είναι συνοδός ΑμεΑ</b><small>${s.canCo ? 'Ταξιδεύει δωρεάν. Ένας ανά ΑμεΑ.' : 'Όλοι οι ενήλικες έχουν ήδη μειωμένο.'}</small></span></button>`;
+}
+const sum = s => `<div class="sum" aria-live="polite"><span>${sentence(s)}</span><b>${euro(s.total)}</b></div>`;
+const warn = s => (s.ch.length + s.inf > 0 && !s.ad.length) ? '<div class="gwarn">Τα παιδιά ταξιδεύουν με έναν ενήλικα.</div>' : '';
+const crumbs = step => `<div class="crumbs">Ημέρα ✓ · ${step === 1 ? '<b>Άτομα</b>' : 'Άτομα ✓'} · ${step === 2 ? '<b>Στοιχεία</b>' : 'Στοιχεία'} · Πληρωμή</div>`;
+const trip = `<div class="tripcard"><div class="band"></div><b>Ιστιοπλοΐα με πανιά</b><span>Σάββατο 12 Ιουλίου · 10:00 · 5 ώρες</span><span>Λιμάνι Νάξου, προβλήτα 3</span></div>`;
+const reducedCount = s => s.ad.filter(Boolean).length + s.ch.filter(Boolean).length;
+
+// Choice chips for one person (Β2 sheet, Β3 cards).
+function chips(s, a, i, label) {
+  const opts = [''].concat(fares().filter(f => f.ages.includes(a)).map(f => f.k));
+  const isCo = a === 'ad' && i === s.coIdx;
+  return `<div class="chips" role="radiogroup" aria-label="Εισιτήριο: ${label}">` + opts.map(k => {
+    const on = s[a][i] === k;
+    const p = (isCo && !k) ? 'δωρεάν' : euro(price(a, k));
+    return `<button type="button" class="chip" role="radio" aria-checked="${on}" data-act="pick" data-age="${a}" data-i="${i}" data-k="${k}"><span>${k ? F(k).chip : 'Κανονικό'}</span><em>${p}</em></button>`;
+  }).join('') + '</div>' + (s[a][i] ? `<span class="proof">Στην επιβίβαση: ${F(s[a][i]).proof}</span>` : '');
+}
+
+// ---------- Β1 ----------
+function renderB1(s, dev) {
+  const n = reducedCount(s);
+  const names = fares().map(f => f.k === 'da' ? 'ΑμεΑ' : f.chip.toLowerCase()).join(', ');
+  const head = `<button type="button" class="more" data-act="toggle" aria-expanded="${s.open}"><span>Μειωμένα εισιτήρια<small>${n ? n + ' ' + pl(n, 'επιλεγμένο', 'επιλεγμένα') : names}</small></span><em>${s.open ? 'Κλείσιμο' : '›'}</em></button>`;
+  let box = '';
+  if (s.open) {
+    const rows = [];
+    ['ad', 'ch'].forEach(a => {
+      if (!s[a].length) return;
+      fares().filter(f => f.ages.includes(a)).forEach(f => {
+        const label = f.ages.length === 1 ? f.person : `${AGES[a].one} ${f.adj[a]}`;
+        const v = cnt(s[a], f.k), max = v + cnt(s[a], '');
+        rows.push(`<div class="pax"><div class="who"><b>${label}</b><span><strong class="rp">${euro(price(a, f.k))}</strong> αντί για ${euro(AGES[a].price)}</span></div>${stepper(label, v, 'r', max, `data-age="${a}" data-k="${f.k}"`)}</div>`);
+      });
+    });
+    const full = ['ad', 'ch'].filter(a => s[a].length && !cnt(s[a], '')).map(a => a === 'ad' ? 'Όλοι οι ενήλικες έχουν μειωμένο.' : 'Όλα τα παιδιά έχουν μειωμένο.');
+    box = `<div class="redbox"><span class="lbl">Μετράνε μέσα στα άτομα πάνω, όχι επιπλέον.</span>${rows.join('') || '<span class="full">Προσθέστε πρώτα άτομα.</span>'}${full.map(t => `<span class="full">${t}</span>`).join('')}${compan(s)}</div>`;
+  }
+  const body = `${crumbs(1)}<h5>Πόσα άτομα είστε;</h5>${ageRows(s)}<div>${head}${box}</div>${s.open ? '' : compan(s)}${warn(s)}${sum(s)}<span class="gbtn ${s.ad.length ? '' : 'off'}">Συνέχεια</span>`;
+  return dev === 'phone' ? `<div class="g">${body}</div>` : `<div class="desk-in">${trip}<div class="g">${body}</div></div>`;
+}
+
+// ---------- Β2 ----------
+function renderB2(s, dev, id) {
+  const n = reducedCount(s);
+  const list = [];
+  ['ad', 'ch'].forEach(a => s[a].forEach((k, i) => { if (k) list.push(`${AGES[a].one} ${i + 1} · ${F(k).chip}`); }));
+  if (s.co) list.push(`Ενήλικας ${s.coIdx + 1} · συνοδός`);
+  const opener = n
+    ? `<button type="button" class="more" data-act="open" aria-haspopup="dialog"><span>Μειωμένα<small>${list.join(', ')}</small></span><em>Αλλαγή</em></button>`
+    : `<button type="button" class="more" data-act="open" aria-haspopup="dialog"><span>Έχει κάποιος μειωμένο;<small>${fares().map(f => f.k === 'da' ? 'ΑμεΑ' : f.chip.toLowerCase()).join(', ')}</small></span><em>›</em></button>`;
+  let sheet = '';
+  if (s.open) {
+    const people = [];
+    ['ad', 'ch'].forEach(a => s[a].forEach((k, i) => {
+      const label = `${AGES[a].one} ${i + 1}`;
+      const co = a === 'ad' && i === s.coIdx ? '<span class="tag good">συνοδός · δωρεάν</span>' : '';
+      people.push(`<div class="person"><div class="person-h"><b>${label}</b>${co}</div>${chips(s, a, i, label)}</div>`);
+    }));
+    sheet = `<div class="scrim" data-act="scrim"><div class="sheet" role="dialog" aria-modal="true" aria-labelledby="${id}-t"><div class="grip"></div>
+      <div class="sheet-h"><div><b id="${id}-t">Ποιος έχει μειωμένο;</b><small>Ένα ανά άτομο. Το δείχνει στην επιβίβαση.</small></div><button type="button" class="x" data-act="close" aria-label="Κλείσιμο">×</button></div>
+      <div class="sheet-b">${people.join('') || '<p class="note" style="padding:10px 0">Προσθέστε πρώτα άτομα.</p>'}${s.inf ? '<p class="note" style="padding:8px 0">Τα βρέφη είναι ήδη δωρεάν.</p>' : ''}${compan(s)}</div>
+      <div class="sheet-f">${sum(s)}<button type="button" class="gbtn" data-act="close">Έτοιμο</button></div></div></div>`;
+  }
+  const body = `${crumbs(1)}<h5>Πόσα άτομα είστε;</h5>${ageRows(s)}${s.ad.length + s.ch.length ? opener : ''}${warn(s)}${sum(s)}<span class="gbtn ${s.ad.length ? '' : 'off'}">Συνέχεια</span>`;
+  return (dev === 'phone' ? `<div class="g">${body}</div>` : `<div class="desk-in">${trip}<div class="g">${body}</div></div>`) + sheet;
+}
+
+// ---------- Β3 ----------
+function b3Hint() {
+  const t = fares().map(f => f.ages.length === 2
+    ? `${f.chip} −${f.pct}&nbsp;% (ενήλικας ${euro(price('ad', f.k))}, παιδί ${euro(price('ch', f.k))})`
+    : `${f.chip.toLowerCase()} ${euro(price('ad', f.k))}`);
+  return `<div class="hint"><b>Μειωμένα:</b> ${t.join(' · ')}. Τα διαλέγετε στο επόμενο βήμα, για κάθε επιβάτη.</div>`;
+}
+function b3Cards(s) {
+  const cards = [];
+  let no = 0;
+  ['ad', 'ch'].forEach(a => s[a].forEach((k, i) => {
+    no++;
+    const name = NAMES[a][i];
+    const label = `Επιβάτης ${no}`;
+    const co = a === 'ad' && i === s.coIdx ? ' · συνοδός' : '';
+    cards.push(`<div class="pcard"><div class="pcard-h"><b>${label}</b><span>${AGES[a].one}${co}</span></div><div class="in ${name ? '' : 'ph'}">${name || 'Ονοματεπώνυμο'}</div><span class="flbl">Εισιτήριο</span>${chips(s, a, i, label)}</div>`);
+  }));
+  for (let j = 0; j < s.inf; j++) { no++; cards.push(`<div class="pcard"><div class="pcard-h"><b>Επιβάτης ${no}</b><span>Βρέφος · δωρεάν</span></div><div class="in ph">Ονοματεπώνυμο</div></div>`); }
+  return cards.join('');
+}
+function renderB3(s, dev) {
+  const paxSum = reducedCount(s) || s.co ? sum(s)
+    : `<div class="sum" aria-live="polite"><span>${sentence(s)} · χωρίς μειωμένα</span><b>${euro(s.total)}</b></div>`;
+  if (dev === 'desk') {
+    return `<div class="b3desk"><div class="col"><h6>1 · Άτομα</h6>${ageRows(s)}${b3Hint()}${warn(s)}</div>
+      <div class="col"><h6>2 · Στοιχεία επιβατών</h6>${b3Cards(s)}${compan(s)}${sum(s)}<span class="gbtn">Πληρωμή</span></div></div>`;
+  }
+  if (s.screen === 'pax') {
+    return `<div class="g">${crumbs(1)}<h5>Πόσα άτομα είστε;</h5>${ageRows(s)}${b3Hint()}${warn(s)}${paxSum}<button type="button" class="gbtn ${s.ad.length ? '' : 'off'}" data-act="next" ${s.ad.length ? '' : 'disabled'}>Συνέχεια</button></div>`;
+  }
+  return `<div class="g"><button type="button" class="back" data-act="back">‹ Άτομα</button>${crumbs(2)}<h5>Ποιοι ταξιδεύουν;</h5>${b3Cards(s)}${compan(s)}${sum(s)}</div><div class="paybar"><b>${euro(s.total)}</b><span>Πληρωμή</span></div>`;
+}
+
+// ---------- Instances ----------
+const inst = {
+  b1p: {v: 'b1', dev: 'phone', s: {...example(), open: true}},
+  b1d: {v: 'b1', dev: 'desk', s: {...example(), open: true}},
+  b2p: {v: 'b2', dev: 'phone', s: {...example(), open: false}},
+  b2d: {v: 'b2', dev: 'desk', s: {...example(), open: false}},
+  b3p: {v: 'b3', dev: 'phone', s: {...example(), screen: 'pass'}},
+  b3d: {v: 'b3', dev: 'desk', s: {...example()}},
+};
+const sig = el => ['act', 'key', 'age', 'i', 'k'].map(x => el.dataset[x] ?? '').join('|');
+
+function render(id, focusAct) {
+  const I = inst[id], root = document.querySelector(`[data-inst="${id}"]`);
+  const a = document.activeElement;
+  const keep = a && root.contains(a) && a.dataset.act ? sig(a) : null;
+  settle(I.s);
+  root.innerHTML = I.v === 'b1' ? renderB1(I.s, I.dev) : I.v === 'b2' ? renderB2(I.s, I.dev, id) : renderB3(I.s, I.dev);
+  let el = null;
+  if (focusAct) el = root.querySelector(focusAct);
+  else if (keep) el = [...root.querySelectorAll('[data-act]')].find(e => sig(e) === keep && !e.disabled);
+  if (el) el.focus();
+}
+const renderAll = () => Object.keys(inst).forEach(id => render(id));
+
+document.addEventListener('click', e => {
+  const mode = e.target.closest('[data-mode]');
+  if (mode) {
+    four = mode.dataset.mode === '4';
+    document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-checked', String((b.dataset.mode === '4') === four)));
+    renderAll(); return;
+  }
+  const rs = e.target.closest('[data-reset]');
+  if (rs) {
+    Object.entries(inst).filter(([, I]) => I.v === rs.dataset.reset).forEach(([id, I]) => {
+      Object.assign(I.s, rs.dataset.to === 'ex' ? example() : nobody());
+      if (I.v === 'b3' && I.dev === 'phone') I.s.screen = rs.dataset.to === 'ex' ? 'pass' : 'pax';
+      if (I.v === 'b2') I.s.open = false;
+      render(id);
+    });
+    return;
+  }
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const root = el.closest('[data-inst]');
+  if (!root) return;
+  const id = root.dataset.inst, s = inst[id].s, act = el.dataset.act;
+  if (el.disabled) return;
+  let focus = null;
+  if (act === 'scrim') { if (e.target !== el) return; s.open = false; focus = '[data-act="open"]'; }
+  else if (act === 'inc' || act === 'dec') {
+    const key = el.dataset.key;
+    if (key === 'inf') s.inf = Math.max(0, s.inf + (act === 'inc' ? 1 : -1));
+    else if (key === 'r') {
+      const a = el.dataset.age, k = el.dataset.k;
+      if (act === 'inc') { const i = s[a].indexOf(''); if (i >= 0) s[a][i] = k; }
+      else { const i = s[a].lastIndexOf(k); if (i >= 0) s[a][i] = ''; }
+    } else if (act === 'inc') s[key].push('');
+    else if (s[key].length) {
+      // Drop a full-fare person first; the reduced ones go last.
+      let i = s[key].lastIndexOf(''); if (i < 0) i = s[key].length - 1;
+      s[key].splice(i, 1);
+    }
+  }
+  else if (act === 'toggle') s.open = !s.open;
+  else if (act === 'open') { s.open = true; focus = '.sheet [aria-checked="true"]'; }
+  else if (act === 'close') { s.open = false; focus = '[data-act="open"]'; }
+  else if (act === 'pick') s[el.dataset.age][+el.dataset.i] = el.dataset.k;
+  else if (act === 'co') s.co = !s.co;
+  else if (act === 'next') { s.screen = 'pass'; focus = '[data-act="back"]'; }
+  else if (act === 'back') { s.screen = 'pax'; focus = '[data-act="next"]'; }
+  render(id, focus);
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  Object.entries(inst).forEach(([id, I]) => { if (I.v === 'b2' && I.s.open) { I.s.open = false; render(id, '[data-act="open"]'); } });
+});
+renderAll();
+</script>
+</body>
+</html>

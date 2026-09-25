@@ -97,7 +97,7 @@ class RatePlanResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return __('panel.nav.prices');
+        return __('pricing.rate_plan.nav');
     }
 
     public static function getModelLabel(): string

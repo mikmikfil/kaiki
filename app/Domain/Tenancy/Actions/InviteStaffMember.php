@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Tenancy\Actions;
 
 use App\Enums\Role;
+use App\Filament\App\Auth\ResetPassword;
 use App\Mail\StaffInvitationMail;
 use App\Models\RoleAssignment;
 use App\Models\Tenant;
@@ -56,6 +57,9 @@ use RuntimeException;
  */
 final class InviteStaffMember
 {
+    /** The password broker an invitation's token belongs to (`config/auth.php`). */
+    public const BROKER = 'invitations';
+
     /**
      * @param  list<Role>  $roles
      */
@@ -128,18 +132,38 @@ final class InviteStaffMember
      *
      * `signedRoute` rather than `temporarySignedRoute`, because the expiry that
      * matters already exists and belongs to the token —
-     * `config('auth.passwords.users.expire')` — and a second, different clock on
+     * `config('auth.passwords.invitations.expire')` — and a second, different clock on
      * the same link produces one that dies for a reason the page cannot explain.
      */
     public function sendInvitation(User $user, User $invitedBy): void
     {
-        $token = Password::broker()->createToken($user);
+        Mail::to($user->email)->send(new StaffInvitationMail($user, self::invitationUrl($user), $invitedBy));
+    }
 
-        $url = URL::signedRoute('filament.app.auth.password-reset.reset', [
+    /**
+     * The link an invitation carries, from its own broker.
+     *
+     * Seven days rather than a reset's sixty minutes (25/9): an invitation is
+     * opened that evening or on Monday. `invite=1` is inside the signature, so
+     * it is what tells {@see ResetPassword} to check the token against this
+     * broker, and nobody can add it to a reset link. Shared with
+     * `kaiki:invitation-link`, so the link read out on the phone lives as
+     * long as the one in the email.
+     */
+    public static function invitationUrl(User $user): string
+    {
+        $token = Password::broker(self::BROKER)->createToken($user);
+
+        return URL::signedRoute('filament.app.auth.password-reset.reset', [
             'token' => $token,
             'email' => $user->email,
+            'invite' => 1,
         ]);
+    }
 
-        Mail::to($user->email)->send(new StaffInvitationMail($user, $url, $invitedBy));
+    /** How many days the link lives, for the email to say. */
+    public static function validDays(): int
+    {
+        return max(1, intdiv((int) config('auth.passwords.' . self::BROKER . '.expire'), 24 * 60));
     }
 }

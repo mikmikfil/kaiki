@@ -205,6 +205,13 @@ it('takes on a new operator, with an owner who sets their own password', functio
 
     // TEN-8a. Nobody typed a password — not the owner, and not the platform.
     Mail::assertSent(StaffInvitationMail::class);
+
+    // Boarding, QR scanning and the setup guide start on. Filament's toggle
+    // defaults to off, and the create page used to save that `false` over the
+    // columns' own defaults (roadmap, 25/9).
+    expect($tenant->check_in_enabled)->not->toBeFalse()
+        ->and($tenant->qr_check_in_enabled)->not->toBeFalse()
+        ->and($tenant->setup_guide_enabled)->not->toBeFalse();
 })->group('fast');
 
 it('refuses a slug the hosted router would never match', function (): void {

@@ -102,11 +102,49 @@ return [
     ],
 
     'invitation' => [
-        'subject' => 'An invitation from :operator',
-        'heading' => 'You have access to :operator',
-        'body' => ':name, :inviter has given you access to the :operator back office. Choose your password to get started.',
-        'action' => 'Choose a password',
-        'expiry' => 'The link is valid for a limited time. If it expires, ask for a new invitation.',
+        'subject' => ':operator: welcome to the team',
+        'heading' => 'Welcome to the team',
+        'lead' => "You now have an account on the company's back office.",
+        'lead_owner' => "Your company's account is ready.",
+        'facts' => [
+            'name' => 'Name',
+            'company' => 'Company',
+            'email' => 'Sign-in email',
+            'added_by' => 'Added by',
+        ],
+        'platform_team' => 'The :app team',
+        'role_label' => 'Your role',
+        'can' => 'You can:',
+        'can_owner' => 'You can do everything, including:',
+        'roles' => [
+            'owner' => [
+                'can' => [
+                    'Your company page, with its trips and prices',
+                    'Bookings, payments and refunds',
+                    'Your team and their roles',
+                ],
+            ],
+            'manager' => [
+                'can' => [
+                    'Trips, prices and availability',
+                    'Bookings, passengers and payments',
+                    'Departures, boarding and selling on the quay',
+                ],
+                'cannot' => 'Billing, the subscription and staff stay with the owner.',
+            ],
+            'crew' => [
+                'can' => [
+                    "Today's departures and their passengers",
+                    'Boarding, by scanning the ticket',
+                    'Selling tickets on the quay',
+                ],
+                'cannot' => 'You do not see bookings, prices or settings.',
+            ],
+        ],
+        'action' => 'Set your password and sign in',
+        'expiry' => '{1} The link is valid for 1 day.|[2,*] The link is valid for :days days.',
+        'questions' => 'Something not right? Reply to this email or write to :email.',
+        'link_text' => 'If the button does not open, copy this address:',
     ],
 
 ];

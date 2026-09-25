@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Domain\Availability\Contracts\DepartureExpiredHolds;
 use App\Domain\Availability\LocalDateTimeResolver;
+use App\Domain\Availability\Support\CrewNames;
 use App\Domain\Availability\Support\LocalDay;
 use App\Enums\DepartureCancelReason;
 use App\Enums\DepartureStatus;
@@ -67,6 +68,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $captain_user_id today's captain, when they have an account
  * @property string|null $captain_name today's captain, typed, when they do not
  * @property list<int>|null $crew_user_ids the operator's people sailing with it
+ * @property list<string>|null $crew_names crew with no account, typed (2026-09-25)
  * @property bool $crew_from_rule still follows its schedule's crew; false once changed by hand
  * @property Carbon|null $crew_reminded_at when the 24-hours-before reminder went out
  */
@@ -106,6 +108,7 @@ class Departure extends Model
             'ends_at_utc' => 'datetime',
             'dst_ambiguous' => 'boolean',
             'crew_user_ids' => 'array',
+            'crew_names' => 'array',
             'crew_from_rule' => 'boolean',
             'crew_reminded_at' => 'datetime',
             'capacity' => 'integer',
@@ -150,21 +153,28 @@ class Departure extends Model
         return is_string($name) && trim($name) !== '' ? trim($name) : null;
     }
 
-    /** @return list<string> the crew's names, in the order they were chosen */
+    /**
+     * The crew's names: the operator's people in the order they were chosen,
+     * then those typed by name (2026-09-25) — everyone who sails with her, as
+     * the passenger list prints them.
+     *
+     * @return list<string>
+     */
     public function crewNames(): array
     {
         $ids = array_map('intval', (array) ($this->crew_user_ids ?? []));
+        $typed = CrewNames::clean($this->crew_names) ?? [];
 
         if ($ids === []) {
-            return [];
+            return $typed;
         }
 
         $names = User::query()->whereKey($ids)->pluck('name', 'id');
 
-        return array_values(array_filter(array_map(
-            static fn (int $id): ?string => $names->get($id),
-            $ids,
-        )));
+        return array_values(array_filter([
+            ...array_map(static fn (int $id): ?string => $names->get($id), $ids),
+            ...$typed,
+        ]));
     }
 
     /** @return BelongsTo<ScheduleRule, $this> */

@@ -89,12 +89,19 @@
          uploader treats as the cover. --}}
     {{-- Χωρίς το `shots`: εκείνο είναι πλέγμα και ορίζεται πιο κάτω στο
          φύλλο, οπότε θα ακύρωνε το `display: flex` της λωρίδας. --}}
-    <ul class="boat-rail">
-        @foreach ($shots as $shot)
+    {{-- Every photograph opens the trip page's lightbox (Mike, 2026-09-25),
+         the same one the mosaic opens: a link to its panel, so it is reachable
+         from the keyboard and works with no script. The panels are drawn at
+         the foot of the page by `hosted.partials.lightbox`, outside this tab. --}}
+    <ul class="boat-rail" id="boat-photos">
+        @foreach ($shots as $i => $shot)
             <li>
-                <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($shot['url']) }}"
-                     alt="{{ $shot['alt'] ?? '' }}"
-                     loading="lazy">
+                <a class="boat-open" href="#boat-shot-{{ $i }}"
+                   aria-label="{{ $shot['alt'] ?: __('hosted.product.boat.photo', ['current' => $i + 1, 'total' => count($shots)]) }}">
+                    <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($shot['url']) }}"
+                         alt="{{ $shot['alt'] ?? '' }}"
+                         loading="lazy">
+                </a>
             </li>
         @endforeach
     </ul>

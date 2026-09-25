@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Support\Tenancy;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\HtmlString;
 
@@ -118,17 +119,10 @@ class Dashboard extends BaseDashboard
             // About the height of the capitals, or a touch more, and in a
             // colour of its own: amber for the sun, a soft blue-grey for the
             // moon (product owner: «όχι τόσο διακριτικός»).
-            // `space-between` alone parks the clock a word away from the
-            // greeting rather than at the far edge, because nothing above it
-            // claims the row. Filament wraps the heading in an **unclassed**
-            // div which is the flex item that shrinks to its text — 467px of an
-            // available 896 — so that div is what has to grow, and the heading
-            // and the row after it. Reached by `:has()` rather than by a class
-            // because it has none, and scoped to this heading so no other page
-            // header changes shape.
-            . '<style>.fi-header > div:has(.ka-greeting-row){flex:1 1 auto;width:100%;min-width:0}'
-            . '.fi-header-heading:has(.ka-greeting-row){width:100%;min-width:0}'
-            . '.ka-greeting-row{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:.5rem 1.5rem;width:100%}'
+            // The day and time sit under the greeting (2026-09-25, direction Β
+            // of docs/mockups/dashboard-quick-actions.html), which leaves the
+            // row's right-hand side to «Πώληση τώρα» and «Σάρωση εισιτηρίων».
+            . '<style>.ka-greeting-row{display:flex;flex-direction:column;align-items:flex-start;gap:.25rem}'
             . '.ka-greeting{display:inline-flex;align-items:center;gap:.7rem}'
             . '.ka-greeting-ic{width:2.25rem;height:2.25rem;flex:none;stroke-width:1.6}'
             . '.ka-greeting-ic.is-sun{color:#E0A33B}.ka-greeting-ic.is-moon{color:#7F98BA}'
@@ -214,10 +208,24 @@ class Dashboard extends BaseDashboard
         return (int) ($now ?? Carbon::now())->copy()->setTimezone($timezone)->format('G');
     }
 
+    /**
+     * The greeting with the day's two actions beside it — or, on a phone, in a
+     * bar fixed to the bottom of the screen (Mike, 2026-09-25, direction Β of
+     * docs/mockups/dashboard-quick-actions.html). Which actions, and whether,
+     * is {@see DayByBoat::quickActions()}'s answer.
+     */
+    public function getHeader(): ?View
+    {
+        return view('filament.app.pages.dashboard-header', [
+            'heading' => $this->getHeading(),
+            'actions' => DayByBoat::quickActions(),
+        ]);
+    }
+
     /** @return array<class-string> */
     public function getWidgets(): array
     {
-        // Crew see the scan button, the next boat and today by boat — and not
+        // Crew see the scan and the sale (header or bar), the next boat and today by boat — and not
         // the owner's list of decisions, the weather or the unsellable trips
         // (Mike, 2026-09-24).
         $user = auth()->user();

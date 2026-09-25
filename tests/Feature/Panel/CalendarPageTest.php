@@ -390,6 +390,48 @@ it('walks a day at a time from today', function (): void {
         ->assertSet('date', '2026-07-08');
 });
 
+it('jumps to the day picked in the date field and shows its departures', function (): void {
+    // Mike, 2026-09-25: «να δω τι παίζει στις 15 Οκτωβρίου».
+    $user = OperatorUser::withRole(Role::Owner);
+
+    Tenancy::forTenant($user->tenant, function (): void {
+        $boat = Vessel::factory()->create(['name' => 'Θάλασσα']);
+        $trip = Product::factory()->create(['title' => ['el' => 'Βόλτα στα Κύθηρα', 'en' => 'Kythira trip']]);
+
+        Departure::factory()->for($boat)->for($trip)->at('2026-10-15', '10:30')->withSeats(3)->create();
+    });
+
+    $title = app()->getLocale() === 'el' ? 'Βόλτα στα Κύθηρα' : 'Kythira trip';
+
+    calendarAs($user)
+        ->assertSet('jump', '2026-07-08')
+        ->assertDontSee($title)
+        ->set('jump', '2026-10-15')
+        ->assertSet('date', '2026-10-15')
+        ->assertSee($title)
+        ->assertSee('10:30')
+        // The arrows carry the field with them…
+        ->call('shiftDays', 1)
+        ->assertSet('jump', '2026-10-16')
+        // …and a cleared or impossible date leaves the day where it was.
+        ->set('jump', null)
+        ->assertSet('date', '2026-10-16')
+        ->assertSet('jump', '2026-10-16')
+        ->set('jump', '2026-02-31')
+        ->assertSet('date', '2026-10-16');
+});
+
+it('keeps crew inside their window when they pick a date', function (): void {
+    $crew = OperatorUser::withRole(Role::Crew);
+
+    calendarAs($crew)
+        ->set('jump', '2026-10-15')
+        ->assertSet('date', '2026-07-08')
+        ->assertSet('jump', '2026-07-08')
+        ->set('jump', '2026-07-09')
+        ->assertSet('date', '2026-07-09');
+});
+
 it('lists each boat and its departures for a phone, with the status in words', function (): void {
     // Mike, 2026-09-23: on a phone the calendar is a list per boat. The status
     // is the one thing a bar has no room for and a row does.

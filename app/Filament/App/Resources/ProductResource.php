@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources;
 
+use App\Domain\Catalog\Actions\ForceDeleteProduct;
 use App\Domain\Catalog\Actions\SaveCancellationPolicy;
 use App\Domain\Catalog\Support\ProductPublishChecklist;
 use App\Domain\Catalog\Support\TripPageContent;
@@ -52,11 +53,13 @@ use Filament\Forms\Components\View as ViewField;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
 use Filament\Tables\Actions\Action as TableAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\ForceDeleteAction;
 use Filament\Tables\Actions\RestoreAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -67,6 +70,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Unique;
+use Illuminate\Validation\ValidationException;
 
 /**
  * The trip, on `/app` (spec CAT-4, CAT-5, CAT-7, CAT-15, SEC-3, TEN-8, I18N-1).
@@ -179,23 +183,28 @@ class ProductResource extends Resource
                                 Tabs\Tab::make(__('catalog.product.tabs.basics'))
                                     ->badge(static::basicsBadge(...))
                                     ->badgeColor('warning')
-                                    ->schema(static::basicsSections()),
+                                    ->schema([...static::basicsSections(), static::stepNav('basics')]),
 
                                 Tabs\Tab::make(__('catalog.product.tabs.when'))
-                                    ->badge(static::scheduleBadge(...))
-                                    ->badgeColor(static fn (?Product $record): string => static::scheduleBadge($record) === __('catalog.product.tabs.no_schedule') ? 'warning' : 'gray')
-                                    ->schema(static::whenSections()),
+                                    ->badge(static::whenBadge(...))
+                                    ->badgeColor(static fn (?Product $record): string => static::missingBadge($record, 'when') !== null
+                                        || static::scheduleBadge($record) === __('catalog.product.tabs.no_schedule') ? 'warning' : 'gray')
+                                    ->schema([...static::whenSections(), static::stepNav('when')]),
 
                                 Tabs\Tab::make(__('catalog.product.tabs.prices'))
-                                    ->schema(static::priceSections()),
+                                    ->badge(static fn (?Product $record): ?string => static::missingBadge($record, 'prices'))
+                                    ->badgeColor('warning')
+                                    ->schema([...static::priceSections(), static::stepNav('prices')]),
 
                                 Tabs\Tab::make(__('catalog.product.tabs.terms'))
-                                    ->schema(static::termsSections()),
+                                    ->badge(static fn (?Product $record): ?string => static::missingBadge($record, 'terms'))
+                                    ->badgeColor('warning')
+                                    ->schema([...static::termsSections(), static::stepNav('terms')]),
 
                                 Tabs\Tab::make(__('catalog.product.tabs.page'))
                                     ->badge(static::pageBadge(...))
                                     ->badgeColor('gray')
-                                    ->schema(static::pageSections()),
+                                    ->schema([...static::pageSections(), static::stepNav('page')]),
                             ]),
                     ])->columnSpan([
                         'default' => 1,
@@ -280,7 +289,52 @@ class ProductResource extends Resource
     }
 
     /**
-     * Tab 1 — what the trip is: its name, its address, its boat, how it sells.
+     * The five tabs, in order, by the key of their label in `catalog.product.tabs`.
+     *
+     * @var list<string>
+     */
+    public const TABS = ['basics', 'when', 'prices', 'terms', 'page'];
+
+    /**
+     * The `?tab=` value Filament gives a tab: its label, transliterated strictly
+     * and slugged, between the parent's id (none here) and `-tab` — exactly
+     * `Tabs\Tab::__construct()` and `getId()`. Plain `Str::slug` transliterates
+     * Greek differently («feughei» for «pheugei»), and an id that matches no tab
+     * sends the page to the first one.
+     */
+    public static function tabQueryKey(string $tab): string
+    {
+        return '-' . Str::slug(Str::transliterate((string) __("catalog.product.tabs.{$tab}"), strict: true)) . '-tab';
+    }
+
+    /**
+     * «← Πίσω» and «Επόμενο →» at the foot of a tab, while the trip is a draft.
+     *
+     * A new trip is made from «Βασικά» and then finished here (Mike, 25/9: one
+     * form for creating and editing), so a draft reads as the steps it used to
+     * be — but they are these tabs, with these fields and this save. Moving
+     * between them loses nothing: the tabs are one form, and the lists inside
+     * them (schedules, extras, price lists) save as they are edited.
+     */
+    public static function stepNav(string $tab): ViewField
+    {
+        $index = (int) array_search($tab, self::TABS, true);
+        $previous = self::TABS[$index - 1] ?? null;
+        $next = self::TABS[$index + 1] ?? null;
+
+        return ViewField::make('filament.app.trip-step-nav')
+            ->key("step_nav_{$tab}")
+            ->viewData([
+                'previous' => $previous === null ? null : ['key' => self::tabQueryKey($previous), 'label' => __("catalog.product.tabs.{$previous}")],
+                'next' => $next === null ? null : ['key' => self::tabQueryKey($next), 'label' => __("catalog.product.tabs.{$next}")],
+            ])
+            ->columnSpanFull()
+            ->visible(static fn (?Product $record): bool => $record?->status === ProductStatus::Draft);
+    }
+
+    /**
+     * Tab 1 — what the trip is: its name, its address, how it sells. The boat
+     * is on «Πότε φεύγει» since 25/9.
      *
      * @return array<int, Component>
      */
@@ -321,25 +375,6 @@ class ProductResource extends Resource
                         ->validationMessages([
                             'unique' => __('catalog.product.form.slug.taken'),
                         ]),
-
-                    Select::make('vessel_id')
-                        ->label(__('catalog.product.form.vessel.label'))
-                        ->helperText(__('catalog.product.form.vessel.help'))
-                        ->options(static::vesselOptions(...))
-                        ->searchable()
-                        ->live()
-                        ->preload(),
-
-                    // A professional pleasure boat is chartered whole, on the
-                    // reading of ν. 4926/2022 the lawyer is still to confirm —
-                    // so selling one per seat is said, not refused (2026-09-24).
-                    Placeholder::make('licence_warning')
-                        ->hiddenLabel()
-                        ->content(__('catalog.product.form.vessel.pleasure_per_seat'))
-                        ->extraAttributes(['class' => 'ka-warning-note'])
-                        ->columnSpanFull()
-                        ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat
-                            && static::vesselLicence($get) === VesselLicence::ProfessionalPleasure),
 
                     Select::make('category')
                         ->label(__('catalog.product.form.category.label'))
@@ -388,8 +423,8 @@ class ProductResource extends Resource
     }
 
     /**
-     * Tab 2 — when it leaves: how long, how early to be there, how many fit,
-     * and the timetable that generates the departures.
+     * Tab 2 — when it leaves: how long, how early to be there, on which boat,
+     * how many fit, and the timetable that generates the departures.
      *
      * @return array<int, Component>
      */
@@ -493,6 +528,36 @@ class ProductResource extends Resource
                         ->seconds(false)
                         ->native(false)
                         ->visible(static fn (Get $get): bool => (bool) $get('flexible_start')),
+                ])
+                ->columns(2),
+
+            // «Συνήθες σκάφος» (Mike, 25/9): moved here from «Βασικά». Each
+            // schedule in «Δρομολόγια» can name a boat of its own, and a rule
+            // that names none sails this one — so it is asked beside the
+            // timetable, and above «Μέγιστα άτομα», whose ceiling it sets.
+            // `live()` because the max_pax help line and cap read it unsaved.
+            Section::make(__('catalog.product.sections.vessel'))
+                ->icon('heroicon-o-lifebuoy')
+                ->schema([
+                    Select::make('vessel_id')
+                        ->label(__('catalog.product.form.vessel.label'))
+                        ->helperText(__('catalog.product.form.vessel.help'))
+                        ->options(static::vesselOptions(...))
+                        ->searchable()
+                        ->live()
+                        ->afterStateUpdated(static::followVesselCapacity(...))
+                        ->preload(),
+
+                    // A professional pleasure boat is chartered whole, on the
+                    // reading of ν. 4926/2022 the lawyer is still to confirm —
+                    // so selling one per seat is said, not refused (2026-09-24).
+                    Placeholder::make('licence_warning')
+                        ->hiddenLabel()
+                        ->content(__('catalog.product.form.vessel.pleasure_per_seat'))
+                        ->extraAttributes(['class' => 'ka-warning-note'])
+                        ->columnSpanFull()
+                        ->visible(static fn (Get $get): bool => static::modeOf($get) === BookingMode::PerSeat
+                            && static::vesselLicence($get) === VesselLicence::ProfessionalPleasure),
                 ])
                 ->columns(2),
 
@@ -818,6 +883,10 @@ class ProductResource extends Resource
                         // New files land at the end, so uploading more never
                         // moves the photograph that leads the card.
                         ->appendFiles()
+                        // One upload at a time: FilePond adds each file to the form when
+                        // its upload finishes, so parallel uploads saved 1-2-3 as 2-1-3
+                        // and the wrong photo led the card.
+                        ->maxParallelUploads(1)
                         ->panelLayout('grid')
                         ->imagePreviewHeight('120')
                         // The disk the API and the hosted pages build URLs
@@ -982,16 +1051,43 @@ class ProductResource extends Resource
         ];
     }
 
-    /** «λείπει 2» on a saved trip that cannot be published yet; nothing otherwise. */
-    public static function basicsBadge(?Product $record): ?string
+    /**
+     * Which tab each publish requirement is fixed on, so «λείπει 1» sits on
+     * the tab that fixes it. Product owner, 2026-09-25: *«ενώ λέει ότι λείπει
+     * ο τιμοκατάλογος, εμφανίζεται στα βασικά ότι λείπει 1»* — every unmet
+     * requirement used to be counted on «Βασικά».
+     *
+     * @var array<string, list<string>>
+     */
+    public const TAB_REQUIREMENTS = [
+        'basics' => [ProductPublishChecklist::TITLE_LOCALES],
+        // The boat is chosen on «Πότε φεύγει» since 25/9, above «Πόσα άτομα».
+        'when' => [ProductPublishChecklist::VESSEL, ProductPublishChecklist::MEETING_POINT],
+        'prices' => [ProductPublishChecklist::AGE_BANDS, ProductPublishChecklist::RATE_PLAN, ProductPublishChecklist::PRICES],
+        'terms' => [ProductPublishChecklist::CANCELLATION_POLICY],
+    ];
+
+    /** «λείπει 2» on the tab whose requirements a saved trip does not meet yet; nothing otherwise. */
+    public static function missingBadge(?Product $record, string $tab): ?string
     {
         if (! $record instanceof Product || ! $record->exists) {
             return null;
         }
 
-        $missing = count(ProductPublishChecklist::unmet($record));
+        $missing = count(array_intersect(ProductPublishChecklist::unmet($record), self::TAB_REQUIREMENTS[$tab] ?? []));
 
         return $missing === 0 ? null : trans_choice('catalog.product.tabs.missing', $missing, ['count' => $missing]);
+    }
+
+    public static function basicsBadge(?Product $record): ?string
+    {
+        return static::missingBadge($record, 'basics');
+    }
+
+    /** A missing meeting point first, in amber; otherwise the timetable's count. */
+    public static function whenBadge(?Product $record): ?string
+    {
+        return static::missingBadge($record, 'when') ?? static::scheduleBadge($record);
     }
 
     /** «5 από 8»: how much of the guest's page is written, on a saved trip. */
@@ -1251,6 +1347,31 @@ class ProductResource extends Resource
                     ->visible(static fn (Product $record): bool => self::previewUrl($record) !== null),
                 DeleteAction::make(),
                 RestoreAction::make(),
+                // The bin on a deleted trip (Mike, 25/9): gone for good, but
+                // only a trip nobody ever booked — see ForceDeleteProduct.
+                ForceDeleteAction::make()
+                    ->label(__('catalog.product.force_delete.label'))
+                    ->icon('heroicon-m-trash')
+                    ->modalHeading(__('catalog.product.force_delete.heading'))
+                    ->modalDescription(__('catalog.product.force_delete.body'))
+                    ->modalSubmitActionLabel(__('catalog.product.force_delete.label'))
+                    ->action(static function (Product $record, ForceDeleteAction $action): void {
+                        try {
+                            app(ForceDeleteProduct::class)($record);
+                        } catch (ValidationException $exception) {
+                            Notification::make()
+                                ->danger()
+                                ->title(__('catalog.product.force_delete.refused'))
+                                ->body(collect($exception->errors())->flatten()->first())
+                                ->persistent()
+                                ->send();
+
+                            $action->halt();
+                        }
+
+                        $action->success();
+                    })
+                    ->successNotificationTitle(__('catalog.product.force_delete.done')),
             ]));
     }
 
@@ -1448,6 +1569,31 @@ class ProductResource extends Resource
                 'capacity' => $vessel->capacity_max,
             ])
             : __('catalog.product.form.max_pax.help');
+    }
+
+    /**
+     * «Μέγιστα άτομα» follows the boat while it is still the default.
+     *
+     * A draft made without a boat starts at 1 (25/9: the boat is chosen on
+     * «Πότε φεύγει» now, after the draft exists). Choosing one should not leave
+     * a trip for one person; but a number the operator typed is theirs, so it
+     * is replaced only while it is blank, 1 with no boat before, or exactly the
+     * previous boat's certificate.
+     */
+    public static function followVesselCapacity(Get $get, Set $set, mixed $state, mixed $old): void
+    {
+        $capacity = is_numeric($state) ? Vessel::query()->whereKey((int) $state)->value('capacity_max') : null;
+
+        if ($capacity === null) {
+            return;
+        }
+
+        $current = $get('max_pax');
+        $default = is_numeric($old) ? Vessel::query()->whereKey((int) $old)->value('capacity_max') : 1;
+
+        if ($current === null || $current === '' || (is_numeric($current) && (int) $current === (int) $default)) {
+            $set('max_pax', (int) $capacity);
+        }
     }
 
     /** @return array<int, string> */

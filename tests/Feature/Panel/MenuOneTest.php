@@ -41,7 +41,7 @@ it('reads as the four groups, in order, with the short labels', function (): voi
     expect($positions)->not->toContain(false)
         ->and($positions)->toBe(array_values(collect($positions)->sort()->all()));
 
-    foreach (['Τιμές', 'Λιμάνια', 'Στατιστικά'] as $label) {
+    foreach (['Τιμοκατάλογοι', 'Λιμάνια', 'Στατιστικά'] as $label) {
         expect($html)->toContain($label);
     }
 

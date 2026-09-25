@@ -394,6 +394,10 @@ class VesselResource extends Resource
                         // Τα νέα αρχεία πάνε στο τέλος, ώστε ένα επιπλέον
                         // ανέβασμα να μη μετακινεί ποτέ την πρώτη.
                         ->appendFiles()
+                        // One upload at a time: FilePond adds each file to the form when
+                        // its upload finishes, so parallel uploads saved 1-2-3 as 2-1-3
+                        // and the wrong photo led the card.
+                        ->maxParallelUploads(1)
                         ->panelLayout('grid')
                         ->imagePreviewHeight('120')
                         // The disk `GET /api/v1/products` builds URLs from (#36).

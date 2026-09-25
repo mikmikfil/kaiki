@@ -6,6 +6,7 @@ use App\Domain\Operations\Support\AttentionItems;
 use App\Enums\BookingStatus;
 use App\Enums\DepartureStatus;
 use App\Enums\Role;
+use App\Filament\App\Pages\Calendar;
 use App\Filament\App\Pages\CheckIn;
 use App\Filament\App\Pages\Dashboard;
 use App\Filament\App\Resources\DepartureResource;
@@ -110,7 +111,7 @@ it('shows a moon in the small hours, where the greeting falls back to «Γεια
         ->assertSee('is-moon', escape: false);
 })->group('fast');
 
-it('puts the day and the time beside the greeting, on the operator\'s own clock', function (): void {
+it('puts the day and the time under the greeting, on the operator\'s own clock', function (): void {
     // Not the browser's zone: a skipper checking from a phone still on UK time
     // must not be told it is a different hour in the harbour.
     Carbon::setTestNow('2026-09-08 09:00:00');
@@ -210,35 +211,164 @@ it('takes scanning, boarding and aboard counts off the home page when boarding i
         ->assertDontSee(CheckIn::getUrl(), escape: false);
 })->group('fast');
 
+/**
+ * The home page's two actions as the page draws them (Mike, 2026-09-25,
+ * direction Β of docs/mockups/dashboard-quick-actions.html): the buttons in
+ * the greeting's row for a tablet or computer, and the phone's bottom bar.
+ *
+ * @return array{header: list<string>, bar: list<string>, bar_one: bool, has_bar: bool, labels: list<string>, short: list<string>, hrefs: list<string>, titles: list<string>}
+ */
+function homeActions(User $user): array
+{
+    $html = (string) actingAs($user)->get('/app')->assertSuccessful()->getContent();
+
+    $dom = new DOMDocument;
+    @$dom->loadHTML('<?xml encoding="utf-8"?>' . $html);
+    $xpath = new DOMXPath($dom);
+
+    $read = function (string $query, callable $pick) use ($xpath): array {
+        $out = [];
+
+        foreach ($xpath->query($query) ?: [] as $node) {
+            if ($node instanceof DOMElement) {
+                $out[] = (string) $pick($node);
+            }
+        }
+
+        return $out;
+    };
+
+    $header = '//header[contains(@class, "ka-dash-header")]//div[@class="ka-hbtns"]/a';
+    $bar = '//header[contains(@class, "ka-dash-header")]//nav[contains(@class, "ka-bar")]';
+
+    return [
+        'header' => $read($header, fn (DOMElement $a): string => $a->getAttribute('data-action')),
+        'bar' => $read($bar . '/a', fn (DOMElement $a): string => $a->getAttribute('data-action')),
+        'bar_one' => $read($bar . '[contains(@class, "is-one")]', fn (): string => '1') !== [],
+        'has_bar' => $read($bar, fn (): string => '1') !== [],
+        'labels' => $read($header, fn (DOMElement $a): string => trim((string) preg_replace('/\s+/u', ' ', $a->textContent))),
+        'short' => $read($bar . '/a', fn (DOMElement $a): string => trim($a->textContent)),
+        'hrefs' => $read($header, fn (DOMElement $a): string => $a->getAttribute('href')),
+        'titles' => $read($header, fn (DOMElement $a): string => $a->getAttribute('title')),
+    ];
+}
+
 it('keeps the boarding list but never «Σάρωση» when only the QR scanner is switched off', function (): void {
     Carbon::setTestNow('2026-09-08 09:00:00');
     $owner = homeOwner();
     $owner->tenant->forceFill(['check_in_enabled' => true, 'qr_check_in_enabled' => false])->save();
-    tenancy()->initialize($owner->tenant);
 
-    Livewire::actingAs($owner)
-        ->test(DayByBoat::class)
-        ->assertOk()
-        ->assertDontSee(__('dashboard.home.next.scan'))
-        ->assertSee(__('dashboard.home.next.board'))
+    $actions = homeActions($owner);
+
+    // Top right on a computer, and whole on the phone's bar too.
+    expect($actions['header'])->toBe(['sell', 'scan'])
+        ->and($actions['labels'][1])->toBe(__('dashboard.home.next.board'))
+        ->and($actions['short'][1])->toBe(__('dashboard.home.next.board'))
+        ->and($actions['titles'][1])->toBe(__('dashboard.home.actions.board_hint'))
         // The list, not a camera: there is nothing on these tickets to scan.
-        ->assertDontSee(route('filament.app.boarding', ['camera' => 1]), escape: false)
-        ->assertSee(CheckIn::getUrl(), escape: false);
+        ->and($actions['hrefs'][1])->toBe(CheckIn::getUrl())
+        ->and($actions['hrefs'])->not->toContain(route('filament.app.boarding', ['camera' => 1]));
 })->group('fast');
 
 it('sends «Σάρωση εισιτηρίων» to the boarding page with the camera opening', function (): void {
     Carbon::setTestNow('2026-09-08 09:00:00');
     $owner = homeOwner();
     $owner->tenant->forceFill(['check_in_enabled' => true, 'qr_check_in_enabled' => true])->save();
-    tenancy()->initialize($owner->tenant);
 
     // Mike, 2026-09-23: one press, and the camera is up and reading ticket
     // after ticket — on the page that keeps working with no signal.
+    $actions = homeActions($owner);
+
+    expect($actions['labels'][1])->toBe(__('dashboard.home.next.scan'))
+        ->and($actions['hrefs'][1])->toBe(route('filament.app.boarding', ['camera' => 1]));
+})->group('fast');
+
+it('puts «Πώληση τώρα» and «Σάρωση» in the header and in a phone bar, never on the card', function (): void {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $owner = homeOwner();
+    $owner->tenant->forceFill(['check_in_enabled' => true, 'qr_check_in_enabled' => true])->save();
+    tenancy()->initialize($owner->tenant);
+
+    $free = Departure::query()->firstOrFail()->seatsAvailable();
+
+    // Mike, 2026-09-25, direction Β: white sale then navy scan, top right; on
+    // a phone the same two side by side, the scan under the right thumb.
+    expect(homeActions($owner))->toMatchArray([
+        'header' => ['sell', 'scan'],
+        'bar' => ['sell', 'scan'],
+        'bar_one' => false,
+        // The sale says which sailing it is for: the time on the button, the
+        // free seats as its hint.
+        'labels' => [__('calendar.sell.title') . ' · 18:00', __('dashboard.home.next.scan')],
+        'short' => [__('calendar.sell.title'), __('dashboard.home.actions.scan_short')],
+        'titles' => [
+            trans_choice('dashboard.home.actions.sell_hint', $free, ['time' => '18:00', 'count' => $free]),
+            __('dashboard.home.actions.scan_hint'),
+        ],
+    ]);
+
+    // The card is information only: no action anywhere in the widget.
     Livewire::actingAs($owner)
         ->test(DayByBoat::class)
         ->assertOk()
-        ->assertSee(__('dashboard.home.next.scan'))
-        ->assertSee(route('filament.app.boarding', ['camera' => 1]), escape: false);
+        ->assertDontSeeHtml('data-action=')
+        ->assertDontSeeHtml('kd-acts')
+        ->assertDontSeeHtml('kd-sell');
+})->group('fast');
+
+it('leaves the sale alone, across the bar, when boarding is switched off', function (): void {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $owner = homeOwner();
+    $owner->tenant->forceFill(['check_in_enabled' => false])->save();
+
+    expect(homeActions($owner))->toMatchArray(['header' => ['sell'], 'bar' => ['sell'], 'bar_one' => true]);
+})->group('fast');
+
+it('drops the sale and keeps the scan across the bar with no departure this week', function (): void {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $owner = OperatorUser::withRole(Role::Owner, Tenant::factory()->create(['timezone' => 'Europe/Athens']));
+    $owner->tenant->forceFill(['check_in_enabled' => true, 'qr_check_in_enabled' => true])->save();
+
+    // A booking three weeks out: past the card's seven days, and enough that
+    // the home page is past its first steps.
+    Tenancy::forTenant($owner->tenant, function (): void {
+        $departure = Departure::factory()->at('2026-09-30', '10:00')->withSeats(4)->create();
+        Booking::factory()->create(['departure_id' => $departure->getKey(), 'vessel_id' => $departure->vessel_id, 'status' => BookingStatus::Confirmed]);
+    });
+
+    tenancy()->initialize($owner->tenant);
+
+    Livewire::actingAs($owner)
+        ->test(DayByBoat::class)
+        ->assertOk()
+        ->assertSee(__('dashboard.home.next.none'));
+
+    expect(homeActions($owner))->toMatchArray(['header' => ['scan'], 'bar' => ['scan'], 'bar_one' => true]);
+})->group('fast');
+
+it('draws no bar and no buttons when there is nothing to do', function (): void {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $owner = OperatorUser::withRole(Role::Owner, Tenant::factory()->create(['timezone' => 'Europe/Athens']));
+    $owner->tenant->forceFill(['check_in_enabled' => false])->save();
+
+    Tenancy::forTenant($owner->tenant, function (): void {
+        $departure = Departure::factory()->at('2026-09-30', '10:00')->withSeats(4)->create();
+        Booking::factory()->create(['departure_id' => $departure->getKey(), 'vessel_id' => $departure->vessel_id, 'status' => BookingStatus::Confirmed]);
+    });
+
+    expect(homeActions($owner))->toMatchArray(['header' => [], 'bar' => [], 'has_bar' => false]);
+})->group('fast');
+
+it('keeps the bar on the home page only', function (): void {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $owner = homeOwner();
+
+    expect(homeActions($owner)['has_bar'])->toBeTrue();
+
+    actingAs($owner)->get(Calendar::getUrl())
+        ->assertSuccessful()
+        ->assertDontSee('ka-bar', escape: false)
+        ->assertDontSee('ka-hbtns', escape: false);
 })->group('fast');
 
 it('greets with the name as given, or without one when it is blank', function (?string $name, string $morning, string $hello): void {

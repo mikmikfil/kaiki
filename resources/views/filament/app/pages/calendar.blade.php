@@ -32,6 +32,9 @@
                     <span aria-hidden="true" class="sm:hidden">&rsaquo;</span>
                     <span class="hidden sm:inline">{{ __('calendar.next') }} &rarr;</span>
                 </x-filament::button>
+
+                {{-- Any day at once: «τι παίζει στις 15 Οκτωβρίου» (25/9). --}}
+                <div class="cal-jump">{{ $this->form }}</div>
             </div>
 
             <p class="cal-hint cal-hint-track">{{ __('calendar.drag_hint') }}</p>
@@ -304,7 +307,8 @@
             display: grid; gap: 1rem;
         }
         .cal-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem; }
-        .cal-nav { display: flex; gap: .4rem; }
+        .cal-nav { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+        .cal-jump { width: 9.5rem; }
         .cal-hint, .cal-empty { font-size: .82rem; color: rgb(var(--gray-500)); margin: 0; }
 
         /* --- the phone: a list per boat -------------------------------------- */

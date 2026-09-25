@@ -63,10 +63,11 @@ return [
             'start_times' => [
                 'label' => 'Departure times',
                 'help' => 'Local time. Add every time it leaves during the day. Each time becomes its own row, with the same days and dates.',
-                'add' => 'Add',
                 'chip' => 'Time',
                 'new' => 'New time',
-                'placeholder' => 'e.g. 14:30',
+                'hour' => 'Hour',
+                'minutes' => 'Minutes',
+                'cancel' => 'Cancel',
                 'remove' => 'Remove',
                 'invalid' => 'Type a time, e.g. 09:30.',
                 'duplicate' => ':time is already there.',
@@ -233,6 +234,7 @@ return [
             'from_rule' => 'From the schedule. A change here applies to this departure only.',
             'captain_name' => ['label' => 'Or the captain’s name', 'help' => 'If they have no Kaiki account.'],
             'members' => ['label' => 'Crew', 'help' => 'Those of your people sailing with it.'],
+            'crew_names' => ['label' => 'Or crew names', 'help' => 'Those with no Kaiki account. Press Enter after each name.', 'placeholder' => 'Full name'],
             'validation' => ['not_ours' => 'Someone you chose does not belong to your business.', 'overlap' => ':name is already on «:trip» (:boat, :time), at the same time.'],
             'mail' => [
                 'subject' => 'You are on the crew: :date, :time',

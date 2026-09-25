@@ -358,7 +358,9 @@ final class ManageBookingController extends GuestPageController
      */
     private static function calendarFor(Booking $booking, string $locale): ?array
     {
-        if ($booking->status === BookingStatus::Cancelled || $booking->starts_at_utc?->isPast() !== false) {
+        // Only a booking that holds a ticket: a draft or one still at the
+        // gateway has a start time too, and is not a trip the guest is on.
+        if (! $booking->status->hasTicket() || $booking->starts_at_utc?->isPast() !== false) {
             return null;
         }
 

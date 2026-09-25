@@ -11,6 +11,9 @@ return [
         'label' => 'Your page',
         'title' => 'Opens your public page in a new tab',
         'live' => 'Live',
+        // No home page (bookings only): the card opens the search page (2026-09-25).
+        'trips_label' => 'Your trips',
+        'trips_title' => 'Opens the page listing your trips in a new tab',
     ],
 
     'groups' => [
@@ -25,7 +28,6 @@ return [
     'nav' => [
         'home' => 'Home',
         'scan' => 'Scan tickets',
-        'prices' => 'Prices',
         'ports' => 'Ports',
         'related' => 'Related screens',
     ],

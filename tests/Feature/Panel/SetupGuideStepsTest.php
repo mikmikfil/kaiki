@@ -51,12 +51,11 @@ it('asks the questions in the order each answer is needed', function (): void {
     // εκδρομή και περίοδοι»). Each of those has a real screen of its own, and
     // asking for them here was either a hand-off out of the guide or a
     // shortened copy of a form that already exists.
-    // Five since 2026-09-23, and the fifth is conditional: an operator who
-    // gets a home page from us is asked to build it, last, once the logo and
-    // the colours it uses are already chosen.
+    // The home page step (2026-09-23) is conditional: an operator who gets a
+    // home page from us is asked to build it, last. The logo and the colours
+    // left on 2026-09-25 — the platform sets them from /admin.
     expect(SetupChecklist::questions())->toBe([
         SetupChecklist::BUSINESS,
-        SetupChecklist::BRANDING,
         SetupChecklist::VAT,
         SetupChecklist::CANCELLATION,
         SetupChecklist::HOME_PAGE,
@@ -131,39 +130,34 @@ it('sets a step aside with «Αργότερα» and goes forward to the next ope
         Livewire::test(Setup::class)
             ->set('step', SetupChecklist::BUSINESS)
             ->call('later')
-            ->assertSet('step', SetupChecklist::BRANDING)
+            ->assertSet('step', SetupChecklist::VAT)
             ->call('back')
             ->assertSet('step', SetupChecklist::BUSINESS);
 
-        // Five questions since the home page step joined them (2026-09-23), so
-        // the figure moved with it rather than being a number typed here.
+        // Four questions: the home page step joined them (2026-09-23) and the
+        // branding step left (2026-09-25), so the figure is counted rather
+        // than typed here.
         expect(SetupChecklist::skipped())->toBe([SetupChecklist::BUSINESS])
-            ->and(SetupChecklist::progress())->toBe(['done' => 1, 'total' => 5]);
+            ->and(SetupChecklist::progress())->toBe(['done' => 1, 'total' => count(SetupChecklist::questions())])
+            ->and(count(SetupChecklist::questions()))->toBe(4);
     });
 })->group('fast');
 
-it('asks for the logo and the two colours on the branding step, and saves them', function (): void {
-    // Product owner, 2026-09-22: «στην εμφάνιση, μόνο logo και χρώματα· όχι
-    // link προς εμφάνιση». The step used to hand off to the branding screen —
-    // fifteen fields, and behind the gate it did not even open.
+it('has no branding step any more, and ignores one asked for by URL', function (): void {
+    // Mike, 2026-09-25: «την αρχικοποίηση θέλω να την κάνω από το admin». The
+    // logo and the colours are set on Create / Edit Merchant; the operator
+    // still changes them on «Εμφάνιση».
     $owner = guideOwner();
     actingAs($owner);
 
-    Tenancy::forTenant($owner->tenant, function () use ($owner): void {
+    Tenancy::forTenant($owner->tenant, function (): void {
         Livewire::test(Setup::class)
-            ->set('step', SetupChecklist::BRANDING)
-            // No hand-off button on this step any more.
-            ->assertDontSee(__('setup.steps.branding.action'))
-            ->set('data.color_primary', '#0B4F4A')
-            ->set('data.color_secondary', '#063733')
+            ->set('step', 'branding')
+            ->assertDontSee(__('branding.form.color_primary.label'))
             ->call('continue')
             ->assertSet('step', SetupChecklist::VAT);
 
-        $profile = $owner->tenant->refresh()->brandProfile()->first();
-
-        expect($profile?->color_primary)->toBe('#0B4F4A')
-            ->and($profile?->color_secondary)->toBe('#063733')
-            ->and(SetupChecklist::state()[SetupChecklist::BRANDING])->toBeTrue();
+        expect(SetupChecklist::state())->not->toHaveKey('branding');
     });
 })->group('fast');
 

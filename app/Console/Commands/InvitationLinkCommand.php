@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Domain\Tenancy\Actions\InviteStaffMember;
 use App\Models\User;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\URL;
 
 /**
  * Print the link that lets somebody set their password (testing only).
@@ -65,12 +64,7 @@ class InvitationLinkCommand extends Command
             return self::FAILURE;
         }
 
-        $token = Password::broker()->createToken($user);
-
-        $url = URL::signedRoute('filament.app.auth.password-reset.reset', [
-            'token' => $token,
-            'email' => $user->email,
-        ]);
+        $url = InviteStaffMember::invitationUrl($user);
 
         $this->newLine();
         $this->line("  <options=bold>{$user->name}</> — {$user->email}");

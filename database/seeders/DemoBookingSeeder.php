@@ -12,6 +12,7 @@ use App\Domain\Booking\Actions\CreateManualBooking;
 use App\Domain\Booking\Actions\RecordManualPayment;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Pricing\Actions\ComputePrice;
+use App\Enums\BookingMode;
 use App\Enums\BookingSource;
 use App\Enums\CancelledBy;
 use App\Enums\CancelReason;
@@ -279,12 +280,17 @@ class DemoBookingSeeder extends Seeder
             //                                 «Χρειάζονται προσοχή» is about
             $tender = $index % 2 === 0 ? PaymentGatewayName::Cash : PaymentGatewayName::BankTransfer;
 
+            // A trip sold on request makes a quote request, which is priced
+            // and answered before anyone pays. Money on one is money the
+            // statistics counted with no booking behind it (25/9).
+            $payable = $product->mode !== BookingMode::Quote;
+
             $booking = app(CreateManualBooking::class)(
                 $data,
-                paidBy: $index % 4 < 2 ? $tender : null,
+                paidBy: $payable && $index % 4 < 2 ? $tender : null,
             );
 
-            if ($index % 4 === 2) {
+            if ($payable && $index % 4 === 2) {
                 $this->payDeposit($booking, $tender);
             }
 

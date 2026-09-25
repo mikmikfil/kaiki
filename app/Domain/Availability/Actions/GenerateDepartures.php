@@ -198,6 +198,7 @@ final class GenerateDepartures
             'captain_user_id' => $rule->captain_user_id,
             'captain_name' => $rule->captain_name,
             'crew_user_ids' => $rule->crew_user_ids === null || $rule->crew_user_ids === [] ? null : json_encode(array_values($rule->crew_user_ids)),
+            'crew_names' => $rule->crew_names === null || $rule->crew_names === [] ? null : json_encode(array_values($rule->crew_names), JSON_UNESCAPED_UNICODE),
             'crew_from_rule' => true,
             'local_date' => LocalDateTimeResolver::localDate($starts, $timezone),
             'local_time' => LocalDateTimeResolver::localTime($starts, $timezone),

@@ -8,10 +8,12 @@ use App\Domain\Availability\Actions\HoldSeats;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Booking\Data\ManualBookingAdjustment;
 use App\Enums\BookingSource;
+use App\Enums\BookingStatus;
 use App\Enums\PaymentGatewayName;
 use App\Enums\PaymentKind;
 use App\Enums\PaymentStatus;
 use App\Events\CapacityOverridden;
+use App\Exceptions\IllegalStateTransition;
 use App\Models\Booking;
 use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
@@ -184,6 +186,16 @@ final class CreateManualBooking
      */
     private function markPaid(Booking $booking, PaymentGatewayName $gateway): Booking
     {
+        // Refused before the money is written, not after. A trip sold on
+        // request makes a `quote_requested` booking, which cannot be
+        // confirmed; the payment used to be saved first and the confirmation
+        // to throw, leaving a quote request holding a paid-in-full payment
+        // that every revenue figure then counted (the demo showed €8,294 of
+        // it on 25/9).
+        if (! $booking->status->canTransitionTo(BookingStatus::Confirmed)) {
+            throw IllegalStateTransition::forBooking($booking->status, BookingStatus::Confirmed);
+        }
+
         DB::transaction(static function () use ($booking, $gateway): void {
             $payment = new Payment;
 

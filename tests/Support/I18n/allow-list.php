@@ -25,6 +25,10 @@ declare(strict_types=1);
 return [
 
     'identical_translations' => [
+        // Placeholders and a slash, no words: the tab's own name, and «2 / 5».
+        'catalog.product.steps.back' => 'Only the :tab placeholder; the name comes translated.',
+        'hosted.product.photo_count' => 'A counter, «:current / :total», the same in every language.',
+
         // Proper nouns and product names are not translated. "Solo" is the name
         // of a plan, the same word on a Greek invoice as on an English one.
         'enums.plan.solo.label' => 'Plan name, a proper noun in both locales.',

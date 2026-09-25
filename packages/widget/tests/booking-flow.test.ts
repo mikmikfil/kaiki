@@ -188,14 +188,17 @@ describe('the party refusal', () => {
     expect(isPartyRefused(new Error('boom'))).toBe(false);
   });
 
-  it('carries the server sentence through, in the locale that was asked for', async () => {
-    const fetchMock = vi.fn(() =>
+  // What the server really sends: `message` in English whatever the page's
+  // language, `message_el` in Greek (docs/api.md §4.1). A fake with Greek in
+  // both hid the English sentence a Greek booking sheet showed (25/9).
+  function refusing(): ReturnType<typeof vi.fn> {
+    return vi.fn(() =>
       Promise.resolve(
         jsonResponse(
           {
             error: {
               code: 'needs_adult',
-              message: 'Σε αυτή την εκδρομή τα παιδιά ταξιδεύουν με συνοδό ενήλικα.',
+              message: 'On this trip children travel with an adult.',
               message_el: 'Σε αυτή την εκδρομή τα παιδιά ταξιδεύουν με συνοδό ενήλικα.',
             },
           },
@@ -203,8 +206,12 @@ describe('the party refusal', () => {
         ),
       ),
     );
+  }
 
+  it('carries the server sentence through, in the widget locale', async () => {
+    const fetchMock = refusing();
     const client = new ApiClient('https://api.kaiki.app/api/v1', 'pk_test', fetchMock as unknown as typeof fetch);
+    client.setLocale('el');
     const api = new BookingApi(client);
 
     const error = await api.createDraft(state(), 'product-uuid', 'el').catch((thrown: unknown) => thrown);
@@ -216,6 +223,16 @@ describe('the party refusal', () => {
     // A 4xx is the server saying the request is wrong, and asking twice more
     // does not make it right.
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the English sentence on an English page', async () => {
+    const client = new ApiClient('https://api.kaiki.app/api/v1', 'pk_test', refusing() as unknown as typeof fetch);
+    client.setLocale('en');
+    const api = new BookingApi(client);
+
+    const error = await api.createDraft(state(), 'product-uuid', 'en').catch((thrown: unknown) => thrown);
+
+    expect(refusalMessage(error)).toBe('On this trip children travel with an adult.');
   });
 
   it('has no sentence when the server sent none, and says so with null', () => {

@@ -140,6 +140,8 @@ return [
             'vessel' => 'Το σκάφος',
         ],
         'boat' => [
+            'photos' => 'Φωτογραφίες του σκάφους',
+            'photo' => 'Φωτογραφία του σκάφους :current από :total',
             'type' => 'Τύπος',
             'length' => 'Μήκος',
             'capacity' => 'Επιβάτες',
@@ -166,6 +168,9 @@ return [
             ],
         ],
         'close' => 'Κλείσιμο',
+        'photo_count' => ':current / :total',
+        'photo_previous' => 'Προηγούμενη φωτογραφία',
+        'photo_next' => 'Επόμενη φωτογραφία',
         'highlights' => 'Τι θα ζήσετε',
         'includes' => 'Περιλαμβάνονται',
         'excludes' => 'Δεν περιλαμβάνονται',

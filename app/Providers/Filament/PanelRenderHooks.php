@@ -124,6 +124,18 @@ final class PanelRenderHooks
             static fn (): View => view('filament.touch-targets'),
         );
 
+        // No stray line below the layout, so the sidebar reaches the bottom.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View => view('filament.page-height'),
+        );
+
+        // A photo already in a single-file field can be removed with its ×.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View => view('filament.file-upload-layers'),
+        );
+
         // − and + either side of every number field, on both panels
         // (product owner, 2026-09-22: *«όπου στο διαχειριστικό έχει βελάκια
         // πάνω κάτω για αύξηση αριθμού, τα θέλω οριζόντια + και −»*). The
@@ -317,13 +329,13 @@ final class PanelRenderHooks
     /**
      * The operator's own landing page, opened in a new tab.
      *
-     * ## Why it can be absent
+     * ## When it is absent
      *
-     * HOS-6 lets an operator switch their hosted pages off, and the page is then
-     * a 404 — so the link is only rendered when {@see HostedUrl::homeEnabledFor()}
-     * says there is something at the other end. A button that leads to a "not
-     * found" is worse than no button, because the operator concludes the feature
-     * is broken rather than switched off.
+     * Only for the crew and outside a tenant. An operator without a home page
+     * (*bookings only*, ADR-0029) is not left without a card any more (Mike,
+     * 2026-09-25): {@see HostedUrl::siteStart()} sends them to their search
+     * page, which is served in both modes, under «Οι εκδρομές σας» — never to
+     * the `/{operator}` that is a 404 for them.
      *
      * A new tab rather than a navigation: the operator is in the middle of
      * editing something, and sending them away from a half-finished form to
@@ -338,10 +350,19 @@ final class PanelRenderHooks
         // operator's shop window is not theirs to open from the quay.
         $crew = $user instanceof User && $user->isCrewOnly();
 
+        if ($crew || ! $tenant instanceof Tenant) {
+            return view('filament.view-frontend', ['url' => null, 'label' => null, 'title' => null]);
+        }
+
+        // An operator without a home page still has their trips (Mike,
+        // 2026-09-25): the card leads to the search page, the list of
+        // everything they sell, under a label that says so.
+        $home = HostedUrl::homeEnabledFor($tenant);
+
         return view('filament.view-frontend', [
-            'url' => ! $crew && $tenant instanceof Tenant && HostedUrl::homeEnabledFor($tenant)
-                ? HostedUrl::operator($tenant)
-                : null,
+            'url' => HostedUrl::siteStart($tenant),
+            'label' => __($home ? 'panel.view_frontend.label' : 'panel.view_frontend.trips_label'),
+            'title' => __($home ? 'panel.view_frontend.title' : 'panel.view_frontend.trips_title'),
         ]);
     }
 

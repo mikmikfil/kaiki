@@ -10,7 +10,6 @@
 --}}
 @php
     $next = $this->getNext();
-    $boarding = $this->getBoarding();
     $boxes = $this->getBoxes();
     $day = $this->getDay();
     $now = $day->nowFraction();
@@ -20,17 +19,14 @@
 
 <x-filament-widgets::widget>
     <div @class(['kd', 'is-crew' => $crew])>
-        {{-- Crew: the scan comes first and alone, above everything (Mike,
-             2026-09-24: «πρώτο πράγμα στην οθόνη του πληρώματος»). --}}
-        @if ($crew && $boarding)
-            <a class="kd-scan" href="{{ $boarding['url'] }}">
-                <x-filament::icon :icon="$boarding['icon']" class="kd-scan-ic" />
-                <span>{{ $boarding['label'] }}</span>
-            </a>
-        @endif
-
+        {{-- «Σάρωση εισιτηρίων» and «Πώληση τώρα» are not on this widget any
+             more: they sit in the page header on a tablet or computer and in a
+             bar fixed to the bottom of a phone (Mike, 2026-09-25, direction Β
+             of docs/mockups/dashboard-quick-actions.html), both drawn by
+             `pages/dashboard-header.blade.php`. The card only says what is
+             leaving. --}}
         <div class="kd-top">
-            {{-- 1. The next departure --}}
+            {{-- 1. The next departure: information only --}}
             <div class="kd-next">
                 {{-- A ship's helm, barely there, turning very slowly (Mike chose
                      it from docs/mockups/nautical-icons.html, 2026-09-23: «ακόμα
@@ -70,10 +66,6 @@
                         @endif
                     </div>
 
-                    @if ($next['sell_url'])
-                        <a class="kd-sell" href="{{ $next['sell_url'] }}">{{ __('calendar.sell.title') }} →</a>
-                    @endif
-
                     @if ($next['boards'] && $next['expected'] > 0)
                         <div class="kd-progress" role="progressbar" aria-valuenow="{{ $next['percent'] }}" aria-valuemin="0" aria-valuemax="100">
                             <i style="width: {{ $next['percent'] }}%"></i>
@@ -82,13 +74,6 @@
                 @else
                     <div class="kd-next-when">{{ __('dashboard.home.next.label') }}</div>
                     <div class="kd-next-trip">{{ __('dashboard.home.next.none') }}</div>
-                @endif
-
-                @if ($boarding && ! $crew)
-                    <a class="kd-bigbtn" href="{{ $boarding['url'] }}">
-                        <x-filament::icon :icon="$boarding['icon']" class="kd-ic" />
-                        <span>{{ $boarding['label'] }}</span>
-                    </a>
                 @endif
             </div>
 
@@ -257,9 +242,6 @@
             /* The one blue card, in both themes. */
             --kd-next: #0F2E57;
             --kd-next-line: transparent;
-            --kd-btn: #fff;
-            --kd-btn-hover: #E8F0FB;
-            --kd-btn-ink: #0F2E57;
 
             display: grid; gap: 1.25rem;
         }
@@ -284,18 +266,19 @@
             --kd-cancel: rgb(var(--gray-700));
             --kd-cancel-ink: rgb(var(--gray-200));
             --kd-now: #F59E0B;
-            /* The card stays navy; a hairline keeps it off the black page, and
-               the button is a pale blue rather than a white slab at night. */
+            /* The card stays navy; a hairline keeps it off the black page. */
             --kd-next-line: rgba(255, 255, 255, .1);
-            --kd-btn: #D6E4F7;
-            --kd-btn-hover: #fff;
         }
         .kd a { text-decoration: none; }
 
         .kd-top { display: grid; gap: .875rem; }
 
+        /* Taller since the buttons left it (Mike, 25/9: «είναι μικρό το height
+           τώρα»): more air, a bigger time, the «when» line at the top and the
+           trip at the foot, and on a computer the height of the four boxes. */
         .kd-next {
-            display: grid; gap: .5rem; padding: 1.1rem 1.15rem 1.15rem;
+            display: grid; gap: .75rem; padding: 1.4rem 1.4rem 1.5rem;
+            min-height: 12.5rem; align-content: space-between;
             border-radius: 1rem; background: var(--kd-next); color: #fff;
             border: 1px solid var(--kd-next-line);
             position: relative; overflow: hidden; isolation: isolate;
@@ -315,8 +298,8 @@
         @media (prefers-reduced-motion: reduce) { .kd-helm { animation: none; } }
         .kd-next-when { font-size: .8125rem; font-weight: 600; color: #9FBBE0; }
         .kd-next-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; }
-        .kd-next-time { font-size: 2.25rem; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-        .kd-next-trip { display: block; margin-top: .3rem; font-size: 1.0625rem; font-weight: 700; color: #fff; }
+        .kd-next-time { font-size: 3rem; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+        .kd-next-trip { display: block; margin-top: .45rem; font-size: 1.1875rem; font-weight: 700; color: #fff; }
         .kd-next-where { font-size: .8125rem; color: #C4D3E8; }
         .kd-role { display: inline-block; margin-top: .45rem; padding: .1rem .6rem; border-radius: 999px; background: #23497D; color: #fff; font-size: .75rem; font-weight: 700; }
         .kd-next-aboard { text-align: right; flex: none; }
@@ -324,35 +307,10 @@
         .kd-progress { height: .4rem; border-radius: 99px; background: #23497D; overflow: hidden; }
         .kd-progress i { display: block; height: 100%; border-radius: inherit; background: #7FB0EE; }
 
-        /* «Πώληση τώρα» on the next departure's card (24/9): a white pill on the blue. */
-        .kd-sell {
-            position: relative; z-index: 1; display: inline-flex; align-items: center; min-height: 2.5rem; margin-top: .9rem;
-            padding: 0 1rem; border-radius: 999px; background: #fff; color: rgb(var(--primary-700));
-            font-weight: 700; font-size: .9rem;
-        }
-        .kd-sell:hover { background: rgba(255, 255, 255, .9); }
-        .kd-bigbtn {
-            display: flex; align-items: center; justify-content: center; gap: .55rem;
-            min-height: 3.125rem; margin-top: .35rem; border-radius: .75rem;
-            background: var(--kd-btn); color: var(--kd-btn-ink); font-weight: 700; font-size: 1rem;
-        }
-        .kd-bigbtn:hover { background: var(--kd-btn-hover); }
         .kd-ic { width: 1.25rem; height: 1.25rem; }
 
-        /* Crew: one big button, the width of the page, before anything else.
-           Navy like the departure card, so the two read as one thing: the boat
-           that is leaving, and the way to put people on it. */
-        .kd.is-crew > .kd-scan { margin-bottom: .875rem; }
-        /* No boxes beside it, so the departure card takes the whole row. */
+        /* No boxes beside it for crew, so the card takes the whole row. */
         .kd.is-crew .kd-top { grid-template-columns: minmax(0, 1fr); }
-        .kd-scan {
-            display: flex; align-items: center; justify-content: center; gap: .75rem;
-            min-height: 4.5rem; border-radius: 1rem; padding: 0 1.25rem;
-            background: var(--kd-next); color: #fff; font-weight: 700; font-size: 1.2rem;
-            border: 1px solid var(--kd-next-line);
-        }
-        .kd-scan:hover { filter: brightness(1.12); }
-        .kd-scan-ic { width: 1.75rem; height: 1.75rem; }
 
         .kd-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
         .kd-box {

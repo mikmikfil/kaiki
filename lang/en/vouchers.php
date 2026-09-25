@@ -15,7 +15,7 @@ declare(strict_types=1);
 
 return [
 
-    'nav' => 'Vouchers',
+    'nav' => 'Refund vouchers',
     'singular' => 'Voucher',
     'plural' => 'Vouchers',
 

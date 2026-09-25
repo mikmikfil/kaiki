@@ -147,6 +147,8 @@ return [
             'vessel' => 'The boat',
         ],
         'boat' => [
+            'photos' => 'Photos of the boat',
+            'photo' => 'Boat photo :current of :total',
             'type' => 'Type',
             'length' => 'Length',
             'capacity' => 'Guests',
@@ -173,6 +175,9 @@ return [
             ],
         ],
         'close' => 'Close',
+        'photo_count' => ':current / :total',
+        'photo_previous' => 'Previous photo',
+        'photo_next' => 'Next photo',
         'highlights' => 'Highlights',
         'includes' => 'Included',
         'excludes' => 'Not included',

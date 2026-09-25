@@ -50,9 +50,14 @@ use Filament\Resources\Pages\EditRecord;
  * The list has grown past the five it opened with, which is what the tabs of
  * 2026-09-21 are for.
  *
+ * - **Appearance** — the logo and the colours (Mike, 2026-09-25: *«την
+ *   αρχικοποίηση θέλω να την κάνω από το admin»*). The platform sets them up
+ *   when it takes the operator on; the operator keeps their own «Εμφάνιση»
+ *   screen and can change them from there. See {@see HasTenantBrandingFields}.
+ *
  * Everything else about an operator is theirs: their name, their address, their
- * VAT number, their colours. A platform screen that could rewrite those is a
- * platform screen somebody will use to "fix" a customer's data for them.
+ * VAT number. A platform screen that could rewrite those is a platform screen
+ * somebody will use to "fix" a customer's data for them.
  *
  * ## SEC-16, in three parts, all of them here
  *
@@ -81,6 +86,7 @@ use Filament\Resources\Pages\EditRecord;
 class EditTenant extends EditRecord
 {
     use HasTenantAccountFields;
+    use HasTenantBrandingFields;
 
     protected static string $resource = TenantResource::class;
 
@@ -139,6 +145,10 @@ class EditTenant extends EditRecord
                         $this->featuresSection(),
                     ]),
 
+                    Tabs\Tab::make(__('tenants.edit.branding'))->schema([
+                        $this->brandingSection(),
+                    ]),
+
                     Tabs\Tab::make(__('tenants.edit.channels'))
                         // The count is the useful part of a tab label here: it
                         // answers "does this merchant sell anywhere else" from
@@ -191,6 +201,16 @@ class EditTenant extends EditRecord
     private array $before = [];
 
     /**
+     * The «Εμφάνιση» tab's answers, held between `mutateFormDataBeforeSave()`
+     * — which takes them off the tenant row's data — and `afterSave()`, which
+     * writes them to the brand profile. Not a public property: it can hold a
+     * temporary upload, and it lives for one request.
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $pendingBranding = null;
+
+    /**
      * Snapshot the old values while they are still the old values.
      *
      * `getOriginal()` in `afterSave()` does **not** work: Eloquent syncs a
@@ -219,6 +239,14 @@ class EditTenant extends EditRecord
         $tenant = $this->getRecord();
 
         $changes = $this->changes($tenant);
+
+        // The brand profile is its own row, written here rather than by the
+        // record update, and what moved on it joins the same entry: one save,
+        // one reason, one row in the operator's trail.
+        if ($this->pendingBranding !== null) {
+            $changes = [...$changes, ...$this->applyBranding($tenant, $this->pendingBranding)];
+            $this->pendingBranding = null;
+        }
 
         if ($changes === []) {
             // Nothing moved. A row saying an operator was "updated" with no
@@ -375,6 +403,7 @@ class EditTenant extends EditRecord
                 ->visible(fn (): bool => ! $this->tenant()->trashed()
                     && auth()->user()?->can('delete', $this->tenant()) === true)
                 ->modalHeading(__('tenants.edit.delete'))
+                ->modalSubmitActionLabel(__('tenants.edit.delete'))
                 ->modalDescription(__('tenants.edit.delete_body'))
                 ->form([
                     TextInput::make('confirmName')
@@ -416,6 +445,7 @@ class EditTenant extends EditRecord
                 ->visible(fn (): bool => $this->tenant()->trashed()
                     && auth()->user()?->can('restore', $this->tenant()) === true)
                 ->modalHeading(__('tenants.edit.restore'))
+                ->modalSubmitActionLabel(__('tenants.edit.restore'))
                 ->modalDescription(__('tenants.edit.restore_body'))
                 ->form([
                     Textarea::make('reason')
@@ -495,6 +525,25 @@ class EditTenant extends EditRecord
      */
     protected function mutateFormDataBeforeFill(array $data): array
     {
+        $data['branding'] = self::brandingFormState($this->tenant());
+
+        return $data;
+    }
+
+    /**
+     * The «Εμφάνιση» answers are not columns on `tenants`, so they come off
+     * the data before the record update sees it.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        $branding = $data['branding'] ?? null;
+        $this->pendingBranding = is_array($branding) ? $branding : null;
+
+        unset($data['branding']);
+
         return $data;
     }
 }

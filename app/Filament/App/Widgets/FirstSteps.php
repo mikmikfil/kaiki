@@ -6,6 +6,7 @@ namespace App\Filament\App\Widgets;
 
 use App\Domain\Operations\Support\FirstSteps as Steps;
 use App\Filament\App\Resources\DepartureResource;
+use App\Filament\App\Resources\PortResource;
 use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Resources\SeasonResource;
 use App\Filament\App\Resources\VesselResource;
@@ -75,8 +76,9 @@ class FirstSteps extends Widget
     public function getLinks(): array
     {
         return [
+            Steps::PORT => PortResource::getUrl('create'),
             Steps::VESSEL => VesselResource::getUrl('create'),
-            Steps::SEASON => SeasonResource::getUrl('index'),
+            Steps::SEASON => SeasonResource::getUrl('create'),
             Steps::PRODUCT => ProductResource::getUrl('create'),
             Steps::PUBLISHED => ProductResource::getUrl('index'),
             Steps::DEPARTURE => DepartureResource::getUrl('index'),

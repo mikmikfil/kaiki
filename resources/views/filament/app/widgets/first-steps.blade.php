@@ -26,6 +26,13 @@
                         <x-filament::button tag="a" size="sm" :href="$this->getLinks()[$step]">
                             {{ __('dashboard.first_steps.' . $step . '.action') }}
                         </x-filament::button>
+                    @elseif (! $done && in_array($step, $this->getOptional(), true))
+                        {{-- An optional step is never "next", so it had no way in
+                             at all (Mike, 25/9). Its own button, quieter than the
+                             one that says what to do now. --}}
+                        <x-filament::button tag="a" size="sm" color="gray" outlined :href="$this->getLinks()[$step]">
+                            {{ __('dashboard.first_steps.' . $step . '.action') }}
+                        </x-filament::button>
                     @endif
                 </li>
             @endforeach

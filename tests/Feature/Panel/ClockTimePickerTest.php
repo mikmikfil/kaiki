@@ -3,9 +3,10 @@
 declare(strict_types=1);
 
 use App\Enums\BookingMode;
+use App\Enums\ProductStatus;
 use App\Enums\Role;
 use App\Filament\App\Resources\DepartureResource\Pages\CreateDeparture;
-use App\Filament\App\Resources\ProductResource\Pages\CreateProduct;
+use App\Filament\App\Resources\ProductResource\Pages\EditProduct;
 use App\Filament\App\Resources\ScheduleRuleResource\Pages\CreateScheduleRule;
 use App\Filament\App\Resources\VesselBlockResource\Pages\CreateVesselBlock;
 use App\Models\Product;
@@ -30,11 +31,24 @@ use Tests\Support\OperatorUser;
 |
 */
 
+/**
+ * The page's route parameters. The trip form is the edit page's: since 25/9 a
+ * new trip is only «Βασικά» and every clock on it is asked once it is saved.
+ *
+ * @return array<string, mixed>
+ */
+function clockPageParams(string $page): array
+{
+    return $page === EditProduct::class
+        ? ['record' => Product::factory()->create(['status' => ProductStatus::Draft])->getRouteKey()]
+        : [];
+}
+
 it('never converts a time-only picker to or from the tenant timezone', function (string $page): void {
     $owner = OperatorUser::withRole(Role::Owner);
     tenancy()->initialize(Tenant::query()->findOrFail($owner->tenant_id));
 
-    $form = Livewire::actingAs($owner)->test($page)->instance()->form;
+    $form = Livewire::actingAs($owner)->test($page, clockPageParams($page))->instance()->form;
 
     if (! $form instanceof Form) {
         throw new RuntimeException("{$page} has no form to inspect.");
@@ -49,7 +63,7 @@ it('never converts a time-only picker to or from the tenant timezone', function 
         expect($picker->getTimezone())->toBe('UTC', "{$page}: {$picker->getName()}");
     }
 })->with([
-    'trip' => CreateProduct::class,
+    'trip' => EditProduct::class,
     'schedule rule' => CreateScheduleRule::class,
     'departure' => CreateDeparture::class,
     'vessel block' => CreateVesselBlock::class,
@@ -87,7 +101,10 @@ it('never converts a date-only picker to or from the tenant timezone', function 
         expect($picker->getTimezone())->toBe('UTC', "{$page}: {$picker->getName()}");
     }
 })->with([
-    'trip' => CreateProduct::class,
+    // No «trip» here any more: the dates the wizard asked for — a schedule's
+    // window — are the «Δρομολόγια» list's since 25/9, and that list's form is
+    // `ScheduleRuleResource`'s own, checked on the next line. The trip form
+    // itself holds no calendar day.
     'schedule rule' => CreateScheduleRule::class,
 ])->group('fast');
 

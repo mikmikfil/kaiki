@@ -16,7 +16,7 @@ declare(strict_types=1);
 
 return [
 
-    'nav' => 'Κουπόνια',
+    'nav' => 'Κουπόνια επιστροφής',
     'singular' => 'Κουπόνι',
     'plural' => 'Κουπόνια',
 
