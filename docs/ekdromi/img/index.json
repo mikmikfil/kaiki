@@ -1,5 +1,5 @@
 {
-  "takenAt": "2026-09-22T07:13:52.243Z",
+  "takenAt": "2026-09-25T12:21:27.486Z",
   "shots": [
     {
       "name": "products-list",
@@ -7,30 +7,14 @@
     },
     {
       "name": "create-basics",
-      "url": "/app/products/create?tab=-basika-tab"
-    },
-    {
-      "name": "create-when",
-      "url": "/app/products/create?tab=-pote-pheugei-tab"
-    },
-    {
-      "name": "create-prices",
-      "url": "/app/products/create?tab=-times-tab"
-    },
-    {
-      "name": "create-terms",
-      "url": "/app/products/create?tab=-oroi-tab"
-    },
-    {
-      "name": "create-page",
-      "url": "/app/products/create?tab=-selida-tab"
-    },
-    {
-      "name": "edit-basics",
-      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-basika-tab"
+      "url": "/app/products/create"
     },
     {
       "name": "edit-when",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-pote-pheugei-tab"
+    },
+    {
+      "name": "edit-vessel",
       "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-pote-pheugei-tab"
     },
     {
@@ -38,12 +22,16 @@
       "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-pote-pheugei-tab"
     },
     {
-      "name": "edit-prices-empty",
-      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-times-tab"
+      "name": "time-picker",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-pote-pheugei-tab"
     },
     {
-      "name": "edit-extras",
-      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-times-tab"
+      "name": "step-nav",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-pote-pheugei-tab"
+    },
+    {
+      "name": "step-nav-last",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-selida-tab"
     },
     {
       "name": "edit-terms",
@@ -63,19 +51,31 @@
     },
     {
       "name": "bands",
-      "url": "/app/products/221fe4d4-42da-4750-a67d-257466e218aa/edit?tab=-times-tab"
+      "url": "/app/products/710f71e2-279e-4b58-a2f6-f76d8c3baddb/edit?tab=-times-tab"
+    },
+    {
+      "name": "periods",
+      "url": "/app/products/710f71e2-279e-4b58-a2f6-f76d8c3baddb/edit?tab=-times-tab"
     },
     {
       "name": "price-table",
-      "url": "/app/products/221fe4d4-42da-4750-a67d-257466e218aa/edit?tab=-times-tab"
+      "url": "/app/products/710f71e2-279e-4b58-a2f6-f76d8c3baddb/edit?tab=-times-tab"
     },
     {
-      "name": "checklist-ready",
-      "url": "/app/products/221fe4d4-42da-4750-a67d-257466e218aa/edit?tab=-basika-tab"
+      "name": "edit-extras",
+      "url": "/app/products/710f71e2-279e-4b58-a2f6-f76d8c3baddb/edit?tab=-times-tab"
+    },
+    {
+      "name": "tab-badges",
+      "url": "/app/products/815a12c7-905b-4c26-ae95-731b50f6bd5c/edit?tab=-times-tab"
+    },
+    {
+      "name": "products-trashed",
+      "url": "/app/products?tableFilters[trashed][value]=0"
     },
     {
       "name": "guest-trip",
-      "url": "/aegean-blue/olimeri-tria-nisia"
+      "url": "/aegean-blue/iliovasilema-aigina"
     }
   ]
 }
