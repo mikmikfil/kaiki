@@ -63,6 +63,18 @@ final class CheckoutRefused extends RuntimeException
         return new self((string) trans('api.errors.no_gateway_configured'), 'no_gateway_configured');
     }
 
+    /** A trip with «Στοιχεία επιβατών» on, and not every passenger filled in (audit 2). */
+    public static function passengersRequired(): self
+    {
+        return new self((string) trans('api.errors.passengers_required'), 'passengers_required');
+    }
+
+    /** A required trip question left unanswered (audit 2). */
+    public static function answersRequired(): self
+    {
+        return new self((string) trans('api.errors.answers_required'), 'answers_required');
+    }
+
     /**
      * ADR-0030's invariant, and the reason a draft may have no lead guest.
      *

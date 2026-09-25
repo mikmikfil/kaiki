@@ -26,6 +26,7 @@ use App\Models\Departure;
 use App\Models\DiscountCode;
 use App\Models\Vessel;
 use App\Support\Booking\BookingReference;
+use App\Support\Tenancy;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,13 @@ final class CreateBookingDraft
     public function __invoke(BookingDraftData $data): Booking
     {
         $product = $data->product;
+
+        // TEN-9 at the one door every new booking passes (audit 2): the quay,
+        // the phone, the API and the checkout alike. Imports never come
+        // through here, and a booking already made is not touched.
+        if (Tenancy::current()?->allowsWrites() === false) {
+            throw HoldRefused::tenantReadOnly($data->source->isGuestInitiated());
+        }
 
         // A guest may only book a trip that is on sale (2026-09-25). The
         // operator's own doors (manual, quay) may still sell one that is not

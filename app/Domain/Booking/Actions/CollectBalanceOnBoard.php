@@ -9,6 +9,7 @@ use App\Enums\PaymentGatewayName;
 use App\Models\Booking;
 use App\Models\User;
 use App\Support\Authorization\Capability;
+use App\Support\Tenancy;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\ValidationException;
@@ -105,6 +106,8 @@ final class CollectBalanceOnBoard
     public static function offeredTo(?User $user, Booking $booking): bool
     {
         return $user instanceof User
+            // TEN-9 (audit 2): no «Πληρώθηκε» on a read-only account.
+            && Tenancy::current()?->allowsWrites() !== false
             && $user->hasCapability(Capability::CollectBalanceOnBoard)
             && $booking->balance_cents > 0
             && in_array($booking->status, [BookingStatus::Confirmed, BookingStatus::CheckedIn], true)

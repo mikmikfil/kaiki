@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Operations\Support;
 
+use App\Domain\Booking\Actions\SaveGuestDetails;
 use App\Domain\Operations\Actions\GenerateManifest;
 use App\Enums\BookingStatus;
 use App\Enums\ManifestColumn;
@@ -55,6 +56,7 @@ final class Manifest
      * @param  list<ManifestColumn>  $columns
      * @param  list<array<string, string>>  $rows
      * @param  array<string, string|null>  $header
+     * @param  list<int>  $missingRows  indexes into `$rows` of the passengers whose details are missing
      */
     private function __construct(
         public readonly array $columns,
@@ -63,7 +65,14 @@ final class Manifest
         public readonly int $onBoard,
         public readonly ?int $capacityMax,
         public readonly int $missingDetails,
+        public readonly array $missingRows = [],
     ) {}
+
+    /** Is this row (by index) a passenger whose details are missing? */
+    public function isMissing(int $index): bool
+    {
+        return in_array($index, $this->missingRows, true);
+    }
 
     /**
      * A header value as the sheet prints it: «20/09/2026» and «15:00», the way
@@ -141,10 +150,17 @@ final class Manifest
     {
         $rows = [];
         $missing = 0;
+        $missingRows = [];
 
         foreach ($bookings as $booking) {
+            // On a trip that asks for the list, a row is missing until it is
+            // as complete as checkout would have made it (audit 2): the name,
+            // and the documents. Elsewhere the name is the list.
+            $needsDocuments = SaveGuestDetails::documentsRequiredFor($booking);
+            $tripDate = SaveGuestDetails::tripDateOf($booking);
+
             $guests = BookingGuest::query()
-                ->with('answers')
+                ->with(['answers', 'ageBand'])
                 ->where('booking_id', $booking->getKey())
                 ->orderBy('position')
                 ->get();
@@ -154,6 +170,7 @@ final class Manifest
                 // still exist and still get on the boat, so they get placeholder
                 // rows — one per head — rather than being silently absent.
                 for ($position = 1; $position <= $booking->pax_total; $position++) {
+                    $missingRows[] = count($rows);
                     $rows[] = self::blankRow($columns, $booking);
                     $missing++;
                 }
@@ -162,11 +179,10 @@ final class Manifest
             }
 
             foreach ($guests as $guest) {
-                // A name is what makes a row usable at the quayside — the
-                // document is the operator's own setting and a day trip does
-                // not ask for one, so `hasCompleteDetails(false)` is the right
-                // question here even on a manifest that carries the column.
-                if (! $guest->hasCompleteDetails()) {
+                // The same question the reminders ask of the row, so the sheet
+                // and the chasing agree on who is still missing.
+                if (! SaveGuestDetails::isComplete($guest, $needsDocuments, $tripDate)) {
+                    $missingRows[] = count($rows);
                     $missing++;
                 }
 
@@ -182,6 +198,7 @@ final class Manifest
             onBoard: count($rows),
             capacityMax: $capacityMax,
             missingDetails: $missing,
+            missingRows: $missingRows,
         );
     }
 

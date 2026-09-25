@@ -6,6 +6,7 @@ namespace App\Http\Controllers\App;
 
 use App\Domain\Booking\Actions\CheckInGuest;
 use App\Domain\Booking\Actions\CollectBalanceOnBoard;
+use App\Domain\Booking\Support\GuestDetailsTracking;
 use App\Enums\BookingStatus;
 use App\Exceptions\CheckInRefused;
 use App\Filament\App\Pages\CheckIn;
@@ -220,6 +221,7 @@ class BoardingController
                 : null;
             $ticketed = $booking->guests->whereNotNull('ticket_code');
             $owesOn = ($ticketed->firstWhere('is_lead', true) ?? $ticketed->sortBy('position')->first())?->getKey();
+            $detailsUrl = GuestDetailsTracking::urlWhilePending($booking);
 
             foreach ($booking->guests as $guest) {
                 if ($guest->ticket_code === null) {
@@ -228,6 +230,9 @@ class BoardingController
 
                 $rows[] = [
                     'owes' => $guest->getKey() === $owesOn ? $owes : null,
+                    // «Λείπουν στοιχεία επιβατών» (Mike, 25/9), once per
+                    // booking like the balance, with the guest's own form.
+                    'details_url' => $guest->getKey() === $owesOn ? $detailsUrl : null,
                     'ticket_code' => $guest->ticket_code,
                     'name' => $guest->full_name ?? __('boarding.unnamed'),
                     'reference' => $booking->reference,

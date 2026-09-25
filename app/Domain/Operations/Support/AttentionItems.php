@@ -8,6 +8,7 @@ use App\Domain\Availability\Actions\SailBelowMinimum;
 use App\Domain\Booking\Actions\ConfirmManualRefund;
 use App\Domain\Booking\Actions\RefundBooking;
 use App\Domain\Booking\Support\TestSeats;
+use App\Enums\BlockReason;
 use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
 use App\Enums\CancelledBy;
@@ -26,9 +27,11 @@ use App\Models\Payment;
 use App\Models\Quote;
 use App\Models\User;
 use App\Models\Vessel;
+use App\Models\VesselBlock;
 use App\Support\Format\MoneyFormatter;
 use App\Support\Tenancy;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -120,12 +123,13 @@ final class AttentionItems
             + $this->missingGuestDetailsQuery($now)->count()
             + ($this->collectsBalanceOnBoard()
                 ? $this->unpaidAfterSailingQuery($now)->count()
-                : $this->overdueBalancesQuery($now)->count())
+                : $this->overdueBalancesQuery($now)->count() + $this->unpaidAfterSailingQuery($now, undatedOnly: true)->count())
             + $this->expiringQuotesQuery($now)->count()
             + $this->owedRefundsQuery()->count()
             + $this->lostChartersQuery($now)->count()
             + $this->latePaymentsQuery($now)->count()
             + $this->brokenCalendarsQuery()->count()
+            + $this->calendarClashesQuery($now)->count()
             + count($this->captainlessGroups($now));
     }
 
@@ -154,12 +158,15 @@ final class AttentionItems
         $items = [
             ...$this->underMinimum($now),
             ...$this->missingGuestDetails($now),
-            ...($this->collectsBalanceOnBoard() ? $this->unpaidAfterSailing($now) : $this->overdueBalances($now)),
+            ...($this->collectsBalanceOnBoard()
+                ? $this->unpaidAfterSailing($now)
+                : [...$this->overdueBalances($now), ...$this->unpaidAfterSailing($now, undatedOnly: true)]),
             ...$this->expiringQuotes($now),
             ...$this->owedRefunds(),
             ...$this->lostCharters($now),
             ...$this->latePayments($now),
             ...$this->brokenCalendars(),
+            ...$this->calendarClashes($now),
             ...$this->withoutCaptain($now),
         ];
 
@@ -355,11 +362,15 @@ final class AttentionItems
      * Same `balance:` key as an overdue balance, so the row takes a payment in
      * place in the same way.
      *
+     * For an operator who collects online, the bookings that never had a due
+     * date (audit 2): «Πληρώνει την ημέρα», an import, a booking taken while
+     * the balance was collected on board. The overdue list cannot see them.
+     *
      * @return list<AttentionItem>
      */
-    private function unpaidAfterSailing(Carbon $now): array
+    private function unpaidAfterSailing(Carbon $now, bool $undatedOnly = false): array
     {
-        $bookings = $this->unpaidAfterSailingQuery($now)
+        $bookings = $this->unpaidAfterSailingQuery($now, $undatedOnly)
             ->orderBy('starts_at_utc')
             ->limit(self::SOURCE_LIMIT)
             ->get();
@@ -439,6 +450,55 @@ final class AttentionItems
             deadline: null,
             subject: $source,
         ))->all();
+    }
+
+    /**
+     * An outside calendar closed the boat over bookings sold here (audit 2).
+     *
+     * The iCal sync cannot refuse the block — the other platform's sale is a
+     * fact — so the clash is put in front of the operator, one row per block,
+     * before the quay finds it. Derived on read: the row goes when the block
+     * or the bookings under it do.
+     *
+     * @return list<AttentionItem>
+     */
+    private function calendarClashes(Carbon $now): array
+    {
+        $blocks = $this->calendarClashesQuery($now)
+            ->with(['vessel', 'icalSource'])
+            ->orderBy('starts_at_utc')
+            ->limit(self::SOURCE_LIMIT)
+            ->get();
+
+        $items = [];
+
+        foreach ($blocks as $block) {
+            $bookings = self::bookingsUnderBlock($block)->get();
+            $first = $bookings->first();
+
+            if (! $first instanceof Booking) {
+                continue;
+            }
+
+            $starts = $this->local($block->starts_at_utc);
+
+            $items[] = new AttentionItem(
+                key: 'ical_clash:' . $block->getKey(),
+                severity: AttentionSeverity::Critical,
+                title: (string) __('attention.ical_clash.title', [
+                    'vessel' => (string) $block->vessel?->name,
+                    'time' => $starts?->format('Y-m-d H:i') ?? '',
+                ]),
+                detail: (string) __('attention.ical_clash.detail', [
+                    'source' => (string) $block->icalSource?->name,
+                    'references' => $bookings->pluck('reference')->implode(', '),
+                ]),
+                deadline: $starts,
+                subject: $first,
+            );
+        }
+
+        return $items;
     }
 
     /**
@@ -576,6 +636,9 @@ final class AttentionItems
             ->whereIn('status', [
                 BookingStatus::PendingPayment->value,
                 BookingStatus::Confirmed->value,
+                // Aboard with the list still missing is still a list the
+                // harbour does not have (audit 2).
+                BookingStatus::CheckedIn->value,
             ])
             ->where('guest_details_status', GuestDetailsStatus::Pending->value)
             ->where('starts_at_utc', '>=', $now)
@@ -602,9 +665,10 @@ final class AttentionItems
     }
 
     /** @return Builder<Booking> */
-    private function unpaidAfterSailingQuery(Carbon $now): Builder
+    private function unpaidAfterSailingQuery(Carbon $now, bool $undatedOnly = false): Builder
     {
         return Booking::query()
+            ->when($undatedOnly, static fn (Builder $query) => $query->whereNull('balance_due_at'))
             ->where('is_test', false)
             ->whereIn('status', [
                 BookingStatus::Confirmed->value,
@@ -684,6 +748,62 @@ final class AttentionItems
             ->where(static fn (Builder $query) => $query
                 ->where('created_at', '>=', $now->copy()->subDays(7))
                 ->orWhereHas('booking', static fn (Builder $booking) => $booking->where('starts_at_utc', '>=', $now)));
+    }
+
+    /** @return Builder<VesselBlock> */
+    private function calendarClashesQuery(Carbon $now): Builder
+    {
+        return VesselBlock::query()
+            ->where('reason', BlockReason::ExternalIcal->value)
+            ->where('ends_at_utc', '>', $now)
+            ->whereExists(static fn (QueryBuilder $query): QueryBuilder => self::bookingsUnderBlockConstraint(
+                $query->from('bookings')->whereNull('bookings.deleted_at'),
+            ));
+    }
+
+    /**
+     * Bookings sold here that sit under one outside block.
+     *
+     * @return Builder<Booking>
+     */
+    private static function bookingsUnderBlock(VesselBlock $block): Builder
+    {
+        return Booking::query()
+            ->whereIn('status', self::committingStatuses())
+            ->where(static fn (Builder $query) => $query
+                ->where('vessel_id', $block->vessel_id)
+                ->orWhereIn('departure_id', Departure::query()->select('id')->where('vessel_id', $block->vessel_id)))
+            ->where('starts_at_utc', '<', $block->ends_at_utc)
+            ->where('ends_at_utc', '>', $block->starts_at_utc)
+            ->when($block->booking_id !== null, static fn (Builder $query) => $query->whereKeyNot($block->booking_id))
+            ->orderBy('starts_at_utc');
+    }
+
+    /** The correlated form of {@see self::bookingsUnderBlock()}, for the count. */
+    private static function bookingsUnderBlockConstraint(QueryBuilder $query): QueryBuilder
+    {
+        return $query
+            ->whereIn('bookings.status', self::committingStatuses())
+            ->where(static fn (QueryBuilder $match): QueryBuilder => $match
+                ->whereColumn('bookings.vessel_id', 'vessel_blocks.vessel_id')
+                ->orWhereExists(static fn (QueryBuilder $departure): QueryBuilder => $departure
+                    ->from('departures')
+                    ->whereColumn('departures.id', 'bookings.departure_id')
+                    ->whereColumn('departures.vessel_id', 'vessel_blocks.vessel_id')))
+            ->whereColumn('bookings.starts_at_utc', '<', 'vessel_blocks.ends_at_utc')
+            ->whereColumn('bookings.ends_at_utc', '>', 'vessel_blocks.starts_at_utc')
+            ->where(static fn (QueryBuilder $own): QueryBuilder => $own
+                ->whereNull('vessel_blocks.booking_id')
+                ->orWhereColumn('bookings.id', '!=', 'vessel_blocks.booking_id'));
+    }
+
+    /** @return list<string> */
+    private static function committingStatuses(): array
+    {
+        return array_values(array_map(
+            static fn (BookingStatus $status): string => $status->value,
+            array_filter(BookingStatus::cases(), static fn (BookingStatus $status): bool => $status->committingSeats()),
+        ));
     }
 
     /** @return Builder<IcalSource> */

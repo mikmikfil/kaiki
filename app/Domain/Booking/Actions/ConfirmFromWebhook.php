@@ -17,6 +17,7 @@ use App\Enums\PaymentStatus;
 use App\Events\LatePaymentRefunded;
 use App\Exceptions\CapacityExceeded;
 use App\Exceptions\HoldRefused;
+use App\Exceptions\IllegalStateTransition;
 use App\Jobs\ExecuteGatewayRefund;
 use App\Models\Booking;
 use App\Models\Departure;
@@ -63,6 +64,7 @@ final class ConfirmFromWebhook
         private readonly CancelBooking $cancelBooking,
         private readonly RecomputeBookingMoney $recomputeMoney,
         private readonly RefundBooking $refundBooking,
+        private readonly ConfirmPartPaid $confirmPartPaid,
     ) {}
 
     public function __invoke(Payment $payment, bool $succeeded): void
@@ -138,7 +140,42 @@ final class ConfirmFromWebhook
             $this->refundLate($payment, $booking, $payment->amount_cents);
 
             return;
+        } catch (IllegalStateTransition $illegal) {
+            // Lost the lock to the hold sweeper or a cancel between the read
+            // above and the confirmation (audit 2). Expired: revived if it
+            // still can be, refunded if not. Cancelled: that cancel's refund
+            // was worked out before this charge counted, so what is still held
+            // of it goes back.
+            $booking->refresh();
+
+            if ($booking->status === BookingStatus::Expired) {
+                $this->recordAfterExpiry($payment, $booking);
+
+                return;
+            }
+
+            if (! in_array($booking->status, [BookingStatus::Cancelled, BookingStatus::Refunded], true)) {
+                throw $illegal;
+            }
+
+            $owed = min($payment->amount_cents, max(0, Payment::paidCentsFor($booking->getKey()) - self::pendingRefundCents($booking)));
+
+            if ($owed > 0 && ! $this->alreadyGivenBack($payment)) {
+                $this->refundLate($payment, $booking, $owed);
+            }
+
+            return;
         } catch (HoldRefused $refused) {
+            if (in_array($refused->reason, ['departure_unavailable', 'legal_capacity'], true)) {
+                // A draft whose hold lapsed, paid on a second try, onto a
+                // sailing whose boat was taken or blocked, or whose certificate
+                // filled, since (audit 2): the same end as seats gone.
+                $this->expireDraft($booking);
+                $this->refundLate($payment, $booking, $payment->amount_cents);
+
+                return;
+            }
+
             if ($refused->reason !== 'vessel_unavailable') {
                 throw $refused;
             }
@@ -208,6 +245,21 @@ final class ConfirmFromWebhook
         }
 
         $payment->forceFill(['status' => PaymentStatus::Failed])->save();
+
+        // Money already on it — a part payment taken by hand while the card
+        // page was open (audit 2). Back to a draft it would expire with the
+        // money kept; it is confirmed instead, with the rest as its balance.
+        // If even that is refused, it stays `pending_payment`, which no
+        // sweeper expires while money is on it.
+        if (Payment::paidCentsFor($booking->getKey()) > 0) {
+            try {
+                ($this->confirmPartPaid)($booking);
+            } catch (CapacityExceeded|HoldRefused|IllegalStateTransition) {
+                // Left as it is; see above.
+            }
+
+            return;
+        }
 
         // An accepted quote stays where it is (2026-09-25): payable again at
         // `/c/` until its own deadline, which the sweeper keeps.
@@ -452,6 +504,16 @@ final class ConfirmFromWebhook
                 },
             );
         }
+    }
+
+    /** Refunds written and not yet through the gateway. */
+    private static function pendingRefundCents(Booking $booking): int
+    {
+        return (int) Payment::query()
+            ->where('booking_id', $booking->getKey())
+            ->where('kind', PaymentKind::Refund->value)
+            ->where('status', PaymentStatus::Pending->value)
+            ->sum('amount_cents');
     }
 
     private function alreadyGivenBack(Payment $payment): bool

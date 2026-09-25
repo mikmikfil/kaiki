@@ -3,17 +3,21 @@
 declare(strict_types=1);
 
 use App\Domain\Booking\Actions\CreateBookingDraft;
+use App\Domain\Booking\Actions\RefundBooking;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Notifications\Actions\SendPaymentUnfinished;
 use App\Enums\BookingStatus;
 use App\Enums\CancelReason;
 use App\Enums\NotificationTemplate;
+use App\Enums\PaymentStatus;
 use App\Mail\GuestMail;
 use App\Models\Booking;
 use App\Models\Departure;
+use App\Models\Payment;
 use App\Models\RatePlan;
 use App\Models\RatePlanPrice;
 use App\Models\Tenant;
+use App\Models\Vessel;
 use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Mail;
@@ -151,4 +155,48 @@ it('says why, on the old booking page, when the boat has filled', function (): v
     get(route('guest.checkout', ['token' => $booking->manage_token]))
         ->assertRedirect(route('guest.booking', ['token' => $booking->manage_token]))
         ->assertSessionHas('resume_refused');
+})->group('fast');
+
+it('does not say the payment was unfinished when the money came in late and went back', function (): void {
+    [$tenant, $booking] = abandonedCheckout();
+
+    Tenancy::forTenant($tenant, function () use ($booking): void {
+        // Audit 2: paid after the checkout lapsed, the seats gone, refunded.
+        $charge = Payment::factory()->create(['booking_id' => $booking->getKey(), 'amount_cents' => 13000]);
+
+        Payment::factory()->refundOf($charge)->create([
+            'status' => PaymentStatus::Pending,
+            'refunded_at' => null,
+            'idempotency_key' => RefundBooking::LATE_KEY_PREFIX . str_repeat('a', 32),
+        ]);
+    });
+
+    expect(app(SendPaymentUnfinished::class)())->toBe(0);
+
+    Mail::assertNothingSent();
+})->group('fast');
+
+it('does not offer a charter back once its boat has gone to somebody else', function (): void {
+    $tenant = Tenant::factory()->create();
+
+    Tenancy::forTenant($tenant, function (): void {
+        $vessel = Vessel::factory()->create();
+
+        Booking::factory()->perVessel()->create([
+            'vessel_id' => $vessel->getKey(),
+            'status' => BookingStatus::Expired,
+            'cancel_reason' => CancelReason::PaymentFailed,
+        ]);
+
+        // Somebody else chartered the same boat for the same day.
+        Booking::factory()->perVessel()->create([
+            'vessel_id' => $vessel->getKey(),
+            'status' => BookingStatus::Confirmed,
+            'guest_email' => 'other@example.gr',
+        ]);
+    });
+
+    expect(app(SendPaymentUnfinished::class)())->toBe(0);
+
+    Mail::assertNothingSent();
 })->group('fast');

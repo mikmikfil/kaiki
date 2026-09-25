@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Catalog\Actions;
 
+use App\Domain\Booking\Support\GuestDetailsTracking;
 use App\Domain\Catalog\Contracts\ProductBookingCount;
 use App\Domain\Catalog\Support\ProductPublishChecklist;
 use App\Enums\BookingMode;
@@ -103,7 +104,16 @@ final class SaveProduct
 
             $this->guardPublishable($product);
 
+            $detailsChanged = $product->exists
+                && $product->isDirty(['guest_details_required', 'guest_details_deadline_hours']);
+
             $product->save();
+
+            // The trip's bookings follow the switch (audit 2): opened for a
+            // passenger list when it goes on, left alone when it goes off.
+            if ($detailsChanged) {
+                GuestDetailsTracking::syncProduct($product);
+            }
 
             return $product->refresh();
         });

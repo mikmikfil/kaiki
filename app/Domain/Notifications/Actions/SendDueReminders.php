@@ -234,8 +234,13 @@ final class SendDueReminders
 
         // 1. Guest details — deadline −48h and −24h, suppressed when complete
         //    or not required (BKG-15, BKG-16).
-        if ($booking->guest_details_status === GuestDetailsStatus::Pending) {
-            $deadline = $departure->copy()->subHours($this->guestDetailsDeadlineHours($booking));
+        //    And only with a `/g/` link to send (audit 2): a reminder with no
+        //    form behind it asks the guest for something they cannot do.
+        if ($booking->guest_details_status === GuestDetailsStatus::Pending && filled($booking->guest_details_token)) {
+            // The deadline the guest was told, kept in step with the trip's
+            // hours when the operator changes them.
+            $deadline = $booking->guest_details_deadline_at?->copy()
+                ?? $departure->copy()->subHours($this->guestDetailsDeadlineHours($booking));
 
             // BKG-13.6's own request, a day after confirmation, if the details
             // are still missing (email review, 2026-09-17). Not at the moment of
@@ -374,7 +379,11 @@ final class SendDueReminders
             lead: __("mail.{$template->value}.sms"),
             meetingPoint: (string) ($booking->product === null ? '' : ($booking->product->meetingPoint->name ?? '')),
             when: $booking->local_date->format('d/m') . ' ' . substr((string) $booking->local_time, 0, 5),
-            link: route('guest.booking', ['token' => $booking->manage_token]),
+            // A passenger-list reminder links to the form itself: the booking
+            // page has no way into it (audit 2).
+            link: $template->isGuestDetails() && filled($booking->guest_details_token)
+                ? route('guest.details', ['token' => $booking->guest_details_token])
+                : route('guest.booking', ['token' => $booking->manage_token]),
             maxSegments: (int) config('kaiki.notifications.sms_max_segments', 2),
         );
     }

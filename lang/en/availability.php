@@ -158,6 +158,15 @@ return [
     |
     */
 
+    // A schedule's boat changed (audit 2).
+    'vessel_move' => [
+        'moved' => '{1} One departure moved to the new boat.|[2,*] :count departures moved to the new boat.',
+        'kept' => '{1} One departure stayed on the old boat|[2,*] :count departures stayed on the old boat',
+        'help' => 'They have bookings, or the new boat is taken then. Nothing about them was changed; decide from Needs attention.',
+        'line' => ':date :time · :sold seats sold',
+        'more' => 'and :count more',
+    ],
+
     'reconciliation' => [
         'nav' => 'Needs attention',
         'title' => 'Schedules needing attention',
@@ -175,12 +184,14 @@ return [
             'dst_skipped' => 'That time does not exist',
             'orphaned' => 'No longer scheduled',
             'capacity_drift' => 'Different seat count',
+            'vessel_drift' => 'On another boat',
         ],
 
         'explanations' => [
             'dst_skipped' => 'The clocks change that day and this time does not exist. No departure was created. Add one manually at a real time if you want it.',
             'orphaned' => 'The schedule changed and no longer covers this day. The departure is still standing and still sellable — cancel it if you do not want it.',
             'capacity_drift' => 'The schedule seat count changed, but this departure already has bookings and was left alone.',
+            'vessel_drift' => 'The schedule boat changed, but this departure stayed on the old one: it has bookings, or the new boat is taken at that time.',
         ],
     ],
 
@@ -310,6 +321,7 @@ return [
             'same_product_overlap' => 'This trip already departs at :date :time on the same boat. The same trip cannot depart twice at once.',
             'sold_time_locked' => 'This departure has :sold bookings, so its date and time cannot move. Cancel it and create a new one if you need to.',
             'capacity_below_sold' => ':sold seats are already sold. The seat count cannot go below that.',
+            'capacity_below_held' => 'Not below :count seats: :held are being paid for right now. Try again in a few minutes.',
             'capacity_over_certificate' => '“:vessel” is licensed for :max people. The seat count cannot go above that.',
             'product_immutable' => "A departure's trip cannot be changed.",
         ],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Availability\Actions;
 
 use App\Models\Departure;
+use App\Models\Vessel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -46,6 +47,22 @@ final class UpdateDeparture
         $this->guardCapacity($departure, $attributes);
 
         return DB::transaction(function () use ($departure, $attributes): Departure {
+            // Asked again under the locks (audit 2), vessel then departure as
+            // AVL-45 orders them: a guest may have paid, or taken a hold, since
+            // the read above.
+            if ($departure->vessel_id !== null) {
+                Vessel::query()->lockForUpdate()->find($departure->vessel_id);
+            }
+
+            /** @var Departure $locked */
+            $locked = Departure::query()->lockForUpdate()->findOrFail($departure->getKey());
+
+            if ($locked->seats_sold > 0 || $locked->seats_held > 0) {
+                $this->guardTimeChange($locked, $attributes);
+            }
+
+            $this->guardCapacity($locked, $attributes, ReleaseHold::liveHeldSeats($locked));
+
             // The time triple is written together or not at all: CNV-3's guard
             // refuses a half-updated row, which is the correct outcome and a
             // confusing one to debug. Only the fields below are editable here;
@@ -107,7 +124,7 @@ final class UpdateDeparture
      *
      * @throws ValidationException
      */
-    private function guardCapacity(Departure $departure, array $attributes): void
+    private function guardCapacity(Departure $departure, array $attributes, int $liveHeld = 0): void
     {
         $capacity = $attributes['capacity'] ?? null;
 
@@ -126,6 +143,18 @@ final class UpdateDeparture
                 'capacity' => [trans('availability.departure.validation.capacity_over_certificate', [
                     'vessel' => (string) $departure->vessel?->name,
                     'max' => (string) $ceiling,
+                ])],
+            ]);
+        }
+
+        // Guests at the checkout keep the seats they were admitted to: a hold
+        // paid after the change moves into `seats_sold` without a room test,
+        // so the floor is what is sold plus what is held (audit 2).
+        if ($liveHeld > 0 && (int) $capacity < $departure->seats_sold + $liveHeld && (int) $capacity < $departure->capacity) {
+            throw ValidationException::withMessages([
+                'capacity' => [trans('availability.departure.validation.capacity_below_held', [
+                    'count' => (string) ($departure->seats_sold + $liveHeld),
+                    'held' => (string) $liveHeld,
                 ])],
             ]);
         }

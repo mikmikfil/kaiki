@@ -11,6 +11,7 @@ use App\Domain\Booking\Actions\SaveGuestDetails;
 use App\Domain\Booking\Support\GuestTokenResolver;
 use App\Domain\Booking\Support\PassengerForm;
 use App\Domain\Booking\Support\PolicyExplanation;
+use App\Domain\Booking\Support\QuotePaymentDeadline;
 use App\Domain\Booking\Support\TripQuestionForm;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Hosted\Support\HostedUrl;
@@ -106,6 +107,13 @@ final class CheckoutController extends GuestPageController
         // A booking that is no longer waiting to be paid for has a better page
         // than this one, and it is the page the same token opens.
         if (! self::isPayable($booking)) {
+            return redirect()->route('guest.booking', ['token' => $token]);
+        }
+
+        // An accepted quote past its payment deadline (audit 2): no pay
+        // button, whatever the sweeper has or has not done yet.
+        if ($booking->status === BookingStatus::PendingPayment
+            && Tenancy::forTenant($tenant, static fn () => QuotePaymentDeadline::for($booking))?->isPast() === true) {
             return redirect()->route('guest.booking', ['token' => $token]);
         }
 

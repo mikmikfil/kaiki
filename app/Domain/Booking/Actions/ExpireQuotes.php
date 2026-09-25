@@ -7,6 +7,7 @@ namespace App\Domain\Booking\Actions;
 use App\Enums\BookingStatus;
 use App\Enums\QuoteStatus;
 use App\Models\Booking;
+use App\Models\Payment;
 use App\Models\Quote;
 use App\Models\Tenant;
 use App\Models\VesselBlock;
@@ -112,6 +113,16 @@ final class ExpireQuotes
      */
     private function settleBooking(int $bookingId): void
     {
+        // Only a booking still waiting on an offer (audit 2). One the guest
+        // accepted, or that was confirmed or cancelled, is not this sweeper's:
+        // its payment deadline and its own blocks are somebody else's.
+        $status = Booking::query()->whereKey($bookingId)->value('status');
+        $status = $status instanceof BookingStatus ? $status : BookingStatus::tryFrom((string) $status);
+
+        if (! in_array($status, [BookingStatus::QuoteRequested, BookingStatus::QuoteSent], true)) {
+            return;
+        }
+
         // The block goes either way: an offer nobody can accept must not keep a
         // boat off sale.
         // One by one, so the observer frees the sailings the block closed.
@@ -130,6 +141,12 @@ final class ExpireQuotes
         $booking = Booking::query()->lockForUpdate()->find($bookingId);
 
         if ($booking === null || ! $booking->status->canTransitionTo(BookingStatus::Expired)) {
+            return;
+        }
+
+        // Never with money on it (audit 2): an expired booking keeps no
+        // payment. The quote lapses; the booking waits for the operator.
+        if (Payment::paidCentsFor($booking->getKey()) > 0) {
             return;
         }
 

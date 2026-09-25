@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Booking\Support;
 
 use App\Data\Pricing\CancellationPolicyData;
+use App\Domain\Booking\Actions\RefundBooking;
 use App\Domain\Pricing\Actions\RestoreVoucher;
 use App\Domain\Pricing\Support\RefundCalculator;
 use App\Models\Booking;
@@ -107,9 +108,14 @@ final class RefundEntitlement
     {
         $percent = max(0, min(100, $percent));
 
+        // Net of what is already promised back (audit 2): a refund for people
+        // taken off, or a late surplus, still open. `paid_cents` counts it until
+        // it settles, and the percentage was taken on money already going back.
+        $held = max(0, $booking->paid_cents - RefundBooking::promisedCents($booking->getKey(), cancellationToo: false));
+
         // See the class docblock: cash plus the voucher value actually
         // redeemed, never the price.
-        $base = $booking->paid_cents + VoucherRedemption::usedByBooking($booking->getKey());
+        $base = $held + VoucherRedemption::usedByBooking($booking->getKey());
 
         $total = RefundCalculator::applyPercent($base, $percent);
 
@@ -122,7 +128,7 @@ final class RefundEntitlement
             // **The remainder**, not a second proportion — and clamped at the
             // cash actually received, which is the guarantee that matters: a
             // guest must never be handed money the operator never took.
-            cashCents: max(0, min($booking->paid_cents, $total - $voucher)),
+            cashCents: max(0, min($held, $total - $voucher)),
         );
     }
 

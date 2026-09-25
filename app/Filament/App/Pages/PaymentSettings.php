@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Pages;
 
 use App\Domain\Booking\Actions\ComputeBalanceDueAt;
+use App\Domain\Booking\Actions\RefreshBalanceDueDates;
 use App\Enums\BalanceCollection;
 use App\Enums\DepositType;
 use App\Filament\App\Resources\ProductResource;
@@ -227,6 +228,12 @@ class PaymentSettings extends Page implements HasForms
             // balance, so it does nothing until they are switched on again.
             'balance_collection' => $enabled ? $collection : $tenant->balance_collection,
         ])->save();
+
+        // On board ↔ online (audit 2): the open balances' due dates follow, or
+        // the bookings taken under the old setting drop out of the reminders.
+        if ($tenant->wasChanged('balance_collection')) {
+            app(RefreshBalanceDueDates::class)();
+        }
 
         Notification::make()
             ->title(__('payment_settings.saved'))

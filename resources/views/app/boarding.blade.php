@@ -209,6 +209,8 @@
         /* «Οφείλει €X» (2026-09-25): the one figure on the page, on the lead
            passenger, in the warning colour so it is seen before the button. */
         .who span.owes { display: block; font-size: .85rem; font-weight: 700; color: var(--warn); }
+        /* Never underlined (Mike's standing rule), not even on hover. */
+        .who span.owes a.fill { color: var(--link); text-decoration: none; }
 
         /* One per name, for boarding without a ticket in hand — and the only
            control on the page for an operator without QR. 44px tall at least,
@@ -335,7 +337,9 @@
         synced: @json(__('boarding.synced')),
         aboard: @json(__('boarding.aboard')),
         waiting: @json(__('boarding.waiting')),
-        board: @json(__('boarding.board'))
+        board: @json(__('boarding.board')),
+        detailsMissing: @json(__('bookings.guest_details.missing')),
+        fillIn: @json(__('bookings.guest_details.fill_in'))
     };
 
     /* ---------------------------------------------------------------
@@ -422,6 +426,21 @@
                 owes.className = 'owes';
                 owes.textContent = row.owes;
                 who.appendChild(owes);
+            }
+            /* «Λείπουν στοιχεία επιβατών» (Mike, 25/9): the list the sale
+               left owing, and the guest's own form on this phone. */
+            if (row.details_url) {
+                var missing = document.createElement('span');
+                missing.className = 'owes';
+                missing.textContent = T.detailsMissing + ' · ';
+                var fill = document.createElement('a');
+                fill.className = 'fill';
+                fill.href = row.details_url;
+                fill.target = '_blank';
+                fill.rel = 'noopener';
+                fill.textContent = T.fillIn;
+                missing.appendChild(fill);
+                who.appendChild(missing);
             }
 
             li.appendChild(who);

@@ -51,6 +51,18 @@ final class ComputeBalanceDueAt
      */
     public const PLATFORM_DEFAULT_DAYS = 14;
 
+    /** The price snapshot's mark for «Πληρώνει την ημέρα» (audit 2). */
+    public const ON_BOARD_KEY = 'balance_on_board';
+
+    /**
+     * Did the operator agree with this guest that the balance is paid on the
+     * day? Per booking, whatever the tenant's own setting.
+     */
+    public static function agreedOnBoard(Booking $booking): bool
+    {
+        return ($booking->price_snapshot[self::ON_BOARD_KEY] ?? false) === true;
+    }
+
     /**
      * @param  Carbon|null  $confirmedAt  when the booking confirmed; now by default
      * @return Carbon|null null when there is nothing left to pay, or it is paid on board
@@ -63,7 +75,8 @@ final class ComputeBalanceDueAt
             return null;
         }
 
-        if (Tenant::query()->find($booking->tenant_id)?->collectsBalanceOnBoard() === true) {
+        if (self::agreedOnBoard($booking)
+            || Tenant::query()->find($booking->tenant_id)?->collectsBalanceOnBoard() === true) {
             // Paid on the boat, on the day (Mike, 2026-09-25): no due date, so
             // no reminder and nothing overdue before departure. The balance
             // itself stays on the booking; after departure an unpaid one is

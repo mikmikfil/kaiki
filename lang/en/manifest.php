@@ -28,7 +28,7 @@ return [
     'on_board' => 'People on board:',
     'of_capacity' => 'of :capacity licensed',
     // Counted per person, including anybody who does not take a seat.
-    'missing' => ':count passenger(s) have no details recorded yet.',
+    'missing' => ':count passenger marked * has incomplete details.|:count passengers marked * have incomplete details.',
     'sign' => [
         'captain' => 'The captain',
         'name' => 'Full name',
@@ -38,6 +38,7 @@ return [
 
     'yes' => 'Yes',
     'blank' => '—',
+    'missing_column' => 'Details missing',
     'purged' => 'Removed',
 
     'action' => [

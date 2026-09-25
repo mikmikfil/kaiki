@@ -180,7 +180,7 @@ it('refuses to record money against a cancelled booking', function (): void {
     });
 });
 
-it('confirms a booking that paying it settles, and leaves a part payment pending', function (): void {
+it('confirms a booking in checkout on a part payment, with the rest as its balance', function (): void {
     $tenant = Tenant::factory()->create();
 
     Tenancy::forTenant($tenant, function (): void {
@@ -192,9 +192,11 @@ it('confirms a booking that paying it settles, and leaves a part payment pending
 
         payFor($half, 6000);
 
-        // Half paid in cash is still pending payment, which is what it is.
-        expect($half->refresh()->status)->toBe(BookingStatus::PendingPayment)
-            ->and($half->balance_cents)->toBe(6000);
+        // Audit 2: half paid in cash is a deposit, as on a phone booking. Left
+        // `pending_payment` it had no ticket, no due date and no way out.
+        expect($half->refresh()->status)->toBe(BookingStatus::Confirmed)
+            ->and($half->balance_cents)->toBe(6000)
+            ->and($half->deposit_cents)->toBe(6000);
 
         payFor($half, 6000);
 

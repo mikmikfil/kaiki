@@ -133,12 +133,17 @@ final class RemoveGuestsFromBooking
 
         $newTotal = max(0, $booking->total_cents - $removedCents);
 
+        // Net of refunds already on their way (audit 2): a second removal
+        // while the first one's cash is still to be handed back owes only the
+        // difference, not the first refund again.
+        $held = $booking->paid_cents - RefundBooking::promisedCents($booking->getKey());
+
         return [
             'removed' => $removed,
             'seats' => $seats,
             'removed_cents' => $booking->total_cents - $newTotal,
             'new_total_cents' => $newTotal,
-            'refund_cents' => max(0, $booking->paid_cents - $newTotal),
+            'refund_cents' => max(0, $held - $newTotal),
             'new_balance_cents' => max(0, $newTotal - $booking->paid_cents),
         ];
     }
@@ -172,6 +177,10 @@ final class RemoveGuestsFromBooking
 
             /** @var Booking $locked */
             $locked = Booking::query()->lockForUpdate()->findOrFail($booking->getKey());
+
+            // Again under the lock (audit 2): two tabs each taking off a
+            // different adult both passed the check above on the old party.
+            $this->guard($locked, $removeByCode);
 
             if ($departure instanceof Departure && $locked->status->committingSeats()) {
                 SeatCommitment::release($departure, $preview['seats']);
@@ -302,30 +311,20 @@ final class RemoveGuestsFromBooking
             throw $fail('nobody');
         }
 
-        $remaining = $booking->pax_total - $preview['removed'];
-
-        if ($remaining < 1) {
+        if ($booking->pax_total - $preview['removed'] < 1) {
             throw $fail('everyone');
         }
 
-        $minimum = (int) ($booking->product->min_booking_pax ?? 1);
-
-        if ($remaining < $minimum) {
-            throw ValidationException::withMessages([
-                'remove' => [trans('bookings.remove_guests.validation.below_minimum', ['minimum' => $minimum])],
-            ]);
-        }
-
-        // A child who needs an adult cannot be left without one.
-        //
-        // The party that would remain, judged by {@see AgeBandResolver::escortMissing}
-        // — the same predicate the availability engine and the checkout ask, so
-        // an operator can never be refused here for a party the guest side had
-        // already sold. Until 2026-09-22 this rule lived only in this method,
-        // and counted only the **base** band as an adult; an operator with a
-        // separately priced «Άνω των 65» band was refused for leaving a
-        // grandmother with her grandchild.
+        // The party that would remain, by PartyGuard's rules (audit 2): at
+        // least one passenger who takes a seat, the trip's minimum counted in
+        // **seats** — the unit the trip form names it in — and a child never
+        // left without an adult ({@see AgeBandResolver::escortMissing}).
+        // Counted in people, two adults and a baby with one adult taken off
+        // still passed a minimum of two. Seats are read from the booking's own
+        // frozen lines, as {@see self::preview()} releases them, so a band
+        // renamed since cannot change what the booking holds.
         $remaining = [];
+        $seats = 0;
 
         foreach ($booking->pax_breakdown as $line) {
             $code = (string) ($line['code'] ?? '');
@@ -333,7 +332,20 @@ final class RemoveGuestsFromBooking
 
             if ($code !== '' && $left > 0) {
                 $remaining[$code] = ($remaining[$code] ?? 0) + $left;
+                $seats += (bool) ($line['counts_toward_capacity'] ?? true) ? $left : 0;
             }
+        }
+
+        if ($seats < 1) {
+            throw $fail('no_seat');
+        }
+
+        $minimum = max(1, (int) ($booking->product->min_booking_pax ?? 1));
+
+        if ($seats < $minimum) {
+            throw ValidationException::withMessages([
+                'remove' => [trans('bookings.remove_guests.validation.below_minimum', ['minimum' => $minimum])],
+            ]);
         }
 
         $bands = $booking->product?->ageBands()->get() ?? collect();

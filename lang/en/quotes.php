@@ -74,6 +74,8 @@ return [
                 ],
                 'sent' => 'The quote is on its way.',
                 'refused' => 'That quote cannot be sent yet: :reason',
+                'not_awaiting' => 'the booking is no longer waiting for a quote.',
+                'vessel_taken' => 'the boat is not free at that time. Send it without the hold, or change the time.',
             ],
             'revise' => [
                 'label' => 'Revise',

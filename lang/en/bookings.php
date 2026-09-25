@@ -15,6 +15,9 @@ declare(strict_types=1);
 */
 
 return [
+    // A panel booking for a trip that has already started (audit 2).
+    'trip_started' => 'That trip has already started. Pick another date or time.',
+
     'quote' => [
         'build' => 'Write a quote',
         'built' => 'Quote created. Fill in the lines and send it.',
@@ -51,6 +54,8 @@ return [
         'not_positive' => 'Enter an amount greater than zero.',
         'wrong_gateway' => 'Only cash, POS and bank transfers are recorded by hand. An online card payment arrives by itself.',
         'not_live' => 'This booking is cancelled, so no payment can be recorded against it.',
+        'quote_first' => 'A quote is paid once the guest accepts it.',
+        'hold_lapsed' => 'The hold on these seats has run out, so no payment can be recorded.',
     ],
 
     // An operator cancelling a booking (2026-09-17).
@@ -106,7 +111,15 @@ return [
             'everyone' => 'To remove everyone, cancel the booking.',
             'below_minimum' => 'This trip needs at least :minimum people per booking.',
             'needs_adult' => 'Children cannot be left without an adult.',
+            'no_seat' => 'At least one passenger who takes a seat has to stay.',
         ],
+    ],
+
+    'guest_details' => [
+        'label' => 'Passengers',
+        'missing' => 'Passenger details missing',
+        'fill_in' => 'Fill in details',
+        'fill_in_help' => 'Open the form and fill them in with the guest before departure.',
     ],
 
     'view' => [

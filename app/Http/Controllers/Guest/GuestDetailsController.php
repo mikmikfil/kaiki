@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Guest;
 use App\Domain\Booking\Actions\SaveGuestDetails;
 use App\Domain\Booking\Support\GuestTokenResolver;
 use App\Domain\Booking\Support\ManifestRows;
+use App\Domain\Booking\Support\PassengerForm;
 use App\Enums\BookingMode;
 use App\Models\Booking;
 use App\Models\BookingGuest;
@@ -98,8 +99,13 @@ final class GuestDetailsController extends GuestPageController
 
         /** @var array<int, array<string, mixed>> $rows */
         $rows = is_array($request->input('guests')) ? $request->input('guests') : [];
+        $locale = $this->resolveLocale($request, $booking->locale);
+        app()->setLocale($locale);
 
-        Tenancy::forTenant($tenant, function () use ($booking, $rows, $request): void {
+        /** @var array<string, string> $errors */
+        $errors = Tenancy::forTenant($tenant, function () use ($booking, $rows, $request, $locale): array {
+            [$rows, $errors] = self::screen($booking, $rows, $locale);
+
             app(SaveGuestDetails::class)($booking, $rows);
 
             if (self::needsCharterAgreement($booking) && $request->boolean('charter_agreement')) {
@@ -110,9 +116,57 @@ final class GuestDetailsController extends GuestPageController
                     'ip_address' => $request->ip(),
                 ])->save();
             }
+
+            return $errors;
         });
 
+        if ($errors !== []) {
+            // The rest is saved; the fields refused come back as typed, with
+            // the sentence that says why.
+            return redirect()
+                ->route('guest.details', ['token' => $token])
+                ->withInput()
+                ->withErrors($errors);
+        }
+
         return redirect()->route('guest.details', ['token' => $token]);
+    }
+
+    /**
+     * Checkout's rules, on `/g/` (audit 2, 2026-09-25): a date of birth that
+     * does not fit the booked band, or a passport that expires before the
+     * trip, is refused — that field only, so a partial save still keeps the
+     * rest. A field left blank is not an error here; the guest may come back.
+     *
+     * @param  array<int|string, mixed>  $rows
+     * @return array{0: list<array<string, mixed>>, 1: array<string, string>}
+     */
+    private static function screen(Booking $booking, array $rows, string $locale): array
+    {
+        $byPosition = collect(PassengerForm::rows($booking, $locale))->keyBy('position');
+        $tripDate = SaveGuestDetails::tripDateOf($booking);
+        $kept = [];
+        $errors = [];
+
+        foreach ($rows as $i => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $position = (int) ($row['position'] ?? 0);
+            $known = $byPosition->get($position);
+
+            if ($known !== null) {
+                foreach (PassengerForm::rowErrors($row, $known, $tripDate, $position, partial: true) as $field => $message) {
+                    unset($row[$field]);
+                    $errors["guests.$i.$field"] = $message;
+                }
+            }
+
+            $kept[] = $row;
+        }
+
+        return [$kept, $errors];
     }
 
     /**

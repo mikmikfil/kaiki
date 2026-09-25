@@ -98,7 +98,8 @@ final class MintCheckoutSession
             // holding PAY-9's key, and no gateway has seen it yet.
             $payment->forceFill([
                 'kind' => PaymentKind::Full,
-                'amount_cents' => $booking->total_cents,
+                // Less what is already paid, as `StartCheckout` charges (audit 2).
+                'amount_cents' => $booking->total_cents - Payment::paidCentsFor($booking->getKey()),
             ])->save();
         }
 

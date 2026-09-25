@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Listeners\Booking;
 
+use App\Domain\Booking\Support\GuestDetailsTracking;
 use App\Domain\Notifications\Actions\SendNotification;
 use App\Domain\Notifications\Support\SmsComposer;
 use App\Enums\BookingSource;
@@ -84,7 +85,29 @@ class SendBookingConfirmation implements ShouldQueue
             if ($booking->source !== BookingSource::Quay) {
                 $this->sendSms($booking);
             }
+
+            // The passenger list, by text when there is no email to carry its
+            // link (Mike, 25/9: the sale goes through, the details follow) —
+            // the quay included, since the list is not filled in standing there.
+            $detailsUrl = GuestDetailsTracking::urlWhilePending($booking);
+
+            if ($detailsUrl !== null && blank($booking->guest_email)) {
+                $this->sendDetailsSms($booking, $detailsUrl);
+            }
         });
+    }
+
+    private function sendDetailsSms(Booking $booking, string $url): void
+    {
+        $body = SmsComposer::compose(
+            lead: __('mail.guest_details_requested.sms'),
+            meetingPoint: (string) ($booking->product === null ? '' : ($booking->product->meetingPoint->name ?? '')),
+            when: $booking->local_date->format('d/m') . ' ' . substr((string) $booking->local_time, 0, 5),
+            link: $url,
+            maxSegments: (int) config('kaiki.notifications.sms_max_segments', 2),
+        );
+
+        $this->notifications->sms($booking, NotificationTemplate::GuestDetailsRequested, $body);
     }
 
     /**

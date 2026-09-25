@@ -159,6 +159,9 @@ class BookingResource extends Resource
                         // sailing is the case it exists for.
                         ->options(fn (Get $get): array => Departure::query()
                             ->where('product_id', (int) $get('product_id'))
+                            // Not the ones already gone (audit 2); the quay's
+                            // grace is `CreateManualBooking`'s.
+                            ->where('starts_at_utc', '>', now()->subMinutes(CreateManualBooking::QUAY_GRACE_MINUTES))
                             ->orderBy('starts_at_utc')
                             ->get()
                             ->mapWithKeys(static fn (Departure $departure): array => [
@@ -180,6 +183,7 @@ class BookingResource extends Resource
                         ->timezone('UTC')
                         ->native(false)
                         ->default(static fn (): string => self::tenantToday())
+                        ->minDate(static fn (): string => self::tenantToday())
                         ->required(fn (Get $get): bool => self::isCharter($get('product_id')))
                         ->visible(fn (Get $get): bool => self::isCharter($get('product_id'))),
 

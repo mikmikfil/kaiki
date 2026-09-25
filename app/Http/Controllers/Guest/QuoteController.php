@@ -85,7 +85,11 @@ final class QuoteController extends GuestPageController
                 // acceptance, and answering it here would answer it from a row
                 // written days ago.
                 // And never once the trip has started (2026-09-25).
-                'canAccept' => $quote->canBeAccepted() && $booking->starts_at_utc->isFuture(),
+                // And only while the booking still waits for it (audit 2): a
+                // cancelled one offers no «Αποδοχή».
+                'canAccept' => $quote->canBeAccepted()
+                    && $booking->starts_at_utc->isFuture()
+                    && in_array($booking->status, [BookingStatus::QuoteRequested, BookingStatus::QuoteSent], true),
                 'wasReplaced' => self::wasReplaced($quote),
                 // An accepted quote not yet paid for: the button to the
                 // checkout, and the date it stays open until (2026-09-25).

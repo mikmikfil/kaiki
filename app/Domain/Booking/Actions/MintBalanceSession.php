@@ -171,9 +171,13 @@ final class MintBalanceSession
             ->latest('id')
             ->first();
 
-        // Viva when there is no earlier payment to follow — which happens for
-        // a booking marked paid in cash and later given a balance, where there
-        // is no gateway precedent to inherit.
-        return $deposit === null ? PaymentGatewayName::Viva : $deposit->gateway;
+        // Viva when there is no earlier gateway payment to follow. Never the
+        // gateway of cash, a transfer, POS or an import (audit 2): the order
+        // below is minted at Viva whatever took the deposit, and a row labelled
+        // `cash` with a Viva order behind it is one the webhook cannot find —
+        // the guest charged and the balance still showing as owed.
+        return $deposit instanceof Payment && $deposit->gateway->isExternal()
+            ? $deposit->gateway
+            : PaymentGatewayName::Viva;
     }
 }

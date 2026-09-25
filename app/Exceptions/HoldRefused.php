@@ -114,6 +114,19 @@ final class HoldRefused extends RuntimeException
     }
 
     /**
+     * TEN-9: a lapsed subscription takes no new booking, from any door (audit
+     * 2). The operator is told why; a guest is told only that booking is not
+     * available, the calendar's own sentence.
+     */
+    public static function tenantReadOnly(bool $guest): self
+    {
+        return new self(
+            (string) trans($guest ? 'enums.availability_rejection.tenant_read_only.label' : 'errors.tenant_read_only'),
+            'tenant_read_only',
+        );
+    }
+
+    /**
      * A date with more than one sailing and no time to tell them apart.
      *
      * Asked rather than guessed: until 2026-09-25 the earliest sailing of the

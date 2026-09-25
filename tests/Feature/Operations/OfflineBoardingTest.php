@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Booking\Support\TicketQr;
 use App\Enums\BookingStatus;
 use App\Enums\Role;
+use App\Enums\TenantStatus;
 use App\Http\Controllers\App\BoardingController;
 use App\Models\Booking;
 use App\Models\BookingGuest;
@@ -122,6 +123,19 @@ it('checks a guest in through the same Action the panel uses', function (): void
     Tenancy::forTenant($tenant, function () use ($guest): void {
         expect($guest->fresh()->checked_in_at)->not->toBeNull();
     });
+});
+
+it('keeps boarding on a read-only account, as the check-in page does', function (): void {
+    [$tenant, $crew, $guest] = boardingCrew();
+    $tenant->forceFill(['status' => TenantStatus::ReadOnly])->save();
+
+    $response = actingAs($crew)
+        ->postJson(route('filament.app.boarding.scan'), [
+            'scans' => [['ticket_code' => 'TCK-BOARDING-1', 'scanned_at' => Carbon::now()->toIso8601String()]],
+        ])
+        ->assertOk();
+
+    expect($response->json('results.0.status'))->toBe('checked_in');
 });
 
 it('says a replayed scan is already aboard rather than failing', function (): void {

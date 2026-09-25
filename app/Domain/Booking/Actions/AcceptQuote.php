@@ -148,6 +148,19 @@ final class AcceptQuote
                 'accepted_at' => now(),
             ])->save();
 
+            // The other open versions close with it (audit 2): a draft revision
+            // must not go out as a second offer, and a sent one must not lapse
+            // later and expire the booking the guest accepted.
+            Quote::query()
+                ->where('booking_id', $locked->booking_id)
+                ->whereKeyNot($locked->getKey())
+                ->whereIn('status', [QuoteStatus::Draft->value, QuoteStatus::Sent->value])
+                ->update([
+                    'status' => QuoteStatus::Expired->value,
+                    'expired_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
             return $lockedBooking;
         });
     }

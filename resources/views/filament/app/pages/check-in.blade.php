@@ -88,6 +88,14 @@
                     </div>
                 @endif
 
+                @php($scannedDetailsUrl = $booking === null ? null : \App\Domain\Booking\Support\GuestDetailsTracking::urlWhilePending($booking))
+                @if ($scannedDetailsUrl !== null)
+                    <div class="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-warning-50 px-3 py-2 dark:bg-warning-400/10">
+                        <span class="text-sm font-semibold text-warning-700 dark:text-warning-400">{{ __('bookings.guest_details.missing') }}</span>
+                        <a href="{{ $scannedDetailsUrl }}" target="_blank" rel="noopener" class="inline-block py-1.5 text-sm font-semibold text-primary-600 dark:text-primary-400">{{ __('bookings.guest_details.fill_in') }}</a>
+                    </div>
+                @endif
+
                 @if ($scanned->checked_in_at !== null)
                     <p class="text-sm font-medium text-success-600 dark:text-success-400">
                         {{ __('checkin.guest.checked_in_at', ['time' => \App\Domain\Availability\LocalDateTimeResolver::inTenantZone($scanned->checked_in_at)?->format('H:i')]) }}
@@ -147,6 +155,17 @@
                             <div class="kc-owes mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-warning-50 px-3 py-2 dark:bg-warning-400/10">
                                 <span class="text-sm font-semibold text-warning-700 dark:text-warning-400">{{ \App\Filament\App\Support\CollectBalanceAction::owes($booking) }}</span>
                                 <span class="kc-actions">{{ ($this->collectBalanceAction)(['booking' => $booking->getKey()]) }}</span>
+                            </div>
+                        @endif
+
+                        {{-- «Λείπουν στοιχεία επιβατών» (Mike, 25/9): the sale went
+                             through, the list is still owed. The guest's own form,
+                             on this phone, to fill in with them before casting off. --}}
+                        @php($detailsUrl = \App\Domain\Booking\Support\GuestDetailsTracking::urlWhilePending($booking))
+                        @if ($detailsUrl !== null)
+                            <div class="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-warning-50 px-3 py-2 dark:bg-warning-400/10">
+                                <span class="text-sm font-semibold text-warning-700 dark:text-warning-400">{{ __('bookings.guest_details.missing') }}</span>
+                                <a href="{{ $detailsUrl }}" target="_blank" rel="noopener" class="inline-block py-1.5 text-sm font-semibold text-primary-600 dark:text-primary-400">{{ __('bookings.guest_details.fill_in') }}</a>
                             </div>
                         @endif
 

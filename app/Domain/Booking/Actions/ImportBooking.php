@@ -63,7 +63,10 @@ use Illuminate\Support\Str;
  */
 final class ImportBooking
 {
-    public function __construct(private readonly CreateBookingDraft $drafts) {}
+    public function __construct(
+        private readonly CreateBookingDraft $drafts,
+        private readonly ComputeBalanceDueAt $computeBalanceDueAt,
+    ) {}
 
     /**
      * @param  int  $totalCents  what the guest was actually charged, at the source
@@ -174,6 +177,13 @@ final class ImportBooking
             // history is not.
             if ($booking->starts_at_utc->isFuture()) {
                 GuestDetailsTracking::open($booking);
+
+                // PRC-27.2's due date, as every other confirmation writes it
+                // (audit 2). Without one an open balance on an imported trip
+                // was never chased and never listed as overdue.
+                $booking->forceFill([
+                    'balance_due_at' => ($this->computeBalanceDueAt)($booking),
+                ])->save();
             }
 
             // An imported booking describes a trip somebody is actually going

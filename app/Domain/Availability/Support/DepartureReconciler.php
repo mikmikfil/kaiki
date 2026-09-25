@@ -9,6 +9,7 @@ use App\Enums\DepartureStatus;
 use App\Models\Departure;
 use App\Models\Product;
 use App\Models\ScheduleRule;
+use App\Models\Vessel;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -39,6 +40,9 @@ use Illuminate\Support\Collection;
  * - **`capacity_drift`** — a sold departure whose capacity no longer matches
  *   the rule. Lowering it is how a guest loses a seat they paid for, so it is
  *   listed rather than applied.
+ * - **`vessel_drift`** — a future departure left on another boat after the
+ *   rule's boat changed (audit 2): it has bookings, or the new boat was taken
+ *   at that hour. Moving it, or cancelling it, is the operator's call.
  */
 final class DepartureReconciler
 {
@@ -47,6 +51,8 @@ final class DepartureReconciler
     public const ORPHANED = 'orphaned';
 
     public const CAPACITY_DRIFT = 'capacity_drift';
+
+    public const VESSEL_DRIFT = 'vessel_drift';
 
     /**
      * Everything an operator should look at, across every active rule.
@@ -120,13 +126,16 @@ final class DepartureReconciler
         }
 
         $capacity = $rule->effectiveCapacity();
+        $vesselId = $rule->effectiveVesselId();
+        $vesselName = $vesselId === null ? '' : (string) Vessel::query()->whereKey($vesselId)->value('name');
 
         Departure::query()
             ->where('schedule_rule_id', $rule->getKey())
             ->where('local_date', '>=', $today->toDateString())
             ->whereNot('status', DepartureStatus::Cancelled)
+            ->with('vessel')
             ->get()
-            ->each(function (Departure $departure) use (&$issues, $rule, $product, $expected, $capacity): void {
+            ->each(function (Departure $departure) use (&$issues, $rule, $product, $expected, $capacity, $vesselId, $vesselName): void {
                 $day = $departure->local_date->toDateString();
 
                 if (! isset($expected[$day])) {
@@ -136,6 +145,18 @@ final class DepartureReconciler
                         'product' => $product,
                         'local_date' => $day,
                         'detail' => (string) $departure->seats_sold,
+                    ];
+
+                    return;
+                }
+
+                if ($vesselId !== null && (int) $departure->vessel_id !== $vesselId && $departure->status->isSellable()) {
+                    $issues[] = [
+                        'kind' => self::VESSEL_DRIFT,
+                        'rule_id' => (int) $rule->getKey(),
+                        'product' => $product,
+                        'local_date' => $day,
+                        'detail' => ($departure->vessel->name ?? '') . ' → ' . $vesselName,
                     ];
 
                     return;

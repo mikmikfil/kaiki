@@ -10,6 +10,7 @@ use App\Models\AgeBand;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Support\Countries;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -156,44 +157,71 @@ final class PassengerForm
                 continue;
             }
 
-            $n = (int) $i + 1;
+            foreach (self::rowErrors($input, $row, $tripDate, (int) $i + 1) as $field => $message) {
+                $validator->errors()->add("guests.$i.$field", $message);
+            }
+        }
+    }
 
-            if (! $row['no_document']) {
-                $type = GuestDocumentType::tryFrom((string) ($input['document_type'] ?? ''));
+    /**
+     * What is wrong with one posted row, as `field => sentence`.
+     *
+     * Shared by checkout and `/g/` (audit 2, 2026-09-25): the date of birth
+     * has to fit the band — which is also what keeps the adult escort rule
+     * true once the names are in — and a passport has to outlive the trip.
+     * `$partial` is `/g/`'s way: a field left blank is not an error there,
+     * because the guest may come back for it; a field filled in wrongly is.
+     *
+     * @param  array<string, mixed>  $input
+     * @param  array{band: AgeBand|null, label: string, no_document: bool}  $row
+     * @return array<string, string>
+     */
+    public static function rowErrors(array $input, array $row, Carbon $tripDate, int $n, bool $partial = false): array
+    {
+        $errors = [];
 
-                if ($type === null) {
-                    $validator->errors()->add("guests.$i.document_type", __('guest.checkout.errors.document_type', ['n' => $n]));
-                }
+        if (! $row['no_document']) {
+            $typed = trim((string) ($input['document_type'] ?? ''));
+            $type = GuestDocumentType::tryFrom($typed);
 
-                if (trim((string) ($input['document_number'] ?? '')) === '') {
-                    $validator->errors()->add("guests.$i.document_number", __('guest.checkout.errors.document_number', ['n' => $n]));
-                }
-
-                if ($type?->needsExpiry() === true) {
-                    $expiry = self::date($input['document_expires_on'] ?? null);
-
-                    if ($expiry === null) {
-                        $validator->errors()->add("guests.$i.document_expires_on", __('guest.checkout.errors.expiry_required', ['n' => $n]));
-                    } elseif ($expiry->lt($tripDate)) {
-                        $validator->errors()->add("guests.$i.document_expires_on", __('guest.checkout.errors.expired', ['n' => $n]));
-                    }
-                }
+            if ($type === null && (! $partial || $typed !== '')) {
+                $errors['document_type'] = __('guest.checkout.errors.document_type', ['n' => $n]);
             }
 
-            $band = $row['band'];
-            $born = self::date($input['date_of_birth'] ?? null);
+            if (! $partial && trim((string) ($input['document_number'] ?? '')) === '') {
+                $errors['document_number'] = __('guest.checkout.errors.document_number', ['n' => $n]);
+            }
 
-            if ($band instanceof AgeBand && $born !== null && $born->lte($tripDate)) {
-                $age = (int) $born->diffInYears($tripDate);
+            if ($type?->needsExpiry() === true) {
+                $expiry = self::date($input['document_expires_on'] ?? null);
 
-                if (! $band->covers($age)) {
-                    $validator->errors()->add("guests.$i.date_of_birth", __(
-                        $band->max_age === null ? 'guest.checkout.errors.age_from' : 'guest.checkout.errors.age_range',
-                        ['n' => $n, 'band' => $row['label'], 'min' => $band->min_age, 'max' => $band->max_age],
-                    ));
+                if ($expiry === null) {
+                    if (! $partial) {
+                        $errors['document_expires_on'] = __('guest.checkout.errors.expiry_required', ['n' => $n]);
+                    }
+                } elseif ($expiry->lt($tripDate)) {
+                    $errors['document_expires_on'] = __('guest.checkout.errors.expired', ['n' => $n]);
                 }
             }
         }
+
+        $band = $row['band'];
+        $born = self::date($input['date_of_birth'] ?? null);
+
+        if ($band instanceof AgeBand && $born !== null && $born->lte($tripDate) && ! self::fitsBand($band, $born, $tripDate)) {
+            $errors['date_of_birth'] = __(
+                $band->max_age === null ? 'guest.checkout.errors.age_from' : 'guest.checkout.errors.age_range',
+                ['n' => $n, 'band' => $row['label'], 'min' => $band->min_age, 'max' => $band->max_age],
+            );
+        }
+
+        return $errors;
+    }
+
+    /** Age on the day of the trip, against the band the guest was booked in. */
+    public static function fitsBand(AgeBand $band, CarbonInterface $born, CarbonInterface $tripDate): bool
+    {
+        return $band->covers((int) $born->copy()->startOfDay()->diffInYears($tripDate->copy()->startOfDay()));
     }
 
     /**

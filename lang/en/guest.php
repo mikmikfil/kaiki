@@ -233,6 +233,7 @@ return [
         'document_number' => 'Document number',
         'document_expires_on' => 'Document expires',
         'partial' => 'You can save what you have and come back later.',
+        'not_saved' => 'The rest was saved. Please correct these:',
         'complete' => 'Everything the operator needs is here. Thank you.',
         'read_only' => 'This trip has already departed, so these details can no longer be changed.',
         'purged' => 'Document numbers for this booking have been deleted, as the operator’s retention period has passed.',

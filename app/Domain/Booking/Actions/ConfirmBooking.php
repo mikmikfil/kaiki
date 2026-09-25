@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Availability\Support\SeatAdmission;
 use App\Domain\Booking\Support\CharterOccupancy;
 use App\Domain\Booking\Support\GuestDetailsTracking;
 use App\Domain\Booking\Support\LockOrder;
@@ -71,6 +72,7 @@ final class ConfirmBooking
     public function __construct(
         private readonly ApplyVoucher $applyVoucher,
         private readonly ComputeBalanceDueAt $computeBalanceDueAt,
+        private readonly SeatAdmission $admission,
     ) {}
 
     /**
@@ -122,6 +124,21 @@ final class ConfirmBooking
                 throw IllegalStateTransition::forBooking($locked->status, BookingStatus::Confirmed);
             }
 
+            // The ordinary path asked too, under the lock (audit 2): the hold
+            // sweeper or a cancel may have won the lock since the caller read
+            // the status, and an expired or cancelled booking with its seats
+            // released must not come back as `confirmed`.
+            if (! $revived && ! $locked->status->canTransitionTo(BookingStatus::Confirmed)) {
+                throw IllegalStateTransition::forBooking($locked->status, BookingStatus::Confirmed);
+            }
+
+            // `fromCheckout` from the row that counts: a caller that read
+            // `pending_payment` while the booking went back to `draft` would
+            // otherwise skip the seat commit.
+            if ($locked->status !== $booking->status) {
+                $fromCheckout = $locked->status === BookingStatus::PendingPayment;
+            }
+
             // A private charter (2026-09-25): is the boat still this booking's
             // alone? Its hold can lapse between the draft and the payment, and a
             // second charter can have taken the window in between — the one case
@@ -139,6 +156,14 @@ final class ConfirmBooking
             $guaranteed = false;
 
             if ($departure instanceof Departure) {
+                // Seats taken afresh — a late payment reviving an expired
+                // booking, a draft whose hold lapsed — ask what a new hold asks
+                // (audit 2): the boat still free, the sailing not blocked, the
+                // certificate not exceeded. A live hold was admitted already.
+                if (! $fromCheckout && ! $locked->holdsSeats()) {
+                    $this->admission->refuseUnlessAdmissible($vessel, $departure, $locked);
+                }
+
                 $guaranteed = $this->commitSeats($locked, $departure, $fromCheckout);
             }
 

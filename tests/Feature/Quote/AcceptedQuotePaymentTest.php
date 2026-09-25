@@ -199,3 +199,29 @@ it('takes the guest from «Αποδοχή και πληρωμή» straight to th
     // The checkout page itself renders for it rather than bouncing.
     get('/c/' . $booking->manage_token)->assertOk();
 })->group('fast');
+
+it('refuses a new card page for an accepted quote past its deadline, and hides the pay page', function (): void {
+    [$tenant, $booking] = acceptedQuote();
+
+    $deadline = Tenancy::forTenant($tenant, fn () => QuotePaymentDeadline::for($booking));
+
+    expect($deadline)->not->toBeNull();
+
+    // Past the deadline, before the sweeper has run: the guest re-enters /c.
+    Carbon::setTestNow($deadline?->copy()->addMinutes(5));
+
+    Tenancy::forTenant($tenant, function () use ($booking): void {
+        expect(fn () => app(StartCheckout::class)($booking->refresh()))->toThrow(CheckoutRefused::class);
+
+        // No order was minted, and the booking's clock was not pushed back.
+        expect(Payment::query()->where('booking_id', $booking->getKey())->exists())->toBeFalse();
+    });
+
+    get('/c/' . $booking->manage_token)->assertRedirect();
+
+    // And the sweeper lapses it on its next run.
+    Tenancy::forTenant($tenant, function () use ($booking): void {
+        expect(app(ExpireAbandonedCheckouts::class)())->toBe(1)
+            ->and($booking->refresh()->status)->toBe(BookingStatus::Expired);
+    });
+})->group('fast');
