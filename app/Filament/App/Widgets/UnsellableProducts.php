@@ -7,10 +7,12 @@ namespace App\Filament\App\Widgets;
 use App\Enums\BookingMode;
 use App\Enums\ProductStatus;
 use App\Models\Product;
+use App\Support\Authorization\Capability;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Published trips that cannot be priced (spec PRC-5).
@@ -49,7 +51,28 @@ class UnsellableProducts extends TableWidget
      */
     public static function canView(): bool
     {
-        return self::query()->exists();
+        return self::mayFixPrices() && self::query()->exists();
+    }
+
+    /**
+     * Only for the people who can do something about a price (stress sweep,
+     * 2026-09-23): crew saw this pricing panel on their home page, and crew
+     * never see prices (TEN-8).
+     */
+    private static function mayFixPrices(): bool
+    {
+        return Auth::user()?->hasCapability(Capability::ManagePricing) ?? false;
+    }
+
+    /**
+     * Not `canView()` on every request. "Nothing is unsellable any more" is
+     * about the data, not the viewer, and once the last trip is fixed the
+     * table's next sort or page click answered 403 — the fault
+     * {@see NeedsAttention} had (2026-09-23).
+     */
+    public function hydrateCanAuthorizeAccess(): void
+    {
+        abort_unless(self::mayFixPrices(), 403);
     }
 
     public function table(Table $table): Table

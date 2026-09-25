@@ -12,6 +12,8 @@ use App\Models\BookingAnswer;
 use App\Models\BookingGuest;
 use App\Models\Departure;
 use App\Models\Port;
+use App\Models\Product;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -64,6 +66,26 @@ final class Manifest
     ) {}
 
     /**
+     * A header value as the sheet prints it: «20/09/2026» and «15:00», the way
+     * a Greek port official reads them. The stored values stay ISO, because
+     * the file name is built from them.
+     */
+    public function shown(string $key): ?string
+    {
+        $value = $this->header[$key] ?? null;
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return match ($key) {
+            'date' => Carbon::parse((string) $value)->format('d/m/Y'),
+            'time' => substr((string) $value, 0, 5),
+            default => (string) $value,
+        };
+    }
+
+    /**
      * The manifest for one departure (per-seat), or one booking (per-vessel).
      *
      * @param  list<ManifestColumn>  $columns
@@ -82,7 +104,10 @@ final class Manifest
             'date' => $departure->local_date->toDateString(),
             'time' => $departure->local_time,
             'port' => self::portName($departure->product?->meetingPoint, $departure->vessel?->homePort),
-            'captain' => $departure->vessel?->captain_name,
+            'landing_port' => self::landingPortName($departure->product, $departure->vessel?->homePort),
+            'licence' => $departure->vessel?->licence_type?->label(),
+            'captain' => $departure->captainName(),
+            'crew' => implode(', ', $departure->crewNames()) ?: null,
         ], $departure->vessel?->capacity_max);
     }
 
@@ -97,7 +122,10 @@ final class Manifest
             'date' => $booking->local_date?->toDateString(),
             'time' => $booking->local_time,
             'port' => self::portName($booking->product?->meetingPoint, $booking->vessel?->homePort),
-            'captain' => $booking->vessel?->captain_name,
+            'landing_port' => self::landingPortName($booking->product, $booking->vessel?->homePort),
+            'licence' => $booking->vessel?->licence_type?->label(),
+            'captain' => $booking->departure?->captainName() ?? $booking->vessel?->captain_name,
+            'crew' => $booking->departure === null ? null : (implode(', ', $booking->departure->crewNames()) ?: null),
         ], $booking->vessel?->capacity_max);
     }
 
@@ -165,6 +193,7 @@ final class Manifest
         foreach ($columns as $column) {
             $row[$column->value] = match ($column) {
                 ManifestColumn::FullName => (string) ($guest->full_name ?? ''),
+                ManifestColumn::Sex => $guest->sex?->letter() ?? '',
                 ManifestColumn::DateOfBirth => $guest->date_of_birth?->toDateString() ?? '',
                 ManifestColumn::Nationality => (string) ($guest->nationality ?? ''),
                 ManifestColumn::DocumentType => $guest->document_type?->label() ?? '',
@@ -238,6 +267,19 @@ final class Manifest
      * has no meeting point — so the shape that satisfies the analyser is the
      * shape that breaks, and writing it out once ends the argument.
      */
+    /**
+     * «Λιμάνι αποβίβασης»: the trip's landing port, or where they boarded on a
+     * round trip. Always said, never left blank: the list asks for both.
+     */
+    private static function landingPortName(?Product $product, ?Port $homePort): ?string
+    {
+        if ($product?->landingPort instanceof Port) {
+            return $product->landingPort->name;
+        }
+
+        return self::portName($product?->meetingPoint, $homePort);
+    }
+
     private static function portName(?Port $meetingPoint, ?Port $homePort): ?string
     {
         if ($meetingPoint instanceof Port) {

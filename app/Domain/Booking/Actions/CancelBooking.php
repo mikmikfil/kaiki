@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Availability\Actions\ReleaseHold;
 use App\Domain\Booking\Data\RefundOverride;
 use App\Domain\Booking\Support\RefundEntitlement;
 use App\Domain\Booking\Support\SeatCommitment;
@@ -159,6 +160,34 @@ final class CancelBooking
                 // keep the seats notionally held by a booking that has ended.
                 'hold_expires_at' => null,
             ])->save();
+
+            // **And the counter has to be told.** Nulling the column above ends
+            // the hold for the availability *read* path, which checks
+            // `hold_expires_at` — but `departures.seats_held` is a cache of the
+            // same fact, and nothing had been recounting it here.
+            //
+            // `releaseCapacity()` above does not cover this: it runs only when
+            // the status *commits* seats (`pending_payment` and up), so a
+            // `draft` — a booking that holds rather than commits — skipped it,
+            // and the seats stayed held by a booking that had ended. Four of
+            // them were found stranded on the development database, left by a
+            // draft cancelled on 2026-09-16; `CancelReleasesHeldSeatsTest` is
+            // the assertion that was missing.
+            //
+            // **`ReleaseHold` could not repair it either**, which is why this
+            // is here rather than a call to it: that action returns early when
+            // `hold_expires_at` is already null, before reaching the recount.
+            //
+            // Recomputed rather than decremented, the same self-healing
+            // arithmetic {@see ReleaseHold::liveHeldSeats()} exists for — it
+            // reads live holds from `bookings`, so it is right whatever drift
+            // preceded it, and it runs after the save above so this booking is
+            // already excluded by its own status. Nothing calls `ReleaseHold`
+            // here: it takes its own cache lock, and this is inside the
+            // departure row lock AVL-45 orders.
+            if ($departure instanceof Departure) {
+                $departure->forceFill(['seats_held' => ReleaseHold::liveHeldSeats($departure)])->save();
+            }
 
             return $locked;
         });

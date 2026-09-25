@@ -315,7 +315,12 @@ it('answers another operator uuid with 404, not 403', function (): void {
         ['Authorization' => "Bearer {$key}"],
     );
 
-    expect($response->json())->toBe($unknown->json());
+    expect($response->json())->toBe($unknown->json())
+        // And it names the product, not the endpoint (stress sweep,
+        // 2026-09-23): «that endpoint does not exist» sends an integrator with
+        // a stale uuid to check a path that was right all along.
+        ->and($unknown->json('error.message'))->toBe(__('api.errors.product_not_found', [], 'en'))
+        ->and($unknown->json('error.message_el'))->toBe(__('api.errors.product_not_found', [], 'el'));
 })->group('fast');
 
 it('hides a product that is not active', function (): void {

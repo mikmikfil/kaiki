@@ -228,4 +228,12 @@ final class TripPageContent
 
         return $kept === [] ? $stops : [...$stops, '_geo' => $kept];
     }
+
+    /*
+     * The gallery mappers moved to `App\Domain\Media\Support\GalleryField`
+     * (2026-09-23), when boats got the same uploader trips did. A `{path, alt}`
+     * list is §3.15's shape rather than anything about a trip page, and a
+     * `VesselResource` calling `TripPageContent` would have read as a mistake.
+     */
+
 }

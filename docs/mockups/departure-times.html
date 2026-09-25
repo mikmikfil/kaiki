@@ -1,0 +1,188 @@
+<title>Ώρες αναχώρησης</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Same tokens as the other Kaiki mockups: light only, blue panel, Inter. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57; --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --line2:#CFDAE8; --ground:#EEF3F9; --card:#FFFFFF; --wash:#EAF1FA; --strip:#F1F5FA;
+  --bad:#B42318; --badbg:#FDECEA; --good:#1F7A4D; --goodbg:#E3F2EA;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-block:28px 80px;padding-inline:16px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.wrap{max-width:1040px;margin:0 auto;display:grid;gap:22px}
+.intro h1{font-size:27px;line-height:1.2;margin:0 0 8px;letter-spacing:-.01em;text-wrap:balance}
+.intro p{margin:0;max-width:70ch;color:var(--muted)}
+.cols{display:grid;gap:22px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:860px){.cols{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}}
+.label-top{font-size:13px;font-weight:700;color:var(--muted);margin:0 0 8px}
+.sec{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.sec-h{display:flex;gap:12px;align-items:center;padding:14px 18px;background:var(--strip);border-bottom:1px solid var(--line)}
+.ic{width:34px;height:34px;border-radius:9px;background:var(--wash);display:grid;place-items:center;color:var(--blue)}
+.sec-h h3{margin:0;font-size:17px}
+.sec-b{padding:18px;display:grid;gap:18px}
+.f label,.f .fl{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+.help{font-size:13px;color:var(--muted);margin-top:6px}
+.days{display:flex;flex-wrap:wrap;gap:8px}
+.day{border:1px solid var(--line2);border-radius:8px;padding:6px 10px;font-size:14px;background:#fff}
+.day.on{background:var(--deep);border-color:var(--deep);color:#fff}
+
+/* today: one box per time */
+.old{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.obox{border:1px solid var(--line2);border-radius:10px;background:#FAFCFE;padding:8px}
+.obox .bar{display:flex;justify-content:flex-end;margin-bottom:6px}
+.obox .x{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;color:var(--bad);border:1px solid var(--line)}
+.obox .in{border:1px solid var(--line2);border-radius:8px;padding:8px 10px;background:#fff;font-variant-numeric:tabular-nums}
+.oadd{margin-top:10px;font-size:14px;font-weight:600;color:var(--blue)}
+
+/* proposal: chips */
+.chips{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border:1px solid var(--line2);border-radius:10px;padding:8px;background:#fff;min-height:52px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--wash);color:var(--deep);border-radius:99px;padding:5px 6px 5px 12px;font-weight:700;font-variant-numeric:tabular-nums}
+.chip button{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:var(--muted)}
+.chip button:hover{background:#D6E3F3;color:var(--bad)}
+.add{display:inline-flex;align-items:center;gap:6px;border:1px dashed var(--line2);border-radius:99px;padding:5px 12px;font-weight:600;color:var(--blue)}
+.adding{display:inline-flex;gap:6px;align-items:center}
+.adding input{font:inherit;border:1px solid var(--blue);border-radius:99px;padding:4px 10px;width:118px;font-variant-numeric:tabular-nums}
+.adding .ok{background:var(--blue);color:#fff;border-radius:99px;padding:5px 12px;font-weight:600}
+.err{font-size:13px;color:var(--bad);margin-top:6px}
+.sum{font-size:14px;background:var(--goodbg);color:var(--good);border-radius:10px;padding:10px 12px}
+.q{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+.q h2{font-size:16px;margin:0 0 8px}
+.q ol{margin:0;padding-left:20px;display:grid;gap:6px;color:var(--ink)}
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>Ώρες αναχώρησης σε νέο δρομολόγιο</h1>
+    <p>Σημείο #11 της λίστας (23/9, «λίγο πεταμένες ως design»). Αριστερά είναι αυτό που υπάρχει σήμερα και δεξιά η πρόταση. Η πρόταση λειτουργεί: προσθέστε ή σβήστε ώρες. Θα μπει ίδια στην καρτέλα «Δρομολόγια» και στη «Νέα εκδρομή».</p>
+  </header>
+
+  <div class="cols">
+    <div>
+      <p class="label-top">Σήμερα</p>
+      <section class="sec">
+        <div class="sec-h"><span class="ic">⏱</span><h3>Πότε</h3></div>
+        <div class="sec-b">
+          <div class="f">
+            <span class="fl">Ώρες αναχώρησης</span>
+            <div class="old">
+              <div class="obox"><div class="bar"><span class="x">🗑</span></div><div class="in">09:00</div></div>
+              <div class="obox"><div class="bar"><span class="x">🗑</span></div><div class="in">11:30</div></div>
+              <div class="obox"><div class="bar"><span class="x">🗑</span></div><div class="in">18:00</div></div>
+            </div>
+            <div class="oadd">+ Προσθήκη</div>
+            <p class="help">Κάθε ώρα έχει το δικό της κουτί και τον δικό της κάδο. Τρεις ώρες πιάνουν τρία κουτιά.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div>
+      <p class="label-top">Πρόταση</p>
+      <section class="sec">
+        <div class="sec-h"><span class="ic">⏱</span><h3>Πότε</h3></div>
+        <div class="sec-b">
+          <div class="f">
+            <span class="fl">Μέρες</span>
+            <div class="days">
+              <span class="day on">Δευ</span><span class="day">Τρί</span><span class="day on">Τετ</span><span class="day">Πέμ</span><span class="day on">Παρ</span><span class="day on">Σάβ</span><span class="day on">Κυρ</span>
+            </div>
+          </div>
+          <div class="f">
+            <span class="fl" id="times-label">Ώρες αναχώρησης</span>
+            <div class="chips" id="chips" role="group" aria-labelledby="times-label"></div>
+            <p class="err" id="err" hidden></p>
+            <p class="help">Μπαίνουν μόνες τους στη σειρά. Η ίδια ώρα δεν μπαίνει δύο φορές.</p>
+          </div>
+          <p class="sum" id="sum"></p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section class="q">
+    <h2>Τι αλλάζει</h2>
+    <ol>
+      <li>Οι ώρες μπαίνουν σε μία γραμμή, σαν ετικέτες, και η καθεμία έχει ένα μικρό ×.</li>
+      <li>Το «+ Ώρα» ανοίγει ένα πεδίο στην ίδια γραμμή. Γράφετε «930» ή «09:30» και πατάτε Enter.</li>
+      <li>Από κάτω, μια γραμμή λέει τι θα γίνει: πόσες αναχωρήσεις τη βδομάδα.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(function () {
+  var times = ['09:00', '11:30', '18:00'];
+  var chips = document.getElementById('chips');
+  var err = document.getElementById('err');
+  var sum = document.getElementById('sum');
+  var adding = false;
+
+  function norm(v) {
+    var d = String(v).replace(/[^0-9]/g, '');
+    if (d.length === 3) d = '0' + d;
+    if (d.length === 1 || d.length === 2) d = ('0' + d).slice(-2) + '00';
+    if (d.length !== 4) return null;
+    var h = +d.slice(0, 2), m = +d.slice(2);
+    if (h > 23 || m > 59) return null;
+    return d.slice(0, 2) + ':' + d.slice(2);
+  }
+
+  function render() {
+    chips.textContent = '';
+    times.sort().forEach(function (t) {
+      var c = document.createElement('span');
+      c.className = 'chip';
+      c.textContent = t;
+      var x = document.createElement('button');
+      x.type = 'button';
+      x.setAttribute('aria-label', 'Αφαίρεση ' + t);
+      x.textContent = '×';
+      x.onclick = function () { times = times.filter(function (o) { return o !== t; }); render(); };
+      c.appendChild(x);
+      chips.appendChild(c);
+    });
+    if (adding) {
+      var w = document.createElement('span');
+      w.className = 'adding';
+      var i = document.createElement('input');
+      i.placeholder = 'π.χ. 14:30';
+      i.inputMode = 'numeric';
+      i.setAttribute('aria-label', 'Νέα ώρα');
+      var ok = document.createElement('button');
+      ok.type = 'button';
+      ok.className = 'ok';
+      ok.textContent = 'Προσθήκη';
+      function commit() {
+        var t = norm(i.value);
+        if (!t) { err.textContent = 'Γράψτε μια ώρα, π.χ. 09:30.'; err.hidden = false; return; }
+        if (times.indexOf(t) !== -1) { err.textContent = 'Η ' + t + ' υπάρχει ήδη.'; err.hidden = false; return; }
+        err.hidden = true; times.push(t); adding = false; render();
+      }
+      ok.onclick = commit;
+      i.onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); commit(); } if (e.key === 'Escape') { adding = false; err.hidden = true; render(); } };
+      w.appendChild(i); w.appendChild(ok);
+      chips.appendChild(w);
+      setTimeout(function () { i.focus(); }, 0);
+    } else {
+      var a = document.createElement('button');
+      a.type = 'button';
+      a.className = 'add';
+      a.textContent = '+ Ώρα';
+      a.onclick = function () { adding = true; render(); };
+      chips.appendChild(a);
+    }
+    var n = times.length * 5;
+    sum.textContent = times.length === 0
+      ? 'Βάλτε τουλάχιστον μία ώρα.'
+      : n + ' αναχωρήσεις τη βδομάδα: ' + times.length + (times.length === 1 ? ' ώρα' : ' ώρες') + ' × 5 μέρες.';
+  }
+  render();
+})();
+</script>

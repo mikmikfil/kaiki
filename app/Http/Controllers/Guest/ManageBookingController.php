@@ -8,6 +8,7 @@ use App\Domain\Booking\Actions\ApplyGuestChoice;
 use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\GenerateETicket;
 use App\Domain\Booking\Actions\MintBalanceSession;
+use App\Domain\Booking\Support\BoardingPasses;
 use App\Domain\Booking\Support\BookingCalendarInvite;
 use App\Domain\Booking\Support\GuestTokenResolver;
 use App\Domain\Booking\Support\RefundEntitlement;
@@ -140,14 +141,21 @@ final class ManageBookingController extends GuestPageController
      * Two bookings never get one: a cancelled booking, whose ticket would board
      * somebody onto a trip they are not on, and an operator who does not check
      * anybody in ({@see Tenant::usesCheckIn()}), for whom a ticket is a
-     * document nobody will ever ask for. An already-rendered file is still
-     * served in both cases — it exists because it was valid when it was made.
+     * document nobody will ever ask for.
+     *
+     * **An already-rendered file is not served either** (amended 2026-09-23).
+     * This used to say it was — «it exists because it was valid when it was
+     * made» — which contradicted the product owner's rule of the 18th, «ούτε
+     * από τη διεύθυνση», and the test beside it only passed because its
+     * cancelled booking had never had a file. In the ordinary order of things
+     * the ticket is rendered at confirmation and the cancellation comes later,
+     * so the file existing says nothing about the booking still having one.
      */
     public function ticket(Request $request, string $token): Response
     {
         [$booking, $tenant] = $this->resolve($token);
 
-        if ($booking === null || ! $tenant instanceof Tenant) {
+        if ($booking === null || ! $tenant instanceof Tenant || ! self::hasTicket($booking, $tenant)) {
             return $this->linkNotValid($request);
         }
 
@@ -183,43 +191,25 @@ final class ManageBookingController extends GuestPageController
      * and a pinch-zoom between a guest and the thing the crew scans. They are
      * on the page now whenever there is one to show.
      *
-     * "Whenever there is one" is three conditions, and each of them is somebody
-     * else's decision rather than this page's: the platform has switched QR
-     * boarding on for this operator, the booking is still live, and the trip
-     * has not already sailed. A code for a cancelled booking would scan green
-     * at a gangway, which is the one outcome worth engineering against.
+     * "Whenever there is one" is three conditions — QR boarding on for this
+     * operator, a booking that has a ticket, a trip not yet sailed — and they
+     * live in {@see BoardingPasses}, because the emails that carry the whole
+     * trip show the same codes (2026-09-23) and must stop at the same moment.
+     * A code for a cancelled booking would scan green at a gangway, which is
+     * the one outcome worth engineering against.
      *
      * @return list<array{name: string, code: string, svg: string}>
      */
     private static function boardingPassesFor(Booking $booking, Tenant $tenant): array
     {
-        if (! $tenant->usesQrCheckIn() || ! $booking->status->isLive() || $booking->starts_at_utc->isPast()) {
-            return [];
-        }
-
-        return Tenancy::forTenant($tenant, static function () use ($booking): array {
-            $passes = [];
-
-            foreach ($booking->guests()->orderBy('position')->get() as $guest) {
-                if (trim((string) $guest->ticket_code) === '') {
-                    continue;
-                }
-
-                $passes[] = [
-                    // A booking of four gets four codes, and the crew scans one
-                    // per person — so each has to say whose it is. The position
-                    // is the fallback for a passenger whose name has not been
-                    // given yet, because «Επιβάτης 3» is still an answer.
-                    'name' => trim((string) $guest->full_name) !== ''
-                        ? (string) $guest->full_name
-                        : __('guest.booking.passenger', ['position' => $guest->position]),
-                    'code' => (string) $guest->ticket_code,
-                    'svg' => TicketQr::svgFor($guest),
-                ];
-            }
-
-            return $passes;
-        });
+        return array_map(
+            static fn (array $pass): array => [
+                'name' => $pass['name'],
+                'code' => $pass['code'],
+                'svg' => TicketQr::svgFor($pass['guest']),
+            ],
+            BoardingPasses::for($booking, $tenant),
+        );
     }
 
     /**
@@ -259,18 +249,26 @@ final class ManageBookingController extends GuestPageController
     /**
      * The ticket link for the page, or null when this booking has no ticket.
      *
-     * The same two exclusions as {@see self::renderTicketNow()} — a cancelled
-     * booking and an operator who boards nobody — so the page never offers a
-     * button that the download would then refuse. Everyone else gets it
-     * immediately, whether or not the file has been rendered yet.
+     * The same rule as the download and the render ({@see self::hasTicket()}),
+     * so the page never offers a button that the download would then refuse.
+     * Everyone it lets through gets the button immediately, whether or not the
+     * file has been rendered yet.
      */
     private static function ticketUrlFor(Booking $booking, Tenant $tenant, string $token): ?string
     {
-        if ($booking->status === BookingStatus::Cancelled || ! $tenant->usesCheckIn()) {
-            return null;
-        }
+        return self::hasTicket($booking, $tenant) ? route('guest.ticket', ['token' => $token]) : null;
+    }
 
-        return route('guest.ticket', ['token' => $token]);
+    /**
+     * The one rule for the button, the download and the render.
+     *
+     * It was written three times as «not cancelled», which let a draft, a
+     * booking at the gateway, a refund and an expired hold all through — and
+     * the download did not ask at all once a file existed.
+     */
+    private static function hasTicket(Booking $booking, Tenant $tenant): bool
+    {
+        return $booking->status->hasTicket() && $tenant->usesCheckIn();
     }
 
     /**
@@ -283,7 +281,7 @@ final class ManageBookingController extends GuestPageController
      */
     private static function renderTicketNow(Booking $booking, Tenant $tenant): ?string
     {
-        if ($booking->status === BookingStatus::Cancelled || ! $tenant->usesCheckIn()) {
+        if (! self::hasTicket($booking, $tenant)) {
             return null;
         }
 

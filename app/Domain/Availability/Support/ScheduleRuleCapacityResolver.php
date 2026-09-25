@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Availability\Support;
 
+use App\Models\Product;
 use App\Models\ScheduleRule;
 use App\Models\Vessel;
 
@@ -29,9 +30,7 @@ final class ScheduleRuleCapacityResolver
 {
     public static function capacity(ScheduleRule $rule): int
     {
-        // `?->` on the left of `??` is redundant — `??` already suppresses the
-        // null access — and PHPStan says so.
-        $requested = $rule->capacity_override ?? $rule->product->max_pax ?? 0;
+        $requested = $rule->capacity_override ?? self::tripSeats($rule);
         $ceiling = self::vesselCeiling($rule);
 
         $capacity = $ceiling === null ? $requested : min($requested, $ceiling);
@@ -42,7 +41,7 @@ final class ScheduleRuleCapacityResolver
     /** The boat this rule actually sails, override first (§2.3). */
     public static function vesselId(ScheduleRule $rule): ?int
     {
-        return $rule->vessel_id ?? $rule->product->vessel_id;
+        return $rule->vessel_id ?? self::trip($rule)?->vessel_id;
     }
 
     /**
@@ -56,8 +55,34 @@ final class ScheduleRuleCapacityResolver
      */
     public static function vesselCeiling(ScheduleRule $rule): ?int
     {
-        $vessel = $rule->vessel_id !== null ? $rule->vessel : $rule->product->vessel;
+        $vessel = $rule->vessel_id !== null ? $rule->vessel : self::trip($rule)?->vessel;
 
         return $vessel?->capacity_max;
+    }
+
+    /** How many the trip takes, or none when the trip has been deleted. */
+    private static function tripSeats(ScheduleRule $rule): int
+    {
+        $trip = self::trip($rule);
+
+        return $trip instanceof Product ? (int) ($trip->max_pax ?? 0) : 0;
+    }
+
+    /**
+     * The rule's trip, or null once it has been deleted.
+     *
+     * A soft-deleted trip leaves its rules behind and the relation resolves to
+     * null, however the model annotates it — and reading a property off that
+     * null is an exception under Laravel's error handler, not a warning. It
+     * took the whole panel down once (2026-09-22); it is not allowed to again.
+     *
+     * `getRelationValue()` rather than the property, because static analysis
+     * believes the relation can never be null and narrows the check away.
+     */
+    private static function trip(ScheduleRule $rule): ?Product
+    {
+        $product = $rule->getRelationValue('product');
+
+        return $product instanceof Product ? $product : null;
     }
 }

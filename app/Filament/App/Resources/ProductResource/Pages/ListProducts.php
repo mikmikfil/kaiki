@@ -24,28 +24,68 @@ class ListProducts extends ListRecords
     }
 
     /**
-     * One tab per status, drafts counted on theirs (product owner, 2026-09-17),
-     * so an unfinished trip cannot sit unnoticed in a long list.
+     * One tab per status, every one of them counted (product owner, 2026-09-17;
+     * counts on all of them 2026-09-21).
+     *
+     * Only «Πρόχειρες» carried a number before, and it carried it as a warning —
+     * an unfinished trip must not sit unnoticed in a long list. The rest carried
+     * none, so the strip answered *«έχω κάτι μισοτελειωμένο;»* and not the
+     * question an operator opens the catalogue with: *«πόσες εκδρομές πουλάω;»*.
+     *
+     * A zero is shown rather than hidden. On a strip where every other tab
+     * carries a figure, a missing one reads as "not loaded" rather than as
+     * "none" — and «Αρχειοθετημένες 0» is a useful, calm fact.
+     *
+     * The warning colour stays the drafts', and only while there are any: a
+     * strip where everything is amber points at nothing.
      *
      * @return array<string, Tab>
      */
     public function getTabs(): array
     {
-        $tabs = ['all' => Tab::make(__('catalog.product.table.tabs.all'))];
+        $counts = $this->countsByStatus();
+
+        $tabs = [
+            'all' => Tab::make(__('catalog.product.table.tabs.all'))
+                ->badge(array_sum($counts)),
+        ];
 
         foreach (ProductStatus::cases() as $status) {
+            $count = $counts[$status->value] ?? 0;
+
             $tab = Tab::make($status->label())
+                ->badge($count)
                 ->modifyQueryUsing(static fn (Builder $query): Builder => $query->where('status', $status->value));
 
-            if ($status === ProductStatus::Draft) {
-                $drafts = Product::query()->where('status', ProductStatus::Draft->value)->count();
-
-                $tab->badge($drafts > 0 ? $drafts : null)->badgeColor('warning');
+            if ($status === ProductStatus::Draft && $count > 0) {
+                $tab->badgeColor('warning');
             }
 
             $tabs[$status->value] = $tab;
         }
 
         return $tabs;
+    }
+
+    /**
+     * Every status counted in one query rather than one query per tab.
+     *
+     * Five round trips to draw a row of numbers is the kind of thing that never
+     * shows on a seeded database and does on a real one. `toBase()` keeps the
+     * tenant scope — it is a `where` on the builder, already applied — while
+     * skipping the hydration of models nobody reads.
+     *
+     * @return array<string, int>
+     */
+    private function countsByStatus(): array
+    {
+        /** @var array<string, int> */
+        return Product::query()
+            ->toBase()
+            ->selectRaw('status, count(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->map(static fn (mixed $count): int => (int) $count)
+            ->all();
     }
 }

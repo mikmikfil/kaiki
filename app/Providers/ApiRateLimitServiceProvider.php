@@ -60,6 +60,7 @@ final class ApiRateLimitServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerWebhookLimiter();
+        $this->registerChannelLimiter();
         $this->registerIcalLimiter();
 
         foreach (self::CLASSES as $name => [$perKey, $perIp]) {
@@ -141,5 +142,30 @@ final class ApiRateLimitServiceProvider extends ServiceProvider
     {
         RateLimiter::for('webhooks', static fn (Request $request): Limit => Limit::perMinute(120)
             ->by((string) $request->ip()));
+    }
+
+    /**
+     * The OTA channel endpoints (ADR-0034).
+     *
+     * **Keyed on the Basic username, not the IP.** GetYourGuide calls from
+     * their own infrastructure, so every supplier on the platform shares a
+     * handful of source addresses: an IP limiter would let one busy operator's
+     * traffic throttle everybody else's, which is the opposite of what a
+     * limiter is for. The username is per credential and therefore per
+     * operator.
+     *
+     * It falls back to the IP for a request with no credentials at all, which
+     * is the only shape that can arrive unattributable — and is exactly the
+     * shape worth capping hardest, since it is either a probe or a
+     * misconfiguration.
+     *
+     * 600 a minute against their published ceiling of 1000 per ten minutes.
+     * Generous on purpose: this exists to stop a runaway loop, not to police a
+     * partner whose own limit is stricter than ours.
+     */
+    private function registerChannelLimiter(): void
+    {
+        RateLimiter::for('channels', static fn (Request $request): Limit => Limit::perMinute(600)
+            ->by($request->getUser() ?? (string) $request->ip()));
     }
 }

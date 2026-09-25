@@ -14,6 +14,8 @@
 /auth.json
 /node_modules
 /public/build
+# The panel theme, built by `npm run build` (resources/css/filament/app).
+/public/css/filament/app
 /public/hot
 /public/storage
 /storage/*.key
@@ -64,6 +66,20 @@ Thumbs.db
 # nobody wants to clone.
 /docs/manual/manual.html
 /docs/manual/kaiki-manual.pdf
+
+# «Μια εκδρομή, από την αρχή ως τη δημοσίευση», on the same terms. The guide,
+# its stylesheet, the capture and the JPEGs the booklet prints are committed,
+# so `node docs/ekdromi/build.mjs` reproduces the rest; `shots/` is the raw PNG
+# capture that `img/` is made from, and the build copies the PDF to the Desktop
+# anyway.
+/docs/ekdromi/ekdromi.html
+/docs/ekdromi/kaiki-ekdromi.pdf
+/docs/ekdromi/shots
+
+# «Πώς είναι φτιαγμένο», on the same terms. It has no screenshots at all, so
+# the only build products are the assembled HTML and the PDF.
+/docs/architecture/architecture.html
+/docs/architecture/kaiki-architecture.pdf
 
 # The WordPress guide's intermediate HTML, for the same reason. Its PDF **is**
 # committed, unlike the manual's: it carries no screenshots, so it is under a

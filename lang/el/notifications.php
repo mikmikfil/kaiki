@@ -33,7 +33,7 @@ return [
     ],
 
     'filters' => [
-        'needs_attention' => 'Μόνο όσα χρειάζονται εμένα',
+        'needs_attention' => 'Χρειάζονται εμένα',
     ],
 
     'actions' => [

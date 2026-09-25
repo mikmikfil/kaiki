@@ -2,8 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Hosted\NotFoundPage;
 use App\Http\Middleware\ApiKeyCors;
 use App\Http\Middleware\AuthenticateApiKey;
+use App\Http\Middleware\AuthenticateChannel;
 use App\Http\Middleware\AuthenticateGuestToken;
 use App\Http\Middleware\CustomDomainOnly;
 use App\Http\Middleware\EnforceIdempotencyKey;
@@ -23,6 +25,8 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Middleware\SubstituteBindings;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -55,6 +59,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant' => ResolveTenant::class,
             // Refuses unsafe methods for a tenant in read-only mode (TEN-9).
             'tenant.writable' => EnsureTenantIsWritable::class,
+            // Authenticates an OTA calling us, and resolves the tenant from the
+            // Basic username — which is the only identifying thing in a
+            // GetYourGuide request (ADR-0034). Both jobs in one middleware
+            // because the second is a consequence of the first.
+            'channel.auth' => AuthenticateChannel::class,
             // Sets the request locale by the I18N-5 chain. Aliased rather than
             // global because it must run *after* `tenant` wherever a tenant
             // exists — the tenant default is step 5 of that chain.
@@ -114,7 +123,11 @@ return Application::configure(basePath: dirname(__DIR__))
          * a second `/webhooks/*` route later is a deliberate act rather than an
          * accident of a wildcard somebody widened.
          */
-        $middleware->validateCsrfTokens(except: ['webhooks/*']);
+        // `channels/*` for the same reason: GetYourGuide's servers hold no
+        // session and no token, and their reserve, book and cancel calls are
+        // POSTs. The path is theirs and fixed, so the wildcard is as narrow as
+        // the webhook one (ADR-0034).
+        $middleware->validateCsrfTokens(except: ['webhooks/*', 'channels/*']);
 
         // `SetLocale` must run *after* `ResolveTenant`, because the tenant's
         // `default_locale` is step 5 of the I18N-5 chain.
@@ -185,5 +198,11 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return ApiExceptionRenderer::render($e);
+        });
+
+        // A missing page on the guest pages: the operator's own 404 in their
+        // language, or a Greek one when there is no operator (24/9 list).
+        $exceptions->render(static function (NotFoundHttpException $e, Request $request): ?Response {
+            return NotFoundPage::applies($request) ? app(NotFoundPage::class)->respond($request) : null;
         });
     })->create();

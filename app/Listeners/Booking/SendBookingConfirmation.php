@@ -6,6 +6,7 @@ namespace App\Listeners\Booking;
 
 use App\Domain\Notifications\Actions\SendNotification;
 use App\Domain\Notifications\Support\SmsComposer;
+use App\Enums\BookingSource;
 use App\Enums\NotificationTemplate;
 use App\Events\BookingConfirmed;
 use App\Mail\GuestMail;
@@ -69,13 +70,20 @@ class SendBookingConfirmation implements ShouldQueue
                 return;
             }
 
-            $this->notifications->mail(
-                $booking,
-                NotificationTemplate::BookingConfirmed,
-                new GuestMail($booking, NotificationTemplate::BookingConfirmed),
-            );
+            // A quay sale may have no email at all (2026-09-24): then there is
+            // nothing to send the ticket to, and nothing is recorded as sent.
+            if (filled($booking->guest_email)) {
+                $this->notifications->mail(
+                    $booking,
+                    NotificationTemplate::BookingConfirmed,
+                    new GuestMail($booking, NotificationTemplate::BookingConfirmed),
+                );
+            }
 
-            $this->sendSms($booking);
+            // Never a text message for a quay sale: the guest is standing there.
+            if ($booking->source !== BookingSource::Quay) {
+                $this->sendSms($booking);
+            }
         });
     }
 

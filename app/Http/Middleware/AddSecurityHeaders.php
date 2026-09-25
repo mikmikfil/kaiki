@@ -38,7 +38,13 @@ final class AddSecurityHeaders
             // FilePond reads a photo in a worker built from a blob: URL. Without
             // this it falls back to script-src, the worker is refused, and the
             // upload field sits on «Φόρτωση» for ever.
+            // The panel's two service workers (`/app/sw.js`, `/app/boarding/sw.js`)
+            // are same-origin, so `'self'` already covers them.
             "worker-src 'self' blob:",
+            // The panel's web app manifest (PWA). `default-src` would cover it
+            // too; named so that tightening the default cannot quietly make
+            // the panel uninstallable.
+            "manifest-src 'self'",
             "frame-ancestors 'none'",
             "base-uri 'self'",
             "form-action 'self'",

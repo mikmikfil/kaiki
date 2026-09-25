@@ -74,6 +74,13 @@ class Settings extends Page
      */
     public const SECTIONS = [
         'business' => [
+            // The permanent way back into the setup guide (product owner,
+            // 2026-09-22: *«από κάπου να ανοίγει συνέχεια ρύθμισης»*). The menu
+            // item comes and goes — it leaves once the guide is finished or
+            // dismissed — and this card does not: an operator who pressed «δεν
+            // το χρειάζομαι» in March and wants it in June has one place to
+            // look, and it is the place everything else they set up once lives.
+            'setup' => Setup::class,
             'branding' => Branding::class,
             'staff' => StaffResource::class,
             'payments' => PaymentSettings::class,
@@ -81,6 +88,7 @@ class Settings extends Page
         ],
         'website' => [
             'home_page' => HomePage::class,
+            'about_page' => AboutPage::class,
             'faq' => FaqResource::class,
             'search' => SearchSettings::class,
             'reviews' => ReviewSettings::class,
@@ -182,6 +190,16 @@ class Settings extends Page
 
         foreach (self::SECTIONS as $cards) {
             foreach ($cards as $class) {
+                // The setup guide is a card here **and** the screen that holds
+                // the panel back on a first afternoon (2026-09-22). A «Πίσω
+                // στις ρυθμίσεις» link across the top of that screen offers an
+                // exit the gate would only bounce back, and reads as a way out
+                // beside the two real ones. The card stays; the back link does
+                // not.
+                if ($class === Setup::class) {
+                    continue;
+                }
+
                 $classes[] = $class;
             }
         }

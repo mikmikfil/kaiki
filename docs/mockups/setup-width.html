@@ -1,0 +1,252 @@
+<title>Το πλάτος του οδηγού</title>
+<meta name="description" content="Τρεις κατευθύνσεις για το πλάτος του οδηγού πρώτης ρύθμισης, όπου η κάρτα με τα πεδία σταματά πολύ πριν από την άκρη του λευκού φύλλου.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Same tokens as the other Kaiki mockups: light only, blue panel, Inter. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57;
+  --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA;
+  --good:#1F7A4D; --warn:#9A5B0C; --warnbg:#FBF0DF;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding:36px 16px 72px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;text-align:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+a{text-decoration:none;color:var(--blue)}
+h1,h2,h3,h4{margin:0;text-wrap:balance;letter-spacing:-.01em}
+p{margin:0}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.page{max-width:1240px;margin:0 auto;display:grid;gap:44px}
+.intro{display:grid;gap:12px;max-width:840px}
+.eyebrow{font-size:13px;font-weight:600;color:var(--blue)}
+.intro h1{font-size:clamp(28px,5vw,38px);line-height:1.12;font-weight:800;color:var(--deep)}
+.intro p{font-size:17px;color:var(--muted);max-width:68ch}
+.intro strong{color:var(--ink)}
+h2.sec{font-size:clamp(20px,3.6vw,24px);color:var(--deep)}
+.lede{color:var(--muted);max-width:74ch}
+.block{display:grid;gap:16px}
+
+/* ---------- picker ---------- */
+.picker{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.pick{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:8px;align-content:start}
+.pick[aria-pressed="true"]{border-color:var(--blue);box-shadow:0 0 0 2px rgba(30,90,168,.16)}
+.pick-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pick h3{font-size:16px;color:var(--deep)}
+.pick p{color:var(--muted);font-size:13.5px}
+.rec{font-size:11px;font-weight:700;color:var(--blue);background:var(--wash);border-radius:999px;padding:2px 8px}
+
+/* ---------- the panel, drawn to scale ---------- */
+.screen{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px;overflow:hidden}
+.screen-label{font-size:12px;color:var(--faint);font-family:var(--mono);margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+
+/* the white sheet — Mike's «μεγάλο box» */
+.sheet{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:22px 24px;position:relative}
+
+/* the measure the guide is held to */
+.guide{display:grid;grid-template-columns:200px minmax(0,1fr);gap:18px;align-items:start}
+[data-dir="a"] .guide{max-width:none}
+[data-dir="b"] .guide{max-width:820px;margin:0 auto}
+[data-dir="c"] .guide{max-width:none}
+
+/* and how wide the sheet itself is allowed to be */
+[data-dir="b"] .sheet{max-width:900px;margin:0 auto}
+
+.exits{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-bottom:14px}
+.exits .sub{margin-inline-end:auto}
+.exits .b{border:1px solid var(--line);border-radius:8px;padding:4px 10px;font-size:12px;font-weight:600;color:var(--ink);background:var(--card)}
+[data-dir="b"] .exits{max-width:820px;margin-inline:auto;margin-bottom:14px}
+
+.steps{display:grid;gap:2px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:6px}
+.step{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;align-items:center;padding:6px;border-radius:7px;font-size:12.5px;color:var(--muted)}
+.step .dot{width:18px;height:18px;border-radius:999px;border:1.5px solid #C7D3E3;display:grid;place-items:center;font-size:10px;font-weight:700}
+.step.on{background:var(--wash);color:var(--deep);font-weight:600}
+.step.on .dot{background:var(--deep);border-color:var(--deep);color:#fff}
+.step.done .dot{background:var(--good);border-color:var(--good);color:#fff}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;display:grid;gap:14px;min-width:0}
+.card .count{font-size:12px;color:var(--muted)}
+.card h3{font-size:19px;color:var(--deep)}
+.card .why{font-size:13px;color:var(--muted);max-width:62ch}
+
+.fields{display:grid;gap:12px}
+[data-dir="a"] .fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+[data-dir="b"] .fields{grid-template-columns:repeat(2,minmax(0,1fr))}
+[data-dir="c"] .fields{grid-template-columns:repeat(3,minmax(0,1fr))}
+.f{display:grid;gap:4px;min-width:0}
+.f.wide{grid-column:1/-1}
+.f label{font-size:12px;font-weight:600}
+.f .in{border:1px solid var(--line);border-radius:8px;min-height:32px;background:var(--card)}
+.f .hint{font-size:11.5px;color:var(--muted)}
+
+.acts{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding-top:4px}
+.acts .later{font-size:12.5px;color:var(--muted)}
+.acts .go{display:flex;gap:8px;margin-left:auto}
+.btn{background:var(--deep);color:#fff;border-radius:8px;padding:7px 14px;font-weight:600;font-size:12.5px}
+.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+
+/* the empty space the complaint is about */
+.gap-note{position:absolute;inset-block:22px;right:24px;width:38%;border:1px dashed #CBD8EA;border-radius:10px;display:grid;place-items:center;color:var(--faint);font-size:12px;font-family:var(--mono);pointer-events:none}
+[data-dir="a"] .gap-note,[data-dir="b"] .gap-note,[data-dir="c"] .gap-note{display:none}
+[data-show-gap="1"] .gap-note{display:grid}
+
+/* ---------- notes ---------- */
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+.note{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:6px}
+.note h4{font-size:14px;color:var(--deep)}
+.note p{font-size:13.5px;color:var(--muted)}
+.note.good h4{color:var(--good)}
+.note.warn h4{color:var(--warn)}
+
+.list{display:grid;gap:10px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 16px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:baseline}
+.item .k{font-family:var(--mono);font-size:12px;color:var(--blue);white-space:nowrap}
+.item p{font-size:13.5px;color:var(--muted)}
+.item strong{color:var(--ink);font-weight:600}
+
+@media (max-width:760px){
+  .guide{grid-template-columns:1fr}
+  [data-dir="a"] .fields,[data-dir="b"] .fields,[data-dir="c"] .fields{grid-template-columns:1fr}
+  .sheet{padding:16px}
+}
+</style>
+
+<div class="page">
+
+  <div class="intro">
+    <div class="eyebrow">Kaiki · μακέτα · 22 Σεπτεμβρίου 2026</div>
+    <h1>Το πλάτος του οδηγού</h1>
+    <p>
+      Στον οδηγό πρώτης ρύθμισης το λευκό φύλλο πιάνει όλη την οθόνη, αλλά ο
+      οδηγός μέσα του σταματά στα <span class="mono">960&nbsp;px</span> και
+      κολλάει αριστερά. Σε μια οθόνη 1080p <strong>το μισό φύλλο μένει άδειο</strong>,
+      και η γραμμή με τις εξόδους από πάνω — που πιάνει όλο το πλάτος — το κάνει
+      ακόμα πιο εμφανές. Με τα τέσσερα βήματα αντί για οκτώ, η στήλη αριστερά είναι
+      πια κοντή και το κενό φαίνεται ακόμα περισσότερο.
+    </p>
+    <p>Τρεις κατευθύνσεις. Πατήστε για να αλλάξει η προεπισκόπηση.</p>
+  </div>
+
+  <section class="block">
+    <div class="picker" role="group" aria-label="Κατευθύνσεις">
+      <button class="pick" data-set="now" aria-pressed="true">
+        <div class="pick-top"><h3>Τώρα</h3></div>
+        <p>Όπως είναι σήμερα, με το κενό σημειωμένο.</p>
+      </button>
+      <button class="pick" data-set="a" aria-pressed="false">
+        <div class="pick-top"><h3>Α · Τέρμα πλάτος</h3><span class="rec">προτείνω</span></div>
+        <p>Φεύγει το όριο: η κάρτα απλώνεται ως την άκρη του φύλλου και τα πεδία μπαίνουν σε δύο στήλες, ώστε να μη μακρύνουν.</p>
+      </button>
+      <button class="pick" data-set="b" aria-pressed="false">
+        <div class="pick-top"><h3>Β · Στενεύει το φύλλο</h3></div>
+        <p>Το αντίστροφο: το λευκό φύλλο κόβεται στο πλάτος του οδηγού και κεντράρεται. Καμία αλλαγή στη φόρμα.</p>
+      </button>
+      <button class="pick" data-set="c" aria-pressed="false">
+        <div class="pick-top"><h3>Γ · Τρεις στήλες</h3></div>
+        <p>Τέρμα πλάτος, και τα σύντομα πεδία — ΑΦΜ, ΔΟΥ, ΤΚ — σε τρεις στήλες. Ο οδηγός τελειώνει με λιγότερο scroll.</p>
+      </button>
+    </div>
+
+    <div class="screen" id="screen" data-dir="now" data-show-gap="1">
+      <div class="screen-label">
+        <span>/app/setup · τέσσερις ερωτήσεις</span>
+        <span>οθόνη 1920 × 1080</span>
+      </div>
+
+      <div class="sheet">
+        <div class="gap-note">κενό</div>
+
+        <div class="exits">
+          <span class="sub">Περίπου 10 λεπτά. Ό,τι αφήσετε για αργότερα θα σας περιμένει στην αρχική σελίδα.</span>
+          <span class="b">Θα το κάνω αργότερα</span>
+          <span>Δεν το χρειάζομαι</span>
+        </div>
+
+        <div class="guide">
+          <nav class="steps">
+            <div class="step on"><span class="dot">1</span><span>Η επιχείρησή σας</span></div>
+            <div class="step"><span class="dot">2</span><span>Styling</span></div>
+            <div class="step"><span class="dot">3</span><span>ΦΠΑ</span></div>
+            <div class="step"><span class="dot">4</span><span>Πολιτική ακύρωσης</span></div>
+          </nav>
+
+          <section class="card">
+            <div>
+              <div class="count">Βήμα 1 από 4</div>
+              <h3>Πώς λέγεται η επιχείρησή σας στα χαρτιά;</h3>
+            </div>
+            <p class="why">
+              Αυτά τυπώνονται πάνω στις αποδείξεις και τα τιμολόγιά σας και στέλνονται
+              στην ΑΑΔΕ. Χωρίς επωνυμία και ΑΦΜ δεν εκδίδεται παραστατικό — όλα τα
+              υπόλοιπα μπορούν να περιμένουν.
+            </p>
+
+            <div class="fields">
+              <div class="f wide">
+                <label>Επωνυμία</label>
+                <div class="in"></div>
+                <span class="hint">Όπως ακριβώς είναι δηλωμένη στην εφορία.</span>
+              </div>
+              <div class="f"><label>ΑΦΜ</label><div class="in"></div><span class="hint">Εννέα ψηφία.</span></div>
+              <div class="f"><label>ΔΟΥ</label><div class="in"></div></div>
+              <div class="f wide"><label>Διεύθυνση</label><div class="in"></div></div>
+              <div class="f"><label>Πόλη</label><div class="in"></div></div>
+              <div class="f"><label>ΤΚ</label><div class="in"></div></div>
+            </div>
+
+            <div class="acts">
+              <span class="later">Θα το κάνω αργότερα</span>
+              <span class="go"><span class="btn ghost">Πίσω</span><span class="btn">Συνέχεια →</span></span>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div class="notes">
+      <div class="note good">
+        <h4>Γιατί το Α</h4>
+        <p>Είναι αυτό που ζητήθηκε — η κάρτα φτάνει ως την άκρη — και τα πεδία δεν μακραίνουν, γιατί μπαίνουν σε δύο στήλες. Σε 1080p χωράνε και τα έξι χωρίς scroll, που ήταν ο λόγος που έφυγε ο τίτλος από πάνω.</p>
+      </div>
+      <div class="note">
+        <h4>Τι δίνει το Β</h4>
+        <p>Καθαρότερο τυπογραφικά και μηδενική αλλαγή στη φόρμα, αλλά το φύλλο σταματά στη μέση της οθόνης — που μοιάζει με άλλο λάθος, όχι με απόφαση.</p>
+      </div>
+      <div class="note warn">
+        <h4>Πού πονάει το Γ</h4>
+        <p>Τρεις στήλες κερδίζουν ύψος, αλλά σε 1440p τα κοντά πεδία γίνονται πολύ φαρδιά για αυτό που κρατούν: ένα ΤΚ σε 400 px διαβάζεται σαν λάθος πεδίο.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <h2 class="sec">Πού αλλού πέφτει η ίδια απόφαση</h2>
+    <p class="lede">Ο οδηγός δεν είναι η μόνη οθόνη που κρατιέται πιο στενή από το φύλλο της.</p>
+    <div class="list">
+      <div class="item"><span class="k">/app/setup</span><p><strong>Ο οδηγός πρώτης ρύθμισης</strong> — η οθόνη της μακέτας.</p></div>
+      <div class="item"><span class="k">dashboard</span><p><strong>Η λωρίδα με τα βήματα στην αρχική</strong>, που κουβαλάει πια και τον κατάλογο σε δεύτερη γραμμή.</p></div>
+      <div class="item"><span class="k">Ρυθμίσεις</span><p><strong>Οι ίδιες καρτέλες στις Ρυθμίσεις</strong>, όπου τα ίδια πεδία ζουν μετά τον οδηγό — ό,τι διαλέξετε θα ήθελε να ισχύει και εκεί.</p></div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const screen = document.getElementById('screen');
+const picks = [...document.querySelectorAll('.pick')];
+
+picks.forEach((pick) => {
+  pick.addEventListener('click', () => {
+    picks.forEach((p) => p.setAttribute('aria-pressed', String(p === pick)));
+    screen.dataset.dir = pick.dataset.set;
+    screen.dataset.showGap = pick.dataset.set === 'now' ? '1' : '0';
+  });
+});
+</script>

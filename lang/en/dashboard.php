@@ -49,12 +49,18 @@ return [
         'definition' => 'Since Monday :from, in your own time. Payments received minus refunds given.',
     ],
     'first_steps' => [
-        'heading' => 'Four steps to your first booking',
+        'heading' => 'Your first steps',
         'description' => 'Do them in this order — each one needs the one before it.',
+        'optional' => 'optional',
         'vessel' => [
             'title' => 'Add your boat',
             'why' => 'A trip has to sail on something, and its capacity comes from here.',
             'action' => 'Add a boat',
+        ],
+        'season' => [
+            'title' => 'Set your periods',
+            'why' => 'So August is priced differently from May. If the price is the same all year, skip it.',
+            'action' => 'Open periods',
         ],
         'product' => [
             'title' => 'Create a trip',
@@ -84,6 +90,9 @@ return [
             'evening_named' => 'Good evening, :name',
         ],
         'next' => [
+            'mine' => 'My next one',
+            'role_captain' => 'You are the captain',
+            'role_crew' => 'You are on the crew',
             'label' => 'Next departure',
             'underway' => 'at sea now',
             'in_minutes' => 'in :count minute|in :count minutes',
@@ -110,6 +119,7 @@ return [
             'calendar' => 'Calendar',
             'seats' => ':count seat|:count seats',
             'free' => 'Free today',
+            'idle' => 'Free today|Free today',
         ],
     ],
 ];

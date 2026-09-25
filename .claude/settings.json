@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=$(php -r \"\\$i=json_decode(stream_get_contents(STDIN),true); echo \\$i[\\\"tool_input\\\"][\\\"file_path\\\"] ?? \\\"\\\";\"); case \"$f\" in *.php) [ -f vendor/bin/pint ] && php vendor/bin/pint \"$f\" >/dev/null 2>&1;; esac; true",
+            "command": "php_bin=$(command -v php84 2>/dev/null); [ -n \"$php_bin\" ] || php_bin=/c/Users/Mike/php84/php.exe; [ -x \"$php_bin\" ] || php_bin=$(command -v php); f=$(\"$php_bin\" -r \"\\$i=json_decode(stream_get_contents(STDIN),true); echo \\$i['tool_input']['file_path'] ?? '';\"); case \"$f\" in *.php) [ -f vendor/bin/pint ] || exit 0; \"$php_bin\" vendor/bin/pint \"$f\" >/dev/null 2>&1 || printf '%s' '{\"systemMessage\":\"Pint did not run. PHP 8.4 must be reachable: composer refuses 8.3.\"}';; esac; true",
             "shell": "bash",
             "timeout": 30,
             "statusMessage": "Pint"
@@ -19,9 +19,10 @@
         "hooks": [
           {
             "type": "command",
-            "command": "out=$(composer test:fast 2>&1); line=$(printf \"%s\" \"$out\" | sed -e \"s/\u001b\\[[0-9;]*m//g\" | grep -o \"Tests:.*\" | head -1 | tr -s \" \"); [ -z \"$line\" ] && line=\"test:fast FAILED - run composer test:fast\"; php -r \"echo json_encode([\\\"systemMessage\\\"=>trim(\\$argv[1])]);\" \"$line\"",
+            "command": "php_bin=$(command -v php84 2>/dev/null); [ -n \"$php_bin\" ] || php_bin=/c/Users/Mike/php84/php.exe; [ -x \"$php_bin\" ] || php_bin=$(command -v php); line=$(\"$php_bin\" -d memory_limit=1536M vendor/bin/pest --group=fast --colors=never 2>&1 | grep -o 'Tests:.*' | head -1 | tr -s ' '); [ -n \"$line\" ] || line='test:fast did not report. Run: composer test:fast'; \"$php_bin\" -r \"echo json_encode(['systemMessage' => trim(\\$argv[1])]);\" \"$line\"",
             "shell": "bash",
-            "timeout": 120,
+            "timeout": 900,
+            "async": true,
             "statusMessage": "composer test:fast"
           }
         ]

@@ -26,7 +26,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 
 /**
- * Ten boats and ten trips per demo operator.
+ * Seven boats and ten trips per demo operator.
  *
  * ## Why a fleet rather than the two of everything the other seeders make
  *
@@ -34,9 +34,10 @@ use Illuminate\Support\Carbon;
  * each feature works, which is right for a test fixture and wrong for looking
  * at the product. Three screens only become themselves at scale:
  *
- * - The **vessel calendar** with one boat is a line. With ten it is a fleet,
+ * - The **vessel calendar** with one boat is a line. With seven it is a fleet,
  *   and the turnaround margins, the overlaps and the empty afternoons are
- *   visible as a shape rather than as an example.
+ *   visible as a shape rather than as an example — while still fitting on a
+ *   screen, which ten did not (2026-09-23).
  * - The **catalogue search** with two trips cannot demonstrate a filter.
  * - The **dashboard** figures read as arithmetic on two rows and as a business
  *   on twenty.
@@ -57,11 +58,51 @@ use Illuminate\Support\Carbon;
  */
 class DemoFleetSeeder extends Seeder
 {
-    /** How many of each an operator ends up with. */
-    private const TARGET = 10;
+    /**
+     * How many boats a demo operator ends up with (Mike, 2026-09-23: *«στο
+     * δοκιμαστικό πακέτο βάλε έως 7 σκάφη και 3 λιμάνια»*).
+     *
+     * Seven rather than ten, and the two numbers are now separate because they
+     * answer different questions. Ten boats was never about the demo looking
+     * busy — it is what a real customer has, which is why the plan limit went
+     * up on 2026-09-22 — but a *demo* fleet of ten fills the calendar with rows
+     * nobody reads and makes every screenshot of the panel scroll.
+     *
+     * The first seven of {@see self::VESSELS} still carry the whole spread of
+     * types and capacities, which is the thing the demo is actually for.
+     *
+     * Unlike {@see self::PRODUCT_TARGET} this one *is* meant to bind — seven is
+     * the answer, not a ceiling — and it is safe to: the boat loop `break`s and
+     * nothing downstream depends on having run it.
+     */
+    private const VESSEL_TARGET = 7;
 
-    /** Three months, matching `DemoBookableSeeder` so the two agree. */
-    private const DAYS_AHEAD = 90;
+    /**
+     * How many trips before this seeder stops adding more.
+     *
+     * **Headroom, not a target** (Mike, 2026-09-23: *«ανέβασε τα όρια, δεν
+     * θέλω να ξαναέχουμε τέτοια»*). It used to be ten, which is exactly what
+     * the other demo seeders already leave behind — so on the demo operator the
+     * guard below was true on the first iteration and this seeder did nothing
+     * at all, including the part that gives every trip its age bands.
+     *
+     * The real repair is that the guard `break`s instead of returning, and that
+     * the pricing top-up runs afterwards either way. This number is the belt to
+     * that braces: at forty it is a stop against a runaway loop rather than a
+     * line the demo routinely sits on.
+     *
+     * `self::TRIPS` has ten entries, so nothing new is created by raising it —
+     * it only stops the ceiling from being load-bearing.
+     */
+    private const PRODUCT_TARGET = 40;
+
+    /*
+     * `DAYS_AHEAD` lived here and was written into every schedule rule's
+     * `generate_days_ahead`. That column was dropped on 2026-09-23 — nothing
+     * ever read it, and the real horizon is one number in
+     * `config('kaiki.departures.horizon_days')` — so the constant went with it
+     * rather than staying as a figure that looked like it decided something.
+     */
 
     /**
      * The boats, in the order they are added.
@@ -396,8 +437,10 @@ EN,
         $port = Port::query()->orderBy('id')->first();
 
         foreach (self::VESSELS as $index => $spec) {
-            if (Vessel::query()->count() >= self::TARGET) {
-                return;
+            // `break`, like the trips loop — nothing follows it today, and the
+            // day something does, a `return` here would skip it silently.
+            if (Vessel::query()->count() >= self::VESSEL_TARGET) {
+                break;
             }
 
             Vessel::query()->updateOrCreate(
@@ -441,8 +484,12 @@ EN,
         }
 
         foreach (self::TRIPS as $index => $trip) {
-            if (Product::query()->count() >= self::TARGET) {
-                return;
+            // **`break`, not `return`** — this was half the 2026-09-23 bug.
+            // Returning here left the method altogether, so anything after the
+            // loop was skipped on exactly the accounts that needed it most:
+            // the ones already carrying enough trips from the other seeders.
+            if (Product::query()->count() >= self::PRODUCT_TARGET) {
+                break;
             }
 
             // Spread across the fleet so the calendar has more than one busy
@@ -486,6 +533,45 @@ EN,
             $this->ratePlan($product->refresh(), $season, $trip['cents']);
             $this->schedule($product, $trip['start']);
         }
+
+        $this->backfillPricing($season);
+    }
+
+    /**
+     * Age bands and a price for every trip that has none (Mike, 2026-09-23).
+     *
+     * **The bug this closes.** The loop above returns the moment the operator
+     * already has `PRODUCT_TARGET` trips — and `DemoCatalogSeeder` and
+     * `DemoBookableSeeder` run first, so on the demo operator that test was
+     * already true on the very first iteration. The loop returned before
+     * writing anything, and with it went the `ageBands()` and `ratePlan()`
+     * calls for **every** trip on the account.
+     *
+     * What that looked like from outside: a guest picked a date and a time in
+     * the booking widget and then found no way to say how many people were
+     * coming. `PartyStep` renders the product's age bands (CAT-8); with none
+     * there is nothing to render, so the step vanished rather than erroring.
+     * The catalogue meanwhile advertised «από 65,00 €» from `price_from_cents`,
+     * a column the seeder writes directly — so the trip looked priced and could
+     * not be quoted.
+     *
+     * So the top-up is separated from the creation. A trip that has bands is
+     * left exactly as it is; one that has none gets the same CAT-8 set every
+     * other demo trip has, priced from what the catalogue already claims.
+     */
+    private function backfillPricing(Season $season): void
+    {
+        Product::query()
+            ->whereDoesntHave('ageBands')
+            ->get()
+            ->each(function (Product $product) use ($season): void {
+                $this->ageBands($product);
+
+                // What the card already promises, so the quote agrees with the
+                // catalogue. A trip with no claim either falls back to a plain
+                // figure rather than being left unquotable.
+                $this->ratePlan($product->refresh(), $season, (int) ($product->price_from_cents ?: 5000));
+            });
     }
 
     private function season(): Season
@@ -586,7 +672,6 @@ EN,
                 'weekday_mask' => 127,
                 'valid_from' => Carbon::now()->subMonth()->toDateString(),
                 'valid_until' => null,
-                'generate_days_ahead' => self::DAYS_AHEAD,
                 'is_active' => true,
             ],
         );

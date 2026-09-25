@@ -406,7 +406,7 @@ refund_percent`
 ### 7.3 Availability
 
 **`schedule_rules`** — `product_id, vessel_id, weekday_mask, start_time, valid_from,
-valid_until, capacity_override, generate_days_ahead, is_active, last_generated_on`
+valid_until, capacity_override, is_active, last_generated_on`
 
 **`departures`** — `uuid, product_id, vessel_id, schedule_rule_id, local_date,
 local_time, starts_at_utc, ends_at_utc, dst_ambiguous, capacity, min_pax,

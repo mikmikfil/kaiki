@@ -1,0 +1,716 @@
+<title>Το ταμείο, τρεις δρόμοι</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  /*
+    Φως μόνο, σκόπιμα: οι σελίδες του επισκέπτη είναι light-only (απόφαση
+    2026-09-04), και μια μακέτα σε σκούρο πλαίσιο θα έδειχνε κάτι που δεν
+    υπάρχει. Κάθε χρώμα γράφεται ρητά ώστε η σελίδα να στέκει σε όποιο φόντο.
+  */
+  :root {
+    --hull: #0B4F4A;
+    --deep: #063733;
+    --ember: #B5511F;
+    --ink: #16211F;
+    --limewash: #F2F4F0;
+    --paper: #FFFFFF;
+    --hairline: #DDE3DF;
+    --muted: #5F6E6A;
+    --ground: #E7EBE6;
+
+    --step-0: 0.9375rem;
+    --step-1: 1.0625rem;
+    --step-2: 1.375rem;
+    --step-3: 2rem;
+    --step-4: 2.75rem;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: var(--step-0);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 1060px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 56px 88px;
+  }
+
+  a { color: var(--hull); text-decoration: none; }
+  a:hover { color: var(--deep); }
+  a:focus-visible,
+  button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+
+  /* ---------- Επικεφαλίδα σελίδας ---------- */
+
+  .masthead { max-width: 60ch; }
+
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+
+  h1 {
+    font-size: var(--step-4);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+
+  .lede { font-size: var(--step-1); color: var(--muted); margin: 0; }
+  .lede + .lede { margin-top: 14px; }
+
+  .rule {
+    height: 1px;
+    background: var(--hairline);
+    border: 0;
+    margin-block: 52px;
+  }
+
+  /* ---------- Κάθε πρόταση ---------- */
+
+  .direction { margin-block: 0 64px; }
+
+  .direction-head {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+
+  .letter {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--paper);
+    background: var(--hull);
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    flex: none;
+  }
+
+  .direction h2 {
+    font-size: var(--step-2);
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    margin: 0;
+  }
+
+  .direction > p {
+    color: var(--muted);
+    margin: 0 0 24px;
+    max-width: 62ch;
+  }
+
+  .tradeoff {
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    font-size: 0.875rem;
+    color: var(--muted);
+    margin: 20px 0 0;
+    max-width: 62ch;
+  }
+
+  .tradeoff b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Το πλαίσιο της μακέτας ---------- */
+
+  .screen {
+    background: var(--paper);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .chrome {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 11px 14px;
+    background: var(--limewash);
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--hairline); flex: none; }
+
+  .chrome span {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.6875rem;
+    color: var(--muted);
+    margin-left: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .stage { padding: 30px; }
+
+  /* ---------- Κοινά στοιχεία των μακετών ---------- */
+
+  .brandbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 18px;
+    margin-bottom: 26px;
+    border-bottom: 1px solid var(--hairline);
+  }
+
+  .brandmark {
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: -0.02em;
+    color: var(--hull);
+  }
+
+  .brandbar .lang {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.6875rem;
+    color: var(--muted);
+  }
+
+  .m-h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 4px;
+  }
+
+  .m-sub { color: var(--muted); font-size: 0.875rem; margin: 0 0 24px; }
+
+  .legend {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+
+  /* Πεδία με ετικέτα που επιπλέει — ό,τι χτίστηκε στις 22/9. */
+  .field { position: relative; margin-bottom: 12px; }
+
+  .field input {
+    width: 100%;
+    font: inherit;
+    font-size: 0.9375rem;
+    color: var(--ink);
+    background: var(--paper);
+    border: 1px solid var(--hairline);
+    border-radius: 4px;
+    padding: 22px 13px 8px;
+  }
+
+  .field label {
+    position: absolute;
+    left: 14px;
+    top: 7px;
+    font-size: 0.6875rem;
+    color: var(--muted);
+    pointer-events: none;
+  }
+
+  .field input:focus { outline: 2px solid var(--hull); outline-offset: -1px; border-color: var(--hull); }
+
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pair .field { margin-bottom: 12px; }
+
+  /* Γραμμές τιμών */
+  .rows { margin: 0; font-size: 0.875rem; }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding-block: 9px;
+  }
+
+  .row + .row { border-top: 1px solid var(--hairline); }
+  .row .num { font-family: "IBM Plex Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+  .row.discount { color: var(--hull); }
+
+  .row.sum {
+    border-top: 1px solid var(--ink);
+    margin-top: 4px;
+    padding-top: 13px;
+    font-weight: 600;
+    font-size: 1.0625rem;
+  }
+
+  .vat { font-size: 0.75rem; color: var(--muted); margin: 7px 0 0; }
+
+  .pay {
+    display: block;
+    width: 100%;
+    font: inherit;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    color: var(--paper);
+    background: var(--ember);
+    border: 0;
+    border-radius: 4px;
+    padding: 15px;
+    cursor: pointer;
+    text-align: center;
+  }
+
+  .pay:hover { background: #9C4419; }
+
+  .secure {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-align: center;
+    margin: 11px 0 0;
+  }
+
+  .terms {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 0.8125rem;
+    color: var(--muted);
+    margin-top: 18px;
+  }
+
+  .box {
+    width: 15px;
+    height: 15px;
+    border: 1px solid var(--muted);
+    border-radius: 3px;
+    flex: none;
+    margin-top: 3px;
+  }
+
+  /* ---------- Α: ήσυχες γραμμές ---------- */
+
+  .a-grid { display: grid; grid-template-columns: 1fr 300px; gap: 48px; align-items: start; }
+
+  .a-side .trip {
+    font-weight: 600;
+    font-size: 0.9375rem;
+    margin: 0 0 2px;
+  }
+
+  .a-side .when {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.8125rem;
+    color: var(--muted);
+    margin: 0 0 20px;
+  }
+
+  .a-side .policy {
+    font-size: 0.8125rem;
+    color: var(--muted);
+    border-top: 1px solid var(--hairline);
+    margin-top: 20px;
+    padding-top: 16px;
+  }
+
+  .a-section + .a-section { margin-top: 32px; padding-top: 30px; border-top: 1px solid var(--hairline); }
+
+  /* ---------- Β: μία στήλη ---------- */
+
+  .b-col { max-width: 440px; margin: 0 auto; }
+
+  .b-summary {
+    background: var(--limewash);
+    border-radius: 5px;
+    padding: 16px 18px;
+    margin-bottom: 28px;
+  }
+
+  .b-summary-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .b-summary .trip { font-weight: 600; font-size: 0.875rem; margin: 0; }
+  .b-summary .when { font-size: 0.75rem; color: var(--muted); margin: 2px 0 0; font-family: "IBM Plex Mono", ui-monospace, monospace; }
+
+  .b-total {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-weight: 500;
+    font-size: 1.125rem;
+    white-space: nowrap;
+  }
+
+  .b-open { font-size: 0.75rem; color: var(--hull); margin: 12px 0 0; }
+
+  .b-step { margin-bottom: 30px; }
+
+  .b-bar {
+    border-top: 1px solid var(--hairline);
+    margin-top: 30px;
+    padding-top: 20px;
+  }
+
+  /* ---------- Γ: χρωματιστό πλαϊνό ---------- */
+
+  .c-split { display: grid; grid-template-columns: 1fr 340px; min-height: 420px; }
+
+  .c-form { padding: 30px; }
+
+  .c-panel {
+    background: var(--hull);
+    color: #DCE7E4;
+    padding: 30px;
+  }
+
+  .c-panel .trip { color: var(--paper); font-weight: 600; font-size: 1rem; margin: 0 0 3px; }
+  .c-panel .when { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 0.8125rem; margin: 0 0 24px; opacity: 0.8; }
+  .c-panel .legend { color: #9DBAB5; }
+  .c-panel .row + .row { border-top-color: rgba(255, 255, 255, 0.14); }
+  .c-panel .row.discount { color: #8FD3C4; }
+  .c-panel .row.sum { border-top-color: rgba(255, 255, 255, 0.5); color: var(--paper); }
+  .c-panel .vat { color: #9DBAB5; }
+
+  .c-panel .photo {
+    aspect-ratio: 16 / 9;
+    max-width: 100%;
+    border-radius: 4px;
+    background: linear-gradient(160deg, #0E6B63 0%, #063733 100%);
+    margin-bottom: 20px;
+  }
+
+  .c-panel .policy {
+    font-size: 0.8125rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    margin-top: 22px;
+    padding-top: 16px;
+    opacity: 0.85;
+  }
+
+  /* ---------- Η επιλογή ---------- */
+
+  .picker {
+    background: var(--paper);
+    border: 1px solid var(--hairline);
+    border-radius: 6px;
+    padding: 30px;
+  }
+
+  .picker h2 { font-size: var(--step-2); font-weight: 600; margin: 0 0 8px; letter-spacing: -0.015em; }
+  .picker > p { color: var(--muted); margin: 0 0 24px; max-width: 58ch; }
+
+  .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+
+  .option {
+    font: inherit;
+    text-align: left;
+    background: var(--limewash);
+    border: 1px solid var(--hairline);
+    border-radius: 5px;
+    padding: 16px;
+    cursor: pointer;
+    color: var(--ink);
+  }
+
+  .option:hover { border-color: var(--hull); }
+  .option[aria-pressed="true"] { background: var(--hull); border-color: var(--hull); color: var(--paper); }
+  .option[aria-pressed="true"] .option-name { color: var(--paper); }
+  .option[aria-pressed="true"] .option-why { color: #BFD6D2; }
+
+  .option-letter {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 6px;
+    opacity: 0.7;
+  }
+
+  .option-name { font-weight: 600; display: block; margin-bottom: 4px; }
+  .option-why { font-size: 0.8125rem; color: var(--muted); display: block; line-height: 1.5; }
+
+  .chosen {
+    margin: 22px 0 0;
+    padding: 15px 18px;
+    background: var(--limewash);
+    border-left: 3px solid var(--ember);
+    border-radius: 0 4px 4px 0;
+    font-size: 0.9375rem;
+  }
+
+  .chosen b { font-weight: 600; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+
+  @media (max-width: 860px) {
+    .a-grid { grid-template-columns: 1fr; gap: 32px; }
+    .c-split { grid-template-columns: 1fr; }
+    .options { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 560px) {
+    .wrap { padding-inline: 16px; padding-block: 36px 64px; }
+    :root { --step-3: 1.625rem; --step-4: 2rem; }
+    .stage, .c-form, .c-panel, .picker { padding: 20px; }
+    .pair { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Kaiki · μακέτες, 23 Σεπτεμβρίου 2026</p>
+    <h1>Το ταμείο, τρεις δρόμοι</h1>
+    <p class="lede">Η σελίδα πληρωμής έχει σήμερα τα σωστά κομμάτια — σύνοψη, στοιχεία επιβατών, πολιτική ακύρωσης, κουμπί πληρωμής — αλλά δεν έχει αποφασίσει πώς μοιάζει. Εδώ είναι τρεις αποφάσεις, με τα ίδια δεδομένα σε κάθε μία.</p>
+    <p class="lede">Και στις τρεις ισχύουν όσα κλείσαμε ήδη: φως μόνο, Inter, ετικέτες που επιπλέουν, «στην τιμή περιλαμβάνεται ΦΠΑ» στη γραμμή της τιμής, κανένας υπογραμμισμένος σύνδεσμος.</p>
+  </header>
+
+  <hr class="rule">
+
+  <!-- ============ Α ============ -->
+  <section class="direction">
+    <div class="direction-head">
+      <span class="letter" aria-hidden="true">Α</span>
+      <h2>Ήσυχες γραμμές</h2>
+    </div>
+    <p>Δύο στήλες, καθόλου κουτιά. Οι ενότητες χωρίζονται με λεπτές γραμμές αντί για κάρτες, και η σύνοψη μένει καρφιτσωμένη δεξιά όσο ο επισκέπτης συμπληρώνει. Είναι η πιο κοντινή στο σημερινό — ό,τι αλλάζει είναι ότι φεύγει το περίγραμμα από τα πάντα.</p>
+
+    <div class="screen">
+      <div class="chrome"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>aegean-blue.gr/c/8f2a…</span></div>
+      <div class="stage">
+        <div class="brandbar">
+          <span class="brandmark">Aegean Blue</span>
+          <span class="lang">EL / EN</span>
+        </div>
+
+        <div class="a-grid">
+          <div>
+            <h3 class="m-h1">Ολοκλήρωση κράτησης</h3>
+            <p class="m-sub">Μένουν δύο λεπτά. Τα στοιχεία σας δεν αποθηκεύονται πουθενά αλλού.</p>
+
+            <div class="a-section">
+              <p class="legend">Ποιος κλείνει</p>
+              <div class="field"><input id="a-name" value="Μιχάλης Παπαδόπουλος" readonly><label for="a-name">Ονοματεπώνυμο</label></div>
+              <div class="pair">
+                <div class="field"><input id="a-mail" value="m.papadopoulos@example.gr" readonly><label for="a-mail">Email</label></div>
+                <div class="field"><input id="a-tel" value="+30 694 123 4567" readonly><label for="a-tel">Τηλέφωνο</label></div>
+              </div>
+            </div>
+
+            <div class="a-section">
+              <p class="legend">Επιβάτης 1 · ενήλικας</p>
+              <div class="pair">
+                <div class="field"><input id="a-p1" value="Μιχάλης Παπαδόπουλος" readonly><label for="a-p1">Ονοματεπώνυμο</label></div>
+                <div class="field"><input id="a-p1d" value="ΑΚ 123456" readonly><label for="a-p1d">Αριθμός ταυτότητας</label></div>
+              </div>
+              <div class="terms">
+                <span class="box" aria-hidden="true"></span>
+                <span>Συμφωνώ με τους όρους και την πολιτική ακύρωσης.</span>
+              </div>
+            </div>
+          </div>
+
+          <aside class="a-side">
+            <p class="trip">Ηλιοβασίλεμα στον Σαρωνικό</p>
+            <p class="when">Παρ 20 Δεκ 2026 · 18:30 · Καλυψώ</p>
+
+            <dl class="rows">
+              <div class="row"><dt>Ενήλικας × 2</dt><dd class="num">80,00 €</dd></div>
+              <div class="row"><dt>Παιδί × 1</dt><dd class="num">20,00 €</dd></div>
+              <div class="row discount"><dt>Έκπτωση SUNSET10</dt><dd class="num">−10,00 €</dd></div>
+              <div class="row sum"><dt>Σύνολο</dt><dd class="num">90,00 €</dd></div>
+            </dl>
+            <p class="vat">Στην τιμή περιλαμβάνεται ΦΠΑ</p>
+
+            <p class="policy">Ακύρωση χωρίς χρέωση έως 48 ώρες πριν. <a href="#a">Δείτε την πολιτική</a></p>
+
+            <div style="margin-top:22px">
+              <button type="button" class="pay">Πληρωμή 90,00 €</button>
+              <p class="secure">Ασφαλής πληρωμή μέσω Viva Wallet</p>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> σε κινητό η σύνοψη πέφτει κάτω από τη φόρμα, οπότε το ποσό δεν φαίνεται όσο γράφει κανείς — εκτός αν την κρατήσουμε σε μπάρα στο κάτω μέρος.</p>
+  </section>
+
+  <!-- ============ Β ============ -->
+  <section class="direction">
+    <div class="direction-head">
+      <span class="letter" aria-hidden="true">Β</span>
+      <h2>Μία στήλη</h2>
+    </div>
+    <p>Μία στενή στήλη, η ίδια σε κάθε οθόνη. Η σύνοψη μαζεύεται σε μια γραμμή στην κορυφή που ανοίγει με ένα πάτημα, και το ποσό μένει ορατό από την αρχή. Κάτω από τη φόρμα, το κουμπί πληρωμής. Ο ίδιος δρόμος στο κινητό και στην οθόνη του γραφείου.</p>
+
+    <div class="screen">
+      <div class="chrome"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>aegean-blue.gr/c/8f2a…</span></div>
+      <div class="stage">
+        <div class="b-col">
+          <div class="brandbar">
+            <span class="brandmark">Aegean Blue</span>
+            <span class="lang">EL / EN</span>
+          </div>
+
+          <div class="b-summary">
+            <div class="b-summary-top">
+              <div>
+                <p class="trip">Ηλιοβασίλεμα στον Σαρωνικό</p>
+                <p class="when">Παρ 20 Δεκ 2026 · 18:30 · 3 άτομα</p>
+              </div>
+              <span class="b-total">90,00 €</span>
+            </div>
+            <p class="b-open"><a href="#b">Δείτε την ανάλυση</a></p>
+          </div>
+
+          <div class="b-step">
+            <p class="legend">Ποιος κλείνει</p>
+            <div class="field"><input id="b-name" value="Μιχάλης Παπαδόπουλος" readonly><label for="b-name">Ονοματεπώνυμο</label></div>
+            <div class="field"><input id="b-mail" value="m.papadopoulos@example.gr" readonly><label for="b-mail">Email</label></div>
+            <div class="field"><input id="b-tel" value="+30 694 123 4567" readonly><label for="b-tel">Τηλέφωνο</label></div>
+          </div>
+
+          <div class="b-step">
+            <p class="legend">Επιβάτης 1 · ενήλικας</p>
+            <div class="field"><input id="b-p1" value="Μιχάλης Παπαδόπουλος" readonly><label for="b-p1">Ονοματεπώνυμο</label></div>
+            <div class="field"><input id="b-p1d" value="ΑΚ 123456" readonly><label for="b-p1d">Αριθμός ταυτότητας</label></div>
+          </div>
+
+          <div class="b-bar">
+            <p class="vat" style="margin-bottom:12px">Ακύρωση χωρίς χρέωση έως 48 ώρες πριν · Στην τιμή περιλαμβάνεται ΦΠΑ</p>
+            <button type="button" class="pay">Πληρωμή 90,00 €</button>
+            <p class="secure">Ασφαλής πληρωμή μέσω Viva Wallet</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> η ανάλυση της τιμής είναι κρυμμένη μέχρι να την ζητήσει κανείς. Για τρεις γραμμές δεν πειράζει· για κράτηση με πολλά άτομα και προκαταβολή, ίσως.</p>
+  </section>
+
+  <!-- ============ Γ ============ -->
+  <section class="direction">
+    <div class="direction-head">
+      <span class="letter" aria-hidden="true">Γ</span>
+      <h2>Χρωματιστό πλαϊνό</h2>
+    </div>
+    <p>Η σύνοψη φεύγει σε δικό της πλαϊνό, στο χρώμα του διοργανωτή, από άκρη σε άκρη. Η φόρμα μένει σε λευκό. Είναι η πιο έντονη από τις τρεις και η μόνη που δείχνει φωτογραφία — και είναι αυτή που μοιάζει λιγότερο με φόρμα και περισσότερο με ταμείο.</p>
+
+    <div class="screen">
+      <div class="chrome"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>aegean-blue.gr/c/8f2a…</span></div>
+      <div class="c-split">
+        <div class="c-form">
+          <div class="brandbar">
+            <span class="brandmark">Aegean Blue</span>
+            <span class="lang">EL / EN</span>
+          </div>
+
+          <h3 class="m-h1">Ολοκλήρωση κράτησης</h3>
+          <p class="m-sub">Μένουν δύο λεπτά.</p>
+
+          <p class="legend">Ποιος κλείνει</p>
+          <div class="field"><input id="c-name" value="Μιχάλης Παπαδόπουλος" readonly><label for="c-name">Ονοματεπώνυμο</label></div>
+          <div class="pair">
+            <div class="field"><input id="c-mail" value="m.papadopoulos@example.gr" readonly><label for="c-mail">Email</label></div>
+            <div class="field"><input id="c-tel" value="+30 694 123 4567" readonly><label for="c-tel">Τηλέφωνο</label></div>
+          </div>
+
+          <p class="legend" style="margin-top:26px">Επιβάτης 1 · ενήλικας</p>
+          <div class="pair">
+            <div class="field"><input id="c-p1" value="Μιχάλης Παπαδόπουλος" readonly><label for="c-p1">Ονοματεπώνυμο</label></div>
+            <div class="field"><input id="c-p1d" value="ΑΚ 123456" readonly><label for="c-p1d">Αριθμός ταυτότητας</label></div>
+          </div>
+
+          <div class="terms">
+            <span class="box" aria-hidden="true"></span>
+            <span>Συμφωνώ με τους όρους και την πολιτική ακύρωσης.</span>
+          </div>
+
+          <div style="margin-top:24px">
+            <button type="button" class="pay">Πληρωμή 90,00 €</button>
+            <p class="secure">Ασφαλής πληρωμή μέσω Viva Wallet</p>
+          </div>
+        </div>
+
+        <aside class="c-panel">
+          <div class="photo" aria-hidden="true"></div>
+          <p class="trip">Ηλιοβασίλεμα στον Σαρωνικό</p>
+          <p class="when">Παρ 20 Δεκ 2026 · 18:30 · Καλυψώ</p>
+
+          <p class="legend">Η κράτησή σας</p>
+          <dl class="rows">
+            <div class="row"><dt>Ενήλικας × 2</dt><dd class="num">80,00 €</dd></div>
+            <div class="row"><dt>Παιδί × 1</dt><dd class="num">20,00 €</dd></div>
+            <div class="row discount"><dt>Έκπτωση SUNSET10</dt><dd class="num">−10,00 €</dd></div>
+            <div class="row sum"><dt>Σύνολο</dt><dd class="num">90,00 €</dd></div>
+          </dl>
+          <p class="vat">Στην τιμή περιλαμβάνεται ΦΠΑ</p>
+
+          <p class="policy">Ακύρωση χωρίς χρέωση έως 48 ώρες πριν.</p>
+        </aside>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> το πλαϊνό παίρνει το χρώμα του διοργανωτή, άρα πρέπει να δουλεύει με ό,τι κι αν διαλέξει — και ένα ανοιχτό κίτρινο θέλει σκούρα γράμματα. Θα χρειαστεί κανόνας αντίθεσης, όπως έχει ήδη η οθόνη εμφάνισης.</p>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ============ Επιλογή ============ -->
+  <section class="picker">
+    <h2>Ποια από τις τρεις;</h2>
+    <p>Πατήστε για να τη δείτε σημειωμένη, και πείτε μου το γράμμα στη συζήτηση — η σελίδα δεν στέλνει τίποτα από μόνη της.</p>
+
+    <div class="options">
+      <button type="button" class="option" aria-pressed="false" data-letter="Α" data-name="Ήσυχες γραμμές">
+        <span class="option-letter">Α</span>
+        <span class="option-name">Ήσυχες γραμμές</span>
+        <span class="option-why">Η πιο κοντινή στο σημερινό. Η μικρότερη δουλειά.</span>
+      </button>
+      <button type="button" class="option" aria-pressed="false" data-letter="Β" data-name="Μία στήλη">
+        <span class="option-letter">Β</span>
+        <span class="option-name">Μία στήλη</span>
+        <span class="option-why">Ίδια σε κινητό και υπολογιστή. Το ποσό πάντα ορατό.</span>
+      </button>
+      <button type="button" class="option" aria-pressed="false" data-letter="Γ" data-name="Χρωματιστό πλαϊνό">
+        <span class="option-letter">Γ</span>
+        <span class="option-name">Χρωματιστό πλαϊνό</span>
+        <span class="option-why">Η πιο έντονη. Δείχνει το σκάφος και το χρώμα.</span>
+      </button>
+    </div>
+
+    <p class="chosen" id="chosen">Δεν έχετε διαλέξει ακόμη.</p>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var options = Array.prototype.slice.call(document.querySelectorAll('.option'));
+    var out = document.getElementById('chosen');
+
+    options.forEach(function (option) {
+      option.addEventListener('click', function () {
+        options.forEach(function (other) { other.setAttribute('aria-pressed', String(other === option)); });
+        out.innerHTML = 'Διαλέξατε <b>' + option.dataset.letter + ' — ' + option.dataset.name + '</b>. Πείτε μου το γράμμα στη συζήτηση για να χτιστεί.';
+      });
+    });
+  })();
+</script>

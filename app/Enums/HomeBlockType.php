@@ -95,6 +95,41 @@ enum HomeBlockType: string
     /** A photographed band with a heading, a sentence and one or two buttons. */
     case Cta = 'cta';
 
+    /*
+     * The five of 24 September, for «Σχετικά με εμάς» (on either page, though).
+     *
+     * The timeline is written by the operator. The other four are **mounts**,
+     * like the FAQ: they carry a heading and a line of their own, and the rest
+     * comes from what Kaiki already holds — so a boat added in «Σκάφη» is on
+     * the page the same minute, and a licence number is never typed twice.
+     */
+
+    /** Up to eight years, each with a title and a line: «1968 — Η πρώτη βάρκα». */
+    case Timeline = 'timeline';
+
+    /** The boats, from «Σκάφη»: photograph, capacity, length, licence. */
+    case Fleet = 'fleet';
+
+    /** The people, from «Ομάδα»: captains and deckhands, with photograph and «Λίγα λόγια». */
+    case Crew = 'crew';
+
+    /** Licences and business details: the tenant's legal name, ΑΦΜ, ΓΕΜΗ, the boats' licences. */
+    case Credentials = 'credentials';
+
+    /** One port from «Λιμάνια», with its photograph, address and directions. */
+    case MeetingPoint = 'meeting_point';
+
+    /**
+     * Does this type fill itself from Kaiki's own records?
+     *
+     * The editor says so under the type, so nobody hunts for the field where
+     * the boats are typed in.
+     */
+    public function isMount(): bool
+    {
+        return in_array($this, [self::Trips, self::Faq, self::Fleet, self::Crew, self::Credentials, self::MeetingPoint], true);
+    }
+
     /**
      * Does this type render the operator's prose?
      *
@@ -108,6 +143,7 @@ enum HomeBlockType: string
         return in_array($this, [
             self::Hero, self::Story, self::Contact,
             self::Steps, self::Features, self::Testimonials, self::Cta,
+            self::Fleet, self::Crew, self::Credentials, self::MeetingPoint,
         ], true);
     }
 
@@ -136,6 +172,7 @@ enum HomeBlockType: string
         return in_array($this, [
             self::Hero, self::Trips, self::Story,
             self::Stats, self::Steps, self::Features, self::Testimonials, self::Cta,
+            self::Timeline, self::Fleet, self::Crew, self::Credentials, self::MeetingPoint,
         ], true);
     }
 
@@ -149,6 +186,7 @@ enum HomeBlockType: string
         return match ($this) {
             self::Hero, self::Steps, self::Testimonials => 3,
             self::Stats, self::Features => 4,
+            self::Timeline => 8,
             default => 0,
         };
     }
@@ -186,5 +224,19 @@ enum HomeBlockType: string
     public static function defaultLayout(): array
     {
         return [self::Hero, self::Trips, self::Faq, self::Contact];
+    }
+
+    /**
+     * What «Σχετικά με εμάς» opens with in the editor, before its first save.
+     *
+     * Never served: an operator's about page is live, and in the menu, only once
+     * they have saved it — a page of someone else's words would be worse than
+     * none.
+     *
+     * @return list<self>
+     */
+    public static function aboutLayout(): array
+    {
+        return [self::Hero, self::Stats, self::Story, self::Timeline, self::Fleet, self::Crew, self::Testimonials, self::Credentials, self::MeetingPoint, self::Cta];
     }
 }

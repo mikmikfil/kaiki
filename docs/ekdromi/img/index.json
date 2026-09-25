@@ -1,0 +1,81 @@
+{
+  "takenAt": "2026-09-22T07:13:52.243Z",
+  "shots": [
+    {
+      "name": "products-list",
+      "url": "/app/products"
+    },
+    {
+      "name": "create-basics",
+      "url": "/app/products/create?tab=-basika-tab"
+    },
+    {
+      "name": "create-when",
+      "url": "/app/products/create?tab=-pote-pheugei-tab"
+    },
+    {
+      "name": "create-prices",
+      "url": "/app/products/create?tab=-times-tab"
+    },
+    {
+      "name": "create-terms",
+      "url": "/app/products/create?tab=-oroi-tab"
+    },
+    {
+      "name": "create-page",
+      "url": "/app/products/create?tab=-selida-tab"
+    },
+    {
+      "name": "edit-basics",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-basika-tab"
+    },
+    {
+      "name": "edit-when",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-pote-pheugei-tab"
+    },
+    {
+      "name": "edit-schedules",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-pote-pheugei-tab"
+    },
+    {
+      "name": "edit-prices-empty",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-times-tab"
+    },
+    {
+      "name": "edit-extras",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-times-tab"
+    },
+    {
+      "name": "edit-terms",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-oroi-tab"
+    },
+    {
+      "name": "edit-page",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-selida-tab"
+    },
+    {
+      "name": "edit-checklist",
+      "url": "/app/products/c3dab4a6-9a49-4dc6-9c3a-c953465946df/edit?tab=-basika-tab"
+    },
+    {
+      "name": "charter-when",
+      "url": "/app/products/a99f7fd2-9e61-401f-93d6-7cc491c8495b/edit?tab=-pote-pheugei-tab"
+    },
+    {
+      "name": "bands",
+      "url": "/app/products/221fe4d4-42da-4750-a67d-257466e218aa/edit?tab=-times-tab"
+    },
+    {
+      "name": "price-table",
+      "url": "/app/products/221fe4d4-42da-4750-a67d-257466e218aa/edit?tab=-times-tab"
+    },
+    {
+      "name": "checklist-ready",
+      "url": "/app/products/221fe4d4-42da-4750-a67d-257466e218aa/edit?tab=-basika-tab"
+    },
+    {
+      "name": "guest-trip",
+      "url": "/aegean-blue/olimeri-tria-nisia"
+    }
+  ]
+}

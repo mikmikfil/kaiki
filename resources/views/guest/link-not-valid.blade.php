@@ -13,8 +13,13 @@
 
     Deliberately unbranded. A token that did not resolve has no tenant, so there
     is no operator whose colours these could honestly be.
+
+    `languages: false`, for the same reason as everything else here: the
+    masthead's language links carry the current address, and the address
+    carries the token (2026-09-22). Two refusals would have differed by exactly
+    the string the page exists to not reveal.
 --}}
-@extends('guest.layout', ['title' => __('guest.link.title')])
+@extends('guest.layout', ['title' => __('guest.link.title'), 'languages' => false])
 
 @section('content')
     <div class="card">

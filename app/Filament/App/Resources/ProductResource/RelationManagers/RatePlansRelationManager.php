@@ -297,6 +297,11 @@ class RatePlansRelationManager extends RelationManager
             // applies when nothing else does, so it reads as the baseline the
             // others are exceptions to.
             ->defaultSort('season_id')
+            // The heading lives on the table since the manager was embedded in
+            // the «Τιμές» tab (2026-09-21): it is no longer registered as a
+            // relation manager, so nothing else would draw one.
+            ->heading(__('pricing.on_product.title'))
+            ->description(__('pricing.on_product.intro'))
             ->emptyStateHeading(__('pricing.on_product.empty.heading'))
             ->emptyStateDescription(__('pricing.on_product.empty.body'))
             ->headerActions([

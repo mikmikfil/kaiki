@@ -1,4 +1,4 @@
-import { brandProperties, type BrandPayload } from './branding';
+import { brandProperties, SYSTEM_STACK, type BrandPayload } from './branding';
 
 /**
  * The boundary between the widget and somebody else's page (WGT-1, WGT-22).
@@ -144,7 +144,7 @@ const BASE_STYLES = `
      the root would make the whole widget ten pixels tall. */
   font-size: 16px;
   line-height: 1.5;
-  font-family: var(--kaiki-font);
+  font-family: var(--kaiki-font, ${SYSTEM_STACK});
   color: var(--kaiki-text);
   text-align: start;
 }
@@ -177,8 +177,11 @@ const BASE_STYLES = `
      rendered the entire booking form in Comic Sans that way.
      Nothing in the operator's stylesheet can match an element inside a shadow
      root, so restating them on this element is the fix rather than an
-     escalation — there is no war of important flags to lose. */
-  font-family: var(--kaiki-font);
+     escalation — there is no war of important flags to lose.
+     The page's '--kaiki-font' when it sets one (Kaiki's own pages set Inter),
+     else the branding's family, else the system's — never whatever the
+     operator's theme put on '*'. */
+  font-family: var(--kaiki-font, ${SYSTEM_STACK});
   font-size: 16px;
   font-weight: 400;
   font-style: normal;
@@ -306,8 +309,100 @@ const BASE_STYLES = `
   border-radius: var(--kaiki-radius, 10px);
   padding: .55rem .65rem; min-height: 44px; width: 100%;
 }
-.kaiki-inline { grid-template-columns: 1fr 5rem; align-items: center; }
+/* 9.5rem and not 5rem: the row now carries − field + rather than a bare
+   number, and the label keeps whatever is left. */
+.kaiki-inline { grid-template-columns: 1fr 9.5rem; align-items: center; }
+
+/* **− αριστερά, ο αριθμός στη μέση, + δεξιά** (Mike, 2026-09-23).
+
+   A phone shows no spinner on a number input, so the only way to change the
+   party was to raise the keyboard over the sheet and type. Three cells, with
+   the figure between the two buttons that change it, and each button a full
+   44px target.
+
+   The input keeps its own border rather than sitting in a shared pill: it is
+   still typeable, and a field that looks like a field says so. */
+.kaiki-stepper { display: grid; grid-template-columns: 44px 1fr 44px; gap: .35rem; align-items: center; }
+
+.kaiki-stepper button {
+  font: inherit; font-size: 1.15rem; line-height: 1;
+  min-height: 44px; min-width: 44px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--kaiki-text); background: var(--kaiki-background);
+  border: 1px solid color-mix(in srgb, var(--kaiki-text) 22%, transparent);
+  border-radius: var(--kaiki-radius, 10px);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.kaiki-stepper button:disabled { opacity: .35; cursor: default; }
+
+.kaiki-stepper input { text-align: center; padding-inline: .2rem; }
+
+/* The native spinner is a second, smaller pair of arrows next to the two real
+   ones, and on a phone it is not there at all — so it is nothing but a
+   misaligned decoration on a desktop. */
+.kaiki-stepper input::-webkit-outer-spin-button,
+.kaiki-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.kaiki-stepper input { -moz-appearance: textfield; appearance: textfield; }
 .kaiki-consent { grid-template-columns: auto 1fr; align-items: start; gap: .6rem; }
+
+/* The enquiry form in two steps (Mike, 2026-09-24): a numbered line per step,
+   the day and the people side by side in one bordered box, email and phone on
+   one row, the optional line marked as such, and the button in the accent. */
+.kaiki-enquiry .kaiki-enquiry-sub { margin-top: -.5rem; }
+.kaiki-enquiry-step { display: flex; align-items: center; gap: .55rem; margin: .4rem 0 -.1rem; font-size: .82rem; font-weight: 700; color: var(--kaiki-accent); }
+.kaiki-enquiry-step i {
+  font-style: normal; inline-size: 1.4rem; block-size: 1.4rem; border-radius: 50%;
+  display: grid; place-items: center; font-size: .75rem;
+  background: color-mix(in srgb, var(--kaiki-accent) 12%, var(--kaiki-background));
+}
+.kaiki-enquiry-pick {
+  display: grid; grid-template-columns: 1fr 1fr;
+  border: 1.5px solid color-mix(in srgb, var(--kaiki-text) 16%, transparent);
+  border-radius: calc(var(--kaiki-radius, 10px) + 4px); overflow: hidden;
+}
+.kaiki-enquiry-cell { display: grid; gap: .15rem; padding: .6rem .8rem; min-width: 0; }
+.kaiki-enquiry-cell + .kaiki-enquiry-cell { border-inline-start: 1.5px solid color-mix(in srgb, var(--kaiki-text) 16%, transparent); }
+.kaiki-enquiry-cell > span { font-size: .78rem; font-weight: 600; color: color-mix(in srgb, var(--kaiki-text) 65%, transparent); }
+.kaiki-enquiry-cell input[type="date"] { font: inherit; color: inherit; border: 0; background: transparent; padding: 0; min-height: 30px; width: 100%; }
+.kaiki-enquiry-stepper { display: grid; grid-template-columns: 30px 1fr 30px; align-items: center; gap: .25rem; }
+.kaiki-enquiry-stepper button {
+  inline-size: 30px; block-size: 30px; border-radius: 50%; padding: 0; cursor: pointer;
+  font: inherit; font-weight: 700; line-height: 1; color: var(--kaiki-primary);
+  background: var(--kaiki-background); border: 1.5px solid color-mix(in srgb, var(--kaiki-text) 16%, transparent);
+}
+.kaiki-enquiry-stepper button:disabled { opacity: .35; cursor: default; }
+.kaiki-enquiry-stepper input {
+  font: inherit; font-weight: 700; text-align: center; border: 0; background: transparent; padding: 0; min-height: 30px; width: 100%; color: inherit;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.kaiki-enquiry-stepper input::-webkit-outer-spin-button,
+.kaiki-enquiry-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.kaiki-enquiry-cell:focus-within { background: color-mix(in srgb, var(--kaiki-accent) 6%, var(--kaiki-background)); }
+.kaiki-enquiry-cell input:focus-visible { outline: none; }
+.kaiki-enquiry-two { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
+.kaiki-enquiry-two > * { min-width: 0; }
+@media (max-width: 22rem) { .kaiki-enquiry-two { grid-template-columns: 1fr; } }
+.kaiki-enquiry .kaiki-field input, .kaiki-enquiry .kaiki-field textarea { border-width: 1.5px; border-radius: calc(var(--kaiki-radius, 10px) + 2px); }
+.kaiki-enquiry .kaiki-field input:focus, .kaiki-enquiry .kaiki-field textarea:focus {
+  outline: none; border-color: var(--kaiki-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--kaiki-accent) 14%, transparent);
+}
+.kaiki-enquiry-optional { font-style: normal; font-weight: 400; color: color-mix(in srgb, var(--kaiki-text) 55%, transparent); }
+.kaiki-enquiry-actions { display: grid; gap: .5rem; }
+.kaiki-enquiry-actions .kaiki-button {
+  inline-size: 100%; justify-content: center; min-height: 50px; font-size: 1rem; font-weight: 700;
+  background: var(--kaiki-accent); border-color: var(--kaiki-accent); color: var(--kaiki-on-primary, var(--kaiki-background));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--kaiki-accent) 25%, transparent);
+}
+.kaiki-enquiry-actions .kaiki-button:hover { background: color-mix(in srgb, var(--kaiki-accent) 86%, var(--kaiki-text)); }
+.kaiki-enquiry-note { font-size: .8rem; margin: 0; }
+/* In the phone sheet too: the button full width, the note under it. The sheet's
+   own row rule (nowrap, side by side) is for back + continue. */
+.kaiki-booking.kaiki-enquiry[data-sheet="true"] .kaiki-enquiry-actions { display: grid; gap: .4rem; }
+.kaiki-booking.kaiki-enquiry[data-sheet="true"] .kaiki-enquiry-actions .kaiki-button { inline-size: 100%; white-space: nowrap; }
+.kaiki-booking.kaiki-enquiry[data-sheet="true"] .kaiki-enquiry-note { text-align: center; }
 .kaiki-consent input { min-height: 0; width: auto; }
 
 .kaiki-summary { display: grid; gap: .4rem; margin: 0 0 .9rem; }
@@ -507,6 +602,15 @@ const BASE_STYLES = `
    the rule through the number unexplained. */
 .kaiki-legend .kaiki-day-sold_out { text-decoration: line-through; }
 
+/* Read but not seen. Same mechanism as the honeypot below: off screen rather
+   than "display: none", which would take it out of the accessibility tree
+   along with the view. */
+.kaiki-visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  margin: 0;
+}
+
 /* The honeypot: off-screen rather than "display: none", so a form filler that
    skips hidden inputs still fills it. */
 .kaiki-trap {
@@ -597,9 +701,24 @@ const BASE_STYLES = `
   display: flex;
   flex-direction: column;
 
-  /* Not "vh". Safari's collapsing chrome makes "vh" taller than the screen, and
+  /* **A half sheet, not a cover** (Mike, 2026-09-23, direction Α of the mobile
+     mockups): the page stays visible above it, so a guest can still see which
+     trip they are booking and never loses their place.
+
+     90svh (Mike, 2026-09-23: *«κάνε μεγαλύτερο»*, then *«κάνε ακόμα πιο ψηλό
+     αυτό το popup»*). 68 was too mean — a whole month needs about 94% of a
+     664-pixel screen once the price, the steps and the button are counted — and
+     80 still left a long month one scroll short.
+
+     90 is the ceiling, not a step on the way to 100: a strip of the page has to
+     stay visible above the sheet or direction Α turns into the full-screen
+     cover it was chosen instead of, and the guest loses which trip they are
+     booking. About 66 pixels of a 664-pixel screen, which is a line of the
+     trip's title.
+
+     Not "vh". Safari's collapsing chrome makes "vh" taller than the screen, and
      the part that overflows is the bottom — which is where the button is. */
-  max-height: 85svh;
+  max-height: 90svh;
 
   background: var(--kaiki-background);
   border: 0;
@@ -733,6 +852,42 @@ const BASE_STYLES = `
   .kaiki-peek-tab svg { transition: none; }
 }
 
+/* Πού είσαι στα τρία βήματα (direction Α, 2026-09-23). Μία μπάρα ανά βήμα,
+   γεμάτες ως αυτό που βλέπεις. Λεπτές και ήσυχες: είναι προσανατολισμός, όχι
+   χειριστήριο — δεν πατιούνται και δεν διαβάζονται φωναχτά. */
+.kaiki-steps {
+  list-style: none;
+  display: flex;
+  /* Centred, not the default stretch: a flex item with flex:1 and a
+     three-pixel height still gets stretched wherever the row is taller than
+     its content, and the bars ended up sitting at different heights from one
+     another (Mike, 2026-09-23).
+
+     No backticks anywhere in this file: the whole stylesheet is a template
+     literal, and one in a comment ends it. That is how v0.4.21 was published
+     from a stale build — the compile failed and the publish step did not care. */
+  align-items: center;
+  gap: .3rem;
+  margin: 0;
+  /* Κάτω περιθώριο, γιατί χωρίς αυτό οι μπάρες κάθονταν κολλητά πάνω στο
+     ημερολόγιο και διαβάζονταν σαν μέρος του (Mike, ίδια μέρα). */
+  padding: .7rem 1rem .85rem;
+}
+
+.kaiki-steps li {
+  block-size: 3px;
+  /* Και ρητά, ώστε ούτε η στοίχιση ούτε ο γονιός να μπορούν να το αλλάξουν. */
+  min-block-size: 3px;
+  max-block-size: 3px;
+  flex: 1;
+  margin: 0;
+  padding: 0;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--kaiki-text) 12%, transparent);
+}
+
+.kaiki-steps li[data-done="true"] { background: var(--kaiki-primary); }
+
 /* The middle scrolls; the price above it and the buttons below it do not. The
    action never leaves the screen however far down the walk a guest reads. */
 .kaiki-booking[data-sheet="true"] .kaiki-sheet-scroll {
@@ -740,7 +895,11 @@ const BASE_STYLES = `
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
   min-height: 0;
-  padding: 0 1rem;
+  /* Λίγο αέρα στην κορυφή: χωρίς αυτό το ημερολόγιο ξεκινούσε κολλητά στη
+     γραμμή κάτω από τις μπάρες των βημάτων, και οι δύο διαβάζονταν ως ένα
+     πράγμα (Mike, 2026-09-23). Το κενό είναι εδώ και όχι στις μπάρες, ώστε να
+     ισχύει για κάθε βήμα — και τα άτομα και τα πρόσθετα το χρειάζονται. */
+  padding: .8rem 1rem 0;
   border-top: 1px solid color-mix(in srgb, var(--kaiki-text) 9%, transparent);
 }
 
@@ -748,6 +907,30 @@ const BASE_STYLES = `
   flex: none;
   margin: 0;
   padding: .7rem 1rem calc(.8rem + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid color-mix(in srgb, var(--kaiki-text) 9%, transparent);
+}
+
+/* **Το πεδίο του κωδικού έκπτωσης κολλημένο δεξιά αριστερά** (Mike,
+   2026-09-23, τρίτη αναφορά).
+
+   Three sheet children, not two: the discount field is rendered *after*
+   kaiki-sheet-scroll closes, so it can stay above the buttons while a long
+   month scrolls behind it. That also puts it outside the only element carrying
+   a gutter. kaiki-actions right above had been given its own 1rem for exactly
+   this reason and the field never was, so it ran edge to edge on the one
+   screen where a guest types.
+
+   No backticks anywhere in this file: the whole stylesheet is one template
+   literal, and a pair of them in a comment ends it silently — the build
+   succeeds and the widget throws on load.
+
+   Measured, not guessed, after twice reporting a fix that was not one: the
+   checkout page's own field was never the one at fault — it sits at 23px on
+   every width from 320 to 1024. This is the field that was touching. */
+.kaiki-booking[data-sheet="true"] .kaiki-discount {
+  flex: none;
+  margin: 0;
+  padding: .7rem 1rem;
   border-top: 1px solid color-mix(in srgb, var(--kaiki-text) 9%, transparent);
 }
 
@@ -791,6 +974,42 @@ const BASE_STYLES = `
 @media (prefers-reduced-motion: reduce) {
   .kaiki-root * { transition: none !important; animation: none !important; }
 }
+
+/* ------------------------------------------------------------------
+   The type system of the guest pages (2026-09-24, the typography review in
+   docs/mockups/typo): the same nine steps as the operator's site, so the
+   booking box stops being the one thing on a trip page set to its own scale.
+     caption 13 · small 15 · body 16 · title 18
+   Labels 13 / 600 / +0.02em in the secondary ink (was 11.2–12.5px at .06em);
+   every field 16px, because iOS zooms the page into any field smaller than
+   that the moment it is tapped; the optional marker in the secondary ink
+   rather than 55% (3.9:1). Last in the sheet, so it wins over the rules above.
+   ------------------------------------------------------------------ */
+.kaiki-heading { font-size: 1.125rem; }
+.kaiki-muted { font-size: .9375rem; }
+.kaiki-four-lines dt,
+.kaiki-summary dt,
+.kaiki-enquiry-cell > span { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; color: var(--kaiki-secondary-text); }
+.kaiki-field { font-size: .9375rem; }
+.kaiki-field input,
+.kaiki-field textarea,
+.kaiki-enquiry-cell input { font-size: 1rem; }
+.kaiki-enquiry-step { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; }
+.kaiki-enquiry-optional { color: var(--kaiki-secondary-text); }
+.kaiki-enquiry-note { font-size: .8125rem; }
+.kaiki-weekdays { font-size: .8125rem; }
+.kaiki-day { font-size: .9375rem; }
+.kaiki-legend { font-size: .8125rem; }
+.kaiki-button,
+.kaiki-enquiry-actions .kaiki-button { font-size: .9375rem; font-weight: 600; }
+.kaiki-hold,
+.kaiki-total .kaiki-muted,
+.kaiki-time-left,
+.kaiki-card .kaiki-facts,
+.kaiki-peek-summary { font-size: .8125rem; }
+.kaiki-lines,
+.kaiki-peek-action { font-size: .9375rem; }
+.kaiki-peek-price { font-size: 1.125rem; }
 `;
 
 /** Test seam: the instance counter is module state, and a test needs it reset. */

@@ -7,7 +7,6 @@ namespace App\Domain\Booking\Actions;
 use App\Domain\Booking\Support\RefundEntitlement;
 use App\Domain\Pricing\Actions\IssueVoucher;
 use App\Domain\Pricing\Actions\RestoreVoucher;
-use App\Enums\PaymentGatewayName;
 use App\Enums\PaymentKind;
 use App\Enums\PaymentStatus;
 use App\Enums\RefundMethod;
@@ -165,13 +164,40 @@ final class RefundBooking
     }
 
     /**
-     * A `pending` refund row and a queued gateway call.
+     * The money half: back the way it came, charge by charge.
      *
-     * Nothing is marked refunded here. CXL-10: *"a failed refund surfaces in the
-     * operator error feed without silently marking the booking refunded"* — so
-     * `bookings.refunded_cents`, the booking's status and
-     * {@see BookingRefunded} all wait for {@see ExecuteGatewayRefund} to come
-     * back with a settlement.
+     * ## Split by where the money is (2026-09-23)
+     *
+     * Until then this found the single largest card charge and asked the
+     * gateway to refund the **whole** amount against it. Two bookings broke:
+     *
+     * - **Paid only in cash or by transfer.** No card charge, so it returned 0
+     *   and wrote nothing. The booking was cancelled, the guest's email said no
+     *   money was coming back, and nothing reminded the operator that it was.
+     * - **Card deposit, cash balance.** The gateway was asked for more than the
+     *   card had ever been charged, refused it, and the refund landed in the
+     *   error feed with the operator none the wiser about why.
+     *
+     * So every settled incoming charge is a source with what is still left on
+     * it (its amount less the refunds already written against it), and the
+     * amount is laid over them: card charges first, largest first, then the
+     * cash and transfer ones.
+     *
+     * - A **card** share is a `pending` row and a queued
+     *   {@see ExecuteGatewayRefund}, exactly as before. Nothing is marked
+     *   refunded until the gateway settles it (CXL-10).
+     * - A **cash or transfer** share is a `pending` row and **no job**: there is
+     *   nobody to call, and the money goes back across a desk or from the
+     *   operator's bank. «Χρειάζονται προσοχή» shows it until somebody presses
+     *   «Επιστράφηκε» ({@see ConfirmManualRefund}), and the guest's email says
+     *   it will come from the operator.
+     *
+     * ## Idempotent per source
+     *
+     * One open refund row per charge, reused and repriced — the old "one open
+     * row per booking", narrowed to what the gateway actually deduplicates on.
+     * An open row whose charge gets no share this time is withdrawn, but only
+     * while still `pending`: a `processing` one is in the gateway's hands.
      */
     private function asCash(Booking $booking, int $cents, ?string $reason, bool $partial = false): int
     {
@@ -179,17 +205,7 @@ final class RefundBooking
             return 0;
         }
 
-        $source = $this->sourcePaymentFor($booking);
-
-        if ($source === null) {
-            // Nothing was ever taken through a gateway — a booking marked paid
-            // in cash, or one whose whole price was a voucher. There is no
-            // charge to reverse, and inventing a refund row against no payment
-            // would put an unsettleable job in the queue forever.
-            return 0;
-        }
-
-        $refund = DB::transaction(function () use ($booking, $source, $cents, $partial): ?Payment {
+        $refunds = DB::transaction(function () use ($booking, $cents, $partial): array {
             if ($partial) {
                 // See `partial()`: one refund in flight at a time, and never more
                 // than the booking still holds.
@@ -200,10 +216,10 @@ final class RefundBooking
                     ->exists();
 
                 if ($open || $cents > Payment::paidCentsFor($booking->getKey())) {
-                    return null;
+                    return [];
                 }
 
-                return $this->newRefundRow($booking, $source, $cents, self::PARTIAL_KEY_PREFIX);
+                return $this->lay($booking, $cents, self::PARTIAL_KEY_PREFIX, reuse: false);
             }
 
             $settled = Payment::query()
@@ -219,32 +235,79 @@ final class RefundBooking
             if ($settled) {
                 // Already given back. See the class docblock: a second one takes
                 // it out of the operator's account twice.
-                return null;
+                return [];
             }
 
-            $existing = Payment::query()
+            return $this->lay($booking, $cents, '', reuse: true);
+        });
+
+        $moved = 0;
+
+        foreach ($refunds as $refund) {
+            $moved += $refund->amount_cents;
+
+            if ($refund->gateway->isExternal()) {
+                ExecuteGatewayRefund::dispatch($refund->getKey(), $reason);
+            }
+        }
+
+        return $moved;
+    }
+
+    /**
+     * Lay `$cents` over the booking's charges and write one refund row each.
+     *
+     * @return list<Payment> the rows now carrying a share
+     */
+    private function lay(Booking $booking, int $cents, string $keyPrefix, bool $reuse): array
+    {
+        $open = $reuse
+            ? Payment::query()
                 ->where('booking_id', $booking->getKey())
                 ->where('kind', PaymentKind::Refund->value)
                 ->open()
-                ->latest('id')
-                ->first();
+                ->get()
+                ->keyBy('refunds_payment_id')
+            : collect();
 
-            if ($existing instanceof Payment) {
-                $existing->forceFill(['amount_cents' => $cents])->save();
+        $rows = [];
+        $left = $cents;
 
-                return $existing;
+        foreach ($this->sourcesFor($booking) as [$source, $refundable]) {
+            if ($left < 1) {
+                break;
             }
 
-            return $this->newRefundRow($booking, $source, $cents);
-        });
+            $existing = $open->get($source->getKey());
 
-        if (! $refund instanceof Payment) {
-            return 0;
+            // A row being repriced gives back its own old share first.
+            $room = $refundable + ($existing instanceof Payment ? $existing->amount_cents : 0);
+            $share = min($left, $room);
+
+            if ($share < 1) {
+                continue;
+            }
+
+            if ($existing instanceof Payment) {
+                $existing->forceFill(['amount_cents' => $share])->save();
+                $rows[] = $existing;
+                $open->forget($source->getKey());
+            } else {
+                $rows[] = $this->newRefundRow($booking, $source, $share, $keyPrefix);
+            }
+
+            $left -= $share;
         }
 
-        ExecuteGatewayRefund::dispatch($refund->getKey(), $reason);
+        // An open row that got no share this time: withdrawn, unless the
+        // gateway already has it.
+        foreach ($open as $stale) {
+            if ($stale->status === PaymentStatus::Pending) {
+                $stale->forceFill(['status' => PaymentStatus::Cancelled])->save();
+            }
+        }
 
-        return $cents;
+        return $rows;
     }
 
     /** A pending refund row against `$source`, keyed before the call (PAY-9). */
@@ -255,6 +318,8 @@ final class RefundBooking
         $payment->forceFill([
             'uuid' => (string) Str::uuid(),
             'booking_id' => $booking->getKey(),
+            // The way the money came in is the way it goes out: a card refund
+            // for a card charge, cash across the desk for cash.
             'gateway' => $source->gateway,
             'kind' => PaymentKind::Refund,
             'amount_cents' => $cents,
@@ -271,17 +336,22 @@ final class RefundBooking
     }
 
     /**
-     * The charge this refund reverses.
+     * Every settled charge, with what is still refundable on it, in the order
+     * money goes back: card first, then cash and transfer; largest first.
      *
-     * The **largest settled incoming payment**, not the latest: a booking with a
-     * deposit and a balance has two, and a partial refund reversed against the
-     * smaller one can exceed it and be declined by the gateway for a reason
-     * that has nothing to do with the guest. Cash and bank transfer are excluded
-     * because there is no gateway to call.
+     * Largest first for the reason the old single-source rule gave: a partial
+     * refund reversed against a small deposit can exceed it and be declined by
+     * the gateway for a reason that has nothing to do with the guest.
+     *
+     * "Refundable" is the charge less every refund written against it that
+     * has not failed or been withdrawn — open ones included, so two calls in a
+     * row cannot both spend the same room.
+     *
+     * @return list<array{0: Payment, 1: int}>
      */
-    private function sourcePaymentFor(Booking $booking): ?Payment
+    private function sourcesFor(Booking $booking): array
     {
-        return Payment::query()
+        $charges = Payment::query()
             ->where('booking_id', $booking->getKey())
             ->where('status', PaymentStatus::Succeeded->value)
             ->whereIn('kind', [
@@ -289,11 +359,31 @@ final class RefundBooking
                 PaymentKind::Deposit->value,
                 PaymentKind::Balance->value,
             ])
-            ->whereIn('gateway', array_map(
-                static fn (PaymentGatewayName $gateway): string => $gateway->value,
-                array_filter(PaymentGatewayName::cases(), static fn (PaymentGatewayName $g): bool => $g->isExternal()),
-            ))
-            ->orderByDesc('amount_cents')
-            ->first();
+            ->get();
+
+        $spent = Payment::query()
+            ->where('booking_id', $booking->getKey())
+            ->where('kind', PaymentKind::Refund->value)
+            ->whereIn('status', [
+                PaymentStatus::Pending->value,
+                PaymentStatus::Processing->value,
+                PaymentStatus::Succeeded->value,
+            ])
+            ->whereNotNull('refunds_payment_id')
+            ->get()
+            ->groupBy('refunds_payment_id')
+            ->map(static fn ($rows): int => (int) $rows->sum('amount_cents'));
+
+        return $charges
+            ->sortBy([
+                static fn (Payment $a, Payment $b): int => (int) $b->gateway->isExternal() <=> (int) $a->gateway->isExternal(),
+                static fn (Payment $a, Payment $b): int => $b->amount_cents <=> $a->amount_cents,
+            ])
+            ->map(static fn (Payment $charge): array => [
+                $charge,
+                max(0, $charge->amount_cents - (int) ($spent[$charge->getKey()] ?? 0)),
+            ])
+            ->values()
+            ->all();
     }
 }

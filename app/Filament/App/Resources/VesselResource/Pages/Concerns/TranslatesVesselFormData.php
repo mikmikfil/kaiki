@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources\VesselResource\Pages\Concerns;
 
+use App\Domain\Media\Support\GalleryField;
 use App\Filament\App\Resources\VesselResource;
 use App\Models\Vessel;
 use Illuminate\Support\Arr;
 
 /**
- * The two places the vessel form and the vessel columns are not the same shape.
+ * The three places the vessel form and the vessel columns are not the same shape.
  *
  * Shared by the create and edit pages so they cannot drift — the failure mode
  * of writing this twice is that creating a boat rounds its length one way and
@@ -25,6 +26,12 @@ use Illuminate\Support\Arr;
  * rendered"*. The form only knows {@see VesselResource::SPEC_KEYS}, so writing
  * its state straight to the column would silently delete whatever an import or
  * a later version put there. Merging keeps them.
+ *
+ * **3. The gallery** (2026-09-23). The form is one multi-file uploader holding
+ * a plain list of paths; the column keeps §3.15's `{path, alt}`. {@see
+ * GalleryField} maps between them and carries the alt text of every photograph
+ * that is still there — the uploader has no field for alt, and nothing on
+ * screen would show it being lost.
  */
 trait TranslatesVesselFormData
 {
@@ -37,6 +44,12 @@ trait TranslatesVesselFormData
         $data['length_m'] = isset($data['length_cm']) && is_numeric($data['length_cm'])
             ? (int) $data['length_cm'] / 100
             : null;
+
+        $record = $this->getRecord();
+        $data[VesselResource::GALLERY_FIELD] = GalleryField::toForm(
+            $record instanceof Vessel ? $record->images : null,
+        );
+        unset($data['images']);
 
         return $data;
     }
@@ -95,6 +108,17 @@ trait TranslatesVesselFormData
             : [];
 
         $data['specs'] = [...$preserved, ...$submitted];
+
+        // Only when the form sent it, so a caller that fills part of the form
+        // leaves the stored photographs alone.
+        if (array_key_exists(VesselResource::GALLERY_FIELD, $data)) {
+            $data['images'] = GalleryField::fromForm(
+                $data[VesselResource::GALLERY_FIELD],
+                $record instanceof Vessel ? $record->images : null,
+            );
+        }
+
+        unset($data[VesselResource::GALLERY_FIELD]);
 
         return $data;
     }

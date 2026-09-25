@@ -43,6 +43,16 @@ enum PaymentGatewayName: string
     case Cash = 'cash';
     case BankTransfer = 'bank_transfer';
 
+    /**
+     * The operator's own card terminal (2026-09-24, the quay sale, option Β).
+     *
+     * The guest pays on the operator's POS and Kaiki only records that it
+     * happened: no gateway behind it, nothing to reconcile, and a refund is
+     * the operator's to make on their own terminal — so it is not external,
+     * and a refund row for it waits for «Επιστράφηκε» like cash does.
+     */
+    case Pos = 'pos';
+
     /** Is there a third party to call, and to reconcile against later? */
     public function isExternal(): bool
     {
@@ -54,7 +64,7 @@ enum PaymentGatewayName: string
     {
         return match ($this) {
             self::Viva => IntegrationProvider::Viva,
-            self::Cash, self::BankTransfer => null,
+            self::Cash, self::BankTransfer, self::Pos => null,
         };
     }
 }

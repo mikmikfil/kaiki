@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources;
 use App\Domain\Catalog\Actions\SaveSeason;
 use App\Filament\App\Resources\SeasonResource\Pages;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\Season;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DatePicker;
@@ -17,6 +18,7 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
+use Filament\Tables\Actions\Action as TableAction;
 use Filament\Tables\Actions\DeleteAction;
 use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Actions\RestoreAction;
@@ -43,12 +45,25 @@ class SeasonResource extends Resource
 {
     protected static ?string $model = Season::class;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
     protected static ?int $navigationSort = 30;
 
-    // Reached from a tab on its sibling screen, not from the sidebar (Menu 1, 2026-09-16).
-    protected static bool $shouldRegisterNavigation = false;
+    /*
+     * **In the sidebar in its own right** (product owner, 2026-09-22:
+     * *«νιώθω ότι οι Περίοδοι θα έπρεπε να είναι κάπου ξεχωριστά στο μενού»*).
+     *
+     * It used to be reachable only through a tab on «Τιμές» (Menu 1,
+     * 2026-09-16), which is right for the screens an operator opens *while*
+     * pricing a trip. A period is not one of those: it is set up once a season,
+     * it is used by every trip, and it is looked for by name months later — and
+     * a thing somebody goes looking for belongs in the menu rather than behind
+     * another screen's tab. The tab stays exactly where it is; this only adds
+     * the second way in.
+     */
+    protected static bool $shouldRegisterNavigation = true;
 
     public static function getNavigationGroup(): ?string
     {
@@ -80,6 +95,7 @@ class SeasonResource extends Resource
     {
         return [
             Section::make(__('pricing.season.model.singular'))
+                ->icon('heroicon-o-calendar-days')
                 ->schema([
                     TranslatableInput::text(
                         'name',
@@ -110,6 +126,7 @@ class SeasonResource extends Resource
                 ->columns(2),
 
             Section::make(__('pricing.season.form.ranges.label'))
+                ->icon('heroicon-o-arrows-right-left')
                 ->description(__('pricing.season.form.ranges.help'))
                 ->schema([
                     Repeater::make('dateRanges')
@@ -174,7 +191,31 @@ class SeasonResource extends Resource
             // prices are decided in.
             ->defaultSort('priority', 'desc')
             ->filters([TrashedFilter::make()])
-            ->actions([EditAction::make(), DeleteAction::make(), RestoreAction::make()]);
+            /*
+             * An empty list means one of two different things and the generic
+             * «Δεν υπάρχουν εγγραφές» said neither (Mike, 2026-09-23): with no
+             * trip in the account a period has nothing to price yet, and with
+             * trips it is simply the first one.
+             *
+             * Unlike «Τιμές», the create button stays — a period is a
+             * tenant-level range of dates, not a child of a trip, so making one
+             * first is a legitimate order of work.
+             */
+            ->emptyStateIcon('heroicon-o-calendar-days')
+            ->emptyStateHeading(static fn (): string => RatePlanResource::hasNoTrips()
+                ? __('pricing.season.empty.no_trips.heading')
+                : __('pricing.season.empty.none.heading'))
+            ->emptyStateDescription(static fn (): string => RatePlanResource::hasNoTrips()
+                ? __('pricing.season.empty.no_trips.body')
+                : __('pricing.season.empty.none.body'))
+            ->emptyStateActions([
+                TableAction::make('create-trip')
+                    ->label(__('pricing.season.empty.no_trips.action'))
+                    ->icon('heroicon-m-plus')
+                    ->visible(static fn (): bool => RatePlanResource::hasNoTrips())
+                    ->url(static fn (): string => ProductResource::getUrl('create')),
+            ])
+            ->actions(MoreActions::row(EditAction::make(), [DeleteAction::make(), RestoreAction::make()]));
     }
 
     /**

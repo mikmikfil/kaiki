@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 use App\Enums\DepositType;
 use App\Enums\Role;
-use App\Filament\App\Resources\RatePlanResource\Pages\CreateRatePlan;
+use App\Filament\App\Resources\ProductResource\Pages\EditProduct;
+use App\Filament\App\Resources\ProductResource\RelationManagers\RatePlansRelationManager;
 use App\Filament\App\Resources\RatePlanResource\Pages\EditRatePlan;
 use App\Filament\App\Resources\RatePlanResource\Pages\ListRatePlans;
 use App\Filament\Forms\MoneyInput;
@@ -46,6 +47,25 @@ function ratePlanPageAs(User $user, string $page, array $params = []): Testable
     return Livewire::actingAs($user)->test($page, $params);
 }
 
+/**
+ * The surviving way to make a price list: from inside the trip.
+ *
+ * «Προσθήκη Τιμοκαταλόγου» was removed from this screen on 2026-09-23 — a
+ * price cannot exist before the trip it prices, so its first question was
+ * «ποια εκδρομή;» and an operator who can answer that is already on the trip.
+ * The rules it used to exercise did not go away with it, so the tests that
+ * exercised them come through here instead.
+ */
+function ratePlanManagerFor(User $user, Product $product): Testable
+{
+    tenancy()->initialize(ratePlanTenantOf($user));
+
+    return Livewire::actingAs($user)->test(RatePlansRelationManager::class, [
+        'ownerRecord' => $product,
+        'pageClass' => EditProduct::class,
+    ]);
+}
+
 it('lets an owner and a manager reach the rate plans page', function (Role $role): void {
     actingAs(OperatorUser::withRole($role))->get('/app/rate-plans')->assertSuccessful();
 })->with([[Role::Owner], [Role::Manager]])->group('fast');
@@ -84,9 +104,8 @@ it('creates a plan with per-band prices through the form', function (): void {
         return [$product, $base];
     });
 
-    ratePlanPageAs($owner, CreateRatePlan::class)
-        ->fillForm([
-            'product_id' => $product->getKey(),
+    ratePlanManagerFor($owner, $product)
+        ->callTableAction('create', data: [
             'season_id' => null,
             'name' => 'Base',
             'deposit_type' => DepositType::Percent->value,
@@ -96,8 +115,7 @@ it('creates a plan with per-band prices through the form', function (): void {
                 ['age_band_id' => $base->getKey(), 'price_cents' => '50,00'],
             ],
         ])
-        ->call('create')
-        ->assertHasNoFormErrors();
+        ->assertHasNoTableActionErrors();
 
     Tenancy::forTenant(ratePlanTenantOf($owner), function () use ($base): void {
         $plan = RatePlan::query()->firstOrFail();
@@ -124,9 +142,8 @@ it('shows a validation error rather than a stack trace when the Action refuses',
         fn (): AgeBand => $product->ageBands()->firstOrFail(),
     );
 
-    ratePlanPageAs($owner, CreateRatePlan::class)
-        ->fillForm([
-            'product_id' => $product->getKey(),
+    ratePlanManagerFor($owner, $product)
+        ->callTableAction('create', data: [
             'season_id' => null,
             'deposit_type' => DepositType::None->value,
             'min_lead_time_hours' => 0,
@@ -134,8 +151,7 @@ it('shows a validation error rather than a stack trace when the Action refuses',
                 ['age_band_id' => $base->getKey(), 'price_cents' => '50,00'],
             ],
         ])
-        ->call('create')
-        ->assertHasFormErrors(['season_id']);
+        ->assertHasTableActionErrors(['season_id']);
 })->group('fast');
 
 it('renders a plan for editing with its band prices filled in', function (): void {
@@ -185,4 +201,94 @@ it('parses a money field without ever producing a float', function (string $type
 it('renders integer cents back as decimal text', function (): void {
     expect(MoneyInput::toDecimal(15050))->toBe('150.50')
         ->and(MoneyInput::toDecimal(null))->toBeNull();
+})->group('fast');
+
+it('says where age bands come from, instead of showing an empty «Τιμές» box', function (): void {
+    // Product owner, 2026-09-22: «στις τιμές μπορώ να προσθέσω νέα τιμή για μια
+    // εκδρομή αλλά δεν μπορώ να βάλω ηλικίες κλπ». He was right that he could
+    // not, and right to expect the screen to say so: a band belongs to the trip,
+    // and this form only prices the ones that exist.
+    //
+    // Asserted on the *edit* form since 2026-09-23: with the create page gone
+    // this is the only screen that still renders the hint, and a band-less trip
+    // with a saved plan is exactly what an import can leave behind.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $plan = Tenancy::forTenant(ratePlanTenantOf($owner), function (): RatePlan {
+        $bandless = Product::factory()->create();
+
+        return RatePlan::factory()->create(['product_id' => $bandless->getKey()]);
+    });
+
+    $bandless = Tenancy::forTenant(
+        ratePlanTenantOf($owner),
+        fn (): Product => Product::query()->findOrFail($plan->product_id),
+    );
+
+    ratePlanPageAs($owner, EditRatePlan::class, ['record' => $plan->getKey()])
+        ->assertSee((string) $bandless->title)
+        ->assertSee('/app/products/' . $bandless->getRouteKey() . '/edit', escape: false);
+})->group('fast');
+
+it('drops the hint once the trip has bands to price', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $plan = Tenancy::forTenant(ratePlanTenantOf($owner), function (): RatePlan {
+        $product = Product::factory()->create();
+        AgeBand::factory()->create(['product_id' => $product->getKey()]);
+
+        return RatePlan::factory()->create(['product_id' => $product->getKey()]);
+    });
+
+    ratePlanPageAs($owner, EditRatePlan::class, ['record' => $plan->getKey()])
+        ->assertDontSee(__('pricing.rate_plan.form.prices.trip_gone'));
+})->group('fast');
+
+it('offers no «Προσθήκη Τιμοκαταλόγου», because a price cannot precede its trip', function (): void {
+    // Mike, 2026-09-23. Both ways of making a plan run through the trip: the
+    // first is written by `CreateProduct`, the rest come from the trip's own
+    // «Τιμές» tab. A third door whose first question was «ποια εκδρομή;» was
+    // asking something the operator had already answered by opening the trip.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    actingAs($owner)->get('/app/rate-plans/create')->assertNotFound();
+
+    ratePlanPageAs($owner, ListRatePlans::class)
+        ->assertDontSee(__('filament-actions::create.single.label'));
+})->group('fast');
+
+it('sends an operator with no trips to make one, instead of an empty table', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    ratePlanPageAs($owner, ListRatePlans::class)
+        ->assertSee(__('pricing.rate_plan.empty.no_trips.heading'))
+        ->assertSee(__('pricing.rate_plan.empty.no_trips.action'));
+})->group('fast');
+
+it('stops offering to make a trip once one exists', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    Tenancy::forTenant(ratePlanTenantOf($owner), fn (): Product => Product::factory()->create());
+
+    ratePlanPageAs($owner, ListRatePlans::class)
+        ->assertDontSee(__('pricing.rate_plan.empty.no_trips.heading'))
+        ->assertSee(__('pricing.rate_plan.empty.none.heading'));
+})->group('fast');
+
+it('will not move a saved plan to another trip', function (): void {
+    // The field is shown so the plan says what it prices, and disabled so the
+    // one edit nobody should make from here cannot be made: repointing a plan
+    // would leave every price row on another trip's age bands.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $plan = Tenancy::forTenant(ratePlanTenantOf($owner), function (): RatePlan {
+        $product = Product::factory()->create();
+        AgeBand::factory()->create(['product_id' => $product->getKey()]);
+
+        return RatePlan::factory()->create(['product_id' => $product->getKey()]);
+    });
+
+    $page = ratePlanPageAs($owner, EditRatePlan::class, ['record' => $plan->getKey()]);
+
+    $page->assertFormFieldIsDisabled('product_id');
 })->group('fast');

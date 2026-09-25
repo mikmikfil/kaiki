@@ -10,17 +10,21 @@ use App\Filament\App\Navigation\BoxMenu;
 use App\Filament\App\Navigation\SiblingScreens;
 use App\Filament\App\Pages\Analytics;
 use App\Filament\App\Pages\Settings;
+use App\Filament\App\Pages\Setup;
+use App\Filament\Support\DarkPrimary;
 use App\Models\PlatformAnnouncement;
 use App\Models\PlatformBrand;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Locale\LocaleOptions;
+use App\Support\PanelApp;
 use App\Support\Tenancy;
 use Filament\Facades\Filament;
 use Filament\Support\Colors\Color;
 use Filament\Support\Facades\FilamentColor;
 use Filament\Support\Facades\FilamentView;
 use Filament\View\PanelsRenderHook;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 
@@ -37,6 +41,55 @@ final class PanelRenderHooks
     public static function register(): void
     {
         self::platformColors();
+
+        /*
+         * **«Βλέπετε ως …»** — TEN-7's persistent banner (2026-09-23).
+         *
+         * `BODY_START`, so it sits above the whole panel rather than inside a
+         * page: a super-admin signed in as somebody else must never reach a
+         * screen where the banner has scrolled out of view, because every row
+         * written from here is recorded as that person's own work.
+         *
+         * Registered globally and decided inside the view, like the frontend
+         * link below and for the same reason: the condition is a fact about the
+         * session rather than about a page.
+         */
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_START,
+            static fn (): View => view('filament.impersonation-banner'),
+        );
+
+        /*
+         * **The panel as an app on a phone** (PWA, 2026-09-23): the manifest,
+         * the status-bar colour, the iPhone's icon and the service worker, on
+         * every `/app` page including the sign-in screens — Chrome decides
+         * whether a page is installable from its `<head>`, and somebody who has
+         * not signed in yet should be able to install it too. `/admin` is not
+         * an app. See {@see PanelApp}.
+         */
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (array $scopes): View|string => Filament::getCurrentPanel()?->getId() === 'app'
+                ? self::pwaHead($scopes)
+                : '',
+        );
+
+        // «Εγκατάσταση εφαρμογής» under the profile in the user menu, and the
+        // two steps an iPhone needs instead. Hidden by the page's own script
+        // unless there is an install to offer; see the views.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::USER_MENU_PROFILE_AFTER,
+            static fn (): View|string => Filament::getCurrentPanel()?->getId() === 'app'
+                ? view('filament.app.install-menu-item')
+                : '',
+        );
+
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::BODY_END,
+            static fn (): View|string => Filament::getCurrentPanel()?->getId() === 'app' && Auth::check()
+                ? view('filament.app.install-ios')
+                : '',
+        );
 
         // The topbar, for every authenticated panel page.
         FilamentView::registerRenderHook(
@@ -71,8 +124,30 @@ final class PanelRenderHooks
             static fn (): View => view('filament.touch-targets'),
         );
 
-        // The operator panel's blue sidebar and light waves. Decided inside the
-        // hook, like the rest: `/admin` keeps Filament's plain look.
+        // − and + either side of every number field, on both panels
+        // (product owner, 2026-09-22: *«όπου στο διαχειριστικό έχει βελάκια
+        // πάνω κάτω για αύξηση αριθμού, τα θέλω οριζόντια + και −»*). The
+        // buttons themselves are hung on the fields by
+        // {@see \App\Filament\Support\NumberSteppers}; this is the stylesheet
+        // that takes the browser's own spinner away and the handler behind the
+        // press.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View => view('filament.number-steppers'),
+        );
+
+        // The water, on **both** panels (product owner, 2026-09-22: *«και τα
+        // κύματα βάλτα και στο admin περιβάλλον»*). `/admin` used to keep
+        // Filament's plain look on the argument that it is how somebody with
+        // two tabs open tells them apart — the blue sidebar still does that, so
+        // the waves were the half of it that was only ever decoration.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View => view('filament.waves'),
+        );
+
+        // The operator panel's blue sidebar. Decided inside the hook, like the
+        // rest: `/admin` keeps Filament's plain chrome above the water.
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
             static fn (): View|string => Filament::getCurrentPanel()?->getId() === 'app'
@@ -146,6 +221,25 @@ final class PanelRenderHooks
             scopes: Settings::destinations(),
         );
 
+        /*
+         * The Kaiki mark, above the heading of the setup guide (product owner,
+         * 2026-09-22: *«βάλε μου πάνω αριστερά το logo kaiki»*).
+         *
+         * That screen drops the navigation on purpose — it is the first thing
+         * a new operator sees and the panel is not there yet — which leaves
+         * nothing on it saying whose product this is. `PAGE_START` is where the
+         * settings back-link goes, above the title, which is exactly «πάνω
+         * αριστερά».
+         *
+         * The panel's own brand: an uploaded platform logo when there is one,
+         * the name when there is not.
+         */
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::PAGE_START,
+            static fn (): View => view('filament.app.setup-brand'),
+            scopes: [Setup::class],
+        );
+
         // The split sign-in screen: a photograph on one half, the form on the
         // other.
         //
@@ -199,6 +293,8 @@ final class PanelRenderHooks
      * `Color::hex()` turns one colour into the eleven shades Filament needs;
      * the two here are the only ones the screen lets anybody change, so nothing
      * else in the palette can be left in an unreadable state by a bad pair.
+     *
+     * Dark mode gets its own primary scale, derived from the same colour.
      */
     private static function platformColors(): void
     {
@@ -208,6 +304,14 @@ final class PanelRenderHooks
                 'accent' => Color::hex(PlatformBrand::accent()),
             ]);
         });
+
+        // The same primary, lighter, for dark mode: navy on near-black was
+        // unreadable (2026-09-23). Read at render, like the palette above.
+        // See {@see DarkPrimary}.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): Htmlable => DarkPrimary::style(PlatformBrand::primary()),
+        );
     }
 
     /**
@@ -228,9 +332,14 @@ final class PanelRenderHooks
     private static function viewFrontend(): View
     {
         $tenant = Tenancy::current();
+        $user = auth()->user();
+
+        // Not on the crew's menu (Mike, 2026-09-24): they scan and sail, and the
+        // operator's shop window is not theirs to open from the quay.
+        $crew = $user instanceof User && $user->isCrewOnly();
 
         return view('filament.view-frontend', [
-            'url' => $tenant instanceof Tenant && HostedUrl::homeEnabledFor($tenant)
+            'url' => ! $crew && $tenant instanceof Tenant && HostedUrl::homeEnabledFor($tenant)
                 ? HostedUrl::operator($tenant)
                 : null,
         ]);
@@ -298,6 +407,23 @@ final class PanelRenderHooks
             'message' => $announcement->message,
             'severity' => $announcement->severity->value,
             'dismissUrl' => route('filament.app.announcements.dismiss', ['announcement' => $announcement->getKey()]),
+        ]);
+    }
+
+    /**
+     * @param  array<int, string>  $scopes
+     */
+    private static function pwaHead(array $scopes): View
+    {
+        return view('filament.app.pwa-head', [
+            'manifestUrl' => PanelApp::path(route('filament.app.manifest')),
+            'workerUrl' => PanelApp::path(route('filament.app.sw')),
+            'scope' => PanelApp::scope(),
+            'appName' => (string) config('app.name'),
+            'appleIcon' => PanelApp::icon('apple-touch-icon.png'),
+            'themeColor' => PanelApp::themeColor($scopes),
+            'topbar' => PanelApp::TOPBAR,
+            'topbarDark' => PanelApp::TOPBAR_DARK,
         ]);
     }
 

@@ -6,6 +6,7 @@ use App\Providers\ApiRateLimitServiceProvider;
 use App\Providers\AppServiceProvider;
 use App\Providers\AuditServiceProvider;
 use App\Providers\BookingServiceProvider;
+use App\Providers\ChannelServiceProvider;
 use App\Providers\ComplianceServiceProvider;
 use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\Filament\AppPanelProvider;
@@ -18,6 +19,7 @@ return [
     AppServiceProvider::class,
     AuditServiceProvider::class,
     BookingServiceProvider::class,
+    ChannelServiceProvider::class,
     ComplianceServiceProvider::class,
     IntegrationServiceProvider::class,
     NotificationServiceProvider::class,

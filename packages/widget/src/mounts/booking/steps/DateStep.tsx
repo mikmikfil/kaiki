@@ -85,7 +85,15 @@ export function DateStep({
 
   return (
     <div class="kaiki-step">
-      <h3 class="kaiki-heading">{t('booking.date.heading')}</h3>
+      {/*
+        The heading is read, not seen (Mike, 2026-09-22). A month grid with the
+        month's name over it, arrows either side of it and a legend under it is
+        already a calendar; the line above it said out loud what the thing
+        underneath it plainly is. It stays in the markup because the step is a
+        section of a walk and a screen reader arrives at it with no month grid
+        to look at.
+      */}
+      <h3 class="kaiki-heading kaiki-visually-hidden">{t('booking.date.heading')}</h3>
 
       {failed ? (
         // The grid could not be drawn, so the native control is the fallback

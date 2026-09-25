@@ -78,6 +78,17 @@ final class AnalyticsFigures
      */
     private array $countsByRange = [];
 
+    /**
+     * The windows {@see leadTime()} sorts bookings into, in order.
+     *
+     * Five, because six was a chart nobody could read at a glance and four put
+     * «a week out» and «a month out» in the same bar — the two an operator
+     * plans differently.
+     *
+     * @var list<string>
+     */
+    public const LEAD_TIME_BUCKETS = ['same_day', 'two_days', 'week', 'month', 'earlier'];
+
     public function __construct(private readonly string $timezone) {}
 
     public static function forCurrentTenant(): self
@@ -608,6 +619,114 @@ final class AnalyticsFigures
         }
 
         return $steps;
+    }
+
+    /**
+     * Which days of the week sail, and with how many people on board.
+     *
+     * The question behind it is a schedule: an operator looking at seven
+     * numbers can see that Tuesday is half of Saturday and move a departure,
+     * which no daily chart of a whole season shows — thirty Tuesdays and thirty
+     * Saturdays are one flat line until they are folded.
+     *
+     * Grouped on the **sailing** day (`local_date`), not on the day the
+     * booking was made. «Πότε ταξιδεύουν» and «πότε αγοράζουν» are two
+     * different questions and the second one is {@see leadTime()}.
+     *
+     * Folded in PHP rather than in the database on purpose: every engine
+     * spells weekday extraction differently (`strftime('%w')`, `DAYOFWEEK`,
+     * `EXTRACT(DOW)`) and they do not agree on which day is 0, so a query that
+     * works on SQLite quietly reports Sunday's figures under Monday on MySQL.
+     *
+     * Monday first, which is the week as it is read here.
+     *
+     * @return list<array{weekday: int, bookings: int, pax: int}>
+     */
+    public function byWeekday(LocalRange $range): array
+    {
+        $rows = $this->committedBookings()
+            ->whereBetween('local_date', [$range->startLocalDate, $range->endLocalDate])
+            ->selectRaw('local_date, COUNT(*) as bookings, COALESCE(SUM(pax_total), 0) as pax')
+            ->groupBy('local_date')
+            ->get();
+
+        // Every day of the week, including the ones nobody sailed: a week with
+        // Tuesday missing reads as a six-day week rather than as a quiet day.
+        $week = [];
+
+        for ($weekday = 1; $weekday <= 7; $weekday++) {
+            $week[$weekday] = ['weekday' => $weekday, 'bookings' => 0, 'pax' => 0];
+        }
+
+        foreach ($rows as $row) {
+            // `getAttribute`, like `counts()` below: the two sums are columns
+            // of this query, not properties of a Booking.
+            $weekday = (int) Carbon::parse((string) $row->getAttribute('local_date'))->isoWeekday();
+
+            $week[$weekday]['bookings'] += (int) $row->getAttribute('bookings');
+            $week[$weekday]['pax'] += (int) $row->getAttribute('pax');
+        }
+
+        return array_values($week);
+    }
+
+    /**
+     * How long before the boat leaves a booking is made.
+     *
+     * The figure that decides when the advertising money is spent and how late
+     * a departure can still be filled. An operator whose bookings are mostly
+     * same-day is running a business on the quay; one whose bookings are a
+     * month out is running it on a website, and the two are managed
+     * differently.
+     *
+     * The buckets are days, not hours, and the first one is «today»: a guest
+     * who books at nine for a ten o'clock sailing and one who books the night
+     * before are both last-minute, and splitting them would be precision about
+     * a decision nobody makes differently.
+     *
+     * Counted from `created_at` in the operator's own timezone to the sailing's
+     * local date, so «same day» means the same calendar day where the boat is —
+     * a booking at 01:00 Athens time is not yesterday's because UTC says so.
+     *
+     * @return list<array{bucket: string, bookings: int}>
+     */
+    public function leadTime(LocalRange $range): array
+    {
+        $rows = $this->committedBookings()
+            ->where('created_at', '>=', $range->startUtc)
+            ->where('created_at', '<', $range->endUtcExclusive)
+            ->get(['created_at', 'local_date']);
+
+        $buckets = array_fill_keys(self::LEAD_TIME_BUCKETS, 0);
+
+        foreach ($rows as $row) {
+            $made = Carbon::parse((string) $row->getAttribute('created_at'))->setTimezone($this->timezone)->startOfDay();
+            $sails = Carbon::parse((string) $row->getAttribute('local_date'))->startOfDay();
+
+            // Negative days happen: a booking taken by the operator for a
+            // sailing that has already gone, entered after the fact. It is
+            // still a sale and it is still last-minute.
+            $days = max(0, (int) $made->diffInDays($sails, false));
+
+            $buckets[self::leadTimeBucket($days)]++;
+        }
+
+        return array_map(
+            static fn (string $bucket): array => ['bucket' => $bucket, 'bookings' => $buckets[$bucket]],
+            self::LEAD_TIME_BUCKETS,
+        );
+    }
+
+    /** Which of {@see LEAD_TIME_BUCKETS} a number of days falls in. */
+    private static function leadTimeBucket(int $days): string
+    {
+        return match (true) {
+            $days === 0 => 'same_day',
+            $days <= 2 => 'two_days',
+            $days <= 7 => 'week',
+            $days <= 30 => 'month',
+            default => 'earlier',
+        };
     }
 
     /** How many hosted pages were served in the range. */

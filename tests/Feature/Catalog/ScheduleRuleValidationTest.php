@@ -18,7 +18,7 @@ use Illuminate\Validation\ValidationException;
 | Schedule rules — spec CAT-14, AVL-52
 |--------------------------------------------------------------------------
 |
-| Three refusals, and each prevents a rule that would sit in the panel looking
+| Four refusals, and each prevents a rule that would sit in the panel looking
 | configured while producing nothing. That is worse than an error, because
 | nobody goes looking at a rule that appears to be working.
 |
@@ -40,7 +40,6 @@ function saveRule(Product $product, array $overrides = [], ?ScheduleRule $rule =
             'start_time' => '09:00',
             'valid_from' => '2026-06-01',
             'valid_until' => '2026-09-15',
-            'generate_days_ahead' => 180,
             'is_active' => true,
         ], $overrides),
     );
@@ -117,6 +116,89 @@ it('accepts an open-ended window', function (): void {
 
         expect($rule->valid_until)->toBeNull()
             ->and($rule->coversDate(Carbon::parse('2030-01-01')))->toBeTrue();
+    });
+})->group('fast');
+
+/*
+| The fourth refusal (product owner, 2026-09-22)
+|
+| *«Σε μια εκδρομή έβαλα 2πλό δρομολόγιο και δεν μου έβγαλε error — ίδια μέρα,
+| ίδια ώρα, τα πάντα.»* Nothing broke, which is the problem: the departures
+| table is unique on the instant, so the second rule produces no row at all and
+| sits there looking configured. Two rows the operator cannot tell apart is the
+| worse half — pausing or editing the wrong one changes nothing.
+*/
+
+it('refuses a second rule for a sailing that already has one', function (): void {
+    scheduleTenant(function (): void {
+        $product = Product::factory()->create();
+        saveRule($product, ['weekday_mask' => WeekdayMask::fromDays([2])]);
+
+        saveRule($product, ['weekday_mask' => WeekdayMask::fromDays([2])]);
+    });
+})->throws(ValidationException::class)->group('fast');
+
+it('refuses a rule that overlaps an existing one on only one day', function (): void {
+    scheduleTenant(function (): void {
+        // Tuesday 09:00 and «Tuesday, Thursday 09:00» are the same collision on
+        // Tuesdays, though no single column matches.
+        $product = Product::factory()->create();
+        saveRule($product, ['weekday_mask' => WeekdayMask::fromDays([2])]);
+
+        saveRule($product, ['weekday_mask' => WeekdayMask::fromDays([2, 4])]);
+    });
+})->throws(ValidationException::class)->group('fast');
+
+it('allows the same days at another time, or the same time in another season', function (): void {
+    scheduleTenant(function (): void {
+        $product = Product::factory()->create();
+        saveRule($product, ['weekday_mask' => WeekdayMask::fromDays([2])]);
+
+        // Two sailings a day is the ordinary case, not a clash.
+        $evening = saveRule($product, ['weekday_mask' => WeekdayMask::fromDays([2]), 'start_time' => '18:00']);
+
+        // Same days, same hour, a window that opens after the first one closes.
+        $autumn = saveRule($product, [
+            'weekday_mask' => WeekdayMask::fromDays([2]),
+            'valid_from' => '2026-09-16',
+            'valid_until' => '2026-10-31',
+        ]);
+
+        // Another day of the week entirely.
+        $sunday = saveRule($product, ['weekday_mask' => WeekdayMask::fromDays([7])]);
+
+        expect([$evening->exists, $autumn->exists, $sunday->exists])->toBe([true, true, true]);
+    });
+})->group('fast');
+
+it('does not clash with a paused rule, or count itself when re-saved', function (): void {
+    scheduleTenant(function (): void {
+        $product = Product::factory()->create();
+
+        // Pausing the old one and writing its replacement is how an operator
+        // changes a schedule without losing the old one's history.
+        saveRule($product, ['weekday_mask' => WeekdayMask::fromDays([2]), 'is_active' => false]);
+
+        $live = saveRule($product, ['weekday_mask' => WeekdayMask::fromDays([2])]);
+
+        // And editing that rule must not find itself.
+        $again = saveRule($product, ['start_time' => '09:30'], rule: $live);
+
+        expect($again->getKey())->toBe($live->getKey())
+            ->and(substr((string) $again->start_time, 0, 5))->toBe('09:30');
+    });
+})->group('fast');
+
+it('lets two trips share a day and an hour', function (): void {
+    scheduleTenant(function (): void {
+        // A clash is about one trip's own timetable. Two trips leaving at nine
+        // is an ordinary morning, and the boat's own calendar is what refuses
+        // an overlapping sailing.
+        $mine = saveRule(Product::factory()->create(), ['weekday_mask' => WeekdayMask::fromDays([2])]);
+        $other = saveRule(Product::factory()->create(), ['weekday_mask' => WeekdayMask::fromDays([2])]);
+
+        expect($mine->product_id)->not->toBe($other->product_id)
+            ->and($other->exists)->toBeTrue();
     });
 })->group('fast');
 

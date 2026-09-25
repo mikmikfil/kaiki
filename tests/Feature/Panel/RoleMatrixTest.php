@@ -50,6 +50,8 @@ function matrix(): array
         'view_pax_list' => [Capability::ViewPaxList, [Role::Owner, Role::Manager, Role::Crew]],
         'check_in_guests' => [Capability::CheckInGuests, [Role::Owner, Role::Manager, Role::Crew]],
         'view_manifest' => [Capability::ViewManifest, [Role::Owner, Role::Manager, Role::Crew]],
+        // The quay sale (2026-09-24): every role sells.
+        'sell_on_quay' => [Capability::SellOnQuay, [Role::Owner, Role::Manager, Role::Crew]],
     ];
 }
 

@@ -90,6 +90,19 @@
             height: auto;
             border-radius: 1px;
         }
+
+        /* A thumb-sized target round each option below the desktop breakpoint
+           (phone audit, 2026-09-23): the pill is 20px tall. The extra is laid
+           over the top bar, above and below, never into the other option. */
+        @media (max-width: 1023.98px) {
+            .kaiki-locale-switcher__option { position: relative; }
+
+            .kaiki-locale-switcher__option::after {
+                content: '';
+                position: absolute;
+                inset: -12px 0;
+            }
+        }
     </style>
 
     <div @style(['display: flex; justify-content: flex-end; margin-bottom: 1rem' => $alignEnd])>

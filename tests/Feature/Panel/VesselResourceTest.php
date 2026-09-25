@@ -6,6 +6,7 @@ use App\Enums\Role;
 use App\Enums\VesselAmenity;
 use App\Enums\VesselStatus;
 use App\Enums\VesselType;
+use App\Filament\App\Resources\VesselResource;
 use App\Filament\App\Resources\VesselResource\Pages\CreateVessel;
 use App\Filament\App\Resources\VesselResource\Pages\EditVessel;
 use App\Filament\App\Resources\VesselResource\Pages\ListVessels;
@@ -112,6 +113,43 @@ it('creates a vessel through the form, in metres', function (): void {
         ->and($vessel?->turnaround_buffer_minutes)->toBeNull()
         ->and($vessel?->specs['year_built'] ?? null)->toBe(1978)
         ->and($vessel?->search_index)->toContain('οδυσσεασ');
+})->group('fast');
+
+it('keeps the gallery order and the alt text of a photograph that stays', function (): void {
+    // Mike, 2026-09-23: the boat gets the uploader trips got on 22 September —
+    // «ανεβάζουμε όλο το gallery και η πρώτη γίνεται featured». The order is the
+    // only thing that names the cover, and since the same day it is also the
+    // order of the rail on the trip page, so it is worth pinning.
+    //
+    // The alt text is the half with no field on screen: the uploader edits a
+    // list of paths, `vessels.images` keeps §3.15's `{path, alt}`, and a
+    // photograph that survives a re-upload has to keep its description — a
+    // screen reader is the only thing that reads it, so nothing visible would
+    // show the loss.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $vessel = Tenancy::forTenant(vesselTenantOf($owner), fn (): Vessel => Vessel::factory()->create([
+        'images' => [
+            ['path' => 'vessels/deck.jpg', 'alt' => ['el' => 'Το κατάστρωμα', 'en' => 'The deck']],
+            ['path' => 'vessels/bow.jpg', 'alt' => ['el' => 'Η πλώρη', 'en' => 'The bow']],
+        ],
+    ]));
+
+    // Reordered, one dropped, one added — everything an operator does in one go.
+    vesselPageAs($owner, EditVessel::class, ['record' => $vessel->uuid])
+        ->fillForm([VesselResource::GALLERY_FIELD => ['vessels/bow.jpg', 'vessels/galley.jpg']])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    $images = Tenancy::forTenant(vesselTenantOf($owner), fn (): array => (array) $vessel->refresh()->images);
+
+    expect(array_column($images, 'path'))->toBe(['vessels/bow.jpg', 'vessels/galley.jpg'])
+        // Carried over by path, not by position: the bow moved from second to
+        // first and kept its own description rather than inheriting the deck's.
+        ->and($images[0]['alt']['el'] ?? null)->toBe('Η πλώρη')
+        // And the new one has none yet, rather than an empty string that would
+        // render as a blank row.
+        ->and($images[1]['alt'] ?? null)->toBeNull();
 })->group('fast');
 
 it('creates a home port from the vessel form when the operator has none', function (): void {

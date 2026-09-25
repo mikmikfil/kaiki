@@ -5,10 +5,10 @@ declare(strict_types=1);
 use App\Domain\Tenancy\Support\SetupChecklist;
 use App\Enums\Role;
 use App\Filament\App\Pages\PaymentSettings;
+use App\Filament\App\Pages\Settings;
 use App\Filament\App\Pages\Setup;
 use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Widgets\SetupProgress;
-use App\Http\Middleware\OfferSetupOnce;
 use App\Models\Product;
 use App\Models\Tenant;
 use App\Models\User;
@@ -165,11 +165,12 @@ it('counts a skipped step as settled so the progress figure is not stuck', funct
     actingAs($owner);
 
     Tenancy::forTenant($owner->tenant, function (): void {
-        expect(SetupChecklist::progress())->toBe(['done' => 0, 'total' => 6]);
+        // Five questions since the home page joined them (2026-09-23).
+        expect(SetupChecklist::progress())->toBe(['done' => 0, 'total' => 5]);
 
         Livewire::test(Setup::class)->call('skip', SetupChecklist::VAT);
 
-        expect(SetupChecklist::progress())->toBe(['done' => 1, 'total' => 6]);
+        expect(SetupChecklist::progress())->toBe(['done' => 1, 'total' => 5]);
     });
 });
 
@@ -328,40 +329,82 @@ it('refuses a write from somebody who cannot open the page', function (): void {
 });
 
 /* -----------------------------------------------------------------
- | The guide is offered once per sign-in, and never nags
+ | It holds the panel back until the operator is done with it
+ |
+ | Product owner, 2026-09-22: the guide opens full screen and the panel is not
+ | reachable until it is finished, deferred or dismissed. The old rule — offered
+ | once per sign-in and ignorable after that — is gone, and so is the session
+ | key it hung on.
  ----------------------------------------------------------------- */
 
-it('offers the guide once and then leaves the operator alone', function (): void {
+it('sends a new operator to the guide from anywhere in the panel', function (): void {
     $owner = unconfiguredOperator();
 
-    actingAs($owner)
-        ->get('/app')
-        ->assertRedirect(Setup::getUrl());
+    foreach (['/app', '/app/products', '/app/bookings'] as $path) {
+        actingAs($owner)->get($path)->assertRedirect(Setup::getUrl());
+    }
 
-    // The second request is the one that matters. SAA-10: not on every page
-    // load.
-    actingAs($owner)
-        ->withSession([OfferSetupOnce::OFFERED => true])
-        ->get('/app')
-        ->assertOk();
+    // And not itself, or the operator arrives at a redirect loop.
+    actingAs($owner)->get(Setup::getUrl())->assertOk();
 });
 
-it('never offers the guide to somebody who cannot open it', function (): void {
+it('never holds somebody who cannot open the guide', function (): void {
+    // TEN-8: a skipper on a quay is not the person who fills in an ΑΦΜ, and a
+    // gate they cannot pass is a gate that ends their working day.
     $crew = OperatorUser::withRole(Role::Crew, Tenant::factory()->unconfigured()->create());
 
-    actingAs($crew)
-        ->get('/app')
-        ->assertOk();
+    actingAs($crew)->get('/app')->assertOk();
 });
 
-it('stops offering the guide once it has been finished', function (): void {
+it('lets go once the guide is finished', function (): void {
     $owner = OperatorUser::withRole(Role::Owner);
 
     $owner->tenant->forceFill(['onboarding_completed_at' => Carbon::now()])->save();
 
-    actingAs($owner)
-        ->get('/app')
-        ->assertOk();
+    actingAs($owner)->get('/app')->assertOk();
+});
+
+it('hands the panel over on «Θα το κάνω αργότερα», and keeps the guide in the menu', function (): void {
+    $owner = unconfiguredOperator();
+    actingAs($owner);
+
+    Tenancy::forTenant($owner->tenant, function () use ($owner): void {
+        Livewire::test(Setup::class)->call('deferSetup');
+
+        expect($owner->tenant->refresh()->onboarding_deferred_at)->not->toBeNull()
+            // The way back in, which is what makes the gate safe to ship.
+            ->and(SetupChecklist::applies())->toBeTrue()
+            ->and(Setup::shouldRegisterNavigation())->toBeTrue()
+            ->and(SetupChecklist::blocksPanel())->toBeFalse();
+    });
+
+    actingAs($owner)->get('/app')->assertOk();
+});
+
+it('retires the guide on «Δεν το χρειάζομαι», and still answers at its own address', function (): void {
+    $owner = unconfiguredOperator();
+    actingAs($owner);
+
+    Tenancy::forTenant($owner->tenant, function () use ($owner): void {
+        Livewire::test(Setup::class)->call('dismissSetup');
+
+        expect($owner->tenant->refresh()->onboarding_dismissed_at)->not->toBeNull()
+            // Gone from the menu and from the home-page checklist…
+            ->and(SetupChecklist::applies())->toBeFalse()
+            ->and(Setup::shouldRegisterNavigation())->toBeFalse()
+            ->and(SetupChecklist::blocksPanel())->toBeFalse()
+            // …and **not** marked as finished, which would be a false line in
+            // the operator's own record.
+            ->and($owner->tenant->refresh()->onboarding_completed_at)->toBeNull();
+    });
+
+    actingAs($owner)->get('/app')->assertOk();
+
+    // «Από κάπου να ανοίγει συνέχεια ρύθμισης»: the page keeps working, and
+    // Ρυθμίσεις keeps a card pointing at it.
+    actingAs($owner)->get(Setup::getUrl())->assertOk();
+
+    expect(Settings::SECTIONS['business'])->toHaveKey('setup');
 });
 
 /* -----------------------------------------------------------------

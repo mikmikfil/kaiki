@@ -5,9 +5,11 @@ declare(strict_types=1);
 use App\Domain\Catalog\Actions\SaveProduct;
 use App\Domain\Catalog\Support\ProductPublishChecklist;
 use App\Enums\BookingMode;
+use App\Enums\BookingStatus;
 use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
 use App\Exceptions\ProductModeLocked;
+use App\Models\Booking;
 use App\Models\CancellationPolicy;
 use App\Models\Product;
 use App\Models\Tenant;
@@ -234,14 +236,38 @@ it('names the trip and both modes in the refusal, in Greek', function (): void {
     });
 })->group('fast', 'i18n');
 
-it('ships the booking-count guard with no sources registered', function (): void {
-    // The #16 shape: the guard exists, refuses nothing, and is proven. M2 adds
-    // one class and one tag() line. Asserted so that a future implementation
-    // being registered is a visible change rather than a silent one.
+it('refuses the mode change for a real booking, through the container', function (): void {
+    // The seam itself, not the rule. Every test above proves the refusal against
+    // a fake; this one proves that `BookingProductCount` is actually tagged into
+    // `SaveProduct::TAG`, which is the whole of what stood between a written
+    // guard and an enforced one. Resolved from the container on purpose — `new
+    // SaveProduct(...)` would pass with the wiring removed.
     forProduct(function (): void {
         $product = Product::factory()->create([
             'mode' => BookingMode::PerSeat,
             'status' => ProductStatus::Draft,
+        ]);
+
+        Booking::factory()->create(['product_id' => $product->getKey()]);
+
+        expect(fn () => app(SaveProduct::class)($product, ['mode' => BookingMode::PerVessel]))
+            ->toThrow(ProductModeLocked::class);
+    });
+})->group('fast');
+
+it('does not let an abandoned booking lock the catalogue', function (): void {
+    // BookingProductCount's own rule, read through the wiring: `expired` and
+    // `cancelled` hold nothing, and an operator should not be shut out of their
+    // own trip by a checkout somebody walked away from in April.
+    forProduct(function (): void {
+        $product = Product::factory()->create([
+            'mode' => BookingMode::PerSeat,
+            'status' => ProductStatus::Draft,
+        ]);
+
+        Booking::factory()->create([
+            'product_id' => $product->getKey(),
+            'status' => BookingStatus::Cancelled,
         ]);
 
         expect(app(SaveProduct::class)($product, ['mode' => BookingMode::Quote])->mode)

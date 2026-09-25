@@ -2,7 +2,14 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'p
 
 import type { Analytics } from '../../analytics';
 import type { Api } from '../../api-client';
-import { BookingApi, isSoldOut, type DraftResult, isInvalidDiscountCode } from '../../booking/api';
+import {
+  BookingApi,
+  isSoldOut,
+  type DraftResult,
+  isInvalidDiscountCode,
+  isPartyRefused,
+  refusalMessage,
+} from '../../booking/api';
 import { holdState } from '../../booking/countdown';
 import { pollForConfirmation, readBookingStatus } from '../../booking/confirmation';
 import {
@@ -11,6 +18,7 @@ import {
   initialStateOn,
   isLastStep,
   next,
+  stepsFor,
   type BookingState,
   type MachineOptions,
   countedPax,
@@ -124,6 +132,8 @@ export function BookingMount({
   const [draft, setDraft] = useState<DraftResult | null>(null);
   const [resumeUrl, setResumeUrl] = useState<string | null>(null);
   const [codeRefused, setCodeRefused] = useState(false);
+  /** The server's sentence when it refused this party (AVL-26, AVL-26b). */
+  const [partyRefusal, setPartyRefusal] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   const hold = holdState(draft?.holdExpiresAt ?? null);
@@ -207,6 +217,18 @@ export function BookingMount({
         // a sentence under the code field.
         setCodeRefused(true);
         setPhase('walking');
+
+        return;
+      }
+
+      if (isPartyRefused(error)) {
+        // AVL-26 and AVL-26b: the party itself is not allowed to sail — no
+        // adult with the children, or nobody in a seat at all. Nothing was
+        // created, so the guest stays where they are and reads why, exactly
+        // like a refused discount code.
+        setPartyRefusal(refusalMessage(error));
+        setPhase('walking');
+        analytics.emit('kaiki:error', { product_uuid: productUuid, error_code: 'party_refused' });
 
         return;
       }
@@ -475,8 +497,42 @@ export function BookingMount({
           />
         ) : null}
 
+        {/*
+          **Πού είσαι στα τρία βήματα** (direction Α, 2026-09-23).
+
+          One bar per step, filled up to the one on screen. It exists because
+          direction Α shows a *half* sheet whose content is replaced in place:
+          without it the calendar becomes a party picker and nothing says
+          whether that was step two of two or two of three.
+
+          `aria-hidden`, because it is not the accessible answer — the heading
+          of each step already names it, and a row of bars read aloud is noise.
+          Rendered only in sheet mode: the desktop card shows every step in one
+          column and has nothing to indicate.
+        */}
+        {sheet && open ? (
+          <ol class="kaiki-steps" aria-hidden="true">
+            {stepsFor(options).map((step) => (
+              <li key={step} data-done={stepsFor(options).indexOf(step) <= stepsFor(options).indexOf(state.step)} />
+            ))}
+          </ol>
+        ) : null}
+
         <div class="kaiki-sheet-scroll">
-          {showDetails ? <FourLines product={product} t={t} showVessel={showVessel} /> : null}
+          {/*
+            **Not inside the sheet** (Mike, 2026-09-23, direction Α of the
+            mobile mockups). The four lines give the trip's name, its duration
+            and its port — which is exactly what the page immediately above the
+            sheet already says, and in direction Α that page stays visible.
+
+            Dropping them is also what makes a half sheet possible: at 85svh the
+            sheet covered the page, and these lines were most of the reason it
+            needed the room.
+
+            Untouched on a desktop, where there is no page above the card
+            because the card *is* the column.
+          */}
+          {showDetails && !sheet ? <FourLines product={product} t={t} showVessel={showVessel} /> : null}
 
           {draft !== null ? <Hold hold={hold} t={t} /> : null}
 
@@ -493,8 +549,23 @@ export function BookingMount({
             client={client}
             productUuid={productUuid}
             t={t}
-            onChange={(patch) => dispatch({ type: 'patch', patch })}
+            onChange={(patch) => {
+              // Any change to the party is a new answer to the rule that
+              // refused the last one, so the sentence goes as the guest acts.
+              setPartyRefusal(null);
+              dispatch({ type: 'patch', patch });
+            }}
           />
+
+          {partyRefusal !== null ? (
+            // The server's own sentence — «Σε αυτή την εκδρομή τα παιδιά
+            // ταξιδεύουν με συνοδό ενήλικα», or whatever rule the catalogue
+            // grows next. The widget keeps no wording of its own for these on
+            // purpose: the rule and its explanation ship together.
+            <p class="kaiki-error" role="alert">
+              {partyRefusal}
+            </p>
+          ) : null}
         </div>
 
         {last ? (

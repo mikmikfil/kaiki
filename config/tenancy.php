@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\GatewayWebhookEvent;
 use App\Models\PlatformAnnouncement;
 use App\Models\PlatformBrand;
+use App\Models\PolicyTemplate;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\VatRate;
@@ -107,6 +108,13 @@ return [
         // product or extra, so scoping this per tenant would mean every
         // operator maintaining their own copy of the tax code.
         VatRate::class,
+
+        // The cancellation ladders the setup guide offers a new operator
+        // (2026-09-23). Platform-owned for the same reason as `vat_rates`: it
+        // is the menu, not the meal. An operator never reads this table — they
+        // read three cards drawn from it, and choosing one writes them a
+        // `cancellation_policies` row of their own, theirs from then on.
+        PolicyTemplate::class,
 
         /*
          * **The third case this list has met, and the only one of its kind.**

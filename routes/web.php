@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Domain\Hosted\Support\HostedHost;
+use App\Http\Controllers\Channels\GetYourGuide\AvailabilityController as GetYourGuideAvailabilityController;
 use App\Http\Controllers\Guest\CheckoutController;
 use App\Http\Controllers\Guest\GuestDetailsController;
 use App\Http\Controllers\Guest\ManageBookingController;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Hosted\RootController;
 use App\Http\Controllers\Hosted\SearchPageController;
 use App\Http\Controllers\IcalFeedController;
 use App\Http\Controllers\SandboxCheckoutController;
+use App\Http\Controllers\StopImpersonationController;
 use App\Http\Controllers\TlsAskController;
 use App\Http\Controllers\Webhooks\GatewayWebhookController;
 use App\Http\Controllers\WidgetBundleController;
@@ -85,6 +87,37 @@ Route::post('/webhooks/{provider}/{token}', [GatewayWebhookController::class, 'd
     ->middleware('throttle:webhooks')
     ->whereAlphaNumeric('token')
     ->name('webhooks.gateway.tenant');
+
+/*
+|--------------------------------------------------------------------------
+| OTA channels — the endpoints GetYourGuide calls (ADR-0034, spec EXT-1)
+|--------------------------------------------------------------------------
+|
+| **Their contract, their version number, their vocabulary.** The `/1/` is
+| GetYourGuide's, not ours: their supplier API is versioned on their side and a
+| v2 of it has nothing to do with a v2 of `/api/v1`. Hence the prefix, and hence
+| these routes being here rather than in `routes/api.php` — the drift gate
+| compares every route under that prefix against `docs/api.md` §5, and these are
+| not operations an integrator of *ours* calls. The same argument the gateway
+| webhooks above are here for.
+|
+| **No `api.key`, no `tenant`, no CSRF.** GetYourGuide holds none of the three.
+| `channel.auth` does both jobs at once: it authenticates the HTTP Basic pair
+| and resolves the tenant from the username, because that username is the only
+| identifying thing in the request — no supplier id in the path, no signature,
+| no `Origin`. CSRF is excluded by path in `bootstrap/app.php`.
+|
+| Throttled on the username rather than the IP: their calls come from a handful
+| of their own addresses, so an IP limiter would let one busy operator throttle
+| every other operator on the platform.
+*/
+Route::prefix('channels/getyourguide')
+    ->middleware(['channel.auth', 'throttle:channels'])
+    ->name('channels.getyourguide.')
+    ->group(function (): void {
+        Route::get('/1/get-availabilities', GetYourGuideAvailabilityController::class)
+            ->name('availabilities');
+    });
 
 /*
 |--------------------------------------------------------------------------
@@ -179,6 +212,24 @@ Route::post('/sandbox/checkout/{reference}/pay', [SandboxCheckoutController::cla
     ->name('sandbox.checkout.pay');
 Route::post('/sandbox/checkout/{reference}/fail', [SandboxCheckoutController::class, 'fail'])
     ->name('sandbox.checkout.fail');
+
+/*
+|--------------------------------------------------------------------------
+| The way out of an impersonation (TEN-7, SAA-2)
+|--------------------------------------------------------------------------
+|
+| A plain POST rather than a Livewire action, because the banner it belongs to
+| has to keep working on a page whose Livewire component has already broken —
+| which is one of the reasons somebody signs in as an operator in the first
+| place.
+|
+| Outside both panels' groups so it exists whichever one is on screen, and
+| behind `auth` because ending a session nobody has is not a thing to offer.
+| **Starting** one lives in `/admin`, where the gates are.
+*/
+Route::post('/impersonation/stop', StopImpersonationController::class)
+    ->middleware('auth')
+    ->name('impersonation.stop');
 
 /*
 |--------------------------------------------------------------------------
@@ -297,6 +348,13 @@ Route::domain(HostedHost::name())
             ->where('operator', '[a-z0-9][a-z0-9-]*')
             ->name('hosted.legal');
 
+        // «Σχετικά με εμάς» (2026-09-24). Before the trip route, like `/legal`:
+        // a trip whose slug is literally `about` is shadowed, and says so in
+        // `AboutPageTest`.
+        Route::get('/{operator}/about', [HostedPageController::class, 'about'])
+            ->where('operator', '[a-z0-9][a-z0-9-]*')
+            ->name('hosted.about');
+
         // The contact page and its form. Registered before the trip route for
         // the same reason `/legal` and `/search` are, and the `POST` shares the
         // path so the form's `action` is the page's own address — which is what
@@ -362,6 +420,7 @@ Route::middleware(['tenant', 'hosted.custom', 'hosted.page', 'locale'])->group(f
     // No `/` here: it is registered above, once, because a second one would
     // replace it rather than compete with it. See `RootController`.
     Route::get('/legal', [HostedPageController::class, 'legal'])->name('hosted.custom.legal');
+    Route::get('/about', [HostedPageController::class, 'about'])->name('hosted.custom.about');
     Route::get('/search', [SearchPageController::class, 'show'])->name('hosted.custom.search');
     Route::get('/contact', [ContactPageController::class, 'show'])->name('hosted.custom.contact');
 

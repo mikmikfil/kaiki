@@ -22,7 +22,7 @@
     honest sentence. WGT-19's live timer belongs to the widget, which is where
     the seconds actually matter.
 --}}
-@extends('guest.layout', ['title' => __('guest.checkout.title'), 'wide' => true])
+@extends('guest.layout', ['title' => __('guest.checkout.title'), 'wide' => true, 'fullBleed' => true])
 
 @php
     use App\Support\Format\MoneyFormatter;
@@ -54,6 +54,27 @@
 
 @section('content')
 
+{{--
+    **Η ταινία: ο κωδικός και η εκδρομή, σε χρώμα** — κατεύθυνση Α
+    (Mike, 2026-09-23, https://claude.ai/artifact/RSFfLYRH1R212KQDRb3BeG).
+
+    Καμία εικόνα εδώ, κατόπιν αιτήματος: το ντεγκραντέ βγαίνει από το χρώμα του
+    πλοιοκτήτη στο `layout`, οπότε η κορυφή είναι η ίδια σε κάθε εκδρομή του
+    λογαριασμού, είτε έχει φωτογραφίες είτε όχι. Η φωτογραφία που έμπαινε εδώ
+    δοκιμάστηκε και βγήκε: οι μισές εκδρομές δεν έχουν, και η σελίδα αποκτούσε
+    δύο όψεις.
+
+    Ο `h1` είναι το όνομα της εκδρομής και όχι «Ολοκλήρωση κράτησης»: ο τίτλος
+    της σελίδας το λέει ήδη στην καρτέλα, και η επικεφαλίδα που διαβάζεται
+    δυνατά είναι καλύτερο να είναι αυτό που αγοράζεται.
+--}}
+<div class="checkout-hero">
+    <div class="inner">
+        <p class="reference">{{ __('guest.common.reference') }} {{ $booking->reference }}</p>
+        <h1>{{ $booking->product?->title }}</h1>
+    </div>
+</div>
+
 {{-- Decided by the controller (`backToSiteUrl()`): the page the guest came
      from, else the operator's hosted home, else nothing. --}}
 @if ($backUrl)
@@ -65,23 +86,15 @@
     <aside class="checkout-side">
 
     <div class="card">
-        <h1>{{ __('guest.checkout.title') }}</h1>
+        <h2>{{ __('guest.checkout.title') }}</h2>
         {{-- `dl.rows` is the layout's own two-column list, used by every other
              guest page. A second pattern here would be a second thing to keep
              in step.
 
-             The reference is the first row of it rather than a sentence above
-             it, which is where it used to be: on a phone that put one value
-             hard left while every value under it was right-aligned, and the
-             column of figures read as though the code had been left out of
-             it. --}}
+             Ο κωδικός και το όνομα της εκδρομής έφυγαν από εδώ στην ταινία
+             (2026-09-23): τα ίδια δύο πράγματα δύο φορές στην ίδια οθόνη
+             διαβάζονται ως δύο διαφορετικές κρατήσεις. --}}
         <dl class="rows">
-            <dt>{{ __('guest.common.reference') }}</dt>
-            <dd><strong>{{ $booking->reference }}</strong></dd>
-
-            <dt>{{ __('guest.checkout.trip') }}</dt>
-            <dd>{{ $booking->product?->title }}</dd>
-
             <dt>{{ __('guest.checkout.when') }}</dt>
             <dd>{{ $booking->local_date->format('d/m/Y') }} · {{ substr($booking->local_time, 0, 5) }}</dd>
 
@@ -165,11 +178,13 @@
                 <p class="muted">{{ __('discount_codes.checkout.using', ['code' => $discountCode['code']]) }}</p>
                 <button type="submit" name="remove" value="1" class="btn btn-quiet">{{ __('discount_codes.checkout.remove') }}</button>
             @else
-                <label for="discount_code">{{ __('discount_codes.checkout.label') }}</label>
-                <div class="discount-row">
-                    <input id="discount_code" name="discount_code" type="text" maxlength="32" autocomplete="off"
-                           autocapitalize="characters" value="{{ old('discount_code') }}">
-                    <button type="submit" class="btn btn-quiet">{{ __('discount_codes.checkout.apply') }}</button>
+                <div class="field">
+                    <label for="discount_code">{{ __('discount_codes.checkout.label') }}</label>
+                    <div class="discount-row">
+                        <input id="discount_code" name="discount_code" type="text" maxlength="32" autocomplete="off"
+                               placeholder=" " autocapitalize="characters" value="{{ old('discount_code') }}">
+                        <button type="submit" class="btn btn-quiet">{{ __('discount_codes.checkout.apply') }}</button>
+                    </div>
                 </div>
             @endif
             @error('discount_code') <p class="field-error" role="alert">{{ $message }}</p> @enderror
@@ -313,23 +328,34 @@
 
         <h2>{{ __('guest.checkout.your_details') }}</h2>
 
-        <label for="guest_name">{{ __('guest.checkout.name') }}</label>
-        <input id="guest_name" name="guest_name" type="text" required autocomplete="name"
-               value="{{ old('guest_name', $booking->guest_name) }}">
-        @error('guest_name') <p class="field-error">{{ $message }}</p> @enderror
+        {{-- `placeholder=" "` on every text field: it is never seen, and it
+             is what lets the stylesheet tell an empty field from a filled one
+             and float the label accordingly, with no script. --}}
+        <div class="field">
+            <label for="guest_name">{{ __('guest.checkout.name') }}</label>
+            <input id="guest_name" name="guest_name" type="text" required autocomplete="name"
+                   placeholder=" " value="{{ old('guest_name', $booking->guest_name) }}">
+            @error('guest_name') <p class="field-error">{{ $message }}</p> @enderror
+        </div>
 
-        <label for="guest_email">{{ __('guest.checkout.email') }}</label>
-        <input id="guest_email" name="guest_email" type="email" required autocomplete="email"
-               value="{{ old('guest_email', $booking->guest_email) }}">
-        @error('guest_email') <p class="field-error">{{ $message }}</p> @enderror
+        <div class="field">
+            <label for="guest_email">{{ __('guest.checkout.email') }}</label>
+            <input id="guest_email" name="guest_email" type="email" required autocomplete="email"
+                   placeholder=" " value="{{ old('guest_email', $booking->guest_email) }}">
+            @error('guest_email') <p class="field-error">{{ $message }}</p> @enderror
+        </div>
 
-        <label for="guest_phone">{{ __('guest.checkout.phone') }}</label>
-        <input id="guest_phone" name="guest_phone" type="tel" autocomplete="tel"
-               value="{{ old('guest_phone', $booking->guest_phone) }}">
-        @error('guest_phone') <p class="field-error">{{ $message }}</p> @enderror
+        <div class="field">
+            <label for="guest_phone">{{ __('guest.checkout.phone') }}</label>
+            <input id="guest_phone" name="guest_phone" type="tel" autocomplete="tel"
+                   placeholder=" " value="{{ old('guest_phone', $booking->guest_phone) }}">
+            @error('guest_phone') <p class="field-error">{{ $message }}</p> @enderror
+        </div>
 
-        <label for="special_requests">{{ __('guest.checkout.special_requests') }}</label>
-        <textarea id="special_requests" name="special_requests" rows="3">{{ old('special_requests', $booking->special_requests) }}</textarea>
+        <div class="field">
+            <label for="special_requests">{{ __('guest.checkout.special_requests') }}</label>
+            <textarea id="special_requests" name="special_requests" rows="3" placeholder=" ">{{ old('special_requests', $booking->special_requests) }}</textarea>
+        </div>
 
         {{-- The operator's own questions, once for the booking (2026-09-17). --}}
         @if ($bookingQuestions->isNotEmpty())
@@ -386,7 +412,7 @@
             @foreach ($passengers as $i => $row)
                 @php
                     $guest = $row['guest'];
-                    $hasError = collect(['full_name', 'nationality', 'date_of_birth', 'document_type', 'document_number', 'document_expires_on'])
+                    $hasError = collect(['full_name', 'sex', 'nationality', 'date_of_birth', 'document_type', 'document_number', 'document_expires_on'])
                         ->contains(static fn (string $field): bool => $errors->has("guests.$i.$field"))
                         || $errors->has("answers.guests.$i.*");
                     $typed = old("guests.$i.full_name", $guest->full_name);
@@ -406,26 +432,44 @@
                     <div class="passenger-body">
                         <input type="hidden" name="guests[{{ $i }}][position]" value="{{ $row['position'] }}">
 
-                        <label for="g{{ $i }}_name">{{ __('guest.checkout.full_name') }}</label>
-                        <input id="g{{ $i }}_name" name="guests[{{ $i }}][full_name]" type="text" required
-                               value="{{ old("guests.$i.full_name", $guest->full_name) }}">
-                        @error("guests.$i.full_name") <p class="field-error">{{ $message }}</p> @enderror
+                        <div class="field">
+                            <label for="g{{ $i }}_name">{{ __('guest.checkout.full_name') }}</label>
+                            <input id="g{{ $i }}_name" name="guests[{{ $i }}][full_name]" type="text" required
+                                   placeholder=" " value="{{ old("guests.$i.full_name", $guest->full_name) }}">
+                            @error("guests.$i.full_name") <p class="field-error">{{ $message }}</p> @enderror
+                        </div>
 
                         @if ($needsGuestDetails)
-                        <label for="g{{ $i }}_nat">{{ __('guest.checkout.nationality') }}</label>
-                        @php $chosenNationality = old("guests.$i.nationality", $guest->nationality); @endphp
-                        <select id="g{{ $i }}_nat" name="guests[{{ $i }}][nationality]" required autocomplete="country">
-                            <option value=""></option>
-                            @foreach (\App\Support\Countries::options(app()->getLocale()) as $code => $country)
-                                <option value="{{ $code }}" @selected($chosenNationality === $code)>{{ $country }}</option>
-                            @endforeach
-                        </select>
-                        @error("guests.$i.nationality") <p class="field-error">{{ $message }}</p> @enderror
+                        <div class="field">
+                            <label for="g{{ $i }}_sex">{{ __('guest.checkout.sex') }}</label>
+                            @php $chosenSex = old("guests.$i.sex", $guest->sex?->value); @endphp
+                            <select id="g{{ $i }}_sex" name="guests[{{ $i }}][sex]" required>
+                                <option value=""></option>
+                                @foreach (\App\Enums\GuestSex::cases() as $sex)
+                                    <option value="{{ $sex->value }}" @selected($chosenSex === $sex->value)>{{ $sex->label() }}</option>
+                                @endforeach
+                            </select>
+                            @error("guests.$i.sex") <p class="field-error">{{ $message }}</p> @enderror
+                        </div>
 
-                        <label for="g{{ $i }}_dob">{{ __('guest.checkout.date_of_birth') }}</label>
-                        <input id="g{{ $i }}_dob" name="guests[{{ $i }}][date_of_birth]" type="date" required
-                               value="{{ old("guests.$i.date_of_birth", $guest->date_of_birth?->toDateString()) }}">
-                        @error("guests.$i.date_of_birth") <p class="field-error">{{ $message }}</p> @enderror
+                        <div class="field">
+                            <label for="g{{ $i }}_nat">{{ __('guest.checkout.nationality') }}</label>
+                            @php $chosenNationality = old("guests.$i.nationality", $guest->nationality); @endphp
+                            <select id="g{{ $i }}_nat" name="guests[{{ $i }}][nationality]" required autocomplete="country">
+                                <option value=""></option>
+                                @foreach (\App\Support\Countries::options(app()->getLocale()) as $code => $country)
+                                    <option value="{{ $code }}" @selected($chosenNationality === $code)>{{ $country }}</option>
+                                @endforeach
+                            </select>
+                            @error("guests.$i.nationality") <p class="field-error">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="field">
+                            <label for="g{{ $i }}_dob">{{ __('guest.checkout.date_of_birth') }}</label>
+                            <input id="g{{ $i }}_dob" name="guests[{{ $i }}][date_of_birth]" type="date" required
+                                   value="{{ old("guests.$i.date_of_birth", $guest->date_of_birth?->toDateString()) }}">
+                            @error("guests.$i.date_of_birth") <p class="field-error">{{ $message }}</p> @enderror
+                        </div>
                         @endif
 
                         @if (! $needsGuestDetails)
@@ -435,24 +479,28 @@
                         @else
                             @php $chosen = old("guests.$i.document_type", $guest->document_type?->value); @endphp
 
-                            <label for="g{{ $i }}_dtype">{{ __('guest.checkout.document_type') }}</label>
-                            <select id="g{{ $i }}_dtype" name="guests[{{ $i }}][document_type]" required>
-                                <option value=""></option>
-                                @foreach (\App\Enums\GuestDocumentType::cases() as $type)
-                                    <option value="{{ $type->value }}" @selected($chosen === $type->value)>{{ $type->label() }}</option>
-                                @endforeach
-                            </select>
-                            @error("guests.$i.document_type") <p class="field-error">{{ $message }}</p> @enderror
+                            <div class="field">
+                                <label for="g{{ $i }}_dtype">{{ __('guest.checkout.document_type') }}</label>
+                                <select id="g{{ $i }}_dtype" name="guests[{{ $i }}][document_type]" required>
+                                    <option value=""></option>
+                                    @foreach (\App\Enums\GuestDocumentType::cases() as $type)
+                                        <option value="{{ $type->value }}" @selected($chosen === $type->value)>{{ $type->label() }}</option>
+                                    @endforeach
+                                </select>
+                                @error("guests.$i.document_type") <p class="field-error">{{ $message }}</p> @enderror
+                            </div>
 
                             {{-- `autocomplete="off"`: a browser that remembered a
                                  passport number would keep it long after the
                                  retention window the page promises. --}}
-                            <label for="g{{ $i }}_doc">{{ __('guest.checkout.document') }}</label>
-                            <input id="g{{ $i }}_doc" name="guests[{{ $i }}][document_number]" type="text" required
-                                   autocomplete="off" value="{{ old("guests.$i.document_number") }}">
-                            @error("guests.$i.document_number") <p class="field-error">{{ $message }}</p> @enderror
+                            <div class="field">
+                                <label for="g{{ $i }}_doc">{{ __('guest.checkout.document') }}</label>
+                                <input id="g{{ $i }}_doc" name="guests[{{ $i }}][document_number]" type="text" required
+                                       autocomplete="off" placeholder=" " value="{{ old("guests.$i.document_number") }}">
+                                @error("guests.$i.document_number") <p class="field-error">{{ $message }}</p> @enderror
+                            </div>
 
-                            <div class="passport-expiry">
+                            <div class="passport-expiry field">
                                 <label for="g{{ $i }}_dexp">{{ __('guest.checkout.document_expires_on') }}</label>
                                 <input id="g{{ $i }}_dexp" name="guests[{{ $i }}][document_expires_on]" type="date"
                                        value="{{ old("guests.$i.document_expires_on", $guest->document_expires_on?->toDateString()) }}">
@@ -481,10 +529,16 @@
         <p class="consent">
             <label>
                 <input id="terms" type="checkbox" name="terms" value="1" required @checked(old('terms'))>
-                {!! __('guest.checkout.terms', [
+                {{-- **One span around the whole sentence.** The label is a flex
+                     row, so every node inside it was an item of that row: the
+                     words before the link, the link, and the full stop after it
+                     became three columns, and on a phone they wrapped into a
+                     ragged block with a lone «.» floating at the end of it
+                     (2026-09-22). --}}
+                <span>{!! __('guest.checkout.terms', [
                     'link' => '<a href="' . e($legalUrl) . '" target="_blank" rel="noopener">'
                         . e(__('guest.checkout.terms_link')) . '</a>',
-                ]) !!}
+                ]) !!}</span>
             </label>
             @error('terms') <span class="field-error">{{ $message }}</span> @enderror
         </p>
@@ -493,6 +547,27 @@
 
     </div>
 
+</div>
+
+{{--
+    **Η γραμμή πληρωμής στον πάτο, σε κινητό** — κατεύθυνση Α.
+
+    Το κουμπί κάθεται στο τέλος της πλαϊνής στήλης, δηλαδή μετά από μια οθόνη
+    κύλισης· ο επισκέπτης που μόλις συμπλήρωσε τα στοιχεία του έπρεπε να ψάξει
+    τι πατάει. Εδώ το ποσό και το κουμπί μένουν ορατά.
+
+    `form="checkout-form"` και όχι δεύτερη φόρμα: η σελίδα δεν έχει script, και
+    δύο φόρμες με τα ίδια πεδία είναι δύο πράγματα που ξεσυγχρονίζονται. Το
+    κουμπί της στήλης κρύβεται στο ίδιο πλάτος που εμφανίζεται αυτό, ώστε να
+    υπάρχει πάντα ένα ορατό κουμπί πληρωμής και όχι δύο.
+--}}
+<div class="pay-dock">
+    <span class="amount">
+        <span class="label">{{ __('guest.checkout.total') }}</span>
+        <span class="value">{{ $money($dueNow) }}</span>
+    </span>
+
+    <button type="submit" form="checkout-form" class="btn">{{ __('guest.checkout.pay_short') }}</button>
 </div>
 
 @endsection

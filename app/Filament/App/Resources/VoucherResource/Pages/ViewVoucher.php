@@ -7,9 +7,11 @@ namespace App\Filament\App\Resources\VoucherResource\Pages;
 use App\Enums\VoucherReason;
 use App\Enums\VoucherStatus;
 use App\Filament\App\Resources\VoucherResource;
+use App\Filament\Support\MoreActions;
 use App\Models\Voucher;
 use App\Support\Format\MoneyFormatter;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
 use Filament\Notifications\Notification;
@@ -112,10 +114,10 @@ class ViewVoucher extends ViewRecord
         ])->columns(2);
     }
 
-    /** @return array<int, Action> */
+    /** @return array<int, Action|ActionGroup> */
     protected function getHeaderActions(): array
     {
-        return [
+        return MoreActions::header([], [
             Action::make('cancel')
                 ->label(__('vouchers.actions.cancel.label'))
                 ->icon('heroicon-o-x-circle')
@@ -140,6 +142,6 @@ class ViewVoucher extends ViewRecord
                         ->success()
                         ->send();
                 }),
-        ];
+        ]);
     }
 }

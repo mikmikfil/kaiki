@@ -33,9 +33,14 @@ use Illuminate\Support\Carbon;
  * @property Carbon $valid_from
  * @property Carbon|null $valid_until null = open-ended
  * @property int|null $capacity_override
- * @property int $generate_days_ahead
  * @property bool $is_active
  * @property Carbon|null $last_generated_on
+ * @property int|null $captain_user_id the captain of every departure it makes (2026-09-24)
+ * @property string|null $captain_name a captain with no account, typed
+ * @property list<int>|null $crew_user_ids the crew of every departure it makes
+ * @property-read Product|null $product null once the trip is soft-deleted —
+ *                the rules stay behind and the column still points at a row the
+ *                default scope will not return (2026-09-22)
  */
 #[ObservedBy(ScheduleRuleObserver::class)]
 class ScheduleRule extends Model
@@ -55,9 +60,9 @@ class ScheduleRule extends Model
             'valid_from' => 'date',
             'valid_until' => 'date',
             'capacity_override' => 'integer',
-            'generate_days_ahead' => 'integer',
             'is_active' => 'boolean',
             'last_generated_on' => 'date',
+            'crew_user_ids' => 'array',
         ];
     }
 
@@ -87,7 +92,6 @@ class ScheduleRule extends Model
      *
      * Three conditions, all local dates: the rule is on, the date is inside the
      * validity window, and the weekday is in the mask. `valid_until` null means
-     * open-ended — generation is still bounded by `generate_days_ahead`, which
      * is #27's concern rather than this method's.
      */
     public function coversDate(Carbon $date): bool

@@ -4,20 +4,24 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources\ProductResource\RelationManagers;
 
+use App\Domain\Availability\Actions\AssignScheduleCrew;
 use App\Domain\Availability\Support\WeekdayMask;
 use App\Domain\Catalog\Actions\SaveScheduleRule;
 use App\Enums\BookingMode;
+use App\Filament\App\Resources\DepartureResource;
 use App\Filament\App\Resources\ScheduleRuleResource;
+use App\Filament\App\Support\ScheduleConflictNotice;
+use App\Filament\Forms\DepartureTimes;
 use App\Models\Product;
 use App\Models\ScheduleRule;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\Hidden;
-use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables\Actions\CreateAction;
 use Filament\Tables\Actions\DeleteAction;
@@ -81,11 +85,6 @@ class ScheduleRulesRelationManager extends RelationManager
     {
         [$what, $when, $window, $capacity, $preview] = ScheduleRuleResource::formSchema();
 
-        $window->schema(array_values(array_filter(
-            $window->getChildComponents(),
-            static fn ($component): bool => ! ($component instanceof Field && $component->getName() === 'generate_days_ahead'),
-        )));
-
         $when->schema([
             ...array_map(
                 static fn (Component $component): Component => $component instanceof Field && $component->getName() === 'start_time'
@@ -93,22 +92,14 @@ class ScheduleRulesRelationManager extends RelationManager
                     : $component,
                 $when->getChildComponents(),
             ),
-            Repeater::make('start_times')
+            // Chips since 24/9 (#11, `docs/mockups/departure-times.html`):
+            // three times in one row rather than three boxes with three bins.
+            DepartureTimes::make('start_times')
                 ->label(__('availability.schedule_rule.form.start_times.label'))
                 ->helperText(__('availability.schedule_rule.form.start_times.help'))
-                ->simple(
-                    TimePicker::make('time')
-                        // Tenant-local, like `start_time`; see the resource.
-                        ->timezone('UTC')
-                        ->seconds(false)
-                        ->native(false)
-                        ->required()
-                        ->distinct(),
-                )
-                ->addActionLabel(__('availability.schedule_rule.form.start_times.add'))
-                ->defaultItems(1)
-                ->minItems(1)
-                ->reorderable(false)
+                ->daysField('weekdays')
+                ->required()
+                ->columnSpanFull()
                 ->visibleOn('create'),
         ]);
 
@@ -124,11 +115,39 @@ class ScheduleRulesRelationManager extends RelationManager
             ->collapsible()
             ->collapsed();
 
+        // Who sails it, set once for every departure it makes (Mike,
+        // 2026-09-24). The same fields as a single departure's.
+        $crew = Section::make(__('availability.schedule_rule.crew.section'))
+            ->icon('heroicon-o-user')
+            ->description(__('availability.schedule_rule.crew.intro'))
+            ->schema([
+                Select::make('captain_user_id')
+                    ->label(__('availability.departure.crew.captain.label'))
+                    ->options(static fn (): array => DepartureResource::peopleOptions(captainsOnly: true))
+                    ->searchable()
+                    ->live(),
+
+                TextInput::make('captain_name')
+                    ->label(__('availability.departure.crew.captain_name.label'))
+                    ->helperText(__('availability.departure.crew.captain_name.help'))
+                    ->maxLength(120)
+                    ->visible(static fn (Get $get): bool => blank($get('captain_user_id'))),
+
+                Select::make('crew_user_ids')
+                    ->label(__('availability.departure.crew.members.label'))
+                    ->helperText(__('availability.departure.crew.members.help'))
+                    ->options(static fn (): array => DepartureResource::peopleOptions())
+                    ->multiple()
+                    ->searchable()
+                    ->columnSpanFull(),
+            ])
+            ->columns(2);
+
         return $form->schema([
             Hidden::make('product_id'),
-            Hidden::make('generate_days_ahead')->default(180),
             $when,
             $window,
+            $crew,
             $other,
             $preview,
         ]);
@@ -239,8 +258,19 @@ class ScheduleRulesRelationManager extends RelationManager
             }
         }
 
+        // Captain and crew are theirs to write (2026-09-24), after the rule.
+        $captain = $data['captain_user_id'] ?? null;
+        $captainName = $data['captain_name'] ?? null;
+        $crew = (array) ($data['crew_user_ids'] ?? []);
+        unset($data['captain_user_id'], $data['captain_name'], $data['crew_user_ids']);
+
         try {
-            return app(SaveScheduleRule::class)($record, $product, $data);
+            $rule = app(SaveScheduleRule::class)($record, $product, $data);
+            app(AssignScheduleCrew::class)($rule, $captain, $captainName, $crew);
+
+            ScheduleConflictNotice::sendFor($rule);
+
+            return $rule;
         } catch (ValidationException $exception) {
             $messages = [];
 

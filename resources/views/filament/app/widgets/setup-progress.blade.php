@@ -41,6 +41,33 @@
             </div>
         </div>
 
+        {{--
+            And the catalogue, which the guide stopped asking for (product
+            owner, 2026-09-22). A quieter line of its own rather than four more
+            numbered steps: these are not questions with one right answer, they
+            are screens the operator goes to and comes back from. Each is a link
+            to the real one — the guide never had a shortened copy worth keeping.
+        --}}
+        @php($catalogue = $this->getCatalogue())
+        @php($links = $this->getCatalogueLinks())
+
+        <div class="kaiki-setup-next">
+            <span class="lead">{{ __('setup.widget.catalogue') }}</span>
+
+            <ul>
+                @foreach ($catalogue as $step => $done)
+                    <li @class(['is-done' => $done])>
+                        <span class="mark" aria-hidden="true">{{ $done ? '✓' : '·' }}</span>
+                        @if ($done)
+                            <span class="label">{{ __('setup.steps.' . $step . '.label') }}</span>
+                        @else
+                            <a href="{{ $links[$step] ?? '#' }}" class="label">{{ __('setup.steps.' . $step . '.label') }}</a>
+                        @endif
+                    </li>
+                @endforeach
+            </ul>
+        </div>
+
         <style>
             .kaiki-setup { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; justify-content: space-between; }
             .kaiki-setup-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem 1.1rem; min-width: 0; }
@@ -57,6 +84,19 @@
             .kaiki-setup-steps .tag { font-size: .7rem; color: rgb(var(--gray-400)); }
             .kaiki-setup-cta { display: flex; align-items: center; gap: .75rem; margin-left: auto; }
             .kaiki-setup-cta .count { font-size: .8rem; color: rgb(var(--gray-500)); white-space: nowrap; }
+
+            .kaiki-setup-next { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.1rem; margin-top: .9rem; padding-top: .8rem; border-top: 1px solid rgb(var(--gray-200)); }
+            .kaiki-setup-next .lead { font-size: .8rem; color: rgb(var(--gray-500)); }
+            .kaiki-setup-next ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .4rem 1.1rem; }
+            .kaiki-setup-next li { display: flex; align-items: center; gap: .4rem; font-size: .85rem; }
+            .kaiki-setup-next .mark { color: rgb(var(--gray-400)); font-size: .8rem; }
+            .kaiki-setup-next .is-done .mark { color: rgb(var(--primary-500)); }
+            .kaiki-setup-next .is-done .label { color: rgb(var(--gray-500)); }
+            .kaiki-setup-next a.label { color: rgb(var(--primary-600)); font-weight: 600; }
+
+            .dark .kaiki-setup-next { border-color: rgb(var(--gray-700)); }
+            .dark .kaiki-setup-next .lead, .dark .kaiki-setup-next .is-done .label { color: rgb(var(--gray-400)); }
+            .dark .kaiki-setup-next a.label { color: rgb(var(--primary-400)); }
 
             /* --- dark ----------------------------------------------------
                The numbered marks are the widget: a `--gray-100` disc is a white

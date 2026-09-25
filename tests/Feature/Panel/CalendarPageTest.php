@@ -5,10 +5,12 @@ declare(strict_types=1);
 use App\Domain\Operations\Support\CalendarDay;
 use App\Enums\BlockReason;
 use App\Enums\BookingStatus;
+use App\Enums\DepartureStatus;
 use App\Enums\Role;
 use App\Filament\App\Pages\Calendar;
 use App\Models\Booking;
 use App\Models\Departure;
+use App\Models\Product;
 use App\Models\User;
 use App\Models\Vessel;
 use App\Models\VesselBlock;
@@ -206,6 +208,34 @@ it('keeps a cancelled departure visible rather than making it vanish', function 
         ->and($bars[0]['cancelled'])->toBeTrue();
 });
 
+it('still draws a departure whose trip has been archived', function (): void {
+    // The same shape #672dd02 fixed in `DepartureReconciler`, one place over and
+    // missed: deleting a trip is a **soft** delete, its departures stay (the FK
+    // is `restrictOnDelete`), and `$departure->product->title` then read `title`
+    // on null — a 500 on the dashboard home, not merely on this page, because
+    // `DayByBoat` renders inside the layout.
+    //
+    // Drawn rather than skipped, which is where this parts company with the
+    // reconciler: that list is about what is on sale, and this is about what the
+    // boat is doing. A departure with seats already sold still sails on the
+    // morning the operator archived the trip, and a bar that vanished would take
+    // the boat's day with it.
+    $user = OperatorUser::withRole(Role::Owner);
+
+    Tenancy::forTenant($user->tenant, function (): void {
+        $boat = Vessel::factory()->create();
+
+        $departure = Departure::factory()->for($boat)->at('2026-07-08', '09:00')->create();
+
+        $departure->product->delete();
+    });
+
+    $bars = Tenancy::forTenant($user->tenant, fn (): array => CalendarDay::for('2026-07-08', 'Europe/Athens')->rows[0]['bars']);
+
+    expect($bars)->toHaveCount(1)
+        ->and($bars[0]['label'])->not->toBe('');
+});
+
 it('lets an owner block a boat, through the action that owns the rules', function (): void {
     $user = OperatorUser::withRole(Role::Owner);
 
@@ -279,6 +309,43 @@ it('lets an owner open the page and see their boats', function (): void {
         ->assertSee(__('calendar.key.buffer'));
 });
 
+it('briefs the crew above the names, and still shows them no prices', function (): void {
+    // Mike, 2026-09-23, direction Β of the crew mockups: *«δεν πρέπει να βλέπω
+    // κάτι εκεί; σαν summary»*. Crew are deliberately outside the catalogue
+    // (TEN-8), so the answer is not the trip screen — it is a brief on the one
+    // screen they already open, giving them what somebody on the quay asks.
+    //
+    // The second half is the half that matters: this must never become a way
+    // round TEN-8, so the trip's own price is asserted **absent**.
+    $user = OperatorUser::withRole(Role::Crew);
+
+    $departure = Tenancy::forTenant($user->tenant, function (): Departure {
+        $boat = Vessel::factory()->create(['name' => 'Καλυψώ']);
+
+        $trip = Product::factory()->create([
+            'check_in_offset_minutes' => 30,
+            'price_from_cents' => 6500,
+            'what_to_bring' => ['el' => ['Αντηλιακό'], 'en' => ['Sunscreen']],
+            'includes' => ['el' => ['Ένα ποτήρι κρασί'], 'en' => ['A glass of wine']],
+        ]);
+
+        return Departure::factory()->for($boat)->for($trip)->at('2026-07-08', '09:00')->withSeats(4)->create();
+    });
+
+    calendarAs($user)
+        ->mountAction('pax', ['departure' => $departure->uuid])
+        // Boarding is the departure time less the trip's check-in offset —
+        // the number the crew is actually standing there for.
+        ->assertSee('08:30')
+        ->assertSee('Καλυψώ')
+        ->assertSee(__('calendar.pax.brief.more'))
+        // Folded away, not linked away: a link would be the second screen
+        // direction Β exists to avoid.
+        ->assertSee('Sunscreen')
+        // …and nothing about money. `65,00` is the trip's own «από» price.
+        ->assertDontSee('65,00');
+})->group('fast');
+
 it('shows who is on a departure, without a document number in sight', function (): void {
     $user = OperatorUser::withRole(Role::Owner);
 
@@ -321,4 +388,52 @@ it('walks a day at a time from today', function (): void {
         ->assertSet('date', '2026-07-06')
         ->call('today')
         ->assertSet('date', '2026-07-08');
+});
+
+it('lists each boat and its departures for a phone, with the status in words', function (): void {
+    // Mike, 2026-09-23: on a phone the calendar is a list per boat. The status
+    // is the one thing a bar has no room for and a row does.
+    $user = OperatorUser::withRole(Role::Owner);
+
+    $uuid = Tenancy::forTenant($user->tenant, function (): string {
+        $boat = Vessel::factory()->create(['name' => 'Θάλασσα']);
+        Vessel::factory()->create(['name' => 'Ήσυχο']);
+
+        $sailing = Departure::factory()->for($boat)->at('2026-07-08', '09:00', 240)->withSeats(6)
+            ->create(['status' => DepartureStatus::Guaranteed]);
+        Departure::factory()->for($boat)->at('2026-07-08', '18:00', 120)
+            ->create(['status' => DepartureStatus::Cancelled]);
+
+        return (string) $sailing->uuid;
+    });
+
+    calendarAs($user)
+        ->assertSeeHtml('class="cal-list"')
+        ->assertSee(DepartureStatus::Guaranteed->label())
+        ->assertSee(DepartureStatus::Cancelled->label())
+        ->assertSee(__('calendar.free'))
+        // The row opens the same passenger list the bar does.
+        ->assertSeeHtml("mountAction('pax', { departure: '{$uuid}' })");
+});
+
+it('fills the block form with what the drag measured, and gives each boat a button on the phone', function (): void {
+    // The drag always sent its boat and times; nothing put them into the form
+    // until 2026-09-24. The phone's list has no track to drag on, so each
+    // boat's card carries «Δέσμευση σκάφους», which sends the boat alone.
+    $user = OperatorUser::withRole(Role::Owner);
+
+    $vessel = Tenancy::forTenant($user->tenant, fn (): Vessel => Vessel::factory()->create(['name' => 'Θάλασσα']));
+
+    calendarAs($user)
+        ->assertSeeHtml("mountAction('block', { vessel: '{$vessel->uuid}' })")
+        ->mountAction('block', ['vessel' => $vessel->uuid, 'starts_at' => '09:00', 'ends_at' => '11:30'])
+        ->assertActionDataSet(['vessel' => $vessel->uuid, 'starts_at' => '09:00', 'ends_at' => '11:30']);
+});
+
+it('gives crew no block button on the phone either', function (): void {
+    $crew = OperatorUser::withRole(Role::Crew);
+
+    $vessel = Tenancy::forTenant($crew->tenant, fn (): Vessel => Vessel::factory()->create());
+
+    calendarAs($crew)->assertDontSeeHtml("mountAction('block', { vessel: '{$vessel->uuid}' })");
 });

@@ -31,7 +31,6 @@ class ScheduleRuleFactory extends Factory
             'valid_from' => '2026-06-01',
             'valid_until' => '2026-09-15',
             'capacity_override' => null,
-            'generate_days_ahead' => 180,
             'is_active' => true,
             'last_generated_on' => null,
         ];

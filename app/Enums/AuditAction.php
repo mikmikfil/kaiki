@@ -6,6 +6,7 @@ namespace App\Enums;
 
 use App\Enums\Concerns\HasTranslatedLabel;
 use App\Events\BookingRefunded;
+use Filament\Support\Contracts\HasLabel;
 
 /**
  * What an audit row records (ADR-0025 §2, spec SEC-16).
@@ -20,8 +21,8 @@ use App\Events\BookingRefunded;
  * So this enum is **SEC-16's five named actions, plus every soft delete and
  * every operator override that carries a reason**, and adding a case to it is
  * a decision about privacy surface rather than a convenience. An ordinary field
- * edit is not here and must not be added: `AuditScopeTest` asserts a plain save
- * writes nothing.
+ * edit is not here and must not be added: `AuditTrailTest` asserts a plain save
+ * writes nothing — *"writes nothing for an ordinary edit"*.
  *
  * ## Two of the five are not buildable yet
  *
@@ -29,10 +30,11 @@ use App\Events\BookingRefunded;
  * not exist until M2 and M6. They are cases here anyway, so that the milestone
  * that builds them fires an existing action rather than inventing a spelling —
  * the same reasoning that keeps `maintenance` in
- * {@see WindowUnavailableReason}. `AuditActionCoverageTest` records which are
- * live, so the gap stays visible rather than becoming folklore.
+ * {@see WindowUnavailableReason}. `NoPersonalDataInAuditContextTest` records
+ * which are live — *"keeps every live action wired to something that fires
+ * it"* — so the gap stays visible rather than becoming folklore.
  */
-enum AuditAction: string
+enum AuditAction: string implements HasLabel
 {
     use HasTranslatedLabel;
 
@@ -131,6 +133,24 @@ enum AuditAction: string
      * possible from a panel whose user has no tenant of their own.
      */
     case TenantUpdated = 'tenant.updated';
+
+    /**
+     * A super-admin signed in as one of an operator's people (TEN-7, SAA-2).
+     *
+     * The only action on this list that records somebody **reading** rather
+     * than changing. It earns that because of what it enables: for the next
+     * hour every row written looks exactly like the operator's own work, so the
+     * one thing that makes those rows explicable afterwards is this entry
+     * beside them.
+     *
+     * Written into the **operator's** trail, like `tenant.updated`, and for the
+     * same reason: «ποιος μπήκε στον λογαριασμό μου και γιατί» is a question
+     * about their account, and an answer they cannot see is not an answer.
+     *
+     * `context` carries who was impersonated and until when; `reason` is the
+     * sentence the super-admin had to type before the session would start.
+     */
+    case ImpersonationStarted = 'impersonation.started';
 
     /**
      * The actions whose subjects exist and that are wired today.

@@ -14,11 +14,19 @@ declare(strict_types=1);
 return [
     'title' => 'Calendar',
 
+    // A departure whose trip has been deleted. Drawn as an occupied slot
+    // rather than taking the whole panel down.
+    'trip_gone' => 'Deleted trip',
+
     'previous' => 'Previous day',
     'today' => 'Today',
     'next' => 'Next day',
 
     'drag_hint' => 'Drag across empty time to block a boat. Click a trip to see who is on it.',
+    // The phone: a list per boat instead of the timeline (2026-09-23).
+    'list_hint' => 'Tap a trip to see who is on it.',
+    'free' => 'Free',
+    'all_day' => 'All day',
     'no_vessels' => 'Add a boat and it will appear here.',
     'turnaround' => ':minutes min turnaround',
     'buffer_hint' => 'Turnaround: the boat is not available for this long after the trip.',
@@ -51,5 +59,40 @@ return [
         'people' => 'People',
         'reference' => 'Reference',
         'owed' => 'Still owed',
+
+        // The brief above the names (2026-09-23, direction Β). For whoever is
+        // standing on the quay: times, boat, where from, and what to tell
+        // anybody who asks. No prices — TEN-8 does not move.
+        'brief' => [
+            'boarding' => 'Boarding',
+            'returns' => 'Back at',
+            'vessel' => 'Boat',
+            'where' => 'From',
+            'more' => 'What is included and what to bring',
+            'includes' => 'Included',
+            'bring' => 'To bring',
+        ],
+    ],
+    'assign' => [
+        'title' => 'Assign',
+        'saved' => 'Saved',
+    ],
+    // «Sell now» on the quay (24/9, option Β).
+    'sell' => [
+        'title' => 'Sell now',
+        'which' => ':trip · :time · :left seats left',
+        'total' => 'Total',
+        'no_price' => 'Choose the people',
+        'name' => 'Guest name',
+        'email' => 'Email (optional)',
+        'phone' => 'Phone (optional)',
+        'pos' => 'Card on my POS',
+        'cash' => 'Cash',
+        'done' => 'Paid · :pax people · :amount',
+        'done_body' => ':how · booking :reference',
+        'no_pax' => 'Add at least one person',
+        'full' => 'There are not that many seats left',
+        'refused' => 'The sale did not go through',
+        'unavailable' => 'This departure cannot be sold now',
     ],
 ];

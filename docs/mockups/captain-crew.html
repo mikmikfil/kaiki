@@ -1,0 +1,546 @@
+<title>Κυβερνήτης και πλήρωμα</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Same tokens as the other Kaiki mockups: light only, blue panel, Inter. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57; --active:#1C4378;
+  --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --line2:#CFDAE8; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA; --strip:#F1F5FA;
+  --warn:#9A5B0C; --warnbg:#FBF0DF; --good:#1F7A4D; --goodbg:#E3F2EA; --bad:#B42318; --badbg:#FDECEA;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-block:28px 72px;padding-inline:16px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:22px}
+h1{font-size:28px;line-height:1.2;margin:0 0 8px;letter-spacing:-.01em;text-wrap:balance}
+.intro p{margin:0;max-width:72ch;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;padding:2px 10px;border-radius:99px}
+.pill.built{background:var(--goodbg);color:var(--good)}
+.pill.prop{background:var(--warnbg);color:var(--warn)}
+.pill.grey{background:var(--ground);color:var(--muted)}
+
+.switch{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.switch button{white-space:nowrap;padding:8px 14px;border-radius:10px;border:1px solid var(--line2);background:var(--card);font-weight:600;font-size:14px;color:var(--muted);display:inline-flex;gap:8px;align-items:center}
+.switch button[aria-pressed="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+.dot{width:8px;height:8px;border-radius:50%}
+.dot.built{background:var(--good)} .dot.prop{background:#D08A1E}
+
+.stage{display:grid;gap:18px}
+.frame{background:var(--ground);border:1px solid var(--line2);border-radius:14px;padding:20px;display:grid;gap:18px}
+@media (min-width:720px){.frame{padding:26px 30px}}
+.frame > *{min-width:0}
+.pagehead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:10px;align-items:flex-end}
+.crumbs{font-size:13px;color:var(--muted)}
+.pagehead > div{min-width:0;flex:1 1 16rem}
+.pagehead h2{overflow-wrap:anywhere}
+.pagehead h2{margin:4px 0 0;font-size:25px;line-height:1.2}
+.note{font-size:13.5px;color:var(--muted);max-width:72ch;margin:0}
+.status{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+
+.sec{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.sec-h{display:flex;gap:12px;align-items:center;padding:15px 20px;background:var(--strip);border-bottom:1px solid var(--line);flex-wrap:wrap;justify-content:space-between}
+.sec-t{display:flex;gap:12px;align-items:center;min-width:0}
+.ico{flex:none;width:34px;height:34px;border-radius:9px;background:var(--wash);color:var(--blue);display:grid;place-items:center}
+.ico svg{width:18px;height:18px}
+.sec-h h3{margin:0;font-size:17px;line-height:1.3}
+.sec-h p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.sec-b{padding:20px;display:grid;gap:16px}
+.grid2{display:grid;gap:16px 20px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:720px){.grid2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.f label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+.f select,.f input{width:100%;min-height:40px;border:1px solid var(--line2);border-radius:9px;background:var(--card);padding:0 12px;font:inherit;font-size:14px;color:var(--ink)}
+.help{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+.chips{display:flex;flex-wrap:wrap;gap:8px;min-height:40px;align-items:center;border:1px solid var(--line2);border-radius:9px;padding:6px 8px;background:var(--card)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 6px 3px 10px;border-radius:99px;background:var(--wash);color:var(--blue);font-size:13px;font-weight:600}
+.chip button{width:20px;height:20px;border-radius:50%;color:var(--blue);line-height:1}
+.chip button:hover{background:#D5E3F5}
+.add{font-size:13px;font-weight:600;color:var(--blue);padding:4px 8px;border-radius:8px}
+.add:hover{background:var(--wash)}
+.menu{display:grid;gap:2px;border:1px solid var(--line2);border-radius:9px;background:var(--card);padding:4px;margin-top:6px}
+.menu button{text-align:left;padding:8px 10px;border-radius:7px;font-size:14px}
+.menu button:hover{background:var(--wash)}
+.warnbox{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:10px;background:var(--warnbg);color:var(--warn);font-size:13.5px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 14px;border-radius:9px;font-weight:600;font-size:14px;border:1px solid var(--line2);background:var(--card)}
+.btn.primary{background:var(--deep);border-color:var(--deep);color:#fff}
+
+/* table */
+.tbl-wrap{overflow-x:auto}
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+.t th{text-align:left;font-size:12.5px;font-weight:600;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--card)}
+.t td{padding:12px 14px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--card)}
+.t tr.day td{background:var(--paper);font-weight:600;font-size:13.5px}
+.t tr.new td{background:#FBFDFF}
+.col-new{box-shadow:inset 0 0 0 2px #7FA6D8}
+.usual{color:var(--faint);font-size:12.5px;margin-left:6px}
+.none{color:var(--bad);font-weight:600}
+.badge{display:inline-block;font-size:12px;font-weight:600;padding:1px 8px;border-radius:6px}
+.badge.ok{background:var(--goodbg);color:var(--good)}
+.badge.off{background:var(--badbg);color:var(--bad)}
+.filters{display:flex;flex-wrap:wrap;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);background:var(--card);align-items:center}
+.filter{padding:5px 12px;border-radius:99px;border:1px solid var(--line2);font-size:13px;font-weight:600;color:var(--muted);background:var(--card)}
+.filter[aria-pressed="true"]{background:var(--wash);border-color:transparent;color:var(--blue)}
+
+/* phone frame */
+.phones{display:grid;gap:20px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.phones{grid-template-columns:repeat(2,minmax(0,380px));justify-content:start}}
+.phone{width:100%;max-width:380px;border-radius:28px;border:8px solid #1B2B45;background:#F7FAFD;overflow:hidden}
+.phone-bar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#fff;border-bottom:1px solid var(--line)}
+.menu-btn{background:var(--deep);color:#fff;font-weight:700;font-size:13px;padding:6px 12px;border-radius:9px}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--deep);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center}
+.phone-b{padding:16px 14px 22px;display:grid;gap:12px}
+.pcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:4px}
+.pcard .row{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.pcard b{font-size:15px}
+.small{font-size:12.5px;color:var(--muted)}
+.cap{font-size:13px;color:var(--ink)}
+.cap span{color:var(--muted)}
+.role{display:inline-block;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:99px;background:var(--wash);color:var(--blue)}
+.hero{background:var(--deep);color:#fff;border-radius:14px;padding:14px;display:grid;gap:4px}
+.hero small{color:#9FBBE0;font-weight:600}
+.hero .t1{font-size:30px;font-weight:700;line-height:1}
+.hero .t2{font-weight:700}
+.hero .t3{font-size:12.5px;color:#C4D3E8}
+.scan{display:flex;justify-content:center;align-items:center;min-height:56px;border-radius:14px;background:var(--deep);color:#fff;font-weight:700;font-size:17px}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--line2);border-radius:10px;padding:3px}
+.seg button{padding:6px 12px;border-radius:7px;font-weight:600;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--deep);color:#fff}
+.boat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:6px 14px}
+.boat header{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+.dep{display:grid;grid-template-columns:3.2rem minmax(0,1fr) auto;gap:10px;padding:10px 0;border-top:1px solid #EEF3F9;font-size:14px;text-align:left;width:100%}
+.dep .tm{font-weight:700}
+.dep .nm{font-weight:600}
+
+/* timeline */
+.tl{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;overflow-x:auto}
+.tl-row{display:grid;grid-template-columns:120px minmax(560px,1fr);gap:12px;align-items:center;padding:8px 0;border-top:1px solid #EEF3F9}
+.tl-row:first-child{border-top:0}
+.track{position:relative;height:46px;background:#F4F7FB;border-radius:8px}
+.bar{position:absolute;top:4px;bottom:4px;border-radius:7px;background:var(--active);color:#fff;font-size:12px;padding:4px 8px;line-height:1.25;overflow:hidden;white-space:nowrap}
+.bar small{display:block;color:#C4D3E8;font-size:11.5px}
+.tip{position:absolute;top:52px;left:0;z-index:2;background:var(--ink);color:#fff;border-radius:9px;padding:8px 10px;font-size:12.5px;white-space:nowrap}
+
+/* modal */
+.modal{background:#fff;border:1px solid var(--line2);border-radius:16px;max-width:560px;box-shadow:0 12px 30px rgba(15,46,87,.12);overflow:hidden}
+.modal-h{padding:16px 18px;border-bottom:1px solid var(--line)}
+.modal-h h4{margin:0;font-size:17px}
+.modal-b{padding:14px 18px;display:grid;gap:6px;font-size:14px}
+.kv{display:grid;grid-template-columns:8rem minmax(0,1fr);gap:6px}
+.kv dt{color:var(--muted)} .kv dd{margin:0;font-weight:600}
+
+/* paper */
+.paper{background:#fff;color:#000;border:1px solid var(--line2);border-radius:6px;padding:22px 24px;font-family:"DejaVu Sans",Arial,sans-serif;max-width:760px}
+.paper h5{font-size:22px;margin:0}
+.paper .boatname{font-size:18px;font-weight:700}
+.paper .ln{margin:2px 0;font-size:14px}
+.paper .hl{background:#FFF6D9;border-radius:3px;padding:0 3px}
+.paper hr{border:0;border-top:3px solid #000;margin:10px 0}
+.paper table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+.paper th{text-align:left;border-bottom:2px solid #000;padding:5px 6px 5px 0}
+.paper td{border-bottom:1px solid #999;padding:7px 6px 7px 0}
+.sign{margin-top:24px;font-size:14px}
+.sign div{display:flex;gap:10px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap}
+.sign span:first-child{width:11rem}
+.sign .line{flex:1;min-width:10rem;border-bottom:1px solid #000;padding-bottom:1px}
+
+.qs{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.qs h2{font-size:17px;margin:0 0 8px}
+.qs ol{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14.5px}
+.tag{margin-left:8px;vertical-align:middle}
+[hidden]{display:none!important}
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>Κυβερνήτης και πλήρωμα</h1>
+    <p>Κάθε άτομο της ομάδας έχει <b>ειδικότητα</b> (κυβερνήτης, ναύτης). Το <b>δρομολόγιο</b> έχει κυβερνήτη και πλήρωμα, και κάθε αναχώρησή του τα κληρονομεί· μία μέρα αλλάζει από την ίδια την αναχώρηση. Κανείς σε δύο αναχωρήσεις την ίδια ώρα. Όσοι μπαίνουν παίρνουν email, και το βράδυ πριν μια υπενθύμιση. Με πράσινο ό,τι είναι ήδη στον κώδικα, με πορτοκαλί ό,τι είναι πρόταση.</p>
+    <div class="legend"><span class="pill built">Ήδη στον κώδικα</span><span class="pill prop">Πρόταση</span></div>
+  </header>
+
+  <nav class="switch" aria-label="Σελίδες">
+    <button type="button" data-p="team" aria-pressed="true"><span class="dot prop"></span>Ομάδα</button>
+    <button type="button" data-p="rule" aria-pressed="false"><span class="dot prop"></span>Δρομολόγιο</button>
+    <button type="button" data-p="edit" aria-pressed="false"><span class="dot built"></span>Αναχώρηση</button>
+    <button type="button" data-p="list" aria-pressed="false"><span class="dot prop"></span>Λίστα αναχωρήσεων</button>
+    <button type="button" data-p="cal" aria-pressed="false"><span class="dot prop"></span>Ημερολόγιο</button>
+    <button type="button" data-p="crew" aria-pressed="false"><span class="dot prop"></span>Αρχική πληρώματος</button>
+    <button type="button" data-p="manifest" aria-pressed="false"><span class="dot built"></span>Κατάσταση επιβατών</button>
+    <button type="button" data-p="boat" aria-pressed="false"><span class="dot prop"></span>Σκάφος</button>
+    <button type="button" data-p="mail" aria-pressed="false"><span class="dot prop"></span>Email και υπενθύμιση</button>
+    <button type="button" data-p="attn" aria-pressed="false"><span class="dot prop"></span>Χρειάζονται προσοχή</button>
+    <button type="button" data-p="next" aria-pressed="false"><span class="dot prop"></span>Γρήγορη ανάθεση</button>
+  </nav>
+
+  <div class="stage">
+
+    <!-- 0a. Team -->
+    <section class="frame" data-page="team">
+      <div class="pagehead"><div><div class="crumbs">Ρυθμίσεις › Ομάδα › Επεξεργασία</div><h2>Νίκος Βασιλείου</h2></div><span class="pill prop">Πρόταση</span></div>
+      <p class="note">Ο <b>ρόλος</b> λέει τι βλέπει στο Kaiki. Η <b>ειδικότητα</b> λέει τι κάνει στο σκάφος. Χωριστά, για να μπορεί ο ιδιοκτήτης να είναι και κυβερνήτης.</p>
+      <article class="sec">
+        <div class="sec-h"><div class="sec-t"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-6 7-6s6.2 2.4 7 6"/></svg></span><div><h3>Το άτομο</h3></div></div></div>
+        <div class="sec-b">
+          <div class="grid2">
+            <div class="f"><label>Όνομα</label><input type="text" value="Νίκος Βασιλείου"></div>
+            <div class="f"><label>Email</label><input type="text" value="nikos@aegean-blue.example"><div class="help">Εδώ έρχονται τα email αναθέσεων και οι υπενθυμίσεις.</div></div>
+          </div>
+          <div class="grid2">
+            <div class="f"><label>Ρόλος</label>
+              <div class="seg" role="group" aria-label="Ρόλος"><button type="button" aria-pressed="false">Ιδιοκτήτης</button><button type="button" aria-pressed="false">Διαχειριστής</button><button type="button" aria-pressed="true">Πλήρωμα</button></div>
+              <div class="help">Τι βλέπει και τι κάνει στο Kaiki.</div></div>
+            <div class="f"><label>Ειδικότητα <span class="pill prop tag">νέο</span></label>
+              <div class="seg" role="group" aria-label="Ειδικότητα" id="spec"><button type="button" aria-pressed="false">Κυβερνήτης</button><button type="button" aria-pressed="true">Ναύτης</button><button type="button" aria-pressed="false">Άλλο</button></div>
+              <div class="help">Τι κάνει στο σκάφος. Στη λίστα «Κυβερνήτης» μιας αναχώρησης φαίνονται μόνο οι κυβερνήτες.</div></div>
+          </div>
+        </div>
+      </article>
+      <div class="sec"><div class="tbl-wrap"><table class="t">
+        <thead><tr><th>Όνομα</th><th>Ρόλος</th><th class="col-new">Ειδικότητα</th></tr></thead>
+        <tbody>
+          <tr><td>Μαρία Παπαδοπούλου</td><td>Ιδιοκτήτης</td><td class="col-new">Κυβερνήτης</td></tr>
+          <tr><td>Γιώργος Δημητρίου</td><td>Διαχειριστής</td><td class="col-new">Κυβερνήτης</td></tr>
+          <tr><td>Νίκος Βασιλείου</td><td>Πλήρωμα</td><td class="col-new">Ναύτης</td></tr>
+        </tbody></table></div></div>
+    </section>
+
+    <!-- 0b. Schedule rule -->
+    <section class="frame" data-page="rule" hidden>
+      <div class="pagehead"><div><div class="crumbs">Εκδρομές › Απογευματινό ψάρεμα › Δρομολόγια</div><h2>Καθημερινά 15:00, από 1/6</h2></div><span class="pill prop">Πρόταση</span></div>
+      <p class="note">Ο κυβερνήτης και το πλήρωμα ορίζονται <b>μία φορά στο δρομολόγιο</b> και πηγαίνουν σε όλες τις αναχωρήσεις του (εδώ 122). Μία μέρα αλλάζει από την ίδια την αναχώρηση.</p>
+      <article class="sec">
+        <div class="sec-h"><div class="sec-t"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg></span><div><h3>Κυβερνήτης και πλήρωμα</h3><p>Για όλες τις αναχωρήσεις αυτού του δρομολογίου.</p></div></div></div>
+        <div class="sec-b">
+          <div class="grid2">
+            <div class="f"><label>Κυβερνήτης</label><select><option>Γιώργος Δημητρίου</option><option>Μαρία Παπαδοπούλου</option></select><div class="help">Μόνο όσοι έχουν ειδικότητα «Κυβερνήτης».</div></div>
+            <div class="f"><label>Πλήρωμα</label><div class="chips"><span class="chip">Νίκος Βασιλείου <button type="button" aria-label="Αφαίρεση">×</button></span></div></div>
+          </div>
+          <div class="warnbox" style="background:var(--badbg);color:var(--bad)"><span>!</span><span><b>Δεν αποθηκεύεται:</b> ο Γιώργος Δημητρίου είναι κυβερνήτης στο δρομολόγιο «Ηλιοβασίλεμα, Σάββατα 14:30», που πέφτει την ίδια ώρα 17 Σάββατα. Αλλάξτε τον εδώ ή εκεί.</span></div>
+          <p class="note">Με την αποθήκευση, ο Γιώργος και ο Νίκος παίρνουν <b>ένα</b> email για το δρομολόγιο, όχι ένα ανά αναχώρηση.</p>
+        </div>
+      </article>
+    </section>
+    <!-- 1. Departure edit -->
+    <section class="frame" data-page="edit" hidden>
+      <div class="pagehead">
+        <div><div class="crumbs">Αναχωρήσεις › Επεξεργασία</div><h2>Απογευματινό ψάρεμα · Πέμπτη 24/9 · 15:00</h2></div>
+        <span class="pill built">Ήδη στον κώδικα</span>
+      </div>
+      <article class="sec">
+        <div class="sec-h"><div class="sec-t"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c.8-3.6 3.6-6 7-6s6.2 2.4 7 6"/></svg></span>
+          <div><h3>Κυβερνήτης και πλήρωμα</h3><p>Ποιος τη βγάζει σήμερα. Τυπώνεται στην κατάσταση επιβατών.</p></div></div></div>
+        <div class="sec-b">
+          <div class="grid2">
+            <div class="f">
+              <label for="cap-sel">Κυβερνήτης</label>
+              <select id="cap-sel">
+                <option value="">—</option>
+                <option>Γιώργος Δημητρίου</option>
+                <option>Μαρία Παπαδοπούλου</option>
+                <option>Νίκος Βασιλείου</option>
+              </select>
+              <div class="help">Κενό: του δρομολογίου (Γιώργος Δημητρίου), αλλιώς ο συνήθης του σκάφους. Αλλάζει μόνο αυτή τη μέρα.</div>
+            </div>
+            <div class="f" id="cap-name-wrap">
+              <label for="cap-name">Ή όνομα κυβερνήτη</label>
+              <input id="cap-name" type="text" placeholder="π.χ. Στέλιος Ραφτόπουλος">
+              <div class="help">Αν δεν έχει λογαριασμό στο Kaiki.</div>
+            </div>
+          </div>
+          <div class="f">
+            <label>Πλήρωμα</label>
+            <div class="chips" id="crew-chips"></div>
+            <div class="menu" id="crew-menu" hidden></div>
+            <div class="help">Όσοι από τους ανθρώπους σας ταξιδεύουν μαζί.</div>
+          </div>
+          <div class="warnbox" id="clash" hidden style="background:var(--badbg);color:var(--bad)"><span>!</span><span><b>Δεν αποθηκεύεται:</b> ο Νίκος Βασιλείου είναι ήδη στο «Ηλιοβασίλεμα στην Αίγινα» (Οδυσσέας, 14:30), που γίνεται την ίδια ώρα. Βγάλτε τον από τη μία από τις δύο.</span></div>
+          <p class="note" id="cap-result"></p>
+        </div>
+      </article>
+      <div style="display:flex;gap:10px"><span class="btn primary">Αποθήκευση</span><span class="btn">Ακύρωση</span></div>
+    </section>
+
+    <!-- 2. Departures list -->
+    <section class="frame" data-page="list" hidden>
+      <div class="pagehead"><div><div class="crumbs">Αναχωρήσεις › Λίστα</div><h2>Αναχωρήσεις</h2></div><span class="pill prop">Πρόταση</span></div>
+      <p class="note">Μια στήλη «Κυβερνήτης». Αν έρχεται από το σκάφος, γράφει «συνήθης» με γκρι. Δύο φίλτρα: όσες δεν έχουν κανέναν, και όσες έχω εγώ.</p>
+      <div class="sec">
+        <div class="filters">
+          <button class="filter" type="button" data-f="all" aria-pressed="true">Όλες</button>
+          <button class="filter" type="button" data-f="none" aria-pressed="false">Χωρίς κυβερνήτη</button>
+          <button class="filter" type="button" data-f="mine" aria-pressed="false">Ο κυβερνήτης μου</button>
+        </div>
+        <div class="tbl-wrap">
+          <table class="t">
+            <thead><tr><th>Ώρα</th><th>Εκδρομή</th><th>Σκάφος</th><th class="col-new">Κυβερνήτης</th><th>Πουλημένες</th><th>Κατάσταση</th></tr></thead>
+            <tbody id="list-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="phones">
+        <div class="phone"><div class="phone-bar"><span class="menu-btn">Μενού</span><span class="avatar">ΜΠ</span></div>
+          <div class="phone-b" id="list-phone"></div></div>
+      </div>
+    </section>
+
+    <!-- 3. Calendar -->
+    <section class="frame" data-page="cal" hidden>
+      <div class="pagehead"><div><div class="crumbs">Ημερολόγιο</div><h2>Πέμπτη 24 Σεπτεμβρίου 2026</h2></div><span class="pill prop">Πρόταση</span></div>
+      <p class="note">Στη μπάρα, κάτω από την ώρα, το όνομα του κυβερνήτη. Στο παράθυρο επιβατών, κυβερνήτης και πλήρωμα πάνω από τη λίστα. Στο κινητό, μια γραμμή κάτω από κάθε αναχώρηση.</p>
+      <div class="tl" aria-label="Χρονοδιάγραμμα">
+        <div class="tl-row"><b>Οδυσσέας</b><div class="track">
+          <div class="bar" style="left:37.5%;width:10%">09:00 · 0/24<small>Γ. Δημητρίου</small></div>
+          <div class="bar" style="left:76%;width:14%">18:30 · 0/20<small>Κ. Μαυρίδης · συνήθης</small></div>
+        </div></div>
+        <div class="tl-row"><b>Γαλήνη</b><div class="track">
+          <button type="button" class="bar" id="bar-galini" style="left:62.5%;width:21%;text-align:left">15:00 · 0/12<small>Σ. Ραφτόπουλος</small></button>
+          <div class="tip" id="tip" style="left:62.5%" hidden>Κυβερνήτης: Στέλιος Ραφτόπουλος · Πλήρωμα: Νίκος Βασιλείου</div>
+        </div></div>
+        <div class="tl-row"><b>Αμφιτρίτη</b><div class="track">
+          <div class="bar" style="left:41.6%;width:25%;background:#8FA3BD">10:00 · 0/12<small>χωρίς κυβερνήτη</small></div>
+        </div></div>
+      </div>
+      <div class="modal">
+        <div class="modal-h"><h4>Ποιοι είναι σε αυτή την εκδρομή</h4><div class="small">Απογευματινό ψάρεμα · Γαλήνη · 15:00</div></div>
+        <div class="modal-b">
+          <dl class="kv"><dt>Κυβερνήτης</dt><dd>Στέλιος Ραφτόπουλος</dd><dt>Πλήρωμα</dt><dd>Νίκος Βασιλείου</dd></dl>
+          <div class="small" style="margin-top:6px">4 από 12 θέσεις</div>
+          <div>Anna Rossi · 2 άτομα</div><div>Κώστας Λάμπρου · 2 άτομα</div>
+        </div>
+      </div>
+      <div class="phones">
+        <div class="phone"><div class="phone-bar"><span class="menu-btn">Μενού</span><span class="avatar">ΜΠ</span></div>
+          <div class="phone-b">
+            <div class="boat"><header><b>Οδυσσέας</b></header>
+              <div class="dep"><span class="tm">09:00</span><span><span class="nm">Πρωινό κολυμβητικό</span><br><span class="cap"><span>Κυβερνήτης:</span> Γ. Δημητρίου</span></span><span class="small">0/24</span></div>
+              <div class="dep"><span class="tm">18:30</span><span><span class="nm">Ηλιοβασίλεμα στην Αίγινα</span><br><span class="cap"><span>Κυβερνήτης:</span> Κ. Μαυρίδης <span class="usual">συνήθης</span></span></span><span class="small">0/20</span></div>
+            </div>
+            <div class="boat"><header><b>Αμφιτρίτη</b></header>
+              <div class="dep"><span class="tm">10:00</span><span><span class="nm">Ιδιωτική ημέρα με σκάφος</span><br><span class="cap none">Χωρίς κυβερνήτη</span></span><span class="small">0/12</span></div>
+            </div>
+          </div></div>
+      </div>
+    </section>
+
+    <!-- 4. Crew home -->
+    <section class="frame" data-page="crew" hidden>
+      <div class="pagehead"><div><div class="crumbs">Αρχική, όπως τη βλέπει το πλήρωμα</div><h2>Οι αναχωρήσεις μου</h2></div><span class="pill prop">Πρόταση</span></div>
+      <p class="note">Πρώτα η επόμενη αναχώρηση όπου είμαι κυβερνήτης ή πλήρωμα, με τον ρόλο μου. Από κάτω οι υπόλοιπες της μέρας, για να ξέρω τι γίνεται στο λιμάνι. Αλλάξτε ρόλο για να δείτε τη διαφορά.</p>
+      <div class="seg" role="group" aria-label="Ρόλος"><button type="button" data-r="captain" aria-pressed="false">Κυβερνήτης</button><button type="button" data-r="crew" aria-pressed="true">Πλήρωμα</button><button type="button" data-r="none" aria-pressed="false">Σε καμία</button></div>
+      <div class="phones">
+        <div class="phone"><div class="phone-bar"><span class="menu-btn">Μενού</span><span class="avatar">ΝΒ</span></div>
+          <div class="phone-b" id="crew-phone"></div></div>
+      </div>
+    </section>
+
+    <!-- 5. Manifest -->
+    <section class="frame" data-page="manifest" hidden>
+      <div class="pagehead"><div><div class="crumbs">Κατάσταση επιβατών · για το λιμεναρχείο</div><h2>Το χαρτί που υπογράφει ο κυβερνήτης</h2></div><span class="pill built">Ήδη στον κώδικα</span></div>
+      <p class="note">Ο κυβερνήτης της αναχώρησης, όχι του σκάφους, και μια γραμμή «Πλήρωμα». Στο μπλοκ υπογραφής το όνομα είναι ήδη τυπωμένο. Με κίτρινο ό,τι προστίθεται.</p>
+      <div class="paper">
+        <h5>Κατάσταση επιβατών</h5>
+        <div class="boatname">Γαλήνη</div>
+        <p class="ln">24/09/2026 · 15:00</p>
+        <p class="ln">Άδεια: Ημερόπλοιο</p>
+        <p class="ln">Λιμάνι επιβίβασης: Μαρίνα Ζέας · Λιμάνι αποβίβασης: Μαρίνα Ζέας</p>
+        <p class="ln">Κυβερνήτης: <span class="hl">Στέλιος Ραφτόπουλος</span></p>
+        <p class="ln"><span class="hl">Πλήρωμα: Νίκος Βασιλείου</span></p>
+        <hr>
+        <b>Επιβαίνοντες: 4 από 28 της άδειας</b>
+        <div style="overflow-x:auto"><table><thead><tr><th>#</th><th>Ονοματεπώνυμο</th><th>Φύλο</th><th>Ημ. γέννησης</th><th>Υπηκοότητα</th></tr></thead>
+          <tbody><tr><td>1</td><td>Anna Rossi</td><td>Θ</td><td>02/04/1990</td><td>IT</td></tr><tr><td>2</td><td>Marco Rossi</td><td>Α</td><td>30/11/1988</td><td>IT</td></tr><tr><td>3</td><td>Κώστας Λάμπρου</td><td>Α</td><td>14/06/1979</td><td>GR</td></tr><tr><td>4</td><td>Ελένη Λάμπρου</td><td>Θ</td><td>02/02/1982</td><td>GR</td></tr></tbody></table></div>
+        <div class="sign"><b>Ο κυβερνήτης</b>
+          <div><span>Ονοματεπώνυμο</span><span class="line"><span class="hl">Στέλιος Ραφτόπουλος</span></span></div>
+          <div><span>Υπογραφή</span><span class="line"></span></div>
+          <div><span>Ημερομηνία και ώρα</span><span class="line"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. Boat -->
+    <section class="frame" data-page="boat" hidden>
+      <div class="pagehead"><div><div class="crumbs">Σκάφη › Επεξεργασία</div><h2>Γαλήνη</h2></div><span class="pill prop">Πρόταση</span></div>
+      <p class="note">Το πεδίο του σκάφους μένει, αλλά λέει τι είναι: ο συνήθης κυβερνήτης, αυτός που τυπώνεται όταν η αναχώρηση δεν ορίζει άλλον.</p>
+      <article class="sec">
+        <div class="sec-h"><div class="sec-t"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v12M5 15h14l-2 5H7z"/><path d="M12 5l6 8H12"/></svg></span><div><h3>Λειτουργία</h3></div></div></div>
+        <div class="sec-b"><div class="grid2">
+          <div class="f"><label for="b-cap">Συνήθης κυβερνήτης</label><input id="b-cap" type="text" value="Κώστας Μαυρίδης">
+            <div class="help">Τυπώνεται στην κατάσταση επιβατών όταν η αναχώρηση δεν ορίζει άλλον. Τον αλλάζετε για μία μέρα από την ίδια την αναχώρηση.</div></div>
+          <div class="f"><label for="b-crew">Μέλη πληρώματος</label><input id="b-crew" type="text" value="2">
+            <div class="help">Πόσοι δουλεύουν πάνω στο σκάφος. Δεν πιάνουν θέσεις επιβατών.</div></div>
+        </div></div>
+      </article>
+    </section>
+
+
+    <!-- 7a. Mails -->
+    <section class="frame" data-page="mail" hidden>
+      <div class="pagehead"><div><div class="crumbs">Email και ειδοποιήσεις στο κινητό</div><h2>Τι λαμβάνει ο Νίκος</h2></div><span class="pill prop">Πρόταση</span></div>
+      <p class="note">Τρία μηνύματα, λίγα και χρήσιμα. Το ίδιο κείμενο θα έρχεται και ως ειδοποίηση στο κινητό όταν φτιαχτούν οι ειδοποιήσεις (push).</p>
+      <div class="phones">
+        <div class="phone"><div class="phone-bar"><span class="small" style="font-weight:600">1. Μπαίνει σε δρομολόγιο</span></div>
+          <div class="phone-b"><div class="pcard"><div class="small">Θέμα</div><b>Είστε στο πλήρωμα: Απογευματινό ψάρεμα</b>
+            <p class="small" style="margin:8px 0 0;color:var(--ink)">Γεια σας Νίκο, η Aegean Blue σας έβαλε στο πλήρωμα του «Απογευματινό ψάρεμα» με τη Γαλήνη, <b>καθημερινά 15:00, από 1/6</b>. Κυβερνήτης: Γιώργος Δημητρίου.</p>
+            <span class="btn primary" style="margin-top:10px">Οι αναχωρήσεις μου</span></div></div></div>
+        <div class="phone"><div class="phone-bar"><span class="small" style="font-weight:600">2. Αλλαγή για μία μέρα</span></div>
+          <div class="phone-b"><div class="pcard"><div class="small">Θέμα</div><b>Είστε ο κυβερνήτης: 24/09, 15:00</b>
+            <p class="small" style="margin:8px 0 0;color:var(--ink)">Γεια σας Νίκο, η Aegean Blue σας όρισε κυβερνήτη του «Απογευματινό ψάρεμα» με τη Γαλήνη, 24/09/2026 στις 15:00.</p>
+            <span class="btn primary" style="margin-top:10px">Άνοιγμα αναχώρησης</span></div></div></div>
+        <div class="phone"><div class="phone-bar"><span class="small" style="font-weight:600">3. Το βράδυ πριν, 20:00</span></div>
+          <div class="phone-b">
+            <div class="pcard" style="background:#1B2B45;color:#fff;border-color:#1B2B45"><div class="small" style="color:#C4D3E8">Kaiki · ειδοποίηση (όταν γίνει το push)</div><b>Αύριο 15:00, Γαλήνη</b><span class="small" style="color:#C4D3E8">Είστε στο πλήρωμα · Μαρίνα Ζέας · 8 επιβάτες</span></div>
+            <div class="pcard"><div class="small">Και ως email</div><b>Αύριο: 15:00 Απογευματινό ψάρεμα</b><p class="small" style="margin:6px 0 0;color:var(--ink)">Γαλήνη, Μαρίνα Ζέας, προσέλευση 14:30. Κυβερνήτης: Γιώργος Δημητρίου. 8 επιβάτες μέχρι στιγμής.</p></div>
+          </div></div>
+      </div>
+      <p class="note">Όχι email για κάθε νέα αναχώρηση: ένα δρομολόγιο βγάζει δεκάδες, και ένα μήνυμα που έρχεται συνέχεια δεν το διαβάζει κανείς.</p>
+    </section>
+
+    <!-- 7b. Attention -->
+    <section class="frame" data-page="attn" hidden>
+      <div class="pagehead"><div><div class="crumbs">Αρχική · Χρειάζονται προσοχή (ιδιοκτήτης, διαχειριστής)</div><h2>Χρειάζονται προσοχή</h2></div><span class="pill prop">Πρόταση</span></div>
+      <p class="note">Ένα νέο δρομολόγιο χωρίς κυβερνήτη δεν στέλνει email σε όλους. Εμφανίζεται εδώ, μία γραμμή, μέχρι να οριστεί.</p>
+      <article class="sec"><div class="sec-b">
+        <div class="pcard"><div class="row"><b>Νέο δρομολόγιο χωρίς κυβερνήτη</b><span class="badge off">Απόφαση</span></div>
+          <div class="small">Απογευματινό ψάρεμα · καθημερινά 15:00 · 122 αναχωρήσεις · ο συνήθης του σκάφους: κανείς</div>
+          <span class="btn primary" style="margin-top:8px;justify-self:start">Ορισμός κυβερνήτη</span></div>
+      </div></article>
+    </section>
+
+    <!-- 7. Next -->
+    <section class="frame" data-page="next" hidden>
+      <div class="pagehead"><div><div class="crumbs">Ημερολόγιο στο κινητό · ιδιοκτήτης και διαχειριστής</div><h2>Γρήγορη ανάθεση</h2></div><span class="pill prop">Πρόταση</span></div>
+      <p class="note">Πατάτε μια αναχώρηση στο ημερολόγιο και ορίζετε κυβερνήτη για εκείνη τη μέρα. Μόνο ιδιοκτήτης και διαχειριστής (όπως αποφασίσατε).</p>
+      <div class="phones">
+        <div class="phone"><div class="phone-bar"><span class="menu-btn">Μενού</span><span class="avatar">ΜΠ</span></div>
+          <div class="phone-b">
+            <div class="small">Ημερολόγιο · πατάτε μια αναχώρηση</div>
+            <div class="pcard"><div class="row"><b>10:00 Ιδιωτική ημέρα</b><span class="small">Αμφιτρίτη</span></div>
+              <div class="cap none" id="quick-cap">Χωρίς κυβερνήτη</div>
+              <button type="button" class="btn" id="quick-open" style="margin-top:8px">Ανάθεση</button>
+              <div class="menu" id="quick-menu" hidden>
+                <button type="button" data-n="Γιώργος Δημητρίου">Γιώργος Δημητρίου</button>
+                <button type="button" data-n="Νίκος Βασιλείου">Νίκος Βασιλείου</button>
+                <button type="button" data-n="Μαρία Παπαδοπούλου">Μαρία Παπαδοπούλου</button>
+              </div>
+            </div>
+          </div></div>
+        <div class="phone"><div class="phone-bar"><span class="small" style="font-weight:600">Email προς Νίκο</span></div>
+          <div class="phone-b">
+            <div class="pcard"><div class="small">Θέμα</div><b>Είστε στο πλήρωμα: Πέμπτη 24/9, 15:00</b>
+              <p class="small" style="margin:8px 0 0;color:var(--ink)">Γεια σας Νίκο,<br>η Aegean Blue σας έβαλε στο πλήρωμα του «Απογευματινό ψάρεμα» με τη Γαλήνη, Πέμπτη 24 Σεπτεμβρίου, 15:00 από τη Μαρίνα Ζέας. Κυβερνήτης: Στέλιος Ραφτόπουλος.</p>
+              <span class="btn primary" style="margin-top:10px">Άνοιγμα αναχώρησης</span></div>
+          </div></div>
+      </div>
+
+    </section>
+  </div>
+
+  <section class="qs" aria-label="Ερωτήσεις">
+    <h2>Αποφασίσατε</h2>
+    <ol>
+      <li>Το πλήρωμα βλέπει και τις αναχωρήσεις των άλλων.</li>
+      <li>Email όταν κάποιος μπαίνει σε πλήρωμα· push αργότερα.</li>
+      <li>Ο ίδιος άνθρωπος σε δύο αναχωρήσεις την ίδια ώρα: δεν επιτρέπεται.</li>
+      <li>Γρήγορη ανάθεση: ιδιοκτήτης και διαχειριστής.</li>
+    </ol>
+    <h2 style="margin-top:14px">Μένει να πείτε</h2>
+    <ol>
+      <li>Ειδικότητες: αρκούν «Κυβερνήτης», «Ναύτης», «Άλλο»; Κάτι ακόμα (π.χ. «Μάγειρας», «Ξεναγός»);</li>
+      <li>Υπενθύμιση το βράδυ πριν: στις 20:00 είναι καλά;</li>
+      <li>Κυβερνήτης απαραίτητος πριν την κατάσταση επιβατών; Πρόταση: όχι· κόκκινο «Χωρίς κυβερνήτη» μόνο όταν δεν έχει ούτε η αναχώρηση, ούτε το δρομολόγιο, ούτε το σκάφος.</li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(function(){
+  var $ = function(s, r){ return (r || document).querySelector(s); };
+  var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+
+  // page switcher
+  $$('.switch button').forEach(function(b){
+    b.addEventListener('click', function(){
+      $$('.switch button').forEach(function(x){ x.setAttribute('aria-pressed', x === b); });
+      $$('[data-page]').forEach(function(p){ p.hidden = p.getAttribute('data-page') !== b.dataset.p; });
+    });
+  });
+
+  // 1. captain + crew
+  var people = ['Γιώργος Δημητρίου', 'Μαρία Παπαδοπούλου', 'Νίκος Βασιλείου'];
+  var crew = ['Νίκος Βασιλείου'];
+  var capSel = $('#cap-sel'), capName = $('#cap-name'), capWrap = $('#cap-name-wrap');
+  function captain(){ return capSel.value || capName.value.trim() || ''; }
+  function renderCrew(){
+    var box = $('#crew-chips'); box.innerHTML = '';
+    crew.filter(function(n){ return n !== capSel.value; }).forEach(function(n){
+      var c = document.createElement('span'); c.className = 'chip'; c.textContent = n;
+      var x = document.createElement('button'); x.type = 'button'; x.setAttribute('aria-label', 'Αφαίρεση ' + n); x.textContent = '×';
+      x.onclick = function(){ crew = crew.filter(function(m){ return m !== n; }); renderCrew(); };
+      c.appendChild(x); box.appendChild(c);
+    });
+    var add = document.createElement('button'); add.type = 'button'; add.className = 'add'; add.textContent = '+ Προσθήκη';
+    add.onclick = function(){
+      var m = $('#crew-menu'); m.innerHTML = '';
+      people.filter(function(p){ return crew.indexOf(p) < 0 && p !== capSel.value; }).forEach(function(p){
+        var o = document.createElement('button'); o.type = 'button'; o.textContent = p;
+        o.onclick = function(){ crew.push(p); m.hidden = true; renderCrew(); };
+        m.appendChild(o);
+      });
+      m.hidden = m.childElementCount === 0 ? true : !m.hidden;
+    };
+    box.appendChild(add);
+    $('#clash').hidden = crew.indexOf('Νίκος Βασιλείου') < 0 && capSel.value !== 'Νίκος Βασιλείου';
+    var c = captain();
+    $('#cap-result').textContent = 'Στην κατάσταση επιβατών θα τυπωθεί: Κυβερνήτης ' + (c || 'Κώστας Μαυρίδης (ο συνήθης του σκάφους)') + (crew.filter(function(n){ return n !== capSel.value; }).length ? ' · Πλήρωμα: ' + crew.filter(function(n){ return n !== capSel.value; }).join(', ') : '') + '.';
+  }
+  capSel.addEventListener('change', function(){ capWrap.hidden = capSel.value !== ''; renderCrew(); });
+  capName.addEventListener('input', renderCrew);
+  renderCrew();
+
+  // 2. list
+  var rows = [
+    { t:'09:00', trip:'Πρωινό κολυμβητικό', boat:'Οδυσσέας', cap:'Γιώργος Δημητρίου', usual:false, sold:'0/24', st:'ok' },
+    { t:'10:00', trip:'Ιδιωτική ημέρα με σκάφος', boat:'Αμφιτρίτη', cap:'', usual:false, sold:'0/12', st:'ok' },
+    { t:'15:00', trip:'Απογευματινό ψάρεμα', boat:'Γαλήνη', cap:'Στέλιος Ραφτόπουλος', usual:false, sold:'4/12', st:'ok' },
+    { t:'18:30', trip:'Ηλιοβασίλεμα στην Αίγινα', boat:'Οδυσσέας', cap:'Κώστας Μαυρίδης', usual:true, sold:'0/20', st:'off' },
+    { t:'19:30', trip:'Ρομαντικό δείπνο εν πλω', boat:'Ποσειδώνας', cap:'Μαρία Παπαδοπούλου', usual:false, sold:'0/8', st:'ok' }
+  ];
+  var me = 'Μαρία Παπαδοπούλου';
+  function capHtml(r){ return r.cap ? r.cap + (r.usual ? '<span class="usual">συνήθης</span>' : '') : '<span class="none">Χωρίς κυβερνήτη</span>'; }
+  function renderList(f){
+    var list = rows.filter(function(r){ return f === 'none' ? !r.cap : f === 'mine' ? r.cap === me : true; });
+    $('#list-body').innerHTML = '<tr class="day"><td colspan="6">Πέμπτη 24 Σεπτεμβρίου</td></tr>' + list.map(function(r){
+      return '<tr><td>' + r.t + '</td><td>' + r.trip + '</td><td>' + r.boat + '</td><td class="col-new">' + capHtml(r) + '</td><td>' + r.sold + '</td><td><span class="badge ' + (r.st === 'ok' ? 'ok">Εγγυημένη' : 'off">Ακυρωμένη') + '</span></td></tr>';
+    }).join('') + (list.length ? '' : '<tr><td colspan="6" class="small">Καμία αναχώρηση με αυτό το φίλτρο.</td></tr>');
+    $('#list-phone').innerHTML = list.map(function(r){
+      return '<div class="pcard"><div class="row"><b>' + r.t + ' ' + r.trip + '</b><span class="small">' + r.sold + '</span></div><div class="small">' + r.boat + '</div><div class="cap"><span>Κυβερνήτης:</span> ' + capHtml(r) + '</div></div>';
+    }).join('') || '<p class="small">Καμία αναχώρηση με αυτό το φίλτρο.</p>';
+  }
+  $$('.filter').forEach(function(b){ b.addEventListener('click', function(){ $$('.filter').forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); renderList(b.dataset.f); }); });
+  renderList('all');
+
+  // 3. calendar tooltip
+  $('#bar-galini').addEventListener('click', function(){ $('#tip').hidden = !$('#tip').hidden; });
+
+  // 4. crew home
+  function renderCrewHome(role){
+    var mine = role === 'none' ? '' :
+      '<div class="small" style="font-weight:600">Η επόμενη δική μου</div>' +
+      '<div class="hero"><small>Επόμενη αναχώρηση · σε 3 ώρες</small><div class="t1">15:00</div><div class="t2">Απογευματινό ψάρεμα</div><div class="t3">Γαλήνη · Μαρίνα Ζέας</div><div><span class="role" style="background:#23497D;color:#fff">' + (role === 'captain' ? 'Είστε ο κυβερνήτης' : 'Είστε στο πλήρωμα') + '</span></div></div>';
+    var others = '<div class="small" style="font-weight:600;margin-top:4px">Υπόλοιπες σήμερα</div>' +
+      '<div class="boat"><header><b>Οδυσσέας</b></header><div class="dep"><span class="tm">09:00</span><span><span class="nm">Πρωινό κολυμβητικό</span><br><span class="cap"><span>Κυβερνήτης:</span> Γ. Δημητρίου</span></span><span class="small">0/24</span></div></div>' +
+      '<div class="boat"><header><b>Αμφιτρίτη</b></header><div class="dep"><span class="tm">10:00</span><span><span class="nm">Ιδιωτική ημέρα</span><br><span class="cap none">Χωρίς κυβερνήτη</span></span><span class="small">0/12</span></div></div>';
+    $('#crew-phone').innerHTML = '<div class="scan">Σάρωση εισιτηρίων</div>' + (mine || '<p class="small" style="margin:0">Δεν είστε σε καμία αναχώρηση σήμερα.</p>') + others;
+  }
+  $$('.seg button').forEach(function(b){ b.addEventListener('click', function(){ $$('button', b.parentNode).forEach(function(x){ x.setAttribute('aria-pressed', x === b); }); if (b.dataset.r) renderCrewHome(b.dataset.r); }); });
+  renderCrewHome('crew');
+
+  // 7. quick assign
+  $('#quick-open').addEventListener('click', function(){ $('#quick-menu').hidden = !$('#quick-menu').hidden; });
+  $$('#quick-menu button').forEach(function(b){ b.addEventListener('click', function(){ var c = $('#quick-cap'); c.className = 'cap'; c.innerHTML = '<span>Κυβερνήτης:</span> ' + b.dataset.n; $('#quick-menu').hidden = true; $('#quick-open').textContent = 'Αλλαγή'; }); });
+})();
+</script>

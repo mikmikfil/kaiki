@@ -246,6 +246,8 @@ class Analytics extends Page
             'campaigns' => $figures->byCampaign($range),
             'referrers' => $figures->byReferrer($range),
             'discount_codes' => $figures->byDiscountCode($range),
+            'weekdays' => $figures->byWeekday($range),
+            'lead_time' => $figures->leadTime($range),
             'cancellations' => $figures->cancellations($range),
             'funnel' => $figures->funnel($range),
             'visits' => $figures->visits($range),
@@ -282,6 +284,27 @@ class Analytics extends Page
         $formatter->setAttribute(NumberFormatter::FRACTION_DIGITS, abs($ratio) < 0.1 ? 1 : 0);
 
         return (string) $formatter->format($ratio);
+    }
+
+    /**
+     * A date the figures carry as `Y-m-d` (or a month as `Y-m`), the way the
+     * rest of the panel writes it: `25/08/2026`, `09/2026` (2026-09-23).
+     *
+     * The figures keep ISO dates because they are keys — buckets, sort order,
+     * the URL — and only the page turns them into something a Greek reader
+     * reads without stopping. Anything else comes back untouched.
+     */
+    public function day(string $value): string
+    {
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1) {
+            return (string) Carbon::createFromFormat('!Y-m-d', $value)?->format('d/m/Y');
+        }
+
+        if (preg_match('/^\d{4}-\d{2}$/', $value) === 1) {
+            return (string) Carbon::createFromFormat('!Y-m', $value)?->format('m/Y');
+        }
+
+        return $value;
     }
 
     /**

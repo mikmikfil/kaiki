@@ -1,0 +1,384 @@
+<title>Η εκδρομή, για το πλήρωμα</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  /*
+    Φως μόνο, σκόπιμα. Κάθε χρώμα ρητά, ώστε η σελίδα να στέκει σε όποιο φόντο.
+    Καμία ελληνική λέξη με κεφαλαία — κλεισμένος κανόνας.
+  */
+  :root {
+    --hull: #0B4F4A;
+    --deep: #063733;
+    --ember: #B5511F;
+    --ink: #16211F;
+    --limewash: #F2F4F0;
+    --paper: #FFFFFF;
+    --hairline: #DDE3DF;
+    --muted: #5F6E6A;
+    --ground: #E7EBE6;
+    --panel: #0F2E57;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: .9375rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 980px; margin: 0 auto; padding-inline: 20px; padding-block: 56px 88px; }
+
+  a { color: var(--hull); text-decoration: none; }
+  a:hover { color: var(--deep); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+
+  .eyebrow { font-size: .75rem; font-weight: 600; letter-spacing: .08em; color: var(--muted); margin: 0 0 14px; }
+  h1 { font-size: 2.75rem; font-weight: 800; letter-spacing: -.025em; line-height: 1.08; margin: 0 0 20px; text-wrap: balance; }
+  .lede { font-size: 1.0625rem; color: var(--muted); margin: 0; max-width: 62ch; }
+  .lede + .lede { margin-top: 14px; }
+  .rule { height: 1px; background: var(--hairline); border: 0; margin-block: 52px; }
+
+  .direction { margin-block: 0 60px; }
+  .direction-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .letter {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .8125rem; font-weight: 500; color: var(--paper); background: var(--hull);
+    width: 26px; height: 26px; display: grid; place-items: center; border-radius: 50%; flex: none;
+  }
+  .direction h2 { font-size: 1.375rem; font-weight: 600; letter-spacing: -.015em; margin: 0; }
+  .direction > p { color: var(--muted); margin: 0 0 22px; max-width: 62ch; }
+  .tradeoff { font-size: .875rem; color: var(--muted); margin: 18px 0 0; max-width: 62ch; }
+  .tradeoff b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- το πλαίσιο του panel ---------- */
+  .screen { background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; overflow: hidden; }
+  .chrome { display: flex; align-items: center; gap: 7px; padding: 11px 14px; background: var(--limewash); border-bottom: 1px solid var(--hairline); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--hairline); flex: none; }
+  .chrome span { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .6875rem; color: var(--muted); margin-left: 8px; }
+
+  .panel { display: grid; grid-template-columns: 190px minmax(0, 1fr); min-height: 460px; }
+
+  .side { background: #F7F9F8; border-right: 1px solid var(--hairline); padding: 16px 0; font-size: .875rem; }
+  .side p { margin: 0 0 6px; padding: 0 16px; font-size: .6875rem; font-weight: 600; letter-spacing: .06em; color: var(--muted); }
+  .side a { display: block; padding: 7px 16px; color: var(--ink); }
+  .side a.on { background: color-mix(in srgb, var(--panel) 8%, transparent); font-weight: 600; box-shadow: inset 3px 0 0 var(--panel); }
+  .side a.off { color: #A8B2AF; }
+
+  .main { padding: 24px 26px; min-width: 0; }
+
+  .crumb { font-size: .8125rem; color: var(--muted); margin: 0 0 12px; }
+  .title { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; margin: 0 0 3px; }
+  .sub { color: var(--muted); margin: 0 0 22px; }
+
+  .roleflag {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: color-mix(in srgb, var(--ember) 10%, transparent);
+    color: #8C4016; font-size: .75rem; font-weight: 600;
+    padding: 4px 10px; border-radius: 999px; margin-bottom: 18px;
+  }
+
+  /* ---------- Α: το φύλλο της ημέρας ---------- */
+  .facts { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--hairline); border-radius: 8px; overflow: hidden; margin-bottom: 22px; }
+  .facts div { padding: 12px 14px; border-left: 1px solid var(--hairline); }
+  .facts div:first-child { border-left: 0; }
+  .facts dt { font-size: .6875rem; color: var(--muted); margin-bottom: 2px; }
+  .facts dd { margin: 0; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1.0625rem; font-weight: 500; }
+
+  .block { margin-bottom: 20px; }
+  .block h3 { font-size: .9375rem; font-weight: 600; margin: 0 0 8px; }
+  .list { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-size: .9375rem; }
+  .list li { display: flex; gap: 9px; align-items: flex-start; }
+  .tick { color: var(--hull); flex: none; font-weight: 600; }
+
+  .where { background: var(--limewash); border-radius: 8px; padding: 14px 16px; font-size: .9375rem; }
+  .where b { display: block; font-weight: 600; margin-bottom: 2px; }
+  .where span { color: var(--muted); }
+
+  /* ---------- Β: πάνω από τη λίστα επιβατών ---------- */
+  .tabs { display: flex; gap: 20px; border-bottom: 1px solid var(--hairline); margin-bottom: 20px; font-size: .875rem; color: var(--muted); }
+  .tabs span { padding-bottom: 9px; }
+  .tabs .on { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--panel); }
+
+  .paxrow { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-top: 1px solid var(--hairline); font-size: .9375rem; }
+  .paxrow:first-of-type { border-top: 0; }
+  .paxrow .who { min-width: 0; }
+  .paxrow .tagline { color: var(--muted); font-size: .8125rem; }
+  .pill { font-size: .6875rem; background: var(--limewash); border-radius: 999px; padding: 2px 9px; color: var(--muted); }
+
+  .brief { border: 1px solid var(--hairline); border-radius: 8px; padding: 14px 16px; margin-bottom: 18px; }
+  .brief-top { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .brief-name { font-weight: 600; }
+  .brief-facts { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { background: var(--limewash); border-radius: 999px; padding: 4px 11px; font-size: .8125rem; display: inline-flex; gap: 6px; }
+  .chip b { font-family: "IBM Plex Mono", ui-monospace, monospace; font-weight: 500; }
+  .brief-more { font-size: .8125rem; margin-top: 10px; }
+
+  /* ---------- Γ: το κινητό στην προβλήτα ---------- */
+  .phone-row { display: flex; gap: 22px; align-items: flex-start; flex-wrap: wrap; }
+  .phone { width: 300px; flex: none; background: var(--paper); border: 1px solid var(--hairline); border-radius: 22px; overflow: hidden; }
+  .phone-bar { background: var(--panel); color: #fff; padding: 12px 16px; font-size: .875rem; font-weight: 600; }
+  .phone-body { padding: 16px; }
+  .phone h4 { font-size: 1.0625rem; font-weight: 800; letter-spacing: -.015em; margin: 0 0 2px; }
+  .phone .when { font-family: "IBM Plex Mono", ui-monospace, monospace; color: var(--muted); font-size: .8125rem; margin: 0 0 14px; }
+  .phone .big { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+  .phone .big div { background: var(--limewash); border-radius: 8px; padding: 10px 12px; }
+  .phone .big dt { font-size: .6875rem; color: var(--muted); }
+  .phone .big dd { margin: 0; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 1.125rem; font-weight: 500; }
+  .phone-note { font-size: .875rem; color: var(--muted); max-width: 34ch; }
+
+  /* ---------- picker ---------- */
+  .picker { background: var(--paper); border: 1px solid var(--hairline); border-radius: 6px; padding: 30px; }
+  .picker h2 { font-size: 1.375rem; font-weight: 600; margin: 0 0 8px; letter-spacing: -.015em; }
+  .picker > p { color: var(--muted); margin: 0 0 24px; max-width: 58ch; }
+  .options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .option { font: inherit; text-align: left; background: var(--limewash); border: 1px solid var(--hairline); border-radius: 5px; padding: 16px; cursor: pointer; color: var(--ink); }
+  .option:hover { border-color: var(--hull); }
+  .option[aria-pressed="true"] { background: var(--hull); border-color: var(--hull); color: var(--paper); }
+  .option[aria-pressed="true"] .option-name { color: var(--paper); }
+  .option[aria-pressed="true"] .option-why { color: #BFD6D2; }
+  .option-letter { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .75rem; font-weight: 500; display: block; margin-bottom: 6px; opacity: .7; }
+  .option-name { font-weight: 600; display: block; margin-bottom: 4px; }
+  .option-why { font-size: .8125rem; color: var(--muted); display: block; line-height: 1.5; }
+  .chosen { margin: 22px 0 0; padding: 15px 18px; background: var(--limewash); border-left: 3px solid var(--ember); border-radius: 0 4px 4px 0; font-size: .9375rem; }
+  .chosen b { font-weight: 600; }
+
+  .note { background: var(--paper); border: 1px solid var(--hairline); border-left: 3px solid var(--ember); border-radius: 0 6px 6px 0; padding: 22px 26px; }
+  .note h2 { font-size: 1.125rem; font-weight: 600; margin: 0 0 10px; }
+  .note p { color: var(--muted); margin: 0 0 10px; max-width: 62ch; }
+  .note p:last-child { margin-bottom: 0; }
+  .note code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .85em; background: var(--limewash); padding: 1px 5px; border-radius: 3px; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  @media (max-width: 860px) {
+    .panel { grid-template-columns: 1fr; }
+    .side { border-right: 0; border-bottom: 1px solid var(--hairline); display: flex; gap: 4px; overflow-x: auto; padding: 10px; }
+    .side p { display: none; }
+    .side a { white-space: nowrap; border-radius: 6px; }
+    .side a.on { box-shadow: none; }
+    .facts { grid-template-columns: repeat(2, 1fr); }
+    .facts div:nth-child(3) { border-left: 0; }
+    .facts div:nth-child(n+3) { border-top: 1px solid var(--hairline); }
+    .options { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 560px) {
+    .wrap { padding-inline: 16px; padding-block: 36px 64px; }
+    h1 { font-size: 2rem; }
+    .main, .picker, .note { padding: 20px; }
+    .phone { width: 100%; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Kaiki · μακέτες, 23 Σεπτεμβρίου 2026</p>
+    <h1>Η εκδρομή, για το πλήρωμα</h1>
+    <p class="lede">Το πλήρωμα είναι σκόπιμα έξω από τον κατάλογο: το TEN-8 λέει ότι τι πουλιέται, σε πόσους και με ποιους όρους δεν είναι μέρος του να στέκεσαι στην προβλήτα. Γι' αυτό πατώντας μια εκδρομή έπαιρνε 403 — και αυτό διορθώθηκε, ο σύνδεσμος απλώς δεν υπάρχει πια για όποιον δεν μπορεί να τον ανοίξει.</p>
+    <p class="lede">Μένει όμως η ερώτηση: <strong>τι <em>πρέπει</em> να βλέπει;</strong> Και στις τρεις προτάσεις η απάντηση είναι η ίδια — ό,τι χρειάζεται για να δουλέψει τη βάρδια, και <strong>τίποτα από τιμές, τιμοκαταλόγους ή όρους ακύρωσης</strong>.</p>
+  </header>
+
+  <hr class="rule">
+
+  <!-- ============ Α ============ -->
+  <section class="direction">
+    <div class="direction-head"><span class="letter" aria-hidden="true">Α</span><h2>Το φύλλο της ημέρας</h2></div>
+    <p>Δική της οθόνη, μόνο για ανάγνωση. Τα τέσσερα νούμερα που μετρούν πάνω-πάνω, μετά τι περιλαμβάνεται, τι να φέρει ο επισκέπτης και πού συναντιούνται. Διαβάζεται όπως ένα φύλλο που θα τύπωνε κανείς και θα το έβαζε στην τσέπη.</p>
+
+    <div class="screen">
+      <div class="chrome"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>kaiki.gr/app/trips/iliovasilema</span></div>
+      <div class="panel">
+        <nav class="side">
+          <p>Λειτουργία</p>
+          <a href="#a" class="on">Ημερολόγιο</a>
+          <a href="#a">Αναχωρήσεις</a>
+          <a href="#a">Επιβίβαση</a>
+          <p style="margin-top:14px">Κατάλογος</p>
+          <a href="#a" class="off">Εκδρομές</a>
+          <a href="#a" class="off">Τιμές</a>
+        </nav>
+
+        <div class="main">
+          <p class="crumb">← Αναχωρήσεις · Παρασκευή 20 Δεκεμβρίου</p>
+          <p class="title">Ηλιοβασίλεμα στην Αίγινα</p>
+          <p class="sub">Καλυψώ · αναχώρηση 18:30</p>
+
+          <span class="roleflag">Μόνο ανάγνωση — είστε πλήρωμα</span>
+
+          <dl class="facts">
+            <div><dt>Αναχώρηση</dt><dd>18:30</dd></div>
+            <div><dt>Επιστροφή</dt><dd>21:30</dd></div>
+            <div><dt>Επιβίβαση</dt><dd>18:00</dd></div>
+            <div><dt>Επιβάτες</dt><dd>14</dd></div>
+          </dl>
+
+          <div class="block">
+            <h3>Περιλαμβάνονται</h3>
+            <ul class="list">
+              <li><span class="tick" aria-hidden="true">✓</span>Ένα ποτήρι κρασί</li>
+              <li><span class="tick" aria-hidden="true">✓</span>Μεζεδάκια</li>
+              <li><span class="tick" aria-hidden="true">✓</span>Μάσκες και βατραχοπέδιλα</li>
+            </ul>
+          </div>
+
+          <div class="block">
+            <h3>Τι να φέρουν</h3>
+            <ul class="list">
+              <li><span class="tick" aria-hidden="true">✓</span>Αντηλιακό</li>
+              <li><span class="tick" aria-hidden="true">✓</span>Ζακέτα για την επιστροφή</li>
+            </ul>
+          </div>
+
+          <div class="where">
+            <b>Μαρίνα Ζέας</b>
+            <span>Ακτή Θεμιστοκλέους, Πειραιάς · στο μπλε περίπτερο</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> μια οθόνη παραπάνω στο μενού, για κάποιον που κοιτάζει το panel δέκα λεπτά τη μέρα. Και χρειάζεται δική της διεύθυνση, δικό της gate και δικά της τεστ — είναι η πιο ακριβή από τις τρεις.</p>
+  </section>
+
+  <!-- ============ Β ============ -->
+  <section class="direction">
+    <div class="direction-head"><span class="letter" aria-hidden="true">Β</span><h2>Πάνω από τη λίστα επιβατών</h2></div>
+    <p>Καμία νέα οθόνη. Το πλήρωμα ανοίγει ήδη τη λίστα επιβατών από το ημερολόγιο — η περίληψη μπαίνει από πάνω της, ως πλαίσιο για τα ονόματα που ακολουθούν. Τα λίγα που δεν χωρούν κρύβονται πίσω από ένα «Περισσότερα».</p>
+
+    <div class="screen">
+      <div class="chrome"><i class="dot"></i><i class="dot"></i><i class="dot"></i><span>kaiki.gr/app/calendar</span></div>
+      <div class="panel">
+        <nav class="side">
+          <p>Λειτουργία</p>
+          <a href="#b" class="on">Ημερολόγιο</a>
+          <a href="#b">Αναχωρήσεις</a>
+          <a href="#b">Επιβίβαση</a>
+          <p style="margin-top:14px">Κατάλογος</p>
+          <a href="#b" class="off">Εκδρομές</a>
+          <a href="#b" class="off">Τιμές</a>
+        </nav>
+
+        <div class="main">
+          <p class="title">Καλυψώ · Παρασκευή 20 Δεκεμβρίου</p>
+          <p class="sub">18:30 — Ηλιοβασίλεμα στην Αίγινα</p>
+
+          <div class="tabs"><span class="on">Επιβάτες</span><span>Σημειώσεις</span></div>
+
+          <div class="brief">
+            <div class="brief-top">
+              <span class="brief-name">Ηλιοβασίλεμα στην Αίγινα</span>
+              <span class="roleflag" style="margin:0">Μόνο ανάγνωση</span>
+            </div>
+            <div class="brief-facts">
+              <span class="chip">Επιβίβαση <b>18:00</b></span>
+              <span class="chip">Επιστροφή <b>21:30</b></span>
+              <span class="chip">Μαρίνα Ζέας</span>
+              <span class="chip">Επιβάτες <b>14</b></span>
+            </div>
+            <p class="brief-more"><a href="#b">Περιλαμβάνονται, τι να φέρουν, σημείο συνάντησης →</a></p>
+          </div>
+
+          <div class="paxrow"><span class="who"><b>Ελένη Νικολάου</b><br><span class="tagline">+30 694 100 0103</span></span><span class="pill">2 ενήλικες</span></div>
+          <div class="paxrow"><span class="who"><b>Γιώργος Παππάς</b><br><span class="tagline">+30 697 220 4418</span></span><span class="pill">2 ενήλικες · 1 παιδί</span></div>
+          <div class="paxrow"><span class="who"><b>Anna Schmidt</b><br><span class="tagline">+49 170 555 2210</span></span><span class="pill">2 ενήλικες</span></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> η περίληψη είναι στριμωγμένη — τέσσερα τσιπάκια και ένας σύνδεσμος. Ό,τι δεν χωρά μπαίνει πίσω από πάτημα, οπότε το «τι να φέρουν» δεν το βλέπει κανείς την ώρα που κάποιος ρωτάει.</p>
+  </section>
+
+  <!-- ============ Γ ============ -->
+  <section class="direction">
+    <div class="direction-head"><span class="letter" aria-hidden="true">Γ</span><h2>Φτιαγμένο για την προβλήτα</h2></div>
+    <p>Η ίδια οθόνη με το Α, αλλά σχεδιασμένη πρώτα για το τηλέφωνο, γιατί εκεί ανοίγεται: όρθιος, με τον ήλιο στην οθόνη, δύο λεπτά πριν την επιβίβαση. Μεγάλα νούμερα, τίποτα να σκρολάρεις για να βρεις την ώρα, και τα υπόλοιπα από κάτω.</p>
+
+    <div class="phone-row">
+      <div class="phone">
+        <div class="phone-bar">Ηλιοβασίλεμα · σήμερα</div>
+        <div class="phone-body">
+          <h4>Ηλιοβασίλεμα στην Αίγινα</h4>
+          <p class="when">Καλυψώ · Μαρίνα Ζέας</p>
+
+          <dl class="big">
+            <div><dt>Επιβίβαση</dt><dd>18:00</dd></div>
+            <div><dt>Αναχώρηση</dt><dd>18:30</dd></div>
+            <div><dt>Επιστροφή</dt><dd>21:30</dd></div>
+            <div><dt>Επιβάτες</dt><dd>14</dd></div>
+          </dl>
+
+          <div class="block">
+            <h3>Τι να φέρουν</h3>
+            <ul class="list">
+              <li><span class="tick" aria-hidden="true">✓</span>Αντηλιακό</li>
+              <li><span class="tick" aria-hidden="true">✓</span>Ζακέτα</li>
+            </ul>
+          </div>
+
+          <div class="where">
+            <b>Στο μπλε περίπτερο</b>
+            <span>Ακτή Θεμιστοκλέους, Πειραιάς</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="phone-note">Στην οθόνη του γραφείου γίνεται το ίδιο σε δύο στήλες — τα νούμερα αριστερά, οι λίστες δεξιά. Δεν είναι δεύτερη σχεδίαση, είναι η ίδια σε άλλο πλάτος.</p>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> τα ίδια με το Α — νέα οθόνη, νέο gate, νέα τεστ — και επιπλέον χρόνος για να δουλεύει καλά σε δύο πολύ διαφορετικά πλάτη αντί για ένα.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section class="note">
+    <h2>Τι δεν δείχνει καμία από τις τρεις</h2>
+    <p><strong>Τιμές, τιμοκαταλόγους, όρους ακύρωσης, τζίρο.</strong> Το TEN-8 δεν αλλάζει: το πλήρωμα είναι έξω από τον κατάλογο, και η οθόνη αυτή είναι απάντηση στο «τι κάνω σήμερα», όχι πίσω πόρτα στο «τι πουλάμε».</p>
+    <p>Δείχνει επίσης <code>μόνο ανάγνωση</code> ρητά, σε κάθε πρόταση. Ένα πλήρωμα που νομίζει ότι μπορεί να αλλάξει ώρα αναχώρησης και ανακαλύπτει ότι δεν μπορεί, έχει χάσει χρόνο σε λάθος σημείο της μέρας.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section class="picker">
+    <h2>Ποια από τις τρεις;</h2>
+    <p>Πατήστε για να τη δείτε σημειωμένη, και πείτε μου το γράμμα στη συζήτηση.</p>
+
+    <div class="options">
+      <button type="button" class="option" aria-pressed="false" data-letter="Α" data-name="Το φύλλο της ημέρας">
+        <span class="option-letter">Α</span><span class="option-name">Το φύλλο της ημέρας</span>
+        <span class="option-why">Δική της οθόνη, όλα ορατά μαζί. Η πιο πλήρης, η πιο ακριβή.</span>
+      </button>
+      <button type="button" class="option" aria-pressed="false" data-letter="Β" data-name="Πάνω από τους επιβάτες">
+        <span class="option-letter">Β</span><span class="option-name">Πάνω από τους επιβάτες</span>
+        <span class="option-why">Καμία νέα οθόνη. Η φθηνότερη, και η πιο στριμωγμένη.</span>
+      </button>
+      <button type="button" class="option" aria-pressed="false" data-letter="Γ" data-name="Για την προβλήτα">
+        <span class="option-letter">Γ</span><span class="option-name">Για την προβλήτα</span>
+        <span class="option-why">Σαν το Α αλλά με το τηλέφωνο πρώτο. Εκεί ανοίγεται στ' αλήθεια.</span>
+      </button>
+    </div>
+
+    <p class="chosen" id="chosen">Δεν έχετε διαλέξει ακόμη.</p>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    var options = Array.prototype.slice.call(document.querySelectorAll('.option'));
+    var out = document.getElementById('chosen');
+
+    options.forEach(function (option) {
+      option.addEventListener('click', function () {
+        options.forEach(function (other) { other.setAttribute('aria-pressed', String(other === option)); });
+        out.innerHTML = 'Διαλέξατε <b>' + option.dataset.letter + ' — ' + option.dataset.name + '</b>. Πείτε μου το γράμμα στη συζήτηση για να χτιστεί.';
+      });
+    });
+  })();
+</script>

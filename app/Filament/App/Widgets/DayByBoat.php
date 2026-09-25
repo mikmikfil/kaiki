@@ -12,9 +12,13 @@ use App\Filament\App\Pages\Calendar;
 use App\Filament\App\Pages\CheckIn;
 use App\Filament\App\Resources\BookingResource;
 use App\Filament\App\Resources\DepartureResource;
+use App\Models\Departure;
+use App\Models\User;
+use App\Support\Authorization\Capability;
 use App\Support\Tenancy;
 use Filament\Widgets\Widget;
 use Illuminate\Support\Carbon;
+use Livewire\Attributes\On;
 
 /**
  * The home page: the day, by boat (product owner, 2026-09-16/17, «version 3»).
@@ -58,10 +62,20 @@ class DayByBoat extends Widget
         return ! FirstSteps::applies();
     }
 
+    /**
+     * An answer given in «Χρειάζονται προσοχή» redraws the box at the top, so
+     * its count drops with the row instead of a minute later.
+     */
+    #[On('attention-answered')]
+    public function attentionAnswered(): void {}
+
     /** @return array<string, mixed>|null */
     public function getNext(): ?array
     {
-        $next = $this->home()->nextDeparture();
+        // A crew member sees the next one they sail, with their role, and the
+        // operator's next one only when they are on none this week (2026-09-24).
+        $mine = $this->isCrew() ? $this->home()->nextDeparture(sailingUserId: (int) auth()->id()) : null;
+        $next = $mine ?? $this->home()->nextDeparture();
 
         if ($next === null) {
             return null;
@@ -82,8 +96,18 @@ class DayByBoat extends Widget
         // count: the box says how full the sailing is instead.
         $boards = Tenancy::current()?->usesCheckIn() === true;
 
+        $role = null;
+
+        if ($mine !== null) {
+            $role = (int) $departure->captain_user_id === (int) auth()->id()
+                ? __('dashboard.home.next.role_captain')
+                : __('dashboard.home.next.role_crew');
+        }
+
         return [
             'when' => $when,
+            'role' => $role,
+            'mine' => $mine !== null,
             'boards' => $boards,
             'booked' => (int) $departure->seats_sold,
             'capacity' => (int) $departure->capacity,
@@ -93,8 +117,36 @@ class DayByBoat extends Widget
             'aboard' => $next['aboard'],
             'expected' => $next['expected'],
             'percent' => $next['expected'] > 0 ? (int) round($next['aboard'] / $next['expected'] * 100) : 0,
-            'url' => DepartureResource::canViewAny() ? DepartureResource::getUrl('edit', ['record' => $departure]) : null,
+            /*
+             * **Ο έλεγχος είναι για τη σελίδα που ανοίγει, όχι για τη λίστα**
+             * (Mike, 23/9: *«ως πλήρωμα, πατάω πάνω σε ένα trip και μου βγάζει
+             * forbidden»*).
+             *
+             * Ήταν `canViewAny()`, που το πλήρωμα **το περνάει**: έχει
+             * `ViewDepartures` και βλέπει κανονικά τη λίστα αναχωρήσεων. Ο
+             * σύνδεσμος όμως πάει στη σελίδα *επεξεργασίας*, που θέλει
+             * `ManageCatalogue` — άρα ο τίτλος της επόμενης εκδρομής ήταν
+             * σύνδεσμος προς ένα 403, στην αρχική τους σελίδα.
+             *
+             * `canEdit()` ρωτάει ακριβώς αυτό που πρόκειται να συμβεί. Όποιος
+             * δεν μπορεί, βλέπει το όνομα ως κείμενο — το blade το χειρίζεται
+             * ήδη — και φτάνει στους επιβάτες από το ημερολόγιο, που είναι η
+             * οθόνη που του ανήκει.
+             */
+            'url' => DepartureResource::canEdit($departure) ? DepartureResource::getUrl('edit', ['record' => $departure]) : null,
+            // «Πώληση τώρα» (2026-09-24): straight into the calendar's sale for
+            // this departure, for anyone who may sell and while it is on sale.
+            'sell_url' => $this->canSell() && $departure->status->isSellable()
+                ? Calendar::getUrl(['action' => 'sell', 'actionArguments' => ['departure' => (string) $departure->uuid]])
+                : null,
         ];
+    }
+
+    private function canSell(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && Calendar::canAccess() && $user->hasCapability(Capability::SellOnQuay);
     }
 
     /**
@@ -117,15 +169,34 @@ class DayByBoat extends Widget
         $qr = CheckIn::qrEnabled();
 
         return [
-            'url' => CheckIn::getUrl(),
+            // «Σάρωση εισιτηρίων» opens the camera on the boarding page, which
+            // scans passenger after passenger and keeps working with no signal
+            // (Mike, 2026-09-23). The list is still the Filament page.
+            'url' => $qr ? route('filament.app.boarding', ['camera' => 1]) : CheckIn::getUrl(),
             'label' => $qr ? __('dashboard.home.next.scan') : __('dashboard.home.next.board'),
             'icon' => $qr ? 'heroicon-o-qr-code' : 'heroicon-o-list-bullet',
         ];
     }
 
+    /**
+     * The crew's home is the scan button, the next boat and today by boat —
+     * nothing else (Mike, 2026-09-24). The boxes were bookings to chase and a
+     * «Προσοχή» full of decisions crew are not the ones to take.
+     */
+    public function isCrew(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && $user->isCrewOnly();
+    }
+
     /** @return list<array{label: string, detail: string, url: string, icon: string, count: int|null, alert: bool}> */
     public function getBoxes(): array
     {
+        if ($this->isCrew()) {
+            return [];
+        }
+
         $home = $this->home();
         $boxes = [];
 
@@ -166,7 +237,9 @@ class DayByBoat extends Widget
             ];
         }
 
-        $pending = count((new AttentionItems($this->timezone()))->all());
+        // The real number, not the first page's: a box stuck on «8» while the
+        // operator answers row after row reads as a list that ignores them.
+        $pending = (new AttentionItems($this->timezone()))->count();
 
         $boxes[] = [
             'label' => __('dashboard.home.boxes.attention'),
@@ -192,9 +265,26 @@ class DayByBoat extends Widget
         return Calendar::canAccess() ? Calendar::getUrl(['date' => Carbon::now($this->timezone())->toDateString()]) : null;
     }
 
+    /**
+     * Η μπάρα μιας αναχώρησης στο λωρίδιο του στόλου.
+     *
+     * Το ίδιο λάθος με τον σύνδεσμο της επόμενης εκδρομής, και μάλλον **αυτό**
+     * πατούσε ο Mike (23/9): `canViewAny()` για μια σελίδα επεξεργασίας. Το
+     * πλήρωμα βλέπει τον στόλο του, πατάει τη μπάρα με το όνομα της εκδρομής,
+     * και παίρνει 403.
+     *
+     * Εδώ ο έλεγχος γίνεται στο μοντέλο και όχι στο uuid, γιατί το `canEdit()`
+     * ρωτάει την πολιτική για **τη συγκεκριμένη** αναχώρηση. Αν δεν βρεθεί,
+     * κανένας σύνδεσμος — το blade ζωγραφίζει `div` αντί για `a` και η μπάρα
+     * μένει ακριβώς όπως είναι.
+     */
     public function getDepartureUrl(string $uuid): ?string
     {
-        return DepartureResource::canViewAny() ? DepartureResource::getUrl('edit', ['record' => $uuid]) : null;
+        $departure = Departure::query()->where('uuid', $uuid)->first();
+
+        return $departure instanceof Departure && DepartureResource::canEdit($departure)
+            ? DepartureResource::getUrl('edit', ['record' => $uuid])
+            : null;
     }
 
     private function home(): TodayHome

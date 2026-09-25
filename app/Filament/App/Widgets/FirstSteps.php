@@ -7,6 +7,7 @@ namespace App\Filament\App\Widgets;
 use App\Domain\Operations\Support\FirstSteps as Steps;
 use App\Filament\App\Resources\DepartureResource;
 use App\Filament\App\Resources\ProductResource;
+use App\Filament\App\Resources\SeasonResource;
 use App\Filament\App\Resources\VesselResource;
 use Filament\Widgets\Widget;
 
@@ -36,6 +37,20 @@ class FirstSteps extends Widget
     }
 
     /**
+     * Not `canView()` on every request: the first booking arriving while this
+     * is open is good news, not a reason to answer 403. Nothing here polls or
+     * posts today, which is the only reason it never showed; the stress sweep
+     * found it (2026-09-23, the fault {@see NeedsAttention} had).
+     */
+    public function hydrateCanAuthorizeAccess(): void {}
+
+    /** @return list<string> */
+    public function getOptional(): array
+    {
+        return Steps::OPTIONAL;
+    }
+
+    /**
      * @return array<string, bool>
      */
     public function getSteps(): array
@@ -61,6 +76,7 @@ class FirstSteps extends Widget
     {
         return [
             Steps::VESSEL => VesselResource::getUrl('create'),
+            Steps::SEASON => SeasonResource::getUrl('index'),
             Steps::PRODUCT => ProductResource::getUrl('create'),
             Steps::PUBLISHED => ProductResource::getUrl('index'),
             Steps::DEPARTURE => DepartureResource::getUrl('index'),

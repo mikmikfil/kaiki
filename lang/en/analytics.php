@@ -57,6 +57,10 @@ return [
         'help_week' => 'Revenue per week.',
         'help_month' => 'Revenue per month.',
         'empty' => 'No money came in during this period.',
+        // What the chart's top gridline is worth, printed beside the
+        // dates. A chart drawn to its own peak says nothing about size
+        // until one figure on it is named.
+        'peak' => 'peak :amount',
     ],
 
     'products' => [
@@ -81,6 +85,43 @@ return [
         'by_month' => 'By month',
         'by_product' => 'By trip',
         'month' => 'Month',
+    ],
+
+    'weekdays' => [
+        'heading' => 'Which days sail',
+        'help' => 'Passengers by day of the week, across the period. By the day they sail, not the day they booked.',
+        'empty' => 'Nobody sailed in this period.',
+        'day' => [
+            1 => 'Monday',
+            2 => 'Tuesday',
+            3 => 'Wednesday',
+            4 => 'Thursday',
+            5 => 'Friday',
+            6 => 'Saturday',
+            7 => 'Sunday',
+        ],
+        'short' => [
+            1 => 'Mon',
+            2 => 'Tue',
+            3 => 'Wed',
+            4 => 'Thu',
+            5 => 'Fri',
+            6 => 'Sat',
+            7 => 'Sun',
+        ],
+    ],
+
+    'lead_time' => [
+        'heading' => 'How far ahead they book',
+        'help' => 'Days between the booking and the departure. It says when advertising is worth it, and how late a sailing still fills.',
+        'empty' => 'No bookings were made in this period.',
+        'bucket' => [
+            'same_day' => 'Same day',
+            'two_days' => '1–2 days before',
+            'week' => '3–7 days before',
+            'month' => '1–4 weeks before',
+            'earlier' => 'More than a month before',
+        ],
     ],
 
     'quiet' => [

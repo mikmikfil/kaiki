@@ -15,14 +15,17 @@ declare(strict_types=1);
 
 return [
     'on_product' => [
-        'title' => 'Prices',
-        'add' => 'New price',
+        // Not "Prices": the tab is already called that, and so is the grid
+        // below it (2026-09-21).
+        'title' => 'Price lists',
+        'intro' => 'One price list per period: when it applies, what deposit you ask for, and when you take bookings. The amounts themselves are quicker to fill in on the «Prices in euros» grid below.',
+        'add' => 'New price list',
         'edit' => 'Change price',
         'more' => 'More',
         'season' => [
             'label' => 'Period',
-            'help' => 'Leave empty for the price that applies when no period matches.',
-            'default' => 'Every other date',
+            'help' => 'Leave empty for the price that applies all year, when no other period does.',
+            'default' => 'All year',
         ],
         'new_season' => [
             'name' => 'Period name',
@@ -31,8 +34,8 @@ return [
         ],
         'prices' => [
             'label' => 'Price per category',
-            'help' => 'In euros, for one person. Easier: the “Prices in euros” table above, every period at once.',
-            'band' => 'Category',
+            'help' => 'In euros, for one person. Easier: the “Prices in euros” table below, every period at once.',
+            'band' => 'Group',
             'price' => 'Price',
         ],
         'vessel_price' => [
@@ -93,24 +96,24 @@ return [
     'price_table' => [
         'heading' => 'Prices in euros',
         'intro' => 'Categories down, periods across. Each cell is the price for one person.',
-        'band' => 'Category',
+        'band' => 'Group',
         'base' => 'base',
         'no_seat' => 'takes no seat',
         'inactive' => 'inactive',
-        'no_period' => 'No period',
+        // Not “No period” (2026-09-22): a column that says what it is *not*
+        // reads like a price that lost its place. It is the price that applies
+        // all year when no other period does — so every price in the grid
+        // belongs to a period, without an operator having to invent one.
+        'no_period' => 'when no other applies',
         'ages_from' => ':min and over',
         'ages_between' => ':min to :max',
-        'derived' => 'Still worked out as a share of the adult price. Saving writes it as an amount.',
-        'fill_hint' => 'The quick buttons write euros from the base category’s price, rounded to the cent. The amount is saved, not the percentage.',
-        'stale' => 'You changed the “:base” price. Update “:band” too?',
-        'stale_action' => 'Update',
         'save' => 'Save prices',
         'saved' => 'Prices saved.',
         'unsaved' => 'You have price changes that are not saved yet.',
-        'periods_below' => 'New period, deposit and booking window: in the “Prices” list further down.',
+        'periods_below' => 'New period, deposit and booking window: in “Price lists” above.',
         'save_trip_first' => 'The price table appears once the trip is saved with its age categories.',
         'invalid' => 'Enter an amount in euros, e.g. 22.50.',
-        'missing_banner' => 'One price is missing. Without it, that category is not charged and the trip cannot be published.|:count prices are missing. Without them, those categories are not charged and the trip cannot be published.',
+        'missing_banner' => 'One price is missing. Without it, that group is not charged and the trip cannot be published.|:count prices are missing. Without them, those groups are not charged and the trip cannot be published.',
         'missing_cell' => 'Missing',
         'after_first_save' => 'Press «Continue to prices» at the bottom of the page and the price table opens straight away. The trip stays a draft until you publish it.',
         'guest' => [
@@ -124,6 +127,43 @@ return [
             'per_seat_only' => 'The price table is for trips sold per seat.',
             'cell' => '“:band” in “:period”',
             'missing' => 'Prices are missing: :cells.',
+        ],
+    ],
+
+    // A trip's periods and terms (2026-09-24, docs/mockups/pricing-flow.html).
+    'periods' => [
+        'heading' => 'Periods',
+        'intro' => 'Which periods have a different price. Periods are shared by all your trips.',
+        'new_column' => 'new',
+        'new' => [
+            'open' => 'New period',
+            'name' => 'Name',
+            'from' => 'From',
+            'to' => 'To',
+            'add' => 'Add',
+            'cancel' => 'Cancel',
+            'name_required' => 'Give the period a name.',
+            'dates_required' => 'Set from when until when. «To» cannot be before «From».',
+        ],
+        'terms' => [
+            'section' => 'Deposit and deadlines',
+            'intro' => 'They apply in every period. To make one different, press ⋯ in its column.',
+            'open' => 'Period terms',
+            'heading' => ':period: deposit and deadlines',
+            'own' => 'Different for this period',
+            'own_help' => 'Off: the trip’s terms apply.',
+            'own_tag' => 'own terms',
+            'deposit' => 'Deposit',
+            'deposit_percent' => 'Percentage',
+            'deposit_fixed' => 'Amount',
+            'lead' => 'Bookings until',
+            'lead_help' => 'How many hours before departure bookings close.',
+            'hours' => 'hours before',
+            'advance' => 'Bookings from',
+            'advance_help' => 'How many days ahead they open. Empty: no limit.',
+            'days' => 'days before',
+            'saved' => 'The period’s terms were saved.',
+            'differs' => '«:period» has its own terms.',
         ],
     ],
 
@@ -202,6 +242,18 @@ return [
         'model' => [
             'singular' => 'Season',
             'plural' => 'Seasons',
+        ],
+
+        'empty' => [
+            'no_trips' => [
+                'heading' => 'Make a trip first',
+                'body' => 'A period is a range of dates that changes a price. With no trip there is no price to change.',
+                'action' => 'New trip',
+            ],
+            'none' => [
+                'heading' => 'No periods yet',
+                'body' => 'Make a period — «August», say — then give it a price from the trip’s «Prices» tab.',
+            ],
         ],
 
         'form' => [
@@ -296,9 +348,16 @@ return [
             'prices' => [
                 'label' => 'Price per age band',
                 'help' => 'Per person. Bands with their own price need an amount; bands priced as a share of the base may be left empty.',
-                'band' => 'Band',
+                'band' => 'Group',
                 'price' => 'Price',
                 'empty' => 'This trip has no age bands yet.',
+                // Ages belong to the trip, not to the price list, which only
+                // carries the amount for each band. Without these two lines the
+                // «Prices» section was an empty box (2026-09-22).
+                // The trip is no longer chosen here (2026-09-23): the only case
+                // left is a price list whose trip went to the bin.
+                'trip_gone' => 'The trip this price list belongs to has been deleted. Restore it to see its age bands.',
+                'no_bands' => '“:trip” has no age bands. Categories and their ages are set on the trip itself: <a href=":url">open its «Prices» tab</a> and add them.',
             ],
             'deposit_type' => [
                 'label' => 'Deposit',
@@ -332,14 +391,49 @@ return [
             ],
         ],
 
+        // The summary: one group per trip, one row per period (2026-09-21).
         'table' => [
             'product' => 'Trip',
             'season' => 'Season',
+            'dates' => 'Dates',
             'name' => 'Name',
             'price' => 'Price',
             'deposit' => 'Deposit',
             'is_active' => 'Active',
             'default' => 'Default',
+
+            // Not an empty cell: a blank on a price list reads as a rendering
+            // fault rather than as a finding.
+            'no_price' => 'No price',
+            'no_dates' => 'No dates set',
+            'more_dates' => '+1 more|+:count more',
+            'deposit_none' => 'Paid in full',
+
+            'up_to_pax' => 'up to 1 person|up to :count people',
+            'hours' => '1 hour|:count hours',
+            'minutes' => '1 minute|:count minutes',
+            'includes_pax' => 'up to 1 person|up to :count people',
+            'extra_pax' => '+:price per person',
+            'extra_hour' => '+:price per hour',
+        ],
+
+        /*
+         * The empty screen names what is missing (Mike, 2026-09-23).
+         *
+         * An account with no trips has no prices, and the generic "no records"
+         * reads as a fault. The answer is not "add a price list" — that cannot
+         * be done — but "make a trip first".
+         */
+        'empty' => [
+            'no_trips' => [
+                'heading' => 'Make a trip first',
+                'body' => 'Prices belong to a trip: the first price list is written with it, and periods are added from its «Prices» tab.',
+                'action' => 'New trip',
+            ],
+            'none' => [
+                'heading' => 'No prices yet',
+                'body' => 'Open a trip and add a price list from its «Prices» tab.',
+            ],
         ],
 
         'validation' => [

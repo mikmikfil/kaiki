@@ -24,17 +24,5 @@
         <p class="read-only">{{ __('hosted.read_only', ['email' => $tenant->email]) }}</p>
     @endif
 
-    {{-- Every partial receives what it needs already resolved. A template that
-         queries is a template that queries once per block, and `BuildHomePage`
-         loads the catalogue once for the whole page. --}}
-    @foreach ($blocks as $entry)
-        @include('hosted.blocks.' . $entry['block']->type->value, [
-            'block' => $entry['block'],
-            'products' => $entry['products'],
-            'meetingPoint' => $entry['meetingPoint'],
-            'faqs' => $entry['faqs'],
-            'anchor' => $entry['anchor'],
-            'links' => $entry['links'] ?? [],
-        ])
-    @endforeach
+    @include('hosted.partials.blocks', ['blocks' => $blocks])
 @endsection

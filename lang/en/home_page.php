@@ -22,6 +22,13 @@ return [
     'title' => 'Your home page',
     'subtitle' => 'The page a visitor lands on. Add sections, drag them into the order you want, and save.',
 
+    // «About us» (2026-09-24): the same editor, the other page.
+    'about' => [
+        'nav' => 'About us',
+        'title' => 'About us',
+        'subtitle' => 'The page with your story, your boats and your people. It joins your site\'s menu once you save it.',
+    ],
+
     'form' => [
         'blocks' => [
             'label' => 'Sections',
@@ -32,6 +39,7 @@ return [
 
         'type' => [
             'label' => 'Kind of section',
+            'help' => 'Your home page is built from sections, one under the other. Choose what this one does; the fields below change with it.',
         ],
 
         'is_visible' => [
@@ -76,6 +84,7 @@ return [
 
         'source' => [
             'label' => 'Which trips',
+            'help' => '«Featured» means the ones you marked as featured inside each trip. The list keeps itself up to date as you add or retire trips.',
             'options' => [
                 'all' => 'All of them',
                 'featured' => 'Only the ones marked featured',
@@ -99,6 +108,7 @@ return [
 
         'image_side' => [
             'label' => 'Image position',
+            'help' => 'On a desktop. On a phone the photograph always sits above the text, whichever side you pick.',
             'options' => [
                 'left' => 'Left of the text',
                 'right' => 'Right of the text',
@@ -108,6 +118,33 @@ return [
         // The FAQ block shows the entries from the FAQ screen (#103); it holds
         // no text of its own beyond the heading, so the editor says where the
         // questions are written.
+        'timeline' => [
+            'label' => 'Years',
+            'help' => 'Up to eight, in the order you want them. The last one is shown as «now».',
+            'add' => 'Add a year',
+            'year' => [
+                'label' => 'Year',
+                'help' => 'E.g. 1968, or «Today».',
+            ],
+            'title' => ['label' => 'Title'],
+            'text' => ['label' => 'One line'],
+        ],
+        'mount' => [
+            'label' => 'Where it comes from',
+            'fleet' => 'From «Boats»: photo, registration, capacity, length, licence. Change a boat there and it changes here.',
+            'crew' => 'From «Team»: everyone whose specialty is Captain or Deckhand, with their photo and «A few words».',
+            'credentials' => 'From your business details (company name, VAT number, GEMI) and your boats\' licences. Use the text above for anything else, such as passenger insurance.',
+            'meeting_point' => 'From «Ports»: photo, address, coordinates and directions.',
+        ],
+        'fleet' => [
+            'label' => 'Which boats',
+            'help' => 'With none ticked, every active boat is shown.',
+        ],
+        'crew_photos' => [
+            'label' => 'With photos',
+            'help' => 'Anyone without a photo is shown with their initials.',
+        ],
+
         'faq' => [
             'label' => 'The questions',
             'help' => 'This block shows the questions from the FAQ screen — the ones that apply to every trip. Write and reorder them there.',
@@ -115,6 +152,9 @@ return [
 
         'show_phone' => [
             'label' => 'Show the phone number',
+            // An operator looks for where to type the phone number; it is not
+            // typed here, so say it once, on the first of the three.
+            'help' => 'These are not written here: they come from your business details. This only chooses which of them appear.',
         ],
 
         'show_email' => [
@@ -157,6 +197,7 @@ return [
                     'search' => 'The trip search',
                     'contact' => 'The contact page',
                     'trip' => 'One trip',
+                    'about' => 'To the «About us» page',
                     'page' => 'Another page of your site',
                 ],
             ],

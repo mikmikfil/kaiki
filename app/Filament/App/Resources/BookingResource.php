@@ -14,6 +14,7 @@ use App\Filament\App\Resources\BookingResource\Pages;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Product;
+use App\Models\User;
 use App\Support\Authorization\Capability;
 use App\Support\Authorization\CrewWindow;
 use App\Support\Format\MoneyFormatter;
@@ -69,6 +70,19 @@ class BookingResource extends Resource
 
     protected static ?int $navigationSort = 10;
 
+    /**
+     * Off the crew's menu (Mike, 2026-09-24): scan, today, the calendar. Crew
+     * keep what TEN-8 gives them — a booking opened from a departure's list
+     * still opens — only the list of every booking stops being a menu entry.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        $user = auth()->user();
+
+        return parent::shouldRegisterNavigation()
+            && ! ($user instanceof User && $user->isCrewOnly());
+    }
+
     public static function getNavigationGroup(): ?string
     {
         return __('panel.groups.sales');
@@ -101,6 +115,7 @@ class BookingResource extends Resource
     {
         return $form->schema([
             Section::make(__('bookings.form.trip.heading'))
+                ->icon('heroicon-o-map')
                 ->schema([
                     Select::make('product_id')
                         ->label(__('bookings.form.trip.product'))
@@ -152,6 +167,7 @@ class BookingResource extends Resource
                 ->columns(2),
 
             Section::make(__('bookings.form.guest.heading'))
+                ->icon('heroicon-o-user')
                 ->schema([
                     TextInput::make('guest_name')
                         ->label(__('bookings.form.guest.name'))
@@ -175,6 +191,7 @@ class BookingResource extends Resource
                 ->columns(2),
 
             Section::make(__('bookings.form.price.heading'))
+                ->icon('heroicon-o-currency-euro')
                 ->description(__('bookings.form.price.help'))
                 ->schema([
                     TextInput::make('discount_cents')
@@ -205,11 +222,13 @@ class BookingResource extends Resource
                 ->visible(fn (): bool => auth()->user()?->hasCapability(Capability::ManagePricing) ?? false),
 
             Section::make(__('bookings.form.settle.heading'))
+                ->icon('heroicon-o-banknotes')
                 ->schema([
                     Select::make('paid_by')
                         ->label(__('bookings.form.settle.method'))
                         ->options([
                             PaymentGatewayName::Cash->value => PaymentGatewayName::Cash->label(),
+                            PaymentGatewayName::Pos->value => PaymentGatewayName::Pos->label(),
                             PaymentGatewayName::BankTransfer->value => PaymentGatewayName::BankTransfer->label(),
                         ])
                         // BKG-33: neither of these calls anything, and both are
@@ -251,9 +270,14 @@ class BookingResource extends Resource
                     ->date()
                     ->sortable(),
 
+                // On a phone's box and on a desktop row, but not on a tablet
+                // held upright, where eight columns cut the status off (phone
+                // audit, 2026-09-23). `box-lists` hides the class at 768–1023.
                 TextColumn::make('guest_name')
                     ->label(__('bookings.table.guest'))
-                    ->searchable(),
+                    ->searchable()
+                    ->extraHeaderAttributes(['class' => 'ka-tablet-hidden'])
+                    ->extraCellAttributes(['class' => 'ka-tablet-hidden']),
 
                 TextColumn::make('product.title')
                     ->label(__('bookings.table.product'))
@@ -262,26 +286,21 @@ class BookingResource extends Resource
 
                 TextColumn::make('pax_total')
                     ->label(__('bookings.table.pax'))
-                    ->visibleFrom('md'),
+                    ->visibleFrom('lg'),
 
                 TextColumn::make('status')
                     ->label(__('bookings.table.status'))
-                    ->badge()
-                    ->formatStateUsing(static fn (BookingStatus $state): string => $state->label()),
+                    // Label and colour from the enum (`HasLabel`, `HasColor`).
+                    ->badge(),
 
                 // BKG-34: *"flagged as imported in the panel"*. A badge rather
                 // than a column of `widget` repeated four hundred times — the
                 // interesting fact is that a booking is **not** ordinary.
                 TextColumn::make('source')
                     ->label(__('bookings.table.source'))
+                    // Label and colour from the enum (`HasLabel`, `HasColor`).
                     ->badge()
-                    ->color(static fn (BookingSource $state): string => match ($state) {
-                        BookingSource::Import => 'warning',
-                        BookingSource::Manual => 'info',
-                        default => 'gray',
-                    })
-                    ->formatStateUsing(static fn (BookingSource $state): string => $state->label())
-                    ->visibleFrom('md'),
+                    ->visibleFrom('lg'),
 
                 TextColumn::make('total_cents')
                     ->label(__('bookings.table.total'))
@@ -345,6 +364,9 @@ class BookingResource extends Resource
                 guestPhone: isset($data['guest_phone']) ? (string) $data['guest_phone'] : null,
                 locale: app()->getLocale(),
                 paxByCode: $pax,
+                // The picked departure's own time (2026-09-24): without it, a day
+                // with two sailings of the same trip put the booking on the first.
+                startTime: $departure instanceof Departure ? (string) $departure->local_time : null,
                 specialRequests: isset($data['special_requests']) ? (string) $data['special_requests'] : null,
             ),
             adjustment: $adjustment,

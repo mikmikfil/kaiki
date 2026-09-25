@@ -6,7 +6,7 @@
 -- Not named mysql-schema.sql on purpose: Laravel loads a file at that path instead
 -- of running the migrations, which would quietly retire the guarantee this file exists to give.
 --
--- migrations-fingerprint: sha256:135e945ed683900f48a32c3c21bfbc1c97d1eb84b0c07880f21dd705f7a7f01e
+-- migrations-fingerprint: sha256:9e39de1d9ed2837e47d1a71efbeec607c28fad3b4e000d74c21a4f08cd321434
 
 DROP TABLE IF EXISTS `age_bands`;
 CREATE TABLE `age_bands` (
@@ -28,6 +28,8 @@ CREATE TABLE `age_bands` (
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `no_document` tinyint(1) DEFAULT NULL,
+  `kind` varchar(8) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'age',
+  `requires_proof` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`),
   UNIQUE KEY `age_bands_tenant_product_code_uq` (`tenant_id`,`product_id`,`code`),
   UNIQUE KEY `age_bands_uuid_unique` (`uuid`),
@@ -170,6 +172,7 @@ CREATE TABLE `booking_guests` (
   `notes` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `sex` varchar(1) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `bguests_tenant_booking_pos_uq` (`tenant_id`,`booking_id`,`position`),
   UNIQUE KEY `booking_guests_uuid_unique` (`uuid`),
@@ -374,6 +377,22 @@ CREATE TABLE `cancellation_policy_tiers` (
   CONSTRAINT `cancellation_policy_tiers_cancellation_policy_id_foreign` FOREIGN KEY (`cancellation_policy_id`) REFERENCES `cancellation_policies` (`id`) ON DELETE CASCADE,
   CONSTRAINT `cancellation_policy_tiers_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `channel_product_map`;
+CREATE TABLE `channel_product_map` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `tenant_id` bigint unsigned NOT NULL,
+  `channel` varchar(24) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `product_id` bigint unsigned NOT NULL,
+  `external_product_id` varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `channel_map_external_uq` (`tenant_id`,`channel`,`external_product_id`),
+  UNIQUE KEY `channel_map_product_uq` (`tenant_id`,`channel`,`product_id`),
+  KEY `channel_product_map_product_id_foreign` (`product_id`),
+  CONSTRAINT `channel_product_map_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `channel_product_map_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `charter_agreements`;
 CREATE TABLE `charter_agreements` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -433,6 +452,11 @@ CREATE TABLE `departures` (
   `completed_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `captain_user_id` bigint unsigned DEFAULT NULL,
+  `captain_name` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `crew_user_ids` json DEFAULT NULL,
+  `crew_from_rule` tinyint(1) NOT NULL DEFAULT '1',
+  `crew_reminded_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `departures_tenant_prod_start_uq` (`tenant_id`,`product_id`,`starts_at_utc`),
   UNIQUE KEY `departures_uuid_unique` (`uuid`),
@@ -445,7 +469,9 @@ CREATE TABLE `departures` (
   KEY `departures_at_risk_idx` (`tenant_id`,`status`,`starts_at_utc`),
   KEY `departures_tenant_date_idx` (`tenant_id`,`local_date`,`status`),
   KEY `departures_schedule_rule_idx` (`tenant_id`,`schedule_rule_id`),
+  KEY `departures_captain_user_id_foreign` (`captain_user_id`),
   CONSTRAINT `departures_cancelled_by_user_id_foreign` FOREIGN KEY (`cancelled_by_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `departures_captain_user_id_foreign` FOREIGN KEY (`captain_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `departures_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE RESTRICT,
   CONSTRAINT `departures_schedule_rule_id_foreign` FOREIGN KEY (`schedule_rule_id`) REFERENCES `schedule_rules` (`id`) ON DELETE SET NULL,
   CONSTRAINT `departures_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
@@ -608,6 +634,17 @@ CREATE TABLE `faqs` (
   CONSTRAINT `faqs_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
   CONSTRAINT `faqs_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `features`;
+CREATE TABLE `features` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `scope` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `value` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `features_name_scope_unique` (`name`,`scope`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `gateway_webhook_events`;
 CREATE TABLE `gateway_webhook_events` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -637,6 +674,7 @@ CREATE TABLE `home_page_blocks` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `uuid` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
   `tenant_id` bigint unsigned NOT NULL,
+  `page` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'home',
   `type` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
   `sort_order` int unsigned NOT NULL DEFAULT '0',
   `is_visible` tinyint(1) NOT NULL DEFAULT '1',
@@ -656,6 +694,7 @@ CREATE TABLE `home_page_blocks` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `home_page_blocks_uuid_unique` (`uuid`),
   KEY `home_page_blocks_render_index` (`tenant_id`,`is_visible`,`sort_order`),
+  KEY `home_page_blocks_tenant_id_page_sort_order_index` (`tenant_id`,`page`,`sort_order`),
   CONSTRAINT `home_page_blocks_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `ical_feeds`;
@@ -766,11 +805,16 @@ CREATE TABLE `integration_credentials` (
   `last_error` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `webhook_secret` text COLLATE utf8mb4_unicode_ci,
   `webhook_token` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `inbound_username` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `inbound_secret_hash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `inbound_last_four` varchar(4) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `inbound_rotated_at` timestamp NULL DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `integr_creds_tenant_prov_env_uq` (`tenant_id`,`provider`,`environment`),
   UNIQUE KEY `integr_creds_webhook_token_uq` (`webhook_token`),
+  UNIQUE KEY `integr_creds_inbound_username_uq` (`inbound_username`),
   KEY `integr_creds_tenant_active_idx` (`tenant_id`,`is_active`,`is_default`),
   KEY `integr_creds_provider_account_idx` (`provider`,`external_account_id`),
   CONSTRAINT `integration_credentials_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE
@@ -1001,6 +1045,22 @@ CREATE TABLE `platform_brand` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `platform_brand_singleton_unique` (`singleton`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+DROP TABLE IF EXISTS `policy_templates`;
+CREATE TABLE `policy_templates` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `code` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `name` json NOT NULL,
+  `summary` json DEFAULT NULL,
+  `free_cancellation_hours` smallint unsigned DEFAULT NULL,
+  `tiers` json NOT NULL,
+  `sort_order` smallint unsigned NOT NULL DEFAULT '0',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `policy_templates_code_unique` (`code`),
+  KEY `policy_templates_offered_idx` (`is_active`,`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 DROP TABLE IF EXISTS `ports`;
 CREATE TABLE `ports` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
@@ -1097,6 +1157,7 @@ CREATE TABLE `products` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `landing_port_id` bigint unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `products_tenant_slug_unique` (`tenant_id`,`slug`),
   UNIQUE KEY `products_uuid_unique` (`uuid`),
@@ -1110,7 +1171,9 @@ CREATE TABLE `products` (
   KEY `products_tenant_mode_idx` (`tenant_id`,`mode`),
   KEY `products_tenant_title_sort_el_idx` (`tenant_id`,`title_sort_el`),
   KEY `products_tenant_title_sort_en_idx` (`tenant_id`,`title_sort_en`),
+  KEY `products_landing_port_id_foreign` (`landing_port_id`),
   CONSTRAINT `products_cancellation_policy_id_foreign` FOREIGN KEY (`cancellation_policy_id`) REFERENCES `cancellation_policies` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `products_landing_port_id_foreign` FOREIGN KEY (`landing_port_id`) REFERENCES `ports` (`id`) ON DELETE SET NULL,
   CONSTRAINT `products_meeting_point_id_foreign` FOREIGN KEY (`meeting_point_id`) REFERENCES `ports` (`id`) ON DELETE SET NULL,
   CONSTRAINT `products_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
   CONSTRAINT `products_vat_rate_id_foreign` FOREIGN KEY (`vat_rate_id`) REFERENCES `vat_rates` (`id`) ON DELETE RESTRICT,
@@ -1213,6 +1276,7 @@ CREATE TABLE `rate_plans` (
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
   `balance_due_days_before_departure` smallint unsigned DEFAULT NULL,
+  `follows_trip_terms` tinyint(1) NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   UNIQUE KEY `rate_plans_tenant_prod_season_uq` (`tenant_id`,`product_id`,`season_id`),
   KEY `rate_plans_product_id_foreign` (`product_id`),
@@ -1251,16 +1315,20 @@ CREATE TABLE `schedule_rules` (
   `valid_from` date NOT NULL,
   `valid_until` date DEFAULT NULL,
   `capacity_override` smallint unsigned DEFAULT NULL,
-  `generate_days_ahead` smallint unsigned NOT NULL DEFAULT '180',
   `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `last_generated_on` date DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
+  `captain_user_id` bigint unsigned DEFAULT NULL,
+  `captain_name` varchar(120) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `crew_user_ids` json DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `schedule_rules_product_id_foreign` (`product_id`),
   KEY `schedule_rules_vessel_id_foreign` (`vessel_id`),
   KEY `schedule_rules_tenant_active_idx` (`tenant_id`,`is_active`,`valid_from`),
   KEY `schedule_rules_tenant_product_idx` (`tenant_id`,`product_id`),
+  KEY `schedule_rules_captain_user_id_foreign` (`captain_user_id`),
+  CONSTRAINT `schedule_rules_captain_user_id_foreign` FOREIGN KEY (`captain_user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
   CONSTRAINT `schedule_rules_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
   CONSTRAINT `schedule_rules_tenant_id_foreign` FOREIGN KEY (`tenant_id`) REFERENCES `tenants` (`id`) ON DELETE CASCADE,
   CONSTRAINT `schedule_rules_vessel_id_foreign` FOREIGN KEY (`vessel_id`) REFERENCES `vessels` (`id`) ON DELETE SET NULL
@@ -1369,6 +1437,8 @@ CREATE TABLE `tenants` (
   `default_vat_rate_id` bigint unsigned DEFAULT NULL,
   `onboarding_completed_at` timestamp NULL DEFAULT NULL,
   `onboarding_skipped_steps` json DEFAULT NULL,
+  `onboarding_deferred_at` timestamp NULL DEFAULT NULL,
+  `onboarding_dismissed_at` timestamp NULL DEFAULT NULL,
   `plan` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'trial',
   `vertical` varchar(24) COLLATE utf8mb4_unicode_ci DEFAULT 'boats',
   `status` varchar(32) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'trialing',
@@ -1387,6 +1457,7 @@ CREATE TABLE `tenants` (
   `extra_person_pricing_enabled` tinyint(1) DEFAULT '0',
   `sms_enabled` tinyint(1) DEFAULT '0',
   `setup_guide_enabled` tinyint(1) DEFAULT '1',
+  `getyourguide_enabled` tinyint(1) DEFAULT '0',
   `invoicing_mode` varchar(16) COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'kaiki',
   `invoice_auto_issue` tinyint(1) NOT NULL DEFAULT '1',
   `invoice_auto_issue_delay_minutes` smallint unsigned NOT NULL DEFAULT '15',
@@ -1435,7 +1506,7 @@ CREATE TABLE `users` (
   `tenant_id` bigint unsigned DEFAULT NULL,
   `name` varchar(120) COLLATE utf8mb4_unicode_ci NOT NULL,
   `salutation` varchar(60) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `email` varchar(190) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(190) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `email_verified_at` timestamp NULL DEFAULT NULL,
   `password` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
   `phone` varchar(32) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -1449,6 +1520,9 @@ CREATE TABLE `users` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `specialty` varchar(16) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `photo_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `bio` json DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `users_uuid_unique` (`uuid`),
   UNIQUE KEY `users_email_unique` (`email`),
@@ -1528,6 +1602,7 @@ CREATE TABLE `vessels` (
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   `deleted_at` timestamp NULL DEFAULT NULL,
+  `licence_type` varchar(24) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `vessels_tenant_name_unique` (`tenant_id`,`name`),
   UNIQUE KEY `vessels_uuid_unique` (`uuid`),
@@ -1713,3 +1788,16 @@ INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (75,'2026_09_17_000
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (76,'2026_09_17_000100_add_salutation_to_users',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (77,'2026_09_17_000200_add_sms_enabled_to_tenants',1);
 INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (78,'2026_09_17_000300_add_setup_guide_enabled_to_tenants',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (79,'2026_09_21_110112_create_features_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (80,'2026_09_21_120000_add_getyourguide_enabled_to_tenants',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (81,'2026_09_21_130000_add_inbound_auth_to_integration_credentials',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (82,'2026_09_21_140000_create_channel_product_map_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (83,'2026_09_22_100000_add_setup_exits_to_tenants',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (84,'2026_09_23_100000_drop_generate_days_ahead_from_schedule_rules',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (85,'2026_09_23_110000_create_policy_templates_table',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (86,'2026_09_24_100000_add_group_kind_and_trip_terms',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (87,'2026_09_24_110000_add_harbour_manifest_fields',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (88,'2026_09_24_120000_add_captain_and_crew_to_departures',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (89,'2026_09_24_130000_add_specialty_and_optional_email_to_users',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (90,'2026_09_24_140000_add_crew_to_schedule_rules',1);
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES (91,'2026_09_24_150000_add_about_page',1);

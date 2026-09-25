@@ -7,13 +7,18 @@ namespace App\Filament\App\Resources\ProductResource\Pages;
 use App\Domain\Catalog\Actions\SaveProduct;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource;
+use App\Filament\Support\MoreActions;
 use App\Models\Product;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
 class EditProduct extends EditRecord
@@ -31,6 +36,41 @@ class EditProduct extends EditRecord
     }
 
     /**
+     * The trip's own name, not «Επεξεργασία: Εκδρομή» (rule Ε of the form
+     * mockup, 2026-09-24): with several trips open in tabs, the model's name
+     * said nothing about which one this was.
+     */
+    public function getTitle(): string
+    {
+        $title = trim((string) $this->getRecord()->getAttribute('title'));
+
+        return $title !== '' ? $title : parent::getTitle();
+    }
+
+    /** The name, and beside it whether it is on sale — the same pill as the list. */
+    public function getHeading(): string|Htmlable
+    {
+        $status = $this->getRecord()->getAttribute('status');
+
+        if (! $status instanceof ProductStatus) {
+            return $this->getTitle();
+        }
+
+        return new HtmlString(
+            '<span class="ka-title-with-state">' . e($this->getTitle()) . ' '
+            . Blade::render('<x-filament::badge :color="$color" size="lg">{{ $label }}</x-filament::badge>', [
+                'color' => match ($status) {
+                    ProductStatus::Draft => 'warning',
+                    ProductStatus::Active => 'success',
+                    ProductStatus::Inactive, ProductStatus::Archived => 'gray',
+                },
+                'label' => __('enums.product_status.' . $status->value . '.label'),
+            ])
+            . '</span>',
+        );
+    }
+
+    /**
      * The bands may have changed with the trip, so the table is rebuilt, unless
      * it holds typed prices that are not saved yet: those are kept, not lost.
      */
@@ -41,10 +81,19 @@ class EditProduct extends EditRecord
         }
     }
 
-    /** @return array<int, Action> */
+    /** @return array<int, Action|ActionGroup> */
     protected function getHeaderActions(): array
     {
-        return [
+        return MoreActions::header([
+            // The guest's own page, for the trip being edited. Absent while it
+            // is a draft: there is nothing published to look at.
+            Action::make('preview')
+                ->label(__('catalog.product.table.preview'))
+                ->icon('heroicon-o-arrow-top-right-on-square')
+                ->color('gray')
+                ->url(fn (): ?string => ProductResource::previewUrl($this->product()), shouldOpenInNewTab: true)
+                ->visible(fn (): bool => ProductResource::previewUrl($this->product()) !== null),
+        ], [
             Action::make('archive')
                 ->label(__('catalog.product.status_actions.archive'))
                 ->icon('heroicon-o-archive-box')
@@ -61,7 +110,7 @@ class EditProduct extends EditRecord
                 ->action(fn () => $this->setStatusOnly(ProductStatus::Draft, 'unarchived')),
             DeleteAction::make(),
             RestoreAction::make(),
-        ];
+        ]);
     }
 
     /**
@@ -82,7 +131,31 @@ class EditProduct extends EditRecord
                 ->label(fn (): string => $this->product()->status === ProductStatus::Draft
                     ? __('catalog.product.status_actions.save_draft')
                     : __('catalog.product.status_actions.save'))
-                ->color(fn (): string => $this->product()->status === ProductStatus::Draft ? 'gray' : 'primary'),
+                ->color(fn (): string => $this->product()->status === ProductStatus::Draft ? 'gray' : 'primary')
+                /*
+                 * **The button has to name its form** (2026-09-22).
+                 *
+                 * «Αποθήκευση» is a plain `type="submit"`, which submits the
+                 * form it sits inside. Since the price lists, the extras and
+                 * the schedule rules moved into the tabs (2026-09-21) this page
+                 * renders relation managers — each carrying a `<form>` of its
+                 * own — inside the trip's form, and a nested `<form>` ends the
+                 * outer one as far as the browser is concerned. The save
+                 * button, which comes after them, was left inside no form at
+                 * all: clicking it issued **no request**. No error, no
+                 * notification, and the operator's edit simply gone on the next
+                 * load. It was found by driving the real form: the escort
+                 * toggle would not stay on, and neither would anything else.
+                 *
+                 * `formId()` renders `form="form"`, which ties a button to a
+                 * form by id wherever it sits in the document. The create page
+                 * never had this — it has no relation managers to nest — and
+                 * nor do the vessel and port forms, which is why it looked at
+                 * first like something about one trip rather than about this
+                 * page. «Δημοσίευση» below was never affected: it is a Livewire
+                 * action and does not submit anything.
+                 */
+                ->formId('form'),
             Action::make('publish')
                 ->label(fn (): string => $this->product()->status === ProductStatus::Inactive
                     ? __('catalog.product.status_actions.republish')

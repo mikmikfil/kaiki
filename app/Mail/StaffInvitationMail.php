@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Mail;
 
 use App\Domain\Branding\Actions\GetBrandPayload;
+use App\Mail\Support\OperatorSender;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Support\Tenancy;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 
@@ -60,7 +62,15 @@ class StaffInvitationMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $tenant = Tenancy::current();
+
         return new Envelope(
+            from: OperatorSender::from($tenant instanceof Tenant ? $tenant : null),
+            // To the person who sent it, not the business address: «who is
+            // this and why did I get it?» is a question for them.
+            replyTo: filter_var($this->invitedBy->email, FILTER_VALIDATE_EMAIL) !== false
+                ? [new Address($this->invitedBy->email, $this->invitedBy->name)]
+                : OperatorSender::replyTo($tenant instanceof Tenant ? $tenant : null),
             subject: __('staff.invitation.subject', ['operator' => $this->operatorName()]),
         );
     }

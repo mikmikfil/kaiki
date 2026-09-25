@@ -24,6 +24,7 @@ return [
     // Sidebar labels shorter than the screen's own title (Menu 1, 2026-09-16).
     'nav' => [
         'home' => 'Home',
+        'scan' => 'Scan tickets',
         'prices' => 'Prices',
         'ports' => 'Ports',
         'related' => 'Related screens',
@@ -56,5 +57,14 @@ return [
     'locale' => [
         'switcher' => 'Language',
     ],
+
+    'number' => [
+        'decrease' => 'Decrease',
+        'increase' => 'Increase',
+    ],
+
+    'more_actions' => 'More',
+
+    'upload_pick' => 'Choose a file',
 
 ];

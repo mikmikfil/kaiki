@@ -175,6 +175,18 @@ class Product extends Model implements TranslatableSearchable
         return $this->belongsTo(Port::class, 'meeting_point_id');
     }
 
+    /**
+     * Where the passengers get off, when it is not where they got on — a
+     * transfer to an island, say. Null on a round trip (2026-09-24, for the
+     * passenger list's «Λιμάνι αποβίβασης»).
+     *
+     * @return BelongsTo<Port, $this>
+     */
+    public function landingPort(): BelongsTo
+    {
+        return $this->belongsTo(Port::class, 'landing_port_id');
+    }
+
     /** @return BelongsTo<CancellationPolicy, $this> */
     public function cancellationPolicy(): BelongsTo
     {
@@ -203,6 +215,23 @@ class Product extends Model implements TranslatableSearchable
     public function questions(): HasMany
     {
         return $this->hasMany(TripQuestion::class);
+    }
+
+    /**
+     * The FAQ entries written **for this trip** (2026-09-23).
+     *
+     * Not every FAQ a guest sees on the trip page: `faqs.product_id` is
+     * nullable, and a null one belongs to the business rather than to a
+     * sailing, so it appears on every trip.
+     * `App\Domain\Hosted\Actions\BuildFaqList` answers "what shows here"; this
+     * relation is the trip-specific half, and the only half an operator edits
+     * from inside a trip.
+     *
+     * @return HasMany<Faq, $this>
+     */
+    public function faqs(): HasMany
+    {
+        return $this->hasMany(Faq::class);
     }
 
     /**

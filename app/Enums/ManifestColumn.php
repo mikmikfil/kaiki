@@ -24,6 +24,9 @@ enum ManifestColumn: string
     use HasTranslatedLabel;
 
     case FullName = 'full_name';
+
+    /** «Φύλο», Α or Θ (ν. 4926/2022 άρθρο 13, 2026-09-24). */
+    case Sex = 'sex';
     case DateOfBirth = 'date_of_birth';
     case Nationality = 'nationality';
     case DocumentType = 'document_type';
@@ -56,6 +59,7 @@ enum ManifestColumn: string
     {
         return [
             self::FullName,
+            self::Sex,
             self::DateOfBirth,
             self::Nationality,
             self::DocumentType,

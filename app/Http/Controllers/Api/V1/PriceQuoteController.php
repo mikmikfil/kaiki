@@ -70,7 +70,11 @@ final class PriceQuoteController
         $product = PublicProductQuery::findForAvailability($request->productIdentifier());
 
         if (! $product instanceof Product) {
-            abort(SymfonyResponse::HTTP_NOT_FOUND);
+            return ApiErrorResponse::fromKey(
+                key: 'api.errors.product_not_found',
+                code: 'not_found',
+                status: SymfonyResponse::HTTP_NOT_FOUND,
+            );
         }
 
         if ($product->mode === BookingMode::Quote) {

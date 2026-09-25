@@ -22,6 +22,21 @@ return [
     // The blue left side of the sign-in screen (2026-09-17).
     'intro' => [
         'line' => 'The booking system for boat trips.',
+        // The shorter one, in the phone's blue band (Α1, 2026-09-23).
+        'line_short' => 'Bookings for boat trips.',
+    ],
+
+    // Signing in on a phone (direction Α1, 2026-09-23). Filament's own labels
+    // are in lang/vendor/filament-panels.
+    'login' => [
+        'show_password' => 'Show',
+        'hide_password' => 'Hide',
+        'failed_hint' => 'Check that caps lock is off and try again.',
+    ],
+
+    // «Forgot password» (direction Α1, 2026-09-23).
+    'password_request' => [
+        'lead' => 'We will email you a link to choose a new one. It works for :minutes minutes.',
     ],
 
     // The password reset email, for both panels (2026-09-17).

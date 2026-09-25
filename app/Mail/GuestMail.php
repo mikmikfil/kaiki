@@ -5,16 +5,21 @@ declare(strict_types=1);
 namespace App\Mail;
 
 use App\Domain\Booking\Support\BookingCalendarInvite;
+use App\Domain\Booking\Support\TicketAttachment;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Notifications\Actions\SendNotification;
 use App\Enums\NotificationTemplate;
+use App\Mail\Support\OperatorSender;
 use App\Models\Booking;
 use App\Models\Tenant;
 use App\Support\Tenancy;
+use Illuminate\Contracts\Mail\Factory;
+use Illuminate\Contracts\Mail\Mailer;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Mail\SentMessage;
 
 /**
  * Every transactional email a guest receives (spec NTF-1, NTF-4, NTF-6, NTF-7).
@@ -44,6 +49,13 @@ use Illuminate\Mail\Mailables\Envelope;
  */
 class GuestMail extends Mailable
 {
+    /**
+     * The e-ticket to attach, found by {@see send()}; null on a preview.
+     *
+     * @var array{bytes: string, filename: string}|null
+     */
+    private ?array $ticketPdf = null;
+
     public function __construct(
         public readonly Booking $booking,
         public readonly NotificationTemplate $template,
@@ -56,9 +68,16 @@ class GuestMail extends Mailable
 
     public function envelope(): Envelope
     {
+        $tenant = $this->tenant();
+
         return new Envelope(
+            // From the platform, in the operator's name; answered to the
+            // operator ({@see OperatorSender} says why not their own SMTP).
+            from: OperatorSender::from($tenant),
+            replyTo: OperatorSender::replyTo($tenant),
             subject: __("mail.{$this->template->value}.subject", [
                 'reference' => $this->booking->reference,
+                'trip' => (string) $this->booking->product?->title,
             ]),
         );
     }
@@ -74,6 +93,8 @@ class GuestMail extends Mailable
                 'template' => $this->template,
                 'brand' => $this->brand(),
                 'extra' => $this->extra,
+                // «Το εισιτήριο είναι και συνημμένο σε PDF», only when it is.
+                'ticketPdfAttached' => $this->ticketPdf !== null,
             ],
         );
     }
@@ -123,14 +144,45 @@ class GuestMail extends Mailable
             return $invite->isAvailable() ? [$invite->ics(), $invite->filename()] : null;
         });
 
-        if ($file === null) {
-            return [];
+        $attachments = [];
+
+        if ($file !== null) {
+            $attachments[] = Attachment::fromData(static fn (): string => $file[0], $file[1])
+                ->withMime('text/calendar; charset=UTF-8; method=PUBLISH');
         }
 
-        return [
-            Attachment::fromData(static fn (): string => $file[0], $file[1])
-                ->withMime('text/calendar; charset=UTF-8; method=PUBLISH'),
-        ];
+        // The e-ticket, when send() found one to give ({@see TicketAttachment}).
+        if ($this->ticketPdf !== null) {
+            $pdf = $this->ticketPdf;
+
+            $attachments[] = Attachment::fromData(static fn (): string => $pdf['bytes'], $pdf['filename'])
+                ->withMime('application/pdf');
+        }
+
+        return $attachments;
+    }
+
+    /**
+     * The e-ticket PDF is resolved here, on a real send, and nowhere else
+     * (product owner, 2026-09-23).
+     *
+     * Not in `attachments()` alone, for two reasons. `Mailable::render()` — the
+     * notification log's preview, the email gallery — calls `attachments()`
+     * too, and a preview must not start Chromium or write a file. And the body
+     * says «the ticket is also attached» only when it is: `content()` and
+     * `attachments()` are both read inside `parent::send()`, after this line,
+     * so the sentence and the file cannot disagree.
+     *
+     * A PDF that cannot be made is logged and left out; the email still goes.
+     *
+     * @param  Factory|Mailer  $mailer
+     * @return SentMessage|null
+     */
+    public function send($mailer)
+    {
+        $this->ticketPdf = TicketAttachment::for($this->booking, $this->template);
+
+        return parent::send($mailer);
     }
 
     /**
@@ -144,9 +196,7 @@ class GuestMail extends Mailable
      */
     private function brand(): array
     {
-        $tenant = Tenancy::withoutTenancy(
-            fn (): ?Tenant => Tenant::query()->find($this->booking->tenant_id),
-        );
+        $tenant = $this->tenant();
 
         if (! $tenant instanceof Tenant) {
             return [];
@@ -156,5 +206,13 @@ class GuestMail extends Mailable
             $tenant,
             SendNotification::localeFor($this->booking),
         ));
+    }
+
+    /** The booking's operator, read past the tenant scope — a queue has none. */
+    private function tenant(): ?Tenant
+    {
+        return Tenancy::withoutTenancy(
+            fn (): ?Tenant => Tenant::query()->find($this->booking->tenant_id),
+        );
     }
 }

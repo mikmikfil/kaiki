@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources;
 use App\Domain\Catalog\Actions\SaveCancellationPolicy;
 use App\Filament\App\Resources\CancellationPolicyResource\Pages;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\CancellationPolicy;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Repeater;
@@ -52,12 +53,23 @@ class CancellationPolicyResource extends Resource
 {
     protected static ?string $model = CancellationPolicy::class;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     protected static ?string $navigationIcon = 'heroicon-o-arrow-uturn-left';
 
     protected static ?int $navigationSort = 40;
 
-    // Reached from a tab on its sibling screen, not from the sidebar (Menu 1, 2026-09-16).
-    protected static bool $shouldRegisterNavigation = false;
+    /*
+     * **In the sidebar in its own right** (product owner, 2026-09-22), for the
+     * same reason as «Περίοδοι» beside it: a cancellation policy is written
+     * once, applies to every trip, and is the thing an operator goes looking
+     * for when a guest asks to cancel — not a second view of the price lists.
+     *
+     * With both of them in the menu the pricing tab bar had nothing left to
+     * hold, so it is gone from these screens entirely — see
+     * `App\Filament\App\Navigation\SiblingScreens`.
+     */
+    protected static bool $shouldRegisterNavigation = true;
 
     public static function getNavigationGroup(): ?string
     {
@@ -89,6 +101,7 @@ class CancellationPolicyResource extends Resource
     {
         return [
             Section::make(__('pricing.cancellation.sections.identity'))
+                ->icon('heroicon-o-document-text')
                 ->schema([
                     TranslatableInput::text(
                         'name',
@@ -110,6 +123,7 @@ class CancellationPolicyResource extends Resource
                 ]),
 
             Section::make(__('pricing.cancellation.sections.ladder'))
+                ->icon('heroicon-o-arrow-trending-down')
                 ->description(__('pricing.cancellation.form.tiers.help'))
                 ->schema([
                     TextInput::make('free_cancellation_hours')
@@ -163,6 +177,7 @@ class CancellationPolicyResource extends Resource
                 ]),
 
             Section::make(__('pricing.cancellation.sections.special'))
+                ->icon('heroicon-o-exclamation-triangle')
                 ->schema([
                     TextInput::make('weather_refund_percent')
                         ->label(__('pricing.cancellation.form.weather_refund_percent.label'))
@@ -227,11 +242,10 @@ class CancellationPolicyResource extends Resource
             ])
             ->defaultSort('is_default', 'desc')
             ->filters([TrashedFilter::make()])
-            ->actions([
-                EditAction::make(),
+            ->actions(MoreActions::row(EditAction::make(), [
                 DeleteAction::make(),
                 RestoreAction::make(),
-            ]);
+            ]));
     }
 
     /**

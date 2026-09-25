@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Catalog\Actions;
 
+use App\Enums\AgeBandKind;
 use App\Enums\AgeBandPricing;
 use App\Models\AgeBand;
 use App\Models\Product;
@@ -75,12 +76,19 @@ final class SaveAgeBands
                 $code = (string) $band['code'];
                 $kept[] = $code;
 
+                // A group by status has no ages: stored as 0 and open-ended, so
+                // nothing reading the columns alone mistakes it for a narrow band.
+                $kind = $band['kind'] ?? null;
+                $byStatus = $kind === AgeBandKind::Status || $kind === AgeBandKind::Status->value;
+
                 $attributes = [
                     'product_id' => $product->getKey(),
                     'code' => $code,
                     'label' => $band['label'],
-                    'min_age' => (int) ($band['min_age'] ?? 0),
-                    'max_age' => isset($band['max_age']) && $band['max_age'] !== ''
+                    'kind' => $byStatus ? AgeBandKind::Status->value : AgeBandKind::Age->value,
+                    'requires_proof' => $byStatus && (bool) ($band['requires_proof'] ?? false),
+                    'min_age' => $byStatus ? 0 : (int) ($band['min_age'] ?? 0),
+                    'max_age' => ! $byStatus && isset($band['max_age']) && $band['max_age'] !== ''
                         ? (int) $band['max_age']
                         : null,
                     'counts_toward_capacity' => (bool) ($band['counts_toward_capacity'] ?? true),

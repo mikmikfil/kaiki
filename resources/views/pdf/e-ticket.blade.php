@@ -24,7 +24,10 @@
 
     ## Everything a person on a quay needs, and nothing else
 
-    No price, no payment status, no policy text. A ticket is shown to a crew
+    Since 2026-09-23 that includes the rest of the trip — when the boat is back,
+    how to find the meeting point, what to bring, how to reach the operator —
+    because the PDF now travels attached to the email and is what opens with no
+    signal. Still no price, no payment status, no policy text. A ticket is shown to a crew
     member in the sun; the manage page (`/b/{manage_token}`) is where the money
     lives, and printing a total on something photographed and left on a seat
     serves nobody.
@@ -52,6 +55,12 @@
     // Off for an operator who boards from the passenger list (BKG-20, amended
     // 2026-09-11). Absent means on, which is every ticket before the switch.
     $showQr = $qr ?? true;
+
+    // The rest of the trip (2026-09-23): the same answers the confirmation
+    // email gives, from the same place, so the two cannot disagree about when
+    // the boat is back or what to bring. The PDF is what opens on a quay with
+    // no signal, so it has to be enough on its own.
+    $trip = \App\Mail\Support\BookingMailDetails::for($booking, \App\Enums\NotificationTemplate::BookingConfirmed, $locale);
 @endphp
 <!doctype html>
 <html lang="{{ $locale }}">
@@ -59,7 +68,16 @@
     <meta charset="utf-8">
     <title>{{ __('ticket.title', [], $locale) }} — {{ $booking->reference }}</title>
     <style>
-        @page { size: A4; }
+        /*
+         * Margin zero on the page and the inset on the ticket itself (product
+         * owner, 2026-09-22: *«βάλε λίγο κενό δεξιά αριστερά, είναι τσίτα»*).
+         *
+         * The page's own margin was the renderer's default, which a browser
+         * ignores — so the ticket looked flush to the paper everywhere it was
+         * read on screen, and the two never agreed. The invoice has always done
+         * it this way; now both do.
+         */
+        @page { size: A4; margin: 0; }
 
         body {
             margin: 0;
@@ -70,7 +88,7 @@
             -webkit-print-color-adjust: exact;
         }
 
-        .ticket { padding: 0 0 8mm; }
+        .ticket { padding: 14mm 15mm 10mm; }
         /* One guest per page, and no trailing blank page after the last. */
         .ticket + .ticket { page-break-before: always; }
 
@@ -106,6 +124,16 @@
             background: #f2f5f7; border-left: 3px solid {{ $accent }};
             font-size: 10pt; color: #35485a;
         }
+
+        /* The rest of the trip: three short blocks side by side, calm and
+           smaller than the facts, which are what a crew member reads. */
+        .more { display: flex; gap: 8mm; margin-top: 8mm; }
+        .more .block { flex: 1 1 0; min-width: 0; }
+        .more h2 { font-size: 10.5pt; margin: 0 0 1.5mm; color: #16202a; }
+        .more p, .more li { font-size: 9.5pt; color: #35485a; margin: 0 0 1mm; overflow-wrap: anywhere; }
+        .more ul { margin: 0; padding-left: 4mm; }
+        .more .strong { font-weight: 600; color: #16202a; }
+        .more a { color: {{ $accent }}; text-decoration: none; font-weight: 600; }
 
         footer {
             margin-top: 6mm; padding-top: 3mm;
@@ -145,6 +173,11 @@
                     <dt>{{ __('ticket.fields.departs', [], $locale) }}</dt>
                     <dd>{{ DateTimeFormatter::time($booking->starts_at_utc, $locale, $timezone) }}</dd>
 
+                    @if ($trip->return)
+                        <dt>{{ __('ticket.fields.returns', [], $locale) }}</dt>
+                        <dd>{{ $trip->return }}</dd>
+                    @endif
+
                     {{-- BKG-22's own window, on the ticket. The single most
                          useful line on it: "be there at" is what a guest reads,
                          and computing it themselves from an offset they cannot
@@ -175,6 +208,44 @@
         @if ($meetingPoint?->address)
             <div class="note">{{ $meetingPoint->address }}</div>
         @endif
+
+        <div class="more">
+            @if ($trip->meetingInstructions || $trip->mapUrl)
+                <div class="block">
+                    <h2>{{ __('ticket.more.how_to_find', [], $locale) }}</h2>
+                    @if ($trip->meetingInstructions)
+                        <p>{{ $trip->meetingInstructions }}</p>
+                    @endif
+                    @if ($trip->mapUrl)
+                        <p><a href="{{ $trip->mapUrl }}">{{ __('ticket.more.open_map', [], $locale) }}</a></p>
+                    @endif
+                </div>
+            @endif
+
+            @if ($trip->bring !== [])
+                <div class="block">
+                    <h2>{{ __('ticket.more.bring', [], $locale) }}</h2>
+                    <ul>
+                        @foreach ($trip->bring as $thing)
+                            <li>{{ $thing }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
+
+            @if ($trip->phone || $trip->email)
+                <div class="block">
+                    <h2>{{ __('ticket.more.contact', [], $locale) }}</h2>
+                    <p>{{ $operator }}</p>
+                    @if ($trip->phone)
+                        <p class="strong">{{ $trip->phone }}</p>
+                    @endif
+                    @if ($trip->email)
+                        <p class="strong">{{ $trip->email }}</p>
+                    @endif
+                </div>
+            @endif
+        </div>
 
         <footer>
             <span>{{ __('ticket.footer.show_on_arrival', [], $locale) }}</span>

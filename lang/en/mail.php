@@ -40,6 +40,14 @@ return [
         'open_ticket' => 'Open ticket',
         'manage_booking' => 'Manage booking',
 
+        // The QR codes inside the email (2026-09-23), one per passenger.
+        'boarding_heading' => 'Boarding codes',
+        'boarding_help' => 'Show it to the crew when you board.|One code per passenger. Show them to the crew when you board.',
+        'boarding_alt' => 'Boarding QR code for :name',
+        'boarding_text' => 'The boarding QR code is in the full (HTML) version of this email and on your ticket.|The boarding QR codes, one per passenger, are in the full (HTML) version of this email and on your ticket.',
+        // Only when the PDF really was attached (2026-09-23).
+        'ticket_attached' => 'The ticket is also attached as a PDF.',
+
         // Add to calendar (2026-09-18). ".ics" is in the label on purpose: it is
         // the word somebody who has met a calendar file before recognises, and
         // the app names tell everybody else which of the two is theirs.
@@ -68,6 +76,9 @@ return [
         // The facts under the card, per message (email review, 2026-09-17).
         'refund_method' => 'Refunded to',
         'refund_to_card' => 'The payment method you used',
+        // When part was paid in cash or by transfer (2026-09-23): that part does not go back on its own.
+        'refund_card_part' => ':amount to the card you used',
+        'refund_by_hand' => ':amount we will return to you ourselves, the way you paid it (cash or transfer)',
         'refund_to_voucher' => 'A voucher, code :code',
         'details_by_label' => 'Details due by',
         'charter_by' => 'Accept by',
@@ -221,6 +232,14 @@ return [
         'heading' => 'How was your trip?',
         'body' => 'We hope you had a lovely day on :date. If you enjoyed it, a short Google review helps other travellers find us.',
         'sms' => 'How was your trip?',
+    ],
+
+    'payment_unfinished' => [
+        'subject' => 'Your booking for :trip was not completed',
+        'heading' => 'Your payment was not completed',
+        'body' => 'You started a booking but the payment did not go through. If you would still like to come, pick up where you left off.',
+        'button' => 'Complete payment',
+        'note' => 'Your seats are not held. We will check availability again when you press the button. You will not get another reminder for this booking.',
     ],
 
 ];

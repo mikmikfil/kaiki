@@ -29,6 +29,19 @@ trait HasTranslatedLabel
     }
 
     /**
+     * The label under the name Filament asks for.
+     *
+     * An enum that also declares `implements \Filament\Support\Contracts\HasLabel`
+     * then shows this label wherever Filament renders the case — a badge, an
+     * entry, a select — instead of the raw value («confirmed», «widget»),
+     * without every column having to remember a `formatStateUsing()`.
+     */
+    public function getLabel(): ?string
+    {
+        return $this->label();
+    }
+
+    /**
      * The label in one named locale, whatever the request's locale is.
      *
      * `docs/api.md` §4.1 requires **both** languages in every API error, always

@@ -5,16 +5,22 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources;
 
 use App\Domain\Tenancy\Actions\InviteStaffMember;
+use App\Enums\CrewSpecialty;
 use App\Enums\Role;
 use App\Exceptions\LastOwnerException;
 use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\StaffResource\Pages;
+use App\Filament\Support\MoreActions;
 use App\Models\User;
 use App\Support\Authorization\Capability;
 use Filament\Forms\Components\Component;
+use Filament\Forms\Components\Fieldset;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\ToggleButtons;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\PageRegistration;
@@ -132,15 +138,61 @@ class StaffResource extends Resource
                 ->label(__('staff.form.email.label'))
                 ->helperText(__('staff.form.email.help'))
                 ->email()
-                ->required()
-                // Editable only while inviting. An email address is the account's
-                // identity here — it is the login, and it is where the reset link
-                // goes — so changing somebody else's is not an edit, it is a
-                // handover of their account to a different inbox.
-                ->disabled(! $inviting)
-                ->dehydrated($inviting)
+                // Optional since 2026-09-24 (Mike: «not everyone uses email»):
+                // without one the person is «Χωρίς σύνδεση» — on the lists and
+                // the passenger list, never signing in, never mailed.
+                //
+                // Editable while inviting, and on somebody who has none yet —
+                // adding it is how they are invited. An address already set is
+                // the account's login and where its reset link goes, so changing
+                // it is a handover to another inbox, not an edit.
+                ->disabled(static fn (?User $record): bool => ! $inviting && filled($record?->email))
+                ->dehydrated(static fn (?User $record): bool => $inviting || blank($record?->email))
                 ->unique(User::class, 'email', ignoreRecord: true)
                 ->maxLength(190),
+
+            // What they do on the boat, separate from what they may see in
+            // Kaiki (2026-09-24). A departure's «Κυβερνήτης» list offers the
+            // captains.
+            ToggleButtons::make('specialty')
+                ->label(__('staff.form.specialty.label'))
+                ->helperText(__('staff.form.specialty.help'))
+                ->options(CrewSpecialty::class)
+                ->inline(),
+
+            // What the site's «Σχετικά με εμάς» shows of a captain or a
+            // deckhand (2026-09-24). Both optional; nobody else's page shows them.
+            Fieldset::make(__('staff.form.public.label'))
+                ->schema([
+                    FileUpload::make('photo_path')
+                        ->label(__('staff.form.photo.label'))
+                        ->helperText(__('staff.form.photo.help'))
+                        ->disk('public')
+                        ->directory('staff')
+                        ->visibility('public')
+                        ->image()
+                        ->imageEditor()
+                        ->imageCropAspectRatio('4:5')
+                        ->maxSize(4096)
+                        ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
+                        ->columnSpanFull(),
+                    Textarea::make('bio.el')
+                        ->label(__('staff.form.bio.el'))
+                        ->helperText(__('staff.form.bio.help'))
+                        ->rows(2)
+                        ->maxLength(200),
+                    Textarea::make('bio.en')
+                        ->label(__('staff.form.bio.en'))
+                        ->rows(2)
+                        ->maxLength(200),
+                ])
+                ->columns(1),
+
+            TextInput::make('phone')
+                ->label(__('staff.form.phone.label'))
+                ->helperText(__('staff.form.phone.help'))
+                ->tel()
+                ->maxLength(32),
 
             Select::make('locale')
                 ->label(__('staff.form.locale.label'))
@@ -188,8 +240,14 @@ class StaffResource extends Resource
 
                 TextColumn::make('email')
                     ->label(__('staff.table.email'))
+                    ->placeholder(__('staff.table.offline'))
                     ->searchable()
                     ->copyable(),
+
+                TextColumn::make('specialty')
+                    ->label(__('staff.table.specialty'))
+                    ->formatStateUsing(static fn (?CrewSpecialty $state): string => $state?->label() ?? '')
+                    ->placeholder('—'),
 
                 TextColumn::make('roleAssignments.role')
                     ->label(__('staff.table.roles'))
@@ -214,33 +272,7 @@ class StaffResource extends Resource
                         ? __('staff.table.pending')
                         : __('staff.table.active')),
             ])
-            ->actions([
-                Action::make('resend')
-                    ->label(__('staff.actions.resend.label'))
-                    ->icon('heroicon-o-envelope')
-                    ->color('gray')
-                    ->requiresConfirmation()
-                    ->modalHeading(__('staff.actions.resend.heading'))
-                    ->modalDescription(__('staff.actions.resend.description'))
-                    // Only for somebody who has not been in yet. Sending a
-                    // "choose your password" link to a colleague who has one
-                    // reads as a security incident.
-                    ->visible(fn (User $record): bool => $record->email_verified_at === null)
-                    ->action(function (User $record): void {
-                        $actor = Auth::user();
-
-                        if (! $actor instanceof User) {
-                            return;
-                        }
-
-                        app(InviteStaffMember::class)->sendInvitation($record, $actor);
-
-                        Notification::make()
-                            ->success()
-                            ->title(__('staff.actions.resend.done', ['email' => $record->email]))
-                            ->send();
-                    }),
-
+            ->actions(MoreActions::row(
                 /*
                  * Editing is a modal with the role checkboxes filled by hand.
                  *
@@ -261,6 +293,10 @@ class StaffResource extends Resource
                         'name' => $record->name,
                         'salutation' => $record->salutation,
                         'email' => $record->email,
+                        'specialty' => $record->specialty?->value,
+                        'photo_path' => $record->photo_path,
+                        'bio' => is_array($record->bio) ? $record->bio : [],
+                        'phone' => $record->phone,
                         'locale' => $record->locale,
                         // A person who already holds two — from a seed, the API,
                         // or the checkbox list this replaced — opens on the one
@@ -279,6 +315,9 @@ class StaffResource extends Resource
                                 $record->update([
                                     'name' => $data['name'],
                                     'salutation' => $data['salutation'] ?? null,
+                                    'specialty' => $data['specialty'] ?? null,
+                                    ...static::publicProfile($data),
+                                    'phone' => $data['phone'] ?? null,
                                     'locale' => $data['locale'],
                                 ]);
 
@@ -298,15 +337,49 @@ class StaffResource extends Resource
                             return;
                         }
 
+                        // An email given to somebody who had none: this is
+                        // their invitation (2026-09-24).
+                        $email = trim((string) ($data['email'] ?? ''));
+
+                        if (blank($record->email) && $email !== '') {
+                            $record->forceFill(['email' => $email])->save();
+                            app(InviteStaffMember::class)->sendInvitation($record, $actor);
+                        }
+
                         Notification::make()
                             ->success()
                             ->title(__('staff.actions.edit.done'))
                             ->send();
-                    }),
+                    }), [
+                        Action::make('resend')
+                            ->label(__('staff.actions.resend.label'))
+                            ->icon('heroicon-o-envelope')
+                            ->color('gray')
+                            ->requiresConfirmation()
+                            ->modalHeading(__('staff.actions.resend.heading'))
+                            ->modalDescription(__('staff.actions.resend.description'))
+                            // Only for somebody who has not been in yet. Sending a
+                            // "choose your password" link to a colleague who has one
+                            // reads as a security incident.
+                            ->visible(fn (User $record): bool => $record->email_verified_at === null && filled($record->email))
+                            ->action(function (User $record): void {
+                                $actor = Auth::user();
 
-                DeleteAction::make()
-                    ->modalDescription(__('staff.actions.delete.description'))
-                    /*
+                                if (! $actor instanceof User) {
+                                    return;
+                                }
+
+                                app(InviteStaffMember::class)->sendInvitation($record, $actor);
+
+                                Notification::make()
+                                    ->success()
+                                    ->title(__('staff.actions.resend.done', ['email' => $record->email]))
+                                    ->send();
+                            }),
+
+                        DeleteAction::make()
+                            ->modalDescription(__('staff.actions.delete.description'))
+                            /*
                      * `RoleAssignment` refuses to delete the last owner's role
                      * and throws. Caught here and turned into a sentence,
                      * because the alternative an operator sees is a five
@@ -314,29 +387,57 @@ class StaffResource extends Resource
                      * somebody who has left) is reasonable, it is only the order
                      * that is wrong.
                      */
-                    ->action(function (User $record): void {
-                        try {
-                            DB::transaction(function () use ($record): void {
-                                $record->roleAssignments()->get()->each->delete();
-                                $record->delete();
-                            });
-                        } catch (LastOwnerException) {
-                            Notification::make()
-                                ->danger()
-                                ->title(__('staff.actions.delete.last_owner'))
-                                ->body(__('staff.actions.delete.last_owner_body'))
-                                ->send();
+                            ->action(function (User $record): void {
+                                try {
+                                    DB::transaction(function () use ($record): void {
+                                        $record->roleAssignments()->get()->each->delete();
+                                        $record->delete();
+                                    });
+                                } catch (LastOwnerException) {
+                                    Notification::make()
+                                        ->danger()
+                                        ->title(__('staff.actions.delete.last_owner'))
+                                        ->body(__('staff.actions.delete.last_owner_body'))
+                                        ->send();
 
-                            return;
-                        }
+                                    return;
+                                }
 
-                        Notification::make()
-                            ->success()
-                            ->title(__('staff.actions.delete.done'))
-                            ->send();
-                    }),
-            ])
+                                Notification::make()
+                                    ->success()
+                                    ->title(__('staff.actions.delete.done'))
+                                    ->send();
+                            }),
+                    ]))
             ->defaultSort('name');
+    }
+
+    /**
+     * The photograph and «Λίγα λόγια» as stored: a path or null, and only the
+     * languages that have words in them.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{photo_path: string|null, bio: array<string, string>|null}
+     */
+    public static function publicProfile(array $data): array
+    {
+        $photo = $data['photo_path'] ?? null;
+        $photo = is_array($photo) ? (reset($photo) ?: null) : $photo;
+
+        $bio = [];
+
+        foreach (['el', 'en'] as $locale) {
+            $text = trim((string) ($data['bio'][$locale] ?? ''));
+
+            if ($text !== '') {
+                $bio[$locale] = $text;
+            }
+        }
+
+        return [
+            'photo_path' => is_string($photo) && $photo !== '' ? $photo : null,
+            'bio' => $bio === [] ? null : $bio,
+        ];
     }
 
     /**

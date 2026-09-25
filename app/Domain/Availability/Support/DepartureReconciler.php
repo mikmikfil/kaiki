@@ -7,6 +7,7 @@ namespace App\Domain\Availability\Support;
 use App\Domain\Availability\LocalDateTimeResolver;
 use App\Enums\DepartureStatus;
 use App\Models\Departure;
+use App\Models\Product;
 use App\Models\ScheduleRule;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -59,7 +60,22 @@ final class DepartureReconciler
         /** @var Collection<int, array{kind: string, rule_id: int, product: string, local_date: string, detail: string}> $issues */
         $issues = collect();
 
-        ScheduleRule::query()->active()->with('product')->get()
+        /*
+         * **A rule whose trip is gone is skipped, not read** (2026-09-22).
+         *
+         * Deleting a trip is a soft delete and its schedule rules stay behind,
+         * so `$rule->product` is null — and `$rule->product->title` below took
+         * down **every page of the panel** for that operator, not merely this
+         * list: the reconciler runs inside a widget the layout renders. One
+         * archived trip, and the operator cannot open their own dashboard.
+         *
+         * Skipped rather than reported, because there is nothing for an
+         * operator to decide here: the trip is not on sale, its departures
+         * cannot be booked, and the rule matters again only if the trip comes
+         * back. Restoring the trip brings its rules back into this list with
+         * it.
+         */
+        ScheduleRule::query()->active()->whereHas('product')->with('product')->get()
             ->each(function (ScheduleRule $rule) use ($issues, $today): void {
                 $issues->push(...self::forRule($rule, $today));
             });
@@ -74,7 +90,16 @@ final class DepartureReconciler
     {
         $timezone = LocalDateTimeResolver::timezone();
         $horizon = (int) config('kaiki.departures.horizon_days', 400);
-        $product = (string) $rule->product->title;
+        /*
+         * Through `getRelationValue()`, because this method is public and a
+         * caller may hand it a rule whose trip was soft-deleted — in which case
+         * the relation is null however the model annotates it. Reading the
+         * property directly is what took the panel down, and static analysis
+         * believes the relation can never be null, so the check has to be made
+         * on a value the analyser cannot narrow.
+         */
+        $related = $rule->getRelationValue('product');
+        $product = $related instanceof Product ? (string) $related->title : '';
 
         $issues = [];
         $expected = [];

@@ -6,6 +6,7 @@ namespace App\Filament\App\Resources;
 
 use App\Filament\App\Resources\PortResource\Pages;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\Port;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\FileUpload;
@@ -44,6 +45,8 @@ class PortResource extends Resource
 {
     protected static ?string $model = Port::class;
 
+    protected static ?string $recordTitleAttribute = 'name';
+
     protected static ?string $navigationIcon = 'heroicon-o-map-pin';
 
     protected static ?int $navigationSort = 30;
@@ -78,6 +81,7 @@ class PortResource extends Resource
     {
         return [
             Section::make(__('catalog.port.sections.identity'))
+                ->icon('heroicon-o-map-pin')
                 ->schema([
                     TranslatableInput::text(
                         'name',
@@ -103,6 +107,7 @@ class PortResource extends Resource
                 ->columns(2),
 
             Section::make(__('catalog.port.sections.location'))
+                ->icon('heroicon-o-globe-europe-africa')
                 ->schema([
                     TextInput::make('address')
                         ->label(__('catalog.port.form.address.label'))
@@ -144,6 +149,7 @@ class PortResource extends Resource
                 ->columns(2),
 
             Section::make(__('catalog.port.sections.media'))
+                ->icon('heroicon-o-photo')
                 ->schema([
                     // A path column, not a media row (ADR-0021 Option A). No
                     // resizing here: conversions arrive with StoreUploadedImage
@@ -202,12 +208,11 @@ class PortResource extends Resource
                     ->label(__('catalog.port.form.is_active.label')),
                 TrashedFilter::make(),
             ])
-            ->actions([
-                EditAction::make(),
+            ->actions(MoreActions::row(EditAction::make(), [
                 DeleteAction::make(),
                 RestoreAction::make(),
                 ForceDeleteAction::make(),
-            ])
+            ]))
             ->searchPlaceholder(__('catalog.shared.search_placeholder'));
     }
 

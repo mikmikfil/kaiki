@@ -24,6 +24,12 @@ class DatabaseSeeder extends Seeder
         // explicit placeholder rather than a rate — see the seeder.
         $this->call(PlaceholderVatRateSeeder::class);
 
+        // Also before the tenants, and for the same reason: the cancellation
+        // ladders the setup guide offers are the platform's menu, not an
+        // operator's data. The guide reads this table, so an empty one leaves a
+        // new operator with a step and nothing to choose in it.
+        $this->call(PolicyTemplateSeeder::class);
+
         $this->call(DemoTenantSeeder::class);
 
         // After the tenants, and inside their context: ports and vessels are
@@ -69,11 +75,18 @@ class DatabaseSeeder extends Seeder
         // on nobody's screen.
         $this->call(DemoHomePageSeeder::class);
 
+        // «Σχετικά με εμάς» for Aegean Blue (2026-09-24): boats, crew, port and the page.
+        $this->call(DemoAboutPageSeeder::class);
+
         // Last of all, because it books the departures every seeder above it
         // created. Without bookings every operations screen built in M5 renders
         // its empty state — the dashboard figures, the fleet strip, «Χρειάζονται
         // προσοχή», the manifests, the exports and the reconciliation — which is
         // the one state nobody needs to look at.
         $this->call(DemoBookingSeeder::class);
+
+        // After the bookings, which decide which sailings are short: one a day
+        // stays as the example, not the whole season.
+        $this->call(DemoShortSailingsSeeder::class);
     }
 }

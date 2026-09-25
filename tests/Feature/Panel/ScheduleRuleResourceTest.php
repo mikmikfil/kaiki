@@ -56,7 +56,6 @@ function scheduleFormState(int $productId, array $overrides = []): array
         'start_time' => '09:00',
         'valid_from' => '2026-06-01',
         'valid_until' => '2026-09-15',
-        'generate_days_ahead' => 180,
         'is_active' => true,
     ], $overrides);
 }

@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace App\Domain\Tenancy\Support;
 
 use App\Domain\Operations\Support\FirstSteps;
+use App\Enums\CrewSpecialty;
 use App\Models\BrandProfile;
 use App\Models\CancellationPolicy;
+use App\Models\HomePageBlock;
+use App\Models\Port;
 use App\Models\Product;
+use App\Models\Season;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Models\Vessel;
 use App\Observers\TenantObserver;
 use App\Support\Tenancy;
@@ -69,11 +74,59 @@ final class SetupChecklist
      */
     public const CANCELLATION = 'cancellation';
 
+    /**
+     * Where the boat leaves from (product owner, 2026-09-22).
+     *
+     * **Before the boat**, because a boat has a home port and a trip cannot be
+     * published without a meeting point — and until this step existed a new
+     * operator reached the trip guide with nothing to choose. It is the
+     * shortest step in the guide: a name and a line of address.
+     */
+    public const PORT = 'port';
+
     /** A boat to sail on. Delegated to {@see FirstSteps}. */
     public const VESSEL = 'vessel';
 
+    /**
+     * The times of year the price changes (product owner, 2026-09-22).
+     *
+     * Between the boat and the trip because that is the order the answers are
+     * needed in: an operator who has met periods here arrives at the trip form
+     * knowing what the column «Θερινή» would be, and the price list they make
+     * there can point at one. After the boat, because a season with nothing to
+     * sail in it is an abstraction.
+     *
+     * **Often skipped, and that is a complete answer**: one price all year
+     * needs no period, and the trip's own «Όλο τον χρόνο» list covers it. The
+     * step says so rather than implying a period is required.
+     */
+    public const SEASON = 'season';
+
+    /**
+     * The people on the boat (Mike, 2026-09-24): at least one captain or
+     * deckhand in «Ομάδα».
+     *
+     * In the catalogue list, not the guide's questions — Mike: «στη λίστα που
+     * φαίνεται μετά, όχι μαζί με ΦΠΑ και styling», second to last. Just before
+     * the trip, because a departure asks who its captain is.
+     */
+    public const CREW = 'crew';
+
     /** Something to sell on it. Delegated to {@see FirstSteps}. */
     public const PRODUCT = 'product';
+
+    /**
+     * The operator's own home page (Mike, 2026-09-23).
+     *
+     * **Only for an operator who gets one.** A `bookings_only` account has no
+     * marketing home page from us — their pages are one per trip — so the step
+     * would send them to a screen that governs nothing they have.
+     *
+     * The work lives on {@see App\Filament\App\Pages\HomePage}, which owns the
+     * blocks, their order and their images; this step is the invitation, and it
+     * ticks itself the moment that screen has been used.
+     */
+    public const HOME_PAGE = 'home_page';
 
     /** The embed snippet and the hosted page — the hand-over, not a column. */
     public const READY = 'ready';
@@ -86,19 +139,87 @@ final class SetupChecklist
      * because the hosted page exists from the first minute; VAT before a product
      * because it is what the product form pre-fills.
      *
+     * `HOME_PAGE` comes last before the close, and only for the operators it
+     * applies to: it is the one step that is about what a visitor *reads*
+     * rather than about what the account *is*, and it wants the logo and the
+     * colours already chosen.
+     *
      * @return list<string>
      */
     public static function steps(): array
     {
-        return [
+        return array_values(array_filter([
             self::BUSINESS,
             self::BRANDING,
             self::VAT,
             self::CANCELLATION,
-            self::VESSEL,
-            self::PRODUCT,
+            self::servesHomePage() ? self::HOME_PAGE : null,
             self::READY,
+        ]));
+    }
+
+    /**
+     * Does this operator get a marketing home page from us?
+     *
+     * The same question {@see App\Filament\App\Pages\Setup::servesHomePage()}
+     * asks on the closing screen, asked here because it decides whether the
+     * step exists at all. Read from the tenant on every call rather than
+     * cached: the platform can flip an account's site mode in `/admin`, and a
+     * guide that kept the answer it was born with would show the wrong steps
+     * for the rest of the session.
+     */
+    public static function servesHomePage(): bool
+    {
+        return Tenancy::current()?->hosted_site_mode->servesHomePage() ?? true;
+    }
+
+    /**
+     * The catalogue, which the guide no longer asks for.
+     *
+     * Product owner, 2026-09-22: *«λέω να φύγουν λιμάνια, πρώτο σκάφος και
+     * εκδρομή και περίοδοι — αλλά μετά κάπως πρέπει να φαίνονται ότι πρέπει να
+     * συμπληρωθούν, αλλά όχι μέσα στα steps»*.
+     *
+     * The guide is now four questions about the **account**: who you are on an
+     * invoice, how you look, which VAT rate, on what terms you cancel. None of
+     * them has a screen of its own that does the job better, which is what
+     * makes a guide the right place to ask them.
+     *
+     * A port, a boat, a period and a trip are different: each has a real screen
+     * built for it, and the trip has a five-step guide of its own. Asked inside
+     * this one they were either a hand-off that threw the operator into the
+     * panel, or a shortened copy of a form that already exists. They are still
+     * **owed** — nothing sells without a boat and a trip — and they are still
+     * reported by {@see state()} and shown on the dashboard, by
+     * {@see FirstSteps} and the setup widget.
+     * They are simply not questions in this guide.
+     *
+     * @return list<string>
+     */
+    public static function catalogueSteps(): array
+    {
+        return [
+            self::PORT,
+            self::VESSEL,
+            self::SEASON,
+            self::CREW,
+            self::PRODUCT,
         ];
+    }
+
+    /**
+     * Everything this class reports on: the guide's steps and the catalogue.
+     *
+     * Not the same as {@see steps()}, which is the guide alone. Both branches
+     * of {@see state()} have to answer about the same set of keys, or a caller
+     * reading it outside tenancy gets a shorter array than the one it gets
+     * inside — which is how a dashboard list silently loses half its rows.
+     *
+     * @return list<string>
+     */
+    public static function reported(): array
+    {
+        return [...self::steps(), ...self::catalogueSteps()];
     }
 
     /**
@@ -124,7 +245,7 @@ final class SetupChecklist
         $tenant = Tenancy::check() ? Tenancy::current() : null;
 
         if ($tenant === null) {
-            return array_fill_keys(self::steps(), false);
+            return array_fill_keys(self::reported(), false);
         }
 
         // Asked once. `FirstSteps::state()` runs two `exists()` queries and this
@@ -132,13 +253,34 @@ final class SetupChecklist
         // the widget wants both the state and the count.
         $catalogue = FirstSteps::state();
 
+        // Every step, including the four the guide no longer asks: the
+        // dashboard still tells the operator a boat is owed.
         return [
             self::BUSINESS => self::businessAnswered($tenant),
             self::BRANDING => self::brandingTouched($tenant),
             self::VAT => $tenant->default_vat_rate_id !== null,
             self::CANCELLATION => CancellationPolicy::query()->exists(),
+            self::PORT => Port::query()->exists(),
             self::VESSEL => $catalogue[FirstSteps::VESSEL] ?? Vessel::query()->exists(),
+            // Delegated since 22 September, when periods joined that list as
+            // an optional step: one query, and one definition of «has this
+            // operator set up a period».
+            self::SEASON => $catalogue[FirstSteps::SEASON] ?? Season::query()->exists(),
+            // `User` is not tenant-scoped, so the tenant is named here.
+            self::CREW => User::query()
+                ->where('tenant_id', $tenant->getKey())
+                ->where('is_super_admin', false)
+                ->whereIn('specialty', [CrewSpecialty::Captain->value, CrewSpecialty::Deckhand->value])
+                ->exists(),
             self::PRODUCT => $catalogue[FirstSteps::PRODUCT] ?? Product::query()->exists(),
+            // **Done when there is a block on the page**, not when the screen
+            // has been opened (2026-09-23). A home page an operator looked at
+            // and left empty is the one the guide most needs to keep asking
+            // about — it is the page their own domain points at.
+            //
+            // True for a bookings-only account so the dashboard never reports
+            // a step they were never offered as outstanding.
+            self::HOME_PAGE => ! self::servesHomePage() || HomePageBlock::query()->onPage(HomePageBlock::PAGE_HOME)->exists(),
             self::READY => $tenant->onboarding_completed_at !== null,
         ];
     }
@@ -226,10 +368,38 @@ final class SetupChecklist
         $tenant = Tenancy::check() ? Tenancy::current() : null;
 
         // Switched off on /admin for an operator the platform set up itself:
-        // no guide, no menu item, no checklist (2026-09-17).
+        // no guide, no menu item, no checklist (2026-09-17). «Δεν το
+        // χρειάζομαι» does the same thing at the operator's own hand
+        // (2026-09-22) — the page stays reachable from Ρυθμίσεις, but nothing
+        // offers it any more.
         return $tenant instanceof Tenant
             && $tenant->usesSetupGuide()
+            && ! $tenant->hasDismissedSetupGuide()
             && $tenant->onboarding_completed_at === null;
+    }
+
+    /**
+     * Does the guide stand in front of the panel right now (2026-09-22)?
+     *
+     * *"The first time configurator should open fullscreen and not have access
+     * to panel before setting this up"* — so a brand-new operator meets the
+     * guide and nothing else. The gate is narrow on purpose: it lifts the
+     * moment the operator finishes it, defers it or dismisses it, and it never
+     * comes back on its own. An operator who has said "later" once has said it
+     * for good; asking again next week is the nagging SAA-10 forbids, wearing a
+     * different hat.
+     *
+     * What it is **not** is a lock on the account: {@see Tenant::hasSetGuideAside()}
+     * is one click away on the gate itself, and the platform can switch the
+     * whole guide off from /admin.
+     */
+    public static function blocksPanel(): bool
+    {
+        $tenant = Tenancy::check() ? Tenancy::current() : null;
+
+        return $tenant instanceof Tenant
+            && ! $tenant->hasSetGuideAside()
+            && self::applies();
     }
 
     /**

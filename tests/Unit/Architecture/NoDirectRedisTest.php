@@ -109,8 +109,11 @@ it('has exactly three writers of the hold columns', function (): void {
         // conversion itself.
         //
         // Each writes `hold_expires_at => null` or moves `seats_held` into
-        // `seats_sold`. None of them can make a seat appear, which is the
-        // property the rule protects. An eighth writer still fails this test.
+        // `seats_sold`. None of them can make a seat appear **from nothing**,
+        // which is the property the rule protects — `CancelBooking` below does
+        // put seats back on sale, but only by recounting live holds out of
+        // `bookings`, never by inventing a number. An eighth writer still fails
+        // this test.
         'app/Domain/Booking/Actions/ConfirmBooking.php',
         'app/Domain/Booking/Actions/StartCheckout.php',
         'app/Domain/Booking/Actions/ExpireAbandonedCheckouts.php',
@@ -123,8 +126,15 @@ it('has exactly three writers of the hold columns', function (): void {
 
         // CXL-9's release. A cancelled booking holds nothing, and the column is
         // what the availability read path checks — a stale future value would
-        // keep the seats notionally held by a booking that has ended. Same
-        // shape as the four above: it can only ever null the column.
+        // keep the seats notionally held by a booking that has ended.
+        //
+        // It writes `seats_held` as well as nulling the column, and that is the
+        // one place on this list that does. Nulling alone left the *cache*
+        // saying seats were held by a booking that had ended: `releaseCapacity()`
+        // only runs for a status that commits seats, so a cancelled `draft`
+        // stranded its hold. `ReleaseHold` cannot repair that state either — it
+        // returns early on a null column — so the recount happens here, reading
+        // live holds through `ReleaseHold::liveHeldSeats()`.
         'app/Domain/Booking/Actions/CancelBooking.php',
     ];
 

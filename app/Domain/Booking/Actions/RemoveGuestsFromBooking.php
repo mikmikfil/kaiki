@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Booking\Actions;
 
 use App\Domain\Booking\Support\SeatCommitment;
+use App\Domain\Catalog\Support\AgeBandResolver;
 use App\Domain\Pricing\Actions\RestoreVoucher;
 use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
@@ -307,27 +308,28 @@ final class RemoveGuestsFromBooking
         }
 
         // A child who needs an adult cannot be left without one.
-        $adultsLeft = 0;
-        $needAdult = 0;
-        $bands = $booking->product?->ageBands()->get()->keyBy('code');
+        //
+        // The party that would remain, judged by {@see AgeBandResolver::escortMissing}
+        // — the same predicate the availability engine and the checkout ask, so
+        // an operator can never be refused here for a party the guest side had
+        // already sold. Until 2026-09-22 this rule lived only in this method,
+        // and counted only the **base** band as an adult; an operator with a
+        // separately priced «Άνω των 65» band was refused for leaving a
+        // grandmother with her grandchild.
+        $remaining = [];
 
         foreach ($booking->pax_breakdown as $line) {
             $code = (string) ($line['code'] ?? '');
             $left = (int) ($line['qty'] ?? 0) - max(0, (int) ($removeByCode[$code] ?? 0));
-            $band = $bands?->get($code);
 
-            if ($band === null || $left < 1) {
-                continue;
-            }
-
-            if ($band->requires_adult) {
-                $needAdult += $left;
-            } elseif ($band->is_base) {
-                $adultsLeft += $left;
+            if ($code !== '' && $left > 0) {
+                $remaining[$code] = ($remaining[$code] ?? 0) + $left;
             }
         }
 
-        if ($needAdult > 0 && $adultsLeft < 1) {
+        $bands = $booking->product?->ageBands()->get() ?? collect();
+
+        if (AgeBandResolver::escortMissing($bands, $remaining)) {
             throw $fail('needs_adult');
         }
     }

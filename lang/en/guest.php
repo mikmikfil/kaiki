@@ -80,6 +80,7 @@ return [
         'full_name' => 'Full name',
         'document' => 'Document number',
         'date_of_birth' => 'Date of birth',
+        'sex' => 'Sex',
         'nationality' => 'Nationality',
         'document_type' => 'Document',
         'document_expires_on' => 'Passport expiry date',
@@ -88,6 +89,7 @@ return [
         'passenger_unknown' => 'The passenger list has changed. Reload the page and try again.',
         'fields' => [
             'full_name' => 'full name',
+            'sex' => 'sex',
             'nationality' => 'nationality',
             'date_of_birth' => 'date of birth',
             'document_type' => 'document',
@@ -107,11 +109,15 @@ return [
         'errors_heading' => 'Some details are missing or wrong:',
         'policy_heading' => 'Cancellation',
         'pay' => 'Pay :amount',
+        // The phone's bar shows the amount beside it, so the button does not
+        // repeat it — and without it the label fits on one line.
+        'pay_short' => 'Pay',
         'secure' => 'Payment is taken on Viva Wallet\'s own secure checkout. Your card details never pass through us and are never stored here.',
         'refused' => 'We could not start the payment. Please try again, or contact the operator.',
         'payment_failed' => 'The payment did not go through. You were not charged — please try again.',
     ],
     'booking' => [
+        'resume_refused' => 'We could not restart this booking: there are no longer enough seats, or something about the trip has changed. See the other dates on our page.',
         'title' => 'Your booking',
         'when' => 'When',
         'meeting_point' => 'Meeting point',
@@ -203,6 +209,7 @@ return [
         'guest' => 'Passenger :position',
         'full_name' => 'Full name, as on the document',
         'date_of_birth' => 'Date of birth',
+        'sex' => 'Sex',
         'nationality' => 'Nationality',
         'document_type' => 'Document type',
         'document_number' => 'Document number',

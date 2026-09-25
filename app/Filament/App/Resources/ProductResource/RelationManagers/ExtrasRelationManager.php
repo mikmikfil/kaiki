@@ -6,11 +6,13 @@ namespace App\Filament\App\Resources\ProductResource\RelationManagers;
 
 use App\Domain\Catalog\Actions\SaveExtra;
 use App\Enums\ExtraPricing;
+use App\Filament\App\Resources\ProductResource;
 use App\Filament\Forms\MoneyInput;
 use App\Filament\Forms\TranslatableInput;
 use App\Models\Extra;
 use App\Models\Product;
 use App\Support\Format\MoneyFormatter;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
@@ -63,7 +65,18 @@ class ExtrasRelationManager extends RelationManager
 
     public function form(Form $form): Form
     {
-        return $form->schema([
+        return $form->schema(static::fields())->columns(2);
+    }
+
+    /**
+     * An extra's fields, shared with the new-trip wizard's «Πρόσθετα»
+     * (2026-09-24), so the two ask the same thing in the same words.
+     *
+     * @return list<Component>
+     */
+    public static function fields(): array
+    {
+        return [
             TranslatableInput::text(
                 'name',
                 __('catalog.extra.on_product.name.label'),
@@ -105,6 +118,29 @@ class ExtrasRelationManager extends RelationManager
                 ->required(static fn (Get $get): bool => $get('kind') === 'paid' && $get('pricing_type') !== ExtraPricing::OnRequest->value)
                 ->visible(static fn (Get $get): bool => $get('kind') === 'paid' && $get('pricing_type') !== ExtraPricing::OnRequest->value),
 
+            /*
+             * **Ο ΦΠΑ της γραμμής, δίπλα στην τιμή της** (Mike, 23/9).
+             *
+             * Η στήλη `extras.vat_rate_id` υπήρχε από την αρχή, το μοντέλο τη
+             * δηλώνει *«overrides the product's rate for this line»* και φτάνει
+             * μέχρι το `OfferedExtra` — αλλά **καμία φόρμα δεν τη ζητούσε**,
+             * οπότε ένα γεύμα πάνω στο σκάφος δεν μπορούσε να πάρει δικό του
+             * συντελεστή. Είναι ακριβώς το παράδειγμα που δίνει το
+             * `docs/data-model.md` §2.3 για να δικαιολογήσει τη στήλη: η
+             * κρουαζιέρα είναι μεταφορά επιβατών, το γεύμα είναι εστίαση.
+             *
+             * **Κενό σημαίνει «ό,τι λέει η εκδρομή»**, γι' αυτό και το
+             * `default(null)` — σε αντίθεση με τη φόρμα της εκδρομής, που
+             * προσυμπληρώνει την απάντηση του λογαριασμού. Η εκδρομή απαντά μια
+             * φορά· το extra μιλάει μόνο όταν διαφέρει, και έτσι ακολουθεί την
+             * εκδρομή αν εκείνη αλλάξει αργότερα.
+             */
+            ProductResource::vatRateSelect()
+                ->label(__('catalog.extra.on_product.vat_rate.label'))
+                ->helperText(__('catalog.extra.on_product.vat_rate.help'))
+                ->default(null)
+                ->visible(static fn (Get $get): bool => $get('kind') === 'paid'),
+
             Toggle::make('is_required')
                 ->label(__('catalog.extra.on_product.is_required.label'))
                 ->helperText(__('catalog.extra.on_product.is_required.help'))
@@ -114,7 +150,7 @@ class ExtrasRelationManager extends RelationManager
             Toggle::make('is_active')
                 ->label(__('catalog.extra.on_product.is_active.label'))
                 ->default(true),
-        ])->columns(2);
+        ];
     }
 
     public function table(Table $table): Table
@@ -169,12 +205,13 @@ class ExtrasRelationManager extends RelationManager
     }
 
     /**
-     * Free or paid into the one column {@see SaveExtra} understands, then save
-     * scoped to this trip.
+     * Free or paid into the one column {@see SaveExtra} understands. Shared
+     * with the new-trip wizard.
      *
      * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
      */
-    private function persist(Extra $record, array $data): Extra
+    public static function attributesFrom(array $data): array
     {
         $free = ($data['kind'] ?? 'paid') === 'free';
         unset($data['kind']);
@@ -185,11 +222,19 @@ class ExtrasRelationManager extends RelationManager
             $data['price_cents'] = null;
         }
 
-        if ($free) {
-            $data['is_required'] = false;
-        }
+        // The form's own defaults, for a row that never showed the switches.
+        $data['is_required'] = ! $free && (bool) ($data['is_required'] ?? false);
+        $data['is_active'] = (bool) ($data['is_active'] ?? true);
 
         $data['is_tenant_wide'] = false;
+
+        return $data;
+    }
+
+    /** @param  array<string, mixed>  $data */
+    private function persist(Extra $record, array $data): Extra
+    {
+        $data = static::attributesFrom($data);
 
         /** @var Product $product */
         $product = $this->getOwnerRecord();

@@ -6,6 +6,8 @@ namespace App\Enums;
 
 use App\Enums\Concerns\HasTranslatedLabel;
 use App\Models\Booking;
+use Filament\Support\Contracts\HasColor;
+use Filament\Support\Contracts\HasLabel;
 
 /**
  * Where a booking stands (`docs/data-model.md` §4.1).
@@ -31,7 +33,7 @@ use App\Models\Booking;
  * isolation, and every Action asserts against it. A transition table spread
  * across eight Actions is a table nobody can read.
  */
-enum BookingStatus: string
+enum BookingStatus: string implements HasColor, HasLabel
 {
     use HasTranslatedLabel;
 
@@ -102,6 +104,24 @@ enum BookingStatus: string
     }
 
     /**
+     * Does a booking in this status have a ticket — a file and a code a guest
+     * can hold up at a gangway?
+     *
+     * Narrower than {@see self::isLive()} on purpose. A draft and a booking at
+     * the gateway are live to the seat engine, and neither has been paid for;
+     * the crew's scan refuses both, so a ticket for one is a document that
+     * fails at the one moment it is shown. Completed stays in: the trip has
+     * sailed and the ticket is its receipt.
+     */
+    public function hasTicket(): bool
+    {
+        return match ($this) {
+            self::Confirmed, self::CheckedIn, self::Completed => true,
+            default => false,
+        };
+    }
+
+    /**
      * The §4.1 transition table, in one place.
      *
      * @return list<self>
@@ -121,6 +141,22 @@ enum BookingStatus: string
             self::Completed => [self::Refunded],
             self::Cancelled => [self::Refunded],
             self::Refunded, self::Expired => [],
+        };
+    }
+
+    /**
+     * The badge colour in the panel (2026-09-23): green for a booking that
+     * will sail, amber for one waiting on money, blue for a quote still being
+     * talked about, red for a cancellation, grey for everything that is over.
+     */
+    public function getColor(): string
+    {
+        return match ($this) {
+            self::Confirmed, self::CheckedIn => 'success',
+            self::PendingPayment, self::Draft => 'warning',
+            self::QuoteRequested, self::QuoteSent => 'info',
+            self::Cancelled => 'danger',
+            self::Completed, self::Refunded, self::Expired => 'gray',
         };
     }
 

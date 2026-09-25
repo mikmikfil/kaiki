@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Enums;
 
 use App\Enums\Concerns\HasTranslatedLabel;
+use Filament\Support\Contracts\HasLabel;
 
 /**
  * How much a guest pays up front (`docs/data-model.md` §2.3, spec CAT-10, PRC-23).
@@ -19,7 +20,7 @@ use App\Enums\Concerns\HasTranslatedLabel;
  * this enum's answer — a rule that would otherwise be spread across a form, an
  * importer and an API validator.
  */
-enum DepositType: string
+enum DepositType: string implements HasLabel
 {
     use HasTranslatedLabel;
 

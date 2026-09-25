@@ -74,9 +74,40 @@
     $shots = \App\Domain\Media\Support\ImagePayload::collection($vessel->images, $locale);
 @endphp
 
+@if ($shots !== [])
+    {{-- **The photographs lead, and they run off the edge** (Mike, 2026-09-23,
+         direction Ζ after three rounds of mockups).
+
+         The boat's own pictures, not the trip's. An operator who has uploaded
+         pictures of the deck has answered "what am I sailing on" better than
+         any list of measurements — which is why the list stopped going first.
+
+         A rail rather than a grid: a grid of three wraps to a second row and
+         reads as an afterthought beneath the facts, where a rail reads as a
+         gallery and keeps its opening photograph at a usable size on any
+         screen. The **first** photograph opens it, the same one the panel's
+         uploader treats as the cover. --}}
+    {{-- Χωρίς το `shots`: εκείνο είναι πλέγμα και ορίζεται πιο κάτω στο
+         φύλλο, οπότε θα ακύρωνε το `display: flex` της λωρίδας. --}}
+    <ul class="boat-rail">
+        @foreach ($shots as $shot)
+            <li>
+                <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($shot['url']) }}"
+                     alt="{{ $shot['alt'] ?? '' }}"
+                     loading="lazy">
+            </li>
+        @endforeach
+    </ul>
+@endif
+
 <p class="boat-name"><strong>{{ $vessel->name }}</strong></p>
 
 @if ($facts !== [] || $specs->isNotEmpty())
+    {{-- Direction Ζ1: one row per fact inside a hairline box, rather than the
+         column grid this used to be. Six short pairs laid out in columns read
+         as a specification sheet; a stack of labelled rows reads as an answer
+         to a question — and it never leaves a half-empty column when an
+         operator has filled in three fields out of six. --}}
     <dl class="boat-facts">
         @foreach ($facts as $key => $value)
             <div>
@@ -92,19 +123,4 @@
             </div>
         @endforeach
     </dl>
-@endif
-
-@if ($shots !== [])
-    {{-- The boat's own photographs, not the trip's. An operator who has
-         uploaded pictures of the deck has answered "what am I sailing on"
-         better than any list of measurements. --}}
-    <ul class="shots boat-shots">
-        @foreach ($shots as $shot)
-            <li>
-                <img src="{{ \App\Domain\Hosted\Support\HostedAsset::relative($shot['url']) }}"
-                     alt="{{ $shot['alt'] ?? '' }}"
-                     loading="lazy">
-            </li>
-        @endforeach
-    </ul>
 @endif

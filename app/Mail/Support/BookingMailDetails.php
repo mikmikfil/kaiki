@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace App\Mail\Support;
 
+use App\Domain\Booking\Actions\RefundBooking;
+use App\Domain\Booking\Support\BoardingPasses;
 use App\Domain\Booking\Support\BookingCalendarInvite;
 use App\Domain\Booking\Support\RefundEntitlement;
 use App\Domain\Notifications\Support\ReviewRequestSettings;
 use App\Enums\GuestDetailsStatus;
 use App\Enums\NotificationTemplate;
+use App\Enums\PaymentKind;
+use App\Enums\PaymentStatus;
 use App\Enums\QuoteLineKind;
 use App\Enums\QuoteStatus;
 use App\Enums\WeatherChoice;
 use App\Models\Booking;
+use App\Models\BookingGuest;
+use App\Models\Payment;
 use App\Models\Port;
 use App\Models\Product;
 use App\Models\Quote;
@@ -149,6 +155,16 @@ final class BookingMailDetails
          */
         public readonly ?string $calendarUrl = null,
         public readonly ?string $calendarGoogleUrl = null,
+        /**
+         * One boarding code per passenger, on the same three messages
+         * (2026-09-23), and only when {@see BoardingPasses} says there is one
+         * to show — QR boarding on for this operator, a ticketed booking, a
+         * trip not yet sailed. Empty otherwise, and both halves read it: the
+         * HTML draws the codes, the plain text says where they are.
+         *
+         * @var list<array{name: string, code: string, guest: BookingGuest}>
+         */
+        public readonly array $boardingPasses = [],
     ) {}
 
     /** @param array<string, mixed> $extra */
@@ -243,11 +259,22 @@ final class BookingMailDetails
                     $voucher = self::voucherIssuedFor($booking);
 
                     $facts[] = ['label' => __('mail.common.refunded', [], $locale), 'value' => $refund];
+
+                    // Cash or a transfer cannot go back on its own, and a guest
+                    // told «to the payment method you used» would wait for money
+                    // on a card that never had it (2026-09-23). So the email
+                    // says which part comes back how.
+                    [$byCard, $byHand] = self::refundSplit($booking);
+
                     $facts[] = [
                         'label' => __('mail.common.refund_method', [], $locale),
-                        'value' => $voucher instanceof Voucher
-                            ? __('mail.common.refund_to_voucher', ['code' => $voucher->code], $locale)
-                            : __('mail.common.refund_to_card', [], $locale),
+                        'value' => match (true) {
+                            $voucher instanceof Voucher => __('mail.common.refund_to_voucher', ['code' => $voucher->code], $locale),
+                            $byHand > 0 && $byCard > 0 => __('mail.common.refund_card_part', ['amount' => $euros($byCard)], $locale)
+                                . ' · ' . __('mail.common.refund_by_hand', ['amount' => $euros($byHand)], $locale),
+                            $byHand > 0 => __('mail.common.refund_by_hand', ['amount' => $euros($byHand)], $locale),
+                            default => __('mail.common.refund_to_card', [], $locale),
+                        },
                     ];
                 }
                 break;
@@ -395,6 +422,15 @@ final class BookingMailDetails
                 }
                 break;
 
+            case NotificationTemplate::PaymentUnfinished:
+                // The party and its price, and one button back to a fresh
+                // checkout that checks the seats again (ResumeAbandonedBooking).
+                $facts = [];
+                $showParty = true;
+                $note = __('mail.payment_unfinished.note', [], $locale);
+                $action = [__('mail.payment_unfinished.button', [], $locale), route('guest.checkout', ['token' => $booking->manage_token])];
+                break;
+
             case NotificationTemplate::ReviewRequest:
                 // Only to the operator's own review page. Without one the request
                 // is never sent (ReviewRequestSettings::active()); a preview
@@ -463,6 +499,7 @@ final class BookingMailDetails
             deadline: $deadline,
             calendarUrl: $calendar?->downloadUrl(),
             calendarGoogleUrl: $calendar?->googleUrl(),
+            boardingPasses: $template->carriesWholeTrip() ? BoardingPasses::for($booking, $tenant, $locale) : [],
         );
     }
 
@@ -480,6 +517,33 @@ final class BookingMailDetails
         $departure = $booking->starts_at_utc ?? $localStart ?? now();
 
         return Carbon::instance($departure)->copy()->subHours(max(0, $hours));
+    }
+
+    /**
+     * What of this booking's refund goes back to a card, and what the operator
+     * hands back themselves (cash or a transfer), in cents.
+     *
+     * Read from the refund rows {@see RefundBooking}
+     * wrote, open or settled; a failed or withdrawn one promises nothing.
+     *
+     * @return array{0: int, 1: int}
+     */
+    private static function refundSplit(Booking $booking): array
+    {
+        $rows = Payment::query()
+            ->where('booking_id', $booking->getKey())
+            ->where('kind', PaymentKind::Refund->value)
+            ->whereIn('status', [
+                PaymentStatus::Pending->value,
+                PaymentStatus::Processing->value,
+                PaymentStatus::Succeeded->value,
+            ])
+            ->get(['gateway', 'amount_cents']);
+
+        $byCard = (int) $rows->filter(static fn (Payment $row): bool => $row->gateway->isExternal())->sum('amount_cents');
+        $byHand = (int) $rows->reject(static fn (Payment $row): bool => $row->gateway->isExternal())->sum('amount_cents');
+
+        return [$byCard, $byHand];
     }
 
     /** The newest voucher issued in place of this booking's money. */

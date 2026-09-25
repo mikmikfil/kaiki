@@ -144,10 +144,53 @@ class Failures extends Page
         return 'danger';
     }
 
+    /**
+     * How many groups the page shows; «Περισσότερα» adds ten (2026-09-23).
+     *
+     * Fifty rows at once was eleven thousand pixels of phone, and the operator
+     * who opens this screen wants the newest few. The newest come first, so the
+     * cut never hides something more recent than what is on screen.
+     */
+    public int $shown = 10;
+
     /** @return list<FailureItem> */
     public function getItems(): array
     {
         return app(FailureFeed::class)->all();
+    }
+
+    /**
+     * The feed with repeats folded together, newest first.
+     *
+     * A repeat is the same source saying the same thing — same title, same
+     * explanation, the same email to the same address failing six times. One
+     * row with «6 φορές» says that; six identical rows bury the one different
+     * failure under them. The newest occurrence leads the group: its time is
+     * the one shown and it is the one «Ξαναδοκίμασε» retries.
+     *
+     * @return list<array{item: FailureItem, count: int, all: list<FailureItem>}>
+     */
+    public function groups(): array
+    {
+        $groups = [];
+
+        foreach ($this->getItems() as $item) {
+            $key = $item->source->value . "\0" . $item->title . "\0" . $item->explanation;
+
+            if (! isset($groups[$key])) {
+                $groups[$key] = ['item' => $item, 'count' => 0, 'all' => []];
+            }
+
+            $groups[$key]['count']++;
+            $groups[$key]['all'][] = $item;
+        }
+
+        return array_values($groups);
+    }
+
+    public function showMore(): void
+    {
+        $this->shown += 10;
     }
 
     /**

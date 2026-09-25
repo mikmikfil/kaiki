@@ -49,6 +49,7 @@ return [
         'heading' => 'Bring in bookings from elsewhere',
         'body' => 'Kaiki checks each address every fifteen minutes and blocks the boat for anything it finds. Nothing is ever sent back.',
         'add' => 'Add a calendar',
+        'vessel' => 'Boat',
         'name' => 'What is it',
         'name_placeholder' => 'Airbnb, the other agency, …',
         'url' => 'Address of the calendar',

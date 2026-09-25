@@ -6,35 +6,30 @@ namespace App\Filament\Admin\Resources\TenantResource\Pages;
 
 use App\Domain\Audit\Actions\RecordAuditEntry;
 use App\Domain\Audit\Data\AuditEntryData;
-use App\Domain\Tenancy\Support\SetupChecklist;
+use App\Domain\Channels\Support\ChannelManagerFlag;
 use App\Enums\AuditAction;
-use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
-use App\Enums\TenantStatus;
-use App\Enums\TenantVertical;
 use App\Filament\Admin\Resources\TenantResource;
+use App\Models\IcalSource;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use BackedEnum;
+use Closure;
 use DateTimeInterface;
 use Filament\Actions\Action;
-use Filament\Forms\Components\DatePicker;
-use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\Radio;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Tabs;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
-use Illuminate\Support\HtmlString;
 
 /**
- * The five things the platform owner may change about an operator (SAA-1, SEC-16).
+ * What the platform owner may change about an operator (SAA-1, SEC-16).
  *
- * ## Five fields, and each is on this screen for a reason
+ * ## Each field is on this screen for a reason
  *
  * - **Plan** — so an upgrade can be honoured the day it is agreed, rather than
  *   the day the billing code lands.
@@ -48,6 +43,12 @@ use Illuminate\Support\HtmlString;
  * - **QR boarding** — whether tickets carry a QR and the crew get a scanning
  *   page (BKG-20, amended 2026-09-11). A one-boat operator boards from the
  *   passenger list, and the platform decides this with them when they sign up.
+ * - **Selling through GetYourGuide** — whether this operator's seats are offered
+ *   on an OTA they signed with themselves (ADR-0034). On its own tab, with the
+ *   other channels; see {@see self::form()} for why a channel is not a switch.
+ *
+ * The list has grown past the five it opened with, which is what the tabs of
+ * 2026-09-21 are for.
  *
  * Everything else about an operator is theirs: their name, their address, their
  * VAT number, their colours. A platform screen that could rewrite those is a
@@ -65,7 +66,7 @@ use Illuminate\Support\HtmlString;
  * see is not an answer.
  *
  * `TenantPolicy` says who may do this; none of the three above is a policy's to
- * enforce, which is why they are asserted separately in `AdminTenantEditTest`.
+ * enforce, which is why they are asserted separately in `TenantResourceTest`.
  *
  * ## Only what actually moved is recorded
  *
@@ -79,6 +80,8 @@ use Illuminate\Support\HtmlString;
  */
 class EditTenant extends EditRecord
 {
+    use HasTenantAccountFields;
+
     protected static string $resource = TenantResource::class;
 
     /**
@@ -87,130 +90,63 @@ class EditTenant extends EditRecord
      * Named once, so the snapshot and the diff cannot drift apart — which is
      * how an audit trail quietly stops recording one of them.
      */
-    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'check_in_enabled', 'qr_check_in_enabled', 'hosted_site_mode', 'extra_person_pricing_enabled', 'sms_enabled', 'setup_guide_enabled'];
+    private const AUDITED = ['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'check_in_enabled', 'qr_check_in_enabled', 'hosted_site_mode', 'extra_person_pricing_enabled', 'sms_enabled', 'setup_guide_enabled', 'getyourguide_enabled'];
 
     /** The operator's own words, captured by the confirmation and not by the form. */
     public ?string $auditReason = null;
 
+    /**
+     * Four tabs, and the fourth is why there are any (product owner, 2026-09-21).
+     *
+     * This was one column of nine controls: boarding, which is the crew's;
+     * published pages, which are the guest's; extra-person pricing; text
+     * messages, which cost money; the setup guide, which is temporary; and now
+     * a sales channel, which is a commercial agreement. Nothing said which was
+     * which, and three more channels are queued behind GetYourGuide.
+     *
+     * **A sales channel is not a toggle**, and that is the part grouping alone
+     * could not fix. Each one wants to show whether credentials have been
+     * entered, how many trips are mapped and when it last spoke — so they get a
+     * tab with room, rather than three more rows in a list of switches.
+     *
+     * The same move the trip form made on 2026-09-18 and the operator's
+     * settings made on 2026-09-11. `/admin` was the last screen still in one
+     * column.
+     *
+     * ## What is deliberately not a tab
+     *
+     * **«Ιστορικό».** Every change here is audited with a typed reason, and the
+     * trail is written to the *operator's* own panel — an operator asking who
+     * put them on read-only is asking about their account. A platform-wide view
+     * across every merchant is a real feature with its own estimate on the
+     * roadmap, not something to improvise into a tab here.
+     */
     public function form(Form $form): Form
     {
         return $form->schema([
-            Section::make(__('tenants.edit.subscription'))
-                ->description(__('tenants.edit.subscription_help'))
-                ->schema([
-                    Select::make('plan')
-                        ->label(__('tenants.columns.plan'))
-                        ->options(Plan::options())
-                        ->required(),
+            Tabs::make('merchant')
+                ->columnSpanFull()
+                // So a save, or a reload after one, comes back to the tab the
+                // change was made on instead of to the first one.
+                ->persistTabInQueryString()
+                ->tabs([
+                    Tabs\Tab::make(__('tenants.edit.subscription'))->schema([
+                        $this->subscriptionSection(),
+                        $this->accountSection(),
+                    ]),
 
-                    Select::make('status')
-                        ->label(__('tenants.columns.status'))
-                        ->options(TenantStatus::options())
-                        ->required(),
+                    Tabs\Tab::make(__('tenants.edit.features'))->schema([
+                        $this->featuresSection(),
+                    ]),
 
-                    DatePicker::make('subscription_ends_at')
-                        ->label(__('tenants.columns.access_ends'))
-                        ->helperText(__('tenants.edit.access_ends_help'))
-                        ->native(false),
-                ])
-                ->columns(3),
-
-            Section::make(__('tenants.edit.account'))
-                ->schema([
-                    Select::make('vertical')
-                        ->label(__('tenants.columns.vertical'))
-                        ->options(TenantVertical::options())
-                        ->required(),
-
-                    Toggle::make('is_sandbox')
-                        ->label(__('tenants.columns.sandbox'))
-                        ->helperText(__('tenants.edit.sandbox_help')),
-                ])
-                ->columns(2),
-
-            Section::make(__('tenants.edit.features'))
-                ->description(__('tenants.edit.features_help'))
-                ->schema([
-                    // The wider of the two, and first: an operator who boards
-                    // nobody has no use for the question below it.
-                    Toggle::make('check_in_enabled')
-                        ->label(__('tenants.columns.check_in'))
-                        ->helperText(__('tenants.edit.check_in_help'))
-                        ->formatStateUsing(fn (?bool $state): bool => $state !== false)
-                        // The QR toggle reads this, so the form has to know the
-                        // moment it moves rather than on the next round trip.
-                        ->live(),
-
-                    Toggle::make('qr_check_in_enabled')
-                        ->label(__('tenants.columns.qr_check_in'))
-                        ->helperText(__('tenants.edit.qr_check_in_help'))
-                        // Null is on (see `Tenant::usesQrCheckIn()`); a toggle
-                        // showing a null as off would switch it off on save.
-                        ->formatStateUsing(fn (?bool $state): bool => $state !== false)
-                        // Hidden rather than disabled while check-in is off:
-                        // "scanning, on" under "check-in, off" is a pair that
-                        // means nothing, and a greyed-out control still invites
-                        // somebody to wonder which one wins.
-                        //
-                        // `!== false` and not a truthy test, for the same reason
-                        // `Tenant::usesCheckIn()` reads it that way: the column
-                        // is null for every operator who existed before it, and
-                        // a truthy test hid this toggle from all of them — which
-                        // is how the manual's screenshot of this very section
-                        // failed to capture.
-                        ->visible(fn (Get $get): bool => $get('check_in_enabled') !== false),
-
-                    // ADR-0029's two states (amended 2026-09-11), decided by the
-                    // platform with the operator — the same place and the same
-                    // trail as QR boarding. The operator's own screen only shows it.
-                    Radio::make('hosted_site_mode')
-                        ->label(__('tenants.columns.hosted_site_mode'))
-                        ->helperText(__('tenants.edit.hosted_site_mode_help'))
-                        ->options(HostedSiteMode::options())
-                        ->descriptions(array_combine(
-                            array_map(static fn (HostedSiteMode $mode): string => $mode->value, HostedSiteMode::cases()),
-                            array_map(
-                                static fn (HostedSiteMode $mode): string => (string) __(
-                                    HostedSiteMode::translationNamespace() . '.' . $mode->value . '.help'
-                                ),
-                                HostedSiteMode::cases(),
-                            ),
-                        ))
-                        ->required(),
-
-                    // «Up to N people, +Y € for each extra» on whole-boat prices
-                    // (2026-09-17). Off for everybody: switched on for the
-                    // operator who prices that way, with the same trail as the
-                    // switches above. Null is off (`Tenant::usesExtraPersonPricing()`).
-                    Toggle::make('extra_person_pricing_enabled')
-                        ->label(__('tenants.columns.extra_person_pricing'))
-                        ->helperText(__('tenants.edit.extra_person_pricing_help'))
-                        ->formatStateUsing(fn (?bool $state): bool => $state === true),
-
-                    // Text messages (2026-09-17). Off for everybody: a text
-                    // costs the operator money and needs their own gateway
-                    // account. Null is off (`Tenant::usesSms()`), and the
-                    // platform config still overrides every operator.
-                    Toggle::make('sms_enabled')
-                        ->label(__('tenants.columns.sms'))
-                        ->helperText(__('tenants.edit.sms_help'))
-                        ->formatStateUsing(fn (?bool $state): bool => $state === true),
-
-                    // The first-time setup guide (2026-09-17). On for everybody;
-                    // off for an operator the platform set up itself. Null is on
-                    // (`Tenant::usesSetupGuide()`), so the toggle must not show a
-                    // null as off and switch it off on save.
-                    Toggle::make('setup_guide_enabled')
-                        ->label(__('tenants.columns.setup_guide'))
-                        ->helperText(__('tenants.edit.setup_guide_help'))
-                        ->formatStateUsing(fn (?bool $state): bool => $state !== false),
-
-                    // Where the operator has got to, so the platform knows
-                    // whether to call them. Read in their tenant, because every
-                    // step is a tenant-scoped question.
-                    Placeholder::make('setup_progress')
-                        ->label(__('tenants.edit.setup_progress'))
-                        ->content(fn (?Tenant $record): HtmlString => self::setupProgress($record)),
+                    Tabs\Tab::make(__('tenants.edit.channels'))
+                        // The count is the useful part of a tab label here: it
+                        // answers "does this merchant sell anywhere else" from
+                        // the tab bar, without opening it.
+                        ->badge(fn (?Tenant $record): ?string => self::channelBadge($record))
+                        ->schema([
+                            $this->channelsSection(),
+                        ]),
                 ]),
         ]);
     }
@@ -416,38 +352,141 @@ class EditTenant extends EditRecord
 
                     Notification::make()->success()->title(__('tenants.edit.setup_reset_done'))->send();
                 }),
+
+            /*
+             * «Διαγραφή διοργανωτή» (product owner, 2026-09-22).
+             *
+             * A **soft** delete, and the modal says what that buys: the pages
+             * stop opening, the keys stop authenticating and the staff cannot
+             * sign in — every resolver finds a tenant through the default scope
+             * — while bookings, invoices and the trail stay exactly where they
+             * are. `forceDelete` is still refused by the policy and still
+             * belongs to the erasure tooling, because `tenant_id` cascades
+             * across the whole schema.
+             *
+             * Two gates rather than one: the merchant's name typed out, because
+             * a confirmation dialog is a thing people click through, and the
+             * same required reason as every other platform write here (SEC-16).
+             */
+            Action::make('deleteMerchant')
+                ->label(__('tenants.edit.delete'))
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->visible(fn (): bool => ! $this->tenant()->trashed()
+                    && auth()->user()?->can('delete', $this->tenant()) === true)
+                ->modalHeading(__('tenants.edit.delete'))
+                ->modalDescription(__('tenants.edit.delete_body'))
+                ->form([
+                    TextInput::make('confirmName')
+                        ->label(__('tenants.edit.delete_confirm_label'))
+                        ->helperText(__('tenants.edit.delete_confirm_help', ['name' => $this->tenant()->name]))
+                        ->required()
+                        ->rule(fn (): Closure => function (string $attribute, mixed $value, Closure $fail): void {
+                            if (trim((string) $value) !== $this->tenant()->name) {
+                                $fail(__('tenants.edit.delete_confirm_mismatch'));
+                            }
+                        }),
+                    Textarea::make('reason')
+                        ->label(__('tenants.edit.reason'))
+                        ->helperText(__('tenants.edit.reason_help'))
+                        ->required()
+                        ->minLength(3)
+                        ->maxLength(500),
+                ])
+                ->action(function (array $data): void {
+                    $tenant = $this->tenant();
+
+                    // Written **before** the delete: the entry goes into this
+                    // operator's own trail, and a tenant the default scope can
+                    // no longer find is one the writer cannot resolve either.
+                    $this->recordTenantChange($tenant, (string) ($data['reason'] ?? ''), ['deleted' => true]);
+
+                    $tenant->delete();
+
+                    Notification::make()->success()->title(__('tenants.edit.delete_done'))->send();
+
+                    $this->redirect(static::getResource()::getUrl('index'));
+                }),
+
+            /** The way back, with the same reason and the same trail. */
+            Action::make('restoreMerchant')
+                ->label(__('tenants.edit.restore'))
+                ->icon('heroicon-o-arrow-uturn-left')
+                ->color('gray')
+                ->visible(fn (): bool => $this->tenant()->trashed()
+                    && auth()->user()?->can('restore', $this->tenant()) === true)
+                ->modalHeading(__('tenants.edit.restore'))
+                ->modalDescription(__('tenants.edit.restore_body'))
+                ->form([
+                    Textarea::make('reason')
+                        ->label(__('tenants.edit.reason'))
+                        ->helperText(__('tenants.edit.reason_help'))
+                        ->required()
+                        ->minLength(3)
+                        ->maxLength(500),
+                ])
+                ->action(function (array $data): void {
+                    $tenant = $this->tenant();
+
+                    $tenant->restore();
+
+                    $this->recordTenantChange($tenant, (string) ($data['reason'] ?? ''), ['restored' => true]);
+
+                    Notification::make()->success()->title(__('tenants.edit.restore_done'))->send();
+                }),
         ];
     }
 
-    /** «4 από 6» and one line per step, as the operator's own guide sees it. */
-    private static function setupProgress(?Tenant $tenant): HtmlString
+    /** This page's record, typed. */
+    private function tenant(): Tenant
+    {
+        /** @var Tenant */
+        return $this->getRecord();
+    }
+
+    /**
+     * One entry in the operator's own trail, for a change the platform made.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    private function recordTenantChange(Tenant $tenant, string $reason, array $context): void
+    {
+        app(RecordAuditEntry::class)(
+            new AuditEntryData(
+                action: AuditAction::TenantUpdated,
+                subjectType: 'Tenant',
+                subjectId: (int) $tenant->getKey(),
+                subjectLabel: $tenant->name,
+                reason: $reason,
+                context: $context,
+            ),
+            $tenant,
+            userId: auth()->id(),
+            ipAddress: request()->ip(),
+        );
+    }
+
+    /**
+     * The count on the «Κανάλια» tab, or nothing.
+     *
+     * Only live channels are counted, and iCal counts. A merchant pulling two
+     * calendars is selling the same hulls somewhere else, which is the thing
+     * the number is there to warn about — a tab that said «0» while two
+     * calendars quietly blocked boats would be worse than no number.
+     */
+    private static function channelBadge(?Tenant $tenant): ?string
     {
         if (! $tenant instanceof Tenant || ! $tenant->exists) {
-            return new HtmlString('');
+            return null;
         }
 
-        return Tenancy::forTenant($tenant, static function () use ($tenant): HtmlString {
-            $state = SetupChecklist::state();
-            $skipped = SetupChecklist::skipped($tenant);
-            $progress = SetupChecklist::progress();
-            $lines = [];
+        $live = $tenant->usesGetYourGuide() && ChannelManagerFlag::isOpen() ? 1 : 0;
 
-            foreach (SetupChecklist::questions() as $step) {
-                $status = match (true) {
-                    $state[$step] ?? false => __('tenants.edit.setup_step_done'),
-                    in_array($step, $skipped, true) => __('tenants.edit.setup_step_later'),
-                    default => __('tenants.edit.setup_step_open'),
-                };
+        $live += Tenancy::forTenant($tenant, static fn (): int => IcalSource::query()
+            ->where('is_active', true)
+            ->count());
 
-                $lines[] = e(__('setup.steps.' . $step . '.label')) . ': ' . e($status);
-            }
-
-            $head = $tenant->onboarding_completed_at !== null
-                ? __('tenants.edit.setup_finished')
-                : __('setup.widget.progress', ['done' => $progress['done'], 'total' => $progress['total']]);
-
-            return new HtmlString('<strong>' . e($head) . '</strong><br>' . implode('<br>', $lines));
-        });
+        return $live > 0 ? (string) $live : null;
     }
 
     /**

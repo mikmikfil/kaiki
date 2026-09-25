@@ -67,20 +67,61 @@ it('picks the greeting by the hour on the operator\'s clock', function (string $
     '05:00 good morning' => ['2026-09-08 02:00:00', 'morning'],
     '11:59 good morning' => ['2026-09-08 08:59:00', 'morning'],
     '12:00 hello' => ['2026-09-08 09:00:00', 'hello'],
-    '16:59 hello' => ['2026-09-08 13:59:00', 'hello'],
-    '17:00 good evening' => ['2026-09-08 14:00:00', 'evening'],
+    // Five in the afternoon was too early for «καλησπέρα» — at that hour in
+    // summer a skipper is still bringing a boat in (product owner, 2026-09-21).
+    '17:00 still hello' => ['2026-09-08 14:00:00', 'hello'],
+    '20:59 still hello' => ['2026-09-08 17:59:00', 'hello'],
+    '21:00 good evening' => ['2026-09-08 18:00:00', 'evening'],
     '00:59 good evening' => ['2026-09-08 21:59:00', 'evening'],
     '01:00 hello' => ['2026-09-08 22:00:00', 'hello'],
 ])->group('fast');
 
 it('greets the operator with a sun or a moon', function (): void {
-    Carbon::setTestNow('2026-09-08 15:00:00');
+    // 21:00 in Athens: the moon rises with «καλησπέρα», by the product owner's
+    // decision — an icon that disagrees with the sentence beside it reads as a
+    // bug rather than as meteorology.
+    Carbon::setTestNow('2026-09-08 18:00:00');
     $owner = homeOwner();
 
     actingAs($owner)->get('/app')
         ->assertSuccessful()
         ->assertSee(__('dashboard.home.greeting.evening'))
         ->assertSee('is-moon', escape: false);
+})->group('fast');
+
+it('keeps the sun up at five in the afternoon, where the greeting is still «Γεια σου»', function (): void {
+    Carbon::setTestNow('2026-09-08 14:00:00');
+    $owner = homeOwner();
+
+    actingAs($owner)->get('/app')
+        ->assertSuccessful()
+        ->assertSee(__('dashboard.home.greeting.hello'))
+        ->assertSee('is-sun', escape: false);
+})->group('fast');
+
+it('shows a moon in the small hours, where the greeting falls back to «Γεια σου»', function (): void {
+    // The exception the icon rule needs: a sun at three in the morning would be
+    // the same mistake from the other end.
+    Carbon::setTestNow('2026-09-09 00:00:00');
+    $owner = homeOwner();
+
+    actingAs($owner)->get('/app')
+        ->assertSuccessful()
+        ->assertSee('is-moon', escape: false);
+})->group('fast');
+
+it('puts the day and the time beside the greeting, on the operator\'s own clock', function (): void {
+    // Not the browser's zone: a skipper checking from a phone still on UK time
+    // must not be told it is a different hour in the harbour.
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $owner = homeOwner();
+
+    actingAs($owner)->get('/app')
+        ->assertSuccessful()
+        ->assertSee('data-ka-clock', escape: false)
+        ->assertSee('data-tz="' . $owner->tenant->timezone . '"', escape: false)
+        // 09:00 UTC is 12:00 on the quay in September.
+        ->assertSee('12:00');
 })->group('fast');
 
 it('greets by the salutation when there is one, and by the first name alone when not', function (): void {
@@ -179,7 +220,25 @@ it('keeps the boarding list but never «Σάρωση» when only the QR scanner 
         ->test(DayByBoat::class)
         ->assertOk()
         ->assertDontSee(__('dashboard.home.next.scan'))
-        ->assertSee(__('dashboard.home.next.board'));
+        ->assertSee(__('dashboard.home.next.board'))
+        // The list, not a camera: there is nothing on these tickets to scan.
+        ->assertDontSee(route('filament.app.boarding', ['camera' => 1]), escape: false)
+        ->assertSee(CheckIn::getUrl(), escape: false);
+})->group('fast');
+
+it('sends «Σάρωση εισιτηρίων» to the boarding page with the camera opening', function (): void {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $owner = homeOwner();
+    $owner->tenant->forceFill(['check_in_enabled' => true, 'qr_check_in_enabled' => true])->save();
+    tenancy()->initialize($owner->tenant);
+
+    // Mike, 2026-09-23: one press, and the camera is up and reading ticket
+    // after ticket — on the page that keeps working with no signal.
+    Livewire::actingAs($owner)
+        ->test(DayByBoat::class)
+        ->assertOk()
+        ->assertSee(__('dashboard.home.next.scan'))
+        ->assertSee(route('filament.app.boarding', ['camera' => 1]), escape: false);
 })->group('fast');
 
 it('greets with the name as given, or without one when it is blank', function (?string $name, string $morning, string $hello): void {

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Domain\Channels\Support\ChannelResolver;
 use App\Enums\Concerns\HasTranslatedLabel;
 use App\Models\Tenant;
 
@@ -43,6 +44,14 @@ enum IntegrationProvider: string
 
     // Transactional email.
     case Postmark = 'postmark';
+
+    // The first OTA sales channel (ADR-0034). Unlike every case above it, this
+    // is not a vendor an operator picks from a menu — it is a contract they
+    // signed with GetYourGuide themselves, which the platform then switches on
+    // for them. {@see \App\Enums\ChannelKey} is the channel side of it; this
+    // case exists so the credentials live in the same encrypted store, behind
+    // the same screen, with the same masking and the same verify button.
+    case GetYourGuide = 'getyourguide';
 
     /**
      * Does `is_default` mean anything for this provider?
@@ -105,6 +114,18 @@ enum IntegrationProvider: string
             self::Yuboto => ['api_key'],
             self::Twilio => ['account_sid', 'auth_token'],
             self::Postmark => ['server_token'],
+            // The key for the calls **we** make to `supplier-api.getyourguide.
+            // com` — availability pushes and ticket redemptions. GetYourGuide
+            // issues it to the supplier, so the operator pastes it.
+            //
+            // The other half of this integration is authentication in the
+            // opposite direction: their servers call our endpoints with HTTP
+            // Basic, using a username and password *Kaiki* generates and the
+            // operator gives to GetYourGuide. Those are deliberately **not**
+            // here yet. They authenticate endpoints that do not exist until
+            // #135, and a screen handing somebody credentials for a URL that
+            // answers 404 is a screen that lies.
+            self::GetYourGuide => ['api_key'],
         };
     }
 
@@ -125,6 +146,10 @@ enum IntegrationProvider: string
             self::Mydata => ['branch'],
             self::Apifon, self::Yuboto, self::Twilio => ['sender_name'],
             self::Postmark => ['from_address', 'from_name'],
+            // GetYourGuide's own id for this supplier. Not a secret — it is on
+            // their dashboard and in every request they make — and the operator
+            // has to be able to read it back to check it against theirs.
+            self::GetYourGuide => ['supplier_id'],
         };
     }
 
@@ -175,6 +200,16 @@ enum IntegrationProvider: string
 
         if ($tenant instanceof Tenant && $tenant->usesSms()) {
             array_push($offered, self::Apifon, self::Yuboto, self::Twilio);
+        }
+
+        // GetYourGuide, on the same principle and through the same door as the
+        // SMS vendors — offered only where it can do something. Asked through
+        // the resolver rather than `Tenant::usesGetYourGuide()` directly,
+        // because the platform's `channel_manager` flag is shut until
+        // certification passes and an operator must not be invited to paste
+        // credentials into a screen that cannot use them yet (ADR-0034).
+        if ($tenant instanceof Tenant && app(ChannelResolver::class)->isPermittedFor($tenant, ChannelKey::GetYourGuide)) {
+            $offered[] = self::GetYourGuide;
         }
 
         $options = [];

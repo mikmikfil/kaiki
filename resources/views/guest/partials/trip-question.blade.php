@@ -29,16 +29,23 @@
             @endforeach
         </div>
     @elseif ($question->type === TripQuestionType::Choice)
-        <label for="{{ $id }}">{{ $question->label }}</label>
-        <select id="{{ $id }}" name="{{ $name }}" @required($question->is_required)>
-            <option value="">{{ __('questions.choose') }}</option>
-            @foreach ($question->options ?? [] as $index => $option)
-                <option value="{{ $index }}" @selected((string) $value === (string) $index)>{{ $option[$locale] ?? $option['el'] ?? '' }}</option>
-            @endforeach
-        </select>
+        {{-- The `.field` wrapper is what the checkout's floating labels hang
+             off (2026-09-22); on the pages that do not float their labels it is
+             an empty div and changes nothing. --}}
+        <div class="field">
+            <label for="{{ $id }}">{{ $question->label }}</label>
+            <select id="{{ $id }}" name="{{ $name }}" @required($question->is_required)>
+                <option value="">{{ __('questions.choose') }}</option>
+                @foreach ($question->options ?? [] as $index => $option)
+                    <option value="{{ $index }}" @selected((string) $value === (string) $index)>{{ $option[$locale] ?? $option['el'] ?? '' }}</option>
+                @endforeach
+            </select>
+        </div>
     @else
-        <label for="{{ $id }}">{{ $question->label }}</label>
-        <input id="{{ $id }}" name="{{ $name }}" type="text" maxlength="500" value="{{ $value }}" @required($question->is_required)>
+        <div class="field">
+            <label for="{{ $id }}">{{ $question->label }}</label>
+            <input id="{{ $id }}" name="{{ $name }}" type="text" maxlength="500" placeholder=" " value="{{ $value }}" @required($question->is_required)>
+        </div>
     @endif
 
     @error($key) <p class="field-error">{{ $message }}</p> @enderror

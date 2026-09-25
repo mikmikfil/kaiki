@@ -1,0 +1,186 @@
+<title>Οι δύο ιστορίες</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* «Ένα ξύλινο καΐκι και δύο αδέρφια» + «Μικρές παρέες, μεγάλη θάλασσα», the two
+   story sections of the home page, in four directions (Mike, 24/9). Aegean
+   Blue's tokens, 1400px column, light, no uppercase, no underlines. */
+:root{
+  --primary:#123A5E; --deep:#0E2C48; --accent:#1B5FD1; --accent-soft:#EDF3FD; --sky:#8DB4F2;
+  --ink:#131A22; --soft:#4A5D5A; --faint:#7B8D8A; --rule:#E1E9E7; --paper:#FFFFFF; --ground:#E6ECF0; --mist:#F4F7FB; --sand:#F7F3EC;
+  --sans:Inter,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;padding-block:22px 64px;padding-inline:16px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:is(button,a):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--accent);text-decoration:none}
+p{margin:0}
+img{display:block;max-width:100%}
+.page{max-width:1480px;margin:0 auto;display:grid;gap:18px}
+.intro h1{font-size:25px;line-height:1.2;margin:0 0 6px;letter-spacing:-.015em}
+.intro p{color:var(--soft);font-size:15px;max-width:78ch}
+.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:#fff;border:1px solid #CFDAE8;border-radius:10px;padding:3px}
+.seg button{padding:7px 12px;border-radius:7px;font-weight:600;font-size:14px;color:var(--soft)}
+.seg button[aria-pressed="true"]{background:var(--primary);color:#fff}
+.why{font-size:14.5px;color:var(--soft);background:#fff;border-radius:12px;padding:12px 16px;box-shadow:0 1px 0 #CBD5DE}
+.why b{color:var(--ink)}
+.device{margin:0 auto;width:100%;background:var(--paper);border-radius:18px;overflow:hidden;box-shadow:0 1px 0 #CBD5DE,0 18px 50px rgba(14,44,72,.12);transition:max-width .3s}
+.device.phone{max-width:390px}
+.device.desk{max-width:1480px}
+.site{container:site/inline-size}
+.col{max-width:calc(1400px + 5rem);margin-inline:auto;padding-inline:clamp(20px,2.6cqi,40px)}
+.ctx,.ctx2{color:var(--faint);font-size:13.5px;padding-block:20px}
+.ctx{border-bottom:1px dashed var(--rule)}
+.ctx2{border-top:1px dashed var(--rule)}
+
+.kick{font-size:14px;font-weight:600;color:var(--accent);margin:0 0 12px;display:inline-flex;align-items:center;gap:10px}
+.kick::before{content:"";width:22px;height:2px;background:currentColor;border-radius:2px}
+h2{font-weight:800;font-size:clamp(28px,3.4cqi,44px);line-height:1.1;letter-spacing:-.03em;color:var(--primary);margin:0 0 18px;text-wrap:balance}
+.body p{color:var(--soft);font-size:16.5px;line-height:1.7;margin:0 0 12px;max-width:34rem}
+.more{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:15px;margin-top:10px}
+
+.dir{padding-block:clamp(48px,7cqi,96px)}
+
+/* Α. today: zig-zag, square photos */
+.dA .st{display:grid;gap:28px;grid-template-columns:minmax(0,1fr);align-items:center}
+.dA .st + .st{margin-top:clamp(48px,7cqi,88px)}
+@container site (min-width:900px){.dA .st{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(40px,5cqi,72px)}.dA .st.r .ph{order:2}}
+.dA .ph img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:16px}
+
+/* Β. overlap: a big photograph, the words on a white card over its edge */
+.dB .st{position:relative;display:grid;grid-template-columns:minmax(0,1fr)}
+.dB .st + .st{margin-top:clamp(56px,8cqi,110px)}
+.dB .ph img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:22px}
+.dB .card{background:#fff;border-radius:20px;padding:clamp(22px,3cqi,40px);box-shadow:0 2px 6px rgba(14,44,72,.05),0 24px 60px rgba(14,44,72,.14);margin:-60px 16px 0;position:relative}
+@container site (min-width:900px){
+  .dB .st{grid-template-columns:repeat(12,minmax(0,1fr));align-items:center}
+  .dB .ph{grid-column:1/9;grid-row:1}
+  .dB .card{grid-column:7/13;grid-row:1;margin:0}
+  .dB .st.r .ph{grid-column:5/13}
+  .dB .st.r .card{grid-column:1/7}
+}
+
+/* Γ. half the screen each: photograph edge to edge, the words on a tint */
+.dC{padding:0}
+.dC .st{display:grid;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:900px){.dC .st{grid-template-columns:1fr 1fr;min-height:560px}.dC .st.r .ph{order:2}}
+.dC .ph img{width:100%;height:100%;min-height:300px;object-fit:cover}
+.dC .tx{display:flex;flex-direction:column;justify-content:center;padding:clamp(36px,6cqi,96px) clamp(22px,5cqi,88px);background:var(--mist)}
+.dC .st.r .tx{background:var(--sand)}
+
+/* Δ. one section, two stories side by side, photo above each */
+.dD .head{text-align:center;max-width:44rem;margin:0 auto clamp(28px,4cqi,48px)}
+.dD .head .kick{justify-content:center}
+.dD .two{display:grid;gap:clamp(28px,4cqi,48px);grid-template-columns:minmax(0,1fr)}
+@container site (min-width:900px){.dD .two{grid-template-columns:1fr 1fr}}
+.dD .ph img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:18px;margin-bottom:22px}
+.dD h3{font-size:clamp(22px,2.2cqi,28px);font-weight:800;letter-spacing:-.02em;color:var(--primary);margin:0 0 10px;line-height:1.15}
+
+/* Ε. one story, a second photograph, numbers */
+.dE .st{display:grid;gap:clamp(32px,5cqi,72px);grid-template-columns:minmax(0,1fr);align-items:center}
+@container site (min-width:900px){.dE .st{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}}
+.dE .stack{position:relative;padding:0 12% 14% 0}
+.dE .stack .a{width:100%;aspect-ratio:4/5;object-fit:cover;border-radius:20px}
+.dE .stack .b{position:absolute;right:0;bottom:0;width:46%;aspect-ratio:3/4;object-fit:cover;border-radius:16px;border:6px solid #fff;box-shadow:0 18px 40px rgba(14,44,72,.18)}
+.dE .nums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:26px;padding-top:22px;border-top:1px solid var(--rule)}
+.dE .nums b{display:block;font-size:clamp(26px,3cqi,36px);font-weight:300;color:var(--primary);letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.dE .nums span{display:block;font-size:13.5px;color:var(--soft);margin-top:6px}
+.dE .second{margin-top:26px}
+.dE h3{font-size:19px;color:var(--primary);margin:0 0 6px}
+</style>
+
+<div class="page">
+  <header class="intro">
+    <h1>Οι δύο ιστορίες της αρχικής</h1>
+    <p>«Ένα ξύλινο καΐκι και δύο αδέρφια» και «Μικρές παρέες, μεγάλη θάλασσα», σε τέσσερις κατευθύνσεις, με τη σημερινή για σύγκριση. Ίδια κείμενα και φωτογραφίες, πλάτος 1400px.</p>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Κατεύθυνση">
+      <button type="button" id="bA" aria-pressed="false" data-d="A">Α. Σήμερα</button>
+      <button type="button" id="bB" aria-pressed="true" data-d="B">Β. Κάρτα πάνω στη φωτογραφία</button>
+      <button type="button" id="bC" aria-pressed="false" data-d="C">Γ. Μισή οθόνη η καθεμιά</button>
+      <button type="button" id="bD" aria-pressed="false" data-d="D">Δ. Δίπλα δίπλα</button>
+      <button type="button" id="bE" aria-pressed="false" data-d="E">Ε. Μία ιστορία, δύο φωτογραφίες</button>
+    </div>
+    <div class="seg" role="group" aria-label="Οθόνη">
+      <button type="button" id="v-phone" aria-pressed="false" data-view="phone">Κινητό</button>
+      <button type="button" id="v-desk" aria-pressed="true" data-view="desk">Υπολογιστής</button>
+    </div>
+  </div>
+  <p class="why" id="why"></p>
+
+  <div class="device desk" id="device">
+   <div class="site">
+    <div class="ctx"><div class="col">… «Από την οθόνη σας στο κατάστρωμα»</div></div>
+
+    <!-- Α -->
+    <section class="dir dA" data-d="A" hidden><div class="col">
+      <div class="st"><div class="ph"><img src="story-img/s1.jpg" alt=""></div><div class="body"><p class="kick">Ποιοι είμαστε</p><h2>Ένα ξύλινο καΐκι και δύο αδέρφια</h2><p>Ξεκινήσαμε με ένα ξύλινο καΐκι και δύο αδέρφια που δεν ήθελαν να δουλέψουν σε γραφείο.</p><p>Τριάντα χρόνια μετά, ο στόλος μεγάλωσε αλλά η μέρα έμεινε ίδια: φεύγουμε νωρίς, σταματάμε εκεί που το νερό είναι καθαρό, και γυρνάμε πριν πέσει ο ήλιος.</p></div></div>
+      <div class="st r"><div class="ph"><img src="story-img/s2.jpg" alt=""></div><div class="body"><p class="kick">Πώς ταξιδεύουμε</p><h2>Μικρές παρέες, μεγάλη θάλασσα</h2><p>Δεν βάζουμε ποτέ πάνω από δώδεκα άτομα στο σκάφος. Έτσι χωράνε όλοι στην πλώρη, ο κυβερνήτης ξέρει τα ονόματά σας, και σταματάμε όπου η παρέα θέλει να κολυμπήσει.</p><p>Το πρόγραμμα το κανονίζει ο καιρός, όχι το ρολόι.</p></div></div>
+    </div></section>
+
+    <!-- Β -->
+    <section class="dir dB" data-d="B"><div class="col">
+      <div class="st"><div class="ph"><img src="story-img/s1.jpg" alt=""></div><div class="card body"><p class="kick">Ποιοι είμαστε</p><h2>Ένα ξύλινο καΐκι και δύο αδέρφια</h2><p>Ξεκινήσαμε με ένα ξύλινο καΐκι και δύο αδέρφια που δεν ήθελαν να δουλέψουν σε γραφείο.</p><p>Τριάντα χρόνια μετά, ο στόλος μεγάλωσε αλλά η μέρα έμεινε ίδια: φεύγουμε νωρίς, σταματάμε εκεί που το νερό είναι καθαρό, και γυρνάμε πριν πέσει ο ήλιος.</p><a class="more" href="#">Η ιστορία μας →</a></div></div>
+      <div class="st r"><div class="ph"><img src="story-img/s2.jpg" alt=""></div><div class="card body"><p class="kick">Πώς ταξιδεύουμε</p><h2>Μικρές παρέες, μεγάλη θάλασσα</h2><p>Δεν βάζουμε ποτέ πάνω από δώδεκα άτομα στο σκάφος. Έτσι χωράνε όλοι στην πλώρη, ο κυβερνήτης ξέρει τα ονόματά σας, και σταματάμε όπου η παρέα θέλει να κολυμπήσει.</p><p>Το πρόγραμμα το κανονίζει ο καιρός, όχι το ρολόι.</p></div></div>
+    </div></section>
+
+    <!-- Γ -->
+    <section class="dir dC" data-d="C" hidden>
+      <div class="st"><div class="ph"><img src="story-img/s1.jpg" alt=""></div><div class="tx body"><p class="kick">Ποιοι είμαστε</p><h2>Ένα ξύλινο καΐκι και δύο αδέρφια</h2><p>Ξεκινήσαμε με ένα ξύλινο καΐκι και δύο αδέρφια που δεν ήθελαν να δουλέψουν σε γραφείο.</p><p>Τριάντα χρόνια μετά, ο στόλος μεγάλωσε αλλά η μέρα έμεινε ίδια: φεύγουμε νωρίς, σταματάμε εκεί που το νερό είναι καθαρό, και γυρνάμε πριν πέσει ο ήλιος.</p></div></div>
+      <div class="st r"><div class="ph"><img src="story-img/s2.jpg" alt=""></div><div class="tx body"><p class="kick">Πώς ταξιδεύουμε</p><h2>Μικρές παρέες, μεγάλη θάλασσα</h2><p>Δεν βάζουμε ποτέ πάνω από δώδεκα άτομα στο σκάφος. Έτσι χωράνε όλοι στην πλώρη, ο κυβερνήτης ξέρει τα ονόματά σας, και σταματάμε όπου η παρέα θέλει να κολυμπήσει.</p><p>Το πρόγραμμα το κανονίζει ο καιρός, όχι το ρολόι.</p></div></div>
+    </section>
+
+    <!-- Δ -->
+    <section class="dir dD" data-d="D" hidden><div class="col">
+      <div class="head"><p class="kick">Ποιοι είμαστε</p><h2>Τριάντα χρόνια στον Σαρωνικό</h2></div>
+      <div class="two">
+        <article class="body"><div class="ph"><img src="story-img/s1.jpg" alt=""></div><h3>Ένα ξύλινο καΐκι και δύο αδέρφια</h3><p>Ξεκινήσαμε με ένα ξύλινο καΐκι και δύο αδέρφια που δεν ήθελαν να δουλέψουν σε γραφείο. Τριάντα χρόνια μετά, η μέρα έμεινε ίδια: φεύγουμε νωρίς και γυρνάμε πριν πέσει ο ήλιος.</p></article>
+        <article class="body"><div class="ph"><img src="story-img/s2.jpg" alt=""></div><h3>Μικρές παρέες, μεγάλη θάλασσα</h3><p>Ποτέ πάνω από δώδεκα άτομα στο σκάφος. Χωράνε όλοι στην πλώρη, ο κυβερνήτης ξέρει τα ονόματά σας, και το πρόγραμμα το κανονίζει ο καιρός, όχι το ρολόι.</p></article>
+      </div>
+    </div></section>
+
+    <!-- Ε -->
+    <section class="dir dE" data-d="E" hidden><div class="col">
+      <div class="st">
+        <div class="stack"><img class="a" src="story-img/s1.jpg" alt=""><img class="b" src="story-img/s3.jpg" alt=""></div>
+        <div class="body">
+          <p class="kick">Ποιοι είμαστε</p>
+          <h2>Ένα ξύλινο καΐκι και δύο αδέρφια</h2>
+          <p>Ξεκινήσαμε με ένα ξύλινο καΐκι και δύο αδέρφια που δεν ήθελαν να δουλέψουν σε γραφείο. Τριάντα χρόνια μετά, ο στόλος μεγάλωσε αλλά η μέρα έμεινε ίδια.</p>
+          <div class="second"><h3>Μικρές παρέες, μεγάλη θάλασσα</h3><p>Ποτέ πάνω από δώδεκα άτομα στο σκάφος. Χωράνε όλοι στην πλώρη, και το πρόγραμμα το κανονίζει ο καιρός, όχι το ρολόι.</p></div>
+          <div class="nums"><div><b>30</b><span>χρόνια στη θάλασσα</span></div><div><b>12</b><span>άτομα το πολύ</span></div><div><b>4,9</b><span>στην Google</span></div></div>
+        </div>
+      </div>
+    </div></section>
+
+    <div class="ctx2"><div class="col">… «Γιατί Aegean Blue»</div></div>
+   </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var why = {
+    A: '<b>Α. Σήμερα.</b> Δύο ενότητες, τετράγωνες φωτογραφίες, η μία αριστερά και η άλλη δεξιά.',
+    B: '<b>Β. Κάρτα πάνω στη φωτογραφία.</b> Μεγάλη φαρδιά φωτογραφία και το κείμενο σε λευκή κάρτα που πατάει πάνω στην άκρη της, μία φορά δεξιά και μία αριστερά. Πιο «περιοδικό».',
+    C: '<b>Γ. Μισή οθόνη η καθεμιά.</b> Η φωτογραφία πιάνει μισή οθόνη ως την άκρη, και το κείμενο την άλλη μισή σε απαλό φόντο (γαλάζιο, μετά μπεζ). Χωρίς κενά ανάμεσα, σαν μια συνεχόμενη ζώνη.',
+    D: '<b>Δ. Δίπλα δίπλα.</b> Μία ενότητα με κοινό τίτλο και τις δύο ιστορίες σε δύο στήλες, με τη φωτογραφία πάνω από την καθεμιά. Πιο σύντομο στη σελίδα.',
+    E: '<b>Ε. Μία ιστορία, δύο φωτογραφίες.</b> Οι δύο ιστορίες ενώνονται σε μία: δύο φωτογραφίες η μία πάνω στην άλλη, το κείμενο δίπλα, και τρεις αριθμοί από κάτω.'
+  };
+  var device = document.getElementById('device');
+  function press(sel, b) { document.querySelectorAll(sel).forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); }); }
+  function show(d) { document.querySelectorAll('section.dir').forEach(function (s) { s.hidden = s.dataset.d !== d; }); document.getElementById('why').innerHTML = why[d]; }
+  document.querySelectorAll('button[data-d]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-d]', b); show(b.dataset.d); }); });
+  document.querySelectorAll('button[data-view]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-view]', b); device.classList.remove('phone', 'desk'); device.classList.add(b.dataset.view); }); });
+  document.querySelectorAll('a[href="#"]').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); }); });
+  show('B');
+  if (window.innerWidth < 700) document.getElementById('v-phone').click();
+})();
+</script>

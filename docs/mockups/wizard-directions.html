@@ -1,0 +1,568 @@
+<title>Οδηγοί Kaiki</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Same tokens as the other Kaiki mockups: light only, blue panel, Inter. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57; --active:#1C4378; --sb-text:#C4D3E8; --sb-muted:#7F98BA;
+  --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA;
+  --warn:#9A5B0C; --warnbg:#FBF0DF; --good:#1F7A4D; --goodbg:#E3F2EA; --bad:#A23A2A; --badbg:#FBEAE6;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --waves:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='170' viewBox='0 0 520 170'%3E%3Cg fill='none' stroke='%23C9DAEE' stroke-width='1.3'%3E%3Cpath d='M0 150 Q65 132 130 150 T260 150 T390 150 T520 150' opacity='.9'/%3E%3Cpath d='M0 120 Q65 104 130 120 T260 120 T390 120 T520 120' opacity='.65'/%3E%3Cpath d='M-65 90 Q0 76 65 90 T195 90 T325 90 T455 90 T585 90' opacity='.45'/%3E%3Cpath d='M0 60 Q65 48 130 60 T260 60 T390 60 T520 60' opacity='.28'/%3E%3C/g%3E%3C/svg%3E");
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding:36px 16px 72px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;text-align:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+a{text-decoration:none;color:var(--blue)}
+h1,h2,h3,h4{margin:0;text-wrap:balance;letter-spacing:-.01em}
+p{margin:0}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.page{max-width:1180px;margin:0 auto;display:grid;gap:44px}
+.intro{display:grid;gap:12px;max-width:820px}
+.eyebrow{font-size:13px;font-weight:600;color:var(--blue)}
+.intro h1{font-size:clamp(28px,5vw,38px);line-height:1.12;font-weight:800;color:var(--deep)}
+.intro p{font-size:17px;color:var(--muted);max-width:68ch}
+.intro strong{color:var(--ink)}
+h2.sec{font-size:clamp(20px,3.6vw,24px);color:var(--deep)}
+.lede{color:var(--muted);max-width:74ch}
+.block{display:grid;gap:16px}
+
+/* ---------- direction picker ---------- */
+.picker{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.pick{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:grid;gap:8px;align-content:start}
+.pick[aria-pressed="true"]{border-color:var(--blue);box-shadow:0 0 0 2px rgba(30,90,168,.16)}
+.pick-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pick h3{font-size:16px;color:var(--deep)}
+.pick p{color:var(--muted);font-size:13.5px}
+.pick .meta{font-size:12px;color:var(--faint);font-family:var(--mono)}
+.rec{font-size:11px;font-weight:700;color:var(--blue);background:var(--wash);border-radius:999px;padding:2px 8px}
+
+/* ---------- panel chrome ---------- */
+.shot{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(15,46,87,.05),0 10px 30px rgba(15,46,87,.06)}
+.bar{display:flex;align-items:center;gap:8px;padding:9px 14px;background:var(--paper);border-bottom:1px solid var(--line);font-size:12px;color:var(--faint)}
+.bar i{width:9px;height:9px;border-radius:50%;background:#D6DFEA;display:block}
+.bar .url{margin-left:8px;font-family:var(--mono);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.app{display:grid;grid-template-columns:200px minmax(0,1fr);min-height:460px}
+.side{background:var(--deep);color:var(--sb-text);padding:16px 10px;display:grid;align-content:start;gap:3px;font-size:13.5px}
+.side .brand{color:#fff;font-weight:800;font-size:17px;padding:2px 10px 12px}
+.side .grp{color:var(--sb-muted);font-size:11.5px;font-weight:600;padding:10px 10px 3px}
+.side .it{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:8px}
+.side .it.on{background:var(--active);color:#fff}
+.side .it .n{margin-left:auto;background:#F2B544;color:#3A2A05;font-size:11px;font-weight:700;border-radius:999px;padding:1px 7px}
+.side .dot{width:7px;height:7px;border-radius:50%;background:var(--sb-muted);flex:none}
+.main{background:var(--ground) var(--waves) right bottom/520px auto no-repeat;padding:22px 24px;display:grid;align-content:start;gap:16px;min-width:0}
+.main h3{font-size:22px;color:var(--deep);font-weight:800}
+.sub{color:var(--muted);font-size:13.5px}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:38px;padding:0 15px;border-radius:10px;font-weight:600;font-size:13.5px;white-space:nowrap}
+.btn.pri{background:var(--deep);color:#fff}
+.btn.sec{background:var(--card);border:1px solid var(--line);color:var(--ink)}
+.btn.ghost{color:var(--muted)}
+.btn.sm{height:32px;padding:0 12px;font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;border-radius:999px;padding:2px 10px;white-space:nowrap}
+.chip.good{background:var(--goodbg);color:var(--good)}
+.chip.warn{background:var(--warnbg);color:var(--warn)}
+.chip.mute{background:var(--paper);color:var(--muted);border:1px solid var(--line)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;display:grid;gap:12px;min-width:0}
+.card h4{font-size:15.5px;color:var(--ink)}
+.field{display:grid;gap:5px;min-width:0}
+.field label{font-size:13px;font-weight:600}
+.field .hint{font-size:12.5px;color:var(--muted)}
+.input{border:1px solid var(--line);border-radius:9px;background:var(--card);padding:8px 11px;font-size:13.5px;color:var(--faint);min-height:38px;display:flex;align-items:center}
+.input.filled{color:var(--ink)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.radios{display:grid;gap:8px}
+.radio{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--card)}
+.radio.on{border-color:var(--blue);background:var(--wash)}
+.radio .k{width:16px;height:16px;border-radius:50%;border:2px solid #C3D0E2;flex:none;margin-top:2px}
+.radio.on .k{border-color:var(--blue);box-shadow:inset 0 0 0 3px var(--card);background:var(--blue)}
+.radio b{font-weight:600;font-size:14px;display:block}
+.radio span{color:var(--muted);font-size:12.5px}
+
+/* step rails */
+.rail{display:flex;align-items:center;gap:0;flex-wrap:wrap}
+.rail .st{display:flex;align-items:center;gap:8px;padding-right:10px}
+.rail .n{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;background:#D9E3F0;color:#5A6C85;flex:none}
+.rail .st.on .n{background:var(--deep);color:#fff}
+.rail .st.done .n{background:var(--good);color:#fff}
+.rail .st b{font-size:13px;font-weight:600;color:var(--muted)}
+.rail .st.on b{color:var(--deep)}
+.rail .ln{height:2px;width:26px;background:#D9E3F0;margin-right:10px;border-radius:2px}
+.vrail{display:grid;gap:2px;align-content:start}
+.vrail .st{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:9px}
+.vrail .st.on{background:var(--wash)}
+.vrail .st b{font-size:13.5px;font-weight:600;color:var(--muted)}
+.vrail .st.on b{color:var(--deep)}
+.vrail .st.done b{color:var(--ink)}
+
+.tabs{display:flex;gap:14px;border-bottom:1px solid var(--line);padding-bottom:6px;flex-wrap:wrap}
+.tabs .t{font-size:13.5px;color:var(--muted);padding-bottom:6px;font-weight:600}
+.tabs .t.on{color:var(--deep);box-shadow:inset 0 -2px 0 var(--deep)}
+.tabs .t .b{font-size:11px;color:var(--warn);margin-left:5px;font-weight:600}
+
+.foot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-top:4px}
+.foot .right{margin-left:auto;display:flex;gap:10px}
+
+/* fullscreen onboarding frames */
+.full{background:var(--ground) var(--waves) right bottom/620px auto no-repeat;min-height:460px;padding:26px;display:grid;align-content:start;gap:18px}
+.full .top{display:flex;align-items:center;gap:12px}
+.full .top .logo{font-weight:800;color:var(--deep);font-size:17px}
+.full .top .right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.full .mid{display:grid;grid-template-columns:200px minmax(0,1fr);gap:22px;align-items:start}
+.full.solo .mid{grid-template-columns:minmax(0,1fr);max-width:620px;margin:0 auto;width:100%}
+.full h3{font-size:24px;color:var(--deep);font-weight:800}
+.skipall{font-size:13px;color:var(--muted)}
+
+/* phone */
+.pair{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px;align-items:start}
+.phone{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:10px;box-shadow:0 10px 30px rgba(15,46,87,.08)}
+.pscreen{background:var(--ground) var(--waves) right bottom/300px auto no-repeat;border-radius:14px;overflow:hidden;min-height:430px;display:grid;align-content:start}
+.ptop{background:var(--deep);color:#fff;padding:10px 12px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.ptop .m{margin-left:auto;width:22px;height:2px;background:#fff;box-shadow:0 6px 0 #fff,0 -6px 0 #fff;border-radius:2px}
+.pbody{padding:14px;display:grid;gap:12px;align-content:start}
+.pbody h4{font-size:17px;color:var(--deep)}
+/* The rail in a phone frame is a count, not a map: numbers only, no wrapping. */
+.pbody .rail{flex-wrap:nowrap;gap:0}
+.pbody .rail .st{padding-right:6px}
+.pbody .rail .ln{width:14px;margin-right:6px}
+
+.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--blue);border-radius:10px;padding:12px 14px;color:var(--muted);font-size:13.5px}
+.note b{color:var(--ink)}
+.warnbox{background:var(--warnbg);border:1px solid #EBD6AE;border-radius:10px;padding:12px 14px;color:var(--warn);font-size:13.5px}
+
+.decide{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;display:grid;gap:12px}
+.decide ol{margin:0;padding-left:20px;display:grid;gap:10px}
+.decide li{font-weight:600}
+.decide li span{display:block;font-weight:400;color:var(--muted);font-size:13.5px;margin-top:2px}
+
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  .pair{grid-template-columns:minmax(0,1fr)}
+  .full .mid{grid-template-columns:minmax(0,1fr)}
+}
+</style>
+
+<main class="page">
+
+  <header class="intro">
+    <span class="eyebrow">Mockups · 22 Σεπτεμβρίου 2026</span>
+    <h1>Δύο οδηγοί: η πρώτη ρύθμιση, και η πρώτη εκδρομή</h1>
+    <p>
+      Δύο πράγματα που είπες σήμερα. Πρώτο: <strong>μέσα στην εκδρομή παραμένει μπέρδεμα για κάποιον που το
+      βλέπει πρώτη φορά</strong> — άρα βήματα στη δημιουργία, καρτέλες στην επεξεργασία. Δεύτερο: <strong>η
+      πρώτη ρύθμιση να ανοίγει σε πλήρη οθόνη και να μην μπαίνει κανείς στο panel πριν την κάνει</strong>, με
+      κουμπί να την προσπεράσει τελείως αν θέλει. Διάλεξε μία κατεύθυνση σε κάθε ενότητα.
+    </p>
+  </header>
+
+  <!-- ===================== 1. trip wizard ===================== -->
+  <section class="block" aria-labelledby="s1">
+    <h2 class="sec" id="s1">1. Ο οδηγός νέας εκδρομής</h2>
+    <p class="lede">
+      Σήμερα η «Νέα εκδρομή» ανοίγει την ίδια φόρμα πέντε καρτελών με την επεξεργασία — και οι μισές είναι
+      άδειες ή κλειδωμένες μέχρι να αποθηκευτεί. Η καρτέλα «Τιμές» είναι κενή μέχρι να διαλέξεις τρόπο
+      πώλησης, ο πίνακας τιμών θέλει τιμοκατάλογο, τα δρομολόγια θέλουν αποθήκευση. Η επεξεργασία μένει
+      όπως είναι· αλλάζει μόνο η <em>πρώτη</em> φορά.
+    </p>
+
+    <div class="picker" role="group" aria-label="Κατεύθυνση οδηγού εκδρομής">
+      <button class="pick" aria-pressed="true" data-dir="a" data-set="trip">
+        <div class="pick-top"><h3>Α · Τέσσερα βήματα</h3><span class="rec">Προτείνεται</span></div>
+        <p>Τα βασικά → πότε φεύγει → τιμές → δημοσίευση. Μία οθόνη ανά βήμα, με τη ράγα από πάνω και ό,τι δεν χρειάζεται τώρα να μην φαίνεται καθόλου.</p>
+        <span class="meta">≈ 6–7 ώρες</span>
+      </button>
+      <button class="pick" aria-pressed="false" data-dir="b" data-set="trip">
+        <div class="pick-top"><h3>Β · Δύο βήματα και τέλος</h3></div>
+        <p>Μόνο ό,τι δεν γίνεται αλλιώς: τι είναι και πώς πουλιέται, μετά πότε φεύγει και πόσο κάνει. Μετά πέφτεις στις καρτέλες με μια λίστα «τι λείπει».</p>
+        <span class="meta">≈ 4 ώρες</span>
+      </button>
+      <button class="pick" aria-pressed="false" data-dir="c" data-set="trip">
+        <div class="pick-top"><h3>Γ · Μία ερώτηση τη φορά</h3></div>
+        <p>Όπως ο οδηγός λογαριασμού: μία ερώτηση ανά οθόνη, με μεγάλα γράμματα και έτοιμες απαντήσεις. Οκτώ σύντομες οθόνες αντί για τέσσερις γεμάτες.</p>
+        <span class="meta">≈ 8–9 ώρες</span>
+      </button>
+    </div>
+
+    <!-- A -->
+    <div class="dir" data-set="trip" data-dir="a">
+      <div class="pair">
+        <div class="shot">
+          <div class="bar"><i></i><i></i><i></i><span class="url">127.0.0.1:8000/app/products/create</span></div>
+          <div class="app">
+            <div class="side">
+              <div class="brand">Kaiki</div>
+              <div class="grp">Κατάλογος</div>
+              <div class="it on"><span class="dot"></span>Εκδρομές</div>
+              <div class="it"><span class="dot"></span>Τιμές</div>
+              <div class="it"><span class="dot"></span>Περίοδοι</div>
+              <div class="it"><span class="dot"></span>Πολιτικές ακύρωσης</div>
+              <div class="grp">Στόλος</div>
+              <div class="it"><span class="dot"></span>Σκάφη</div>
+              <div class="it"><span class="dot"></span>Λιμάνια</div>
+            </div>
+            <div class="main">
+              <div class="rail">
+                <div class="st on"><span class="n">1</span><b>Τα βασικά</b></div><span class="ln"></span>
+                <div class="st"><span class="n">2</span><b>Πότε φεύγει</b></div><span class="ln"></span>
+                <div class="st"><span class="n">3</span><b>Τιμές</b></div><span class="ln"></span>
+                <div class="st"><span class="n">4</span><b>Δημοσίευση</b></div>
+              </div>
+              <h3>Τι είναι η εκδρομή;</h3>
+              <p class="sub">Τρία πράγματα τώρα. Τα υπόλοιπα —  περιγραφή, φωτογραφίες, Google — μετά τη δημοσίευση, όποτε θέλετε.</p>
+              <div class="card">
+                <div class="field">
+                  <label>Τίτλος</label>
+                  <div class="input filled">Ηλιοβασίλεμα στη Χώρα</div>
+                  <span class="hint">Το όνομα που θα δει ο επισκέπτης. Τα αγγλικά μπαίνουν στο τέλος.</span>
+                </div>
+                <div class="two">
+                  <div class="field"><label>Σκάφος</label><div class="input filled">Αύρα · έως 30 άτομα</div></div>
+                  <div class="field"><label>Είδος</label><div class="input filled">Ηλιοβασίλεμα</div></div>
+                </div>
+                <div class="field">
+                  <label>Πώς πουλιέται;</label>
+                  <div class="radios">
+                    <div class="radio on"><span class="k"></span><span><b>Ανά θέση</b><span>Κοινή εκδρομή, ο καθένας κλείνει θέσεις.</span></span></div>
+                    <div class="radio"><span class="k"></span><span><b>Ολόκληρο το σκάφος</b><span>Ιδιωτική ναύλωση για έναν πελάτη.</span></span></div>
+                    <div class="radio"><span class="k"></span><span><b>Κατόπιν προσφοράς</b><span>Ο επισκέπτης ρωτάει, εσείς απαντάτε με τιμή.</span></span></div>
+                  </div>
+                  <span class="hint">Αυτό ορίζει τι θα ρωτήσουμε παρακάτω. Δεν αλλάζει μετά την πρώτη κράτηση.</span>
+                </div>
+              </div>
+              <div class="foot">
+                <span class="btn ghost">Ακύρωση</span>
+                <div class="right"><span class="btn pri">Συνέχεια →</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="phone" aria-hidden="true">
+          <div class="pscreen">
+            <div class="ptop">Νέα εκδρομή<span class="m"></span></div>
+            <div class="pbody">
+              <div class="rail"><div class="st on"><span class="n">1</span><b>Τα βασικά</b></div><span class="ln"></span><div class="st"><span class="n">2</span><b></b></div><span class="ln"></span><div class="st"><span class="n">3</span><b></b></div><span class="ln"></span><div class="st"><span class="n">4</span><b></b></div></div>
+              <h4>Τι είναι η εκδρομή;</h4>
+              <div class="field"><label>Τίτλος</label><div class="input filled">Ηλιοβασίλεμα στη Χώρα</div></div>
+              <div class="field"><label>Σκάφος</label><div class="input filled">Αύρα</div></div>
+              <div class="field"><label>Πώς πουλιέται;</label>
+                <div class="radios">
+                  <div class="radio on"><span class="k"></span><span><b>Ανά θέση</b></span></div>
+                  <div class="radio"><span class="k"></span><span><b>Ολόκληρο το σκάφος</b></span></div>
+                </div>
+              </div>
+              <span class="btn pri" style="width:100%">Συνέχεια →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:14px">
+        <b>Βήμα 3 «Τιμές»:</b> εδώ ο οδηγός κάνει τη δουλειά που σήμερα χάνει τον καθένα — φτιάχνει μόνος του
+        τον πρώτο τιμοκατάλογο «Όλο τον χρόνο» και ζητάει μόνο ποσά: Ενήλικας 45 €, Παιδί 26 €, Βρέφος 0 €.
+        Περίοδοι, προκαταβολή και προθεσμίες μένουν για μετά, στις καρτέλες.
+      </div>
+      <div class="note">
+        <b>Βήμα 4 «Δημοσίευση»:</b> η λίστα ελέγχου γίνεται η τελευταία οθόνη. Όσα είναι πράσινα, με ένα
+        κουμπί «Δημοσίευση». Όσα λείπουν, με σύνδεσμο στην καρτέλα τους — και «Αποθήκευση ως πρόχειρη» δίπλα.
+      </div>
+    </div>
+
+    <!-- B -->
+    <div class="dir" data-set="trip" data-dir="b" hidden>
+      <div class="shot">
+        <div class="bar"><i></i><i></i><i></i><span class="url">127.0.0.1:8000/app/products/create</span></div>
+        <div class="app">
+          <div class="side">
+            <div class="brand">Kaiki</div>
+            <div class="grp">Κατάλογος</div>
+            <div class="it on"><span class="dot"></span>Εκδρομές</div>
+            <div class="it"><span class="dot"></span>Τιμές</div>
+            <div class="it"><span class="dot"></span>Περίοδοι</div>
+          </div>
+          <div class="main">
+            <div class="rail">
+              <div class="st done"><span class="n">✓</span><b>Τι είναι</b></div><span class="ln"></span>
+              <div class="st on"><span class="n">2</span><b>Πότε και πόσο</b></div>
+            </div>
+            <h3>Πότε φεύγει, και πόσο κάνει</h3>
+            <p class="sub">Δύο οθόνες συνολικά. Ό,τι άλλο θέλει η εκδρομή, το λέει η λίστα μετά.</p>
+            <div class="two">
+              <div class="card">
+                <h4>Πότε φεύγει</h4>
+                <div class="two">
+                  <div class="field"><label>Ημέρες</label><div class="input filled">Καθημερινά</div></div>
+                  <div class="field"><label>Ώρα</label><div class="input filled mono">19:00</div></div>
+                </div>
+                <div class="two">
+                  <div class="field"><label>Διάρκεια</label><div class="input filled">3 ώρες</div></div>
+                  <div class="field"><label>Σημείο συνάντησης</label><div class="input filled">Παλιό Λιμάνι</div></div>
+                </div>
+              </div>
+              <div class="card">
+                <h4>Τιμή ανά άτομο</h4>
+                <div class="field"><label>Ενήλικας</label><div class="input filled mono">45,00 €</div></div>
+                <div class="field"><label>Παιδί 3–11</label><div class="input filled mono">26,00 €</div></div>
+                <div class="field"><label>Βρέφος 0–2</label><div class="input filled mono">0,00 €</div></div>
+                <span class="hint">Ισχύει όλο τον χρόνο. Περίοδοι με άλλη τιμή προστίθενται μετά.</span>
+              </div>
+            </div>
+            <div class="foot">
+              <span class="btn sec">← Πίσω</span>
+              <div class="right"><span class="btn pri">Αποθήκευση και άνοιγμα</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        Μετά την αποθήκευση πέφτεις στις πέντε καρτέλες, με τη λίστα «Πριν τη δημοσίευση» ανοιχτή στα δεξιά —
+        δηλαδή στη σημερινή οθόνη, αλλά με όλα τα υποχρεωτικά ήδη συμπληρωμένα.
+      </div>
+    </div>
+
+    <!-- C -->
+    <div class="dir" data-set="trip" data-dir="c" hidden>
+      <div class="pair">
+        <div class="shot">
+          <div class="bar"><i></i><i></i><i></i><span class="url">127.0.0.1:8000/app/products/create</span></div>
+          <div class="app">
+            <div class="side">
+              <div class="brand">Kaiki</div>
+              <div class="grp">Κατάλογος</div>
+              <div class="it on"><span class="dot"></span>Εκδρομές</div>
+            </div>
+            <div class="main" style="align-content:center">
+              <p class="sub mono">Ερώτηση 3 από 8</p>
+              <h3 style="font-size:28px">Πώς πουλιέται αυτή η εκδρομή;</h3>
+              <p class="sub">Δεν αλλάζει αφού γίνει η πρώτη κράτηση, οπότε αξίζει μια σκέψη.</p>
+              <div class="radios" style="max-width:520px">
+                <div class="radio on"><span class="k"></span><span><b>Ανά θέση</b><span>Κοινή εκδρομή. Ο καθένας κλείνει μία ή περισσότερες θέσεις.</span></span></div>
+                <div class="radio"><span class="k"></span><span><b>Ολόκληρο το σκάφος</b><span>Ιδιωτική ναύλωση: ένας πελάτης, ένα σκάφος, μία τιμή.</span></span></div>
+                <div class="radio"><span class="k"></span><span><b>Κατόπιν προσφοράς</b><span>Ο επισκέπτης ρωτάει και εσείς στέλνετε τιμή.</span></span></div>
+              </div>
+              <div class="foot" style="max-width:520px">
+                <span class="btn sec">← Πίσω</span>
+                <div class="right"><span class="btn pri">Συνέχεια →</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="phone" aria-hidden="true">
+          <div class="pscreen">
+            <div class="ptop">Νέα εκδρομή<span class="m"></span></div>
+            <div class="pbody" style="align-content:center">
+              <p class="sub mono">Ερώτηση 3 από 8</p>
+              <h4 style="font-size:20px">Πώς πουλιέται αυτή η εκδρομή;</h4>
+              <div class="radios">
+                <div class="radio on"><span class="k"></span><span><b>Ανά θέση</b></span></div>
+                <div class="radio"><span class="k"></span><span><b>Ολόκληρο το σκάφος</b></span></div>
+                <div class="radio"><span class="k"></span><span><b>Κατόπιν προσφοράς</b></span></div>
+              </div>
+              <span class="btn pri" style="width:100%">Συνέχεια →</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="warnbox" style="margin-top:14px">
+        Οκτώ οθόνες για κάτι που ένας έμπειρος διοργανωτής κάνει σε δύο λεπτά. Καλό για τον πρώτο, κουραστικό
+        για τον δέκατο — γι' αυτό δεν το προτείνω, εκτός αν μπει και κουμπί «όλα σε μία σελίδα».
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 2. fullscreen onboarding ===================== -->
+  <section class="block" aria-labelledby="s2">
+    <h2 class="sec" id="s2">2. Η πρώτη ρύθμιση σε πλήρη οθόνη</h2>
+    <p class="lede">
+      Σήμερα ο οδηγός είναι μια σελίδα μέσα στο panel: με μενού δίπλα, και ο διοργανωτής μπορεί απλώς να
+      φύγει. Και οι δύο κατευθύνσεις κλείνουν το panel μέχρι να τελειώσει ή να πατήσει
+      <strong>«Θα το κάνω αργότερα»</strong> — το κουμπί που ζήτησες, πάντα ορατό, ποτέ κρυμμένο σε μενού.
+      Επτά βήματα πλέον, με τις «Περίοδοι» ανάμεσα στο σκάφος και την εκδρομή.
+    </p>
+
+    <div class="picker" role="group" aria-label="Κατεύθυνση πρώτης ρύθμισης">
+      <button class="pick" aria-pressed="true" data-dir="a" data-set="setup">
+        <div class="pick-top"><h3>Α · Με τη λίστα δίπλα</h3><span class="rec">Προτείνεται</span></div>
+        <p>Η σημερινή δομή χωρίς το panel γύρω της: λίστα βημάτων αριστερά, ένα βήμα δεξιά. Βλέπεις πάντα πού είσαι και τι μένει.</p>
+        <span class="meta">≈ 3–4 ώρες</span>
+      </button>
+      <button class="pick" aria-pressed="false" data-dir="b" data-set="setup">
+        <div class="pick-top"><h3>Β · Μόνο η ερώτηση</h3></div>
+        <p>Καμία λίστα. Μία ερώτηση στο κέντρο, μια λεπτή μπάρα προόδου από πάνω. Πιο ήσυχο, αλλά δεν φαίνεται τι έρχεται.</p>
+        <span class="meta">≈ 3 ώρες</span>
+      </button>
+    </div>
+
+    <!-- A -->
+    <div class="dir" data-set="setup" data-dir="a">
+      <div class="pair">
+        <div class="shot">
+          <div class="bar"><i></i><i></i><i></i><span class="url">127.0.0.1:8000/app/setup</span></div>
+          <div class="full">
+            <div class="top">
+              <span class="logo">Kaiki</span>
+              <span class="chip mute">Ας στήσουμε τον λογαριασμό σας</span>
+              <span class="right"><span class="skipall">Βιάζεστε;</span><span class="btn sec btn-sm">Θα το κάνω αργότερα</span></span>
+            </div>
+            <div class="mid">
+              <div class="vrail">
+                <div class="st done"><span class="chip good">✓</span><b>Η επιχείρησή σας</b></div>
+                <div class="st done"><span class="chip good">✓</span><b>Η εμφάνισή σας</b></div>
+                <div class="st done"><span class="chip good">✓</span><b>ΦΠΑ</b></div>
+                <div class="st done"><span class="chip good">✓</span><b>Πολιτική ακύρωσης</b></div>
+                <div class="st on"><span class="chip mute">5</span><b>Το πρώτο σκάφος</b></div>
+                <div class="st"><span class="chip mute">6</span><b>Περίοδοι</b></div>
+                <div class="st"><span class="chip mute">7</span><b>Η πρώτη εκδρομή</b></div>
+              </div>
+              <div style="display:grid;gap:14px;min-width:0">
+                <p class="sub mono">Βήμα 5 από 7</p>
+                <h3>Ποιο είναι το πρώτο σας σκάφος;</h3>
+                <p class="sub">Όνομα, τύπος και πόσους επιβάτες παίρνει. Φωτογραφίες και λιμάνι βάσης μπαίνουν όποτε θέλετε.</p>
+                <div class="card">
+                  <div class="two">
+                    <div class="field"><label>Όνομα</label><div class="input filled">Αύρα</div></div>
+                    <div class="field"><label>Τύπος</label><div class="input filled">Ιστιοπλοϊκό</div></div>
+                  </div>
+                  <div class="two">
+                    <div class="field"><label>Μέγιστοι επιβάτες</label><div class="input filled mono">30</div><span class="hint">Όπως το πιστοποιητικό. Κανένα σημείο του Kaiki δεν το ξεπερνά.</span></div>
+                    <div class="field"><label>Λιμάνι βάσης</label><div class="input">Προαιρετικό</div></div>
+                  </div>
+                </div>
+                <div class="foot">
+                  <span class="btn ghost">Αργότερα αυτό το βήμα</span>
+                  <div class="right"><span class="btn sec">← Πίσω</span><span class="btn pri">Συνέχεια →</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="phone" aria-hidden="true">
+          <div class="pscreen">
+            <div class="ptop">Πρώτη ρύθμιση</div>
+            <div class="pbody">
+              <div class="rail">
+                <div class="st done"><span class="n">✓</span><b></b></div><span class="ln"></span>
+                <div class="st on"><span class="n">5</span><b>Σκάφος</b></div><span class="ln"></span>
+                <div class="st"><span class="n">6</span><b></b></div><span class="ln"></span>
+                <div class="st"><span class="n">7</span><b></b></div>
+              </div>
+              <h4>Ποιο είναι το πρώτο σας σκάφος;</h4>
+              <div class="field"><label>Όνομα</label><div class="input filled">Αύρα</div></div>
+              <div class="field"><label>Μέγιστοι επιβάτες</label><div class="input filled mono">30</div></div>
+              <span class="btn pri" style="width:100%">Συνέχεια →</span>
+              <span class="btn ghost" style="width:100%">Θα το κάνω αργότερα</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:14px">
+        <b>Τι σημαίνει «κλειστό το panel»:</b> όποια διεύθυνση κι αν δοκιμάσει ο διοργανωτής — <span class="mono">/app</span>,
+        <span class="mono">/app/bookings</span>, ένα bookmark — γυρίζει εδώ, μέχρι να τελειώσει ή να πατήσει «Θα το κάνω
+        αργότερα». Εξαιρέσεις: αποσύνδεση και αλλαγή γλώσσας.
+      </div>
+      <div class="note">
+        <b>Και όταν το προσπεράσει:</b> το panel ανοίγει κανονικά και η «Πρώτη ρύθμιση» μένει πρώτη στο μενού
+        με το πορτοκαλί σήμα — όπως τώρα. Δεν ξαναμπαίνει μπροστά του μόνη της.
+      </div>
+    </div>
+
+    <!-- B -->
+    <div class="dir" data-set="setup" data-dir="b" hidden>
+      <div class="shot">
+        <div class="bar"><i></i><i></i><i></i><span class="url">127.0.0.1:8000/app/setup</span></div>
+        <div class="full solo">
+          <div class="top">
+            <span class="logo">Kaiki</span>
+            <span class="right"><span class="btn sec btn-sm">Θα το κάνω αργότερα</span></span>
+          </div>
+          <div class="mid">
+            <div style="display:grid;gap:14px">
+              <div class="rail">
+                <div class="st done"><span class="n">✓</span><b></b></div><span class="ln"></span>
+                <div class="st done"><span class="n">✓</span><b></b></div><span class="ln"></span>
+                <div class="st done"><span class="n">✓</span><b></b></div><span class="ln"></span>
+                <div class="st done"><span class="n">✓</span><b></b></div><span class="ln"></span>
+                <div class="st on"><span class="n">5</span><b>Το πρώτο σκάφος</b></div><span class="ln"></span>
+                <div class="st"><span class="n">6</span><b></b></div><span class="ln"></span>
+                <div class="st"><span class="n">7</span><b></b></div>
+              </div>
+              <h3>Ποιο είναι το πρώτο σας σκάφος;</h3>
+              <p class="sub">Όνομα, τύπος και πόσους επιβάτες παίρνει. Τα υπόλοιπα όποτε θέλετε.</p>
+              <div class="card">
+                <div class="field"><label>Όνομα</label><div class="input filled">Αύρα</div></div>
+                <div class="two">
+                  <div class="field"><label>Τύπος</label><div class="input filled">Ιστιοπλοϊκό</div></div>
+                  <div class="field"><label>Μέγιστοι επιβάτες</label><div class="input filled mono">30</div></div>
+                </div>
+              </div>
+              <div class="foot">
+                <span class="btn ghost">Αργότερα αυτό το βήμα</span>
+                <div class="right"><span class="btn sec">← Πίσω</span><span class="btn pri">Συνέχεια →</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        Πιο ήσυχη οθόνη, αλλά ο διοργανωτής δεν βλέπει ούτε πόσα μένουν ούτε τι είναι — και στο βήμα «Περίοδοι»
+        αυτό μετράει, γιατί είναι το βήμα που οι περισσότεροι θα προσπεράσουν.
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3. decisions ===================== -->
+  <section class="decide" aria-labelledby="s3">
+    <h2 class="sec" id="s3">Τι χρειάζομαι από εσένα</h2>
+    <ol>
+      <li>Κατεύθυνση για τη νέα εκδρομή: Α, Β ή Γ.
+        <span>Προτείνω την <strong>Α</strong>. Η Β είναι πιο γρήγορη αλλά αφήνει τον νέο διοργανωτή πάλι μπροστά στις πέντε καρτέλες· η Γ είναι σωστή για τον πρώτο και κουραστική για τον δέκατο.</span>
+      </li>
+      <li>Κατεύθυνση για την πρώτη ρύθμιση: Α ή Β.
+        <span>Προτείνω την <strong>Α</strong> — η λίστα δίπλα είναι το μόνο πράγμα που λέει «είναι επτά, όχι άπειρα».</span>
+      </li>
+      <li>Το «Θα το κάνω αργότερα» τι ακριβώς κάνει;
+        <span>Η πρότασή μου: κλείνει τον οδηγό <em>για πάντα</em> ως εμπόδιο, τον αφήνει στο μενού, και δεν ξαναφράζει το panel. Η εναλλακτική — να ξαναρωτάει σε μία εβδομάδα — γίνεται γκρίνια.</span>
+      </li>
+      <li>Ο νέος διοργανωτής μπαίνει πρώτη φορά και δεν έχει κάνει τίποτα. Πού προσγειώνεται;
+        <span>Στον οδηγό, ή στην αρχική με τον οδηγό ως κάρτα; Το πρώτο είναι αυτό που περιέγραψες· το δεύτερο είναι πιο ήπιο για κάποιον που μπήκε απλώς να δει.</span>
+      </li>
+    </ol>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  function wire(set) {
+    var picks = document.querySelectorAll('.pick[data-set="' + set + '"]');
+    var dirs = document.querySelectorAll('.dir[data-set="' + set + '"]');
+
+    function show(dir) {
+      picks.forEach(function (p) { p.setAttribute('aria-pressed', String(p.dataset.dir === dir)); });
+      dirs.forEach(function (d) { d.hidden = d.dataset.dir !== dir; });
+      try { localStorage.setItem('kaiki-wizard-' + set, dir); } catch (e) {}
+    }
+
+    picks.forEach(function (p) { p.addEventListener('click', function () { show(p.dataset.dir); }); });
+
+    try {
+      var saved = localStorage.getItem('kaiki-wizard-' + set);
+      if (saved) { show(saved); }
+    } catch (e) {}
+  }
+
+  wire('trip');
+  wire('setup');
+})();
+</script>

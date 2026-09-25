@@ -13,7 +13,7 @@
     @php($results = $this->contrastResults())
 
     <section
-        class="fi-section rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+        class="fi-section rounded-xl bg-white p-4 shadow-sm sm:p-6 ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
         aria-labelledby="branding-contrast-heading"
     >
         <h2

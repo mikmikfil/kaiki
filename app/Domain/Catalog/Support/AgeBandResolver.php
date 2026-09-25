@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain\Catalog\Support;
 
+use App\Domain\Availability\Support\PartyGuard;
+use App\Domain\Booking\Actions\RemoveGuestsFromBooking;
 use App\Domain\Pricing\Support\RefundCalculator;
 use App\Models\AgeBand;
 use Illuminate\Support\Collection;
@@ -45,7 +47,10 @@ final class AgeBandResolver
      */
     public static function forAge(iterable $bands, int $age): ?AgeBand
     {
-        $matches = self::collect($bands)->filter(fn (AgeBand $band): bool => $band->covers($age));
+        // A group by status covers every age, so it is never the answer to
+        // "which band is a nine-year-old": an import or an OTA passes an age,
+        // and that says nothing about a student card.
+        $matches = self::collect($bands)->filter(fn (AgeBand $band): bool => ! $band->isByStatus() && $band->covers($age));
 
         if ($matches->isEmpty()) {
             return null;
@@ -106,6 +111,61 @@ final class AgeBandResolver
     public static function totalPersons(array $paxByCode): int
     {
         return array_sum(array_map(static fn (int $count): int => max(0, $count), $paxByCode));
+    }
+
+    /**
+     * AVL-26b: a party of minors with nobody to travel with.
+     *
+     * `requires_adult` is an operator's promise on the trip form — «Χρειάζεται
+     * συνοδό ενήλικα» — and until this existed it was a promise nothing kept.
+     * The flag was read in exactly one place, when an operator *removed* guests
+     * from a booking, and never when a guest made one: two children and no
+     * adult could be booked and paid for, and the operator found out at
+     * boarding.
+     *
+     * ## Who counts as the escort
+     *
+     * Anyone in a band that does not itself need one **and** takes a seat. Not
+     * `is_base`, which anchors the price and answers a different question: an
+     * operator with an «Άνω των 65» band priced on its own terms has an adult
+     * who is not the base band, and refusing a grandmother travelling with her
+     * grandchild would be both wrong and inexplicable to her.
+     *
+     * The seat is the other half. A band that needs no adult and consumes no
+     * seat is an infant somebody mis-flagged, not a chaperone.
+     *
+     * One definition, because {@see PartyGuard}
+     * and {@see RemoveGuestsFromBooking} both ask
+     * it, and a party the checkout accepted that the operator's own screen then
+     * calls illegal is the product contradicting itself.
+     *
+     * @param  iterable<AgeBand>  $bands
+     * @param  array<string, int>  $paxByCode
+     */
+    public static function escortMissing(iterable $bands, array $paxByCode): bool
+    {
+        $needsEscort = false;
+        $escorts = 0;
+
+        foreach (self::collect($bands) as $band) {
+            $count = max(0, $paxByCode[$band->code] ?? 0);
+
+            if ($count < 1) {
+                continue;
+            }
+
+            if ($band->requires_adult) {
+                $needsEscort = true;
+
+                continue;
+            }
+
+            if ($band->counts_toward_capacity) {
+                $escorts += $count;
+            }
+        }
+
+        return $needsEscort && $escorts < 1;
     }
 
     /**

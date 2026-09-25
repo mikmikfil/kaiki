@@ -37,6 +37,10 @@
 
     @if (! empty($brand['font']['css_url']))
         <link rel="stylesheet" href="{{ $brand['font']['css_url'] }}">
+    @else
+        {{-- Inter, same-origin, the same files as the operator's site (2026-09-24). --}}
+        <link rel="preload" href="/fonts/inter/inter-greek-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+        <link rel="preload" href="/fonts/inter/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
     @endif
 
     {{-- The operator's own icon, else Kaiki's rather than none (2026-09-17). --}}
@@ -44,6 +48,8 @@
 
 
     <style>
+        @include('partials.inter-font-face')
+
         :root {
             @foreach ($colors as $name => $value)
                 {{ $name }}: {{ $value }};
@@ -69,7 +75,10 @@
             margin: 0;
             background: var(--kaiki-background, #f1f3f6);
             color: var(--kaiki-text, #14202b);
-            font-family: var(--kaiki-font-family, system-ui), system-ui, -apple-system, sans-serif;
+            /* The operator's face, then Inter (now actually loaded), then the
+               system's. It was system-ui straight after the brand's family,
+               so a brand that said «Inter» without installing it got Segoe UI. */
+            font-family: var(--kaiki-font-family, Inter), Inter, "Helvetica Neue", Arial, sans-serif;
             font-size: 16px;
             line-height: 1.55;
             -webkit-font-smoothing: antialiased;
@@ -79,7 +88,7 @@
            facts strip and the footer cannot drift apart by a percent of black. */
         :root { --hair: rgba(15, 32, 43, .10); }
 
-        .wrap { max-width: 40rem; margin: 0 auto; padding: 1.25rem 1rem 4rem; }
+        .wrap { max-width: 40rem; margin: 0 auto; padding: 2rem 1rem 5rem; }
 
         @media (max-width: 42rem) {
             /* On a phone the sheet is the page: no grey margin either side of
@@ -97,7 +106,7 @@
            booking page puts its sections into two columns, and they are still
            sections. The last one in a column keeps no rule, so a column does
            not end on a line that divides it from nothing. */
-        .sheet section { padding: 1.1rem 1.15rem; border-bottom: 1px solid var(--hair); }
+        .sheet section { padding: 1.35rem 1.4rem; border-bottom: 1px solid var(--hair); }
         .sheet section:last-child { border-bottom: 0; }
 
         /* ---- the booking page on a wide screen (2026-09-18) --------------
@@ -212,9 +221,26 @@
         /* Checkout is the one guest page with two things to show at once — what
            you are paying for, and the form that pays for it — so it gets a
            wider measure than the pages that are a single column of facts. */
-        .wrap.wide { max-width: 62rem; }
+        .wrap.wide { max-width: 66rem; }
 
-        .checkout-grid { display: grid; gap: 1.25rem; }
+        /* **Το περιθώριο ανήκει στο πλέγμα, όχι στις ενότητες** (2026-09-23).
+           Κατεύθυνση Α: οι ενότητες έγιναν φύλλο και έχασαν το οριζόντιο
+           padding τους — που ήταν όμως το **μόνο** περιθώριο της σελίδας, αφού
+           το `.wrap` δεν έχει δικό του.
+           Έτσι, ανάμεσα στα 896px και τα 1056px — όπου το `.wrap` πιάνει όλη
+           την οθόνη χωρίς ακόμη να έχει φτάσει το `max-width` του — το ταμείο
+           κολλούσε και στις δύο άκρες. Στα 390px φαινόταν σωστό, γιατί εκεί το
+           padding της κάρτας υπήρχε ακόμη· το βρήκε ο Mike, όχι η μέτρησή μου.
+           Ένα περιθώριο, στο πλέγμα, σε κάθε πλάτος. */
+        .checkout-grid { display: grid; gap: 1.6rem; padding-inline: 1.4rem; }
+
+        /* Και οι ενότητες δεν βάζουν δεύτερο από μέσα, σε κανένα πλάτος. */
+        .checkout-grid .card { padding-inline: 0; }
+
+        /* Η `.trip-photo` έφυγε μαζί με τη φωτογραφία στην κορυφή του ταμείου
+           (Mike, 2026-09-23: ντεγκραντέ, όχι εικόνα). Καμία σελίδα του
+           επισκέπτη δεν έγραφε πια αυτή την κλάση, και κανόνες που δεν τους
+           καλεί κανείς είναι ακριβώς ό,τι ψάχναμε όλη μέρα να βγάλουμε. */
 
         /* ---- the order a phone reads this in ---------------------------
 
@@ -242,7 +268,7 @@
 
         /* The cancellation sentence, under the price and above the button. Not
            a card of its own — it is part of what the button commits to. */
-        .policy { margin-block-start: 1rem; }
+        .policy { margin-block-start: 1.4rem; }
 
         .policy h3 {
             margin: 0 0 .25rem;
@@ -296,8 +322,8 @@
 
         @media (min-width: 56rem) {
             .checkout-grid {
-                grid-template-columns: minmax(0, 1fr) 23rem;
-                gap: 1.5rem;
+                grid-template-columns: minmax(0, 1fr) 24rem;
+                gap: 2.25rem;
                 align-items: start;
             }
 
@@ -306,14 +332,37 @@
                wide screen without a second copy of the markup. */
             .checkout-main { order: 1; }
             .checkout-side { order: 2; position: sticky; top: 1rem; }
+
         }
 
+        /* ---- the masthead (2026-09-22) ----------------------------------
+           Shaped like the hosted site's: the mark or the logo, the name with
+           the town under it, and on the right a telephone that dials and the
+           two languages. Taller than the old strip on purpose — it is the
+           first thing on the page and it should look like the operator. */
         header.brand {
-            display: flex; align-items: center; gap: .6rem;
-            padding: .85rem 1.15rem; border-bottom: 1px solid var(--hair);
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 1rem; flex-wrap: wrap;
+            padding: .95rem 1.15rem; border-bottom: 1px solid var(--hair);
         }
-        header.brand img { max-height: 34px; width: auto; }
-        header.brand .name { font-weight: 700; font-size: .95rem; }
+        header.brand .who { display: flex; align-items: center; gap: .7rem; min-width: 0; }
+        header.brand img { max-height: 42px; width: auto; }
+        header.brand .mark {
+            width: 2.4rem; height: 2.4rem; flex: none; border-radius: 11px;
+            display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 1.1rem;
+            background: var(--kaiki-primary, #123a5e);
+        }
+        header.brand .text { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+        header.brand .name { font-weight: 800; font-size: 1.05rem; letter-spacing: -.02em; }
+        header.brand .tag { font-size: .75rem; color: #6b7a89; margin-top: .15rem; }
+
+        header.brand .aside { display: flex; align-items: center; gap: .9rem; margin-left: auto; }
+        header.brand .phone { font-weight: 600; font-size: .9rem; color: var(--kaiki-primary, #123a5e); }
+        header.brand .langs { display: flex; gap: .2rem; }
+        header.brand .langs a {
+            padding: .2rem .45rem; border-radius: 6px; font-size: .8rem; font-weight: 600; color: #6b7a89;
+        }
+        header.brand .langs a[aria-current="true"] { background: #eef3f9; color: var(--kaiki-primary, #123a5e); }
 
         /* `.card` keeps its name because four of the five pages are written in
            it — but it is no longer a card. It is a section of the sheet,
@@ -323,26 +372,44 @@
             border: 0;
             border-bottom: 1px solid var(--hair);
             border-radius: 0;
-            padding: 1.1rem 1.15rem;
+            padding: 1.35rem 1.4rem;
             margin: 0;
         }
 
         .card:last-child { border-bottom: 0; }
 
-        /* Inside the checkout's two columns a card is a box again: a sticky
-           price panel beside a form needs an edge of its own to sit in. */
-        .checkout-grid .card {
-            border: 1px solid var(--hair);
-            border-radius: var(--kaiki-radius, 8px);
-            background: #fff;
-        }
+        /* **Ήσυχες γραμμές** — κατεύθυνση Α των μακετών (Mike, 2026-09-23,
+           https://claude.ai/artifact/FtgPVNxXNxxijExizrNKxU).
 
-        h1 { font-size: 1.5rem; line-height: 1.18; margin: 0 0 .35rem; letter-spacing: -.01em; }
-        h2 { font-size: 1.05rem; margin: 0 0 .6rem; }
+           Μέσα στις δύο στήλες του ταμείου μια ενότητα ήταν πάλι κουτί: δικό
+           της περίγραμμα, δική της γωνία, δικό της λευκό. Οι υπόλοιπες σελίδες
+           του επισκέπτη είναι ήδη ένα φύλλο χωρισμένο με λεπτές γραμμές, οπότε
+           το ταμείο ήταν η εξαίρεση — και είναι η σελίδα όπου τα κουτιά
+           κοστίζουν περισσότερο, γιατί εκεί ο επισκέπτης πληρώνει.
+
+           Δεν προστίθεται τίποτα εδώ πια: η `.card` από πάνω δίνει ήδη διάφανο
+           φόντο και μια λεπτή γραμμή από κάτω, και το περιθώριο το κρατά το
+           `.checkout-grid` παραπάνω. */
+
+        /* Η τελευταία ενότητα κάθε στήλης δεν κρεμάει γραμμή στο κενό. Δύο
+           επιλογείς και όχι ένας, γιατί οι δύο στήλες τελειώνουν σε
+           διαφορετικά σημεία. */
+        .checkout-grid .checkout-main > .card:last-child,
+        .checkout-grid .checkout-side > .card:last-child { border-bottom: 0; }
+
+        h1 { font-size: 1.6rem; line-height: 1.18; margin: 0 0 .5rem; letter-spacing: -.01em; }
+        h2 { font-size: 1.08rem; margin: 0 0 .8rem; }
+
+        /* A heading in the middle of the form — «Οι ερωτήσεις μας», «Επιβάτες»
+           — starts a new subject, so it is given the space to say so. The first
+           one does not: it is the top of the card and already has the card's
+           padding above it. */
+        .checkout-main h2 { margin-block-start: 2.1rem; }
+        .checkout-main h2:first-of-type { margin-block-start: 0; }
 
         .muted { color: rgba(0, 0, 0, .6); font-size: .92rem; }
 
-        dl.rows { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: .35rem .75rem; }
+        dl.rows { margin: 0; display: grid; grid-template-columns: 1fr auto; gap: .5rem .9rem; }
         dl.rows dt { color: rgba(0, 0, 0, .6); }
         dl.rows dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -416,7 +483,7 @@
         /* The consent row. `input { width: 100% }` above is right for text
            fields and wrong for a checkbox, which was stretching to the width of
            the card with its label orphaned underneath. */
-        .consent { margin: 1rem 0 1.25rem; }
+        .consent { margin: 1.6rem 0 .25rem; }
 
         .consent label {
             display: flex; align-items: flex-start; gap: .6rem;
@@ -432,6 +499,67 @@
         }
 
         .field-error { margin: .3rem 0 0; font-size: .85rem; color: #a8321f; }
+
+        /* ---- floating labels, on the checkout only (Mike, 2026-09-22) ----
+
+           The label starts inside the field and rises out of the way once there
+           is something in it. Two things come of that: a field is one line of
+           the page instead of two, so a form of fifteen questions is fifteen
+           lines shorter — which is most of the air this page was asked for —
+           and the name of what you typed stays on screen while you type it,
+           which a placeholder-only form loses.
+
+           No script, and no second set of markup. `:placeholder-shown` is what
+           tells an empty text field from a filled one, which is why every input
+           below carries `placeholder=" "`: it is never seen, and it is what
+           makes the selector work. `:has()` does the rest — a `<select>` shows
+           its first option and a date input shows dd/mm/yyyy from the moment
+           it is drawn, so neither can ever look empty and both keep their label
+           floated for good.
+
+           `:has()` is the same feature this page already depends on for the
+           passport expiry, so it is not a new bet. A browser without it shows
+           the label over the top of the field's first line — ugly for a version
+           of Safari nobody is on any more, not broken. */
+        .checkout-grid .field { position: relative; margin: 0 0 .9rem; }
+
+        .checkout-grid .field > label {
+            position: absolute;
+            inset-inline-start: .75rem;
+            inset-block-start: .8rem;
+            margin: 0;
+            max-width: calc(100% - 1.5rem);
+            overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+            font-size: .95rem; font-weight: 500;
+            color: rgba(15, 32, 43, .55);
+            transform-origin: left top;
+            transition: transform .12s ease-out, color .12s ease-out;
+            /* The press has to reach the field under it; the label is still the
+               field's name to a screen reader, through `for`. */
+            pointer-events: none;
+        }
+
+        /* Room for the label above the value. */
+        .checkout-grid .field > input,
+        .checkout-grid .field > select,
+        .checkout-grid .field > textarea,
+        .checkout-grid .field .discount-row input { padding-block: 1.4rem .5rem; }
+
+        .checkout-grid .field > textarea { min-height: 5.5rem; }
+
+        .checkout-grid .field:focus-within > label,
+        .checkout-grid .field:has(input:not(:placeholder-shown)) > label,
+        .checkout-grid .field:has(textarea:not(:placeholder-shown)) > label,
+        .checkout-grid .field:has(select) > label,
+        .checkout-grid .field:has(input[type="date"]) > label {
+            transform: translateY(-.6rem) scale(.76);
+            color: rgba(15, 32, 43, .62);
+        }
+
+        .checkout-grid .field:focus-within > label { color: var(--kaiki-primary, #123a5e); }
+
+        .checkout-grid .field .field-error { margin-block-start: .35rem; }
+
 
         /* One folded panel per passenger, so a manifest of eight is a list the
            length of the party rather than twenty-four fields in a column. */
@@ -480,7 +608,10 @@
         /* «Κουπόνι» beside the price (2026-09-17). */
         .discount-form { margin-top: 1rem; }
         .discount-row { display: flex; gap: .5rem; }
-        .discount-row input { flex: 1; text-transform: uppercase; }
+        /* No text-transform (I18N-2, and the guest pages' own rule): the code
+           is matched through DiscountCode::normalise(), so it may be typed in
+           any case and is shown as typed. */
+        .discount-row input { flex: 1; }
         .btn-quiet { background: transparent; color: inherit; border: 1px solid rgba(0, 0, 0, .2); width: auto; }
         /* The operator's checkout questions (2026-09-17). */
         .trip-question .question-label { margin: .9rem 0 .35rem; font-weight: 600; }
@@ -493,7 +624,7 @@
 
         /* The pay button sits in the summary column and submits the form in the
            other one, so it needs its own top margin rather than the form's. */
-        .btn.pay { margin-top: 1.1rem; }
+        .btn.pay { margin-top: 1.4rem; padding-block: .95rem; }
 
         /* Padlock, mark, sentence. Boxed and set apart from the price above it,
            because the job of this block is to look like the part of the page
@@ -553,17 +684,273 @@
            back to the email to find out who to ring. */
         footer.brand .contact { display: flex; flex-wrap: wrap; gap: .3rem .9rem; }
         footer.brand a { color: var(--kaiki-primary, #123a5e); font-weight: 600; }
+
+        /* ================================================================
+           ΤΟ ΤΑΜΕΙΟ: κατεύθυνση Α — «Ταινία»
+           (Mike, 2026-09-23, https://claude.ai/artifact/RSFfLYRH1R212KQDRb3BeG,
+           «header footer να ειναι full screen»)
+           ================================================================
+
+           Η κεφαλίδα και το υποσέλιδο κόβονταν στο max-width του .wrap, οπότε
+           σε μεγάλη οθόνη το ταμείο ήταν μια στήλη στη μέση με γκρι δεξιά κι
+           αριστερά — η σελίδα όπου ο επισκέπτης πληρώνει έμοιαζε στενότερη από
+           τη σελίδα της εκδρομής απ' όπου ήρθε.
+
+           Αντί να βγουν οι δύο ταινίες έξω από το .wrap — που θα άλλαζε τη δομή
+           και των πέντε σελίδων του επισκέπτη — το .wrap ανοίγει σε όλο το
+           πλάτος και το ΠΕΡΙΕΧΟΜΕΝΟ κρατά το όριο. Μία γραμμή το κάνει:
+
+               padding-inline: max(1.4rem, calc((100% - 66rem) / 2))
+
+           σε στενή οθόνη δίνει το περιθώριο του κινητού, σε πλατιά κεντράρει
+           στα 66rem. Καμία media query, κανένα δεύτερο max-width να ξεφύγει
+           από το πρώτο. */
+        .wrap.full-bleed { max-width: none; padding: 0; }
+        .wrap.full-bleed > .sheet { border: 0; border-radius: 0; box-shadow: none; }
+
+        .wrap.full-bleed > .sheet > header.brand,
+        .wrap.full-bleed > .sheet > footer.brand,
+        .wrap.full-bleed .checkout-hero > .inner,
+        .wrap.full-bleed .checkout-grid,
+        .wrap.full-bleed .back-to-site {
+            padding-inline: max(1.4rem, calc((100% - 66rem) / 2));
+        }
+
+        /* Η ταινία της κεφαλίδας, στο χρώμα του πλοιοκτήτη. Σκούρα και όχι
+           λευκή: είναι η κορυφή της σελίδας και πρέπει να μοιάζει με εκείνον,
+           όχι με φόρμα. */
+        .wrap.full-bleed > .sheet > header.brand {
+            background: var(--kaiki-primary, #123a5e);
+            color: #fff;
+            border-bottom: 0;
+            padding-block: 1rem;
+        }
+
+        .wrap.full-bleed > .sheet > header.brand .mark { background: #fff; color: var(--kaiki-primary, #123a5e); }
+        .wrap.full-bleed > .sheet > header.brand .tag { color: rgba(255, 255, 255, .72); }
+        .wrap.full-bleed > .sheet > header.brand .phone { color: #fff; }
+        .wrap.full-bleed > .sheet > header.brand .langs a { color: rgba(255, 255, 255, .72); }
+        .wrap.full-bleed > .sheet > header.brand .langs a[aria-current="true"] { background: #fff; color: var(--kaiki-primary, #123a5e); }
+
+        /* **Χρώμα, όχι φωτογραφία** (Mike, 2026-09-23: *«θέλω να υπάρχει κάτι
+           στάνταρ στο header image εκεί πάνω· ίσως ένα απλό χρώμα, ένα
+           ντεγκραντέ; όχι εικόνα»*).
+
+           Πρώτα δοκιμάστηκε με τη φωτογραφία της εκδρομής. Δύο πράγματα δεν
+           δούλευαν: οι μισές εκδρομές δεν έχουν φωτογραφία, οπότε η σελίδα είχε
+           δύο όψεις και η μία ήταν ένα σκούρο μπλοκ με 130 νεκρά pixel· και μια
+           φωτογραφία στην κορυφή της σελίδας πληρωμής πουλάει κάτι που έχει ήδη
+           αγοραστεί.
+
+           Το ντεγκραντέ βγαίνει από το ίδιο το χρώμα του πλοιοκτήτη με
+           `color-mix`, οπότε είναι το ίδιο σε κάθε εκδρομή και διαφορετικό σε
+           κάθε λογαριασμό — χωρίς δεύτερη ρύθμιση να συμπληρώσει κανείς. Η
+           διαγώνιος είναι ό,τι χρειάζεται για να μη διαβάζεται ως συνέχεια της
+           κεφαλίδας από πάνω· η λεπτή γραμμή κάνει το υπόλοιπο. */
+        .checkout-hero {
+            position: relative;
+            display: flex; align-items: flex-end;
+            color: #fff;
+            border-top: 1px solid rgba(255, 255, 255, .14);
+            background:
+                linear-gradient(
+                    118deg,
+                    color-mix(in srgb, var(--kaiki-primary, #123a5e) 88%, #0a1620) 0%,
+                    color-mix(in srgb, var(--kaiki-primary, #123a5e) 62%, #0a1620) 46%,
+                    color-mix(in srgb, var(--kaiki-primary, #123a5e) 92%, #000) 100%
+                );
+        }
+
+        /* Πιο ψηλή ταινία απ' όσο χρειάζεται το κείμενο (Mike, 2026-09-23:
+           *«λίγο πιο πολύ padding πάνω κάτω»*): σφιχτή γύρω από δύο γραμμές
+           διάβαζε σαν μπάρα συστήματος και όχι σαν η κορυφή της σελίδας. */
+        .checkout-hero > .inner {
+            position: relative; z-index: 1;
+            width: 100%;
+            padding-block: 2rem 2.15rem;
+        }
+
+        .checkout-hero .reference {
+            margin: 0 0 .25rem;
+            font-size: .72rem; letter-spacing: .09em;
+            color: rgba(255, 255, 255, .88);
+        }
+
+        .checkout-hero h1 {
+            margin: 0;
+            font-size: 1.45rem; line-height: 1.16;
+            color: #fff;
+            text-wrap: balance;
+        }
+
+        @media (min-width: 56rem) {
+            .checkout-hero > .inner { padding-block: 2.7rem 2.9rem; }
+            .checkout-hero h1 { font-size: 1.9rem; }
+        }
+
+        .wrap.full-bleed .back-to-site { padding-block: .8rem 0; margin: 0; }
+
+        /* Πιο σφιχτό από το 1.6rem που είχε: οι ενότητες χωρίζονται ήδη με
+           λεπτή γραμμή και το δικό τους padding, οπότε το κενό του πλέγματος
+           προστίθεται σε ό,τι υπάρχει ήδη και άνοιγε τρύπα ανάμεσα σε μια
+           γραμμή και την επόμενη επικεφαλίδα. */
+        .wrap.full-bleed .checkout-grid { padding-block: 1.2rem 0; gap: 1rem; }
+
+        /* Η ταινία του υποσέλιδου, ίδια λογική με την κεφαλίδα. */
+        .wrap.full-bleed > .sheet > footer.brand {
+            background: var(--kaiki-primary, #123a5e);
+            color: rgba(255, 255, 255, .72);
+            padding-block: 1.25rem 1.45rem;
+            margin-block-start: 2rem;
+        }
+
+        .wrap.full-bleed > .sheet > footer.brand a { color: #fff; }
+
+        /* Η γραμμή πληρωμής στον πάτο, μόνο σε κινητό.
+
+           Το κουμπί ήταν στο τέλος της πλαϊνής στήλης, δηλαδή μετά από μια
+           οθόνη κύλισης· ο επισκέπτης που είχε συμπληρώσει τα στοιχεία του
+           έπρεπε να ψάξει τι πατάει. Η μπάρα δείχνει το ποσό και το κουμπί
+           μόνιμα, και υποβάλλει την ίδια φόρμα με το form= — χωρίς δεύτερο
+           αντίγραφο της φόρμας και χωρίς script, που αυτή η σελίδα δεν έχει.
+
+           Το κουμπί μέσα στη στήλη κρύβεται όταν υπάρχει η μπάρα: δύο ορατά
+           κουμπιά πληρωμής είναι δύο ερωτήσεις. */
+        .pay-dock { display: none; }
+
+        @media (max-width: 55.99rem) {
+            .pay-dock {
+                display: flex; align-items: center; gap: .9rem;
+                position: fixed; inset-inline: 0; bottom: 0; z-index: 30;
+                background: #fff;
+                border-top: 1px solid var(--hair);
+                padding: .7rem 1.4rem calc(.85rem + env(safe-area-inset-bottom, 0px));
+                box-shadow: 0 -6px 20px rgba(10, 22, 32, .07);
+            }
+
+            .pay-dock .amount { flex: none; line-height: 1.1; }
+            .pay-dock .amount .label { display: block; font-size: .7rem; color: rgba(15, 32, 43, .55); }
+            .pay-dock .amount .value { display: block; font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+            .pay-dock .btn { flex: 1 1 auto; margin: 0; }
+
+            /* Χώρος από κάτω, αλλιώς η μπάρα σκεπάζει το υποσέλιδο. */
+            .wrap.full-bleed > .sheet > footer.brand { padding-bottom: calc(5.6rem + env(safe-area-inset-bottom, 0px)); }
+
+            .checkout-grid .btn.pay { display: none; }
+        }
+
+        /* ==================================================================
+           The guest pages on the operator's site's type system (Mike,
+           2026-09-24; docs/mockups/typo/index.html). Same steps, same greys,
+           same link rule as the hosted pages:
+             caption 13 · small 15 · body 16 · title 18 · h1 24→32
+           Greys: #4A5D5A for secondary text, #5F716E for labels — the three
+           translucent blacks (.55 at 3.8:1, .6, .62) are gone. Links in the
+           accent at 600, never the browser's #0000EE. Every solid button in the
+           accent, as on the site.
+           ================================================================== */
+        :root { --g-soft: #4A5D5A; --g-faint: #5F716E; --g-deep: #0E2D49; }
+        a { color: var(--kaiki-accent, var(--kaiki-primary, #123a5e)); font-weight: 600; }
+        button, input, select, textarea { font-family: inherit; }
+
+        h1 { font-size: clamp(1.5rem, 2.3vw, 2rem); font-weight: 700; line-height: 1.15; letter-spacing: -.02em; color: var(--g-deep); }
+        .checkout-hero h1 { font-size: clamp(1.5rem, 2.3vw, 2rem); font-weight: 700; letter-spacing: -.02em; }
+        @media (min-width: 56rem) { .checkout-hero h1 { font-size: 2rem; } }
+        h2 { font-size: 1.125rem; font-weight: 700; letter-spacing: -.012em; color: var(--g-deep); }
+        .policy h3, .checkout-side h3 { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; color: var(--g-soft); }
+
+        .label { font-size: .8125rem; letter-spacing: .02em; color: var(--g-faint); }
+        .kicker { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; color: var(--g-faint); }
+        .checkout-hero .reference { font-size: .8125rem; font-weight: 600; letter-spacing: .02em; color: rgba(255, 255, 255, .78); }
+        .facts > div > span { font-size: .8125rem; color: var(--g-soft); }
+        .facts > div > b { font-size: 1.125rem; }
+        .muted { font-size: .9375rem; color: var(--g-soft); }
+        dl.rows dt { color: var(--g-soft); }
+        details.passenger .passenger-name { color: var(--g-soft); }
+        details.passenger .passenger-band { font-size: .8125rem; }
+        header.brand .tag { font-size: .8125rem; color: var(--g-faint); }
+        .pass .code { font-size: .8125rem; letter-spacing: .02em; color: var(--g-faint); }
+        .checkout-grid .field > label { color: var(--g-faint); }
+        .checkout-grid .field:has(input:not(:placeholder-shown)) > label,
+        .checkout-grid .field:has(textarea:not(:placeholder-shown)) > label,
+        .checkout-grid .field:has(select) > label,
+        .checkout-grid .field:has(input[type="date"]) > label { color: var(--g-faint); }
+        .checkout-grid .field:focus-within > label { color: var(--kaiki-primary, #123a5e); }
+
+        label, .consent label, details.passenger > summary, .back-to-site, header.brand .phone, .pay-brand { font-size: .9375rem; }
+        .checkout-grid .field > label { font-size: .9375rem; }
+        header.brand .langs a, footer.brand { font-size: .8125rem; }
+
+        .btn { background: var(--kaiki-accent, var(--kaiki-primary, #0b3d91)); }
+        .btn.secondary { background: #fff; }
+        .btn.danger, .btn-quiet { background: transparent; }
+        @media (max-width: 55.99rem) {
+            .pay-dock .amount .label { font-size: .8125rem; color: var(--g-faint); }
+            .pay-dock .amount .value { font-weight: 700; }
+        }
     </style>
 </head>
 <body>
-<div class="wrap @if ($wide ?? false) wide @endif @if ($wideBooking ?? false) wide-booking @endif">
+{{-- `full-bleed` is the checkout's alone (Mike, 2026-09-23): it drops the
+     wrapper's own width so the masthead and the footer span the screen, and
+     hands the width limit to the content instead. Every other guest page keeps
+     the sheet it has. --}}
+<div class="wrap @if ($wide ?? false) wide @endif @if ($wideBooking ?? false) wide-booking @endif @if ($fullBleed ?? false) full-bleed @endif">
     <div class="sheet">
+        {{--
+            The masthead the rest of the operator's site wears (product owner,
+            2026-09-22: the checkout «είναι χάλια» next to the trip page).
+
+            It was the operator's name in small bold type on a hairline — a
+            different product from the page the guest was reading a minute
+            earlier. The same three things the hosted header carries: who they
+            are, a telephone that dials, and the language.
+
+            No navigation, and that is the one deliberate difference. A menu on
+            a page somebody is paying on is an invitation to leave it.
+        --}}
         <header class="brand">
-            @if (! empty($brand['logo']['light_url']))
-                <img src="{{ $brand['logo']['light_url'] }}" alt="{{ $tenantName }}">
-            @else
-                <span class="name">{{ $tenantName }}</span>
-            @endif
+            <div class="who">
+                @if (! empty($brand['logo']['light_url']))
+                    <img src="{{ $brand['logo']['light_url'] }}" alt="{{ $tenantName }}">
+                @else
+                    {{-- The operator who never uploaded a logo gets a mark in
+                         their own colour, exactly as on their site. --}}
+                    <span class="mark" aria-hidden="true">{{ mb_substr($tenantName, 0, 1) }}</span>
+                @endif
+
+                <span class="text">
+                    <span class="name">{{ $tenantName }}</span>
+                    @if (! empty($brand['tenant']['city']))
+                        <span class="tag">{{ $brand['tenant']['city'] }}</span>
+                    @endif
+                </span>
+            </div>
+
+            <div class="aside">
+                @if (! empty($brand['tenant']['support_phone']))
+                    <a class="phone" href="tel:{{ preg_replace('/[^0-9+]/', '', (string) $brand['tenant']['support_phone']) }}">
+                        {{ $brand['tenant']['support_phone'] }}
+                    </a>
+                @endif
+
+                {{-- `?lang=` is first in the I18N-5 chain, so this switches the
+                     page without a second route or any state of its own.
+
+                     **Off where the page must reveal nothing** (TOK-4): these
+                     links carry the current address, and on a token page the
+                     address is the token. See `link-not-valid`. --}}
+                @if ($languages ?? true)
+                    <span class="langs">
+                        @foreach (\App\Support\Locale\LocaleResolver::installed() as $code)
+                            <a
+                                href="{{ request()->fullUrlWithQuery(['lang' => $code]) }}"
+                                @if (app()->getLocale() === $code) aria-current="true" @endif
+                            >{{ __('enums.locale.' . $code . '.short') }}</a>
+                        @endforeach
+                    </span>
+                @endif
+            </div>
         </header>
 
         @yield('content')

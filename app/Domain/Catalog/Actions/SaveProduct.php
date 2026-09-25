@@ -31,16 +31,17 @@ use Traversable;
  *
  * §2.3: *"a `per_seat` product that becomes `per_vessel` would invalidate every
  * departure and every price snapshot's meaning."* Not a database constraint —
- * the database cannot see `bookings` from here, and that table does not exist
- * until M2.
+ * the database cannot see `bookings` from here.
  *
- * So the guard ships against {@see ProductBookingCount}, an interface with
- * **no implementation registered today**. It correctly refuses nothing,
- * because nothing can yet hold a booking; M2 adds one class and one `tag()`
- * line, and the refusal, its message and its test are already built. Exactly
- * the shape #16 used for `GuardVesselCapacity`, and for the same reason:
- * writing the guard when the table arrives means writing it under time pressure
- * in a milestone that is already the largest.
+ * So the guard asks {@see ProductBookingCount}. M1 registered no implementation
+ * of it and refused nothing, correctly: the refusal, its message and its tests
+ * were built first and proven against a fake, the shape #16 used for
+ * `GuardVesselCapacity`. **M2 filled it** —
+ * `App\Domain\Booking\Support\BookingProductCount`, tagged in
+ * `BookingServiceProvider` rather than beside this Action, because the
+ * catalogue asks the question and must not know that `bookings` is where the
+ * answer comes from. Any booking that is not `expired` or `cancelled` now locks
+ * the mode.
  *
  * ## CAT-15 is a gate here, and a checklist in the panel
  *

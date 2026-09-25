@@ -16,6 +16,18 @@ declare(strict_types=1);
 return [
 
     'schedule_rule' => [
+        'crew' => [
+            'section' => 'Captain and crew',
+            'intro' => 'For every departure of this schedule. One day is changed from the departure itself.',
+            'overlap' => ':name is already on «:trip» (:boat, :time) on one day at the same time.|:name is already on «:trip» (:boat, :time) on :count days at the same time.',
+            'mail' => [
+                'subject' => 'You are on the crew: :trip, :days :time',
+                'subject_captain' => 'You are the captain: :trip, :days :time',
+                'body' => 'Hello :name, :operator has put you on the crew of «:trip», :days at :time, from :from.',
+                'body_captain' => 'Hello :name, :operator has made you the captain of «:trip», :days at :time, from :from.',
+                'action' => 'The calendar',
+            ],
+        ],
         'nav' => 'Schedules',
 
         'model' => [
@@ -51,7 +63,20 @@ return [
             'start_times' => [
                 'label' => 'Departure times',
                 'help' => 'Local time. Add every time it leaves during the day. Each time becomes its own row, with the same days and dates.',
-                'add' => 'Add a time',
+                'add' => 'Add',
+                'chip' => 'Time',
+                'new' => 'New time',
+                'placeholder' => 'e.g. 14:30',
+                'remove' => 'Remove',
+                'invalid' => 'Type a time, e.g. 09:30.',
+                'duplicate' => ':time is already there.',
+                'none' => 'Add at least one time.',
+                'no_days' => 'Choose the days too.',
+                'summary' => ':count departures a week: :times × :days.',
+                'times_one' => ':n time',
+                'times_many' => ':n times',
+                'days_one' => ':n day',
+                'days_many' => ':n days',
             ],
             'valid_from' => ['label' => 'Valid from'],
             'valid_until' => [
@@ -61,11 +86,6 @@ return [
             'capacity_override' => [
                 'label' => 'Seats',
                 'help' => "Empty means whatever the trip says. Never above the vessel's certificate.",
-            ],
-            'generate_days_ahead' => [
-                'label' => 'Horizon',
-                'help' => 'How many days ahead departures are created.',
-                'suffix' => 'days',
             ],
             'is_active' => [
                 'label' => 'Active',
@@ -102,7 +122,7 @@ return [
 
         // On the trip, in its «Schedule» tab (2026-09-17).
         'on_product' => [
-            'title' => 'When it runs',
+            'title' => 'Schedules',
             'help' => 'Each row repeats: days, time, and from when until when. The departures guests book are made from these.',
             'add' => 'New schedule',
             'other' => 'Boat, seats and on/off',
@@ -114,7 +134,15 @@ return [
             'not_per_seat' => 'Schedules only apply to trips sold per seat. This trip is ":mode" and is booked as a whole boat, so it has no scheduled departures.',
             'empty_mask' => 'Choose at least one day. To stop the schedule, switch off "Active" instead.',
             'inverted_window' => 'The end date cannot be before the start.',
+            'duplicate' => 'There is already an active schedule at :time on one of these days. Two identical schedules do not make a second departure: change the time or the days, or edit the one you have.',
             'unknown_vessel' => 'That vessel was not found.',
+        ],
+
+        // A warning, not a refusal (AVL-11): the boat is already committed to
+        // another trip at the same hours.
+        'conflict' => [
+            'title' => 'The boat is already out then',
+            'body' => '“:trip” sails on the same boat on :date at :time. We are not stopping you: two trips on one boat at the same hour are allowed, and the bookings decide. Just so you know.',
         ],
     ],
 
@@ -198,7 +226,31 @@ return [
             'plural' => 'Departures',
         ],
 
+        'crew' => [
+            'intro' => 'Who takes her out today. Printed on the passenger list.',
+            'no_email' => 'no email · tell them yourself',
+            'captain' => ['label' => 'Captain', 'help' => 'Empty: the boat’s usual captain (:boat).'],
+            'from_rule' => 'From the schedule. A change here applies to this departure only.',
+            'captain_name' => ['label' => 'Or the captain’s name', 'help' => 'If they have no Kaiki account.'],
+            'members' => ['label' => 'Crew', 'help' => 'Those of your people sailing with it.'],
+            'validation' => ['not_ours' => 'Someone you chose does not belong to your business.', 'overlap' => ':name is already on «:trip» (:boat, :time), at the same time.'],
+            'mail' => [
+                'subject' => 'You are on the crew: :date, :time',
+                'subject_captain' => 'You are the captain: :date, :time',
+                'heading' => 'You are on the crew',
+                'heading_captain' => 'You are the captain',
+                'body' => 'Hello :name, :operator has put you on the crew of «:trip» with :boat, :date at :time. Captain: :captain.',
+                'body_captain' => 'Hello :name, :operator has made you the captain of «:trip» with :boat, :date at :time.',
+                'action' => 'Open the departure',
+            ],
+            'reminder' => [
+                'subject' => 'Tomorrow :time: :trip',
+                'body' => 'Tomorrow :date at :time, «:trip» with :boat from :port. Captain: :captain. Passengers so far: :pax.',
+                'body_captain' => 'Tomorrow :date at :time you are the captain of «:trip» with :boat from :port. Passengers so far: :pax.',
+            ],
+        ],
         'sections' => [
+            'crew' => 'Captain and crew',
             'what' => 'Which trip, and when',
             'seats' => 'Seats',
             'notes' => 'Notes',
@@ -229,6 +281,10 @@ return [
         ],
 
         'table' => [
+            'captain' => 'Captain',
+            'usual' => 'usual',
+            'no_captain' => 'No captain',
+            'mine' => 'Mine',
             'product' => 'Trip',
             'local_date' => 'Date',
             'local_time' => 'Time',
@@ -241,6 +297,7 @@ return [
             'manual' => 'Manual',
             'generated' => 'From a schedule',
             'dst_ambiguous' => 'Clocks change',
+            'from_today' => 'From today',
         ],
 
         'validation' => [

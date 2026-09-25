@@ -1,0 +1,73 @@
+/*
+ * The few things this booklet has that the manual does not.
+ *
+ * Everything else — the page, the cover, figures, notes, tables — comes from
+ * `docs/manual/manual.css`, which is inlined before this file. Nothing here
+ * redefines one of its rules; it only adds.
+ */
+
+/* A numbered step heading: «3 · Πότε φεύγει». The number is part of the text
+   rather than a counter, so a step can be moved without renumbering CSS. */
+.ka-step .n {
+    display: inline-block;
+    min-width: 7.5mm;
+    margin-inline-end: 2.5mm;
+    padding: 0.4mm 1.8mm;
+    border-radius: 2mm;
+    background: var(--hull-deep, #14314a);
+    color: #fff;
+    font-size: 0.62em;
+    font-weight: 700;
+    text-align: center;
+    vertical-align: 0.18em;
+}
+
+/* Field, then what it is for. A table would give two columns of equal weight;
+   these are a name and a sentence, and the sentence is the part that is read. */
+dl.ka-fields {
+    margin: 0 0 4mm;
+}
+
+dl.ka-fields dt {
+    font-weight: 700;
+    color: var(--hull-deep, #14314a);
+    margin-top: 2.6mm;
+}
+
+dl.ka-fields dd {
+    margin: 0.6mm 0 0;
+    padding-inline-start: 0;
+}
+
+dl.ka-fields dt:first-child {
+    margin-top: 0;
+}
+
+/* The name of a button or a tab, quoted the way the screen spells it. */
+.ui {
+    font-weight: 600;
+    color: var(--hull-deep, #14314a);
+    white-space: nowrap;
+}
+
+/* Two figures side by side, where the pair is the point — a before and an
+   after. Each is half the text column, which at 160mm is still readable. */
+.ka-pair {
+    display: flex;
+    gap: 4mm;
+    break-inside: avoid;
+}
+
+.ka-pair figure {
+    flex: 1 1 0;
+    margin-bottom: 3mm;
+}
+
+/* The last page's «where to look next», quieter than a note box. */
+.ka-end {
+    margin-top: 6mm;
+    padding-top: 3mm;
+    border-top: 0.4mm solid #d9e2e6;
+    color: #4a5c66;
+    font-size: 0.94em;
+}

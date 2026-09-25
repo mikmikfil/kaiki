@@ -52,6 +52,7 @@ return [
     'guest' => [
         'unnamed' => 'Name not supplied yet',
         'checked_in_at' => 'Aboard at :time',
+        'proof' => 'Ask for proof: :group',
         'no_show' => 'No-show',
     ],
 
@@ -59,7 +60,7 @@ return [
         'check_in' => 'Check in',
         'undo' => 'Undo',
         'mark_no_show' => 'Mark no-show',
-        'clear_no_show' => 'Clear no-show',
+        'clear_no_show' => 'Undo',
 
         'override' => [
             'label' => 'Check in early',

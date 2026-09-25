@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { ApiClient } from '../src/api-client';
-import { BookingApi, isSoldOut } from '../src/booking/api';
+import { BookingApi, isPartyRefused, isSoldOut, refusalMessage } from '../src/booking/api';
 import { pollForConfirmation } from '../src/booking/confirmation';
 import { holdState, WARN_AT_MS } from '../src/booking/countdown';
 import { draftFingerprint, IdempotencyKeys } from '../src/booking/idempotency';
@@ -175,6 +175,54 @@ describe('the sold-out refusal', () => {
 
     // AVL-39: one attempt. A write is never retried, and least of all this one.
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('the party refusal', () => {
+  it('is recognised by either party code, and by nothing else', () => {
+    expect(isPartyRefused({ code: 'needs_adult', status: 422 })).toBe(true);
+    expect(isPartyRefused({ code: 'no_counted_pax', status: 422 })).toBe(true);
+    // Another 422 is a different conversation, and "add an adult" is not the
+    // answer to a malformed body.
+    expect(isPartyRefused({ code: 'validation_failed', status: 422 })).toBe(false);
+    expect(isPartyRefused(new Error('boom'))).toBe(false);
+  });
+
+  it('carries the server sentence through, in the locale that was asked for', async () => {
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        jsonResponse(
+          {
+            error: {
+              code: 'needs_adult',
+              message: 'Σε αυτή την εκδρομή τα παιδιά ταξιδεύουν με συνοδό ενήλικα.',
+              message_el: 'Σε αυτή την εκδρομή τα παιδιά ταξιδεύουν με συνοδό ενήλικα.',
+            },
+          },
+          422,
+        ),
+      ),
+    );
+
+    const client = new ApiClient('https://api.kaiki.app/api/v1', 'pk_test', fetchMock as unknown as typeof fetch);
+    const api = new BookingApi(client);
+
+    const error = await api.createDraft(state(), 'product-uuid', 'el').catch((thrown: unknown) => thrown);
+
+    expect(isPartyRefused(error)).toBe(true);
+    // The whole point of carrying it: the guest reads why, rather than
+    // «κάτι πήγε στραβά».
+    expect(refusalMessage(error)).toBe('Σε αυτή την εκδρομή τα παιδιά ταξιδεύουν με συνοδό ενήλικα.');
+    // A 4xx is the server saying the request is wrong, and asking twice more
+    // does not make it right.
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('has no sentence when the server sent none, and says so with null', () => {
+    // A proxy's HTML 502 has no envelope, and a widget rendering an empty alert
+    // would be showing a guest a blank red box.
+    expect(refusalMessage({ code: 'needs_adult', detail: null })).toBeNull();
+    expect(refusalMessage({ code: 'needs_adult', detail: '  ' })).toBeNull();
   });
 });
 

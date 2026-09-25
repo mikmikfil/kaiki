@@ -13,6 +13,7 @@ use App\Support\Pdf\ChromiumPdf;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Traits\Localizable;
 
 /**
  * The PDF a guest shows at the quay (spec BKG-13.1, ENV-20, SEC-14).
@@ -56,6 +57,8 @@ use Illuminate\Support\Facades\Storage;
  */
 final class GenerateETicket
 {
+    use Localizable;
+
     /** @return string the stored path */
     public function __invoke(Booking $booking): string
     {
@@ -63,19 +66,7 @@ final class GenerateETicket
         ManifestRows::ensure($booking);
         $booking->unsetRelation('guests');
 
-        $booking->loadMissing(['guests', 'product.meetingPoint', 'vessel']);
-
-        $tenant = Tenant::query()->find($booking->tenant_id);
-
-        $html = view('pdf.e-ticket', [
-            'booking' => $booking,
-            'brand' => $this->brand($tenant, $booking),
-            // BKG-20 as amended: an operator who boards from the passenger list
-            // gets a ticket with no square on it that nothing would ever scan.
-            'qr' => $tenant?->usesQrCheckIn() ?? true,
-        ])->render();
-
-        $pdf = $this->render($html);
+        $pdf = $this->render($this->html($booking));
 
         $disk = $this->disk();
         $path = $this->pathFor($booking);
@@ -92,6 +83,30 @@ final class GenerateETicket
         ])->save();
 
         return $path;
+    }
+
+    /**
+     * The ticket's markup, before Chromium turns it into a PDF.
+     *
+     * In the guest's language throughout (2026-09-23). The labels already asked
+     * for `$booking->locale`, but a translatable column — the trip's title, the
+     * meeting point's name — answers in the *app's* locale, and the queued
+     * listener that makes this runs in `APP_LOCALE` (English): a Greek ticket
+     * said «Morning swim cruise» at «Zea Marina».
+     */
+    public function html(Booking $booking): string
+    {
+        $booking->loadMissing(['guests', 'product.meetingPoint', 'vessel']);
+
+        $tenant = Tenant::query()->find($booking->tenant_id);
+
+        return $this->withLocale((string) ($booking->locale ?: app()->getLocale()), fn (): string => view('pdf.e-ticket', [
+            'booking' => $booking,
+            'brand' => $this->brand($tenant, $booking),
+            // BKG-20 as amended: an operator who boards from the passenger list
+            // gets a ticket with no square on it that nothing would ever scan.
+            'qr' => $tenant?->usesQrCheckIn() ?? true,
+        ])->render());
     }
 
     /**

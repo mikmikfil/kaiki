@@ -156,14 +156,20 @@ final class CalendarDay
     }
 
     /**
-     * @return array{kind: string, uuid: string, label: string, detail: string|null, start: float, end: float, buffer: float, pax: int|null, capacity: int|null, cancelled: bool, reason: string|null}
+     * @return array{kind: string, uuid: string, label: string, detail: string|null, start: float, end: float, buffer: float, pax: int|null, capacity: int|null, cancelled: bool, reason: string|null, captain: string|null}
      */
     private static function departureBar(Departure $departure, LocalDay $day, int $minutes, int $buffer): array
     {
         return [
             'kind' => 'departure',
             'uuid' => $departure->uuid,
-            'label' => (string) $departure->product->title,
+            // The `??` is load-bearing, not decoration. `VesselCalendar` loads
+            // trashed trips so an archived one keeps its name, but this class
+            // renders inside the panel layout — reading `title` off a null trip
+            // here costs the operator every page, not this one bar, which is
+            // exactly what it cost them on 2026-09-23. A departure with no trip
+            // left at all is drawn as an occupied slot rather than a 500.
+            'label' => (string) ($departure->product->title ?? __('calendar.trip_gone')),
             'detail' => $departure->local_time,
             'start' => self::fraction($departure->starts_at_utc, $day, $minutes),
             'end' => self::fraction($departure->ends_at_utc, $day, $minutes),
@@ -175,11 +181,14 @@ final class CalendarDay
             // operator wants to see that it *was* cancelled.
             'cancelled' => $departure->status === DepartureStatus::Cancelled,
             'reason' => null,
+            // Who takes her out (2026-09-24): the departure's, the schedule's
+            // copy on it, or the boat's usual captain.
+            'captain' => $departure->captainName(),
         ];
     }
 
     /**
-     * @return array{kind: string, uuid: string, label: string, detail: string|null, start: float, end: float, buffer: float, pax: int|null, capacity: int|null, cancelled: bool, reason: string|null}
+     * @return array{kind: string, uuid: string, label: string, detail: string|null, start: float, end: float, buffer: float, pax: int|null, capacity: int|null, cancelled: bool, reason: string|null, captain: string|null}
      */
     private static function blockBar(VesselBlock $block, LocalDay $day, int $minutes, int $buffer): array
     {
@@ -195,6 +204,7 @@ final class CalendarDay
             'capacity' => null,
             'cancelled' => false,
             'reason' => $block->reason->value,
+            'captain' => null,
         ];
     }
 

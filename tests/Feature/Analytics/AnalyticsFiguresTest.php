@@ -421,3 +421,108 @@ it('reads a range given backwards as the range somebody meant', function (): voi
     expect($range->startLocalDate)->toBe('2026-08-01')
         ->and($range->endLocalDate)->toBe('2026-08-31');
 })->group('fast');
+
+/*
+|--------------------------------------------------------------------------
+| The two charts of 22 September
+|--------------------------------------------------------------------------
+|
+| «Ποιες μέρες ταξιδεύουν» and «Πόσο νωρίς κλείνουν». Both fold rows in PHP
+| rather than in the database — weekday extraction and date arithmetic are
+| where SQLite and MySQL disagree — so both are worth a test that counts by
+| hand.
+|
+*/
+
+it('folds the sailings into a week, Monday first, keeping the quiet days', function (): void {
+    [$tenant, $figures] = analytics();
+
+    Tenancy::forTenant($tenant, function (): void {
+        // 2026-08-01 is a Saturday; 2026-08-03 a Monday.
+        Booking::factory()->create([
+            'status' => BookingStatus::Confirmed,
+            'pax_total' => 4,
+            'local_date' => '2026-08-01',
+        ]);
+
+        Booking::factory()->create([
+            'status' => BookingStatus::Completed,
+            'pax_total' => 2,
+            'local_date' => '2026-08-08',
+        ]);
+
+        Booking::factory()->create([
+            'status' => BookingStatus::Confirmed,
+            'pax_total' => 3,
+            'local_date' => '2026-08-03',
+        ]);
+
+        // A cancelled one is not a sailing.
+        Booking::factory()->create([
+            'status' => BookingStatus::Cancelled,
+            'pax_total' => 9,
+            'local_date' => '2026-08-03',
+        ]);
+    });
+
+    $week = Tenancy::forTenant($tenant, fn (): array => $figures->byWeekday(august()));
+
+    expect($week)->toHaveCount(7)
+        ->and($week[0]['weekday'])->toBe(1)
+        // Monday: the one booking of three people.
+        ->and($week[0]['pax'])->toBe(3)
+        ->and($week[0]['bookings'])->toBe(1)
+        // Tuesday to Friday: nobody, and still four rows.
+        ->and($week[1]['pax'])->toBe(0)
+        ->and($week[4]['pax'])->toBe(0)
+        // Saturday: the two of them, folded.
+        ->and($week[5]['weekday'])->toBe(6)
+        ->and($week[5]['pax'])->toBe(6)
+        ->and($week[5]['bookings'])->toBe(2);
+})->group('fast');
+
+it('sorts bookings by how long before the sailing they were made', function (): void {
+    [$tenant, $figures] = analytics();
+
+    Tenancy::forTenant($tenant, function (): void {
+        // Made on 10 August (Athens), sailing the same day.
+        Booking::factory()->create([
+            'status' => BookingStatus::Confirmed,
+            'created_at' => Carbon::parse('2026-08-10 06:00:00', 'UTC'),
+            'local_date' => '2026-08-10',
+        ]);
+
+        // Two days ahead.
+        Booking::factory()->create([
+            'status' => BookingStatus::Confirmed,
+            'created_at' => Carbon::parse('2026-08-10 06:00:00', 'UTC'),
+            'local_date' => '2026-08-12',
+        ]);
+
+        // Six weeks ahead.
+        Booking::factory()->create([
+            'status' => BookingStatus::Confirmed,
+            'created_at' => Carbon::parse('2026-08-10 06:00:00', 'UTC'),
+            'local_date' => '2026-09-25',
+        ]);
+
+        // Booked at 01:00 Athens for that same Athens day: 22:00 the previous
+        // day in UTC. Same day for the operator, and yesterday for a naive
+        // conversion — the reason the timezone is applied before the subtraction.
+        Booking::factory()->create([
+            'status' => BookingStatus::Confirmed,
+            'created_at' => Carbon::parse('2026-08-11 22:00:00', 'UTC'),
+            'local_date' => '2026-08-12',
+        ]);
+    });
+
+    $lead = Tenancy::forTenant($tenant, fn (): array => $figures->leadTime(august()));
+
+    $counts = array_column($lead, 'bookings', 'bucket');
+
+    expect($counts['same_day'])->toBe(2)
+        ->and($counts['two_days'])->toBe(1)
+        ->and($counts['week'])->toBe(0)
+        ->and($counts['month'])->toBe(0)
+        ->and($counts['earlier'])->toBe(1);
+})->group('fast');

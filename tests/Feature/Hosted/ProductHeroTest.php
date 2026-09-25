@@ -40,7 +40,15 @@ function heroPage(string $slug, int $photographs, array $attributes = []): strin
     return (string) get(TripPage::url($tenant, $product, 'en'))->assertOk()->getContent();
 }
 
-it('opens with the way back, the title, the standfirst, the chips and the mosaic, in that order', function (): void {
+it('opens with the way back, the title and the mosaic, then the standfirst and chips beside the booking box', function (): void {
+    // Reordered 2026-09-23 (Mike): *«τίτλος μικρότερος και μένει πάνω από τις
+    // φωτογραφίες, υπότιτλος και εικονίδια από κάτω»*, then *«το box με το
+    // booking να ξεκινάει από πιο πάνω, από το ύψος του υπότιτλου»*.
+    //
+    // It used to be title → standfirst → chips → mosaic, all inside the hero,
+    // with the two columns starting below all of it. Now the hero ends at the
+    // photographs and the standfirst opens the left column — which is what puts
+    // the booking box level with it.
     $body = heroPage('hero-order', 5, ['default_start_time' => '09:30:00']);
 
     // Searched from the hero onwards: the summary is also in `<meta
@@ -54,10 +62,10 @@ it('opens with the way back, the title, the standfirst, the chips and the mosaic
             'class="crumbs"',
             __('hosted.product.all_trips', [], 'en'),
             '<h1>Sunset cruise</h1>',
-            'Three hours in the Saronic.',
-            'class="facts"',
             'class="mosaic mosaic-5"',
             'class="product-body"',
+            'Three hours in the Saronic.',
+            'class="facts"',
         ],
     );
 

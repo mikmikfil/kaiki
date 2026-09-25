@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\Channels\Support\ChannelManagerFlag;
 use App\Enums\AuditAction;
 use App\Enums\HostedSiteMode;
 use App\Enums\Plan;
@@ -228,24 +229,78 @@ it('refuses a slug the hosted router would never match', function (): void {
         ->assertHasFormErrors(['slug']);
 })->group('fast');
 
-it('offers no way to delete a merchant', function (): void {
-    // Asserted rather than trusted to the absence of a page. Filament allows an
+it('deletes a merchant softly, and never any other way', function (): void {
+    // Asserted rather than trusted to the absence of a page: Filament allows an
     // action when no policy forbids it, so "we did not build a form" is not the
-    // same as "it is refused" — the next person to scaffold a resource would
-    // get one for free.
+    // same as "it is refused".
     //
-    // `create` and `update` **are** allowed since 2026-09-09 — the audit trail
-    // SEC-16 needs was built by #53, and onboarding had to exist somewhere or
-    // no customer could be taken on at all. Deleting stays refused: it is a
-    // retention decision, not a button (GDR, ADR-0012).
+    // The **soft** delete is allowed from 2026-09-22 (product owner: «add
+    // option to delete merchant on admin»). The row stays, every `tenant_id`
+    // still points at it, and what changes is that the resolvers stop finding
+    // it. `forceDelete` stays refused: that one cascades across the schema and
+    // belongs to the erasure tooling (GDR, ADR-0012).
     $tenant = Tenant::factory()->create();
     $admin = superAdmin();
 
-    expect($admin->can('delete', $tenant))->toBeFalse()
-        ->and($admin->can('forceDelete', $tenant))->toBeFalse()
-        ->and($admin->can('restore', $tenant))->toBeFalse();
+    expect($admin->can('delete', $tenant))->toBeTrue()
+        ->and($admin->can('restore', $tenant))->toBeTrue()
+        ->and($admin->can('forceDelete', $tenant))->toBeFalse();
 
     expect(array_keys(TenantResource::getPages()))->toBe(['index', 'create', 'edit']);
+})->group('fast');
+
+it('asks for the merchant name and a reason before deleting, and records both', function (): void {
+    $tenant = Tenant::factory()->create(['name' => 'Aegean Blue Cruises']);
+    $admin = superAdmin();
+
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    // A confirmation dialog is a thing people click through, so the name has to
+    // be typed out — and a near miss is not a match.
+    Livewire::actingAs($admin)
+        ->test(EditTenant::class, ['record' => $tenant->getRouteKey()])
+        ->callAction('deleteMerchant', ['confirmName' => 'Aegean Blue', 'reason' => 'Σταμάτησαν τη συνδρομή.'])
+        ->assertHasActionErrors(['confirmName']);
+
+    expect($tenant->refresh()->trashed())->toBeFalse();
+
+    Livewire::actingAs($admin)
+        ->test(EditTenant::class, ['record' => $tenant->getRouteKey()])
+        ->callAction('deleteMerchant', ['confirmName' => 'Aegean Blue Cruises', 'reason' => 'Σταμάτησαν τη συνδρομή.'])
+        ->assertHasNoActionErrors();
+
+    expect($tenant->refresh()->trashed())->toBeTrue();
+
+    // Into the operator's own trail: the answer to "who closed us down, and
+    // when?" has to be one they can read when they come back.
+    Tenancy::forTenant($tenant, function (): void {
+        $entry = AuditLog::query()->where('action', AuditAction::TenantUpdated->value)->latest('id')->sole();
+
+        expect($entry->context)->toHaveKey('deleted', true)
+            ->and($entry->reason)->toBe('Σταμάτησαν τη συνδρομή.');
+    });
+})->group('fast');
+
+it('takes a deleted merchant off the air, and gives them back on restore', function (): void {
+    $tenant = Tenant::factory()->create(['slug' => 'aegean-blue']);
+    $admin = superAdmin();
+
+    $tenant->delete();
+
+    // The whole point of the soft delete: every resolver reads through the
+    // default scope, so while a merchant is deleted nothing finds them — not
+    // their hosted slug, not their API keys, not their staff's session.
+    expect(Tenant::query()->where('slug', 'aegean-blue')->exists())->toBeFalse()
+        ->and(Tenant::withTrashed()->where('slug', 'aegean-blue')->exists())->toBeTrue();
+
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    Livewire::actingAs($admin)
+        ->test(EditTenant::class, ['record' => $tenant->getRouteKey()])
+        ->callAction('restoreMerchant', ['reason' => 'Λάθος μου, επιστροφή.'])
+        ->assertHasNoActionErrors();
+
+    expect(Tenant::query()->where('slug', 'aegean-blue')->exists())->toBeTrue();
 })->group('fast');
 
 it('lets a super-admin view and edit', function (): void {
@@ -348,6 +403,82 @@ it('lets the platform decide which pages an operator gets, with a reason, in the
         expect($entry->context)->toMatchArray([
             'hosted_site_mode_from' => 'full',
             'hosted_site_mode_to' => 'bookings_only',
+        ]);
+    });
+})->group('fast');
+
+it('keeps every audited switch on the form after the tabs went in', function (): void {
+    // The reorganisation of 2026-09-21 moved nine controls into four groups and
+    // a separate tab. A field that fell out in the move would stop being
+    // settable without anything failing — the column keeps its value, the audit
+    // list keeps its name, and only an operator noticing months later would
+    // find out. So the form is checked against `AUDITED` itself.
+    ChannelManagerFlag::open();
+
+    $page = editTenantPage(superAdmin(), Tenant::factory()->create());
+
+    foreach (['plan', 'status', 'vertical', 'is_sandbox', 'subscription_ends_at', 'check_in_enabled', 'qr_check_in_enabled', 'hosted_site_mode', 'extra_person_pricing_enabled', 'sms_enabled', 'setup_guide_enabled', 'getyourguide_enabled'] as $field) {
+        $page->assertFormFieldExists($field);
+    }
+})->group('fast');
+
+it('tells you which lock is shut instead of showing an empty channels tab', function (): void {
+    // An empty tab reads as a broken screen. This one says which lock is closed
+    // and who can open it, which is the question somebody standing here has.
+    //
+    // Asserted on the rendered text rather than with `assertFormFieldExists`,
+    // which requires a `Field` — a `Placeholder` is not one, and the notice is
+    // deliberately not a control.
+    expect(ChannelManagerFlag::isOpen())->toBeFalse();
+
+    editTenantPage(superAdmin(), Tenant::factory()->create())
+        // The command is the same string in both locales, which is the point of
+        // asserting on it: the test does not depend on which language the panel
+        // happened to render in.
+        ->assertSee('channels:manager open')
+        ->assertFormFieldIsHidden('getyourguide_enabled');
+})->group('fast');
+
+it('hides the platform-lock notice once the channel is open', function (): void {
+    ChannelManagerFlag::open();
+
+    editTenantPage(superAdmin(), Tenant::factory()->create())
+        ->assertDontSee('channels:manager open')
+        ->assertFormFieldExists('getyourguide_enabled');
+})->group('fast');
+
+it('hides the GetYourGuide switch until the platform has opened the channel', function (): void {
+    // ADR-0034 ships the code months before GetYourGuide certifies it. Hidden
+    // rather than disabled, for the reason the QR toggle is: a greyed-out
+    // control invites somebody to wonder which switch wins, and this one is
+    // opened from a console by whoever holds the certification email.
+    expect(ChannelManagerFlag::isOpen())->toBeFalse();
+
+    editTenantPage(superAdmin(), Tenant::factory()->create())
+        ->assertFormFieldIsHidden('getyourguide_enabled');
+})->group('fast');
+
+it('records switching an operator onto GetYourGuide, with a reason, in their own trail', function (): void {
+    ChannelManagerFlag::open();
+
+    $tenant = Tenant::factory()->create(['getyourguide_enabled' => false]);
+
+    editTenantPage(superAdmin(), $tenant)
+        ->fillForm(['getyourguide_enabled' => true])
+        ->callAction('save', ['auditReason' => 'Υπέγραψε σύμβαση με το GetYourGuide.'])
+        ->assertHasNoErrors();
+
+    expect($tenant->fresh()?->usesGetYourGuide())->toBeTrue();
+
+    Tenancy::forTenant($tenant, function (): void {
+        $entry = AuditLog::query()->where('action', AuditAction::TenantUpdated->value)->sole();
+
+        // The switch is in `AUDITED`, so the diff carries it. A change that
+        // starts offering somebody's seats on a third-party marketplace is
+        // exactly what the trail exists for.
+        expect($entry->context)->toMatchArray([
+            'getyourguide_enabled_from' => false,
+            'getyourguide_enabled_to' => true,
         ]);
     });
 })->group('fast');
