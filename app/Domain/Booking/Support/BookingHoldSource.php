@@ -4,14 +4,19 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Support;
 
+use App\Domain\Availability\Actions\HoldSeats;
+use App\Domain\Availability\Contracts\BulkDeparturePersonsAboard;
 use App\Domain\Availability\Contracts\BulkVesselHoldSource;
 use App\Domain\Availability\Contracts\DepartureExpiredHolds;
 use App\Domain\Availability\Contracts\DeparturePersonsAboard;
 use App\Domain\Availability\Contracts\ExcludingVesselHoldSource;
 use App\Domain\Availability\Contracts\VesselHoldSource;
 use App\Domain\Availability\Support\Window;
+use App\Domain\Catalog\Contracts\VesselCapacityClaims;
+use App\Domain\Catalog\Data\CapacityClaim;
 use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
+use App\Enums\DepartureStatus;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Vessel;
@@ -59,10 +64,146 @@ use Illuminate\Support\Carbon;
  * different answers and different owners, which is why they are different
  * methods on different contracts.
  */
-final class BookingHoldSource implements BulkVesselHoldSource, DepartureExpiredHolds, DeparturePersonsAboard, ExcludingVesselHoldSource
+final class BookingHoldSource implements BulkDeparturePersonsAboard, BulkVesselHoldSource, DepartureExpiredHolds, ExcludingVesselHoldSource, VesselCapacityClaims
 {
+    /**
+     * {@see self::personsAboard()} for a range, in one grouped query — the
+     * calendar's read (NFR-7).
+     *
+     * @return array<int, int>
+     */
+    public function personsAboardMany(iterable $departures): array
+    {
+        $ids = [];
+
+        foreach ($departures as $departure) {
+            $ids[] = (int) $departure->getKey();
+        }
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $rows = Booking::query()
+            ->selectRaw('departure_id, SUM(pax_total) as persons')
+            ->whereIn('departure_id', $ids)
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereIn('status', self::committingStatuses())
+                    ->orWhere(fn (Builder $held): Builder => $this->scopeLiveHold($held));
+            })
+            ->groupBy('departure_id')
+            ->get();
+
+        $aboard = [];
+
+        foreach ($rows as $row) {
+            $aboard[(int) $row->getAttribute('departure_id')] = (int) $row->getAttribute('persons');
+        }
+
+        return $aboard;
+    }
+
+    /**
+     * The people already booked that a lower certificate would strand
+     * (data-model §2.3; 2026-09-25): every sailing still ahead of this boat
+     * whose headcount, infants included, is over `$newCapacity`, and every
+     * private charter on it with a party that size. The same sum
+     * {@see self::personsAboard()} gives the legal check, so the vessel form
+     * and the booking cannot disagree about who is aboard.
+     *
+     * A departure's `capacity` above the new number is not a claim: nobody is
+     * stranded by it, and {@see HoldSeats} refuses anyone past the
+     * certificate from then on.
+     *
+     * @return list<CapacityClaim>
+     */
+    public function exceeding(Vessel $vessel, int $newCapacity): array
+    {
+        $now = now();
+
+        /** @var list<CapacityClaim> $claims */
+        $claims = [];
+
+        $rows = Booking::query()
+            ->selectRaw('departure_id, SUM(pax_total) as persons')
+            ->whereIn('departure_id', Departure::query()
+                ->select('id')
+                ->where('vessel_id', $vessel->getKey())
+                ->where('starts_at_utc', '>', $now)
+                ->where('status', '!=', DepartureStatus::Cancelled->value))
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereIn('status', self::committingStatuses())
+                    ->orWhere(fn (Builder $held): Builder => $this->scopeLiveHold($held));
+            })
+            ->groupBy('departure_id')
+            ->havingRaw('SUM(pax_total) > ?', [$newCapacity])
+            ->get();
+
+        $departures = Departure::query()
+            ->with('product')
+            ->whereIn('id', $rows->pluck('departure_id')->all())
+            ->get()
+            ->keyBy('id');
+
+        foreach ($rows as $row) {
+            $departure = $departures->get((int) $row->getAttribute('departure_id'));
+
+            if ($departure instanceof Departure) {
+                $claims[] = new CapacityClaim(
+                    kind: 'departure',
+                    label: self::label($departure->product?->title, $departure->local_date, (string) $departure->local_time),
+                    pax: (int) $row->getAttribute('persons'),
+                    uuid: $departure->uuid,
+                );
+            }
+        }
+
+        $charters = Booking::query()
+            ->with('product')
+            ->where('vessel_id', $vessel->getKey())
+            ->whereNull('departure_id')
+            ->where('starts_at_utc', '>', $now)
+            ->where('pax_total', '>', $newCapacity)
+            ->where(function (Builder $query): void {
+                $query
+                    ->whereIn('status', self::committingStatuses())
+                    ->orWhere(fn (Builder $held): Builder => $this->scopeLiveHold($held));
+            })
+            ->get();
+
+        foreach ($charters as $booking) {
+            $claims[] = new CapacityClaim(
+                kind: 'booking',
+                label: self::label($booking->product?->title, $booking->local_date, (string) $booking->local_time) . ' · ' . $booking->reference,
+                pax: (int) $booking->pax_total,
+                uuid: $booking->uuid,
+            );
+        }
+
+        return $claims;
+    }
+
+    /** «Sunset cruise, Sat 14 Jun, 10:00», in the operator's language. */
+    private static function label(mixed $title, ?Carbon $date, string $time): string
+    {
+        $when = trim(($date?->translatedFormat('D j M') ?? '') . ', ' . substr($time, 0, 5), ', ');
+
+        return is_string($title) && $title !== '' ? "{$title}, {$when}" : $when;
+    }
+
     public function personsAboard(Departure $departure): int
     {
+        // Nothing sold and nothing held, nobody aboard, no query — the same
+        // bargain `hydrateExpiredHolds` makes for NFR-7's five-query budget,
+        // since the calendar asks this of every sailing that has room. Every
+        // booking that puts a person aboard takes a seat too: a party with no
+        // seat-taking passenger is refused at every door (AVL-26).
+        if ($departure->seats_sold === 0 && $departure->seats_held === 0) {
+            return 0;
+        }
+
         // Every person, counted and non-counted alike — `pax_total`, not
         // `pax_capacity_total`. That difference is the whole requirement.
         return (int) Booking::query()

@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Domain\Booking\Actions;
 
 use App\Domain\Availability\Actions\HoldSeats;
+use App\Domain\Availability\Actions\ReleaseHold;
 use App\Domain\Booking\Support\SeatCommitment;
 use App\Enums\BookingStatus;
 use App\Enums\CancelledBy;
 use App\Enums\CancelReason;
+use App\Enums\PaymentKind;
 use App\Enums\PaymentStatus;
+use App\Exceptions\CapacityExceeded;
 use App\Exceptions\HoldRefused;
+use App\Jobs\ExecuteGatewayRefund;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Payment;
@@ -54,6 +58,8 @@ final class ConfirmFromWebhook
         private readonly ComputeBalanceDueAt $computeBalanceDueAt,
         private readonly HoldSeats $holdSeats,
         private readonly CancelBooking $cancelBooking,
+        private readonly RecomputeBookingMoney $recomputeMoney,
+        private readonly RefundBooking $refundBooking,
     ) {}
 
     public function __invoke(Payment $payment, bool $succeeded): void
@@ -73,23 +79,62 @@ final class ConfirmFromWebhook
         $this->fail($payment, $booking);
     }
 
+    /**
+     * Money arrived. What it does depends on where the booking is **now**,
+     * which is not always where it was when the guest was sent to pay
+     * (2026-09-25):
+     *
+     * - **`confirmed`, `checked_in`, `completed`**: a balance, or a replay
+     *   (AVL-47). The payment is recorded and the money recomputed (PAY-10);
+     *   nothing transitions twice. Anything paid on top of the total goes back.
+     * - **`expired`**: the checkout lapsed while the guest was paying. The
+     *   booking is confirmed if its seats (or its boat) are still there, and
+     *   refunded in full if not.
+     * - **`cancelled`, `refunded`**: refunded in full.
+     * - **anything that can still be confirmed** is confirmed.
+     *
+     * Every refund here is written against the charge it reverses under
+     * {@see RefundBooking::LATE_KEY_PREFIX}, which is how «Χρειάζονται
+     * προσοχή» tells the operator, and how a replayed webhook knows the money
+     * already went back.
+     */
     private function succeed(Payment $payment, Booking $booking): void
     {
-        if ($booking->status === BookingStatus::Confirmed) {
-            // AVL-47. The payment is still marked succeeded — a replay may be
-            // the *first* delivery of a webhook whose predecessor confirmed the
-            // booking through another route — but nothing transitions twice.
-            $this->markPaid($payment);
-
+        if ($payment->kind === PaymentKind::Refund) {
             return;
         }
 
+        $booking->refresh();
+
+        match ($booking->status) {
+            BookingStatus::Confirmed, BookingStatus::CheckedIn, BookingStatus::Completed => $this->recordOnLiveBooking($payment, $booking),
+            BookingStatus::Expired => $this->recordAfterExpiry($payment, $booking),
+            BookingStatus::Cancelled, BookingStatus::Refunded => $this->recordOnEndedBooking($payment, $booking),
+            default => $this->confirm($payment, $booking),
+        };
+    }
+
+    private function confirm(Payment $payment, Booking $booking): void
+    {
         $this->markPaid($payment);
 
-        // `fromCheckout: true` — the seats moved into `seats_sold` at redirect
-        // (BKG-9), so confirmation must not take them again.
+        // `fromCheckout` only for `pending_payment`, whose seats moved into
+        // `seats_sold` at redirect (BKG-9) and must not be taken again. A
+        // draft — the one BKG-12 put back after a declined card, paid on a
+        // second try at the same order — holds its seats, or has lost them, and
+        // the ordinary path moves them or refuses (2026-09-25). Passing `true`
+        // for it confirmed a booking with no seats sold.
+        $fromCheckout = $booking->status === BookingStatus::PendingPayment;
+
         try {
-            $confirmed = ($this->confirmBooking)($booking->refresh(), fromCheckout: true);
+            $confirmed = ($this->confirmBooking)($booking->refresh(), fromCheckout: $fromCheckout);
+        } catch (CapacityExceeded) {
+            // The draft's hold had run out and the seats went to somebody else.
+            // Paid for and not there: expired, and the money goes back.
+            $this->expireDraft($booking);
+            $this->refundLate($payment, $booking, $payment->amount_cents);
+
+            return;
         } catch (HoldRefused $refused) {
             if ($refused->reason !== 'vessel_unavailable') {
                 throw $refused;
@@ -197,5 +242,191 @@ final class ConfirmFromWebhook
                 'hold_expires_at' => null,
             ])->save();
         }
+    }
+
+    /*
+    | The helpers below lock the booking alone, or all three in AVL-45's order,
+    | and sit after `fail()` so `LockDisciplineTest` still reads that order
+    | first: it checks where each lock first appears in the file.
+    */
+
+    /**
+     * A balance on a booking that is going ahead (or has sailed), or a replay.
+     *
+     * The status stays where it is; the money columns and the due date are
+     * recomputed from the rows under the booking's lock, so the guest is not
+     * offered the balance again and the reminders stop. Money on top of the
+     * total — an older tab paid after a newer one, cash taken while a card page
+     * was open — goes back, but only the first time this charge is recorded: a
+     * replay has nothing new to give back.
+     */
+    private function recordOnLiveBooking(Payment $payment, Booking $booking): void
+    {
+        $refund = DB::transaction(function () use ($payment, $booking): ?Payment {
+            /** @var Booking $locked */
+            $locked = Booking::query()->lockForUpdate()->findOrFail($booking->getKey());
+
+            $firstTime = $payment->refresh()->status !== PaymentStatus::Succeeded;
+
+            $this->markPaid($payment);
+            ($this->recomputeMoney)($locked);
+
+            if (! $firstTime) {
+                return null;
+            }
+
+            $surplus = Payment::paidCentsFor($locked->getKey()) - $locked->total_cents;
+
+            return $surplus > 0 ? $this->refundBooking->lateRefundRow($locked, $payment, $surplus) : null;
+        });
+
+        $this->send($refund);
+    }
+
+    /**
+     * Paid after the checkout lapsed (the sweeper got there first, or a
+     * declined card left nothing to hold again).
+     *
+     * Confirmed if it still can be — the sailing still on sale and in the
+     * future, the seats still there (taken afresh, never assumed), a charter's
+     * boat still free — and refunded in full if not. Not keyed on "first
+     * time": a retry after a crash between the two steps must still finish the
+     * job, and a charge already given back is what makes a replay a no-op.
+     */
+    private function recordAfterExpiry(Payment $payment, Booking $booking): void
+    {
+        if ($this->alreadyGivenBack($payment)) {
+            return;
+        }
+
+        DB::transaction(function () use ($payment, $booking): void {
+            /** @var Booking $locked */
+            $locked = Booking::query()->lockForUpdate()->findOrFail($booking->getKey());
+
+            $this->markPaid($payment);
+            ($this->recomputeMoney)($locked);
+        });
+
+        if ($this->canStillSail($booking->refresh())) {
+            try {
+                ($this->confirmBooking)($booking, paidAfterExpiry: true);
+
+                return;
+            } catch (CapacityExceeded|HoldRefused) {
+                // Gone. The refund below.
+            }
+        }
+
+        $this->refundLate($payment, $booking, $payment->amount_cents);
+    }
+
+    /**
+     * Paid for a booking that had already been cancelled: back in full.
+     *
+     * Only when this charge is newly recorded. A charge that was already
+     * `succeeded` before the booking was cancelled was settled by that
+     * cancellation's own refund, under the guest's policy, and a replay of its
+     * webhook must not refund it a second time.
+     */
+    private function recordOnEndedBooking(Payment $payment, Booking $booking): void
+    {
+        $refund = DB::transaction(function () use ($payment, $booking): ?Payment {
+            /** @var Booking $locked */
+            $locked = Booking::query()->lockForUpdate()->findOrFail($booking->getKey());
+
+            if ($payment->refresh()->status === PaymentStatus::Succeeded) {
+                return null;
+            }
+
+            $this->markPaid($payment);
+            ($this->recomputeMoney)($locked);
+
+            return $this->refundBooking->lateRefundRow($locked, $payment, $payment->amount_cents);
+        });
+
+        $this->send($refund);
+    }
+
+    /** A draft whose seats went while it was being paid for: expired, hold released. */
+    private function expireDraft(Booking $booking): void
+    {
+        DB::transaction(function () use ($booking): void {
+            // AVL-45's order.
+            if ($booking->vessel_id !== null) {
+                Vessel::query()->lockForUpdate()->find($booking->vessel_id);
+            }
+
+            $departure = $booking->departure_id === null
+                ? null
+                : Departure::query()->lockForUpdate()->find($booking->departure_id);
+
+            /** @var Booking $locked */
+            $locked = Booking::query()->lockForUpdate()->findOrFail($booking->getKey());
+
+            if ($locked->status !== BookingStatus::Draft) {
+                return;
+            }
+
+            $locked->forceFill([
+                'status' => BookingStatus::Expired,
+                'cancel_reason' => CancelReason::PaymentFailed,
+                'hold_expires_at' => null,
+            ])->save();
+
+            // The counter recounted from live holds, as `CancelBooking` does.
+            if ($departure instanceof Departure) {
+                $departure->forceFill(['seats_held' => ReleaseHold::liveHeldSeats($departure)])->save();
+            }
+        });
+    }
+
+    /** Write the late refund under the booking's lock, then queue it. */
+    private function refundLate(Payment $payment, Booking $booking, int $cents): void
+    {
+        $refund = DB::transaction(function () use ($payment, $booking, $cents): ?Payment {
+            /** @var Booking $locked */
+            $locked = Booking::query()->lockForUpdate()->findOrFail($booking->getKey());
+
+            $this->markPaid($payment->refresh());
+            ($this->recomputeMoney)($locked);
+
+            return $this->refundBooking->lateRefundRow($locked, $payment, $cents);
+        });
+
+        $this->send($refund);
+    }
+
+    /** After commit (AVL-46): the gateway call is a queued job. */
+    private function send(?Payment $refund): void
+    {
+        if ($refund instanceof Payment && $refund->gateway->isExternal()) {
+            ExecuteGatewayRefund::dispatch($refund->getKey(), null);
+        }
+    }
+
+    private function alreadyGivenBack(Payment $payment): bool
+    {
+        return Payment::query()
+            ->where('kind', PaymentKind::Refund->value)
+            ->where('refunds_payment_id', $payment->getKey())
+            ->where('idempotency_key', 'like', RefundBooking::LATE_KEY_PREFIX . '%')
+            ->exists();
+    }
+
+    /** Is the trip this expired booking was for still one it could be on? */
+    private function canStillSail(Booking $booking): bool
+    {
+        if ($booking->starts_at_utc->isPast()) {
+            return false;
+        }
+
+        if ($booking->departure_id === null) {
+            // A charter: `ConfirmBooking` asks whether the boat is still free.
+            return true;
+        }
+
+        $departure = Departure::query()->find($booking->departure_id);
+
+        return $departure instanceof Departure && $departure->status->isSellable();
     }
 }

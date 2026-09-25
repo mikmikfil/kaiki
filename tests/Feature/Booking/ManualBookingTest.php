@@ -181,6 +181,11 @@ it('refuses to exceed the departure capacity without an override', function (): 
     $fixture = BookingApiScenario::bookable(capacity: 2);
 
     Tenancy::forTenant($fixture['tenant'], function () use ($fixture): void {
+        // The departure sells two; the trip itself takes up to twelve a
+        // booking, so what refuses four is the sailing's seats and not the
+        // trip's per-booking maximum (which refuses as `too_many_pax`).
+        $fixture['product']->forceFill(['max_pax' => 12])->save();
+
         // BKG-32's "MUST NOT exceed capacity", with no confirmation given.
         expect(fn () => app(CreateManualBooking::class)(manualDraft($fixture, qty: 4)))
             ->toThrow(HoldRefused::class);

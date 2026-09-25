@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Availability\Actions;
 
 use App\Domain\Availability\Support\HoldLock;
+use App\Domain\Availability\Support\PartyGuard;
 use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
 use App\Exceptions\HoldLockUnavailable;
@@ -58,14 +59,14 @@ use Illuminate\Support\Facades\DB;
  */
 final class HoldSeats
 {
+    public function __construct(private readonly PartyGuard $party) {}
+
     /**
      * @param  Booking  $booking  a saved `draft` whose `pax_capacity_total` is set
+     * @param  bool  $allowOvercapacity  BKG-32's operator override, added by #89
      *
      * @throws HoldRefused when the departure cannot fit the party
      * @throws HoldLockUnavailable when another writer will not yield
-     */
-    /**
-     * @param  bool  $allowOvercapacity  BKG-32's operator override, added by #89
      */
     public function __invoke(Booking $booking, Departure $departure, bool $allowOvercapacity = false): Booking
     {
@@ -108,7 +109,11 @@ final class HoldSeats
                     throw HoldRefused::notEnoughSeats($seats, max(0, $free));
                 }
 
-                if ($allowOvercapacity && $this->wouldSailIllegallyFull($booking, $locked, $seats)) {
+                // On every hold, not only the override's (2026-09-25). The seat
+                // check above counts seats; two adults and eight infants are two
+                // seats and ten people, and until this the ordinary path let
+                // them onto a boat with two seats and no room for ten.
+                if ($this->wouldSailIllegallyFull($booking, $locked)) {
                     throw HoldRefused::legalCapacityExceeded();
                 }
 
@@ -133,31 +138,26 @@ final class HoldSeats
      * `counts_toward_capacity = false`"* — the infants a commercial capacity
      * deliberately does not count are exactly the ones a coastguard does.
      *
-     * Only consulted on the override path, because the ordinary path never
-     * reaches a capacity the calendar and {@see PartyGuard} have not already
-     * cleared.
+     * Asked on every hold, under the departure lock, through the same sum
+     * {@see PartyGuard} gives the calendar and the quote — committed bookings
+     * and live holds alike. Until 2026-09-25 it ran on the override path only,
+     * on the belief that the calendar had already asked; `POST /bookings`, the
+     * panel and the quay never had. The booking's own people are taken out of
+     * the aboard figure when it is already counted there (a hold re-taken).
      */
-    private function wouldSailIllegallyFull(Booking $booking, Departure $departure, int $seats): bool
+    private function wouldSailIllegallyFull(Booking $booking, Departure $departure): bool
     {
-        $ceiling = $departure->vessel?->capacity_max;
+        $alreadyCounted = (int) $booking->departure_id === (int) $departure->getKey()
+            && ($booking->holdsSeats() || $booking->status->committingSeats())
+                ? $booking->pax_total
+                : 0;
 
-        if ($ceiling === null) {
-            return false;
-        }
-
-        $aboard = (int) Booking::query()
-            ->where('departure_id', $departure->getKey())
-            ->whereKeyNot($booking->getKey())
-            ->whereIn('status', array_values(array_map(
-                static fn (BookingStatus $status): string => $status->value,
-                array_filter(
-                    BookingStatus::cases(),
-                    static fn (BookingStatus $status): bool => $status->committingSeats(),
-                ),
-            )))
-            ->sum('pax_total');
-
-        return $aboard + $booking->pax_total > $ceiling;
+        return $this->party->exceedsCertificate(
+            $departure->vessel?->capacity_max,
+            $booking->pax_total,
+            $departure,
+            $alreadyCounted,
+        );
     }
 
     /**

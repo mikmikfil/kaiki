@@ -8,12 +8,14 @@ use App\Contracts\ProvidesTransactionStatus;
 use App\Domain\Booking\Actions\ConfirmFromWebhook;
 use App\Domain\Payments\Gateways\GatewayCallFailed;
 use App\Domain\Payments\Support\GatewayResolver;
+use App\Enums\PaymentKind;
 use App\Enums\PaymentStatus;
 use App\Models\Booking;
 use App\Models\IntegrationCredential;
 use App\Models\Payment;
 use App\Models\Tenant;
 use App\Support\Tenancy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -65,6 +67,13 @@ final class ReconcilePendingPayments
 
     /** How long after that we stop asking, rather than asking about 2019 forever. */
     private const HORIZON_HOURS = 72;
+
+    /**
+     * How long a charge closed on our side is still asked about: longer than a
+     * gateway page stays payable (`checkout_expiry_minutes`, 60 by default),
+     * with room for a late webhook that never came.
+     */
+    private const CLOSED_WINDOW_MINUTES = 180;
 
     public function __construct(
         private readonly GatewayResolver $gateways,
@@ -123,7 +132,17 @@ final class ReconcilePendingPayments
     private function candidates(): iterable
     {
         return Tenancy::withoutTenancy(static fn (): iterable => Payment::query()
-            ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::Processing->value])
+            ->where(static fn (Builder $query) => $query
+                ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::Processing->value])
+                // And a charge closed on our side a short while ago — its
+                // booking expired or was cancelled, or a card was declined —
+                // whose gateway page could still be paid until its timeout
+                // (2026-09-25). Asked only whether it was paid after all; see
+                // `reconcile()`.
+                ->orWhere(static fn (Builder $closed) => $closed
+                    ->whereIn('status', [PaymentStatus::Cancelled->value, PaymentStatus::Failed->value])
+                    ->where('kind', '!=', PaymentKind::Refund->value)
+                    ->where('updated_at', '>=', now()->subMinutes(self::CLOSED_WINDOW_MINUTES))))
             ->whereNotNull('gateway_ref')
             ->where('created_at', '<=', now()->subMinutes(self::GRACE_MINUTES))
             ->where('created_at', '>=', now()->subHours(self::HORIZON_HOURS))
@@ -170,6 +189,12 @@ final class ReconcilePendingPayments
             }
 
             if ($transaction === null || ! $transaction->settled) {
+                return null;
+            }
+
+            if (! in_array($payment->status, [PaymentStatus::Pending, PaymentStatus::Processing], true) && ! $transaction->succeeded) {
+                // A closed charge that stayed unpaid: nothing to do, and
+                // nothing to count every five minutes until the window shuts.
                 return null;
             }
 

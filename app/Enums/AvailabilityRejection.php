@@ -6,6 +6,7 @@ namespace App\Enums;
 
 use App\Domain\Availability\Actions\CheckSeatAvailability;
 use App\Enums\Concerns\HasTranslatedLabel;
+use App\Models\Product;
 
 /**
  * Why a departure is not bookable (spec AVL-22, AVL-26, AVL-28).
@@ -75,6 +76,12 @@ enum AvailabilityRejection: string
      */
     case NeedsAdult = 'needs_adult';
 
+    /** Fewer seats than the trip's `min_booking_pax` (CAT-5, 2026-09-25). */
+    case TooFewPax = 'too_few_pax';
+
+    /** More seats than the trip's `max_pax` for one booking (CAT-5, 2026-09-25). */
+    case TooManyPax = 'too_many_pax';
+
     /** The operator's subscription has lapsed (AVL-22.7, TEN-9). */
     case TenantReadOnly = 'tenant_read_only';
 
@@ -113,5 +120,26 @@ enum AvailabilityRejection: string
     public function message(): string
     {
         return $this->label();
+    }
+
+    /**
+     * The sentence with the trip's own number in it, where there is one.
+     *
+     * «Η εκδρομή κλείνεται για τουλάχιστον 4 άτομα» tells the guest what to
+     * do; «πολύ λίγα άτομα» does not. Every other code is its label.
+     */
+    public function sentenceIn(string $locale, ?Product $product = null): string
+    {
+        $count = match ($this) {
+            self::TooFewPax => max(1, (int) $product?->min_booking_pax),
+            self::TooManyPax => (int) $product?->max_pax,
+            default => null,
+        };
+
+        if ($product === null || $count === null) {
+            return $this->labelIn($locale);
+        }
+
+        return trans_choice(self::translationNamespace() . ".{$this->value}.sentence", $count, ['count' => $count], $locale);
     }
 }

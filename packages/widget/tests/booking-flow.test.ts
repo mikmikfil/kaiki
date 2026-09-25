@@ -182,6 +182,11 @@ describe('the party refusal', () => {
   it('is recognised by either party code, and by nothing else', () => {
     expect(isPartyRefused({ code: 'needs_adult', status: 422 })).toBe(true);
     expect(isPartyRefused({ code: 'no_counted_pax', status: 422 })).toBe(true);
+    // The trip's bounds and the boat's certificate (2026-09-25).
+    expect(isPartyRefused({ code: 'too_few_pax', status: 422 })).toBe(true);
+    expect(isPartyRefused({ code: 'too_many_pax', status: 422 })).toBe(true);
+    expect(isPartyRefused({ code: 'legal_capacity_exceeded', status: 422 })).toBe(true);
+    expect(isPartyRefused({ code: 'legal_capacity', status: 422 })).toBe(true);
     // Another 422 is a different conversation, and "add an adult" is not the
     // answer to a malformed body.
     expect(isPartyRefused({ code: 'validation_failed', status: 422 })).toBe(false);

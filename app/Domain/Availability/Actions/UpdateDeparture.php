@@ -115,6 +115,21 @@ final class UpdateDeparture
             return;
         }
 
+        // Never above the boat's certificate (AVL-25, CAT-5; 2026-09-25) — the
+        // ceiling `CreateManualDeparture` and the schedule already apply. Only
+        // a raise is refused: a departure left above it from before may still
+        // be brought down in steps.
+        $ceiling = $departure->vessel?->capacity_max;
+
+        if ($ceiling !== null && (int) $capacity > $ceiling && (int) $capacity > $departure->capacity) {
+            throw ValidationException::withMessages([
+                'capacity' => [trans('availability.departure.validation.capacity_over_certificate', [
+                    'vessel' => (string) $departure->vessel?->name,
+                    'max' => (string) $ceiling,
+                ])],
+            ]);
+        }
+
         if ((int) $capacity >= $departure->seats_sold) {
             return;
         }

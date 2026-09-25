@@ -310,6 +310,7 @@ return [
             'same_product_overlap' => 'This trip already departs at :date :time on the same boat. The same trip cannot depart twice at once.',
             'sold_time_locked' => 'This departure has :sold bookings, so its date and time cannot move. Cancel it and create a new one if you need to.',
             'capacity_below_sold' => ':sold seats are already sold. The seat count cannot go below that.',
+            'capacity_over_certificate' => '“:vessel” is licensed for :max people. The seat count cannot go above that.',
             'product_immutable' => "A departure's trip cannot be changed.",
         ],
 

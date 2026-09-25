@@ -115,6 +115,7 @@ return [
         'duration_guessed' => 'No duration found; :minutes minutes were used. Correct it if needed.',
         'no_email' => 'No customer email.',
         'no_total' => 'No amount found; the booking is imported at zero.',
+        'over_certificate' => 'Imported, but :aboard people are now booked on a boat licensed for :max (infants included). Move some to another sailing before it leaves.',
     ],
 
     'reasons' => [

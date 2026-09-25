@@ -122,24 +122,46 @@ class BookingCreateRequest extends FormRequest
         ];
     }
 
-    /** The product, resolved by uuid inside the resolved tenant. */
+    /**
+     * The product, resolved by uuid inside the resolved tenant — and only
+     * while it is on sale. A draft, inactive or archived trip is not found
+     * here, as it is not found by `GET /availability` and `POST /price-quote`.
+     */
     public function product(): ?Product
     {
         return Product::query()
+            ->sellable()
             ->with(['ageBands', 'meetingPoint', 'vessel'])
             ->where('uuid', (string) $this->input('product_uuid'))
             ->first();
     }
 
-    public function departure(): ?Departure
+    /** Was a departure named at all? A named one that does not resolve is refused. */
+    public function hasDepartureUuid(): bool
     {
         $uuid = $this->input('departure_uuid');
 
-        if (! is_string($uuid) || $uuid === '') {
+        return is_string($uuid) && $uuid !== '';
+    }
+
+    /**
+     * The departure the guest picked, scoped to this product.
+     *
+     * Scoped by product as well as by tenant, as `PriceQuoteController` does:
+     * a uuid of another of this operator's trips would otherwise lend its date
+     * to this one. Status is `CreateBookingDraft`'s to check, so a cancelled
+     * sailing is refused as that rather than as "not found".
+     */
+    public function departure(Product $product): ?Departure
+    {
+        if (! $this->hasDepartureUuid()) {
             return null;
         }
 
-        return Departure::query()->where('uuid', $uuid)->first();
+        return Departure::query()
+            ->where('product_id', $product->getKey())
+            ->where('uuid', (string) $this->input('departure_uuid'))
+            ->first();
     }
 
     /**
@@ -232,7 +254,12 @@ class BookingCreateRequest extends FormRequest
             source: BookingSource::from((string) ($this->input('source') ?? BookingSource::Widget->value)),
             paxByCode: $this->paxByCode($product),
             extraQuantities: $this->extraQuantities(),
-            startTime: isset($window['local_time']) ? (string) $window['local_time'] : null,
+            // The picked departure's own time when there is one (2026-09-25):
+            // the widget sends no window with a departure, and a null here once
+            // let the earliest sailing of the day take the booking.
+            startTime: $departure instanceof Departure
+                ? substr((string) $departure->local_time, 0, 5)
+                : (isset($window['local_time']) ? (string) $window['local_time'] : null),
             extraHours: 0,
             voucherCode: $this->input('voucher_code') === null ? null : (string) $this->input('voucher_code'),
             discountCode: $this->input('discount_code') === null ? null : (string) $this->input('discount_code'),
@@ -248,6 +275,7 @@ class BookingCreateRequest extends FormRequest
             utm: $this->utm(),
             isTest: $this->isTestKey(),
             originUrl: $this->originUrl(),
+            departure: $departure,
         );
     }
 

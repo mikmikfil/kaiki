@@ -12,6 +12,8 @@ use App\Models\IntegrationCredential;
 use App\Models\Payment;
 use App\Models\Tenant;
 use App\Support\Tenancy;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Tests\Support\Payments\WebhookScenario;
 
 /*
@@ -128,7 +130,7 @@ it('reuses an open balance session rather than leaving two pending rows', functi
     });
 })->group('fast');
 
-it('refreshes the amount on the reused row, because the balance may have moved', function (): void {
+it('charges a moved balance on a new order, and withdraws the old one without losing it', function (): void {
     [$tenant, $booking] = balanceSessionScenario(balanceCents: 6000);
 
     Tenancy::forTenant($tenant, function () use ($booking): void {
@@ -138,10 +140,37 @@ it('refreshes the amount on the reused row, because the balance may have moved',
 
         app(MintBalanceSession::class)($booking->refresh());
 
-        // Reusing the row must not mean reusing the price — that would
+        // Reusing the order must not mean reusing the price — that would
         // reintroduce the stale figure the late minting exists to avoid.
-        expect(Payment::query()->where('kind', PaymentKind::Balance->value)->sole()->amount_cents)->toBe(14000);
+        $open = Payment::query()->where('kind', PaymentKind::Balance->value)->open()->sole();
+
+        expect($open->amount_cents)->toBe(14000);
+
+        // And the first order keeps its own row and reference (2026-09-25):
+        // overwriting it orphaned a payment made in the older tab.
+        $old = Payment::query()->where('kind', PaymentKind::Balance->value)->whereKeyNot($open->getKey())->sole();
+
+        expect($old->status)->toBe(PaymentStatus::Cancelled)
+            ->and($old->amount_cents)->toBe(6000)
+            ->and($old->gateway_ref)->not->toBeNull();
     });
+})->group('fast');
+
+it('hands back the same gateway order to a second tab, rather than minting another', function (): void {
+    [$tenant, $booking] = balanceSessionScenario(balanceCents: 6000);
+
+    Tenancy::forTenant($tenant, function () use ($booking): void {
+        $first = app(MintBalanceSession::class)($booking);
+        $second = app(MintBalanceSession::class)($booking->refresh());
+
+        expect($second?->reference)->toBe($first?->reference)
+            ->and($second?->url)->toBe($first?->url);
+    });
+
+    // One order at the gateway, not two.
+    $orders = Http::recorded(static fn (Request $request): bool => str_contains($request->url(), '/checkout/v2/orders'))->count();
+
+    expect($orders)->toBe(1);
 })->group('fast');
 
 it('takes the balance through whatever gateway took the deposit', function (): void {

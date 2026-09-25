@@ -20,6 +20,7 @@ use App\Enums\DepartureStatus;
 use App\Enums\PaymentGatewayName;
 use App\Enums\Role;
 use App\Exceptions\HoldRefused;
+use App\Exceptions\PartyRefused;
 use App\Filament\App\Resources\DepartureResource;
 use App\Models\Booking;
 use App\Models\Departure;
@@ -564,12 +565,24 @@ class Calendar extends Page
                             // This departure, at its own time: a day with two
                             // sailings of the trip must not sell the other one.
                             startTime: (string) $departure->local_time,
+                            departure: $departure,
                         ),
                         paidBy: $paidBy,
                         source: BookingSource::Quay,
                     );
-                } catch (HoldRefused) {
-                    Notification::make()->title(__('calendar.sell.full'))->danger()->send();
+                } catch (HoldRefused $refused) {
+                    // «Full» only when it is seats; the boat's certificate
+                    // (infants counted) says so in its own words (2026-09-25).
+                    Notification::make()
+                        ->title($refused->reason === 'not_enough_seats' ? __('calendar.sell.full') : __('calendar.sell.refused'))
+                        ->body($refused->reason === 'not_enough_seats' ? null : $refused->getMessage())
+                        ->danger()
+                        ->send();
+                    $action->halt();
+
+                    return;
+                } catch (PartyRefused $refused) {
+                    Notification::make()->title(__('calendar.sell.refused'))->body($refused->getMessage())->danger()->send();
                     $action->halt();
 
                     return;

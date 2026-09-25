@@ -69,15 +69,11 @@ final class MintBalanceSession
         // minting on demand rather than at confirmation.
         $amount = Money::ofMinor($booking->balance_cents, 'EUR');
 
-        $payment = DB::transaction(function () use ($booking): Payment {
+        $payment = DB::transaction(function () use ($booking): Payment|RedirectTarget {
             // An open balance payment from an earlier visit is reused rather
             // than duplicated — a guest who opened the page, thought better of
             // it and came back an hour later should not leave two pending rows
             // in the operator's stuck-payment feed.
-            //
-            // Its amount is refreshed, because the balance may have moved
-            // between the two visits, which is the same reason the session is
-            // minted late at all.
             $existing = Payment::query()
                 ->where('booking_id', $booking->getKey())
                 ->where('kind', PaymentKind::Balance->value)
@@ -85,10 +81,34 @@ final class MintBalanceSession
                 ->latest('id')
                 ->first();
 
-            if ($existing instanceof Payment) {
+            if ($existing instanceof Payment && $existing->gateway_ref === null) {
+                // No gateway order behind it yet (the last call failed before
+                // one came back). Its amount is refreshed, because the balance
+                // may have moved between the two visits, which is the same
+                // reason the session is minted late at all.
                 $existing->forceFill(['amount_cents' => $booking->balance_cents])->save();
 
                 return $existing;
+            }
+
+            if ($existing instanceof Payment) {
+                // **A gateway order is already out there, and still payable
+                // until its timeout** (2026-09-25). Overwriting its reference
+                // with a second order's orphaned the first: a guest who paid in
+                // the older tab was charged, and the webhook matched nothing.
+                // So the same order is handed back while it is still good for
+                // the same amount; otherwise it is withdrawn and a new row
+                // carries the new order. If the old one is paid after all, the
+                // webhook still finds its row, and gives back any surplus.
+                $fresh = $existing->updated_at?->greaterThan(
+                    now()->subMinutes((int) config('kaiki.booking.checkout_expiry_minutes')),
+                ) ?? false;
+
+                if ($fresh && $existing->amount_cents === $booking->balance_cents && $existing->checkout_url !== null) {
+                    return new RedirectTarget(url: $existing->checkout_url, reference: (string) $existing->gateway_ref);
+                }
+
+                $existing->forceFill(['status' => PaymentStatus::Cancelled])->save();
             }
 
             $payment = new Payment;
@@ -107,6 +127,10 @@ final class MintBalanceSession
 
             return $payment;
         });
+
+        if ($payment instanceof RedirectTarget) {
+            return $payment;
+        }
 
         $target = $gateway->createCheckoutSession($booking, PaymentKind::Balance, $amount);
 

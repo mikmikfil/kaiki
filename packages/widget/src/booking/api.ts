@@ -134,11 +134,24 @@ export function isPriceChanged(error: unknown): boolean {
  *
  * The codes are listed rather than inferred from the status: a 422 also comes
  * back for a malformed body, and "add an adult" is not the answer to that.
+ *
+ * Since 2026-09-25 also the trip's per-booking bounds and the boat's
+ * certificate (infants counted): the remedy is again a change of party, so
+ * the same place and the server's own sentence.
  */
+const PARTY_CODES = new Set([
+  'needs_adult',
+  'no_counted_pax',
+  'too_few_pax',
+  'too_many_pax',
+  'legal_capacity_exceeded',
+  'legal_capacity',
+]);
+
 export function isPartyRefused(error: unknown): boolean {
   const code = (error as ApiError | null)?.code;
 
-  return code === 'needs_adult' || code === 'no_counted_pax';
+  return typeof code === 'string' && PARTY_CODES.has(code);
 }
 
 /**

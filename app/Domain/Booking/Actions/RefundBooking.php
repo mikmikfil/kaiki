@@ -62,6 +62,15 @@ final class RefundBooking
      */
     public const PARTIAL_KEY_PREFIX = 'p-';
 
+    /**
+     * Marks the refund of money that arrived when the booking could no longer
+     * take it (2026-09-25): a payment finished after the booking expired or was
+     * cancelled, or one that paid a balance already settled. «Χρειάζονται
+     * προσοχή» finds these by this prefix, and a later cancellation leaves them
+     * alone, the same way it leaves {@see self::PARTIAL_KEY_PREFIX} alone.
+     */
+    public const LATE_KEY_PREFIX = 'late-';
+
     public function __construct(
         private readonly RestoreVoucher $restoreVoucher,
         private readonly IssueVoucher $issueVoucher,
@@ -103,6 +112,47 @@ final class RefundBooking
         }
 
         return $this->asCash($booking, $cents, $reason, partial: true);
+    }
+
+    /**
+     * Write the refund of one charge that arrived too late, or on top of a
+     * booking already paid (2026-09-25). Back to the card it came from, whole
+     * or the surplus.
+     *
+     * Only the row: the caller holds the booking's lock and queues
+     * {@see ExecuteGatewayRefund} after commit (AVL-46), for the row returned.
+     * Idempotent per charge — a charge that already has a live late refund gets
+     * no second one, so a replayed webhook cannot take the money out twice.
+     *
+     * @return Payment|null the new pending row; null when there is nothing to write
+     */
+    public function lateRefundRow(Booking $booking, Payment $charge, int $cents): ?Payment
+    {
+        $cents = min($cents, $charge->amount_cents);
+
+        if ($cents < 1) {
+            return null;
+        }
+
+        $exists = Payment::query()
+            ->where('booking_id', $booking->getKey())
+            ->where('kind', PaymentKind::Refund->value)
+            ->where('refunds_payment_id', $charge->getKey())
+            ->where('idempotency_key', 'like', self::LATE_KEY_PREFIX . '%')
+            ->whereIn('status', [
+                PaymentStatus::Pending->value,
+                PaymentStatus::Processing->value,
+                PaymentStatus::Succeeded->value,
+                // A failed one is in the error feed, where a person retries it.
+                PaymentStatus::Failed->value,
+            ])
+            ->exists();
+
+        if ($exists) {
+            return null;
+        }
+
+        return $this->newRefundRow($booking, $charge, $cents, self::LATE_KEY_PREFIX);
     }
 
     private function settle(
@@ -230,6 +280,10 @@ final class RefundBooking
                 // while it was still going ahead (`partial()`): those must not
                 // stop the cancellation's own refund of what is left.
                 ->where('idempotency_key', 'not like', self::PARTIAL_KEY_PREFIX . '%')
+                // Nor the refund of a payment that came too late: that money
+                // was never the booking's to keep, and the policy's refund is
+                // still owed on the rest.
+                ->where('idempotency_key', 'not like', self::LATE_KEY_PREFIX . '%')
                 ->exists();
 
             if ($settled) {
@@ -265,6 +319,7 @@ final class RefundBooking
             ? Payment::query()
                 ->where('booking_id', $booking->getKey())
                 ->where('kind', PaymentKind::Refund->value)
+                ->where('idempotency_key', 'not like', self::LATE_KEY_PREFIX . '%')
                 ->open()
                 ->get()
                 ->keyBy('refunds_payment_id')
@@ -329,7 +384,11 @@ final class RefundBooking
             // does an operator reconciling two rows against one statement.
             'refunds_payment_id' => $source->getKey(),
             // PAY-9. Minted before the call, never derived from a response.
-            'idempotency_key' => $keyPrefix . Str::uuid(),
+            // The column is char(40): a prefixed key drops the uuid's dashes
+            // so «late-» + 32 hex still fits (MySQL refuses 41).
+            'idempotency_key' => $keyPrefix === ''
+                ? (string) Str::uuid()
+                : $keyPrefix . str_replace('-', '', (string) Str::uuid()),
         ])->save();
 
         return $payment;

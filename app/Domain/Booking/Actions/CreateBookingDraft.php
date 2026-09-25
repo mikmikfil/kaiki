@@ -7,6 +7,7 @@ namespace App\Domain\Booking\Actions;
 use App\Domain\Availability\Actions\HoldSeats;
 use App\Domain\Availability\Support\CountedSeats;
 use App\Domain\Availability\Support\OccupationCollector;
+use App\Domain\Availability\Support\PartyGuard;
 use App\Domain\Availability\Support\Window;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Booking\Support\LeadGuest;
@@ -18,6 +19,7 @@ use App\Enums\BookingStatus;
 use App\Enums\GuestDetailsStatus;
 use App\Exceptions\DiscountCodeRefused;
 use App\Exceptions\HoldRefused;
+use App\Exceptions\PartyRefused;
 use App\Models\AgeBand;
 use App\Models\Booking;
 use App\Models\Departure;
@@ -82,20 +84,34 @@ final class CreateBookingDraft
     public function __invoke(BookingDraftData $data): Booking
     {
         $product = $data->product;
+
+        // A guest may only book a trip that is on sale (2026-09-25). The
+        // operator's own doors (manual, quay) may still sell one that is not
+        // listed publicly; imports never come through here.
+        if ($data->source->isGuestInitiated() && ! $product->status->isSellable()) {
+            throw HoldRefused::productUnavailable();
+        }
+
         $bands = $product->ageBands;
         $pax = CountedSeats::sanitise($bands, $data->paxByCode);
 
+        // The party itself, at the one door every booking write uses: the API,
+        // the panel and the quay (AVL-25, AVL-26, CAT-5; 2026-09-25).
+        PartyRefused::throwIf(app(PartyGuard::class)->admit($bands, $pax, $product, commercialOverride: $data->skipHold), $product);
+
+        // Resolved before the price, so a sailing that is not on sale is
+        // refused as that rather than as whatever the price engine says.
+        $departure = $product->mode === BookingMode::PerSeat
+            ? $this->resolveDeparture((int) $product->getKey(), $data)
+            : null;
+
         $quote = ($this->computePrice)(
             product: $product,
-            date: $data->date,
+            date: $departure instanceof Departure ? $departure->local_date->copy() : $data->date,
             paxByCode: $pax,
             extraQuantities: $data->extraQuantities,
             extraHours: $data->extraHours,
         );
-
-        $departure = $product->mode === BookingMode::PerSeat
-            ? $this->resolveDeparture($product->getKey(), $data)
-            : null;
 
         $isQuoteMode = $product->mode === BookingMode::Quote;
 
@@ -306,13 +322,6 @@ final class CreateBookingDraft
     }
 
     /**
-     * The departure a per-seat booking is for.
-     *
-     * Looked up by local date and time within the product, because that is what
-     * a guest picked off a calendar — they never see a departure id, and CNV-8
-     * keeps integer keys out of anything they could send.
-     */
-    /**
      * Trimmed, or null when there was nothing but whitespace.
      *
      * A caller that sends `'  '` for a name has sent no name, and storing it
@@ -326,17 +335,57 @@ final class CreateBookingDraft
         return $trimmed === '' ? null : $trimmed;
     }
 
+    /**
+     * The departure a per-seat booking is for — the one the guest picked.
+     *
+     * When the caller names it ({@see BookingDraftData::$departure}) it is used
+     * as it is, after checking it is this trip's, on sale and not blocked; it is
+     * never swapped for another sailing of the same day. Otherwise it is looked
+     * up by date and time among the sailings on sale, and a date with more than
+     * one of them and no time is refused rather than guessed. Until 2026-09-25
+     * the earliest sailing of the day won, whatever its status, so a guest who
+     * picked 17:00 was held, charged and ticketed on 10:00.
+     *
+     * @throws HoldRefused when the sailing is not on sale, or cannot be told apart
+     * @throws ValidationException when the trip does not sail that day
+     */
     private function resolveDeparture(int $productId, BookingDraftData $data): Departure
     {
-        $query = Departure::query()
-            ->where('product_id', $productId)
-            ->whereDate('local_date', $data->date->toDateString());
+        $picked = $data->departure;
 
-        if ($data->startTime !== null) {
-            $query->whereTime('local_time', $data->startTime);
+        if ($picked instanceof Departure) {
+            $fresh = Departure::query()->whereKey($picked->getKey())->first();
+
+            if (! $fresh instanceof Departure
+                || (int) $fresh->product_id !== $productId
+                || ! $fresh->status->isSellable()
+                || $fresh->is_blocked) {
+                throw HoldRefused::departureUnavailable();
+            }
+
+            return $fresh;
         }
 
-        $departure = $query->orderBy('local_time')->first();
+        $sailings = Departure::query()
+            ->where('product_id', $productId)
+            ->whereDate('local_date', $data->date->toDateString())
+            ->sellable()
+            ->where('is_blocked', false)
+            ->orderBy('local_time')
+            ->get();
+
+        if ($data->startTime !== null) {
+            // Compared as `HH:MM`, because a window sends `17:00` and the
+            // column may hold `17:00:00`.
+            $time = substr($data->startTime, 0, 5);
+            $sailings = $sailings->filter(static fn (Departure $d): bool => substr((string) $d->local_time, 0, 5) === $time);
+        }
+
+        if ($sailings->count() > 1) {
+            throw HoldRefused::departureTimeRequired();
+        }
+
+        $departure = $sailings->first();
 
         if (! $departure instanceof Departure) {
             throw ValidationException::withMessages([
