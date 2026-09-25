@@ -124,6 +124,12 @@ final class PanelRenderHooks
             static fn (): View => view('filament.touch-targets'),
         );
 
+        // «Σάρωση εισιτηρίων» pinned on top of the menu on phones only.
+        FilamentView::registerRenderHook(
+            PanelsRenderHook::HEAD_END,
+            static fn (): View => view('filament.desktop-menu'),
+        );
+
         // No stray line below the layout, so the sidebar reaches the bottom.
         FilamentView::registerRenderHook(
             PanelsRenderHook::HEAD_END,
