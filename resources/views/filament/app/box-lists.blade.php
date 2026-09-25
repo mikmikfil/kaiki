@@ -166,6 +166,14 @@
             gap: .5rem;
         }
 
+        /* A column right-aligned for the desktop table (`->alignEnd()`, the
+           totals and prices) starts under the others in a box, not at its
+           right edge. */
+        .fi-ta-table > tbody > tr.fi-ta-row > td[data-label]:not([data-box-title]) :is(.justify-end, .text-end, .text-right) {
+            justify-content: flex-start !important;
+            text-align: start !important;
+        }
+
         /* A blank value takes its label with it. */
         .fi-ta-table > tbody > tr.fi-ta-row > td[data-box-empty] { display: none !important; }
 
