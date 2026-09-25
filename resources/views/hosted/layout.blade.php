@@ -3757,6 +3757,24 @@
            the white gap between them read as a hole (Mike, 24/9). */
         .story.has-image + .band, .band + .story.has-image,
         .story.has-image + .steps-route:not(.has-image), .steps-route:not(.has-image) + .story.has-image { margin-block-start: calc(-1 * var(--section-gap)); }
+        /* The figures card over the masthead's edge, with an edge-to-edge story
+           straight under it (the about page). The card took up its own lower
+           half in the flow, so the story started below it and a white strip
+           showed between masthead and photograph (Mike, 25/9). Now the card
+           takes no room: the story meets the masthead, and the card sits
+           across the join — as far into the masthead as before, so it never
+           reaches the masthead's text, and the rest over the photograph. */
+        /* Wherever the card is one row (from 47.5rem, see the figures card):
+           on a phone it is two rows tall and would cover the photograph's
+           people, and the strip beside a card that nearly fills the width
+           does not read as a gap. */
+        @media (min-width: 47.51rem) {
+            .hero + .stats-block:has(+ .story.has-image) { block-size: 0; margin-block-start: calc(-1 * var(--section-gap)); }
+            .hero + .stats-block:has(+ .story.has-image) .stats { transform: translateY(-4rem); }
+            .hero + .stats-block + .story.has-image { margin-block-start: calc(-1 * var(--section-gap)); }
+            /* The card's lower half now lies over the story's top edge. */
+            .hero + .stats-block + .story.has-image .story-copy { padding-block-start: calc(clamp(2.5rem, 6vw, 6rem) + 5rem); }
+        }
         @media (min-width: 62rem) {
             .story.has-image, .story.side-left.has-image { grid-template-columns: 1fr 1fr; min-block-size: 34rem; }
             .story.has-image .story-image { min-block-size: 34rem; }
