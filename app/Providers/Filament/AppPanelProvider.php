@@ -401,7 +401,11 @@ class AppPanelProvider extends PanelProvider
                 Route::get('boarding/sw.js', BoardingServiceWorkerController::class)
                     ->name('boarding.sw');
 
+                // Boarding goes on for a read-only account (Mike, 25/9): the
+                // people on the quay have paid and have to get on the boat. The
+                // check-in page already allowed it; the offline page now agrees.
                 Route::post('boarding/scan', [BoardingController::class, 'scan'])
+                    ->withoutMiddleware(EnsureTenantIsWritable::class)
                     ->name('boarding.scan');
 
                 // The platform announcement's close button (SAA-1). Here for

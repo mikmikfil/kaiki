@@ -30,6 +30,19 @@
         <p>{{ __('guest.details.intro') }}</p>
     </div>
 
+    {{-- Checkout's rules (audit 2): the rest was saved, these fields were not.
+         Above the explanation, so a phone shows it without scrolling. --}}
+    @if ($errors->any())
+        <div class="notice notice-error" role="alert">
+            <p><strong>{{ __('guest.details.not_saved') }}</strong></p>
+            <ul>
+                @foreach ($errors->all() as $message)
+                    <li>{{ $message }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     @if ($needsDocuments)
         {{-- TOK-9's three questions, in the order a person asks them. --}}
         <div class="notice">
@@ -43,6 +56,7 @@
     @if ($readOnly)
         <div class="notice">{{ __('guest.details.read_only') }}</div>
     @endif
+
 
     <form method="post" action="{{ route('guest.details.save', ['token' => $token]) }}">
         @csrf
@@ -85,7 +99,7 @@
                         <div>
                             <label for="dob-{{ $index }}">{{ __('guest.details.date_of_birth') }}</label>
                             <input id="dob-{{ $index }}" type="date" name="guests[{{ $index }}][date_of_birth]"
-                                   value="{{ $guest->date_of_birth?->toDateString() }}" @disabled($readOnly)>
+                                   value="{{ old("guests.$index.date_of_birth", $guest->date_of_birth?->toDateString()) }}" @disabled($readOnly)>
                         </div>
                         <div>
                             <label for="nat-{{ $index }}">{{ __('guest.details.nationality') }}</label>
@@ -123,7 +137,7 @@
 
                     <label for="dexp-{{ $index }}">{{ __('guest.details.document_expires_on') }}</label>
                     <input id="dexp-{{ $index }}" type="date" name="guests[{{ $index }}][document_expires_on]"
-                           value="{{ $guest->document_expires_on?->toDateString() }}" @disabled($readOnly)>
+                           value="{{ old("guests.$index.document_expires_on", $guest->document_expires_on?->toDateString()) }}" @disabled($readOnly)>
                     @endif
                 @endif
             </div>

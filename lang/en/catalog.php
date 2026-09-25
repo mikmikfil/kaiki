@@ -367,6 +367,8 @@ return [
             'guest_details_required' => [
                 'label' => 'Collect passenger details',
                 'help' => 'Names and documents, where the port authority requires them.',
+                'existing' => 'Saving will also ask :count booking already made.|Saving will also ask :count bookings already made.',
+                'opened' => 'Passenger details requested from :count booking.|Passenger details requested from :count bookings.',
             ],
             'guest_details_deadline_hours' => [
                 'label' => 'Details deadline',

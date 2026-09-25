@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Domain\Booking\Actions\ComputeBalanceDueAt;
 use App\Domain\Booking\Actions\CreateManualBooking;
 use App\Domain\Booking\Actions\ExpireAbandonedCheckouts;
+use App\Domain\Booking\Actions\RecordManualPayment;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Notifications\Actions\SendDueReminders;
 use App\Domain\Operations\Support\AttentionItems;
@@ -488,4 +489,86 @@ it('never expires a pending booking that has money on it', function (): void {
 
     expect(Tenancy::forTenant($paidTenant, fn () => $paid->refresh()->status))->toBe(BookingStatus::PendingPayment)
         ->and(Tenancy::forTenant($emptyTenant, fn () => $empty->refresh()->status))->toBe(BookingStatus::Expired);
+})->group('fast');
+
+/*
+| Audit 2: due dates that follow the setting, and «Πληρώνει την ημέρα»
+*/
+
+it('gives the open balances due dates when the operator switches to online', function (): void {
+    [$tenant, $booking] = onBoardBooking();
+
+    Carbon::setTestNow($booking->starts_at_utc->copy()->subDays(30));
+
+    expect($booking->balance_due_at)->toBeNull();
+
+    $owner = OperatorUser::withRole(Role::Owner, $tenant);
+
+    tenancy()->initialize($tenant);
+
+    Livewire::actingAs($owner)->test(PaymentSettings::class)
+        ->fillForm(['deposits_enabled' => true, 'balance_collection' => BalanceCollection::Online->value])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($booking->refresh()->balance_due_at)->not->toBeNull();
+
+    // And back: on board again, no due date, so no online reminder.
+    Livewire::actingAs($owner)->test(PaymentSettings::class)
+        ->fillForm(['deposits_enabled' => true, 'balance_collection' => BalanceCollection::OnBoard->value])
+        ->call('save')
+        ->assertHasNoFormErrors();
+
+    expect($booking->refresh()->balance_due_at)->toBeNull();
+})->group('fast');
+
+it('lists an undated balance after sailing even when the operator collects online', function (): void {
+    [$tenant, $booking] = GuestPageScenario::booking(paidCents: 4000, balanceCents: 8000);
+
+    Tenancy::forTenant($tenant, fn () => $booking->forceFill(['is_test' => false, 'balance_due_at' => null])->save());
+
+    $keys = static fn (): array => Tenancy::forTenant($tenant, static fn (): array => array_map(
+        static fn ($item): string => $item->key,
+        (new AttentionItems('Europe/Athens'))->everything(),
+    ));
+
+    Carbon::setTestNow($booking->starts_at_utc->copy()->subDay());
+
+    expect($keys())->toBe([]);
+
+    Carbon::setTestNow($booking->starts_at_utc->copy()->addDay());
+
+    expect($keys())->toBe(['balance:' . $booking->getKey()])
+        ->and(Tenancy::forTenant($tenant, static fn (): int => (new AttentionItems('Europe/Athens'))->count()))->toBe(1);
+})->group('fast');
+
+it('keeps «Πληρώνει την ημέρα» due on the day for an operator who collects online', function (): void {
+    Mail::fake();
+
+    $fixture = BookingApiScenario::bookable(unitPriceCents: 6500);
+
+    Tenancy::forTenant($fixture['tenant'], function () use ($fixture): void {
+        $booking = phoneBooking($fixture, ['payment' => BookingResource::PAYMENT_ON_THE_DAY]);
+
+        expect($fixture['tenant']->refresh()->collectsBalanceOnBoard())->toBeFalse()
+            ->and($booking->balance_due_at)->toBeNull()
+            ->and(ComputeBalanceDueAt::agreedOnBoard($booking))->toBeTrue();
+
+        // Part of it paid ahead: still no date for the rest.
+        app(RecordManualPayment::class)($booking, 3000, PaymentGatewayName::Cash);
+
+        expect($booking->refresh()->balance_cents)->toBe(10000)
+            ->and($booking->balance_due_at)->toBeNull();
+
+        // Two days out: online, this is a reminder and an overdue notice.
+        Carbon::setTestNow($booking->starts_at_utc->copy()->subDays(2));
+    });
+
+    app(SendDueReminders::class)();
+
+    Mail::assertNotSent(GuestMail::class, static fn (GuestMail $mail): bool => in_array(
+        $mail->template,
+        [NotificationTemplate::BalanceDueReminder, NotificationTemplate::BalanceOverdue],
+        true,
+    ));
 })->group('fast');

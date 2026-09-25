@@ -44,6 +44,8 @@ return [
         'no_gateway_configured' => 'The operator has not connected a payment provider yet. Contact them to complete this booking.',
         'lead_guest_required' => 'Fill in your details first to go on to payment.',
         'lead_time_too_short' => 'Booking has closed for this departure.',
+        'passengers_required' => 'This trip needs every passenger’s details before payment. Complete the booking on the checkout page (`checkout_url`).',
+        'answers_required' => 'This trip has required questions. Complete the booking on the checkout page (`checkout_url`).',
     ],
 
 ];

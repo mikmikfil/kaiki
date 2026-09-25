@@ -10,6 +10,7 @@ use App\Domain\Booking\Actions\CreateManualBooking;
 use App\Domain\Booking\Actions\RecordManualPayment;
 use App\Domain\Booking\Actions\RemoveGuestsFromBooking;
 use App\Domain\Booking\Data\RefundOverride;
+use App\Domain\Booking\Support\GuestDetailsTracking;
 use App\Domain\Booking\Support\ManifestRows;
 use App\Domain\Booking\Support\RefundEntitlement;
 use App\Enums\BookingMode;
@@ -104,6 +105,16 @@ class ViewBooking extends ViewRecord
                 ->schema([
                     TextEntry::make('guest_name')->label(__('bookings.table.guest')),
                     TextEntry::make('pax_total')->label(__('bookings.table.pax')),
+                    // «Λείπουν στοιχεία επιβατών» (Mike, 25/9): a quay or phone
+                    // sale goes through and the list follows; this is where
+                    // the gap shows until it is filled in.
+                    TextEntry::make('guest_details_status')
+                        ->label(__('bookings.guest_details.label'))
+                        ->state(static fn (): string => __('bookings.guest_details.missing'))
+                        ->badge()
+                        ->color('warning')
+                        ->visible(static fn (Booking $record): bool => GuestDetailsTracking::urlWhilePending($record) !== null)
+                        ->columnSpan($wide),
                     // Tappable: on a phone the next thing after reading the
                     // address is writing to it or calling it. Coloured, never
                     // underlined (`.ka-contact` in the panel theme).
@@ -176,10 +187,20 @@ class ViewBooking extends ViewRecord
             CollectBalanceAction::make('collect_balance', fn (array $arguments): Booking => $this->booking())
                 ->hidden(static fn (): bool => Auth::user()?->hasCapability(Capability::ManageBookings) ?? false),
 
+            // The guest's own `/g/` form, opened on the crew's phone when the
+            // guest left no email to send it to (Mike, 25/9).
+            Action::make('fill_guest_details')
+                ->label(__('bookings.guest_details.fill_in'))
+                ->icon('heroicon-o-identification')
+                ->color('warning')
+                ->url(fn (): ?string => GuestDetailsTracking::urlWhilePending($this->booking()), shouldOpenInNewTab: true)
+                ->visible(fn (): bool => GuestDetailsTracking::urlWhilePending($this->booking()) !== null),
+
             Action::make('record_payment')
                 ->label(__('bookings.payment.action'))
                 ->icon('heroicon-o-banknotes')
                 ->visible(fn (): bool => $this->booking()->balance_cents > 0
+                    && RecordManualPayment::refusalFor($this->booking()) === null
                     && (Auth::user()?->hasCapability(Capability::ManageBookings) ?? false))
                 ->form([
                     TextInput::make('amount')

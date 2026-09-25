@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace App\Domain\Booking\Actions;
 
 use App\Domain\Booking\Support\ManifestRows;
+use App\Domain\Booking\Support\PassengerForm;
 use App\Enums\GuestDetailsStatus;
 use App\Enums\GuestDocumentType;
 use App\Enums\GuestSex;
 use App\Events\GuestDetailsCompleted;
+use App\Models\AgeBand;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Models\Product;
 use App\Support\Countries;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -80,8 +83,22 @@ final class SaveGuestDetails
                 $attributes = $this->attributesFrom($row);
                 $posted = array_intersect_key($attributes, $row);
 
-                if (array_key_exists('document_type', $row)) {
-                    $posted['document_expires_on'] = $attributes['document_expires_on'];
+                // A type with no expiry clears the old date. A passport whose
+                // date was refused on `/g/` keeps the one already stored.
+                if (array_key_exists('document_type', $row) && ! array_key_exists('document_expires_on', $row)
+                    && $attributes['document_type']?->needsExpiry() !== true) {
+                    $posted['document_expires_on'] = null;
+                }
+
+                // A passenger already aboard keeps the identity they boarded
+                // under (audit 2): what is blank may still be filled in, what
+                // is there is not rewritten.
+                if ($guest->checked_in_at !== null) {
+                    $posted = array_filter(
+                        $posted,
+                        static fn (string $field): bool => self::isBlank($guest->getAttribute($field)),
+                        ARRAY_FILTER_USE_KEY,
+                    );
                 }
 
                 $guest->forceFill($posted)->save();
@@ -144,10 +161,13 @@ final class SaveGuestDetails
             return GuestDetailsStatus::NotRequired;
         }
 
+        $tripDate = self::tripDateOf($booking);
+
         $incomplete = BookingGuest::query()
+            ->with('ageBand')
             ->where('booking_id', $booking->getKey())
             ->get()
-            ->contains(fn (BookingGuest $guest): bool => ! self::isComplete($guest, $needsDocuments));
+            ->contains(fn (BookingGuest $guest): bool => ! self::isComplete($guest, $needsDocuments, $tripDate));
 
         $status = $incomplete ? GuestDetailsStatus::Pending : GuestDetailsStatus::Complete;
 
@@ -178,7 +198,7 @@ final class SaveGuestDetails
      * a passport number and collecting one anyway would be personal data taken
      * for no stated purpose, which GDR-4 and TOK-9 both object to.
      */
-    public static function isComplete(BookingGuest $guest, bool $needsDocuments): bool
+    public static function isComplete(BookingGuest $guest, bool $needsDocuments, ?CarbonInterface $tripDate = null): bool
     {
         if (self::nullIfBlank($guest->full_name) === null) {
             return false;
@@ -199,7 +219,12 @@ final class SaveGuestDetails
         // Sex joined the list on 2026-09-24 (ν. 4926/2022 άρθρο 13).
         $person = $guest->date_of_birth !== null
             && self::nullIfBlank($guest->nationality) !== null
-            && $guest->sex !== null;
+            && $guest->sex !== null
+            // Checkout's rule, asked of the stored row too (audit 2): a date of
+            // birth outside the booked band is not a finished manifest, and
+            // it is what would leave children listed with no adult.
+            && ($tripDate === null || ! $guest->ageBand instanceof AgeBand
+                || PassengerForm::fitsBand($guest->ageBand, $guest->date_of_birth, $tripDate));
 
         // «Χωρίς έγγραφο» bands (2026-09-17): a baby is complete with a name,
         // a nationality and a date of birth.
@@ -210,9 +235,21 @@ final class SaveGuestDetails
         return $person
             && $guest->document_type !== null
             && self::nullIfBlank($guest->document_number) !== null
-            // A passport carries an expiry date on the manifest; an identity
-            // card is its number alone.
-            && (! $guest->document_type->needsExpiry() || $guest->document_expires_on !== null);
+            // A passport carries an expiry date on the manifest, and it has to
+            // outlive the trip; an identity card is its number alone.
+            && (! $guest->document_type->needsExpiry() || ($guest->document_expires_on !== null
+                && ($tripDate === null || ! $guest->document_expires_on->lt($tripDate->copy()->startOfDay()))));
+    }
+
+    /** The day of the trip, the date ages and expiries are measured on. */
+    public static function tripDateOf(Booking $booking): Carbon
+    {
+        return Carbon::parse($booking->local_date->toDateString())->startOfDay();
+    }
+
+    private static function isBlank(mixed $value): bool
+    {
+        return $value === null || (is_string($value) && trim($value) === '');
     }
 
     /** Did the operator ask for documents on this product? */

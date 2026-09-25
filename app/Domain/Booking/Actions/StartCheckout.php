@@ -6,8 +6,11 @@ namespace App\Domain\Booking\Actions;
 
 use App\Domain\Availability\Actions\HoldSeats;
 use App\Domain\Availability\Support\BookingCutoff;
+use App\Domain\Availability\Support\SeatAdmission;
 use App\Domain\Booking\Support\CharterOccupancy;
+use App\Domain\Booking\Support\CheckoutDetails;
 use App\Domain\Booking\Support\OpenGatewayOrders;
+use App\Domain\Booking\Support\QuotePaymentDeadline;
 use App\Domain\Booking\Support\SeatCommitment;
 use App\Domain\Pricing\Actions\ApplyDiscountCode;
 use App\Domain\Pricing\Actions\ApplyVoucher;
@@ -70,6 +73,7 @@ final class StartCheckout
     public function __construct(
         private readonly ApplyVoucher $applyVoucher,
         private readonly ConfirmBooking $confirmBooking,
+        private readonly SeatAdmission $admission,
     ) {}
 
     /**
@@ -111,6 +115,13 @@ final class StartCheckout
             throw CheckoutRefused::leadGuestRequired();
         }
 
+        // The passengers and the required questions, as the checkout page
+        // asks them (audit 2): the API has no fields for either. A draft only;
+        // a booking already at the gateway passed this on its way there.
+        if ($booking->status === BookingStatus::Draft) {
+            CheckoutDetails::assertComplete($booking);
+        }
+
         /** @var array{booking: Booking, payment: Payment|null, zeroTotal: bool} $result */
         $result = DB::transaction(function () use ($booking, $gateway): array {
             // AVL-45's order: vessel, departure, booking. Unconditional, on
@@ -139,6 +150,16 @@ final class StartCheckout
             // again; the old order, if any, is withdrawn, and a new one is
             // minted below at what is owed now.
             $again = $locked->status === BookingStatus::PendingPayment;
+
+            // An accepted quote past its payment deadline (audit 2). Only the
+            // sweeper used to keep it, and every new card page pushed the
+            // sweeper back an hour: a guest could pay late, or hold the boat to
+            // the trip by pressing «Πληρωμή» once an hour.
+            $quoteDeadline = $again ? QuotePaymentDeadline::for($locked) : null;
+
+            if ($quoteDeadline !== null && $quoteDeadline->isPast()) {
+                throw CheckoutRefused::tooLate();
+            }
 
             // A private charter, the line before money (2026-09-25): its hold
             // may have lapsed on the checkout page while somebody else took the
@@ -176,14 +197,31 @@ final class StartCheckout
                 // passed in so their seats are not competed for twice.
                 $ownHeld = $locked->holdsSeats() ? $locked->pax_capacity_total : 0;
 
+                // A hold that lapsed on this page: its people dropped out of the
+                // count and others may have boarded since, so the seats are
+                // asked for as a new hold would ask (AVL-25, audit 2).
+                if ($ownHeld === 0) {
+                    $this->admission->refuseUnlessAdmissible($vessel, $departure, $locked);
+                }
+
                 if (! SeatCommitment::commit($departure, $locked->pax_capacity_total, $ownHeld)) {
                     throw CapacityExceeded::forDeparture($locked->pax_capacity_total);
                 }
             }
 
-            if ($locked->total_cents === 0) {
+            // What this page charges: the deposit where the rate plan asked for
+            // one, the total otherwise — less what is already paid (audit 2).
+            // Cash taken at the desk used to be charged again on the card and
+            // then refunded to it.
+            $takesDeposit = $locked->deposit_cents > 0 && $locked->deposit_cents < $locked->total_cents;
+            $due = ($takesDeposit ? $locked->deposit_cents : $locked->total_cents)
+                - Payment::paidCentsFor($locked->getKey());
+
+            if ($locked->total_cents === 0 || $due < 1) {
                 // BKG-19: nothing to pay. The seats are already committed above,
-                // so confirmation must not commit them a second time.
+                // so confirmation must not commit them a second time. Also a
+                // booking whose deposit, or all of it, is already paid: it is
+                // confirmed, with whatever is left as its balance.
                 return ['booking' => $locked, 'payment' => null, 'zeroTotal' => true];
             }
 
@@ -205,12 +243,8 @@ final class StartCheckout
                 // `deposit` where the rate plan asked for one, `full` otherwise.
                 // The balance is a second session, months later if need be
                 // (ADR-0004 Option D).
-                'kind' => $locked->deposit_cents > 0 && $locked->deposit_cents < $locked->total_cents
-                    ? PaymentKind::Deposit
-                    : PaymentKind::Full,
-                'amount_cents' => $locked->deposit_cents > 0 && $locked->deposit_cents < $locked->total_cents
-                    ? $locked->deposit_cents
-                    : $locked->total_cents,
+                'kind' => $takesDeposit ? PaymentKind::Deposit : PaymentKind::Full,
+                'amount_cents' => $due,
                 'status' => PaymentStatus::Pending,
                 // PAY-9: minted before the call, not after.
                 'idempotency_key' => (string) Str::uuid(),

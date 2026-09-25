@@ -76,13 +76,20 @@ final class GenerateManifest
      */
     public function csv(Manifest $manifest): string
     {
-        $rows = [array_map(
+        // Which passengers are still missing details, as a column of its own
+        // when any are (audit 2): the file is what gets forwarded, not the page.
+        $flag = $manifest->missingDetails > 0;
+
+        $header = array_map(
             static fn (ManifestColumn $column): string => $column->label(),
             $manifest->columns,
-        )];
+        );
 
-        foreach ($manifest->rows as $row) {
-            $rows[] = array_values($row);
+        $rows = [$flag ? [...$header, (string) trans('manifest.missing_column')] : $header];
+
+        foreach ($manifest->rows as $index => $row) {
+            $values = array_values($row);
+            $rows[] = $flag ? [...$values, $manifest->isMissing($index) ? (string) trans('manifest.yes') : ''] : $values;
         }
 
         return CsvWriter::toString($rows);

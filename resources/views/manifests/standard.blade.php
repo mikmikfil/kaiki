@@ -57,6 +57,7 @@
         .count { margin: 5mm 0 0; font-size: 10pt; }
         .count strong { font-size: 12pt; }
         .warn { margin: 2mm 0 0; font-size: 9pt; color: #a33; }
+        tr.missing td { color: #a33; }
         .signblock { margin: 12mm 0 0; font-size: 9.5pt; page-break-inside: avoid; }
         .signblock-title { font-weight: 700; margin-bottom: 3mm; }
         .signblock-row { margin: 0 0 4mm; }
@@ -89,8 +90,10 @@
         </thead>
         <tbody>
             @foreach ($manifest->rows as $row)
-                <tr>
-                    <td class="num">{{ $loop->iteration }}</td>
+                {{-- A passenger whose details are missing is marked on the
+                     sheet itself (audit 2), not only counted under it. --}}
+                <tr @class(['missing' => $manifest->isMissing($loop->index)])>
+                    <td class="num">{{ $loop->iteration }}@if ($manifest->isMissing($loop->index))*@endif</td>
                     @foreach ($manifest->columns as $column)
                         <td>{{ $row[$column->value] ?? '' }}</td>
                     @endforeach
@@ -110,7 +113,7 @@
     </p>
 
     @if ($manifest->missingDetails > 0)
-        <p class="warn">{{ __('manifest.missing', ['count' => $manifest->missingDetails]) }}</p>
+        <p class="warn">{{ trans_choice('manifest.missing', $manifest->missingDetails, ['count' => $manifest->missingDetails]) }}</p>
     @endif
 
     @include('manifests.sign')

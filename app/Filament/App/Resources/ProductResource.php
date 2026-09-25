@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources;
 
+use App\Domain\Booking\Support\GuestDetailsTracking;
 use App\Domain\Catalog\Actions\ForceDeleteProduct;
 use App\Domain\Catalog\Actions\SaveCancellationPolicy;
 use App\Domain\Catalog\Support\ProductPublishChecklist;
@@ -1035,7 +1036,21 @@ class ProductResource extends Resource
         return [
             Toggle::make('guest_details_required')
                 ->label(__('catalog.product.form.guest_details_required.label'))
-                ->helperText(__('catalog.product.form.guest_details_required.help'))
+                // Switched on for a trip that already sold (audit 2): how many
+                // bookings will be asked for the list when it is saved.
+                ->helperText(static function (Get $get, mixed $record): string {
+                    $help = __('catalog.product.form.guest_details_required.help');
+
+                    if (! $record instanceof Product || ! $record->exists || $record->guest_details_required || ! (bool) $get('guest_details_required')) {
+                        return $help;
+                    }
+
+                    $count = GuestDetailsTracking::untrackedCount($record);
+
+                    return $count === 0
+                        ? $help
+                        : $help . ' ' . trans_choice('catalog.product.form.guest_details_required.existing', $count, ['count' => $count]);
+                })
                 ->live(),
 
             TextInput::make('guest_details_deadline_hours')

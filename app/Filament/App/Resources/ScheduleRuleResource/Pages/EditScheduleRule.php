@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources\ScheduleRuleResource\Pages;
 
 use App\Filament\App\Resources\ScheduleRuleResource;
+use App\Filament\App\Support\VesselMoveNotice;
 use App\Filament\Support\MoreActions;
 use App\Models\ScheduleRule;
 use Filament\Actions\Action;
@@ -47,6 +48,14 @@ class EditScheduleRule extends EditRecord
     /** @param array<string, mixed> $data */
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
-        return $this->saveScheduleRule($record, $data);
+        /** @var ScheduleRule $record */
+        $vesselBefore = $record->effectiveVesselId();
+
+        $saved = $this->saveScheduleRule($record, $data);
+
+        // A new boat: its unsold sailings follow, the sold ones are listed.
+        VesselMoveNotice::afterRuleSave($saved, $vesselBefore);
+
+        return $saved;
     }
 }

@@ -7,6 +7,8 @@ namespace App\Domain\Booking\Actions;
 use App\Domain\Availability\Actions\ReleaseHold;
 use App\Enums\BookingStatus;
 use App\Enums\CancelReason;
+use App\Enums\PaymentKind;
+use App\Enums\PaymentStatus;
 use App\Events\BookingHoldExpired;
 use App\Models\Booking;
 use App\Models\Tenant;
@@ -89,9 +91,21 @@ final class ExpireStaleHolds
                 // (2026-09-25): a guest who pressed «Πληρωμή» in the meantime
                 // has a `pending_payment` booking with its seats sold, and a
                 // stale model saved over it would expire a checkout in flight.
+                //
+                // Never a draft with money on it (audit 2): expiring it kept the
+                // money and released the seats, with no refund and nothing in
+                // the attention list. The rule `ExpireAbandonedCheckouts` keeps,
+                // in the same statement, so a payment landing between a check
+                // and the write cannot slip past it.
                 $moved = Booking::query()
                     ->whereKey($booking->getKey())
                     ->withExpiredHold()
+                    ->whereNotExists(static fn ($query) => $query
+                        ->selectRaw('1')
+                        ->from('payments')
+                        ->whereColumn('payments.booking_id', 'bookings.id')
+                        ->where('payments.status', PaymentStatus::Succeeded->value)
+                        ->where('payments.kind', '!=', PaymentKind::Refund->value))
                     ->update([
                         'status' => BookingStatus::Expired->value,
                         'cancel_reason' => CancelReason::HoldExpired->value,

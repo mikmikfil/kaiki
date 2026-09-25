@@ -156,6 +156,12 @@ enum NotificationTemplate: string
         };
     }
 
+    /** One of the passenger-list family, whose link is the `/g/` form. */
+    public function isGuestDetails(): bool
+    {
+        return in_array($this, [self::GuestDetailsRequested, self::GuestDetailsReminder48h, self::GuestDetailsReminder24h], true);
+    }
+
     /** Does this message go by SMS as well as email (BKG-16's channel column)? */
     public function usesSms(): bool
     {

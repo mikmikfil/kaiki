@@ -98,8 +98,8 @@ final class RefundBooking
      * cancellation refunds once, and a second settled refund is refused because
      * it would take the money out twice. A booking that shrinks can shrink
      * twice, and each time owes a real, separate amount back; what must not
-     * happen is giving back more than is still held. So: never while another
-     * refund is still open, and never more than {@see Payment::paidCentsFor()}.
+     * happen is giving back more than is still held. So: never more than
+     * {@see Payment::paidCentsFor()} less {@see self::promisedCents()}.
      *
      * Cash only. The voucher-share restoration is a cancellation's arithmetic,
      * and splitting a small partial refund across a voucher and a card is a
@@ -153,6 +153,33 @@ final class RefundBooking
         }
 
         return $this->newRefundRow($booking, $charge, $cents, self::LATE_KEY_PREFIX);
+    }
+
+    /**
+     * Money already promised back and not yet gone (audit 2): refund rows still
+     * pending or processing, and failed ones for removed people or late
+     * charges, which wait in the error feed for a person to retry them.
+     * `paid_cents` counts none of it until it settles.
+     *
+     * @param  bool  $cancellationToo  false leaves out a cancellation's own
+     *                                 open rows, which a later call reprices
+     */
+    public static function promisedCents(int $bookingId, bool $cancellationToo = true): int
+    {
+        $keyed = static fn ($query) => $query
+            ->where('idempotency_key', 'like', self::PARTIAL_KEY_PREFIX . '%')
+            ->orWhere('idempotency_key', 'like', self::LATE_KEY_PREFIX . '%');
+
+        return (int) Payment::query()
+            ->where('booking_id', $bookingId)
+            ->where('kind', PaymentKind::Refund->value)
+            ->where(static fn ($query) => $query
+                ->whereIn('status', [PaymentStatus::Pending->value, PaymentStatus::Processing->value])
+                ->orWhere(static fn ($failed) => $failed
+                    ->where('status', PaymentStatus::Failed->value)
+                    ->where($keyed)))
+            ->when(! $cancellationToo, static fn ($query) => $query->where($keyed))
+            ->sum('amount_cents');
     }
 
     private function settle(
@@ -257,15 +284,11 @@ final class RefundBooking
 
         $refunds = DB::transaction(function () use ($booking, $cents, $partial): array {
             if ($partial) {
-                // See `partial()`: one refund in flight at a time, and never more
-                // than the booking still holds.
-                $open = Payment::query()
-                    ->where('booking_id', $booking->getKey())
-                    ->where('kind', PaymentKind::Refund->value)
-                    ->open()
-                    ->exists();
-
-                if ($open || $cents > Payment::paidCentsFor($booking->getKey())) {
+                // See `partial()`: never more than the booking still holds, net
+                // of refunds already promised (audit 2). Another refund still
+                // open used to drop this one without a row; `sourcesFor()`
+                // already keeps each charge within what is left on it.
+                if ($cents > Payment::paidCentsFor($booking->getKey()) - self::promisedCents($booking->getKey())) {
                     return [];
                 }
 
@@ -320,6 +343,9 @@ final class RefundBooking
                 ->where('booking_id', $booking->getKey())
                 ->where('kind', PaymentKind::Refund->value)
                 ->where('idempotency_key', 'not like', self::LATE_KEY_PREFIX . '%')
+                // Nor a refund for people taken off earlier (audit 2): that is
+                // owed on its own, and repricing it cut it to this share.
+                ->where('idempotency_key', 'not like', self::PARTIAL_KEY_PREFIX . '%')
                 ->open()
                 ->get()
                 ->keyBy('refunds_payment_id')

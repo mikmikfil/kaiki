@@ -12,6 +12,7 @@ use App\Enums\BookingStatus;
 use App\Enums\CancelledBy;
 use App\Enums\CancelReason;
 use App\Enums\PaymentStatus;
+use App\Enums\QuoteStatus;
 use App\Enums\RefundMethod;
 use App\Events\BookingCancelled;
 use App\Events\RefundOverridden;
@@ -19,6 +20,7 @@ use App\Jobs\ExecuteGatewayRefund;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Payment;
+use App\Models\Quote;
 use App\Models\Vessel;
 use App\Models\VesselBlock;
 use Illuminate\Support\Carbon;
@@ -160,6 +162,18 @@ final class CancelBooking
                 // keep the seats notionally held by a booking that has ended.
                 'hold_expires_at' => null,
             ])->save();
+
+            // An open offer closes with the booking (audit 2): the guest's /q
+            // link must not still offer «Αποδοχή και πληρωμή», and the operator's
+            // pending quotes must not count it.
+            Quote::query()
+                ->where('booking_id', $locked->getKey())
+                ->whereIn('status', [QuoteStatus::Draft->value, QuoteStatus::Sent->value])
+                ->update([
+                    'status' => QuoteStatus::Expired->value,
+                    'expired_at' => now(),
+                    'updated_at' => now(),
+                ]);
 
             // **And the counter has to be told.** Nulling the column above ends
             // the hold for the availability *read* path, which checks

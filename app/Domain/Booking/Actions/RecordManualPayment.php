@@ -11,6 +11,7 @@ use App\Enums\PaymentStatus;
 use App\Events\ManualPaymentRecorded;
 use App\Models\Booking;
 use App\Models\Payment;
+use App\Support\Tenancy;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -58,6 +59,7 @@ final class RecordManualPayment
     public function __construct(
         private readonly ConfirmBooking $confirmBooking,
         private readonly RecomputeBookingMoney $recomputeMoney,
+        private readonly ConfirmPartPaid $confirmPartPaid,
     ) {}
 
     /**
@@ -79,6 +81,14 @@ final class RecordManualPayment
         $payment = DB::transaction(function () use ($booking, $amountCents, $gateway, $reference): Payment {
             /** @var Booking $locked */
             $locked = Booking::query()->lockForUpdate()->findOrFail($booking->getKey());
+
+            // The status again, under the lock: a sweeper may have expired it
+            // since the guard read it.
+            $refusal = self::refusalFor($locked);
+
+            if ($refusal !== null) {
+                throw ValidationException::withMessages(['amount' => [trans($refusal)]]);
+            }
 
             // Re-read inside the lock. Between the guard and here, a webhook may
             // have settled the online payment this cash was going to cover.
@@ -164,11 +174,36 @@ final class RecordManualPayment
             ]);
         }
 
-        if (in_array($booking->status, [BookingStatus::Cancelled, BookingStatus::Refunded, BookingStatus::Expired], true)) {
+        $refusal = self::refusalFor($booking);
+
+        if ($refusal !== null) {
             throw ValidationException::withMessages([
-                'amount' => [trans('bookings.payment.not_live')],
+                'amount' => [trans($refusal)],
             ]);
         }
+    }
+
+    /**
+     * Why this booking cannot take a payment by hand, as a translation key;
+     * null when it can. The panel hides «Καταχώριση πληρωμής» on the same
+     * answer.
+     *
+     * A quote is paid by accepting it (audit 2): money on a quote request
+     * stayed there unconfirmed, and on a sent quote it confirmed the booking at
+     * the engine's price, past `AcceptQuote`. A draft whose hold has lapsed
+     * has no seats left to confirm.
+     */
+    public static function refusalFor(Booking $booking): ?string
+    {
+        return match (true) {
+            // TEN-9 (audit 2): a read-only account records no money, from the
+            // booking page or the boat.
+            Tenancy::current()?->allowsWrites() === false => 'errors.tenant_read_only',
+            in_array($booking->status, [BookingStatus::Cancelled, BookingStatus::Refunded, BookingStatus::Expired], true) => 'bookings.payment.not_live',
+            in_array($booking->status, [BookingStatus::QuoteRequested, BookingStatus::QuoteSent], true) => 'bookings.payment.quote_first',
+            $booking->holdHasExpired() => 'bookings.payment.hold_lapsed',
+            default => null,
+        };
     }
 
     /**
@@ -203,13 +238,17 @@ final class RecordManualPayment
      * `IllegalStateTransition` — on the most ordinary case there is, an
      * operator collecting the balance in cash on the morning of the trip.
      *
-     * A part payment also stops here. A booking half paid in cash is still
-     * `pending_payment`, which is exactly what it is.
+     * A part payment on a booking still in checkout confirms it too, with the
+     * rest open as its balance (audit 2) — the phone booking's deposit rule,
+     * {@see ConfirmPartPaid}. Left `pending_payment` it had no ticket and no
+     * due date, and a `draft` expired with the money still on it.
      */
     private function settle(Booking $booking): Booking
     {
         if ($booking->balance_cents > 0) {
-            return $booking;
+            return in_array($booking->status, [BookingStatus::Draft, BookingStatus::PendingPayment], true)
+                ? ($this->confirmPartPaid)($booking)
+                : $booking;
         }
 
         if (! $booking->status->canTransitionTo(BookingStatus::Confirmed)) {

@@ -21,10 +21,11 @@ use Illuminate\Support\Str;
  * ## Additive only, and that is the whole safety argument
  *
  * ADR-0009: *"Editing a rule never silently mutates existing departures."* This
- * Action creates rows and does nothing else — it never updates a departure and
- * never deletes one. A rule whose capacity changed leaves its existing
- * departures exactly as they were, and the divergence surfaces in the
- * reconciliation list for the operator to act on.
+ * Action creates rows and never deletes one. The only updates are to future
+ * departures nobody has booked or is holding: a changed capacity, and a
+ * changed boat ({@see MoveDeparturesToRuleVessel}). Departures with sales stay
+ * exactly as they were, and the divergence surfaces in the reconciliation list
+ * for the operator to act on.
  *
  * That makes the job safe to re-run, which is the property that matters most
  * for something on a nightly schedule. It also means a rule edit can never
@@ -49,6 +50,8 @@ use Illuminate\Support\Str;
  */
 final class GenerateDepartures
 {
+    public function __construct(private readonly MoveDeparturesToRuleVessel $moveToRuleVessel) {}
+
     public function __invoke(ScheduleRule $rule, ?Carbon $today = null): GenerationResultData
     {
         $product = $rule->product;
@@ -112,6 +115,10 @@ final class GenerateDepartures
             }
         }
 
+        // The rule's boat may have changed: unsold sailings follow it (audit 2),
+        // before the capacity sync so their seats are the new boat's.
+        ($this->moveToRuleVessel)($rule, $today);
+
         $this->syncUnsoldCapacity($rule, $today);
 
         // Advanced only to the last date actually walked, so a run that failed
@@ -147,6 +154,9 @@ final class GenerateDepartures
             ->where('local_date', '>=', $today->toDateString())
             ->where('seats_sold', 0)
             ->where('seats_held', 0)
+            // Only on the rule's boat: one left on another boat keeps a
+            // capacity that boat can carry.
+            ->where('vessel_id', $rule->effectiveVesselId())
             ->where('capacity', '!=', $rule->effectiveCapacity())
             ->update(['capacity' => $rule->effectiveCapacity()]);
     }

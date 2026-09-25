@@ -526,6 +526,8 @@ Every code this API can emit. Messages below are the canonical strings; interpol
 | `payment_already_settled` | 409 | This booking is already paid in full. | Αυτή η κράτηση έχει ήδη εξοφληθεί. | `paid_cents`, `total_cents` |
 | `deposit_not_available` | 422 | A deposit is not available for this booking. | Η προκαταβολή δεν είναι διαθέσιμη για αυτή την κράτηση. | `booking_uuid` |
 | `lead_guest_required` | 422 | Fill in your details first to go on to payment. | Συμπληρώστε πρώτα τα στοιχεία σας για να προχωρήσετε στην πληρωμή. | `booking_uuid` |
+| `passengers_required` | 422 | This trip needs every passenger’s details before payment. Complete the booking on the checkout page (`checkout_url`). | Η εκδρομή ζητά τα στοιχεία κάθε επιβάτη πριν την πληρωμή. Ολοκληρώστε την κράτηση στη σελίδα πληρωμής (`checkout_url`). | `booking_uuid` |
+| `answers_required` | 422 | This trip has required questions. Complete the booking on the checkout page (`checkout_url`). | Η εκδρομή έχει υποχρεωτικές ερωτήσεις. Ολοκληρώστε την κράτηση στη σελίδα πληρωμής (`checkout_url`). | `booking_uuid` |
 | `balance_not_due` | 409 | There is no outstanding balance on this booking. | Δεν υπάρχει υπόλοιπο προς πληρωμή σε αυτή την κράτηση. | `balance_cents` |
 | `server_error` | 500 | Something went wrong. Please try again. | Παρουσιάστηκε σφάλμα. Δοκιμάστε ξανά. | `request_id` |
 | `service_unavailable` | 503 | The service is temporarily unavailable. | Η υπηρεσία είναι προσωρινά μη διαθέσιμη. | `retry_after_seconds` |
@@ -1260,7 +1262,10 @@ paths:
           `422 deposit_not_available` when the rate plan defines no deposit, and
           `422 lead_guest_required` when the booking still has no lead guest or no recorded
           consent (ADR-0030) — send the guest to the booking's `checkout_url`, which is the
-          form that asks.
+          form that asks. The same goes for `422 passengers_required` (a trip with
+          «Στοιχεία επιβατών» on, whose passengers are not all filled in) and
+          `422 answers_required` (a required trip question unanswered): the API takes
+          neither, so the hosted checkout asks them, as the Kaiki widget does.
         - `balance` — `balance_cents`. Requires the booking to be `confirmed` and a
           `manage_token`; a publishable key is rejected.
 

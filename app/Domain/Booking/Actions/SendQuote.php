@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Domain\Booking\Actions;
 
+use App\Domain\Availability\Actions\CreateVesselBlock;
+use App\Domain\Availability\Support\OccupationCollector;
+use App\Domain\Availability\Support\Window;
 use App\Enums\BlockReason;
 use App\Enums\BookingStatus;
 use App\Enums\QuoteStatus;
@@ -11,6 +14,7 @@ use App\Events\QuoteSent;
 use App\Models\Booking;
 use App\Models\Quote;
 use App\Models\QuoteLineItem;
+use App\Models\Vessel;
 use App\Models\VesselBlock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -67,10 +71,25 @@ final class SendQuote
                 return $locked;
             }
 
-            $this->supersedeOlderVersions($locked);
+            // AVL-45's order, as `AcceptQuote` takes it: the boat before the
+            // booking, and only when the boat is to be held (audit 2).
+            $vesselId = Booking::query()->whereKey($locked->booking_id)->value('vessel_id');
+
+            $vessel = $holdVessel && $vesselId !== null
+                ? Vessel::query()->lockForUpdate()->find($vesselId)
+                : null;
 
             /** @var Booking $booking */
             $booking = Booking::query()->lockForUpdate()->findOrFail($locked->booking_id);
+
+            // Only a booking still waiting for an offer is sent one (audit 2):
+            // a guest who accepted an earlier version, or a cancelled booking,
+            // is not mailed a second offer.
+            if (! in_array($booking->status, [BookingStatus::QuoteRequested, BookingStatus::QuoteSent], true)) {
+                throw new RuntimeException((string) __('quotes.quote.actions.send.not_awaiting'));
+            }
+
+            $this->supersedeOlderVersions($locked);
 
             $locked->forceFill([
                 'status' => QuoteStatus::Sent,
@@ -87,8 +106,8 @@ final class SendQuote
                 $booking->forceFill(['status' => BookingStatus::QuoteSent])->save();
             }
 
-            if ($holdVessel) {
-                $this->holdTheWindow($booking, $locked);
+            if ($holdVessel && $vessel instanceof Vessel) {
+                $this->holdTheWindow($booking, $vessel);
             }
 
             return $locked;
@@ -162,10 +181,20 @@ final class SendQuote
      * no foreign key, which is the FK-less side of the `vessel_blocks` ↔
      * `bookings` cycle.
      */
-    private function holdTheWindow(Booking $booking, Quote $quote): void
+    private function holdTheWindow(Booking $booking, Vessel $vessel): void
     {
-        if ($booking->vessel_id === null) {
-            return;
+        // Only on a boat nobody else has (audit 2), asked under the vessel
+        // lock like `CreateVesselBlock`: a hold over a charter or a sold
+        // sailing is an offer that can never be accepted, and the block would
+        // take that sailing off sale without a word. This booking's own hold,
+        // from an earlier version, is set aside first, as `AcceptQuote` does.
+        VesselBlock::query()->where('booking_id', $booking->getKey())->get()->each(static fn (VesselBlock $block) => $block->delete());
+
+        $window = Window::of($booking->starts_at_utc, $booking->ends_at_utc);
+
+        if (CreateVesselBlock::bookingsUnder($vessel, $window, (int) $booking->getKey()) !== []
+            || ! OccupationCollector::forRange($vessel, $window, (int) $booking->getKey())->isFree($window)) {
+            throw new RuntimeException((string) __('quotes.quote.actions.send.vessel_taken'));
         }
 
         VesselBlock::query()->updateOrCreate(

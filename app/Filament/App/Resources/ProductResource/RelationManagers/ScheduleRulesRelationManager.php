@@ -11,6 +11,7 @@ use App\Enums\BookingMode;
 use App\Filament\App\Resources\DepartureResource;
 use App\Filament\App\Resources\ScheduleRuleResource;
 use App\Filament\App\Support\ScheduleConflictNotice;
+use App\Filament\App\Support\VesselMoveNotice;
 use App\Filament\Forms\DepartureTimes;
 use App\Models\Product;
 use App\Models\ScheduleRule;
@@ -268,10 +269,13 @@ class ScheduleRulesRelationManager extends RelationManager
         unset($data['captain_user_id'], $data['captain_name'], $data['crew_user_ids'], $data['crew_names']);
 
         try {
+            $vesselBefore = $record->exists ? $record->effectiveVesselId() : null;
+
             $rule = app(SaveScheduleRule::class)($record, $product, $data);
             app(AssignScheduleCrew::class)($rule, $captain, $captainName, $crew, $crewNames);
 
             ScheduleConflictNotice::sendFor($rule);
+            VesselMoveNotice::afterRuleSave($rule, $vesselBefore);
 
             return $rule;
         } catch (ValidationException $exception) {

@@ -306,8 +306,9 @@ it('lets a second guest in once the first hold lapses, and never confirms the fi
 it('refuses an operator booking a charter on a boat that is taken, with the sentence', function (): void {
     $fixture = charterRaceFixture();
 
-    // Somebody has today's charter already — the panel's charter booking is
-    // for today, at the trip's own 09:00.
+    // Somebody has tomorrow's charter already — the panel's charter booking is
+    // for tomorrow, at the trip's own 09:00 (today's 09:00 has already
+    // started, and a started trip is refused before the boat is asked).
     Tenancy::forTenant($fixture['tenant'], function () use ($fixture): void {
         Booking::factory()->create([
             'product_id' => $fixture['product']->getKey(),
@@ -315,10 +316,10 @@ it('refuses an operator booking a charter on a boat that is taken, with the sent
             'departure_id' => null,
             'mode' => BookingMode::PerVessel,
             'status' => BookingStatus::Confirmed,
-            'local_date' => '2026-09-25',
+            'local_date' => '2026-09-26',
             'local_time' => '09:00',
-            'starts_at_utc' => Carbon::parse('2026-09-25 06:00:00'),
-            'ends_at_utc' => Carbon::parse('2026-09-25 14:00:00'),
+            'starts_at_utc' => Carbon::parse('2026-09-26 06:00:00'),
+            'ends_at_utc' => Carbon::parse('2026-09-26 14:00:00'),
         ]);
     });
 
@@ -334,6 +335,7 @@ it('refuses an operator booking a charter on a boat that is taken, with the sent
                 'guest_name' => 'Γιώργος Παπαδάκης',
                 'guest_email' => 'giorgos@example.gr',
                 'payment' => 'on_the_day',
+                'date' => '2026-09-26',
             ])
             ->call('create')
             ->assertHasNoFormErrors()

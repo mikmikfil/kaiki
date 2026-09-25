@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources\ProductResource\Pages;
 
+use App\Domain\Booking\Support\GuestDetailsTracking;
 use App\Domain\Catalog\Actions\SaveProduct;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Support\ReturnsToFirstSteps;
+use App\Filament\App\Support\VesselMoveNotice;
 use App\Filament\Support\MoreActions;
 use App\Models\Product;
 use Filament\Actions\Action;
@@ -29,6 +31,9 @@ class EditProduct extends EditRecord
     use ReturnsToFirstSteps;
 
     protected static string $resource = ProductResource::class;
+
+    /** Bookings the passenger-list switch is about to open, for the saved message. */
+    private int $detailsToOpen = 0;
 
     public function mount(int|string $record): void
     {
@@ -81,6 +86,25 @@ class EditProduct extends EditRecord
         if (! $this->priceDirty) {
             $this->loadPriceTable();
         }
+
+        // «Στοιχεία επιβατών» switched on for a trip that already sold (audit
+        // 2): the save opened those bookings, and says how many.
+        if ($this->detailsToOpen > 0 && $this->product()->guest_details_required) {
+            Notification::make()
+                ->success()
+                ->title(trans_choice('catalog.product.form.guest_details_required.opened', $this->detailsToOpen, ['count' => $this->detailsToOpen]))
+                ->send();
+        }
+
+        $this->detailsToOpen = 0;
+    }
+
+    /** Counted before the save: after it, the bookings are already opened. */
+    protected function beforeSave(): void
+    {
+        $this->detailsToOpen = ! $this->product()->guest_details_required && (bool) ($this->data['guest_details_required'] ?? false)
+            ? GuestDetailsTracking::untrackedCount($this->product())
+            : 0;
     }
 
     /** @return array<int, Action|ActionGroup> */
@@ -188,7 +212,15 @@ class EditProduct extends EditRecord
     /** @param array<string, mixed> $data */
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
-        return $this->saveProductWithBands($record, $data);
+        /** @var Product $record */
+        $vesselBefore = $record->vessel_id === null ? null : (int) $record->vessel_id;
+
+        $saved = $this->saveProductWithBands($record, $data);
+
+        // A new boat: the schedules without their own follow it (audit 2).
+        VesselMoveNotice::afterProductSave($saved, $vesselBefore);
+
+        return $saved;
     }
 
     private function product(): Product

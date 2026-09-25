@@ -11,6 +11,7 @@ use App\Domain\Availability\Support\Window;
 use App\Domain\Availability\VesselCalendar;
 use App\Domain\Booking\Actions\CreateManualBooking;
 use App\Domain\Booking\Data\BookingDraftData;
+use App\Domain\Booking\Support\GuestDetailsTracking;
 use App\Domain\Operations\Support\CalendarDay;
 use App\Domain\Pricing\Actions\ComputePrice;
 use App\Enums\BlockReason;
@@ -39,6 +40,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Forms\Get;
+use Filament\Notifications\Actions\Action as NotificationAction;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
@@ -447,7 +449,7 @@ class Calendar extends Page
                 return view('filament.app.pages.calendar-pax', [
                     'departure' => $departure,
                     'bookings' => $bookings,
-                    'canSell' => self::userCan(Capability::SellOnQuay),
+                    'canSell' => self::canSell(),
                 ]);
             });
     }
@@ -473,7 +475,7 @@ class Calendar extends Page
             ->label(__('calendar.sell.title'))
             ->modalHeading(__('calendar.sell.title'))
             ->modalWidth('md')
-            ->visible(fn (): bool => self::userCan(Capability::SellOnQuay))
+            ->visible(fn (): bool => self::canSell())
             ->fillForm(function (array $arguments): array {
                 $departure = $this->sellable($arguments);
                 $bands = $departure?->product->ageBands ?? collect();
@@ -620,7 +622,33 @@ class Calendar extends Page
                     ->body(__('calendar.sell.done_body', ['how' => $paidBy->label(), 'reference' => (string) $booking->reference]))
                     ->success()
                     ->send();
+
+                // The sale goes through and the passenger list follows (Mike,
+                // 25/9): on a trip that asks for one, the form is a tap away,
+                // for the crew to fill in on the quay when the guest left no
+                // email or phone to send it to.
+                $detailsUrl = GuestDetailsTracking::urlWhilePending($booking);
+
+                if ($detailsUrl !== null) {
+                    Notification::make()
+                        ->title(__('bookings.guest_details.missing'))
+                        ->body(__('bookings.guest_details.fill_in_help'))
+                        ->warning()
+                        ->persistent()
+                        ->actions([
+                            NotificationAction::make('fill_in')
+                                ->label(__('bookings.guest_details.fill_in'))
+                                ->url($detailsUrl, shouldOpenInNewTab: true),
+                        ])
+                        ->send();
+                }
             });
+    }
+
+    /** «Πώληση τώρα» for whoever may sell, on an account that may take bookings (TEN-9). */
+    private static function canSell(): bool
+    {
+        return self::userCan(Capability::SellOnQuay) && Tenancy::current()?->allowsWrites() !== false;
     }
 
     /**

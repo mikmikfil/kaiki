@@ -145,4 +145,29 @@ final class BookingCutoff
             ? AvailabilityRejection::LeadTimeTooShort
             : null;
     }
+
+    /**
+     * The sailing `CreateBookingDraft` would take for a date and an optional
+     * time: the only one on sale that day, or the one at that time. Null when
+     * none or several match; the draft refuses those itself.
+     *
+     * For the doors that test a per-seat request before its draft exists
+     * (audit 2): the API's cutoff and the panel's "trip started" floor.
+     */
+    public static function sailingPickedBy(Product $product, Carbon $date, ?string $startTime): ?Departure
+    {
+        $sailings = Departure::query()
+            ->where('product_id', $product->getKey())
+            ->whereDate('local_date', $date->toDateString())
+            ->sellable()
+            ->where('is_blocked', false)
+            ->get();
+
+        if ($startTime !== null) {
+            $time = substr($startTime, 0, 5);
+            $sailings = $sailings->filter(static fn (Departure $d): bool => substr((string) $d->local_time, 0, 5) === $time);
+        }
+
+        return $sailings->count() === 1 ? $sailings->first() : null;
+    }
 }

@@ -103,6 +103,12 @@ return [
      * somebody else has already sold it — so the sentence says that outright
      * rather than reporting a failure count.
      */
+    // An outside calendar closed the boat over bookings sold here (audit 2).
+    'ical_clash' => [
+        'title' => 'Booked elsewhere too · :vessel, :time',
+        'detail' => 'The :source calendar closes the boat then, but there are bookings here: :references. Decide which one stands.',
+    ],
+
     'calendar' => [
         'title' => 'Calendar not syncing · :name',
         'detail' => ':vessel may look free while it is booked elsewhere. Failed :count times in a row.',

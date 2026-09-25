@@ -5,8 +5,14 @@ declare(strict_types=1);
 namespace App\Domain\Booking\Actions;
 
 use App\Domain\Availability\Actions\HoldSeats;
+use App\Domain\Availability\LocalDateTimeResolver;
+use App\Domain\Availability\Support\BookingCutoff;
+use App\Domain\Availability\Support\LocalDay;
+use App\Domain\Availability\Support\ProposedWindowBuilder;
+use App\Domain\Availability\Support\Window;
 use App\Domain\Booking\Data\BookingDraftData;
 use App\Domain\Booking\Data\ManualBookingAdjustment;
+use App\Enums\BookingMode;
 use App\Enums\BookingSource;
 use App\Enums\BookingStatus;
 use App\Enums\PaymentGatewayName;
@@ -16,6 +22,7 @@ use App\Events\CapacityOverridden;
 use App\Events\ManualPaymentRecorded;
 use App\Exceptions\IllegalStateTransition;
 use App\Models\Booking;
+use App\Models\Departure;
 use App\Models\Payment;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -67,6 +74,9 @@ use Illuminate\Validation\ValidationException;
  */
 final class CreateManualBooking
 {
+    /** How long after its start a quay sale may still be taken. */
+    public const QUAY_GRACE_MINUTES = 30;
+
     public function __construct(
         private readonly CreateBookingDraft $createDraft,
         private readonly HoldSeats $holdSeats,
@@ -97,6 +107,9 @@ final class CreateManualBooking
             // Before anything is written: a refused deposit leaves no draft.
             $this->guardDeposit($depositCents, $depositBy);
         }
+
+        // Before anything is written, as the deposit is (audit 2).
+        $this->guardNotStarted($data, $source);
 
         // The source is this Action's to set, not the caller's. A manual
         // booking that arrived claiming to be a widget booking would be
@@ -130,6 +143,43 @@ final class CreateManualBooking
         }
 
         return $booking->refresh();
+    }
+
+    /**
+     * No booking for a trip that has already left (audit 2). BKG-32 lifts the
+     * lead time and the advance window, not this: every other door refuses a
+     * started trip, and a charter booked for yesterday was confirmed, took the
+     * boat and emailed the guest as overdue. The quay gets a few minutes'
+     * grace, for a boat that is late casting off.
+     *
+     * @throws ValidationException
+     */
+    private function guardNotStarted(BookingDraftData $data, BookingSource $source): void
+    {
+        $sailing = $data->departure
+            ?? ($data->product->mode === BookingMode::PerSeat ? BookingCutoff::sailingPickedBy($data->product, $data->date, $data->startTime) : null);
+
+        if ($sailing instanceof Departure) {
+            $startsAt = $sailing->starts_at_utc;
+        } elseif ($data->product->mode === BookingMode::PerSeat) {
+            // No single sailing: the draft refuses that itself.
+            return;
+        } else {
+            $window = ProposedWindowBuilder::build($data->product, $data->date, $data->startTime, $data->extraHours)['window'];
+            $startsAt = $window instanceof Window
+                ? $window->startUtc
+                : LocalDay::of($data->date, LocalDateTimeResolver::timezone())->endUtcExclusive;
+        }
+
+        $floor = $source === BookingSource::Quay ? now()->subMinutes(self::QUAY_GRACE_MINUTES) : now();
+
+        if ($startsAt->greaterThan($floor)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            $data->departure !== null ? 'departure_id' : 'date' => [trans('bookings.trip_started')],
+        ]);
     }
 
     /**
@@ -296,8 +346,11 @@ final class CreateManualBooking
      *
      * No payment row, because no money has arrived. The booking holds its
      * seats as a confirmed one and so never expires; the whole total is the
-     * balance, collected on board or chased by the reminders, as the operator
-     * has set.
+     * balance, due on the day (Mike, audit 2): no due date and no online
+     * reminders, even where the operator collects balances online. The
+     * agreement is kept with the balance terms in the price snapshot, so a
+     * later recompute does not give it a due date back
+     * ({@see ComputeBalanceDueAt::agreedOnBoard()}).
      */
     private function confirmUnpaid(Booking $booking): Booking
     {
@@ -305,7 +358,13 @@ final class CreateManualBooking
             throw IllegalStateTransition::forBooking($booking->status, BookingStatus::Confirmed);
         }
 
-        $booking->forceFill(['deposit_cents' => 0])->save();
+        $booking->forceFill([
+            'deposit_cents' => 0,
+            'price_snapshot' => [
+                ...(is_array($booking->price_snapshot) ? $booking->price_snapshot : []),
+                ComputeBalanceDueAt::ON_BOARD_KEY => true,
+            ],
+        ])->save();
 
         return ($this->confirmBooking)($booking->refresh());
     }

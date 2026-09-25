@@ -5,15 +5,20 @@ declare(strict_types=1);
 namespace App\Domain\Notifications\Actions;
 
 use App\Domain\Booking\Actions\ResumeAbandonedBooking;
+use App\Domain\Booking\Support\CharterOccupancy;
 use App\Enums\BookingStatus;
 use App\Enums\CancelReason;
 use App\Enums\NotificationChannel;
 use App\Enums\NotificationTemplate;
+use App\Enums\PaymentKind;
+use App\Enums\PaymentStatus;
 use App\Mail\GuestMail;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\NotificationLog;
+use App\Models\Payment;
 use App\Models\Tenant;
+use App\Models\Vessel;
 use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -76,6 +81,7 @@ final class SendPaymentUnfinished
 
                     if (NotificationLog::alreadySent($booking->getKey(), $template, NotificationChannel::Mail)
                         || ResumeAbandonedBooking::successor($booking) instanceof Booking
+                        || $this->moneyMoved($booking)
                         || ! $this->stillFits($booking)) {
                         return 0;
                     }
@@ -96,11 +102,31 @@ final class SendPaymentUnfinished
         return $sent;
     }
 
+    /**
+     * Did the guest pay after all (audit 2)? A charge that landed after the
+     * booking lapsed is either confirmed or on its way back with its own
+     * email; «your payment was not completed» after «we returned your money»
+     * is the wrong thing to say.
+     */
+    private function moneyMoved(Booking $booking): bool
+    {
+        return Payment::query()
+            ->where('booking_id', $booking->getKey())
+            ->where(static fn ($query) => $query
+                ->where('status', PaymentStatus::Succeeded->value)
+                ->orWhere('kind', PaymentKind::Refund->value))
+            ->exists();
+    }
+
     /** Is there still room for this party? A boat that filled gets no email. */
     private function stillFits(Booking $booking): bool
     {
         if ($booking->departure_id === null) {
-            return true;
+            // A private charter: only while the boat is still free for it
+            // (audit 2). Its own lapsed hold is not counted against it.
+            $vessel = $booking->vessel_id === null ? null : Vessel::query()->find($booking->vessel_id);
+
+            return ! $vessel instanceof Vessel || CharterOccupancy::isFreeFor($vessel, $booking);
         }
 
         $departure = Departure::query()->find($booking->departure_id);

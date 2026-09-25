@@ -12,6 +12,7 @@ use App\Domain\Booking\Actions\CreateBookingDraft;
 use App\Domain\Booking\Actions\MintCheckoutSession;
 use App\Domain\Booking\Support\RefundEntitlement;
 use App\Domain\Payments\Actions\ReconcilePendingPayments;
+use App\Enums\BookingMode;
 use App\Enums\BookingStatus;
 use App\Enums\CancelledBy;
 use App\Enums\CancelReason;
@@ -119,7 +120,14 @@ final class BookingController
         // quote use, so a date the calendar calls past cannot become a draft.
         // `CreateManualBooking` and imports do not come through here, which is
         // BKG-32's operator override kept.
-        $cutoff = BookingCutoff::forRequest($product, $departure, $data->date, $data->startTime, $data->extraHours);
+        // A per-seat request that names no sailing is held on the one its date
+        // and time pick (audit 2), so that sailing's start is the one tested —
+        // not the end of the day, which let a boat already gone be held.
+        $cutoffDeparture = $departure ?? ($product->mode === BookingMode::PerSeat
+            ? BookingCutoff::sailingPickedBy($product, $data->date, $data->startTime)
+            : null);
+
+        $cutoff = BookingCutoff::forRequest($product, $cutoffDeparture, $data->date, $data->startTime, $data->extraHours);
 
         if ($cutoff !== null) {
             return ApiErrorResponse::make(
