@@ -43,6 +43,10 @@
     $fontCss = $brand['font']['css_url'] ?? null;
     $fontFamily = $brand['font']['family'] ?? 'Inter';
     $logo = $brand['logo']['light_url'] ?? null;
+    // The footer is dark: the logo made for a dark background when there is
+    // one («Λογότυπο για σκούρο φόντο», the light-coloured version), else the
+    // same one as the header (Mike, 25/9: the footer showed the dark logo).
+    $footLogo = ($brand['logo']['dark_url'] ?? null) ?: $logo;
 @endphp
 <!doctype html>
 <html lang="{{ $locale }}">
@@ -4285,8 +4289,8 @@
              legally — and the legal links in a row of their own underneath. --}}
         <div class="cols">
             <div class="foot-brand">
-                @if ($logo)
-                    <img class="foot-logo" src="{{ $logo }}" alt="{{ $tenant->name }}">
+                @if ($footLogo)
+                    <img class="foot-logo" src="{{ $footLogo }}" alt="{{ $tenant->name }}">
                 @else
                     <p class="foot-wordmark">
                         <span class="brand-mark" aria-hidden="true">@include('hosted.partials.icon', ['name' => 'boat'])</span>
