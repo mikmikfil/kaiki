@@ -1,6 +1,8 @@
 {{--
     {@see \App\Filament\Forms\DepartureTimes}: the times as chips, sorted, each
-    with its own ×, and «+ Ώρα» opening one small input in the same row.
+    with its own ×, and «+ Ώρα» opening a picker under the row: the hours, then
+    the minutes in fives — two taps, no typing (Mike, 25/9: «θέλω timepicker,
+    όχι όπως είναι»; it was a text box that wanted «14:30» typed).
 
     The line underneath counts the ticked days of the same schedule, so the
     operator reads what the choice means («15 αναχωρήσεις τη βδομάδα») before
@@ -30,7 +32,9 @@
             daysPath: @js($getDaysStatePath()),
             t: @js($messages),
             adding: false,
-            draft: '',
+            hour: null,
+            hours: Array.from({ length: 24 }, (_, i) => String(i).padStart(2, '0')),
+            minutes: Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, '0')),
             error: '',
             get times() {
                 return [...new Set((Array.isArray(this.state) ? this.state : Object.values(this.state ?? {}))
@@ -67,20 +71,23 @@
             },
             open() {
                 this.adding = true;
+                this.hour = null;
                 this.error = '';
-                this.$nextTick(() => this.$refs.input.focus());
             },
             close() {
                 this.adding = false;
-                this.draft = '';
+                this.hour = null;
                 this.error = '';
             },
-            add() {
-                const time = this.parse(this.draft);
-                if (! time) { this.error = this.t.invalid; return; }
+            pick(minute) {
+                if (this.hour === null) return;
+                const time = this.hour + ':' + minute;
                 if (this.times.includes(time)) { this.error = this.t.duplicate.replace('__TIME__', time); return; }
                 this.state = [...this.times, time].sort();
                 this.close();
+            },
+            hasHour(hour) {
+                return this.times.some((time) => time.startsWith(hour + ':'));
             },
             remove(time) {
                 this.state = this.times.filter((other) => other !== time);
@@ -95,23 +102,30 @@
                 </span>
             </template>
 
-            <span class="ka-time-adding" x-show="adding" x-cloak>
-                <input
-                    type="text"
-                    inputmode="numeric"
-                    autocomplete="off"
-                    maxlength="5"
-                    x-ref="input"
-                    x-model="draft"
-                    x-on:keydown.enter.prevent="add()"
-                    x-on:keydown.escape.prevent="close()"
-                    placeholder="{{ __('availability.schedule_rule.form.start_times.placeholder') }}"
-                    aria-label="{{ __('availability.schedule_rule.form.start_times.new') }}"
-                >
-                <button type="button" class="ka-time-ok" x-on:click="add()">{{ __('availability.schedule_rule.form.start_times.add') }}</button>
-            </span>
-
             <button type="button" class="ka-time-add" x-show="! adding" x-on:click="open()">+ {{ __('availability.schedule_rule.form.start_times.chip') }}</button>
+        </div>
+
+        <div class="ka-pick" x-show="adding" x-cloak x-on:keydown.escape.prevent="close()"
+             role="group" aria-label="{{ __('availability.schedule_rule.form.start_times.new') }}">
+            <p class="ka-pick-label">{{ __('availability.schedule_rule.form.start_times.hour') }}</p>
+            <div class="ka-pick-grid is-hours">
+                <template x-for="h in hours" :key="h">
+                    <button type="button" x-text="h" x-on:click="hour = h"
+                            :class="{ 'is-on': hour === h, 'is-used': hasHour(h) }"
+                            :aria-pressed="hour === h ? 'true' : 'false'"></button>
+                </template>
+            </div>
+            <p class="ka-pick-label">{{ __('availability.schedule_rule.form.start_times.minutes') }}</p>
+            <div class="ka-pick-grid is-minutes">
+                <template x-for="m in minutes" :key="m">
+                    <button type="button" x-on:click="pick(m)" :disabled="hour === null"
+                            x-text="(hour ?? '--') + ':' + m"
+                            :class="{ 'is-used': hour !== null && times.includes(hour + ':' + m) }"></button>
+                </template>
+            </div>
+            <div class="ka-pick-foot">
+                <button type="button" class="ka-pick-cancel" x-on:click="close()">{{ __('availability.schedule_rule.form.start_times.cancel') }}</button>
+            </div>
         </div>
 
         <p class="ka-times-error" x-show="error" x-text="error" x-cloak role="alert"></p>
@@ -146,15 +160,31 @@
             color: #1E5AA8; font-weight: 600;
         }
         .ka-time-add:hover { border-color: #1E5AA8; background: #F5F9FE; }
-        .ka-time-adding { display: inline-flex; align-items: center; gap: .4rem; }
-        .ka-time-adding input {
-            inline-size: 7.5rem; padding: .3rem .7rem; border-radius: 999px;
-            border: 1px solid #1E5AA8; font: inherit; font-variant-numeric: tabular-nums;
+        .ka-pick {
+            display: grid; gap: .5rem; padding: .75rem;
+            border: 1px solid rgb(var(--gray-200)); border-radius: .625rem; background: #fff;
+            box-shadow: 0 8px 24px rgba(11, 39, 64, .08);
         }
-        .ka-time-adding input:focus { outline: 2px solid #1E5AA8; outline-offset: 1px; }
-        .ka-time-ok {
-            padding: .3rem .8rem; border-radius: 999px;
-            background: #1E5AA8; color: #fff; font-weight: 600;
+        .ka-pick-label { margin: 0; font-size: .8125rem; font-weight: 600; color: rgb(var(--gray-600)); }
+        .ka-pick-grid { display: grid; gap: .35rem; }
+        .ka-pick-grid.is-hours { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+        .ka-pick-grid.is-minutes { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+        .ka-pick-grid button {
+            min-block-size: 2.25rem; border-radius: .5rem;
+            border: 1px solid rgb(var(--gray-200)); background: #fff;
+            font-weight: 600; font-variant-numeric: tabular-nums; color: #0F2E57;
+        }
+        .ka-pick-grid button:hover:not(:disabled) { border-color: #1E5AA8; background: #F5F9FE; }
+        .ka-pick-grid button.is-used { background: #EAF1FA; }
+        .ka-pick-grid button.is-on, .ka-pick-grid button.is-on:hover { background: #1E5AA8; border-color: #1E5AA8; color: #fff; }
+        .ka-pick-grid button:disabled { color: rgb(var(--gray-400)); cursor: default; }
+        .ka-pick-grid button:focus-visible { outline: 2px solid #1E5AA8; outline-offset: 1px; }
+        .ka-pick-foot { display: flex; justify-content: flex-end; }
+        .ka-pick-cancel { padding: .3rem .8rem; border-radius: 999px; color: rgb(var(--gray-600)); font-weight: 600; }
+        .ka-pick-cancel:hover { background: rgb(var(--gray-100)); }
+        @media (max-width: 30rem) {
+            .ka-pick-grid.is-hours { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+            .ka-pick-grid.is-minutes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
         }
         .ka-times-error { margin: 0; font-size: .8125rem; color: #B42318; }
         .ka-times-sum {
@@ -166,7 +196,8 @@
         /* A thumb, not a cursor: the 44px the rest of the panel gives a phone. */
         @media (max-width: 1023.98px) {
             .ka-time-x { inline-size: 2.25rem; block-size: 2.25rem; }
-            .ka-time-add, .ka-time-ok, .ka-time-adding input { min-block-size: 2.5rem; }
+            .ka-time-add, .ka-pick-cancel { min-block-size: 2.5rem; }
+            .ka-pick-grid button { min-block-size: 2.75rem; }
         }
     </style>
 @endonce

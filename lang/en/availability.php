@@ -63,10 +63,11 @@ return [
             'start_times' => [
                 'label' => 'Departure times',
                 'help' => 'Local time. Add every time it leaves during the day. Each time becomes its own row, with the same days and dates.',
-                'add' => 'Add',
                 'chip' => 'Time',
                 'new' => 'New time',
-                'placeholder' => 'e.g. 14:30',
+                'hour' => 'Hour',
+                'minutes' => 'Minutes',
+                'cancel' => 'Cancel',
                 'remove' => 'Remove',
                 'invalid' => 'Type a time, e.g. 09:30.',
                 'duplicate' => ':time is already there.',
