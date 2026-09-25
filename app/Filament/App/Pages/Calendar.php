@@ -31,10 +31,12 @@ use App\Support\Format\MoneyFormatter;
 use App\Support\Tenancy;
 use Carbon\CarbonImmutable;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
@@ -104,14 +106,66 @@ class Calendar extends Page
         return $user instanceof User && $user->hasCapability(Capability::ViewDepartures);
     }
 
+    /**
+     * The date field beside the arrows (Mike, 2026-09-25: «να δω τι παίζει στις
+     * 15 Οκτωβρίου»). Its own property rather than `date` itself, so a cleared
+     * or mistyped field never becomes the day the page shows; `goTo` decides.
+     */
+    public ?string $jump = null;
+
     public function mount(): void
     {
         $this->date = Carbon::now($this->timezone())->toDateString();
+        $this->jump = $this->date;
     }
 
     public function today(): void
     {
         $this->date = Carbon::now($this->timezone())->toDateString();
+        $this->jump = $this->date;
+    }
+
+    /**
+     * The picker. A day, never an instant: pinned to UTC like every date field
+     * in the panel (see AppPanelProvider), shown as 15/10/2026, and for crew
+     * only the days of their window are offered.
+     */
+    public function form(Form $form): Form
+    {
+        return $form->schema([
+            DatePicker::make('jump')
+                ->label(__('calendar.jump'))
+                ->hiddenLabel()
+                ->native(false)
+                ->displayFormat('d/m/Y')
+                ->firstDayOfWeek(1)
+                ->closeOnDateSelection()
+                ->minDate(fn (): ?string => CrewWindow::applies() ? CrewWindow::firstDay()->toDateString() : null)
+                ->maxDate(fn (): ?string => CrewWindow::applies() ? CrewWindow::lastDay()->toDateString() : null)
+                ->live()
+                ->afterStateUpdated(fn (?string $state) => $this->goTo($state)),
+        ]);
+    }
+
+    /**
+     * Show the day the operator picked — and, like the arrows, not a day
+     * outside the crew window, nor anything that is not a date. Either way the
+     * field goes back to the day being shown.
+     */
+    public function goTo(?string $value): void
+    {
+        $value = substr(trim((string) $value), 0, 10);
+        $picked = preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) === 1
+            ? CarbonImmutable::createFromFormat('!Y-m-d', $value, $this->timezone())
+            : null;
+
+        if ($picked instanceof CarbonImmutable
+            && $picked->toDateString() === $value
+            && (! CrewWindow::applies() || CrewWindow::covers($picked))) {
+            $this->date = $value;
+        }
+
+        $this->jump = $this->date;
     }
 
     /**
@@ -133,6 +187,7 @@ class Calendar extends Page
         }
 
         $this->date = $moved->toDateString();
+        $this->jump = $this->date;
     }
 
     public function getDay(): CalendarDay

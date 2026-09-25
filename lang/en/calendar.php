@@ -21,6 +21,7 @@ return [
     'previous' => 'Previous day',
     'today' => 'Today',
     'next' => 'Next day',
+    'jump' => 'Go to date',
 
     'drag_hint' => 'Drag across empty time to block a boat. Click a trip to see who is on it.',
     // The phone: a list per boat instead of the timeline (2026-09-23).
