@@ -430,7 +430,13 @@ return [
         ],
 
         // The form's two tabs (2026-09-17).
+        'steps' => [
+            'back' => ':tab',
+            'next' => 'Next: :tab',
+            'last' => 'When you are ready, press «Publish» below.',
+        ],
         'wizard' => [
+            'continue' => 'Continue',
             'title' => 'New trip',
             // The new-trip guide (product owner, 2026-09-22, direction Α).
             'basics' => [

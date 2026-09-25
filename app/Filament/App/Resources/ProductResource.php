@@ -179,28 +179,28 @@ class ProductResource extends Resource
                                 Tabs\Tab::make(__('catalog.product.tabs.basics'))
                                     ->badge(static::basicsBadge(...))
                                     ->badgeColor('warning')
-                                    ->schema(static::basicsSections()),
+                                    ->schema([...static::basicsSections(), static::stepNav('basics')]),
 
                                 Tabs\Tab::make(__('catalog.product.tabs.when'))
                                     ->badge(static::whenBadge(...))
                                     ->badgeColor(static fn (?Product $record): string => static::missingBadge($record, 'when') !== null
                                         || static::scheduleBadge($record) === __('catalog.product.tabs.no_schedule') ? 'warning' : 'gray')
-                                    ->schema(static::whenSections()),
+                                    ->schema([...static::whenSections(), static::stepNav('when')]),
 
                                 Tabs\Tab::make(__('catalog.product.tabs.prices'))
                                     ->badge(static fn (?Product $record): ?string => static::missingBadge($record, 'prices'))
                                     ->badgeColor('warning')
-                                    ->schema(static::priceSections()),
+                                    ->schema([...static::priceSections(), static::stepNav('prices')]),
 
                                 Tabs\Tab::make(__('catalog.product.tabs.terms'))
                                     ->badge(static fn (?Product $record): ?string => static::missingBadge($record, 'terms'))
                                     ->badgeColor('warning')
-                                    ->schema(static::termsSections()),
+                                    ->schema([...static::termsSections(), static::stepNav('terms')]),
 
                                 Tabs\Tab::make(__('catalog.product.tabs.page'))
                                     ->badge(static::pageBadge(...))
                                     ->badgeColor('gray')
-                                    ->schema(static::pageSections()),
+                                    ->schema([...static::pageSections(), static::stepNav('page')]),
                             ]),
                     ])->columnSpan([
                         'default' => 1,
@@ -282,6 +282,50 @@ class ProductResource extends Resource
         return $active === 0
             ? __('catalog.product.tabs.no_schedule')
             : trans_choice('catalog.product.tabs.active_schedules', $active, ['count' => $active]);
+    }
+
+    /**
+     * The five tabs, in order, by the key of their label in `catalog.product.tabs`.
+     *
+     * @var list<string>
+     */
+    public const TABS = ['basics', 'when', 'prices', 'terms', 'page'];
+
+    /**
+     * The `?tab=` value Filament gives a tab: its label, transliterated strictly
+     * and slugged, between the parent's id (none here) and `-tab` — exactly
+     * `Tabs\Tab::__construct()` and `getId()`. Plain `Str::slug` transliterates
+     * Greek differently («feughei» for «pheugei»), and an id that matches no tab
+     * sends the page to the first one.
+     */
+    public static function tabQueryKey(string $tab): string
+    {
+        return '-' . Str::slug(Str::transliterate((string) __("catalog.product.tabs.{$tab}"), strict: true)) . '-tab';
+    }
+
+    /**
+     * «← Πίσω» and «Επόμενο →» at the foot of a tab, while the trip is a draft.
+     *
+     * A new trip is made from «Βασικά» and then finished here (Mike, 25/9: one
+     * form for creating and editing), so a draft reads as the steps it used to
+     * be — but they are these tabs, with these fields and this save. Moving
+     * between them loses nothing: the tabs are one form, and the lists inside
+     * them (schedules, extras, price lists) save as they are edited.
+     */
+    public static function stepNav(string $tab): ViewField
+    {
+        $index = (int) array_search($tab, self::TABS, true);
+        $previous = self::TABS[$index - 1] ?? null;
+        $next = self::TABS[$index + 1] ?? null;
+
+        return ViewField::make('filament.app.trip-step-nav')
+            ->key("step_nav_{$tab}")
+            ->viewData([
+                'previous' => $previous === null ? null : ['key' => self::tabQueryKey($previous), 'label' => __("catalog.product.tabs.{$previous}")],
+                'next' => $next === null ? null : ['key' => self::tabQueryKey($next), 'label' => __("catalog.product.tabs.{$next}")],
+            ])
+            ->columnSpanFull()
+            ->visible(static fn (?Product $record): bool => $record?->status === ProductStatus::Draft);
     }
 
     /**

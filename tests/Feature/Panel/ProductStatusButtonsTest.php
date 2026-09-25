@@ -61,21 +61,47 @@ function completeTripWithStatus(ProductStatus $status): Product
     return $product;
 }
 
-it('opens a new trip as the edit page’s tabs in steps, and offers no «create another»', function (): void {
-    // The guide (2026-09-22) names its steps; since 2026-09-24 they are the
-    // edit page's tabs — Βασικά, Πότε φεύγει, Τιμές, Όροι, Σελίδα — then
-    // «Δημοσίευση», with «Αποθήκευση ως πρόχειρη» beside them at every step.
+it('opens a new trip on «Βασικά» alone, with «Συνέχεια» and no «create another»', function (): void {
+    // Mike, 25/9: creating and editing are one form. The create page is the
+    // «Βασικά» tab and a button that goes on to the rest, which is the edit
+    // page — so neither the other tabs nor «Δημοσίευση» are here. «Create
+    // another» made a second click on a slow connection look like the first
+    // one had not worked.
     $owner = OperatorUser::withRole(Role::Owner);
 
     statusPageAs($owner, CreateProduct::class)
-        ->assertSee(__('catalog.product.tabs.basics'))
-        ->assertSee(__('catalog.product.tabs.when'))
-        ->assertSee(__('catalog.product.tabs.prices'))
-        ->assertSee(__('catalog.product.tabs.terms'))
-        ->assertSee(__('catalog.product.tabs.page'))
-        ->assertSee(__('catalog.product.wizard.publish.label'))
-        ->assertSee(__('catalog.product.status_actions.save_draft'))
+        ->assertSee(__('catalog.product.sections.basics'))
+        ->assertSee(__('catalog.product.wizard.continue'))
+        ->assertDontSee(__('catalog.product.tabs.prices'))
+        ->assertDontSee(__('catalog.product.status_actions.publish'))
         ->assertDontSee(__('filament-panels::resources/pages/create-record.form.actions.create_another.label'));
+})->group('fast');
+
+it('walks a draft through its tabs with «Πίσω» and «Επόμενο», and a trip on sale without them', function (): void {
+    // What is left of the wizard (25/9): a draft still reads as steps, but the
+    // steps are the edit page's own tabs, so moving on is a button at the foot
+    // of each. On a trip that is on sale the tabs are just tabs.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    [$draft, $live] = Tenancy::forTenant(statusTenantOf($owner), fn (): array => [
+        completeTripWithStatus(ProductStatus::Draft),
+        completeTripWithStatus(ProductStatus::Active),
+    ]);
+
+    $next = static fn (string $tab): string => __('catalog.product.steps.next', ['tab' => __("catalog.product.tabs.{$tab}")]);
+
+    statusPageAs($owner, EditProduct::class, ['record' => $draft->uuid])
+        // Every tab but the last points at the one after it…
+        ->assertSee($next('when'))
+        ->assertSee($next('prices'))
+        ->assertSee($next('terms'))
+        ->assertSee($next('page'))
+        // …and the last says what comes after the tabs.
+        ->assertSee(__('catalog.product.steps.last'));
+
+    statusPageAs($owner, EditProduct::class, ['record' => $live->uuid])
+        ->assertDontSee($next('when'))
+        ->assertDontSee(__('catalog.product.steps.last'));
 })->group('fast');
 
 it('publishes a complete draft from its button', function (): void {
