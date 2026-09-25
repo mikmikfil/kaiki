@@ -35,7 +35,7 @@ export interface ApiError extends Error {
   /** The contract's machine-readable code (`docs/api.md` §4), when there was one. */
   readonly code: string | null;
   /**
-   * The server's own sentence for this refusal, in the negotiated locale.
+   * The server's own sentence for this refusal, in the widget's locale.
    *
    * Beside the code rather than instead of it: the widget branches on the code
    * and keeps its own wording for the refusals it has a screen for. This is for
@@ -262,12 +262,16 @@ export class ApiClient implements Api {
     let detail: string | null = null;
 
     try {
-      const payload = (await response.json()) as { error?: { code?: string; message?: unknown } };
+      const payload = (await response.json()) as {
+        error?: { code?: string; message?: unknown; message_el?: unknown };
+      };
       code = payload.error?.code ?? null;
-      // `message` is already in the locale this client asked for, through the
-      // `Accept-Language` it sends. The envelope also carries `message_el`, and
-      // reading that here would hand a Greek sentence to an English page.
-      detail = typeof payload.error?.message === 'string' ? payload.error.message : null;
+      // The client picks (docs/api.md §4.1): `message` is English whatever
+      // `Accept-Language` said, so a Greek page reads `message_el` — reading
+      // `message` alone put "On this trip children travel with an adult…" on
+      // a Greek booking sheet.
+      const sentence = this.locale?.startsWith('el') ? payload.error?.message_el : payload.error?.message;
+      detail = typeof sentence === 'string' ? sentence : null;
     } catch {
       // A 502 from a proxy is HTML, and the status is the whole of what it
       // has to say.
