@@ -1,0 +1,1088 @@
+<!doctype html>
+<html lang="el">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Μειωμένα, γύρος 2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Same tokens as reduced-fares.html: light only, blue panel, Inter. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57; --active:#1C4378;
+  --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --line2:#CFDAE8; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA; --strip:#F1F5FA;
+  --warn:#9A5B0C; --warnbg:#FBF0DF; --good:#1F7A4D; --goodbg:#E3F2EA; --bad:#B42318; --badbg:#FDECEA;
+  --op:#0E6E8C; --opdeep:#0A4F66; --opwash:#E4F2F6;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{background:var(--ground)}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-block:32px 72px;padding-inline:16px;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+a,a:hover,a:focus{color:var(--blue);text-decoration:none;font-weight:600}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:22px}
+.intro h1{font-size:28px;line-height:1.2;margin:0 0 6px;letter-spacing:-.01em;text-wrap:balance}
+.intro p{margin:0 0 8px;color:var(--muted);max-width:78ch}
+.answer{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--good);border-radius:12px;padding:12px 16px;max-width:900px}
+.answer b{color:var(--good)}
+.answer p{margin:4px 0 0;color:var(--ink)}
+
+.tabs{display:flex;flex-wrap:wrap;gap:0 4px;border-bottom:1px solid var(--line2);position:sticky;top:0;background:var(--ground);z-index:5}
+@media(max-width:699px){.tabs{position:static}.tab{padding:9px 10px 8px!important;font-size:14px!important}}
+.tab{padding:12px 14px 11px;font-weight:600;font-size:15px;color:#4F607A;border-bottom:3px solid transparent;white-space:nowrap;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--deep);border-bottom-color:var(--deep)}
+
+.panel{display:grid;gap:18px;min-width:0}
+.lead{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.lead h2{margin:0 0 6px;font-size:20px}
+.lead p{margin:0 0 6px;color:var(--muted);max-width:80ch}
+.lead p:last-child{margin-bottom:0}
+.says{display:inline-block;margin-top:4px;background:var(--wash);color:var(--deep);border-radius:8px;padding:4px 10px;font-weight:600;font-size:14px}
+.like{font-size:13px;color:var(--muted);margin-top:8px}
+.like b{color:var(--ink)}
+
+.sec{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.sec-h{padding:14px 18px;background:var(--strip);border-bottom:1px solid var(--line)}
+.sec-h h3{margin:0;font-size:17px}
+.sec-h p{margin:2px 0 0;font-size:13px;color:var(--muted)}
+.sec-b{padding:18px;display:grid;gap:16px;min-width:0}
+@media(max-width:520px){.sec-b{padding:12px}.lead{padding:14px}}
+.cols{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:900px){.cols.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.cols.dev{grid-template-columns:375px minmax(0,1fr)}}
+.cap{font-size:12.5px;font-weight:600;color:var(--muted);margin:0 0 6px}
+.note{font-size:13px;color:var(--muted);margin:0}
+.tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 9px;border-radius:99px;background:var(--wash);color:var(--blue);white-space:nowrap}
+.tag.warn{background:var(--warnbg);color:var(--warn)}.tag.good{background:var(--goodbg);color:var(--good)}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- Operator panel frame ---------- */
+.pn{border:1px solid var(--line2);border-radius:12px;overflow:hidden;background:var(--paper);min-width:0}
+.pn-top{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;padding:10px 14px;background:var(--card);border-bottom:1px solid var(--line)}
+.pn-top b{font-size:15px}
+.pn-tabs{display:flex;gap:2px;overflow-x:auto;padding:0 10px;background:var(--card);border-bottom:1px solid var(--line)}
+.pn-tabs span{padding:9px 10px;font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;border-bottom:2px solid transparent}
+.pn-tabs span.on{color:var(--deep);border-bottom-color:var(--blue)}
+.pn-b{padding:14px;display:grid;gap:14px;min-width:0}
+.pn-sec h4{margin:0 0 2px;font-size:15px}
+.pn-sec>p{margin:0 0 10px;font-size:13px;color:var(--muted)}
+.fare{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;display:grid;gap:10px;min-width:0}
+.fare-h{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between}
+.fare-h b{font-size:15px}
+.fgrid{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:620px){.fgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.f{display:grid;gap:4px;min-width:0}
+.f .l{font-size:12.5px;font-weight:600}
+.f .v{border:1px solid var(--line2);border-radius:8px;padding:7px 10px;background:#fff;font-size:14px;min-height:36px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.f .h{font-size:12px;color:var(--muted)}
+.seg{display:inline-flex;flex-wrap:wrap;background:var(--strip);border:1px solid var(--line2);border-radius:8px;padding:2px}
+.seg span{padding:4px 9px;border-radius:6px;font-size:12.5px;font-weight:600;color:var(--muted)}
+.seg span.on{background:var(--deep);color:#fff}
+.chk{display:inline-flex;align-items:center;gap:5px;font-size:13.5px}
+.chk i{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--line2);display:inline-grid;place-items:center;font-style:normal;font-size:11px;background:#fff;flex:none}
+.chk i.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.sw{display:inline-flex;align-items:flex-start;gap:8px;font-size:13.5px}
+.sw i{width:32px;height:18px;border-radius:99px;background:var(--line2);position:relative;flex:none;margin-top:2px}
+.sw i::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff}
+.sw i.on{background:var(--blue)}.sw i.on::after{left:16px}
+.sw small{display:block;color:var(--muted);font-size:12px}
+.addrow{font-size:13.5px;font-weight:600;color:var(--blue)}
+.preview{border-left:3px solid var(--op);background:var(--card);padding:8px 12px;font-size:13.5px;border-radius:0 8px 8px 0}
+.ptable{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--card)}
+.ptable th,.ptable td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.ptable th{font-size:12.5px;color:var(--muted);font-weight:600;background:var(--strip);white-space:nowrap}
+.ptable td.r,.ptable th.r{text-align:right}
+.ptable tr.grp td{background:var(--paper);font-weight:700;font-size:12.5px;color:var(--deep)}
+.ptable .sub{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.ptable .cell{display:inline-block;min-width:62px;border:1px solid var(--line2);border-radius:6px;padding:3px 7px;background:#fff;text-align:right}
+.ptable .cell.auto{color:var(--muted);background:var(--paper);border-style:dashed}
+.ptable .cell.own{border-color:var(--blue);font-weight:700}
+.tscroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;max-width:100%}
+.picklist{display:grid;gap:6px;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+.picklist span{border:1px solid var(--line2);border-radius:8px;padding:7px 10px;background:#fff;font-size:13.5px;display:flex;gap:6px;align-items:center}
+.picklist span.on{border-color:var(--blue);background:var(--wash);font-weight:600}
+.picklist small{color:var(--muted);font-weight:400;font-size:12px}
+
+/* ---------- Guest frames ---------- */
+.phone{width:100%;max-width:375px;border:1px solid var(--line2);border-radius:22px;background:#fff;overflow:hidden;box-shadow:0 1px 0 var(--line)}
+.ph-bar{height:22px;background:var(--paper);border-bottom:1px solid var(--line)}
+.desk{border:1px solid var(--line2);border-radius:12px;background:#fff;overflow:hidden;min-width:0}
+.desk-bar{display:flex;gap:6px;align-items:center;padding:8px 12px;background:var(--paper);border-bottom:1px solid var(--line);font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden}
+.desk-bar i{width:9px;height:9px;border-radius:50%;background:var(--line2);flex:none}
+.desk-in{display:grid;gap:18px;padding:18px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:700px){.desk-in{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}}
+.tripcard{display:grid;gap:4px;align-content:start}
+.tripcard .band{height:92px;border-radius:10px;background:linear-gradient(135deg,var(--op),#5BB3C9)}
+.tripcard b{font-size:17px;margin-top:6px}
+.tripcard span{font-size:13.5px;color:var(--muted)}
+
+.g{padding:16px;display:grid;gap:12px;font-size:15px;min-width:0}
+.g h5{margin:0;font-size:18px;line-height:1.3}
+.crumbs{font-size:12.5px;color:var(--muted)}
+.crumbs b{color:var(--op)}
+.pax{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.pax:last-child{border-bottom:0}
+.pax .who{display:grid;min-width:0}
+.pax .who b{font-size:15px;font-weight:600}
+.pax .who span{font-size:12.5px;color:var(--muted)}
+.stepper{display:inline-flex;align-items:center;gap:0;flex:none}
+.stepper button{width:36px;height:36px;border-radius:50%;border:1.5px solid var(--op);color:var(--op);font-size:19px;font-weight:600;line-height:1;display:grid;place-items:center}
+.stepper button[disabled]{border-color:var(--line2);color:var(--faint);cursor:default}
+.stepper output{min-width:34px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.stepper.sm button{width:30px;height:30px;font-size:17px}
+.stepper.sm output{min-width:28px}
+.proof{font-size:12.5px;color:var(--warn);background:var(--warnbg);border-radius:6px;padding:1px 7px;display:inline-block;margin-top:2px;justify-self:start}
+.sum{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 12px;border-radius:10px;background:var(--opwash)}
+.sum span{font-size:13.5px;color:var(--opdeep)}
+.sum b{font-size:18px;font-variant-numeric:tabular-nums;color:var(--opdeep);white-space:nowrap}
+.gbtn{display:block;width:100%;text-align:center;background:var(--op);color:#fff;font-weight:700;border-radius:10px;padding:13px}
+.hint{font-size:13px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:9px 11px;color:var(--muted)}
+.hint b{color:var(--ink)}
+.gwarn{font-size:13px;background:var(--warnbg);color:var(--warn);border-radius:10px;padding:8px 11px;font-weight:600}
+.more{display:flex;justify-content:space-between;align-items:center;gap:8px;width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;background:var(--paper);font-size:14px;font-weight:600;color:var(--opdeep);text-align:left}
+.more small{font-weight:400;color:var(--muted);font-size:12.5px;display:block}
+.more em{font-style:normal;font-size:13px;color:var(--op)}
+/* Β: reduced counts nested inside an age row */
+.agebox{border-bottom:1px solid var(--line)}
+.agebox:last-child{border-bottom:0}
+.agebox .pax{border-bottom:0}
+.inner{margin:0 0 10px 12px;padding:4px 0 4px 12px;border-left:2px solid var(--opwash);display:grid;gap:0}
+.inner .pax{padding:5px 0}
+.inner .pax .who b{font-size:14px}
+.inner-lbl{font-size:12.5px;color:var(--muted);font-weight:600}
+.addred{font-size:13px;font-weight:600;color:var(--op);margin:0 0 8px 12px}
+.compan{display:flex;gap:9px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;text-align:left;width:100%;background:#fff}
+.compan i{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line2);display:grid;place-items:center;font-style:normal;font-size:12px;flex:none;margin-top:1px;background:#fff;color:transparent}
+.compan[aria-pressed="true"]{border-color:var(--op);background:var(--opwash)}
+.compan[aria-pressed="true"] i{background:var(--op);border-color:var(--op);color:#fff}
+.compan[disabled]{opacity:.5;cursor:default}
+.compan small{display:block;color:var(--muted);font-size:12px}
+
+/* Γ: per passenger */
+.pcard{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:10px;min-width:0}
+.pcard-h{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.pcard-h b{font-size:15px}
+.gf{display:grid;gap:4px}
+.gf label{font-size:12.5px;font-weight:600}
+.gf .in{border:1px solid var(--line2);border-radius:8px;padding:8px 10px;font-size:14.5px;color:var(--ink)}
+.fares{display:grid;gap:6px}
+.fares button{display:flex;justify-content:space-between;align-items:center;gap:10px;border:1.5px solid var(--line2);border-radius:10px;padding:9px 11px;text-align:left;background:#fff;width:100%}
+.fares button span{font-size:14px;font-weight:600}
+.fares button small{display:block;font-size:12px;color:var(--muted);font-weight:400}
+.fares button em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fares button[aria-pressed="true"]{border-color:var(--op);background:var(--opwash)}
+.fares button[disabled]{opacity:.45;cursor:default}
+.fares.row{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))}
+.fares.row button{padding:7px 9px}
+.fares.row button span{font-size:13px}
+.plist{display:grid;gap:10px}
+.prow{display:grid;gap:6px;border-bottom:1px solid var(--line);padding-bottom:10px}
+.prow:last-child{border-bottom:0;padding-bottom:0}
+.prow-h{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+.prow-h span{color:var(--muted);font-size:13px}
+.paybar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 16px;border-top:1px solid var(--line);background:#fff}
+.paybar b{font-size:17px;font-variant-numeric:tabular-nums}
+.paybar span{background:var(--op);color:#fff;font-weight:700;border-radius:10px;padding:10px 16px;font-size:14px}
+
+/* ---------- Ticket + boarding list ---------- */
+.ticket{border:1px solid var(--line2);border-radius:12px;overflow:hidden;background:#fff;max-width:440px;width:100%}
+.ticket-h{background:linear-gradient(135deg,var(--op),#3F9DB6);color:#fff;padding:14px 16px;display:grid;gap:2px}
+.ticket-h b{font-size:16px}
+.ticket-h span{font-size:13px;opacity:.92}
+.ticket-b{padding:14px 16px;display:grid;gap:8px;font-size:14px}
+.tl{display:flex;justify-content:space-between;gap:10px}
+.tl span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tl.tot{border-top:1px solid var(--line);padding-top:8px;font-weight:700}
+.alert{background:var(--warnbg);color:var(--warn);border-radius:8px;padding:8px 10px;font-size:13.5px;font-weight:600}
+.board{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#fff;min-width:0}
+.board-h{padding:10px 14px;background:var(--strip);border-bottom:1px solid var(--line);font-size:13.5px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px}
+.board-h b{font-size:14.5px}
+.brow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:10px 14px;border-bottom:1px solid var(--line);font-size:14px;align-items:center}
+.brow:last-child{border-bottom:0}
+.brow .n{display:grid;justify-items:start}
+.brow .n b{font-weight:600}
+.brow .n span{font-size:12.5px;color:var(--muted)}
+.okbtn{border:1.5px solid var(--line2);border-radius:8px;padding:5px 10px;font-size:13px;font-weight:600;white-space:nowrap}
+
+/* ---------- Pros / cons ---------- */
+.pc{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:760px){.pc{grid-template-columns:1fr 1fr}}
+.pc h4{margin:0 0 6px;font-size:15px}
+.pc ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
+.pc .plus h4{color:var(--good)}.pc .minus h4{color:var(--bad)}
+.effort{font-size:13.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:10px;margin:0}
+.effort b{color:var(--ink)}
+.rules{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px}
+
+/* ---------- Shared bottom ---------- */
+.cmp{width:100%;border-collapse:collapse;font-size:14px;background:#fff;min-width:640px}
+.cmp th,.cmp td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.cmp th{background:var(--strip);font-size:12.5px;color:var(--muted)}
+.cmp td.best{background:var(--goodbg)}
+.rec{border:1px solid var(--line);border-left:4px solid var(--good);border-radius:14px;background:var(--card);padding:18px 20px;display:grid;gap:8px}
+.rec h3{margin:0;font-size:18px}
+.rec p{margin:0;max-width:85ch}
+.rec ul{margin:0;padding-left:18px;display:grid;gap:5px;font-size:14px}
+.q{margin:0;padding:0;list-style:none;display:grid;gap:8px;counter-reset:q}
+.q li{padding:10px 12px 10px 40px;border:1px solid var(--line);border-radius:10px;background:var(--paper);position:relative;counter-increment:q}
+.q li::before{content:counter(q);position:absolute;left:12px;top:10px;width:20px;height:20px;border-radius:50%;background:var(--deep);color:#fff;font-size:12px;font-weight:700;display:grid;place-items:center}
+.q b{display:block;font-size:14px}
+.q span{font-size:13.5px;color:var(--muted)}
+.found{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+@media(min-width:820px){.found{grid-template-columns:1fr 1fr}}
+.fcard{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--paper);display:grid;gap:6px;align-content:start}
+.fcard h4{margin:0;font-size:15px}
+.fcard p{margin:0;font-size:14px}
+.fcard .src{font-size:12.5px;color:var(--muted)}
+.fcard .src a{font-weight:600;overflow-wrap:anywhere}
+.model{display:inline-block;font-size:12px;font-weight:700;border-radius:6px;padding:1px 7px;background:var(--wash);color:var(--deep)}
+.dm{margin:0;padding-left:18px;display:grid;gap:7px;font-size:14px}
+code{font-size:12.5px;background:var(--strip);border:1px solid var(--line);border-radius:5px;padding:0 4px;word-break:break-word}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="intro">
+    <h1>Μειωμένα εισιτήρια, γύρος 2</h1>
+    <p>Ο Mike ρώτησε: «Τα ΑμεΑ δεν μπορούν να έχουν άλλη τιμή για ενήλικες και παιδιά;» Μπορούν, και έτσι το κάνουν οι περισσότεροι. Πρώτα κοιτάξαμε πώς το λύνουν η ακτοπλοΐα, τα μουσεία, ο σιδηρόδρομος και οι πλατφόρμες κρατήσεων. Μετά φτιάξαμε τρεις τρόπους. Και στους τρεις ο ΑμεΑ ενήλικας και το ΑμεΑ παιδί έχουν δική τους τιμή.</p>
+    <div class="answer"><b>Η σύντομη απάντηση</b>
+      <p>Στις μεταφορές η έκπτωση ΑμεΑ είναι ποσοστό της τιμής που θα πλήρωνε ο επιβάτης (πλοία: 50&nbsp;% του ναύλου· Amtrak: −10&nbsp;% και πάνω στο παιδικό). Άρα ενήλικας και παιδί βγαίνουν αυτόματα σε άλλη τιμή. Στα μουσεία ο ΑμεΑ και ένας συνοδός μπαίνουν δωρεάν, οπότε η ηλικία δεν παίζει ρόλο. Οι πλατφόρμες (FareHarbor, Bókun) έχουν ελεύθερες «κατηγορίες», και εκεί το «ΑμεΑ παιδί» είναι απλώς μια ακόμα γραμμή με δική της τιμή.</p>
+    </div>
+    <p style="margin-top:10px">Παράδειγμα παντού: «Ιστιοπλοΐα με πανιά», Aegean Blue Cruises, Σάββατο 12 Ιουλίου, 10:00. Μάι–Ιούν: Ενήλικας 42 €, Παιδί 21 €. Ιούλ–Αύγ: Ενήλικας 50 €, Παιδί 25 €. Βρέφος 0–2 δωρεάν. Κράτηση: <b>2 ενήλικες (ο ένας ΑμεΑ) και 2 παιδιά (το ένα ΑμεΑ)</b>.</p>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-tab="a">Α · Κατηγορίες εισιτηρίων</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="b">Β · Έκπτωση πάνω στην ηλικία</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="c">Γ · Ανά επιβάτη, όπως στα πλοία</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="r">Τι είδαμε στην έρευνα</button>
+    <button class="tab" role="tab" aria-selected="false" data-tab="d">Σύγκριση και πρόταση</button>
+  </nav>
+
+  <!-- ======================================================= Α -->
+  <section class="panel" data-panel="a">
+    <div class="lead">
+      <h2>Α · Κάθε εισιτήριο είναι μια γραμμή με δική της τιμή</h2>
+      <p>Ο γύρος 1 (Γ) με τις δύο διορθώσεις: το «ΑμεΑ» σπάει σε «ΑμεΑ ενήλικας» και «ΑμεΑ παιδί», και ο επιχειρηματίας δεν βλέπει ποτέ «αντί για». Διαλέγει μειωμένα από έτοιμη λίστα. Το Kaiki ξέρει ήδη ότι το «ΑμεΑ παιδί» είναι παιδί 3–11 και το «Φοιτητικό» ενήλικας.</p>
+      <p>Κάθε γραμμή έχει μία τιμή ανά περίοδο, γραμμένη με το χέρι ή βγαλμένη από ποσοστό. Έτσι ο ΑμεΑ ενήλικας μπορεί να πληρώνει 25 € και το ΑμεΑ παιδί 10 €, χωρίς κανόνα που να τα δένει.</p>
+      <span class="says">«2 ενήλικες (ο ένας ΑμεΑ), 2 παιδιά (το ένα ΑμεΑ)»</span>
+      <p class="like"><b>Όπως:</b> FareHarbor (customer types), Bókun (pricing categories με ηλικίες), GetYourGuide (Adult, Child, Student…), ταμεία μουσείων.</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>1. Ρύθμιση στην εκδρομή</h3><p>Καρτέλα «Τιμές». Ένας πίνακας, δύο ομάδες, μία στήλη ανά περίοδο.</p></div>
+      <div class="sec-b">
+        <div class="pn">
+          <div class="pn-top"><b>Ιστιοπλοΐα με πανιά</b><span class="tag good">Δημοσιευμένη</span></div>
+          <div class="pn-tabs"><span>Τα βασικά</span><span>Πότε φεύγει</span><span class="on">Τιμές</span><span>Σελίδα</span><span>Πρόσθετα</span></div>
+          <div class="pn-b">
+            <div class="tscroll"><table class="ptable">
+              <thead><tr><th>Εισιτήριο</th><th>Ηλικίες</th><th class="r">Μάι–Ιούν</th><th class="r">Ιούλ–Αύγ</th><th>Στην επιβίβαση</th></tr></thead>
+              <tbody>
+                <tr class="grp"><td colspan="5">Κατά ηλικία</td></tr>
+                <tr><td><b>Ολόκληρο</b></td><td>12 και άνω</td><td class="r"><span class="cell own num">42 €</span></td><td class="r"><span class="cell own num">50 €</span></td><td>—</td></tr>
+                <tr><td><b>Παιδικό</b></td><td>3–11</td><td class="r"><span class="cell own num">21 €</span></td><td class="r"><span class="cell own num">25 €</span></td><td>—</td></tr>
+                <tr><td><b>Βρέφος</b><span class="sub">χωρίς θέση</span></td><td>0–2</td><td class="r"><span class="cell own num">0 €</span></td><td class="r"><span class="cell own num">0 €</span></td><td>—</td></tr>
+                <tr class="grp"><td colspan="5">Μειωμένα</td></tr>
+                <tr><td><b>Φοιτητικό</b><span class="sub">−20&nbsp;% του ολόκληρου</span></td><td>12 και άνω</td><td class="r"><span class="cell auto num">33,60 €</span></td><td class="r"><span class="cell auto num">40 €</span></td><td>Φοιτητική ταυτότητα</td></tr>
+                <tr><td><b>ΑμεΑ ενήλικας</b><span class="sub">δική του τιμή</span></td><td>12 και άνω</td><td class="r"><span class="cell own num">21 €</span></td><td class="r"><span class="cell own num">25 €</span></td><td>Κάρτα αναπηρίας</td></tr>
+                <tr><td><b>ΑμεΑ παιδί</b><span class="sub">δική του τιμή</span></td><td>3–11</td><td class="r"><span class="cell own num">8 €</span></td><td class="r"><span class="cell own num">10 €</span></td><td>Κάρτα αναπηρίας</td></tr>
+                <tr><td><b>Συνοδός ΑμεΑ</b><span class="sub">ένας ανά ΑμεΑ</span></td><td>18 και άνω</td><td class="r"><span class="cell own num">0 €</span></td><td class="r"><span class="cell own num">0 €</span></td><td>Μαζί με τον ΑμεΑ</td></tr>
+              </tbody>
+            </table></div>
+            <p class="note">Διακεκομμένο κελί: βγαίνει από ποσοστό και ακολουθεί την τιμή. Συμπαγές: γραμμένο με το χέρι.</p>
+
+            <div class="fare">
+              <div class="fare-h"><b>ΑμεΑ ενήλικας · ΑμεΑ παιδί</b><span class="tag warn">Κάρτα αναπηρίας στην επιβίβαση</span></div>
+              <div class="fgrid">
+                <div class="f"><span class="l">Τιμή</span><div class="v"><span class="seg"><span>% της ηλικίας</span><span class="on">Δική της</span></span></div><span class="h">Με «% της ηλικίας» το −50&nbsp;% δίνει 25 € και 12,50 €.</span></div>
+                <div class="f"><span class="l">Στη σελίδα κράτησης</span><div class="v"><span class="chk"><i class="on">✓</i>ΑμεΑ ενήλικας</span><span class="chk"><i class="on">✓</i>ΑμεΑ παιδί</span></div><span class="h">Μπαίνουν μαζί, βγαίνει όποιο δεν θέλετε.</span></div>
+                <div class="f"><span class="l">Τι δείχνει</span><div class="v">Κάρτα αναπηρίας</div></div>
+              </div>
+              <span class="sw"><i class="on"></i><span>Ένας συνοδός ανά ΑμεΑ ταξιδεύει δωρεάν<small>Προσθέτει τη γραμμή «Συνοδός ΑμεΑ», 0 €. Πιάνει θέση κανονικά.</small></span></span>
+            </div>
+
+            <div class="pn-sec">
+              <h4>+ Μειωμένο από τη λίστα</h4>
+              <p>Το Kaiki ξέρει σε ποιες ηλικίες ταιριάζει το καθένα. Ο επιχειρηματίας δεν γράφει ηλικίες ούτε «αντί για».</p>
+              <div class="picklist">
+                <span class="on">✓ Φοιτητικό <small>ενήλικες</small></span>
+                <span class="on">✓ ΑμεΑ <small>ενήλικας και παιδί</small></span>
+                <span class="on">✓ Συνοδός ΑμεΑ <small>ενήλικας</small></span>
+                <span>Πολύτεκνοι <small>όλες οι ηλικίες</small></span>
+                <span>Άνω των 65 <small>ενήλικες</small></span>
+                <span>Κάτοικος νησιού <small>όλες οι ηλικίες</small></span>
+                <span>Στρατιωτικό <small>ενήλικες</small></span>
+                <span>Άλλο… <small>γράφετε όνομα και ηλικίες</small></span>
+              </div>
+            </div>
+            <div class="preview">Ο επισκέπτης βλέπει 3 γραμμές και, κάτω από αυτές, «Μειωμένα εισιτήρια (4)».</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>2. Κράτηση</h3><p>Πατήστε τα − / + και το «Μειωμένα εισιτήρια». Στο κινητό (375) και στον υπολογιστή.</p></div>
+      <div class="sec-b">
+        <div class="cols dev">
+          <div>
+            <p class="cap">Κινητό</p>
+            <div class="phone"><div class="ph-bar"></div>
+              <div class="g" data-calc="a" id="a-picker">
+                <div class="crumbs">Ημέρα ✓ · <b>Εισιτήρια</b> · Στοιχεία · Πληρωμή</div>
+                <h5>Πόσα εισιτήρια;</h5>
+                <div>
+                  <div class="pax"><div class="who"><b>Ολόκληρο</b><span>12 ετών και άνω · 50 €</span></div><span class="stepper" data-k="ad"><button type="button">−</button><output>1</output><button type="button">+</button></span></div>
+                  <div class="pax"><div class="who"><b>Παιδικό</b><span>3–11 ετών · 25 €</span></div><span class="stepper" data-k="ch"><button type="button">−</button><output>1</output><button type="button">+</button></span></div>
+                  <div class="pax"><div class="who"><b>Βρέφος</b><span>0–2 ετών · δωρεάν</span></div><span class="stepper" data-k="in"><button type="button">−</button><output>0</output><button type="button">+</button></span></div>
+                </div>
+                <button type="button" class="more" data-toggle="a-red" aria-expanded="true"><span>Μειωμένα εισιτήρια<small>Φοιτητές, ΑμεΑ, συνοδοί ΑμεΑ</small></span><em>Κλείσιμο</em></button>
+                <div class="a-red">
+                  <div class="pax"><div class="who"><b>Φοιτητικό</b><span>12 ετών και άνω · 40 €</span><span class="proof">Φοιτητική ταυτότητα</span></div><span class="stepper" data-k="st"><button type="button">−</button><output>0</output><button type="button">+</button></span></div>
+                  <div class="pax"><div class="who"><b>ΑμεΑ ενήλικας</b><span>12 ετών και άνω · 25 €</span><span class="proof">Κάρτα αναπηρίας</span></div><span class="stepper" data-k="da"><button type="button">−</button><output>1</output><button type="button">+</button></span></div>
+                  <div class="pax"><div class="who"><b>ΑμεΑ παιδί</b><span>3–11 ετών · 10 €</span><span class="proof">Κάρτα αναπηρίας</span></div><span class="stepper" data-k="dc"><button type="button">−</button><output>1</output><button type="button">+</button></span></div>
+                  <div class="pax"><div class="who"><b>Συνοδός ΑμεΑ</b><span>18 ετών και άνω · δωρεάν · ένας ανά ΑμεΑ</span></div><span class="stepper" data-k="co"><button type="button">−</button><output>0</output><button type="button">+</button></span></div>
+                </div>
+                <div class="gwarn" hidden>Τα παιδιά ταξιδεύουν με έναν ενήλικα. Το «ΑμεΑ παιδί» είναι παιδί.</div>
+                <div class="sum"><span class="line"></span><b class="tot"></b></div>
+                <span class="gbtn">Συνέχεια</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p class="cap">Υπολογιστής</p>
+            <div class="desk"><div class="desk-bar"><i></i><i></i><i></i>&nbsp;aegeanblue.gr/ekdromes/istioploia</div>
+              <div class="desk-in">
+                <div class="tripcard"><div class="band"></div><b>Ιστιοπλοΐα με πανιά</b><span>Σάββατο 12 Ιουλίου · 10:00 · 5 ώρες</span><span>Λιμάνι Νάξου, προβλήτα 3</span></div>
+                <div class="clone" data-from="a-picker"></div>
+              </div>
+            </div>
+            <p class="note" style="margin-top:10px">Το «Μειωμένα εισιτήρια» είναι κλειστό όταν ανοίγει η σελίδα· εδώ φαίνεται ανοιχτό. Στο checkout κάθε κάρτα επιβάτη έχει ήδη τίτλο: «Επιβάτης 2 · ΑμεΑ ενήλικας». Η φράση στο σύνολο μιλά για ανθρώπους, γιατί το Kaiki ξέρει την ηλικία κάθε εισιτηρίου.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>3. Εισιτήριο και λίστα επιβίβασης</h3></div>
+      <div class="sec-b"><div class="cols two">
+        <div class="ticket">
+          <div class="ticket-h"><b>Ιστιοπλοΐα με πανιά</b><span>Σάββατο 12 Ιουλίου · 10:00 · Κράτηση K7Q-4821</span></div>
+          <div class="ticket-b">
+            <div class="tl"><span>Νίκος Παπαδάκης · Ολόκληρο</span><span>50 €</span></div>
+            <div class="tl"><span>Ελένη Παπαδάκη · ΑμεΑ ενήλικας</span><span>25 €</span></div>
+            <div class="tl"><span>Γιώργος Παπαδάκης · Παιδικό</span><span>25 €</span></div>
+            <div class="tl"><span>Άννα Παπαδάκη · ΑμεΑ παιδί</span><span>10 €</span></div>
+            <div class="tl tot"><span>Σύνολο</span><span>110 €</span></div>
+            <div class="alert">Ελένη και Άννα: δείξτε κάρτα αναπηρίας στην επιβίβαση.</div>
+          </div>
+        </div>
+        <div class="board">
+          <div class="board-h"><b>Λίστα επιβίβασης · 10:00</b><span>K7Q-4821 · 4 άτομα · 2 μειωμένα</span></div>
+          <div class="brow"><div class="n"><b>Νίκος Παπαδάκης</b><span>Ενήλικας · Ολόκληρο</span></div><span class="okbtn">Επιβιβάστηκε</span></div>
+          <div class="brow"><div class="n"><b>Ελένη Παπαδάκη</b><span>Ενήλικας · ΑμεΑ</span><span class="proof">Ζητήστε κάρτα αναπηρίας</span></div><span class="okbtn">Επιβιβάστηκε</span></div>
+          <div class="brow"><div class="n"><b>Γιώργος Παπαδάκης</b><span>Παιδί · 8 ετών</span></div><span class="okbtn">Επιβιβάστηκε</span></div>
+          <div class="brow"><div class="n"><b>Άννα Παπαδάκη</b><span>Παιδί · 6 ετών · ΑμεΑ</span><span class="proof">Ζητήστε κάρτα αναπηρίας</span></div><span class="okbtn">Επιβιβάστηκε</span></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Συνοδός και κανόνας συνοδείας</h3></div>
+      <div class="sec-b">
+        <ul class="rules">
+          <li><b>ΑμεΑ ενήλικας = ενήλικας.</b> Μετράει ως συνοδός για τα παιδιά, γιατί η γραμμή του είναι 12+.</li>
+          <li><b>ΑμεΑ παιδί = παιδί.</b> Χρειάζεται ενήλικα, όπως το «Παιδικό». Δύο «ΑμεΑ παιδί» μόνα τους δεν περνούν. Αυτό κλείνει το σημερινό κενό: σήμερα η ομάδα «ΑμεΑ» χωρίς ηλικία μετράει ως συνοδός.</li>
+          <li><b>Συνοδός ΑμεΑ (αν είναι ανοιχτός ο διακόπτης).</b> Όσοι συνοδοί, τόσοι ΑμεΑ το πολύ. Είναι ενήλικας, άρα μετράει και για τα παιδιά. Θέλει τουλάχιστον ένα ΑμεΑ εισιτήριο στην ίδια κράτηση.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Υπέρ και κατά</h3></div>
+      <div class="sec-b">
+        <div class="pc">
+          <div class="plus"><h4>Υπέρ</h4><ul>
+            <li>Απόλυτη ελευθερία: κάθε τιμή είναι ό,τι γράψει ο επιχειρηματίας (25 € και 10 €).</li>
+            <li>Ίδια λογική με FareHarbor, Bókun, GetYourGuide: μία κατηγορία = μία τιμή και ένα εύρος ηλικιών.</li>
+            <li>Η μικρότερη αλλαγή: πατάει στις ομάδες «με ιδιότητα» που υπάρχουν ήδη.</li>
+            <li>Όποιος δεν δικαιούται τίποτα δεν βλέπει τίποτα: τα μειωμένα είναι κλειστά.</li>
+          </ul></div>
+          <div class="minus"><h4>Κατά</h4><ul>
+            <li>Περισσότερα κελιά: 7 γραμμές × 2 περίοδοι = 14 τιμές (λιγότερες με ποσοστό).</li>
+            <li>Ο επισκέπτης πρέπει να καταλάβει ότι το «ΑμεΑ παιδί» μπαίνει αντί για «Παιδικό», όχι επιπλέον.</li>
+            <li>Με 4–5 μειωμένα η ανοιχτή λίστα φτάνει τις 8 γραμμές στο κινητό.</li>
+          </ul></div>
+        </div>
+        <p class="effort"><b>Δουλειά:</b> έτοιμη λίστα μειωμένων με ηλικίες, ζεύγος «ΑμεΑ ενήλικας / παιδί», γραμμή «Συνοδός ΑμεΑ» με όριο, κλειστή ομάδα στο widget, διόρθωση κανόνα συνοδείας. Περίπου 2 συνεδρίες.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= Β -->
+  <section class="panel" data-panel="b" hidden>
+    <div class="lead">
+      <h2>Β · Το μειωμένο είναι έκπτωση πάνω στην τιμή της ηλικίας</h2>
+      <p>Όπως στα πλοία: «ΑμεΑ −50&nbsp;%» σημαίνει μισή τιμή από ό,τι θα πλήρωνε ο ίδιος. Ενήλικας ΑμεΑ 25 €, παιδί ΑμεΑ 12,50 €, χωρίς να γράψει κανείς δεύτερη τιμή. Αλλάζει η τιμή της περιόδου, αλλάζει και το μειωμένο.</p>
+      <p>Ο επισκέπτης μετράει ανθρώπους με ηλικίες, όπως σήμερα. Μέσα σε κάθε ηλικία λέει «από αυτούς, ΑμεΑ: 1». Η ηλικία δεν χάνεται ποτέ, οπότε ο κανόνας συνοδείας μένει ως έχει.</p>
+      <span class="says">«2 ενήλικες (ο ένας ΑμεΑ), 2 παιδιά (το ένα ΑμεΑ)»</span>
+      <p class="like"><b>Όπως:</b> ακτοπλοΐα (50&nbsp;% επί του ναύλου), Amtrak (−10&nbsp;% και πάνω στο παιδικό), Hellenic Train.</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>1. Ρύθμιση στην εκδρομή</h3><p>Καρτέλα «Τιμές». Ο πίνακας τιμών μένει όπως σήμερα, μόνο ηλικίες. Από κάτω, μία γραμμή ανά μειωμένο.</p></div>
+      <div class="sec-b">
+        <div class="pn">
+          <div class="pn-top"><b>Ιστιοπλοΐα με πανιά</b><span class="tag good">Δημοσιευμένη</span></div>
+          <div class="pn-tabs"><span>Τα βασικά</span><span>Πότε φεύγει</span><span class="on">Τιμές</span><span>Σελίδα</span><span>Πρόσθετα</span></div>
+          <div class="pn-b">
+            <div class="pn-sec">
+              <h4>Τιμές κατά ηλικία</h4>
+              <div class="tscroll"><table class="ptable">
+                <thead><tr><th>Ηλικία</th><th class="r">Μάι–Ιούν</th><th class="r">Ιούλ–Αύγ</th></tr></thead>
+                <tbody>
+                  <tr><td><b>Ενήλικας</b> <span class="sub">12 και άνω</span></td><td class="r"><span class="cell own num">42 €</span></td><td class="r"><span class="cell own num">50 €</span></td></tr>
+                  <tr><td><b>Παιδί</b> <span class="sub">3–11</span></td><td class="r"><span class="cell own num">21 €</span></td><td class="r"><span class="cell own num">25 €</span></td></tr>
+                  <tr><td><b>Βρέφος</b> <span class="sub">0–2, χωρίς θέση</span></td><td class="r"><span class="cell own num">0 €</span></td><td class="r"><span class="cell own num">0 €</span></td></tr>
+                </tbody>
+              </table></div>
+            </div>
+            <div class="pn-sec">
+              <h4>Μειωμένα</h4>
+              <p>Μία έκπτωση, για κάθε ηλικία και κάθε περίοδο. Αν θέλετε άλλη τιμή για το παιδί, γράψτε τη.</p>
+              <div style="display:grid;gap:10px">
+                <div class="fare">
+                  <div class="fare-h"><b>ΑμεΑ</b><span class="tag warn">Κάρτα αναπηρίας στην επιβίβαση</span></div>
+                  <div class="fgrid">
+                    <div class="f"><span class="l">Έκπτωση</span><div class="v"><span class="seg"><span class="on">Ποσοστό</span><span>Ποσό</span><span>Τιμή ανά ηλικία</span></span> −50&nbsp;%</div></div>
+                    <div class="f"><span class="l">Για ποιους</span><div class="v"><span class="chk"><i class="on">✓</i>Ενήλικας</span><span class="chk"><i class="on">✓</i>Παιδί</span></div><span class="h">Το βρέφος είναι ήδη δωρεάν.</span></div>
+                    <div class="f"><span class="l">Τι δείχνει</span><div class="v">Κάρτα αναπηρίας</div></div>
+                  </div>
+                  <div class="tscroll"><table class="ptable">
+                    <thead><tr><th>Βγαίνει</th><th class="r">Μάι–Ιούν</th><th class="r">Ιούλ–Αύγ</th></tr></thead>
+                    <tbody>
+                      <tr><td>Ενήλικας ΑμεΑ</td><td class="r"><span class="cell auto num">21 €</span></td><td class="r"><span class="cell auto num">25 €</span></td></tr>
+                      <tr><td>Παιδί ΑμεΑ</td><td class="r"><span class="cell auto num">10,50 €</span></td><td class="r"><span class="cell auto num">12,50 €</span></td></tr>
+                    </tbody>
+                  </table></div>
+                  <p class="note">Με «Τιμή ανά ηλικία» τα κελιά ανοίγουν και γράφετε π.χ. παιδί ΑμεΑ 10 €.</p>
+                  <span class="sw"><i class="on"></i><span>Ένας συνοδός ανά ΑμεΑ ταξιδεύει δωρεάν<small>Ένας από τους ενήλικες της κράτησης, 0 €. Πιάνει θέση κανονικά.</small></span></span>
+                </div>
+                <div class="fare">
+                  <div class="fare-h"><b>Φοιτητικό</b><span class="tag warn">Φοιτητική ταυτότητα στην επιβίβαση</span></div>
+                  <div class="fgrid">
+                    <div class="f"><span class="l">Έκπτωση</span><div class="v"><span class="seg"><span class="on">Ποσοστό</span><span>Ποσό</span><span>Τιμή ανά ηλικία</span></span> −20&nbsp;%</div><span class="h">Ιούλ–Αύγ 40 € · Μάι–Ιούν 33,60 €</span></div>
+                    <div class="f"><span class="l">Για ποιους</span><div class="v"><span class="chk"><i class="on">✓</i>Ενήλικας</span><span class="chk"><i></i>Παιδί</span></div></div>
+                    <div class="f"><span class="l">Τι δείχνει</span><div class="v">Φοιτητική ταυτότητα</div></div>
+                  </div>
+                </div>
+                <span class="addrow">+ Μειωμένο από τη λίστα (Πολύτεκνοι, Άνω των 65, Κάτοικος νησιού…)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>2. Κράτηση</h3><p>Πατήστε τα − / +, τα «Μειωμένο;» και τον συνοδό.</p></div>
+      <div class="sec-b">
+        <div class="cols dev">
+          <div>
+            <p class="cap">Κινητό</p>
+            <div class="phone"><div class="ph-bar"></div>
+              <div class="g" data-calc="b" id="b-picker">
+                <div class="crumbs">Ημέρα ✓ · <b>Άτομα</b> · Στοιχεία · Πληρωμή</div>
+                <h5>Πόσα άτομα είστε;</h5>
+                <div>
+                  <div class="agebox">
+                    <div class="pax"><div class="who"><b>Ενήλικες</b><span>12 ετών και άνω · 50 €</span></div><span class="stepper" data-k="ad"><button type="button">−</button><output>2</output><button type="button">+</button></span></div>
+                    <button type="button" class="addred" data-toggle="b-in-ad" hidden>Φοιτητής ή ΑμεΑ;</button>
+                    <div class="inner b-in-ad">
+                      <span class="inner-lbl">Από αυτούς</span>
+                      <div class="pax"><div class="who"><b>Φοιτητές</b><span>40 € · φοιτητική ταυτότητα</span></div><span class="stepper sm" data-k="sa" data-of="ad"><button type="button">−</button><output>0</output><button type="button">+</button></span></div>
+                      <div class="pax"><div class="who"><b>ΑμεΑ</b><span>25 € · κάρτα αναπηρίας</span></div><span class="stepper sm" data-k="da" data-of="ad"><button type="button">−</button><output>1</output><button type="button">+</button></span></div>
+                    </div>
+                  </div>
+                  <div class="agebox">
+                    <div class="pax"><div class="who"><b>Παιδιά</b><span>3–11 ετών · 25 €</span></div><span class="stepper" data-k="ch"><button type="button">−</button><output>2</output><button type="button">+</button></span></div>
+                    <button type="button" class="addred" data-toggle="b-in-ch" hidden>ΑμεΑ;</button>
+                    <div class="inner b-in-ch">
+                      <span class="inner-lbl">Από αυτά</span>
+                      <div class="pax"><div class="who"><b>ΑμεΑ</b><span>12,50 € · κάρτα αναπηρίας</span></div><span class="stepper sm" data-k="dc" data-of="ch"><button type="button">−</button><output>1</output><button type="button">+</button></span></div>
+                    </div>
+                  </div>
+                  <div class="agebox">
+                    <div class="pax"><div class="who"><b>Βρέφη</b><span>0–2 ετών · δωρεάν</span></div><span class="stepper" data-k="in"><button type="button">−</button><output>0</output><button type="button">+</button></span></div>
+                  </div>
+                </div>
+                <button type="button" class="compan" aria-pressed="false"><i>✓</i><span><b>Ένας ενήλικας είναι συνοδός ΑμεΑ</b><small>Ταξιδεύει δωρεάν. Ένας ανά ΑμεΑ.</small></span></button>
+                <div class="gwarn" hidden>Τα παιδιά ταξιδεύουν με έναν ενήλικα.</div>
+                <div class="sum"><span class="line"></span><b class="tot"></b></div>
+                <span class="gbtn">Συνέχεια</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p class="cap">Υπολογιστής</p>
+            <div class="desk"><div class="desk-bar"><i></i><i></i><i></i>&nbsp;aegeanblue.gr/ekdromes/istioploia</div>
+              <div class="desk-in">
+                <div class="tripcard"><div class="band"></div><b>Ιστιοπλοΐα με πανιά</b><span>Σάββατο 12 Ιουλίου · 10:00 · 5 ώρες</span><span>Λιμάνι Νάξου, προβλήτα 3</span></div>
+                <div class="clone" data-from="b-picker"></div>
+              </div>
+            </div>
+            <p class="note" style="margin-top:10px">Κλειστό, κάθε ηλικία έχει μόνο ένα μικρό «Φοιτητής ή ΑμεΑ;». Ανοίγει μόνο σε όποιον το πατήσει. Στα στοιχεία επιβατών, ο επισκέπτης λέει ποιος είναι ο ΑμεΑ («Επιβάτης 2 · Ενήλικας · ΑμεΑ»), για να φτάσει το όνομα στη λίστα επιβίβασης.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>3. Εισιτήριο και λίστα επιβίβασης</h3></div>
+      <div class="sec-b"><div class="cols two">
+        <div class="ticket">
+          <div class="ticket-h"><b>Ιστιοπλοΐα με πανιά</b><span>Σάββατο 12 Ιουλίου · 10:00 · Κράτηση K7Q-4821</span></div>
+          <div class="ticket-b">
+            <div class="tl"><span>Νίκος Παπαδάκης · Ενήλικας</span><span>50 €</span></div>
+            <div class="tl"><span>Ελένη Παπαδάκη · Ενήλικας · ΑμεΑ −50&nbsp;%</span><span>25 €</span></div>
+            <div class="tl"><span>Γιώργος Παπαδάκης · Παιδί</span><span>25 €</span></div>
+            <div class="tl"><span>Άννα Παπαδάκη · Παιδί · ΑμεΑ −50&nbsp;%</span><span>12,50 €</span></div>
+            <div class="tl tot"><span>Σύνολο</span><span>112,50 €</span></div>
+            <div class="alert">Ελένη και Άννα: δείξτε κάρτα αναπηρίας στην επιβίβαση.</div>
+          </div>
+        </div>
+        <div class="board">
+          <div class="board-h"><b>Λίστα επιβίβασης · 10:00</b><span>K7Q-4821 · 4 άτομα · 2 μειωμένα</span></div>
+          <div class="brow"><div class="n"><b>Νίκος Παπαδάκης</b><span>Ενήλικας</span></div><span class="okbtn">Επιβιβάστηκε</span></div>
+          <div class="brow"><div class="n"><b>Ελένη Παπαδάκη</b><span>Ενήλικας · ΑμεΑ</span><span class="proof">Ζητήστε κάρτα αναπηρίας</span></div><span class="okbtn">Επιβιβάστηκε</span></div>
+          <div class="brow"><div class="n"><b>Γιώργος Παπαδάκης</b><span>Παιδί · 8 ετών</span></div><span class="okbtn">Επιβιβάστηκε</span></div>
+          <div class="brow"><div class="n"><b>Άννα Παπαδάκη</b><span>Παιδί · 6 ετών · ΑμεΑ</span><span class="proof">Ζητήστε κάρτα αναπηρίας</span></div><span class="okbtn">Επιβιβάστηκε</span></div>
+        </div>
+      </div>
+      <p class="note">Με τον συνοδό: η γραμμή του Νίκου γίνεται «Ενήλικας · Συνοδός ΑμεΑ · 0 €» και στη λίστα «Συνοδός της Ελένης».</p>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Συνοδός και κανόνας συνοδείας</h3></div>
+      <div class="sec-b">
+        <ul class="rules">
+          <li><b>Δεν αλλάζει τίποτα στον κανόνα.</b> Ο ΑμεΑ είναι μέσα στους «Ενήλικες» ή στα «Παιδιά». Το <code>escortMissing()</code> διαβάζει μόνο ηλικίες. Το σημερινό κενό κλείνει από μόνο του.</li>
+          <li><b>Όριο:</b> οι ΑμεΑ ενήλικες δεν ξεπερνούν τους ενήλικες, τα ΑμεΑ παιδιά δεν ξεπερνούν τα παιδιά.</li>
+          <li><b>Συνοδός:</b> ένας από τους ενήλικες που δεν είναι ήδη μειωμένος. Αν δεν υπάρχει τέτοιος, το κουτάκι είναι σβηστό.</li>
+          <li><b>Ένα μειωμένο ανά άτομο:</b> ο φοιτητής ΑμεΑ μετριέται μία φορά, στο φθηνότερο.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Υπέρ και κατά</h3></div>
+      <div class="sec-b">
+        <div class="pc">
+          <div class="plus"><h4>Υπέρ</h4><ul>
+            <li>Η διαφορά ενήλικα/παιδιού βγαίνει μόνη της· ο επιχειρηματίας γράφει ένα νούμερο (−50&nbsp;%).</li>
+            <li>Αλλάζει η τιμή της περιόδου, ακολουθεί και το μειωμένο. Κανένα ξεχασμένο κελί.</li>
+            <li>Η φράση που θέλαμε από τον γύρο 1: «2 ενήλικες (ο ένας ΑμεΑ)».</li>
+            <li>Ο κανόνας συνοδείας δεν αγγίζεται.</li>
+            <li>Ίδια μορφή με τον νόμο της ακτοπλοΐας («50&nbsp;% επί του ναύλου»), αν μας ζητηθεί ποτέ.</li>
+          </ul></div>
+          <div class="minus"><h4>Κατά</h4><ul>
+            <li>Το βήμα «Άτομα» παίρνει δεύτερο επίπεδο (μέσα σε κάθε ηλικία) και θέλει προσοχή στο κινητό.</li>
+            <li>Ο ΑμεΑ δηλώνεται δύο φορές: πόσοι εδώ, ποιος στα στοιχεία.</li>
+            <li>Όποιος θέλει «ΑμεΑ παιδί 10 €» πρέπει να ανοίξει το «Τιμή ανά ηλικία».</li>
+            <li>Μεγαλύτερη αλλαγή στο widget (νέα έκδοση).</li>
+          </ul></div>
+        </div>
+        <p class="effort"><b>Δουλειά:</b> νέος πίνακας μειωμένων ανά εκδρομή (ποσοστό, ποσό ή τιμή ανά ηλικία × περίοδο), πεδίο στη γραμμή τιμής και στον επιβάτη, βήμα «Άτομα» με δεύτερο επίπεδο, checkout, λίστα επιβίβασης. Περίπου 3 συνεδρίες.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= Γ -->
+  <section class="panel" data-panel="c" hidden>
+    <div class="lead">
+      <h2>Γ · Ο κάθε επιβάτης διαλέγει το εισιτήριό του, όπως στο ferryhopper</h2>
+      <p>Το βήμα «Άτομα» μένει μόνο με ηλικίες. Στο checkout, όπου ήδη γράφουμε όνομα και ημερομηνία γέννησης (άρθρο 13), κάθε επιβάτης έχει τη γραμμή «Εισιτήριο». Βλέπει μόνο ό,τι ταιριάζει στην ηλικία του, με την τιμή του.</p>
+      <p>Ο επιχειρηματίας έχει έναν πίνακα διπλής εισόδου: ηλικίες × μειωμένα. Τα κελιά γεμίζουν από ένα ποσοστό και μπορεί να αλλάξει όποιο θέλει.</p>
+      <span class="says">«Άννα Παπαδάκη · Παιδί · ΑμεΑ · 12,50 €»</span>
+      <p class="like"><b>Όπως:</b> ferryhopper, Blue Star, Seajets (επιλογή έκπτωσης ανά επιβάτη, στο βήμα επιβατών).</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>1. Ρύθμιση στην εκδρομή</h3><p>Καρτέλα «Τιμές». Ένας πίνακας ανά περίοδο: γραμμές οι ηλικίες, στήλες τα εισιτήρια.</p></div>
+      <div class="sec-b">
+        <div class="pn">
+          <div class="pn-top"><b>Ιστιοπλοΐα με πανιά</b><span class="tag good">Δημοσιευμένη</span></div>
+          <div class="pn-tabs"><span>Τα βασικά</span><span>Πότε φεύγει</span><span class="on">Τιμές</span><span>Σελίδα</span><span>Πρόσθετα</span></div>
+          <div class="pn-b">
+            <div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><b style="font-size:14px">Περίοδος</b><span class="seg"><span>Μάι–Ιούν</span><span class="on">Ιούλ–Αύγ</span></span></div>
+            <div class="tscroll"><table class="ptable">
+              <thead><tr><th>Ηλικία</th><th class="r">Κανονικό</th><th class="r">Φοιτητικό<span class="sub">−20&nbsp;%</span></th><th class="r">ΑμεΑ<span class="sub">−50&nbsp;%</span></th><th class="r">Συνοδός ΑμεΑ</th></tr></thead>
+              <tbody>
+                <tr><td><b>Ενήλικας</b><span class="sub">12 και άνω</span></td><td class="r"><span class="cell own num">50 €</span></td><td class="r"><span class="cell auto num">40 €</span></td><td class="r"><span class="cell auto num">25 €</span></td><td class="r"><span class="cell own num">0 €</span></td></tr>
+                <tr><td><b>Παιδί</b><span class="sub">3–11</span></td><td class="r"><span class="cell own num">25 €</span></td><td class="r"><span class="sub">δεν ισχύει</span></td><td class="r"><span class="cell own num">10 €</span><span class="sub">αλλαγμένο</span></td><td class="r"><span class="sub">δεν ισχύει</span></td></tr>
+                <tr><td><b>Βρέφος</b><span class="sub">0–2</span></td><td class="r"><span class="cell own num">0 €</span></td><td class="r"><span class="sub">δεν ισχύει</span></td><td class="r"><span class="sub">δωρεάν ήδη</span></td><td class="r"><span class="sub">δεν ισχύει</span></td></tr>
+              </tbody>
+            </table></div>
+            <p class="note">Διακεκομμένο: βγαίνει από το ποσοστό της στήλης. Συμπαγές: γραμμένο. Το παιδί ΑμεΑ εδώ είναι 10 € αντί για 12,50 €.</p>
+            <div class="fgrid">
+              <div class="f"><span class="l">Στήλες</span><div class="v"><span class="chk"><i class="on">✓</i>Φοιτητικό</span><span class="chk"><i class="on">✓</i>ΑμεΑ</span><span class="chk"><i class="on">✓</i>Συνοδός</span></div><span class="h">+ από τη λίστα: Πολύτεκνοι, Άνω των 65…</span></div>
+              <div class="f"><span class="l">Τι δείχνει ο ΑμεΑ</span><div class="v">Κάρτα αναπηρίας</div></div>
+              <div class="f"><span class="l">Συνοδός ΑμεΑ</span><div class="v"><span class="sw"><i class="on"></i>Δωρεάν, ένας ανά ΑμεΑ</span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>2. Κράτηση</h3><p>Το βήμα «Άτομα» είναι όπως σήμερα. Αλλάζει η κάρτα κάθε επιβάτη στο checkout. Πατήστε ένα εισιτήριο.</p></div>
+      <div class="sec-b">
+        <div class="cols two">
+          <div>
+            <p class="cap">Κινητό · checkout, επιβάτης 4</p>
+            <div class="phone"><div class="ph-bar"></div>
+              <div class="g">
+                <div class="crumbs">Ημέρα ✓ · Άτομα ✓ · <b>Στοιχεία</b> · Πληρωμή</div>
+                <div class="pcard">
+                  <div class="pcard-h"><b>Επιβάτης 4</b><span class="note">Παιδί</span></div>
+                  <div class="gf"><label>Ονοματεπώνυμο</label><div class="in">Άννα Παπαδάκη</div></div>
+                  <div class="gf"><label>Ημερομηνία γέννησης</label><div class="in">02/05/2020 · 6 ετών</div></div>
+                  <div class="gf"><label>Εισιτήριο</label>
+                    <div class="fares" data-pax="4">
+                      <button type="button" data-fare="2500" aria-pressed="false"><span>Παιδικό</span><em>25 €</em></button>
+                      <button type="button" data-fare="1000" data-amea="1" aria-pressed="true"><span>ΑμεΑ<small>με κάρτα αναπηρίας</small></span><em>10 €</em></button>
+                    </div>
+                  </div>
+                  <span class="proof c-proof-4">Δείξτε κάρτα αναπηρίας στην επιβίβαση.</span>
+                </div>
+                <p class="note">Στο παιδί δεν εμφανίζεται «Φοιτητικό» ούτε «Συνοδός»: η ημερομηνία γέννησης λέει 6 ετών.</p>
+              </div>
+              <div class="paybar"><b class="c-tot">110 €</b><span>Πληρωμή</span></div>
+            </div>
+          </div>
+          <div>
+            <p class="cap">Κινητό · βήμα «Άτομα» (όπως σήμερα)</p>
+            <div class="phone"><div class="ph-bar"></div>
+              <div class="g">
+                <div class="crumbs">Ημέρα ✓ · <b>Άτομα</b> · Στοιχεία · Πληρωμή</div>
+                <h5>Πόσα άτομα είστε;</h5>
+                <div>
+                  <div class="pax"><div class="who"><b>Ενήλικες</b><span>12 ετών και άνω · 50 €</span></div><span class="stepper"><button type="button" tabindex="-1">−</button><output>2</output><button type="button" tabindex="-1">+</button></span></div>
+                  <div class="pax"><div class="who"><b>Παιδιά</b><span>3–11 ετών · 25 €</span></div><span class="stepper"><button type="button" tabindex="-1">−</button><output>2</output><button type="button" tabindex="-1">+</button></span></div>
+                  <div class="pax"><div class="who"><b>Βρέφη</b><span>0–2 ετών · δωρεάν</span></div><span class="stepper"><button type="button" disabled>−</button><output>0</output><button type="button" tabindex="-1">+</button></span></div>
+                </div>
+                <div class="hint"><b>Φοιτητές, ΑμεΑ, συνοδοί ΑμεΑ:</b> το μειωμένο το διαλέγετε στα στοιχεία κάθε επιβάτη, στο επόμενο βήμα.</div>
+                <div class="sum"><span>2 ενήλικες, 2 παιδιά · από</span><b>150 €</b></div>
+                <span class="gbtn">Συνέχεια</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <p class="cap">Υπολογιστής · checkout, όλοι οι επιβάτες</p>
+          <div class="desk"><div class="desk-bar"><i></i><i></i><i></i>&nbsp;aegeanblue.gr/kratisi/K7Q-4821</div>
+            <div class="desk-in">
+              <div class="plist">
+                <div class="prow"><div class="prow-h"><b>1 · Νίκος Παπαδάκης</b><span>Ενήλικας · 41 ετών</span></div>
+                  <div class="fares row" data-pax="1">
+                    <button type="button" data-fare="5000" aria-pressed="true"><span>Κανονικό</span><em>50 €</em></button>
+                    <button type="button" data-fare="4000" aria-pressed="false"><span>Φοιτητικό</span><em>40 €</em></button>
+                    <button type="button" data-fare="2500" data-amea="1" aria-pressed="false"><span>ΑμεΑ</span><em>25 €</em></button>
+                    <button type="button" data-fare="0" data-companion="1" aria-pressed="false"><span>Συνοδός ΑμεΑ</span><em>0 €</em></button>
+                  </div></div>
+                <div class="prow"><div class="prow-h"><b>2 · Ελένη Παπαδάκη</b><span>Ενήλικας · 38 ετών</span></div>
+                  <div class="fares row" data-pax="2">
+                    <button type="button" data-fare="5000" aria-pressed="false"><span>Κανονικό</span><em>50 €</em></button>
+                    <button type="button" data-fare="4000" aria-pressed="false"><span>Φοιτητικό</span><em>40 €</em></button>
+                    <button type="button" data-fare="2500" data-amea="1" aria-pressed="true"><span>ΑμεΑ</span><em>25 €</em></button>
+                    <button type="button" data-fare="0" data-companion="1" aria-pressed="false"><span>Συνοδός ΑμεΑ</span><em>0 €</em></button>
+                  </div></div>
+                <div class="prow"><div class="prow-h"><b>3 · Γιώργος Παπαδάκης</b><span>Παιδί · 8 ετών</span></div>
+                  <div class="fares row" data-pax="3">
+                    <button type="button" data-fare="2500" aria-pressed="true"><span>Παιδικό</span><em>25 €</em></button>
+                    <button type="button" data-fare="1000" data-amea="1" aria-pressed="false"><span>ΑμεΑ</span><em>10 €</em></button>
+                  </div></div>
+                <div class="prow"><div class="prow-h"><b>4 · Άννα Παπαδάκη</b><span>Παιδί · 6 ετών</span></div>
+                  <div class="fares row" data-pax="4">
+                    <button type="button" data-fare="2500" aria-pressed="false"><span>Παιδικό</span><em>25 €</em></button>
+                    <button type="button" data-fare="1000" data-amea="1" aria-pressed="true"><span>ΑμεΑ</span><em>10 €</em></button>
+                  </div></div>
+              </div>
+              <div class="tripcard"><div class="band"></div><b>Ιστιοπλοΐα με πανιά</b><span>Σάββατο 12 Ιουλίου · 10:00</span>
+                <div class="ticket-b" style="padding:10px 0 0">
+                  <div class="tl"><span class="c-line-1">Νίκος · Κανονικό</span><span class="c-price-1">50 €</span></div>
+                  <div class="tl"><span class="c-line-2">Ελένη · ΑμεΑ</span><span class="c-price-2">25 €</span></div>
+                  <div class="tl"><span class="c-line-3">Γιώργος · Παιδικό</span><span class="c-price-3">25 €</span></div>
+                  <div class="tl"><span class="c-line-4">Άννα · ΑμεΑ</span><span class="c-price-4">10 €</span></div>
+                  <div class="tl tot"><span>Σύνολο</span><span class="c-tot">110 €</span></div>
+                </div>
+                <p class="note">Το «Συνοδός ΑμεΑ» ανάβει μόνο όταν κάποιος άλλος στην κράτηση έχει διαλέξει ΑμεΑ. Δοκιμάστε το στον Νίκο.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>3. Εισιτήριο και λίστα επιβίβασης</h3></div>
+      <div class="sec-b"><div class="cols two">
+        <div class="ticket">
+          <div class="ticket-h"><b>Ιστιοπλοΐα με πανιά</b><span>Σάββατο 12 Ιουλίου · 10:00 · Κράτηση K7Q-4821</span></div>
+          <div class="ticket-b">
+            <div class="tl"><span>Νίκος Παπαδάκης · Ενήλικας</span><span>50 €</span></div>
+            <div class="tl"><span>Ελένη Παπαδάκη · Ενήλικας · ΑμεΑ</span><span>25 €</span></div>
+            <div class="tl"><span>Γιώργος Παπαδάκης · Παιδί</span><span>25 €</span></div>
+            <div class="tl"><span>Άννα Παπαδάκη · Παιδί · ΑμεΑ</span><span>10 €</span></div>
+            <div class="tl tot"><span>Σύνολο</span><span>110 €</span></div>
+            <div class="alert">Ελένη και Άννα: δείξτε κάρτα αναπηρίας στην επιβίβαση.</div>
+          </div>
+        </div>
+        <div class="board">
+          <div class="board-h"><b>Λίστα επιβίβασης · 10:00</b><span>2 μειωμένα σε αυτή την κράτηση</span></div>
+          <div class="brow"><div class="n"><b>Νίκος Παπαδάκης</b><span>Ενήλικας</span></div><span class="okbtn">Επιβιβάστηκε</span></div>
+          <div class="brow"><div class="n"><b>Ελένη Παπαδάκη</b><span>Ενήλικας · ΑμεΑ</span><span class="proof">Ζητήστε κάρτα αναπηρίας</span></div><span class="okbtn">Επιβιβάστηκε</span></div>
+          <div class="brow"><div class="n"><b>Γιώργος Παπαδάκης</b><span>Παιδί · 8 ετών</span></div><span class="okbtn">Επιβιβάστηκε</span></div>
+          <div class="brow"><div class="n"><b>Άννα Παπαδάκη</b><span>Παιδί · 6 ετών · ΑμεΑ</span><span class="proof">Ζητήστε κάρτα αναπηρίας</span></div><span class="okbtn">Επιβιβάστηκε</span></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Συνοδός και κανόνας συνοδείας</h3></div>
+      <div class="sec-b">
+        <ul class="rules">
+          <li><b>Δεν αλλάζει τίποτα στον κανόνα.</b> Οι ηλικίες μετρήθηκαν στο βήμα «Άτομα». Το ΑμεΑ είναι ιδιότητα του επιβάτη, όχι ηλικία.</li>
+          <li><b>Το μειωμένο δένεται με όνομα από την αρχή:</b> μία δήλωση, όχι δύο.</li>
+          <li><b>Συνοδός:</b> επιλογή μόνο σε ενήλικα και μόνο όταν άλλος επιβάτης είναι ΑμεΑ. Όσοι συνοδοί, τόσοι ΑμεΑ το πολύ.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Υπέρ και κατά</h3></div>
+      <div class="sec-b">
+        <div class="pc">
+          <div class="plus"><h4>Υπέρ</h4><ul>
+            <li>Γνώριμο από τα πλοία: «Επιβάτης 2 · Έκπτωση ΑμεΑ».</li>
+            <li>Το βήμα «Άτομα» μένει το πιο απλό, για όλους.</li>
+            <li>Ο πίνακας ηλικία × εισιτήριο δείχνει όλες τις τιμές μαζί· κάθε κελί αλλάζει.</li>
+            <li>Η ηλικία από την ημερομηνία γέννησης κόβει τα λάθη (φοιτητικό σε 9χρονο).</li>
+          </ul></div>
+          <div class="minus"><h4>Κατά</h4><ul>
+            <li>Ως το checkout ο επισκέπτης βλέπει 150 €, όχι 110 €. Η σωστή τιμή έρχεται αργά.</li>
+            <li>Όπου το checkout δεν ζητά στοιχεία επιβατών (π.χ. ναύλωση), δεν έχει πού να μπει.</li>
+            <li>Η προσφορά αλλάζει μετά τη δέσμευση θέσης: επανυπολογισμός στο checkout.</li>
+          </ul></div>
+        </div>
+        <p class="effort"><b>Δουλειά:</b> πίνακας τιμών ηλικία × μειωμένο × περίοδο, κάρτα επιβάτη με επιλογή, επανυπολογισμός στο checkout, λίστα επιβίβασης. Το widget σχεδόν δεν αλλάζει. Περίπου 3 συνεδρίες.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= Έρευνα -->
+  <section class="panel" data-panel="r" hidden>
+    <div class="lead">
+      <h2>Τι είδαμε στην έρευνα</h2>
+      <p>Τρεις τρόποι κυκλοφορούν. <span class="model">Ποσοστό</span> πάνω στην τιμή της ηλικίας (μεταφορές). <span class="model">Κατηγορία</span> με δική της τιμή και ηλικίες (πλατφόρμες, αξιοθέατα). <span class="model">Δωρεάν</span> ΑμεΑ ή συνοδός (μουσεία, αξιοθέατα στο εξωτερικό). Κανείς δεν βάζει μία σταθερή τιμή ΑμεΑ για όλες τις ηλικίες.</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Ευρήματα</h3></div>
+      <div class="sec-b">
+        <div class="found">
+          <div class="fcard">
+            <h4>Ακτοπλοΐα (νόμος)</h4>
+            <span class="model">Ποσοστό</span>
+            <p>ΑμεΑ με αναπηρία 80&nbsp;% και άνω: 50&nbsp;% έκπτωση επί του ναύλου. Συνοδός δωρεάν μόνο για ορισμένες αναπηρίες (παραπληγία, τύφλωση, αυτισμός κ.ά.) και μόνο αν ο μεταφορέας απαιτεί συνοδεία. Φοιτητές και πολύτεκνοι 50&nbsp;%, παιδιά ως 5 δωρεάν.</p>
+            <p class="src"><a href="https://archive.opengov.gr/ynanp/?p=126">opengov.gr, άρθρο 32</a> · <a href="https://meallamatia.gr/aktoplo%CE%90a-2026-oles-oi-ekptoseis-pou-ischyoun-gia-foitites-polyteknous-kai-amea/">Ακτοπλοΐα 2026, όλες οι εκπτώσεις</a> · <a href="https://www.eleftherostypos.gr/oikonomia/aktoploika-eisitiria-poioi-taxidevoun-dorean-kai-poioi-kerdizoun-eos-50-ekptosi-o-pliris-odigos-ton-dikaiouchon">Ελεύθερος Τύπος</a></p>
+          </div>
+          <div class="fcard">
+            <h4>Blue Star, Seajets</h4>
+            <span class="model">Ποσοστό</span>
+            <p>Παιδί 5–10: −50&nbsp;%. ΑμεΑ (80&nbsp;%+): −50&nbsp;%. «Οι εκπτώσεις δεν αθροίζονται»: ένα ΑμεΑ παιδί 5–10 πληρώνει όσο ένα παιδί, ένα ΑμεΑ 11+ τη μισή τιμή του ενήλικα. Άρα η τιμή ΑμεΑ ήδη διαφέρει με την ηλικία. Δικαιολογητικό στην έκδοση και στην επιβίβαση.</p>
+            <p class="src"><a href="https://www.bluestarferries.com/en-gb/offers-discounts/discounts-for-cyclades-dodecanese-n-aegean-saronic-islands">Blue Star, εκπτώσεις</a> · <a href="https://www.ferryhopper.com/en/blog/special-offers/seajets-offers-2026">Seajets 2026 (ferryhopper)</a></p>
+          </div>
+          <div class="fcard">
+            <h4>ferryhopper</h4>
+            <span class="model">Ανά επιβάτη</span>
+            <p>Η έκπτωση (φοιτητής, πολύτεκνος, στρατιωτικός…) διαλέγεται για κάθε επιβάτη, στο βήμα επιβατών/πληρωμής. Για παιδικό ή βρεφικό πρέπει πρώτα να υπάρχει ενήλικας.</p>
+            <p class="src"><a href="https://www.ferryhopper.com/en/faq/ferry-tickets-discounts">ferryhopper, εκπτώσεις</a></p>
+          </div>
+          <div class="fcard">
+            <h4>Μουσεία και αρχαιολογικοί χώροι</h4>
+            <span class="model">Δωρεάν</span>
+            <p>ΑμεΑ και ένας συνοδός (αναπηρία 67&nbsp;%+) μπαίνουν δωρεάν, όποια κι αν είναι η ηλικία. Νέοι ως 25 της ΕΕ δωρεάν. Το μειωμένο είναι περίπου το μισό του ολόκληρου.</p>
+            <p class="src"><a href="https://www.culture.gov.gr/el/service/SitePages/view.aspx?iID=2695">ΥΠΠΟ, ελεύθερη είσοδος</a></p>
+          </div>
+          <div class="fcard">
+            <h4>Amtrak (ΗΠΑ)</h4>
+            <span class="model">Ποσοστό</span>
+            <p>Το πιο καθαρό παράδειγμα: ενήλικας ΑμεΑ −10&nbsp;%· παιδί ΑμεΑ παίρνει το παιδικό −50&nbsp;% και από πάνω −10&nbsp;%. Ο συνοδός −10&nbsp;%.</p>
+            <p class="src"><a href="https://www.amtrak.com/passengers-with-disabilities-discounts">Amtrak, disabilities discounts</a></p>
+          </div>
+          <div class="fcard">
+            <h4>Βρετανικός σιδηρόδρομος, αξιοθέατα</h4>
+            <span class="model">Συνοδός</span>
+            <p>Disabled Persons Railcard: −1/3 στον ενήλικα ΑμεΑ. Στο παιδί ΑμεΑ δεν κόβει τίποτα από το παιδικό· η έκπτωση πάει στον συνοδό. Στα αξιοθέατα ο ΑμεΑ πληρώνει το εισιτήριο της ηλικίας του και ο συνοδός παίρνει δωρεάν «carer ticket», μόνο μαζί με ένα πληρωμένο.</p>
+            <p class="src"><a href="https://www.disabledpersons-railcard.co.uk/help/faqs/im-a-child-and-i-have-a-disability-am-i-eligible-for-a-disabled-persons-railcard/">Railcard, παιδί ΑμεΑ</a> · <a href="https://support.chessington.com/hc/en-us/articles/360001633751-Can-I-book-my-tickets-online-if-I-require-a-carer-ticket">Chessington, carer ticket</a></p>
+          </div>
+          <div class="fcard">
+            <h4>GetYourGuide, Viator</h4>
+            <span class="model">Κατηγορία</span>
+            <p>GetYourGuide: κλειστή λίστα Adult, Child, Youth, Infant, Senior, Student, EU Citizen, Military, Group, με ηλικίες 0–99. Viator: μόνο ηλικίες (Adult, Child, Youth, Infant, Senior). <b>Καμία δεν έχει κατηγορία ΑμεΑ ή συνοδού.</b></p>
+            <p class="src"><a href="https://www.getyourguide.supply/connectivity/supplier-faqs">GYG supplier FAQ</a> · <a href="https://supply.getyourguide.support/hc/en-us/articles/15883023125917-Setting-up-schedules-and-per-person-pricing-for-your-product">GYG, per person pricing</a> · <a href="https://partnerresources.viator.com/travel-commerce/merchant/agebands-pax-mix/">Viator, age bands</a></p>
+          </div>
+          <div class="fcard">
+            <h4>FareHarbor, Bókun, Rezdy, CaptainBook</h4>
+            <span class="model">Κατηγορία</span>
+            <p>Ελεύθερες κατηγορίες με δική τους τιμή. Bókun: ηλικίες ανά κατηγορία, «θέσεις που πιάνει» και «μόνο μαζί με άλλη κατηγορία» (π.χ. παιδί μόνο με ενήλικα). Ένα «ΑμεΑ παιδί» ή «Συνοδός» είναι απλώς μια ακόμα κατηγορία· κανόνας που να τα δένει δεν υπάρχει.</p>
+            <p class="src"><a href="https://help.fareharbor.com/hc/en-us/sections/39564861576475-Customer-types">FareHarbor, customer types</a> · <a href="https://docs.bokun.io/docs/settings/product-extensions/pricing-categories/how-to-create-and-add-pricing-categories">Bókun, pricing categories</a> · <a href="https://support.rezdy.com/hc/en-us/articles/19867794784668-Set-Availability-Limits-on-Price-Options">Rezdy, price options</a> · <a href="https://www.captainbook.io/solutions/boat-tours-sailing-charters">CaptainBook</a></p>
+          </div>
+          <div class="fcard">
+            <h4>Ημερήσιες κρουαζιέρες στην Ελλάδα</h4>
+            <span class="model">Μόνο ηλικίες</span>
+            <p>Αργοσαρωνικός, Σαντορίνη: δημοσιεύουν ενήλικα, παιδί (5–11 ή 4–12) και δωρεάν βρέφη. Τιμή ΑμεΑ δεν βρήκαμε δημοσιευμένη πουθενά· γίνεται στο τηλέφωνο ή στην προβλήτα.</p>
+            <p class="src"><a href="https://www.smileacadimos.gr/trips/idra-poros-egina-one-day-cruise">Smile Acadimos</a> · <a href="https://www.pamekrouaziera.gr/cruises/athens-day-cruise/monoimeri-krouaziera/monoimeri-krouaziera-udra-poros-kai-aigina">Πάμε Κρουαζιέρα</a> · <a href="https://www.viator.com/Santorini-tours/Catamaran-Cruises/d959-g3-c32016">Viator, Santorini</a></p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Οι απαντήσεις</h3></div>
+      <div class="sec-b">
+        <ol class="q">
+          <li><b>Διαφέρει η τιμή ΑμεΑ ενήλικα και παιδιού;</b><span>Ναι, σχεδόν παντού όπου ΑμεΑ σημαίνει έκπτωση: στα πλοία (μισή τιμή ενήλικα από τα 11, τιμή παιδιού ως τα 10) και στο Amtrak (−10&nbsp;% πάνω στο παιδικό). Όχι όπου ΑμεΑ σημαίνει δωρεάν (μουσεία).</span></li>
+          <li><b>Ποσοστό ή σταθερή τιμή;</b><span>Στις μεταφορές ποσοστό της τιμής του επιβάτη. Στις πλατφόρμες δραστηριοτήτων σταθερή τιμή ανά κατηγορία, γιατί εκεί κάθε κατηγορία είναι ξεχωριστή γραμμή. Σταθερή τιμή ΑμεΑ ίδια για όλες τις ηλικίες δεν βρήκαμε.</span></li>
+          <li><b>Ο δωρεάν συνοδός;</b><span>Πάντα ένας ανά ΑμεΑ, πάντα μαζί με εισιτήριο ΑμεΑ, συχνά με όρους (βαθμός αναπηρίας, «αν απαιτείται συνοδεία»). Στα συστήματα είναι ξεχωριστό εισιτήριο 0 € με όριο, όχι έκπτωση.</span></li>
+          <li><b>Και οι πλατφόρμες της φάσης 2;</b><span>GetYourGuide και Viator δεν έχουν κατηγορία ΑμεΑ. Όποια κατεύθυνση κι αν διαλέξουμε, τα ΑμεΑ μένουν στις απευθείας πωλήσεις. Το «Φοιτητικό» περνάει στο GetYourGuide ως Student.</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================= Σύγκριση -->
+  <section class="panel" data-panel="d" hidden>
+    <div class="sec">
+      <div class="sec-h"><h3>Οι τρεις με μια ματιά</h3><p>Πράσινο: το καλύτερο σε κάθε γραμμή.</p></div>
+      <div class="sec-b"><div class="tscroll"><table class="cmp">
+        <thead><tr><th></th><th>Α · Κατηγορίες</th><th>Β · Έκπτωση στην ηλικία</th><th>Γ · Ανά επιβάτη</th></tr></thead>
+        <tbody>
+          <tr><td><b>ΑμεΑ ενήλικας ≠ ΑμεΑ παιδί</b></td><td>Δύο γραμμές, δύο τιμές</td><td class="best">Μόνο του (−50&nbsp;%)· αλλάζει αν θέλετε</td><td>Δύο κελιά, γεμίζουν από ποσοστό</td></tr>
+          <tr><td><b>Τιμές που γράφει ο επιχειρηματίας</b></td><td>Ως 14 (7 γραμμές × 2 περίοδοι)</td><td class="best">1 ανά μειωμένο</td><td>1 ανά στήλη, και όποιο κελί θέλει</td></tr>
+          <tr><td><b>Πού το λέει ο επισκέπτης</b></td><td>Βήμα «Εισιτήρια», κλειστή ομάδα</td><td>Βήμα «Άτομα», μέσα στην ηλικία</td><td>Checkout, σε κάθε επιβάτη</td></tr>
+          <tr><td><b>Σωστή τιμή από νωρίς</b></td><td class="best">Ναι</td><td class="best">Ναι</td><td>Όχι, στο checkout</td></tr>
+          <tr><td><b>Κλικ για όποιον δεν δικαιούται</b></td><td class="best">0</td><td class="best">0</td><td class="best">0</td></tr>
+          <tr><td><b>Κανόνας συνοδείας</b></td><td>Θέλει διόρθωση (ηλικίες στα μειωμένα)</td><td class="best">Δεν αλλάζει</td><td class="best">Δεν αλλάζει</td></tr>
+          <tr><td><b>Δωρεάν συνοδός</b></td><td>Γραμμή 0 € με όριο</td><td>Κουτάκι σε έναν ενήλικα</td><td>Επιλογή σε ενήλικα</td></tr>
+          <tr><td><b>Όνομα στη λίστα επιβίβασης</b></td><td>Από τον τίτλο της κάρτας</td><td>Δεύτερη δήλωση στα στοιχεία</td><td class="best">Μία δήλωση</td></tr>
+          <tr><td><b>GetYourGuide / Viator</b></td><td>Φοιτητικό → Student· ΑμεΑ όχι</td><td>Φοιτητικό → Student· ΑμεΑ όχι</td><td>Φοιτητικό → Student· ΑμεΑ όχι</td></tr>
+          <tr><td><b>Μοιάζει με</b></td><td>Μουσείο, FareHarbor, Bókun</td><td>Ακτοπλοΐα, Amtrak</td><td>ferryhopper</td></tr>
+          <tr><td><b>Δουλειά</b></td><td class="best">~2 συνεδρίες</td><td>~3 συνεδρίες</td><td>~3 συνεδρίες</td></tr>
+        </tbody>
+      </table></div></div>
+    </div>
+
+    <div class="rec">
+      <h3>Πρόταση: Β, έκπτωση πάνω στην ηλικία</h3>
+      <p>Στον γύρο 1 πρότεινα το Γ (εισιτήρια όπως στο μουσείο). Η έρευνα με κάνει να αλλάξω γνώμη. Η πιο κοντινή μας αγορά, τα πλοία, δίνει το ΑμεΑ ως ποσοστό της τιμής του επιβάτη, και έτσι ο ενήλικας και το παιδί βγαίνουν σε άλλη τιμή χωρίς να το σκεφτεί κανείς. Αυτό ακριβώς ρώτησε ο Mike.</p>
+      <ul>
+        <li>Ένα νούμερο ανά μειωμένο (−50&nbsp;%), σωστό σε κάθε ηλικία και κάθε περίοδο. Με «Τιμή ανά ηλικία» για όποιον θέλει 10 € αντί για 12,50 €.</li>
+        <li>Η ηλικία δεν χάνεται ποτέ: ο κανόνας συνοδείας μένει ως έχει και το σημερινό κενό κλείνει από μόνο του.</li>
+        <li>Η φράση «2 ενήλικες (ο ένας ΑμεΑ)» που ζητήσαμε από την αρχή.</li>
+        <li>Ο συνοδός είναι ένας διακόπτης, κλειστός αρχικά, όπως στα πλοία και στα μουσεία: ένας ανά ΑμεΑ.</li>
+      </ul>
+      <p class="note">Αν το δεύτερο επίπεδο στο βήμα «Άτομα» δεν πείσει στο κινητό, το Α είναι η εναλλακτική: μικρότερη δουλειά, αλλά περισσότερα κελιά και διόρθωση στον κανόνα συνοδείας. Και στις δύο, το «ποσοστό ή δική της τιμή» υπάρχει.</p>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Τι σημαίνει για τα δεδομένα (Β)</h3></div>
+      <div class="sec-b">
+        <ul class="dm">
+          <li><b>Νέος πίνακας <code>fare_types</code> ανά εκδρομή:</b> κλειδί από την έτοιμη λίστα (<code>student</code>, <code>disabled</code>, <code>large_family</code>…), όνομα στις δύο γλώσσες, ποιες ηλικίες, τρόπος (<code>percent</code>, <code>amount</code>, <code>per_band</code>), τι δείχνει, διακόπτης <code>free_companion</code>.</li>
+          <li><b>Για <code>per_band</code>:</b> κελιά ηλικία × περίοδος, όπως ο σημερινός πίνακας τιμών.</li>
+          <li><b>Ο επιβάτης και η γραμμή τιμής</b> κρατούν <code>age_band_id</code> και προαιρετικό <code>fare_type_id</code>· η γραμμή κρατά όνομα και τιμή της στιγμής.</li>
+          <li><b>Οι ομάδες «με ιδιότητα»</b> (<code>kind = status</code>) μεταφέρονται σε <code>fare_types</code> και σβήνουν. Τότε το <code>escortMissing()</code> βλέπει μόνο ηλικίες.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-h"><h3>Ερωτήσεις για τον Mike</h3><p>Οι νομικές πάνε και στο docs/erotiseis.</p></div>
+      <div class="sec-b">
+        <ol class="q">
+          <li><b>Δεσμεύει ο νόμος της ακτοπλοΐας τις ημερήσιες εκδρομές;</b><span>Στις τακτικές γραμμές: ΑμεΑ 80&nbsp;%+ −50&nbsp;%, συνοδός δωρεάν μόνο για ορισμένες αναπηρίες. Ισχύει και για τουριστικά/ημερόπλοια; Ερώτηση για τον δικηγόρο. Μέχρι τότε ο επιχειρηματίας ορίζει μόνος του και το Kaiki δεν βάζει προεπιλεγμένα ποσοστά. (Στον γύρο 1 γράψαμε «67&nbsp;%»· στα πλοία είναι 80&nbsp;%, στα μουσεία 67&nbsp;%.)</span></li>
+          <li><b>Β ή Α;</b><span>Β αν σας αρέσει το «από αυτούς, ΑμεΑ» μέσα στην ηλικία. Α αν προτιμάτε μία ίσια λίστα εισιτηρίων και λιγότερη δουλειά.</span></li>
+          <li><b>Συνοδός ΑμεΑ: από ποια ηλικία;</b><span>Προτείνουμε 18+. Και ένα ΑμεΑ παιδί με συνοδό: ο γονιός είναι συνοδός (δωρεάν) ή πληρώνει κανονικά;</span></li>
+          <li><b>Ένα μειωμένο ανά άτομο;</b><span>Ο φοιτητής ΑμεΑ παίρνει το φθηνότερο, όχι και τα δύο, όπως στα πλοία («δεν αθροίζονται»). Συμφωνείτε;</span></li>
+          <li><b>Ποσοστό στο παιδί: πάνω στο παιδικό ή πάνω στο ολόκληρο;</b><span>Το Β κόβει από την τιμή του ίδιου (παιδί ΑμεΑ 12,50 €). Τα πλοία κόβουν από το ολόκληρο και κρατούν το φθηνότερο (παιδί ΑμεΑ = παιδικό, 25 €). Προτείνουμε το πρώτο.</span></li>
+          <li><b>Χωρίς κάρτα αναπηρίας στην επιβίβαση;</b><span>Πληρώνει τη διαφορά στην προβλήτα ή δεν επιβιβάζεται; Να το γράφει το εισιτήριο;</span></li>
+          <li><b>GetYourGuide / Viator:</b><span>δεν έχουν κατηγορία ΑμεΑ. Τα ΑμεΑ μένουν μόνο στις απευθείας πωλήσεις. Εντάξει;</span></li>
+          <li><b>Ναυλώσεις ολόκληρου σκάφους:</b><span>εκεί μειωμένο ανά άτομο δεν έχει νόημα. Τα κρύβουμε;</span></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// Tabs
+const tabs = document.querySelectorAll('.tab');
+tabs.forEach(t => t.addEventListener('click', () => {
+  tabs.forEach(x => x.setAttribute('aria-selected', x === t ? 'true' : 'false'));
+  document.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== t.dataset.tab);
+}));
+
+// Desktop frames show a live copy of the phone's picker.
+document.querySelectorAll('.clone').forEach(c => {
+  const copy = document.getElementById(c.dataset.from).cloneNode(true);
+  copy.removeAttribute('id');
+  copy.style.padding = '0';
+  c.replaceWith(copy);
+});
+
+const euro = c => (c / 100).toLocaleString('el-GR', {minimumFractionDigits: c % 100 ? 2 : 0, maximumFractionDigits: 2}) + ' €';
+const n = (box, k) => { const s = box.querySelector(`[data-k="${k}"] output`); return s ? +s.textContent : 0; };
+const set = (box, k, v) => { const s = box.querySelector(`[data-k="${k}"] output`); if (s) s.textContent = v; };
+const pl = (x, one, many) => x === 1 ? one : many;
+
+// "ο ένας ΑμεΑ", "οι 2 ΑμεΑ", "όλοι ΑμεΑ"
+function sub(count, of, word, male) {
+  if (!count) return null;
+  if (count === of) return of === 1 ? word : (male ? 'όλοι ' : 'όλα ') + word;
+  if (count === 1) return (male ? 'ο ένας ' : 'το ένα ') + word;
+  return (male ? 'οι ' : 'τα ') + count + ' ' + word;
+}
+
+function recalc(box) {
+  const kind = box.dataset.calc;
+  let limits = {};
+  if (kind === 'a') {
+    const ad = n(box,'ad'), ch = n(box,'ch'), inf = n(box,'in'), st = n(box,'st'), da = n(box,'da'), dc = n(box,'dc');
+    limits.co = da + dc;
+    const co = Math.min(n(box,'co'), limits.co); set(box,'co',co);
+    const adults = ad + st + da + co, kids = ch + dc;
+    const total = ad*5000 + ch*2500 + st*4000 + da*2500 + dc*1000;
+    const extras = [sub(da, adults, 'ΑμεΑ', true), sub(st, adults, st === 1 ? 'φοιτητής' : 'φοιτητές', true), (co === 1 && adults === 2 && (da || st)) ? 'ο άλλος συνοδός' : sub(co, adults, co === 1 ? 'συνοδός' : 'συνοδοί', true)].filter(Boolean);
+    const parts = [];
+    if (adults) parts.push(`${adults} ${pl(adults,'ενήλικας','ενήλικες')}` + (extras.length ? ` (${extras.join(', ')})` : ''));
+    if (kids) parts.push(`${kids} ${pl(kids,'παιδί','παιδιά')}` + (dc ? ` (${sub(dc, kids, 'ΑμεΑ', false)})` : ''));
+    if (inf) parts.push(`${inf} ${pl(inf,'βρέφος','βρέφη')}`);
+    box.querySelector('.line').textContent = parts.join(', ') || 'Κανένα εισιτήριο ακόμα';
+    box.querySelector('.tot').textContent = euro(total);
+    box.querySelector('.gwarn').hidden = !((kids + inf) > 0 && adults === 0);
+  } else if (kind === 'b') {
+    const ad = n(box,'ad'), ch = n(box,'ch'), inf = n(box,'in');
+    limits.sa = ad; limits.da = Math.max(0, ad - n(box,'sa'));
+    if (n(box,'sa') > ad) set(box,'sa',ad);
+    if (n(box,'da') > limits.da) set(box,'da',limits.da);
+    limits.sa = Math.max(0, ad - n(box,'da'));
+    limits.dc = ch; if (n(box,'dc') > ch) set(box,'dc',ch);
+    const sa = n(box,'sa'), da = n(box,'da'), dc = n(box,'dc');
+    const comp = box.querySelector('.compan');
+    const canComp = (da + dc) > 0 && (ad - sa - da) >= 1;
+    comp.disabled = !canComp;
+    if (!canComp) comp.setAttribute('aria-pressed','false');
+    const co = comp.getAttribute('aria-pressed') === 'true' ? 1 : 0;
+    const total = ad*5000 - sa*1000 - da*2500 - co*5000 + ch*2500 - dc*1250;
+    const extras = [sub(da, ad, 'ΑμεΑ', true), sub(sa, ad, sa === 1 ? 'φοιτητής' : 'φοιτητές', true), co ? (ad === 1 ? 'συνοδός' : (ad === 2 && (da || sa)) ? 'ο άλλος συνοδός' : 'ο ένας συνοδός') : null].filter(Boolean);
+    const parts = [];
+    if (ad) parts.push(`${ad} ${pl(ad,'ενήλικας','ενήλικες')}` + (extras.length ? ` (${extras.join(', ')})` : ''));
+    if (ch) parts.push(`${ch} ${pl(ch,'παιδί','παιδιά')}` + (dc ? ` (${sub(dc, ch, 'ΑμεΑ', false)})` : ''));
+    if (inf) parts.push(`${inf} ${pl(inf,'βρέφος','βρέφη')}`);
+    box.querySelector('.line').textContent = parts.join(', ') || 'Κανένα άτομο ακόμα';
+    box.querySelector('.tot').textContent = euro(total);
+    box.querySelector('.gwarn').hidden = !((ch + inf) > 0 && ad === 0);
+    // Nested rows only make sense when the age row has people.
+    box.querySelectorAll('.b-in-ad').forEach(x => { if (!ad) x.hidden = true; });
+    box.querySelectorAll('.b-in-ch').forEach(x => { if (!ch) x.hidden = true; });
+    box.querySelectorAll('[data-toggle="b-in-ad"]').forEach(x => x.hidden = !ad || !box.querySelector('.b-in-ad').hidden);
+    box.querySelectorAll('[data-toggle="b-in-ch"]').forEach(x => x.hidden = !ch || !box.querySelector('.b-in-ch').hidden);
+  }
+  box.querySelectorAll('.stepper[data-k]').forEach(sp => {
+    const k = sp.dataset.k, cur = +sp.querySelector('output').textContent;
+    const max = k in limits ? limits[k] : 20;
+    sp.children[0].disabled = cur <= 0;
+    sp.children[2].disabled = cur >= max;
+  });
+}
+
+// Γ: every copy of a passenger's fare list follows the choice; totals follow.
+function recalcC() {
+  const pax = {};
+  document.querySelectorAll('[data-panel="c"] .fares[data-pax]').forEach(list => {
+    const on = list.querySelector('[aria-pressed="true"]');
+    if (on) pax[list.dataset.pax] = on;
+  });
+  const ameaCount = Object.values(pax).filter(b => b.dataset.amea).length;
+  const compCount = Object.values(pax).filter(b => b.dataset.companion).length;
+  // Companion needs someone else to be ΑμεΑ; at most one per ΑμεΑ.
+  document.querySelectorAll('[data-panel="c"] [data-companion]').forEach(b => {
+    const mine = b.getAttribute('aria-pressed') === 'true';
+    const others = ameaCount - (pax[b.parentElement.dataset.pax].dataset.amea ? 1 : 0);
+    b.disabled = !mine && (others < 1 || compCount >= others);
+  });
+  let total = 0;
+  const names = {1:'Νίκος',2:'Ελένη',3:'Γιώργος',4:'Άννα'};
+  Object.entries(pax).forEach(([p, b]) => {
+    total += +b.dataset.fare;
+    document.querySelectorAll('.c-line-' + p).forEach(x => x.textContent = names[p] + ' · ' + b.querySelector('span').firstChild.textContent.trim());
+    document.querySelectorAll('.c-price-' + p).forEach(x => x.textContent = euro(+b.dataset.fare));
+  });
+  document.querySelectorAll('.c-tot').forEach(x => x.textContent = euro(total));
+  document.querySelectorAll('.c-proof-4').forEach(x => x.hidden = !pax[4].dataset.amea);
+}
+
+document.addEventListener('click', e => {
+  const btn = e.target.closest('.stepper button');
+  if (btn) {
+    const box = btn.closest('[data-calc]');
+    if (!box) return;
+    const out = btn.parentElement.querySelector('output');
+    out.textContent = Math.max(0, +out.textContent + (btn === btn.parentElement.children[0] ? -1 : 1));
+    recalc(box); recalc(box);
+    return;
+  }
+  const tg = e.target.closest('[data-toggle]');
+  if (tg) {
+    const box = tg.closest('[data-calc]');
+    const target = box.querySelector('.' + tg.dataset.toggle);
+    target.hidden = !target.hidden;
+    if (tg.classList.contains('more')) {
+      tg.setAttribute('aria-expanded', target.hidden ? 'false' : 'true');
+      tg.querySelector('em').textContent = target.hidden ? 'Άνοιγμα' : 'Κλείσιμο';
+      if (target.hidden) ['st','da','dc','co'].forEach(k => set(box, k, 0));
+    }
+    recalc(box); recalc(box);
+    return;
+  }
+  const comp = e.target.closest('.compan');
+  if (comp && !comp.disabled) {
+    comp.setAttribute('aria-pressed', comp.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+    recalc(comp.closest('[data-calc]'));
+    return;
+  }
+  const fare = e.target.closest('[data-panel="c"] .fares button');
+  if (fare && !fare.disabled) {
+    const p = fare.parentElement.dataset.pax;
+    const idx = [...fare.parentElement.children].indexOf(fare);
+    document.querySelectorAll(`[data-panel="c"] .fares[data-pax="${p}"]`).forEach(list =>
+      [...list.children].forEach((b, i) => b.setAttribute('aria-pressed', i === idx ? 'true' : 'false')));
+    recalcC();
+  }
+});
+
+document.querySelectorAll('[data-calc]').forEach(b => { recalc(b); recalc(b); });
+recalcC();
+</script>
+</body>
+</html>
