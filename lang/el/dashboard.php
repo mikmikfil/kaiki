@@ -105,6 +105,8 @@ return [
             'board' => 'Λίστα επιβίβασης',
         ],
         'actions' => [
+            'bar_label' => 'Γρήγορες ενέργειες',
+            'scan_short' => 'Σάρωση',
             'scan_hint' => 'Ανοίγει την κάμερα',
             'board_hint' => 'Τσεκάρετε ονόματα',
             'sell_hint' => ':time · :count ελεύθερη|:time · :count ελεύθερες',

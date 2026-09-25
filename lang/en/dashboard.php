@@ -109,6 +109,8 @@ return [
             'board' => 'Boarding list',
         ],
         'actions' => [
+            'bar_label' => 'Quick actions',
+            'scan_short' => 'Scan',
             'scan_hint' => 'Opens the camera',
             'board_hint' => 'Tick off names',
             'sell_hint' => ':time · :count seat free|:time · :count seats free',

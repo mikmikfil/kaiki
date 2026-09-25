@@ -27,8 +27,9 @@ use Livewire\Attributes\On;
  *
  * 1. **The next departure**, in the panel's deep blue: when, which trip, which
  *    boat and quay, how many are aboard. Information only: «Σάρωση
- *    εισιτηρίων» and «Πώληση τώρα» are two white tiles right under it
- *    (2026-09-25), and above it for crew, whose first job is the scan.
+ *    εισιτηρίων» and «Πώληση τώρα» live in the page header on a tablet or
+ *    computer and in a bar fixed to the bottom of a phone (2026-09-25,
+ *    direction Β) — see {@see self::quickActions()}.
  * 2. **Four boxes**, one question each: Αναχωρήσεις today, new Κρατήσεις,
  *    the Ημερολόγιο, and Προσοχή — the to-do items listed further down the page.
  *    Each box says its one number in words.
@@ -145,25 +146,45 @@ class DayByBoat extends Widget
     }
 
     /**
-     * The two action tiles under the next departure's card (Mike, 2026-09-25,
-     * direction Α of docs/mockups/dashboard-quick-actions.html): the card only
-     * says what is leaving; boarding and the sale sit under it, white, one
-     * line each. Scan first, sell second; either may be missing, and one alone
-     * takes the whole row.
+     * The home page's two actions, «Σάρωση εισιτηρίων» and «Πώληση τώρα», for
+     * `pages/dashboard-header.blade.php` (Mike, 2026-09-25, direction Β of
+     * docs/mockups/dashboard-quick-actions.html): top right of the greeting on
+     * a tablet or computer, a bar fixed to the bottom of a phone.
      *
-     * The sale says which sailing it is for — «08:30 · 40 ελεύθερες» — since
-     * it opens the sale of the card's departure and no other.
+     * Asked of this widget because they are the widget's own answers — the
+     * next departure the sale is for, and the operator's boarding switches —
+     * and empty whenever the widget itself is not on the page (first steps).
+     *
+     * @return list<array{key: string, url: string, label: string, short: string, time: string|null, hint: string, icon: string}>
+     */
+    public static function quickActions(): array
+    {
+        if (! self::canView()) {
+            return [];
+        }
+
+        $widget = new self;
+
+        return self::actions($widget->getNext(), $widget->getBoarding());
+    }
+
+    /**
+     * Scan first, sell second; either may be missing. The sale says which
+     * sailing it is for — «08:30» on the button, «08:30 · 40 ελεύθερες» as its
+     * hint — since it opens the sale of the card's departure and no other.
+     * `short` is the phone bar's word: «Σάρωση» fits a half-width button,
+     * «Λίστα επιβίβασης» stays whole.
      *
      * @param  array<string, mixed>|null  $next  {@see getNext()}
-     * @param  array{url: string, label: string, hint: string, icon: string}|null  $boarding  {@see getBoarding()}
-     * @return list<array{key: string, url: string, label: string, hint: string, icon: string}>
+     * @param  array{url: string, label: string, short: string, hint: string, icon: string}|null  $boarding  {@see getBoarding()}
+     * @return list<array{key: string, url: string, label: string, short: string, time: string|null, hint: string, icon: string}>
      */
     public static function actions(?array $next, ?array $boarding): array
     {
         $actions = [];
 
         if ($boarding !== null) {
-            $actions[] = ['key' => 'scan'] + $boarding;
+            $actions[] = ['key' => 'scan', 'time' => null] + $boarding;
         }
 
         if ($next !== null && is_string($next['sell_url'] ?? null)) {
@@ -173,6 +194,8 @@ class DayByBoat extends Widget
                 'key' => 'sell',
                 'url' => $next['sell_url'],
                 'label' => __('calendar.sell.title'),
+                'short' => __('calendar.sell.title'),
+                'time' => (string) $next['time'],
                 'hint' => trans_choice('dashboard.home.actions.sell_hint', $free, ['time' => $next['time'], 'count' => $free]),
                 'icon' => 'heroicon-o-currency-euro',
             ];
@@ -195,7 +218,7 @@ class DayByBoat extends Widget
      * boarding off, no button at all; boarding on but QR off, the passenger
      * list and never «Σάρωση».
      *
-     * @return array{url: string, label: string, hint: string, icon: string}|null
+     * @return array{url: string, label: string, short: string, hint: string, icon: string}|null
      */
     public function getBoarding(): ?array
     {
@@ -213,6 +236,7 @@ class DayByBoat extends Widget
             // (Mike, 2026-09-23). The list is still the Filament page.
             'url' => $qr ? route('filament.app.boarding', ['camera' => 1]) : CheckIn::getUrl(),
             'label' => $qr ? __('dashboard.home.next.scan') : __('dashboard.home.next.board'),
+            'short' => $qr ? __('dashboard.home.actions.scan_short') : __('dashboard.home.next.board'),
             'hint' => $qr ? __('dashboard.home.actions.scan_hint') : __('dashboard.home.actions.board_hint'),
             'icon' => $qr ? 'heroicon-o-qr-code' : 'heroicon-o-list-bullet',
         ];

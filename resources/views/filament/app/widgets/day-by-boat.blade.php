@@ -10,28 +10,22 @@
 --}}
 @php
     $next = $this->getNext();
-    $boarding = $this->getBoarding();
     $boxes = $this->getBoxes();
     $day = $this->getDay();
     $now = $day->nowFraction();
     $calendarUrl = $this->getCalendarUrl();
     $crew = $this->isCrew();
-    $actions = $this->actions($next, $boarding);
 @endphp
 
 <x-filament-widgets::widget>
     <div @class(['kd', 'is-crew' => $crew])>
-        {{-- «Σάρωση εισιτηρίων» and «Πώληση τώρα»: two white tiles tied to the
-             card, not inside it (Mike, 2026-09-25, direction Α of
-             docs/mockups/dashboard-quick-actions.html). One alone takes the row. --}}
+        {{-- «Σάρωση εισιτηρίων» and «Πώληση τώρα» are not on this widget any
+             more: they sit in the page header on a tablet or computer and in a
+             bar fixed to the bottom of a phone (Mike, 2026-09-25, direction Β
+             of docs/mockups/dashboard-quick-actions.html), both drawn by
+             `pages/dashboard-header.blade.php`. The card only says what is
+             leaving. --}}
         <div class="kd-top">
-            <div class="kd-lead">
-            {{-- Crew: the tiles come first, above the card (Mike, 2026-09-24:
-                 «πρώτο πράγμα στην οθόνη του πληρώματος» is the scan). --}}
-            @if ($crew)
-                @include('filament.app.widgets.partials.day-actions')
-            @endif
-
             {{-- 1. The next departure: information only --}}
             <div class="kd-next">
                 {{-- A ship's helm, barely there, turning very slowly (Mike chose
@@ -81,11 +75,6 @@
                     <div class="kd-next-when">{{ __('dashboard.home.next.label') }}</div>
                     <div class="kd-next-trip">{{ __('dashboard.home.next.none') }}</div>
                 @endif
-            </div>
-
-            @if (! $crew)
-                @include('filament.app.widgets.partials.day-actions')
-            @endif
             </div>
 
             {{-- 2. Four boxes, one question each --}}
@@ -283,8 +272,6 @@
         .kd a { text-decoration: none; }
 
         .kd-top { display: grid; gap: .875rem; }
-        /* The card and its two tiles, one column that stays together. */
-        .kd-lead { display: grid; gap: .625rem; align-content: start; }
 
         .kd-next {
             display: grid; gap: .5rem; padding: 1.1rem 1.15rem 1.15rem;
@@ -318,33 +305,7 @@
 
         .kd-ic { width: 1.25rem; height: 1.25rem; }
 
-        /* The two action tiles (25/9, direction Α): white, a navy icon square,
-           the name and one line, an arrow at the top right. Big enough for a
-           thumb on the quay, forty times a morning. */
-        .kd-acts { display: grid; grid-template-columns: 1fr 1fr; gap: .625rem; }
-        .kd-acts.is-one { grid-template-columns: minmax(0, 1fr); }
-        .kd-act {
-            position: relative; display: flex; flex-direction: column; gap: .625rem;
-            min-height: 6.75rem; padding: .875rem; border-radius: 1rem;
-            background: var(--kd-card); color: var(--kd-ink);
-            border: 1.5px solid var(--kd-line-hover); box-shadow: 0 1px 0 rgba(15, 46, 87, .04);
-        }
-        .kd-act:hover { border-color: var(--kd-link); background: var(--kd-soft); }
-        .kd-act:focus-visible { outline: 2px solid var(--kd-link); outline-offset: 2px; }
-        .kd-act-ic {
-            display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem;
-            border-radius: .7rem; background: var(--kd-next); color: #fff;
-        }
-        .kd-act-svg { width: 1.375rem; height: 1.375rem; }
-        .kd-act-text { display: grid; gap: .125rem; }
-        .kd-act-text b { font-size: 1rem; line-height: 1.2; }
-        .kd-act-text small { font-size: .8125rem; color: var(--kd-muted); font-variant-numeric: tabular-nums; }
-        .kd-act-arr { position: absolute; top: .875rem; right: .875rem; width: 1.25rem; height: 1.25rem; color: var(--kd-link); }
-        /* One tile alone: a row across the width, icon beside the words. */
-        .kd-acts.is-one .kd-act { flex-direction: row; align-items: center; min-height: 4.5rem; gap: .75rem; padding-right: 2.75rem; }
-        .kd-acts.is-one .kd-act-arr { top: 50%; margin-top: -.625rem; }
-
-        /* No boxes beside it for crew, so the card and tiles take the row. */
+        /* No boxes beside it for crew, so the card takes the whole row. */
         .kd.is-crew .kd-top { grid-template-columns: minmax(0, 1fr); }
 
         .kd-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
@@ -451,6 +412,9 @@
 
         @media (min-width: 1024px) {
             .kd-top { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: stretch; }
+            /* The card at its own height beside the boxes (25/9): with the buttons
+               gone to the header it has nothing to fill a stretched box with. */
+            .kd-next { align-self: start; }
             .kd-boxes { grid-template-columns: 1fr 1fr; }
         }
     </style>
