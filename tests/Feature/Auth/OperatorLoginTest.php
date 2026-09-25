@@ -2,14 +2,19 @@
 
 declare(strict_types=1);
 
+use App\Enums\Role;
 use App\Filament\App\Auth\Login;
 use App\Filament\App\Auth\RequestPasswordReset;
+use App\Filament\App\Pages\Dashboard;
 use App\Models\Tenant;
 use App\Models\User;
 use Filament\Facades\Filament;
+use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 
 use function Pest\Laravel\get;
+
+use Tests\Support\OperatorUser;
 
 /*
 |--------------------------------------------------------------------------
@@ -91,6 +96,23 @@ it('says a wrong password once, above the fields, keeps the email and empties th
         ->assertSeeHtml('class="kaiki-login-alert" role="alert"')
         ->assertSee('Λάθος email ή κωδικός.')
         ->assertSee('Έλεγξε αν είναι ανοιχτά τα κεφαλαία και ξαναδοκίμασε.');
+})->group('fast');
+
+it('lands on «Αρχική» after signing in, not on the boarding camera', function (): void {
+    // Mike, 25/9: «γιατί τώρα όταν κάνω sign in με πετάει στην κάμερα;».
+    // Filament sends a signed-in user to the first menu item, and since 24/9
+    // that is «Σάρωση εισιτηρίων».
+    Filament::setCurrentPanel(Filament::getPanel('app'));
+
+    $owner = OperatorUser::withRole(Role::Owner);
+    $owner->forceFill(['password' => Hash::make('a-long-password-1')])->save();
+
+    Livewire::test(Login::class)
+        ->set('data.email', $owner->email)
+        ->set('data.password', 'a-long-password-1')
+        ->call('authenticate')
+        ->assertHasNoErrors()
+        ->assertRedirect(Dashboard::getUrl());
 })->group('fast');
 
 it('writes the email in on «Ξέχασα τον κωδικό» when the sign-in had one', function (): void {

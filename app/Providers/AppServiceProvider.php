@@ -15,8 +15,10 @@ use App\Domain\Tenancy\Support\DnsLookup;
 use App\Domain\Tenancy\Support\SystemDnsLookup;
 use App\Filament\Support\NumberSteppers;
 use App\Http\Middleware\SetLocale;
+use App\Http\Responses\PanelLoginResponse;
 use App\Notifications\Auth\ResetPasswordNotification;
 use App\Providers\Filament\PanelRenderHooks;
+use Filament\Http\Responses\Auth\Contracts\LoginResponse;
 use Filament\Notifications\Auth\ResetPassword as FilamentResetPassword;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider;
 use Illuminate\Support\ServiceProvider;
@@ -43,6 +45,10 @@ class AppServiceProvider extends ServiceProvider
         // language, rather than Laravel's English default (2026-09-17).
         // Filament resolves this class and sets the per-panel URL on it.
         $this->app->bind(FilamentResetPassword::class, ResetPasswordNotification::class);
+
+        // Signing in to /app lands on «Αρχική», not on the first menu item —
+        // which has been the boarding camera since 24/9 (Mike, 25/9).
+        $this->app->bind(LoginResponse::class, PanelLoginResponse::class);
 
         // No listener discovery. Every listener is registered by hand in its
         // domain's provider, so that the list can be read; discovery on top of
