@@ -16,6 +16,7 @@ use App\Models\AuditLog;
 use App\Models\Booking;
 use App\Models\Departure;
 use App\Models\Payment;
+use App\Models\Port;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Vessel;
@@ -56,6 +57,9 @@ function decisionsOwner(Role $role = Role::Owner): User
 function shortDeparture(User $user): Departure
 {
     return Tenancy::forTenant($user->tenant, function (): Departure {
+        // A port too: without one the dashboard is still on its first steps,
+        // and the attention list is not shown at all (25/9: the port is step one).
+        Port::factory()->create();
         $vessel = Vessel::factory()->create();
         $departure = Departure::factory()->for($vessel)->at('2026-09-09', '18:00')->withSeats(2)->create();
         $departure->forceFill(['status' => DepartureStatus::Scheduled, 'min_pax' => 8, 'seats_sold' => 2])->save();
@@ -176,6 +180,9 @@ it('counts every item, not the first eight', function (): void {
     $owner = decisionsOwner();
 
     Tenancy::forTenant($owner->tenant, function (): void {
+        // A port too: without one the dashboard is still on its first steps,
+        // and the attention list is not shown at all (25/9: the port is step one).
+        Port::factory()->create();
         $vessel = Vessel::factory()->create();
 
         foreach (range(0, 11) as $i) {
