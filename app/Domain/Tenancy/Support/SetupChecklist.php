@@ -7,7 +7,6 @@ namespace App\Domain\Tenancy\Support;
 use App\Domain\Operations\Support\FirstSteps;
 use App\Enums\CrewSpecialty;
 use App\Models\CancellationPolicy;
-use App\Models\HomePageBlock;
 use App\Models\Port;
 use App\Models\Product;
 use App\Models\Season;
@@ -110,19 +109,6 @@ final class SetupChecklist
     /** Something to sell on it. Delegated to {@see FirstSteps}. */
     public const PRODUCT = 'product';
 
-    /**
-     * The operator's own home page (Mike, 2026-09-23).
-     *
-     * **Only for an operator who gets one.** A `bookings_only` account has no
-     * marketing home page from us — their pages are one per trip — so the step
-     * would send them to a screen that governs nothing they have.
-     *
-     * The work lives on {@see App\Filament\App\Pages\HomePage}, which owns the
-     * blocks, their order and their images; this step is the invitation, and it
-     * ticks itself the moment that screen has been used.
-     */
-    public const HOME_PAGE = 'home_page';
-
     /** The embed snippet and the hosted page — the hand-over, not a column. */
     public const READY = 'ready';
 
@@ -133,9 +119,11 @@ final class SetupChecklist
      * order in which each answer is needed by the next. VAT before a product
      * because it is what the product form pre-fills.
      *
-     * `HOME_PAGE` comes last before the close, and only for the operators it
-     * applies to: it is the one step that is about what a visitor *reads*
-     * rather than about what the account *is*.
+     * **No home page step** since 2026-09-25. It came last before the close
+     * (23/9), for the operators who get one; it is now the last, optional line
+     * of the dashboard's {@see FirstSteps}, beside the catalogue — it is about
+     * what a visitor *reads* rather than about what the account *is*, and
+     * nothing waits on it.
      *
      * **No branding step** (Mike, 2026-09-25: *«την αρχικοποίηση θέλω να την
      * κάνω από το admin»*). The logo and the colours are set by the platform
@@ -148,13 +136,12 @@ final class SetupChecklist
      */
     public static function steps(): array
     {
-        return array_values(array_filter([
+        return [
             self::BUSINESS,
             self::VAT,
             self::CANCELLATION,
-            self::servesHomePage() ? self::HOME_PAGE : null,
             self::READY,
-        ]));
+        ];
     }
 
     /**
@@ -162,10 +149,10 @@ final class SetupChecklist
      *
      * The same question {@see App\Filament\App\Pages\Setup::servesHomePage()}
      * asks on the closing screen, asked here because it decides whether the
-     * step exists at all. Read from the tenant on every call rather than
-     * cached: the platform can flip an account's site mode in `/admin`, and a
-     * guide that kept the answer it was born with would show the wrong steps
-     * for the rest of the session.
+     * home page line of {@see FirstSteps} exists at all. Read from the tenant
+     * on every call rather than cached: the platform can flip an account's
+     * site mode in `/admin`, and a list that kept the answer it was born with
+     * would show the wrong steps for the rest of the session.
      */
     public static function servesHomePage(): bool
     {
@@ -271,14 +258,6 @@ final class SetupChecklist
                 ->whereIn('specialty', [CrewSpecialty::Captain->value, CrewSpecialty::Deckhand->value])
                 ->exists(),
             self::PRODUCT => $catalogue[FirstSteps::PRODUCT] ?? Product::query()->exists(),
-            // **Done when there is a block on the page**, not when the screen
-            // has been opened (2026-09-23). A home page an operator looked at
-            // and left empty is the one the guide most needs to keep asking
-            // about — it is the page their own domain points at.
-            //
-            // True for a bookings-only account so the dashboard never reports
-            // a step they were never offered as outstanding.
-            self::HOME_PAGE => ! self::servesHomePage() || HomePageBlock::query()->onPage(HomePageBlock::PAGE_HOME)->exists(),
             self::READY => $tenant->onboarding_completed_at !== null,
         ];
     }

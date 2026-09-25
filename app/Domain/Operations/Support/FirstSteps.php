@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace App\Domain\Operations\Support;
 
+use App\Domain\Tenancy\Support\SetupChecklist;
 use App\Enums\ProductStatus;
 use App\Models\Booking;
-use App\Models\Departure;
+use App\Models\HomePageBlock;
 use App\Models\Port;
 use App\Models\Product;
 use App\Models\Season;
@@ -25,7 +26,7 @@ use App\Support\Tenancy;
  * four steps, in the order the catalogue needs them, each one answered from the
  * database rather than from a checkbox somebody has to remember to tick.
  *
- * ## Why the chain is boat → trip → published → departure
+ * ## Why the chain is port → boat → trip → published
  *
  * It is the order the availability engine requires, and each step is genuinely
  * blocked by the one before it: a trip needs a boat to sail on, a departure
@@ -53,7 +54,17 @@ final class FirstSteps
 
     public const PUBLISHED = 'published';
 
-    public const DEPARTURE = 'departure';
+    /**
+     * The operator's own home page, last and optional (Mike, 25/9).
+     *
+     * It was the last question of the first-time guide (23/9), and it moved
+     * here: it is about what a visitor reads, not about what the account is,
+     * and nobody needs it to take a first booking — a trip sells from its own
+     * page. Only for an operator who gets a home page from us
+     * ({@see SetupChecklist::servesHomePage()}); a bookings-only account never
+     * sees the line.
+     */
+    public const HOME_PAGE = 'home_page';
 
     /**
      * Is this an operator who has not started, rather than one having a quiet
@@ -112,25 +123,36 @@ final class FirstSteps
      * same trip the same way in August and in February should not be told they
      * are missing something.
      *
+     * The home page joined them on 25/9, for the same reason.
+     *
      * @var list<string>
      */
-    public const OPTIONAL = [self::SEASON];
+    public const OPTIONAL = [self::SEASON, self::HOME_PAGE];
 
     /**
-     * The six steps and whether each is done, in order.
+     * The steps and whether each is done, in order: six, and the home page
+     * for an operator who has one.
      *
      * @return array<string, bool>
      */
     public static function state(): array
     {
-        return [
+        $state = [
             self::PORT => Port::query()->exists(),
             self::VESSEL => Vessel::query()->exists(),
             self::SEASON => Season::query()->exists(),
             self::PRODUCT => Product::query()->exists(),
             self::PUBLISHED => Product::query()->where('status', ProductStatus::Active->value)->exists(),
-            self::DEPARTURE => Departure::query()->exists(),
         ];
+
+        // Done when there is a block on the page, not when the screen has been
+        // opened (2026-09-23): a home page looked at and left empty is the one
+        // most worth asking about — it is the page their own domain points at.
+        if (SetupChecklist::servesHomePage()) {
+            $state[self::HOME_PAGE] = HomePageBlock::query()->onPage(HomePageBlock::PAGE_HOME)->exists();
+        }
+
+        return $state;
     }
 
     /**

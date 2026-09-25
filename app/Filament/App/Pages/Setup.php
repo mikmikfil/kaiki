@@ -670,36 +670,6 @@ class Setup extends Page implements HasForms
     }
 
     /**
-     * The screens the guide sends people to, for the gate to let through.
-     *
-     * {@see RequireSetupFirst} holds every panel page back while the guide is
-     * unanswered — and these three **are** the guide: the boat, the periods and
-     * the first trip are answered on the screens that own them. Without this
-     * the hand-off buttons bounced straight back here, which is exactly what
-     * the product owner hit (2026-09-22: *«το οποίο δεν ανοίγει κιόλας»*).
-     *
-     * A list rather than "anything under /app/products": what is allowed is
-     * what the guide itself offers, and nothing else.
-     *
-     * @return list<string>
-     */
-    public static function handOffUrls(): array
-    {
-        // The home page is the one step whose work lives elsewhere (Mike,
-        // 2026-09-23). The account questions are asked here, as they have
-        // been since the catalogue left the guide on 2026-09-22; a home page is
-        // blocks, their order and their photographs, and {@see HomePage} owns
-        // all of that already.
-        return [HomePage::getUrl()];
-    }
-
-    /** Where a step whose work lives on another screen sends the operator. */
-    public function handOffUrl(string $step): ?string
-    {
-        return $step === SetupChecklist::HOME_PAGE ? HomePage::getUrl() : null;
-    }
-
-    /**
      * Does this operator get a marketing home page from us?
      *
      * Only the closing screen asks (product owner, 2026-09-22: *«άλλαξέ το όταν

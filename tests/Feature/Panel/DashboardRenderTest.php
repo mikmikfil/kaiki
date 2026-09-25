@@ -119,10 +119,9 @@ it('walks the steps in the order the engine needs them', function (): void {
 
         $product->update(['status' => ProductStatus::Active]);
 
-        expect(Steps::next())->toBe(Steps::DEPARTURE);
-
-        Departure::factory()->for($product)->create();
-
+        // Published is the last step (25/9): departures come from the trip's
+        // schedules on its «Πότε φεύγει» tab, so «Βάλτε την στο ημερολόγιο»
+        // counted something that happens by itself.
         expect(Steps::next())->toBeNull();
     });
 });

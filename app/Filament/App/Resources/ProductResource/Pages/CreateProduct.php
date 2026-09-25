@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources\ProductResource\Pages;
 use App\Enums\BookingMode;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource;
+use App\Filament\App\Support\ReturnsToFirstSteps;
 use App\Models\Product;
 use App\Models\Vessel;
 use Filament\Actions\Action;
@@ -44,6 +45,7 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateProduct extends CreateRecord
 {
     use ConsumesAgeBands;
+    use ReturnsToFirstSteps;
 
     protected static string $resource = ProductResource::class;
 
@@ -77,11 +79,19 @@ class CreateProduct extends CreateRecord
             ->label(__('catalog.product.wizard.continue'));
     }
 
-    /** The trip's own page, on the tab that comes after «Βασικά». */
+    /**
+     * The trip's own page, on the tab that comes after «Βασικά».
+     *
+     * Not the dashboard, even when the checklist sent the operator here: the
+     * trip is filled in on that page, so the marker goes along with it and
+     * the return happens when the trip is published ({@see EditProduct}).
+     */
     protected function getRedirectUrl(): string
     {
-        return ProductResource::getUrl('edit', ['record' => $this->getRecord()])
-            . '?tab=' . ProductResource::tabQueryKey('when');
+        return $this->keepFirstSteps(
+            ProductResource::getUrl('edit', ['record' => $this->getRecord()])
+                . '?tab=' . ProductResource::tabQueryKey('when'),
+        );
     }
 
     /**

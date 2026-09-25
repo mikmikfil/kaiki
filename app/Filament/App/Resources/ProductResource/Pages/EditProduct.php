@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources\ProductResource\Pages;
 use App\Domain\Catalog\Actions\SaveProduct;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource;
+use App\Filament\App\Support\ReturnsToFirstSteps;
 use App\Filament\Support\MoreActions;
 use App\Models\Product;
 use Filament\Actions\Action;
@@ -25,6 +26,7 @@ class EditProduct extends EditRecord
 {
     use ConsumesAgeBands;
     use ManagesPriceTable;
+    use ReturnsToFirstSteps;
 
     protected static string $resource = ProductResource::class;
 
@@ -233,6 +235,13 @@ class EditProduct extends EditRecord
             ->success()
             ->title(__("catalog.product.status_actions.{$done}"))
             ->send();
+
+        // A trip started from the dashboard's checklist is a step of it, and
+        // publishing is where that step ends: back to the checklist, whose
+        // next line is the calendar (Mike, 25/9).
+        if ($status === ProductStatus::Active && $this->fromFirstSteps) {
+            $this->redirect($this->firstStepsRedirectUrl(ProductResource::getUrl('index')));
+        }
     }
 
     /** Archive, or bring back as a draft, without touching unsaved edits. Never refused. */

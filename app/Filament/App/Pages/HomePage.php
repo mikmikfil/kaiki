@@ -12,6 +12,7 @@ use App\Enums\HomeBlockType;
 use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
 use App\Enums\VesselStatus;
+use App\Filament\App\Support\ReturnsToFirstSteps;
 use App\Filament\Forms\TranslatableInput;
 use App\Models\HomePageBlock;
 use App\Models\Port;
@@ -72,6 +73,7 @@ use Illuminate\Support\Str;
 class HomePage extends Page implements HasForms
 {
     use InteractsWithForms;
+    use ReturnsToFirstSteps;
 
     protected static ?string $navigationIcon = 'heroicon-o-home-modern';
 
@@ -280,6 +282,12 @@ class HomePage extends Page implements HasForms
             ->body(trans_choice('home_page.saved.body', $count, ['count' => $count]))
             ->success()
             ->send();
+
+        // Opened from the dashboard's first steps, and the page now has
+        // something on it: that step is done, so back to the list (Mike, 25/9).
+        if ($count > 0 && $this->fromFirstSteps) {
+            $this->redirect($this->firstStepsRedirectUrl(static::getUrl()));
+        }
     }
 
     /**

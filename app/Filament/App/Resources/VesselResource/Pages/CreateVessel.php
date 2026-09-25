@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources\VesselResource\Pages;
 use App\Domain\Tenancy\Support\PlanLimits;
 use App\Filament\App\Resources\VesselResource;
 use App\Filament\App\Resources\VesselResource\Pages\Concerns\TranslatesVesselFormData;
+use App\Filament\App\Support\ReturnsToFirstSteps;
 use App\Models\Tenant;
 use App\Support\Tenancy;
 use Filament\Notifications\Actions\Action as NotificationAction;
@@ -15,6 +16,7 @@ use Filament\Resources\Pages\CreateRecord;
 
 class CreateVessel extends CreateRecord
 {
+    use ReturnsToFirstSteps;
     use TranslatesVesselFormData;
 
     protected static string $resource = VesselResource::class;
@@ -54,5 +56,11 @@ class CreateVessel extends CreateRecord
                     ->button(),
             ])
             ->send();
+    }
+
+    /** Back to the checklist when it sent the operator here (Mike, 25/9). */
+    protected function getRedirectUrl(): string
+    {
+        return $this->firstStepsRedirectUrl(parent::getRedirectUrl());
     }
 }
