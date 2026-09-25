@@ -273,8 +273,12 @@
 
         .kd-top { display: grid; gap: .875rem; }
 
+        /* Taller since the buttons left it (Mike, 25/9: «είναι μικρό το height
+           τώρα»): more air, a bigger time, the «when» line at the top and the
+           trip at the foot, and on a computer the height of the four boxes. */
         .kd-next {
-            display: grid; gap: .5rem; padding: 1.1rem 1.15rem 1.15rem;
+            display: grid; gap: .75rem; padding: 1.4rem 1.4rem 1.5rem;
+            min-height: 12.5rem; align-content: space-between;
             border-radius: 1rem; background: var(--kd-next); color: #fff;
             border: 1px solid var(--kd-next-line);
             position: relative; overflow: hidden; isolation: isolate;
@@ -294,8 +298,8 @@
         @media (prefers-reduced-motion: reduce) { .kd-helm { animation: none; } }
         .kd-next-when { font-size: .8125rem; font-weight: 600; color: #9FBBE0; }
         .kd-next-row { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; }
-        .kd-next-time { font-size: 2.25rem; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
-        .kd-next-trip { display: block; margin-top: .3rem; font-size: 1.0625rem; font-weight: 700; color: #fff; }
+        .kd-next-time { font-size: 3rem; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+        .kd-next-trip { display: block; margin-top: .45rem; font-size: 1.1875rem; font-weight: 700; color: #fff; }
         .kd-next-where { font-size: .8125rem; color: #C4D3E8; }
         .kd-role { display: inline-block; margin-top: .45rem; padding: .1rem .6rem; border-radius: 999px; background: #23497D; color: #fff; font-size: .75rem; font-weight: 700; }
         .kd-next-aboard { text-align: right; flex: none; }
@@ -412,9 +416,6 @@
 
         @media (min-width: 1024px) {
             .kd-top { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); align-items: stretch; }
-            /* The card at its own height beside the boxes (25/9): with the buttons
-               gone to the header it has nothing to fill a stretched box with. */
-            .kd-next { align-self: start; }
             .kd-boxes { grid-template-columns: 1fr 1fr; }
         }
     </style>
