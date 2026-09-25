@@ -4,25 +4,17 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Pages;
 
-use App\Domain\Branding\Actions\UpdateBrandProfile;
-use App\Domain\Branding\Actions\UploadBrandAsset;
 use App\Domain\Catalog\Actions\SaveCancellationPolicy;
 use App\Domain\Tenancy\Support\SetupChecklist;
-use App\Enums\BrandAsset;
-use App\Exceptions\UploadRefused;
 use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Resources\VesselResource;
 use App\Http\Middleware\RequireSetupFirst;
-use App\Models\BrandProfile;
 use App\Models\CancellationPolicy;
 use App\Models\PolicyTemplate;
 use App\Models\Tenant;
 use App\Models\User;
-use App\Rules\HexColor;
 use App\Support\Authorization\Capability;
 use App\Support\Tenancy;
-use Filament\Forms\Components\ColorPicker;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -37,7 +29,6 @@ use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Url;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 /**
  * The first-run setup guide (#51, SAA-9, SAA-10), one question at a time.
@@ -51,13 +42,18 @@ use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
  *
  * ## Two kinds of step, and why they are not the same kind
  *
- * Three steps already have a screen that does the job properly. Branding has
- * {@see Branding} — logo processing, the sanitisers, the contrast check from
- * #17. A boat has {@see VesselResource} and a trip has {@see ProductResource},
- * with CAT-5's validation and the publish checklist inside them. Reimplementing
+ * A boat has {@see VesselResource} and a trip has {@see ProductResource}, with
+ * CAT-5's validation and the publish checklist inside them. Reimplementing
  * them here would produce a second, worse version of a form that already
- * exists. So those steps **send the operator to the screen that owns the job**
- * and tick themselves from the data when they come back.
+ * exists. So those left the guide, and the home page step **sends the operator
+ * to the screen that owns the job** and ticks itself from the data.
+ *
+ * ## No logo and colours any more (Mike, 2026-09-25)
+ *
+ * *«Την επιλογή χρωμάτων και logo για τον κάθε merchant την θέλω στο admin.
+ * Αφαίρεσέ την από το first time conf.»* The platform sets them when it takes
+ * the operator on, on Create / Edit Merchant; the operator changes them later
+ * on {@see Branding}, which is unchanged.
  *
  * The business details, the VAT default and the cancellation policy are asked
  * here. The policy is offered as ready ladders because a new operator does not
@@ -259,11 +255,6 @@ class Setup extends Page implements HasForms
 
         $tenant = $this->tenant();
 
-        // Read once, not three times, and through the relation's query so that
-        // "no profile yet" is a null rather than an assumption — on a first
-        // afternoon there is no row at all.
-        $profile = $tenant->brandProfile()->first();
-
         $this->getForm('form')?->fill([
             'legal_name' => $tenant->legal_name,
             'vat_number' => $tenant->vat_number,
@@ -273,7 +264,6 @@ class Setup extends Page implements HasForms
             'postcode' => $tenant->postcode,
             'phone' => $tenant->phone,
             'default_vat_rate_id' => $tenant->default_vat_rate_id,
-            ...$this->brandingState($profile),
         ]);
     }
 
@@ -337,90 +327,6 @@ class Setup extends Page implements HasForms
                     ->native(false)
                     ->visible(fn (): bool => $this->currentStep() === SetupChecklist::VAT),
 
-                /*
-                 * **Το λογότυπο και τα χρώματα, εδώ** (product owner,
-                 * 2026-09-22: *«στην εμφάνιση, μόνο logo και χρώματα· όχι link
-                 * προς εμφάνιση»*).
-                 *
-                 * This step used to hand off to {@see Branding}, which owns
-                 * fifteen fields — the favicon, the email header, the font, the
-                 * five colours and the contrast warnings. None of that is a
-                 * first-afternoon question, and sending somebody to a screen
-                 * that big to answer «what is your logo» is how a guide loses
-                 * people. Two colours and a logo is what makes a page look like
-                 * theirs; the rest is on that screen whenever they want it.
-                 *
-                 * The upload goes through {@see UploadBrandAsset}, the same way
-                 * the branding screen does, because the magic-byte check, the
-                 * SVG sanitiser and the variants (BRD-7, SEC-13) are not
-                 * something a second screen gets to skip.
-                 */
-                Grid::make(2)
-                    ->visible(fn (): bool => $this->currentStep() === SetupChecklist::BRANDING)
-                    ->schema([
-                        FileUpload::make('logo_light_path')
-                            ->label(__('setup.fields.logo.label'))
-                            ->helperText(__('setup.fields.logo.help'))
-                            ->disk((string) config('kaiki.branding.uploads.disk'))
-                            ->visibility('private')
-                            ->acceptedFileTypes((array) config('kaiki.branding.uploads.mime_types'))
-                            ->maxSize((int) config('kaiki.branding.uploads.max_kilobytes'))
-                            ->image()
-                            ->saveUploadedFileUsing(fn (TemporaryUploadedFile $file): ?string => $this->storeLogo(BrandAsset::LogoLight, $file)),
-
-                        /*
-                         * And the dark one (Mike, 2026-09-23: *«στο logo, δώσε
-                         * μου και το πεδίο για dark logo»*).
-                         *
-                         * Optional, and its help line says so. A logo drawn for
-                         * a pale header vanishes against a dark one, and the
-                         * operator who has a second file has it to hand on the
-                         * afternoon they are uploading the first — coming back
-                         * for it later means first noticing it is wrong, which
-                         * happens on somebody else's phone.
-                         *
-                         * Side by side rather than full width now that there are
-                         * two of them, which is what the grid was already for.
-                         */
-                        FileUpload::make('logo_dark_path')
-                            ->label(__('setup.fields.logo_dark.label'))
-                            ->helperText(__('setup.fields.logo_dark.help'))
-                            ->disk((string) config('kaiki.branding.uploads.disk'))
-                            ->visibility('private')
-                            ->acceptedFileTypes((array) config('kaiki.branding.uploads.mime_types'))
-                            ->maxSize((int) config('kaiki.branding.uploads.max_kilobytes'))
-                            ->image()
-                            ->saveUploadedFileUsing(fn (TemporaryUploadedFile $file): ?string => $this->storeLogo(BrandAsset::LogoDark, $file)),
-
-                        ColorPicker::make('color_primary')
-                            ->label(__('branding.form.color_primary.label'))
-                            ->helperText(__('branding.form.color_primary.help'))
-                            ->rules([new HexColor]),
-
-                        ColorPicker::make('color_secondary')
-                            ->label(__('branding.form.color_secondary.label'))
-                            ->helperText(__('branding.form.color_secondary.help'))
-                            ->rules([new HexColor]),
-
-                        /*
-                         * And the accent (Mike, 2026-09-22: *«στο styling στο
-                         * first time guide, θέλω και χρώματα accent»*).
-                         *
-                         * It earns its place beside the other two because it is
-                         * the one colour a visitor actually presses: «Κλείστε
-                         * θέση» in the header, the pay button at the end of the
-                         * checkout, the rule under a section heading. Left at
-                         * the platform's terracotta, every operator's booking
-                         * button is the same orange — which is the one thing on
-                         * their page that should be theirs.
-                         */
-                        ColorPicker::make('color_accent')
-                            ->label(__('branding.form.color_accent.label'))
-                            ->helperText(__('branding.form.color_accent.help'))
-                            ->rules([new HexColor])
-                            ->columnSpanFull(),
-                    ]),
-
             ])
             ->statePath('data');
     }
@@ -449,7 +355,6 @@ class Setup extends Page implements HasForms
 
         match ($current) {
             SetupChecklist::BUSINESS => $this->persistBusiness(),
-            SetupChecklist::BRANDING => $this->persistBranding(),
             SetupChecklist::VAT => $this->persistVat(),
             SetupChecklist::CANCELLATION => $this->persistCancellation(),
             default => $this->guardedTenant(),
@@ -665,127 +570,6 @@ class Setup extends Page implements HasForms
         ])->save();
     }
 
-    /**
-     * The logo and the two colours, through the same Action the branding
-     * screen uses.
-     *
-     * Only what this step asked for: `UpdateBrandProfile` fills what it is
-     * given, so the favicon, the font and the other three colours are not
-     * touched by a guide that never mentioned them.
-     */
-    private function persistBranding(): void
-    {
-        $this->guardedTenant();
-
-        $profile = $this->brandProfile();
-        $attributes = [];
-
-        /*
-         * **Through the form, not through `$this->data`** (2026-09-22:
-         * *«στο styling ανεβάζω logo αλλά δεν το κρατάει»*).
-         *
-         * Every other step here reads the raw Livewire state, and for a text
-         * box or a colour picker that is the same thing as the final value. A
-         * `FileUpload` is not: while the file is in the browser its state is a
-         * `TemporaryUploadedFile` keyed by an id, and the path only exists once
-         * Filament dehydrates the field and runs `saveUploadedFileUsing()` —
-         * which is where {@see UploadBrandAsset} lives.
-         *
-         * So the old line asked `is_string()` of an array, got false, and saved
-         * nothing at all. The upload appeared to work because the preview is
-         * the browser's own copy of the file.
-         *
-         * `getState()` validates and dehydrates, so the file is stored, the
-         * colours are checked against `HexColor`, and what comes back is what
-         * the columns should hold.
-         */
-        $state = $this->getForm('form')?->getState() ?? [];
-
-        foreach (['color_primary', 'color_secondary', 'color_accent'] as $colour) {
-            $value = $state[$colour] ?? null;
-
-            if (is_string($value) && trim($value) !== '') {
-                $attributes[$colour] = trim($value);
-            }
-        }
-
-        // Both logos, each only when it actually changed — an unchanged path
-        // would be written back over itself, and a cleared field must not
-        // silently wipe a logo the operator uploaded on the branding screen.
-        foreach (['logo_light_path', 'logo_dark_path'] as $column) {
-            $logo = $state[$column] ?? null;
-
-            if (is_string($logo) && $logo !== '' && $logo !== $profile->{$column}) {
-                $attributes[$column] = $logo;
-            }
-        }
-
-        if ($attributes === []) {
-            return;
-        }
-
-        app(UpdateBrandProfile::class)($profile, $attributes);
-    }
-
-    /**
-     * What the branding step opens on.
-     *
-     * The account's own logo and colours when it has any, the platform's
-     * colours when it does not — two pickers opening on black would read as a
-     * choice somebody made.
-     *
-     * @return array<string, string|null>
-     */
-    private function brandingState(?BrandProfile $profile): array
-    {
-        if (! $profile instanceof BrandProfile) {
-            return [
-                'logo_light_path' => null,
-                'logo_dark_path' => null,
-                'color_primary' => (string) config('kaiki.branding.defaults.colors.primary'),
-                'color_secondary' => (string) config('kaiki.branding.defaults.colors.secondary'),
-                'color_accent' => (string) config('kaiki.branding.defaults.colors.accent'),
-            ];
-        }
-
-        return [
-            'logo_light_path' => $profile->logo_light_path,
-            'logo_dark_path' => $profile->logo_dark_path,
-            'color_primary' => $profile->color_primary,
-            'color_secondary' => $profile->color_secondary,
-            'color_accent' => $profile->color_accent,
-        ];
-    }
-
-    /** The account's brand profile, made on first use like the branding screen does. */
-    private function brandProfile(): BrandProfile
-    {
-        $tenant = $this->guardedTenant();
-
-        return $tenant->brandProfile()->firstOrCreate([]);
-    }
-
-    /**
-     * One logo, checked from its bytes.
-     *
-     * Filament would write the file itself, which skips the magic-byte check,
-     * the SVG sanitiser, the EXIF strip and the variants — every part of BRD-7
-     * and SEC-13. A refusal is a sentence the operator can act on, not a 500.
-     *
-     * Takes the asset rather than assuming the light logo, since the step asks
-     * for both (2026-09-23).
-     */
-    private function storeLogo(BrandAsset $asset, TemporaryUploadedFile $file): ?string
-    {
-        try {
-            return app(UploadBrandAsset::class)($this->brandProfile(), $asset, $file);
-        } catch (UploadRefused $refused) {
-            Notification::make()->title($refused->getMessage())->danger()->send();
-
-            return null;
-        }
-    }
-
     private function persistVat(): void
     {
         $tenant = $this->guardedTenant();
@@ -902,7 +686,7 @@ class Setup extends Page implements HasForms
     public static function handOffUrls(): array
     {
         // The home page is the one step whose work lives elsewhere (Mike,
-        // 2026-09-23). The four account questions are asked here, as they have
+        // 2026-09-23). The account questions are asked here, as they have
         // been since the catalogue left the guide on 2026-09-22; a home page is
         // blocks, their order and their photographs, and {@see HomePage} owns
         // all of that already.
@@ -920,8 +704,8 @@ class Setup extends Page implements HasForms
      *
      * Only the closing screen asks (product owner, 2026-09-22: *«άλλαξέ το όταν
      * ο merchant είναι booking pages only, αν χρειάζεται»*). It does need it:
-     * the four questions apply either way — a bookings-only operator's pages
-     * carry the same logo, the same VAT rate and the same cancellation terms —
+     * the questions apply either way — a bookings-only operator's pages
+     * carry the same VAT rate and the same cancellation terms —
      * but «η ιστοσελίδα σας είναι ήδη ζωντανή» describes a home page they were
      * never given.
      */

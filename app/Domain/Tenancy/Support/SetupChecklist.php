@@ -6,7 +6,6 @@ namespace App\Domain\Tenancy\Support;
 
 use App\Domain\Operations\Support\FirstSteps;
 use App\Enums\CrewSpecialty;
-use App\Models\BrandProfile;
 use App\Models\CancellationPolicy;
 use App\Models\HomePageBlock;
 use App\Models\Port;
@@ -15,7 +14,6 @@ use App\Models\Season;
 use App\Models\Tenant;
 use App\Models\User;
 use App\Models\Vessel;
-use App\Observers\TenantObserver;
 use App\Support\Tenancy;
 
 /**
@@ -44,8 +42,8 @@ use App\Support\Tenancy;
  * calendar and an unfilled ΑΦΜ has their dashboard replaced by a checklist for
  * ever.
  *
- * So this covers the account — the business, its branding, its VAT, its first
- * boat and trip — and stops. It suppresses nothing. The two lists overlap on
+ * So this covers the account — the business, its VAT, its cancellation terms,
+ * its first boat and trip — and stops. It suppresses nothing. The two lists overlap on
  * the boat and the trip **by delegation** rather than by copying the query:
  * {@see FirstSteps::state()} owns those two answers and is asked for them.
  *
@@ -59,9 +57,6 @@ final class SetupChecklist
 {
     /** Legal name, ΑΦΜ, ΔΟΥ, address — the columns an invoice is built from. */
     public const BUSINESS = 'business';
-
-    /** Logo, colours, font — `brand_profiles`, #17. */
-    public const BRANDING = 'branding';
 
     /** The rate this account sells at, pre-filling every new product. */
     public const VAT = 'vat';
@@ -135,14 +130,19 @@ final class SetupChecklist
      * The steps in the order SAA-9 lists them.
      *
      * The order is not arbitrary and is not the order of difficulty: it is the
-     * order in which each answer is needed by the next. Branding before a boat
-     * because the hosted page exists from the first minute; VAT before a product
+     * order in which each answer is needed by the next. VAT before a product
      * because it is what the product form pre-fills.
      *
      * `HOME_PAGE` comes last before the close, and only for the operators it
      * applies to: it is the one step that is about what a visitor *reads*
-     * rather than about what the account *is*, and it wants the logo and the
-     * colours already chosen.
+     * rather than about what the account *is*.
+     *
+     * **No branding step** (Mike, 2026-09-25: *«την αρχικοποίηση θέλω να την
+     * κάνω από το admin»*). The logo and the colours are set by the platform
+     * when it takes the operator on, on Create / Edit Merchant in `/admin`; the
+     * operator can still change them later on «Εμφάνιση» in Ρυθμίσεις. A
+     * `branding` key left in `onboarding_skipped_steps` by an older guide is
+     * dropped by {@see skipped()}, which only keeps the steps that exist.
      *
      * @return list<string>
      */
@@ -150,7 +150,6 @@ final class SetupChecklist
     {
         return array_values(array_filter([
             self::BUSINESS,
-            self::BRANDING,
             self::VAT,
             self::CANCELLATION,
             self::servesHomePage() ? self::HOME_PAGE : null,
@@ -180,8 +179,8 @@ final class SetupChecklist
      * εκδρομή και περίοδοι — αλλά μετά κάπως πρέπει να φαίνονται ότι πρέπει να
      * συμπληρωθούν, αλλά όχι μέσα στα steps»*.
      *
-     * The guide is now four questions about the **account**: who you are on an
-     * invoice, how you look, which VAT rate, on what terms you cancel. None of
+     * The guide is now three questions about the **account**: who you are on an
+     * invoice, which VAT rate, on what terms you cancel. None of
      * them has a screen of its own that does the job better, which is what
      * makes a guide the right place to ask them.
      *
@@ -257,7 +256,6 @@ final class SetupChecklist
         // dashboard still tells the operator a boat is owed.
         return [
             self::BUSINESS => self::businessAnswered($tenant),
-            self::BRANDING => self::brandingTouched($tenant),
             self::VAT => $tenant->default_vat_rate_id !== null,
             self::CANCELLATION => CancellationPolicy::query()->exists(),
             self::PORT => Port::query()->exists(),
@@ -413,44 +411,5 @@ final class SetupChecklist
     private static function businessAnswered(Tenant $tenant): bool
     {
         return filled($tenant->legal_name) && filled($tenant->vat_number);
-    }
-
-    /**
-     * Has anybody chosen anything about how this operator looks?
-     *
-     * Every colour column has a default and {@see TenantObserver}
-     * creates the row when the tenant is created, so a `brand_profiles` row
-     * existing proves nothing at all. What proves it is an image — a logo is the
-     * one field nobody ends up with by accident — or a colour that differs from
-     * the platform's own.
-     */
-    private static function brandingTouched(Tenant $tenant): bool
-    {
-        $profile = $tenant->brandProfile;
-
-        if (! $profile instanceof BrandProfile) {
-            return false;
-        }
-
-        if (filled($profile->logo_light_path) || filled($profile->logo_dark_path)) {
-            return true;
-        }
-
-        // `config('kaiki.branding.defaults.colors')` is keyed `primary`, while
-        // the column is `color_primary` — the config is the platform's palette
-        // and the column is one profile's copy of it. `BrandProfileDefaultsTest`
-        // already asserts the two agree, so comparing against the config here
-        // is comparing against the column default without reading the schema.
-        $defaults = (array) config('kaiki.branding.defaults.colors', []);
-
-        foreach (['primary', 'secondary', 'accent'] as $key) {
-            $default = $defaults[$key] ?? null;
-
-            if ($default !== null && strcasecmp((string) $profile->{'color_' . $key}, (string) $default) !== 0) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

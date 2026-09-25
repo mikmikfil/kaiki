@@ -29,10 +29,14 @@ use Illuminate\Validation\Rule;
  * ## Seven fields, because the eighth is the operator's own job
  *
  * The business, its address on the web, where invoices go, and one person who
- * can sign in. Everything else — the legal name, the ΑΦΜ, the ΔΟΥ, the logo,
- * the colours, the boats — the operator fills in themselves, and a platform
- * form that collected them would be a form somebody has to read down a
- * telephone before the customer has an account.
+ * can sign in. Everything else — the legal name, the ΑΦΜ, the ΔΟΥ, the boats —
+ * the operator fills in themselves, and a platform form that collected them
+ * would be a form somebody has to read down a telephone before the customer
+ * has an account.
+ *
+ * **Except the logo and the colours** (Mike, 2026-09-25: *«την αρχικοποίηση
+ * θέλω να την κάνω από το admin»*). Those are set here, or on the edit page,
+ * and the operator's first-time guide no longer asks for them.
  *
  * ## The password is not one of the fields, deliberately
  *
@@ -54,6 +58,7 @@ use Illuminate\Validation\Rule;
 class CreateTenant extends CreateRecord
 {
     use HasTenantAccountFields;
+    use HasTenantBrandingFields;
 
     protected static string $resource = TenantResource::class;
 
@@ -179,6 +184,8 @@ class CreateTenant extends CreateRecord
 
             $this->featuresSection(),
 
+            $this->brandingSection(),
+
             $this->channelsSection(),
         ]);
     }
@@ -228,6 +235,15 @@ class CreateTenant extends CreateRecord
 
         if ($settings !== []) {
             $tenant->forceFill($settings)->save();
+        }
+
+        // The logo and the colours, onto the brand profile the observer made
+        // with the tenant — through the same Actions the operator's own screen
+        // uses. See `HasTenantBrandingFields`.
+        $branding = $data['branding'] ?? null;
+
+        if (is_array($branding)) {
+            $this->applyBranding($tenant, $branding);
         }
 
         return $tenant;

@@ -66,14 +66,6 @@ return [
             'question' => 'What is your business called on paper?',
             'why' => 'These are printed on your receipts and invoices and sent to the tax authority. Without a legal name and a VAT number no document can be issued — everything else here can wait.',
         ],
-        'branding' => [
-            'label' => 'Appearance',
-            'description' => 'Logo and colours',
-            'question' => 'How should your pages look?',
-            'why' => 'Your logo and colours go on your booking pages and on the emails guests receive. Optional: the pages work without them.',
-            'done' => 'You have already added a logo or colours.',
-            'action' => 'Open Branding',
-        ],
         'vat' => [
             'label' => 'VAT',
             'description' => 'The rate you sell at',
@@ -172,14 +164,6 @@ return [
         ],
         'season_ends_on' => [
             'label' => 'To',
-        ],
-        'logo' => [
-            'label' => 'Your logo',
-            'help' => 'PNG, JPG or SVG. It sits top left on your pages and in your emails. Without one, your name is written instead.',
-        ],
-        'logo_dark' => [
-            'label' => 'Logo for dark backgrounds',
-            'help' => 'Optional. If your logo disappears on a dark background, upload the light version of it here.',
         ],
         'legal_name' => [
             'label' => 'Legal name',
