@@ -234,4 +234,12 @@ return [
         'sms' => 'How was your trip?',
     ],
 
+    'payment_unfinished' => [
+        'subject' => 'Your booking for :trip was not completed',
+        'heading' => 'Your payment was not completed',
+        'body' => 'You started a booking but the payment did not go through. If you would still like to come, pick up where you left off.',
+        'button' => 'Complete payment',
+        'note' => 'Your seats are not held. We will check availability again when you press the button. You will not get another reminder for this booking.',
+    ],
+
 ];

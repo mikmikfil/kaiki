@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Booking\Support;
 
 use App\Enums\GuestDocumentType;
+use App\Enums\GuestSex;
 use App\Models\AgeBand;
 use App\Models\Booking;
 use App\Models\BookingGuest;
@@ -89,6 +90,8 @@ final class PassengerForm
             // A country code from the list, never free text: the column is
             // `char(2)` and MySQL refuses anything longer (see `Countries`).
             'guests.*.nationality' => ['required', 'string', Rule::in(Countries::codes())],
+            // «Φύλο» for the Λιμεναρχείο's list (ν. 4926/2022 άρθρο 13, 2026-09-24).
+            'guests.*.sex' => ['required', Rule::enum(GuestSex::class)],
             'guests.*.date_of_birth' => ['required', 'date_format:Y-m-d', 'before_or_equal:today'],
             'guests.*.document_type' => ['nullable', Rule::enum(GuestDocumentType::class)],
             'guests.*.document_number' => ['nullable', 'string', 'max:40'],
@@ -110,7 +113,7 @@ final class PassengerForm
         foreach (array_keys((array) ($input['guests'] ?? [])) as $i) {
             $n = ['n' => (int) $i + 1];
 
-            foreach (['full_name', 'nationality', 'date_of_birth', 'document_type', 'document_number', 'document_expires_on'] as $field) {
+            foreach (['full_name', 'sex', 'nationality', 'date_of_birth', 'document_type', 'document_number', 'document_expires_on'] as $field) {
                 $names["guests.$i.$field"] = __('guest.checkout.passenger_field', [
                     ...$n,
                     'field' => __('guest.checkout.fields.' . $field),

@@ -31,6 +31,13 @@ enum BookingSource: string implements HasColor, HasLabel
     case Import = 'import';
 
     /**
+     * Sold on the quay by the operator or the crew (2026-09-24), paid on the
+     * spot on their POS or in cash. No receipt from Kaiki (their cash register
+     * issues it) and no text message; the email only when the guest gave one.
+     */
+    case Quay = 'quay';
+
+    /**
      * The badge colour in the panel. BKG-34: what is worth noticing is a
      * booking that is **not** ordinary — imported, or typed in by hand.
      */
@@ -38,7 +45,7 @@ enum BookingSource: string implements HasColor, HasLabel
     {
         return match ($this) {
             self::Import => 'warning',
-            self::Manual => 'info',
+            self::Manual, self::Quay => 'info',
             self::Widget, self::Hosted, self::Wordpress => 'gray',
         };
     }
@@ -48,7 +55,7 @@ enum BookingSource: string implements HasColor, HasLabel
     {
         return match ($this) {
             self::Widget, self::Hosted, self::Wordpress => true,
-            self::Manual, self::Import => false,
+            self::Manual, self::Import, self::Quay => false,
         };
     }
 

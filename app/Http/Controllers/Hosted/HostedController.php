@@ -10,6 +10,7 @@ use App\Domain\Hosted\Support\HostedHost;
 use App\Domain\Tenancy\Resolvers\HostedSlugResolver;
 use App\Enums\DomainStatus;
 use App\Http\Middleware\HostedPageHeaders;
+use App\Models\HomePageBlock;
 use App\Models\Tenant;
 use App\Models\TenantDomain;
 use App\Support\Tenancy;
@@ -87,6 +88,11 @@ abstract class HostedController
             // key it could render — which is why these pages carried a mount
             // point and no script for two milestones.
             'embedToken' => HostedEmbedToken::issue($tenant),
+            // «Σχετικά με εμάς» in the menu (2026-09-24) only once there is such
+            // a page — the same test its controller 404s on — and only where
+            // the site has pages at all.
+            'hasAbout' => $tenant->hosted_site_mode->servesHomePage()
+                && HomePageBlock::query()->onPage(HomePageBlock::PAGE_ABOUT)->where('is_visible', true)->exists(),
         ];
 
         return response(view($view, [...$shared, ...$data()])->render());

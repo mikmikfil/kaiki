@@ -76,6 +76,16 @@ enum NotificationTemplate: string
      */
     case ReviewRequest = 'review_request';
 
+    /*
+     * «Η κράτησή σας για … δεν ολοκληρώθηκε» (Mike, 2026-09-24, subject A).
+     *
+     * NTF-7 and this case: it is about a booking the guest started themselves
+     * an hour ago, goes once and never a second time, and its one button
+     * finishes that booking — no offer, no discount, no other trip. Anything
+     * more would be marketing. See SendPaymentUnfinished for when it goes.
+     */
+    case PaymentUnfinished = 'payment_unfinished';
+
     /**
      * Is this one of BKG-16's reminders, rather than something that fires on an
      * event?
@@ -92,7 +102,8 @@ enum NotificationTemplate: string
             || str_contains($this->value, 'charter_agreement_')
             || str_contains($this->value, 'voucher_expiry_')
             // Swept like the reminders, so the log is what keeps it to one.
-            || $this === self::ReviewRequest;
+            || $this === self::ReviewRequest
+            || $this === self::PaymentUnfinished;
     }
 
     /**

@@ -51,6 +51,9 @@
             --}}
             @php($statuses = $this->departureStatuses($day))
             @php($opens = $this->canOpenPax())
+            @php($canBlock = $this->blockAction->isVisible())
+            @php($canAssign = \App\Filament\App\Pages\Calendar::canAssign())
+            @php($canSell = $this->sellAction->isVisible())
             <div class="cal-list">
                 @foreach ($day->rows as $row)
                     <section @class(['cal-boat', 'is-idle' => $row['bars'] === []])>
@@ -58,6 +61,14 @@
                             <b>{{ $row['vessel']->name }}</b>
                             @if ($row['bars'] === [])
                                 <span class="cal-boat-free">{{ __('calendar.free') }}</span>
+                            @endif
+                            {{-- The phone has no track to drag on, so each boat
+                                 carries the button instead (Mike, 2026-09-24). --}}
+                            @if ($canBlock)
+                                <button type="button" class="cal-boat-block"
+                                    wire:click="mountAction('block', { vessel: '{{ $row['vessel']->uuid }}' })">
+                                    {{ __('calendar.block.title') }}
+                                </button>
                             @endif
                         </header>
 
@@ -80,6 +91,11 @@
                                     ])>
                                         @if ($status !== null)
                                             {{ $status->label() }}
+                                            @if (($bar['captain'] ?? null) !== null)
+                                                · {{ $bar['captain'] }}
+                                            @elseif ($bar['kind'] === 'departure' && ! $bar['cancelled'])
+                                                · <span class="cal-no-captain">{{ __('availability.departure.table.no_captain') }}</span>
+                                            @endif
                                         @elseif ($bar['reason'] === 'external_ical')
                                             {{ __('calendar.key.external') }}
                                         @else
@@ -91,6 +107,24 @@
                                     <span class="cal-dep-pax">{{ $bar['pax'] }}/{{ $bar['capacity'] }}</span>
                                 @endif
                             </{{ $tappable ? 'button' : 'div' }}>
+                            {{-- Captain and crew in two taps (owner, manager), and
+                                 «Πώληση τώρα» on the quay for everyone (24/9). --}}
+                            @if ($bar['kind'] === 'departure' && ! $bar['cancelled'] && ($canAssign || $canSell))
+                                <div class="cal-dep-actions">
+                                    @if ($canSell)
+                                        <button type="button" class="cal-assign cal-sell"
+                                            wire:click="mountAction('sell', { departure: '{{ $bar['uuid'] }}' })">
+                                            {{ __('calendar.sell.title') }}
+                                        </button>
+                                    @endif
+                                    @if ($canAssign)
+                                        <button type="button" class="cal-assign"
+                                            wire:click="mountAction('assign', { departure: '{{ $bar['uuid'] }}' })">
+                                            {{ __('calendar.assign.title') }}
+                                        </button>
+                                    @endif
+                                </div>
+                            @endif
                         @endforeach
                     </section>
                 @endforeach
@@ -150,13 +184,13 @@
                                          role="button"
                                          tabindex="0"
                                      @endif
-                                     title="{{ $bar['label'] }}{{ $bar['detail'] ? ' · ' . $bar['detail'] : '' }}">
+                                     title="{{ $bar['label'] }}{{ $bar['detail'] ? ' · ' . $bar['detail'] : '' }}{{ ($bar['captain'] ?? null) !== null ? ' · ' . __('availability.departure.crew.captain.label') . ': ' . $bar['captain'] : '' }}">
                                     {{-- Two lines: the name gets the bar's whole width,
                                          and time and seats go underneath. On one line
                                          beside the count a two-hour trip on a tablet
                                          was three letters and an ellipsis. --}}
                                     <span class="bar-label">{{ $bar['label'] }}</span>
-                                    <span class="bar-pax">{{ $bar['detail'] ? substr((string) $bar['detail'], 0, 5) : '' }}@if ($bar['pax'] !== null){{ $bar['detail'] ? ' · ' : '' }}{{ $bar['pax'] }}/{{ $bar['capacity'] }}@endif</span>
+                                    <span class="bar-pax">{{ $bar['detail'] ? substr((string) $bar['detail'], 0, 5) : '' }}@if ($bar['pax'] !== null){{ $bar['detail'] ? ' · ' : '' }}{{ $bar['pax'] }}/{{ $bar['capacity'] }}@endif @if (($bar['captain'] ?? null) !== null)· {{ $bar['captain'] }}@endif</span>
                                 </div>
 
                                 {{-- OPS-4. The turnaround, drawn as its own margin
@@ -274,15 +308,38 @@
         .cal-hint, .cal-empty { font-size: .82rem; color: rgb(var(--gray-500)); margin: 0; }
 
         /* --- the phone: a list per boat -------------------------------------- */
-        .cal-list { display: grid; gap: .75rem; }
+        /* `min-width: 0`: a grid item is as wide as its widest line by default,
+           and a boat name next to its button pushed every card 23px past the
+           right-hand edge of a phone. */
+        .cal-list { display: grid; gap: .75rem; min-width: 0; }
+        .cal-boat { min-width: 0; }
         .cal-boat {
             display: grid; padding: .35rem .9rem; border-radius: 1rem;
             background: var(--cal-card); border: 1px solid var(--cal-line); color: var(--cal-ink);
         }
-        .cal-boat-head { display: flex; align-items: baseline; justify-content: space-between; gap: .5rem; min-height: 2.5rem; padding-top: .55rem; }
+        .cal-boat-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem; min-height: 2.5rem; padding-top: .55rem; }
         .cal-boat-head b { font-size: 1rem; }
         .cal-boat.is-idle .cal-boat-head { padding-bottom: .55rem; }
-        .cal-boat-free { font-size: .85rem; color: var(--cal-muted); }
+        .cal-boat-free { font-size: .85rem; color: var(--cal-muted); margin-left: auto; }
+        .cal-boat-block {
+            min-height: 2.25rem; padding: 0 .75rem; border-radius: .6rem; white-space: nowrap;
+            font-size: .8125rem; font-weight: 600; color: rgb(var(--primary-600));
+            border: 1px solid var(--cal-line); background: transparent;
+        }
+        .cal-boat-block:hover { background: var(--cal-hover); }
+        .dark .cal-boat-block { color: rgb(var(--primary-400)); }
+        .cal-assign {
+            display: block; margin: -.2rem 0 .4rem 4rem; min-height: 2rem; padding: 0 .7rem; border-radius: .55rem;
+            font-size: .8125rem; font-weight: 600; color: rgb(var(--primary-600));
+            border: 1px solid var(--cal-line); background: transparent;
+        }
+        .cal-assign:hover { background: var(--cal-hover); }
+        .cal-dep-actions { display: flex; flex-wrap: wrap; gap: .4rem; margin: -.2rem 0 .4rem 4rem; }
+        .cal-dep-actions .cal-assign { margin: 0; }
+        .cal-sell { background: rgb(var(--primary-600)); border-color: rgb(var(--primary-600)); color: #fff; }
+        .cal-sell:hover { background: rgb(var(--primary-700)); }
+        .dark .cal-sell { color: #fff; }
+        .dark .cal-assign { color: rgb(var(--primary-400)); }
         .cal-dep {
             display: grid; grid-template-columns: 3.4rem minmax(0, 1fr) auto; align-items: center; gap: .6rem;
             width: 100%; min-height: 3.25rem; padding: .45rem 0; text-align: left;
@@ -297,6 +354,7 @@
         .cal-dep-status { font-size: .8125rem; color: var(--cal-muted); }
         .cal-dep-status.is-good { color: var(--cal-good); }
         .cal-dep-status.is-off { color: var(--cal-off); }
+        .cal-no-captain { color: rgb(var(--danger-600)); font-weight: 600; }
         .cal-dep-pax { font-variant-numeric: tabular-nums; font-size: .875rem; color: var(--cal-muted); }
         .cal-dep.is-cancelled .cal-dep-name { text-decoration: line-through; color: var(--cal-muted); }
         .cal-dep.is-block .cal-dep-name { color: var(--cal-muted); }

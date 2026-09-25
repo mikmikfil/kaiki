@@ -24,6 +24,7 @@ return [
     // Sidebar labels shorter than the screen's own title (Menu 1, 2026-09-16).
     'nav' => [
         'home' => 'Αρχική',
+        'scan' => 'Σάρωση εισιτηρίων',
         'prices' => 'Τιμές',
         'ports' => 'Λιμάνια',
         'related' => 'Σχετικές οθόνες',

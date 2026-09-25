@@ -121,3 +121,27 @@ it('prefers the page the guest came from even when the home page is not served',
         ->assertOk()
         ->assertSee('href="https://aegean-blue.example/"', escape: false);
 })->group('fast');
+
+it('moves a hosted page the guest came from onto today\'s hosted host', function (): void {
+    // Booked while the site was reached through a tunnel that has since closed.
+    [$tenant, $booking] = backLinkBooking(BookingStatus::Confirmed, 'https://old-tunnel.trycloudflare.com/placeholder');
+
+    Tenancy::forTenant($tenant, static function () use ($booking, $tenant): void {
+        $booking->forceFill([
+            'origin_url' => 'https://old-tunnel.trycloudflare.com/' . $tenant->slug . '/sunset-trip?lang=el',
+        ])->save();
+    });
+
+    get('/b/' . $booking->manage_token)
+        ->assertOk()
+        ->assertSee('href="' . HostedUrl::operator($tenant) . '/sunset-trip?lang=el"', escape: false)
+        ->assertDontSee('trycloudflare', escape: false);
+})->group('fast');
+
+it('leaves the operator\'s own site exactly as the widget sent it', function (): void {
+    [, $booking] = backLinkBooking(BookingStatus::Confirmed, 'https://aegean-blue.example/ekdromes/sunset/');
+
+    get('/b/' . $booking->manage_token)
+        ->assertOk()
+        ->assertSee('href="https://aegean-blue.example/ekdromes/sunset/"', escape: false);
+})->group('fast');

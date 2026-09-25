@@ -10,6 +10,7 @@ use App\Domain\Booking\Actions\CancelBooking;
 use App\Domain\Booking\Actions\CancelDeparture;
 use App\Domain\Operations\Support\WeatherCancellationPreview;
 use App\Enums\BookingMode;
+use App\Enums\CrewSpecialty;
 use App\Enums\DepartureCancelReason;
 use App\Enums\DepartureStatus;
 use App\Enums\WeatherChoice;
@@ -19,6 +20,7 @@ use App\Filament\Support\MoreActions;
 use App\Models\Departure;
 use App\Models\Product;
 use App\Models\Tenant;
+use App\Models\User;
 use App\Support\Authorization\Capability;
 use App\Support\Authorization\CrewWindow;
 use App\Support\Tenancy;
@@ -31,6 +33,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\PageRegistration;
 use Filament\Resources\Resource;
@@ -100,6 +103,42 @@ class DepartureResource extends Resource
         return __('availability.departure.model.plural');
     }
 
+    /**
+     * The operator's own people, by name — the ones a departure can be
+     * crewed by.
+     *
+     * @return array<int, string>
+     */
+    public static function peopleOptions(bool $captainsOnly = false): array
+    {
+        $tenant = Tenancy::current();
+
+        if ($tenant === null) {
+            return [];
+        }
+
+        $people = User::query()
+            ->where('tenant_id', $tenant->getKey())
+            ->orderBy('name')
+            ->get(['id', 'name', 'email', 'specialty']);
+
+        // Only the captains, once anybody is marked as one (2026-09-24). Until
+        // then everybody, so a team set up before «Ειδικότητα» existed is not
+        // left with an empty list.
+        if ($captainsOnly && $people->contains(static fn (User $user): bool => $user->specialty === CrewSpecialty::Captain)) {
+            $people = $people->filter(static fn (User $user): bool => $user->specialty === CrewSpecialty::Captain);
+        }
+
+        // «χωρίς email»: nobody will tell them but you.
+        return $people
+            ->mapWithKeys(static fn (User $user): array => [
+                (int) $user->getKey() => blank($user->email)
+                    ? $user->name . ' · ' . __('availability.departure.crew.no_email')
+                    : $user->name,
+            ])
+            ->all();
+    }
+
     public static function form(Form $form): Form
     {
         return $form->schema(static::formSchema());
@@ -110,6 +149,7 @@ class DepartureResource extends Resource
     {
         return [
             Section::make(__('availability.departure.sections.what'))
+                ->icon('heroicon-o-flag')
                 ->schema([
                     Select::make('product_id')
                         ->label(__('availability.departure.form.product.label'))
@@ -156,6 +196,7 @@ class DepartureResource extends Resource
                 ->columns(2),
 
             Section::make(__('availability.departure.sections.seats'))
+                ->icon('heroicon-o-user-group')
                 ->schema([
                     TextInput::make('capacity')
                         ->label(__('availability.departure.form.capacity.label'))
@@ -165,7 +206,44 @@ class DepartureResource extends Resource
                         ->maxValue(65535),
                 ]),
 
+            // Who takes her out today (the 24/9 list, #3). On a saved
+            // departure: the list printed for the Λιμεναρχείο names them.
+            Section::make(__('availability.departure.sections.crew'))
+                ->icon('heroicon-o-user')
+                ->description(__('availability.departure.crew.intro'))
+                ->visible(static fn (?Departure $record): bool => $record instanceof Departure && $record->exists)
+                ->schema([
+                    Select::make('captain_user_id')
+                        ->label(__('availability.departure.crew.captain.label'))
+                        // The schedule's crew is copied on; saying so here stops
+                        // somebody expecting a change to reach next week's too.
+                        ->helperText(static fn (?Departure $record): string => __('availability.departure.crew.captain.help', [
+                            'boat' => (string) ($record?->vessel->captain_name ?? '—'),
+                        ]) . ($record !== null && $record->schedule_rule_id !== null && $record->crew_from_rule
+                            ? ' ' . __('availability.departure.crew.from_rule')
+                            : ''))
+                        ->options(static fn (): array => static::peopleOptions(captainsOnly: true))
+                        ->searchable()
+                        ->live(),
+
+                    TextInput::make('captain_name')
+                        ->label(__('availability.departure.crew.captain_name.label'))
+                        ->helperText(__('availability.departure.crew.captain_name.help'))
+                        ->maxLength(120)
+                        ->visible(static fn (Get $get): bool => blank($get('captain_user_id'))),
+
+                    Select::make('crew_user_ids')
+                        ->label(__('availability.departure.crew.members.label'))
+                        ->helperText(__('availability.departure.crew.members.help'))
+                        ->options(static fn (): array => static::peopleOptions())
+                        ->multiple()
+                        ->searchable()
+                        ->columnSpanFull(),
+                ])
+                ->columns(2),
+
             Section::make(__('availability.departure.sections.notes'))
+                ->icon('heroicon-o-pencil-square')
                 ->schema([
                     Textarea::make('notes')
                         ->label(__('availability.departure.form.notes.label'))
@@ -225,9 +303,18 @@ class DepartureResource extends Resource
                     ->formatStateUsing(static fn (Departure $record): string => (string) $record->vessel?->name)
                     ->toggleable(),
 
+                // Who takes her out (2026-09-24): «συνήθης» in grey when it is
+                // the boat's usual captain, red when there is nobody at all.
+                TextColumn::make('captain_user_id')
+                    ->label(__('availability.departure.table.captain'))
+                    ->state(static fn (Departure $record): string => static::captainCell($record))
+                    ->html(),
+
+                // From 2xl up since the captain column (2026-09-24): at 1440px
+                // the two numbers pushed «Κατάσταση» off the screen.
                 TextColumn::make('capacity')
                     ->label(__('availability.departure.table.capacity'))
-                    ->visibleFrom('md'),
+                    ->visibleFrom('2xl'),
 
                 TextColumn::make('seats_sold')
                     ->label(__('availability.departure.table.seats_sold')),
@@ -237,7 +324,7 @@ class DepartureResource extends Resource
                 // sentence the operator actually wants.
                 TextColumn::make('seats_held')
                     ->label(__('availability.departure.table.seats_held'))
-                    ->visibleFrom('md'),
+                    ->visibleFrom('2xl'),
 
                 TextColumn::make('status')
                     ->label(__('availability.departure.table.status'))
@@ -251,7 +338,8 @@ class DepartureResource extends Resource
                     ->formatStateUsing(static fn (Departure $record): string => $record->schedule_rule_id === null
                         ? __('availability.departure.table.manual')
                         : __('availability.departure.table.generated'))
-                    ->toggleable()
+                    // Under «Στήλες» since the captain column (2026-09-24).
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->visibleFrom('md'),
 
                 IconColumn::make('dst_ambiguous')
@@ -283,9 +371,47 @@ class DepartureResource extends Resource
                 SelectFilter::make('status')
                     ->label(__('availability.departure.table.status'))
                     ->options(DepartureStatus::options()),
+
+                // «Χωρίς κυβερνήτη»: nobody on the departure, and no usual
+                // captain on the boat to fall back on.
+                Filter::make('no_captain')
+                    ->label(__('availability.departure.table.no_captain'))
+                    ->toggle()
+                    ->query(static fn (Builder $query): Builder => $query
+                        ->whereNull('captain_user_id')
+                        ->whereNull('captain_name')
+                        ->whereHas('vessel', static fn (Builder $vessel): Builder => $vessel
+                            ->whereNull('captain_name')->orWhere('captain_name', ''))),
+
+                // «Οι δικές μου»: where I am the captain or on the crew.
+                Filter::make('mine')
+                    ->label(__('availability.departure.table.mine'))
+                    ->toggle()
+                    ->query(static fn (Builder $query): Builder => $query->where(static function (Builder $mine): void {
+                        $id = (int) auth()->id();
+                        $mine->where('captain_user_id', $id)->orWhereJsonContains('crew_user_ids', $id);
+                    })),
             ])
             ->actions(MoreActions::row(ManifestAction::make(), [EditAction::make()]))
             ->bulkActions([self::weatherCancellation()]);
+    }
+
+    /** The captain's cell: the name, «συνήθης» for the boat's, red when nobody. */
+    public static function captainCell(Departure $record): string
+    {
+        $own = $record->captain_user_id !== null ? $record->captain?->name : $record->captain_name;
+
+        if (is_string($own) && trim($own) !== '') {
+            return e($own);
+        }
+
+        $usual = $record->vessel?->captain_name;
+
+        if (is_string($usual) && trim($usual) !== '') {
+            return e($usual) . ' <span style="color:rgb(var(--gray-400));font-size:.8em">' . e(__('availability.departure.table.usual')) . '</span>';
+        }
+
+        return '<span style="color:rgb(var(--danger-600));font-weight:600">' . e(__('availability.departure.table.no_captain')) . '</span>';
     }
 
     /** «Πέμπτη 24 Σεπτεμβρίου», with the year only when it is not this one. */
@@ -395,7 +521,8 @@ class DepartureResource extends Resource
         // The dates themselves moved to {@see CrewWindow}, because this screen
         // was the only one applying them: the bookings list and the calendar
         // both let a crew member straight past the window this enforced.
-        return CrewWindow::scopeDepartures(parent::getEloquentQuery());
+        // The captain and the boat read on every row by the captain column.
+        return CrewWindow::scopeDepartures(parent::getEloquentQuery()->with(['captain', 'vessel', 'product']));
     }
 
     /** @return array<int, string> */

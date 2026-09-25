@@ -100,6 +100,7 @@ class ScheduleRuleResource extends Resource
     {
         return [
             Section::make(__('availability.schedule_rule.sections.what'))
+                ->icon('heroicon-o-map')
                 ->schema([
                     Select::make('product_id')
                         ->label(__('availability.schedule_rule.form.product.label'))
@@ -127,6 +128,7 @@ class ScheduleRuleResource extends Resource
                 ->columns(2),
 
             Section::make(__('availability.schedule_rule.sections.when'))
+                ->icon('heroicon-o-calendar-days')
                 ->schema([
                     CheckboxList::make('weekdays')
                         ->label(__('availability.schedule_rule.form.weekday_mask.label'))
@@ -151,6 +153,7 @@ class ScheduleRuleResource extends Resource
                 ->columns(2),
 
             Section::make(__('availability.schedule_rule.sections.window'))
+                ->icon('heroicon-o-arrows-right-left')
                 ->schema([
                     DatePicker::make('valid_from')
                         ->label(__('availability.schedule_rule.form.valid_from.label'))
@@ -172,6 +175,7 @@ class ScheduleRuleResource extends Resource
                 ->columns(2),
 
             Section::make(__('availability.schedule_rule.sections.capacity'))
+                ->icon('heroicon-o-user-group')
                 ->schema([
                     TextInput::make('capacity_override')
                         ->label(__('availability.schedule_rule.form.capacity_override.label'))
@@ -182,6 +186,7 @@ class ScheduleRuleResource extends Resource
                 ]),
 
             Section::make(__('availability.schedule_rule.sections.preview'))
+                ->icon('heroicon-o-eye')
                 ->description(__('availability.schedule_rule.preview.help'))
                 ->schema([
                     Placeholder::make('next_dates')

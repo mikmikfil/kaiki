@@ -48,6 +48,11 @@
         @unless ($booking->status === BookingStatus::Confirmed)
             <p class="muted">{{ __('guest.booking.status') }}: {{ $booking->status->label() }}</p>
         @endunless
+
+        {{-- The abandoned-payment email's button, when the boat filled since. --}}
+        @if (session('resume_refused'))
+            <p class="notice" role="status">{{ session('resume_refused') }}</p>
+        @endif
     </section>
 
     {{-- Β2's strip. Check-in first and in the same colour as the rest, because

@@ -332,9 +332,14 @@ final class PanelRenderHooks
     private static function viewFrontend(): View
     {
         $tenant = Tenancy::current();
+        $user = auth()->user();
+
+        // Not on the crew's menu (Mike, 2026-09-24): they scan and sail, and the
+        // operator's shop window is not theirs to open from the quay.
+        $crew = $user instanceof User && $user->isCrewOnly();
 
         return view('filament.view-frontend', [
-            'url' => $tenant instanceof Tenant && HostedUrl::homeEnabledFor($tenant)
+            'url' => ! $crew && $tenant instanceof Tenant && HostedUrl::homeEnabledFor($tenant)
                 ? HostedUrl::operator($tenant)
                 : null,
         ]);

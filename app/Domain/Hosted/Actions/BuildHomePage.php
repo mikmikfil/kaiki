@@ -7,13 +7,18 @@ namespace App\Domain\Hosted\Actions;
 use App\Domain\Hosted\Support\BlockItems;
 use App\Domain\Hosted\Support\BlockSettings;
 use App\Domain\Hosted\Support\BlockText;
+use App\Domain\Hosted\Support\HostedAsset;
+use App\Enums\CrewSpecialty;
 use App\Enums\HomeBlockType;
 use App\Enums\ProductStatus;
+use App\Enums\VesselStatus;
 use App\Models\Faq;
 use App\Models\HomePageBlock;
 use App\Models\Port;
 use App\Models\Product;
 use App\Models\Tenant;
+use App\Models\User;
+use App\Models\Vessel;
 use Illuminate\Support\Collection;
 
 /**
@@ -54,13 +59,22 @@ class BuildHomePage
      *
      * @return list<array{block: HomePageBlock, products: Collection<int, Product>, meetingPoint: Port|null, faqs: Collection<int, Faq>, anchor: string|null, links: list<array{label: string, url: string}>}>
      */
-    public function __invoke(Tenant $tenant): array
+    public function __invoke(Tenant $tenant, string $pageName = HomePageBlock::PAGE_HOME): array
     {
-        $blocks = HomePageBlock::query()->forPage()->get();
+        $blocks = HomePageBlock::query()->onPage($pageName)->forPage()->get();
 
-        if ($blocks->isEmpty()) {
+        // Only the home page has a default. An about page nobody has written is
+        // no page at all ({@see HomeBlockType::aboutLayout()}).
+        if ($blocks->isEmpty() && $pageName === HomePageBlock::PAGE_HOME) {
             $blocks = $this->default($tenant);
         }
+
+        $has = static fn (HomeBlockType $type): bool => $blocks->contains(static fn (HomePageBlock $block): bool => $block->type === $type);
+
+        // The about page's mounts (2026-09-24), each loaded once and only when
+        // a section on the page asks for it.
+        $vessels = $has(HomeBlockType::Fleet) || $has(HomeBlockType::Credentials) ? $this->vessels() : collect();
+        $crew = $has(HomeBlockType::Crew) ? $this->crew($tenant) : collect();
 
         $catalogue = $blocks->contains(fn (HomePageBlock $block): bool => $block->type === HomeBlockType::Trips)
             ? $this->catalogue()
@@ -115,6 +129,11 @@ class BuildHomePage
                     default => null,
                 },
                 'links' => $block->type->maxButtons() > 0 ? $this->linksFor($block, $tenant, $linked) : [],
+                'vessels' => $block->type === HomeBlockType::Fleet ? $this->fleetFor($block, $vessels) : collect(),
+                'crew' => $block->type === HomeBlockType::Crew ? $crew : collect(),
+                'credentials' => $block->type === HomeBlockType::Credentials ? $this->credentials($tenant, $vessels) : [],
+                'port' => $block->type === HomeBlockType::MeetingPoint ? $this->portFor($block) : null,
+                'page' => $pageName,
             ];
         }
 
@@ -142,6 +161,7 @@ class BuildHomePage
                 'trips' => route('hosted.index', $operator) . '#trips',
                 'search' => route('hosted.search', $operator),
                 'contact' => route('hosted.contact', $operator),
+                'about' => route('hosted.about', $operator),
                 'trip' => ($product = $linked->get($entry['product_id'])) instanceof Product
                     ? route('hosted.product', [...$operator, 'product' => $product->slug])
                     : null,
@@ -167,9 +187,9 @@ class BuildHomePage
      * fallback rather than the default, so a page that has been edited stops
      * advertising itself in platform copy.
      */
-    public function metaDescription(Tenant $tenant): string
+    public function metaDescription(Tenant $tenant, string $pageName = HomePageBlock::PAGE_HOME): string
     {
-        foreach ($this->__invoke($tenant) as $entry) {
+        foreach ($this->__invoke($tenant, $pageName) as $entry) {
             $body = $entry['block']->body;
 
             if ($entry['block']->type->hasProse() && is_string($body) && trim($body) !== '') {
@@ -230,6 +250,117 @@ class BuildHomePage
         }
 
         return Port::query()->find((int) $id);
+    }
+
+    /**
+     * The active boats, in «Σκάφη»'s order, each with how many trips on sale
+     * use it — the card's «4 εκδρομές» link — and its first photograph.
+     *
+     * @return Collection<int, Vessel>
+     */
+    public function vessels(): Collection
+    {
+        // The trips on sale that use each boat, in the catalogue's order. The
+        // card links each one straight to its page (2026-09-24): a search link
+        // filtered by boat found nothing when the operator's vessel filter was
+        // off, and it passed the boat's id where the search reads a uuid.
+        $trips = Product::query()
+            ->where('status', ProductStatus::Active)
+            ->whereNotNull('vessel_id')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get(['id', 'uuid', 'slug', 'title', 'vessel_id', 'sort_order'])
+            ->groupBy('vessel_id');
+
+        return Vessel::query()
+            ->where('status', VesselStatus::Active)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->each(static function (Vessel $vessel) use ($trips): void {
+                $vessel->setAttribute('trips_list', $trips->get($vessel->getKey(), collect())->values());
+                $vessel->setAttribute('trips_on_sale', $vessel->getAttribute('trips_list')->count());
+                // Relative, like every other picture on these pages: the panel's host is
+                // not in the hosted page's policy.
+                $vessel->setAttribute('photo_url', HostedAsset::url(is_string($vessel->images[0]['path'] ?? null) ? $vessel->images[0]['path'] : null));
+            });
+    }
+
+    /**
+     * The boats one fleet section shows: the ticked ones, in «Σκάφη»'s order,
+     * or all of them when none is ticked.
+     *
+     * @param  Collection<int, Vessel>  $vessels
+     * @return Collection<int, Vessel>
+     */
+    public function fleetFor(HomePageBlock $block, Collection $vessels): Collection
+    {
+        $ids = (array) $block->setting('vessel_ids', []);
+
+        return $ids === []
+            ? $vessels->values()
+            : $vessels->filter(static fn (Vessel $vessel): bool => in_array($vessel->getKey(), $ids, true))->values();
+    }
+
+    /**
+     * Captains first, then deckhands, from «Ομάδα». Nobody whose specialty is
+     * «Άλλο» or unset: the section is about who is on the boat.
+     *
+     * `User` is not tenant-scoped, so the filter is written here.
+     *
+     * @return Collection<int, User>
+     */
+    public function crew(Tenant $tenant): Collection
+    {
+        return User::query()
+            ->where('tenant_id', $tenant->getKey())
+            ->where('is_super_admin', false)
+            ->whereIn('specialty', [CrewSpecialty::Captain->value, CrewSpecialty::Deckhand->value])
+            ->orderBy('name')
+            ->get()
+            ->sortBy(static fn (User $user): int => $user->specialty === CrewSpecialty::Captain ? 0 : 1)
+            ->each(static fn (User $user) => $user->setAttribute('photo_url', HostedAsset::url($user->photo_path)))
+            ->values();
+    }
+
+    /**
+     * What the licences section lists, from the tenant's own record and its
+     * boats. A line whose number is missing is left out rather than printed
+     * empty.
+     *
+     * @param  Collection<int, Vessel>  $vessels
+     * @return array{licences: array<string, int>, legal_name: string, vat_number: string|null, tax_office: string|null, gemi_number: string|null}
+     */
+    public function credentials(Tenant $tenant, Collection $vessels): array
+    {
+        $licences = [];
+
+        foreach ($vessels as $vessel) {
+            if ($vessel->licence_type !== null) {
+                $licences[$vessel->licence_type->value] = ($licences[$vessel->licence_type->value] ?? 0) + 1;
+            }
+        }
+
+        return [
+            'licences' => $licences,
+            'legal_name' => filled($tenant->legal_name) ? (string) $tenant->legal_name : $tenant->name,
+            'vat_number' => filled($tenant->vat_number) ? (string) $tenant->vat_number : null,
+            'tax_office' => filled($tenant->taxOfficeName()) ? (string) $tenant->taxOfficeName() : null,
+            'gemi_number' => filled($tenant->gemi_number) ? (string) $tenant->gemi_number : null,
+        ];
+    }
+
+    /** The chosen port, or the first active one in «Λιμάνια». */
+    public function portFor(HomePageBlock $block): ?Port
+    {
+        $id = $block->setting('meeting_point_id');
+
+        $port = is_numeric($id) ? Port::query()->where('is_active', true)->find((int) $id) : null;
+        $port ??= Port::query()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->first();
+
+        $port?->setAttribute('photo_url', HostedAsset::url($port->photo_path));
+
+        return $port;
     }
 
     /**

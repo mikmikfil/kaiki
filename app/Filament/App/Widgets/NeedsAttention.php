@@ -337,6 +337,7 @@ class NeedsAttention extends Widget implements HasActions, HasForms
                     ->label(__('bookings.payment.how'))
                     ->options([
                         PaymentGatewayName::Cash->value => PaymentGatewayName::Cash->label(),
+                        PaymentGatewayName::Pos->value => PaymentGatewayName::Pos->label(),
                         PaymentGatewayName::BankTransfer->value => PaymentGatewayName::BankTransfer->label(),
                     ])
                     ->default(PaymentGatewayName::Cash->value)
@@ -468,9 +469,11 @@ class NeedsAttention extends Widget implements HasActions, HasForms
             $subject instanceof Departure && DepartureResource::canViewAny() => [
                 'item' => $item,
                 'url' => DepartureResource::getUrl('edit', ['record' => $subject]),
-                'action' => __('attention.actions.departure'),
+                'action' => $type === 'captain' ? __('attention.actions.captain') : __('attention.actions.departure'),
                 'phone' => null,
-                'decide' => $subject->status === DepartureStatus::Scheduled && self::canDecide() ? 'departure' : null,
+                // «Φεύγει κανονικά / Ακύρωση» answers a boat short of its
+                // minimum, not one with nobody to skipper her.
+                'decide' => $type === 'departure' && $subject->status === DepartureStatus::Scheduled && self::canDecide() ? 'departure' : null,
                 'id' => (int) $subject->getKey(),
             ],
             $subject instanceof Booking && BookingResource::canViewAny() => [

@@ -8,10 +8,12 @@ use App\Enums\AuditAction;
 use App\Enums\BookingStatus;
 use App\Enums\GuestDocumentType;
 use App\Enums\ManifestColumn;
+use App\Enums\VesselLicence;
 use App\Models\AuditLog;
 use App\Models\Booking;
 use App\Models\BookingGuest;
 use App\Models\Departure;
+use App\Models\Port;
 use App\Models\Tenant;
 use App\Models\Vessel;
 use App\Support\Tenancy;
@@ -353,3 +355,40 @@ it('renders a manifest that runs over a page without splitting a row', function 
         ->and($html)->toContain('page-break-inside: avoid')
         ->and($html)->toContain('Παπαδόπουλος Κωνσταντίνος 46');
 });
+
+it('carries what ν. 4926/2022 άρθρο 13 asks: sex, both ports, the licence and the captain\'s block', function (): void {
+    // The competitor study of 2026-09-23 found the list short of these; the
+    // lawyer is still to confirm the reading, but none of it costs anything
+    // to print. Sex is a letter (Α / Θ), the landing port falls back to the
+    // boarding port on a round trip, and the captain signs, dates and times it
+    // by hand at the quay.
+    [$tenant, $departure] = manifestFixture();
+
+    Tenancy::forTenant($tenant, function () use ($departure): void {
+        $departure->vessel->forceFill(['licence_type' => VesselLicence::DayCruise])->save();
+        $port = Port::factory()->create(['name' => ['el' => 'Μαρίνα Ζέας', 'en' => 'Zea Marina']]);
+        $departure->product->forceFill(['meeting_point_id' => $port->getKey()])->save();
+        BookingGuest::query()->where('full_name', 'Anna Rossi')->update(['sex' => 'f']);
+    });
+
+    app()->setLocale('el');
+
+    Tenancy::forTenant($tenant, function () use ($departure): void {
+        $manifest = Manifest::forDeparture($departure->refresh(), ManifestColumn::defaults());
+        $anna = collect($manifest->rows)->firstWhere(ManifestColumn::FullName->value, 'Anna Rossi');
+
+        expect(ManifestColumn::defaults())->toContain(ManifestColumn::Sex)
+            ->and($anna[ManifestColumn::Sex->value])->toBe('Θ')
+            ->and($manifest->header['port'])->toBe('Μαρίνα Ζέας')
+            ->and($manifest->header['landing_port'])->toBe('Μαρίνα Ζέας')
+            ->and($manifest->header['licence'])->toBe('Ημερόπλοιο');
+
+        $html = view('manifests.harbour', ['manifest' => $manifest])->render();
+
+        expect($html)->toContain('Λιμάνι αποβίβασης')
+            ->toContain('Ημερόπλοιο')
+            ->toContain('Ο κυβερνήτης')
+            ->toContain('Ημερομηνία και ώρα')
+            ->toContain('Γιώργος Δημητρίου');
+    });
+})->group('fast');

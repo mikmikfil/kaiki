@@ -99,6 +99,19 @@ final class BlockSettings
                 'dark' => false,
             ],
             HomeBlockType::Stats, HomeBlockType::Steps, HomeBlockType::Testimonials, HomeBlockType::Cta => [],
+            // «Με φωτογραφίες»: off, the people are names and lines only.
+            HomeBlockType::Crew => [
+                'photos' => true,
+            ],
+            // Which port; none chosen is the first active one in «Λιμάνια».
+            HomeBlockType::MeetingPoint => [
+                'meeting_point_id' => null,
+            ],
+            // Which boats, in «Σκάφη»'s order; none ticked is every active one.
+            HomeBlockType::Fleet => [
+                'vessel_ids' => [],
+            ],
+            HomeBlockType::Timeline, HomeBlockType::Credentials => [],
         };
     }
 
@@ -137,6 +150,10 @@ final class BlockSettings
     {
         return match (true) {
             is_bool($default) => filter_var($value, FILTER_VALIDATE_BOOL),
+            // A list of ids (the boats of a fleet section): numbers only.
+            is_array($default) => is_array($value)
+                ? array_values(array_unique(array_filter(array_map(static fn (mixed $id): int => is_numeric($id) ? (int) $id : 0, $value), static fn (int $id): bool => $id > 0)))
+                : $default,
             is_int($default) => is_numeric($value) ? max(0, (int) $value) : $default,
             $value === null || $value === '' => null,
             is_string($value) => $value,

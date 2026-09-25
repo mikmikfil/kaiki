@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources\SeasonResource\Pages;
 
 use App\Filament\App\Resources\SeasonResource;
+use App\Filament\App\Support\TitledByRecord;
 use App\Filament\Support\MoreActions;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 class EditSeason extends EditRecord
 {
     use ConsumesRangeRepeater;
+    use TitledByRecord;
 
     protected static string $resource = SeasonResource::class;
 

@@ -91,10 +91,14 @@ class CheckIn extends Page
         return __('panel.groups.today');
     }
 
-    /** A QR in the menu of an operator who has none would be a promise the page does not keep. */
+    /**
+     * The list, whatever the operator's QR setting. The QR belongs to
+     * «Σάρωση εισιτηρίων» at the top of the menu since 2026-09-24, and two
+     * identical icons one above the other read as the same screen twice.
+     */
     public static function getNavigationIcon(): string
     {
-        return self::qrEnabled() ? 'heroicon-o-qr-code' : 'heroicon-o-clipboard-document-check';
+        return 'heroicon-o-clipboard-document-check';
     }
 
     /**
@@ -172,7 +176,7 @@ class CheckIn extends Page
         $now = Carbon::now();
 
         return Booking::query()
-            ->with(['guests.answers', 'answers', 'product'])
+            ->with(['guests.answers', 'guests.ageBand', 'answers', 'product'])
             ->whereIn('status', [BookingStatus::Confirmed->value, BookingStatus::CheckedIn->value])
             ->whereBetween('starts_at_utc', [$now->copy()->subHours(12), $now->copy()->addHours(24)])
             ->orderBy('starts_at_utc')
@@ -226,7 +230,7 @@ class CheckIn extends Page
      */
     public function overrideAction(): Action
     {
-        return Action::make('checkInEarly')
+        return Action::make('override')
             ->label(__('checkin.actions.override.label'))
             ->icon('heroicon-o-clock')
             ->color('warning')
@@ -253,10 +257,17 @@ class CheckIn extends Page
     /** BKG-23, per guest, reversible, and nothing else follows from it. */
     public function noShowAction(): Action
     {
-        return Action::make('markNoShow')
-            ->label(__('checkin.actions.mark_no_show'))
-            ->icon('heroicon-o-x-mark')
-            ->color('danger')
+        // Once a guest is marked, the same button undoes it and says so — Mike,
+        // 2026-09-24: «Αναίρεση». Before that it read «Δεν ήρθε» either way, and
+        // pressing it a second time to take the mark off was a guess.
+        $marked = fn (array $arguments): bool => (bool) BookingGuest::query()
+            ->whereKey($arguments['guest'] ?? null)
+            ->value('no_show');
+
+        return Action::make('noShow')
+            ->label(fn (array $arguments): string => __($marked($arguments) ? 'checkin.actions.clear_no_show' : 'checkin.actions.mark_no_show'))
+            ->icon(fn (array $arguments): string => $marked($arguments) ? 'heroicon-o-arrow-uturn-left' : 'heroicon-o-x-mark')
+            ->color(fn (array $arguments): string => $marked($arguments) ? 'gray' : 'danger')
             // Outlined, so «Επιβίβαση» is the one filled button in the row —
             // the tap that happens forty times — and the red is a border and a
             // label rather than a second slab of colour beside it.

@@ -422,6 +422,15 @@ final class BookingMailDetails
                 }
                 break;
 
+            case NotificationTemplate::PaymentUnfinished:
+                // The party and its price, and one button back to a fresh
+                // checkout that checks the seats again (ResumeAbandonedBooking).
+                $facts = [];
+                $showParty = true;
+                $note = __('mail.payment_unfinished.note', [], $locale);
+                $action = [__('mail.payment_unfinished.button', [], $locale), route('guest.checkout', ['token' => $booking->manage_token])];
+                break;
+
             case NotificationTemplate::ReviewRequest:
                 // Only to the operator's own review page. Without one the request
                 // is never sent (ReviewRequestSettings::active()); a preview

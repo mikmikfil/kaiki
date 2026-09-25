@@ -412,7 +412,7 @@
             @foreach ($passengers as $i => $row)
                 @php
                     $guest = $row['guest'];
-                    $hasError = collect(['full_name', 'nationality', 'date_of_birth', 'document_type', 'document_number', 'document_expires_on'])
+                    $hasError = collect(['full_name', 'sex', 'nationality', 'date_of_birth', 'document_type', 'document_number', 'document_expires_on'])
                         ->contains(static fn (string $field): bool => $errors->has("guests.$i.$field"))
                         || $errors->has("answers.guests.$i.*");
                     $typed = old("guests.$i.full_name", $guest->full_name);
@@ -440,6 +440,18 @@
                         </div>
 
                         @if ($needsGuestDetails)
+                        <div class="field">
+                            <label for="g{{ $i }}_sex">{{ __('guest.checkout.sex') }}</label>
+                            @php $chosenSex = old("guests.$i.sex", $guest->sex?->value); @endphp
+                            <select id="g{{ $i }}_sex" name="guests[{{ $i }}][sex]" required>
+                                <option value=""></option>
+                                @foreach (\App\Enums\GuestSex::cases() as $sex)
+                                    <option value="{{ $sex->value }}" @selected($chosenSex === $sex->value)>{{ $sex->label() }}</option>
+                                @endforeach
+                            </select>
+                            @error("guests.$i.sex") <p class="field-error">{{ $message }}</p> @enderror
+                        </div>
+
                         <div class="field">
                             <label for="g{{ $i }}_nat">{{ __('guest.checkout.nationality') }}</label>
                             @php $chosenNationality = old("guests.$i.nationality", $guest->nationality); @endphp

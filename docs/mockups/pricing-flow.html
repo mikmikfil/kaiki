@@ -1,0 +1,489 @@
+<title>Τιμές ανά ομάδα</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Same tokens as the other Kaiki mockups: light only, blue panel, Inter. */
+:root{
+  --blue:#1E5AA8; --deep:#0F2E57;
+  --ink:#15233A; --muted:#5F6F86; --faint:#94A3B8;
+  --line:#E1E8F2; --line2:#CFDAE8; --ground:#EEF3F9; --paper:#F7FAFD; --card:#FFFFFF; --wash:#EAF1FA;
+  --warn:#9A5B0C; --warnbg:#FBF0DF; --good:#1F7A4D; --goodbg:#E3F2EA; --bad:#B42318; --badbg:#FDECEA;
+  --sans:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-block:32px 72px;padding-inline:16px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;margin:0;text-align:inherit;cursor:pointer}
+input,select{font:inherit;color:inherit}
+a{text-decoration:none}
+button:focus-visible,summary:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:24px}
+
+.intro{display:grid;gap:16px}
+@media (min-width:960px){.intro{grid-template-columns:minmax(0,1fr) 380px;align-items:start}}
+.intro h1{font-size:28px;line-height:1.2;margin:0 0 8px;letter-spacing:-.01em;text-wrap:balance}
+.intro p{margin:0;max-width:66ch;color:var(--muted)}
+.changes{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
+.changes h2{font-size:15px;margin:0 0 8px}
+.changes ol{margin:0;padding-left:20px;display:grid;gap:6px;font-size:13.5px;color:var(--muted)}
+.changes b{color:var(--ink)}
+
+.panel{background:var(--ground);border:1px solid var(--line2);border-radius:14px;padding:24px 16px 28px;display:grid;gap:20px}
+@media (min-width:720px){.panel{padding:28px 32px 32px}}
+.crumbs{font-size:13px;color:var(--muted)}
+.ph{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.ph h2{margin:0;font-size:26px;line-height:1.2}
+.state{display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:var(--good);background:var(--goodbg);padding:3px 10px;border-radius:99px;margin-left:8px;vertical-align:middle}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 14px;border-radius:9px;font-weight:600;font-size:14px;border:1px solid var(--line2);background:var(--card);color:var(--ink)}
+.btn.primary{background:var(--deep);border-color:var(--deep);color:#fff}
+.btn.small{min-height:32px;font-size:13px;padding:0 12px}
+.link{color:var(--blue);font-weight:600;font-size:14px}
+
+.tabs{display:flex;gap:24px;overflow-x:auto;border-bottom:1px solid var(--line2);scrollbar-width:none}
+.tab{padding:12px 0 10px;font-size:16px;font-weight:600;color:#4F607A;border-bottom:3px solid transparent;white-space:nowrap;margin-bottom:-1px;display:inline-flex;gap:8px;align-items:center}
+.tab.on{color:var(--deep);border-bottom-color:var(--deep)}
+.chip{font-size:12px;font-weight:600;padding:1px 8px;border-radius:99px;background:var(--card);border:1px solid var(--line2);color:var(--muted)}
+.tab.on .chip{background:var(--wash);border-color:transparent;color:var(--blue)}
+
+.sec{background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.sec-h{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;padding:16px 20px;background:var(--paper);border-bottom:1px solid var(--line)}
+.sec-t{display:flex;gap:12px;align-items:center;min-width:0}
+.ico{flex:none;width:34px;height:34px;border-radius:9px;background:var(--wash);color:var(--blue);display:grid;place-items:center}
+.ico svg{width:18px;height:18px}
+.step{font-size:12px;font-weight:700;color:var(--blue)}
+.sec-h h3{margin:0;font-size:17px;line-height:1.3}
+.sec-h p{margin:2px 0 0;font-size:13px;color:var(--muted);line-height:1.4}
+.sec-b{padding:20px;display:grid;gap:16px}
+
+.grid{display:grid;gap:14px 18px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:720px){.grid.c3{grid-template-columns:repeat(3,minmax(0,1fr))}.grid.c2{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.f label,.flabel{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
+.inp{width:100%;min-height:40px;border:1px solid var(--line2);border-radius:9px;background:var(--card);padding:0 12px;font-size:14px}
+.help{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.45}
+.seg{display:inline-flex;background:var(--ground);border:1px solid var(--line2);border-radius:9px;padding:3px;flex-wrap:wrap}
+.seg button{padding:6px 12px;border-radius:7px;font-weight:600;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--card);color:var(--deep);box-shadow:0 1px 2px rgba(15,46,87,.15)}
+
+/* groups as accordion rows */
+.acc{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--card)}
+.acc + .acc{margin-top:10px}
+.acc-sum{width:100%;display:grid;grid-template-columns:minmax(0,1fr) 18px;gap:12px;align-items:center;padding:12px 14px}
+.acc.open .acc-sum{background:var(--paper);border-bottom:1px solid var(--line)}
+.acc-name{font-weight:700;font-size:15px}
+.acc-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:3px}
+.tag{font-size:12px;padding:1px 8px;border-radius:99px;background:var(--ground);color:var(--muted);font-weight:500}
+.tag.blue{background:var(--wash);color:var(--blue)}
+.tag.warn{background:var(--warnbg);color:var(--warn)}
+.chev{width:18px;height:18px;color:var(--muted);transition:transform .15s}
+.acc.open .chev{transform:rotate(180deg)}
+@media (prefers-reduced-motion:reduce){.chev{transition:none}}
+.acc-b{padding:18px 16px;display:grid;gap:16px}
+.toggles{display:grid;gap:12px;grid-template-columns:minmax(0,1fr);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px}
+@media (min-width:720px){.toggles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tg{display:grid;grid-template-columns:36px 1fr;gap:10px;align-items:start;font-size:14px;font-weight:600;cursor:pointer}
+.tg small{display:block;font-weight:400;color:var(--muted);font-size:12.5px;line-height:1.4}
+.tg input{position:absolute;opacity:0;width:1px;height:1px}
+.sw{width:36px;height:20px;border-radius:99px;background:var(--line2);position:relative;margin-top:1px}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(15,46,87,.25);transition:left .12s}
+.tg input:checked + .sw{background:var(--deep)}
+.tg input:checked + .sw::after{left:18px}
+.tg input:focus-visible + .sw{outline:2px solid var(--blue);outline-offset:2px}
+.rowfoot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.del{color:var(--bad);font-size:13px;font-weight:600}
+
+/* periods */
+.periods{display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:720px){.periods{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.per{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;padding:12px 14px;border:1px solid var(--line);border-radius:10px;cursor:pointer;background:var(--card)}
+.per:has(input:checked){border-color:#9DB9DE;background:var(--wash)}
+.per input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--deep)}
+.per b{display:block;font-size:14px}
+.per span{font-size:13px;color:var(--muted)}
+.per.fixed{cursor:default;background:var(--paper)}
+.newper{display:grid;gap:12px;padding:14px;border:1px dashed var(--line2);border-radius:10px;background:var(--paper)}
+.newper .grid{align-items:end}
+
+/* table */
+.pt{display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:960px){.pt{grid-template-columns:minmax(0,1fr) 260px;align-items:start}}
+.banner{display:flex;gap:10px;align-items:center;padding:10px 14px;border-radius:10px;background:var(--badbg);color:var(--bad);font-size:14px;font-weight:600}
+.banner.ok{background:var(--goodbg);color:var(--good)}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px}
+.tbl{border-collapse:collapse;font-size:14px;min-width:100%}
+.tbl th{text-align:left;font-size:12.5px;font-weight:600;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:bottom;background:var(--paper)}
+.tbl td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl th:first-child,.tbl td:first-child{position:sticky;left:0;background:var(--card);z-index:1;min-width:130px}
+.tbl th:first-child{background:var(--paper)}
+.colh{display:flex;gap:6px;align-items:flex-start;justify-content:space-between;min-width:132px}
+.colh b{display:block;color:var(--ink);font-size:13px}
+.colh .own{display:block;font-size:11.5px;color:var(--blue);font-weight:600}
+.more{width:26px;height:26px;border-radius:7px;border:1px solid var(--line2);background:var(--card);color:var(--muted);font-weight:700;line-height:1;flex:none}
+.more[aria-expanded="true"]{background:var(--deep);border-color:var(--deep);color:#fff}
+.bandc b{display:block}
+.bandc span{font-size:12px;color:var(--muted)}
+.cell{display:flex;align-items:center;gap:6px;min-height:38px;border:1px solid var(--line2);border-radius:9px;padding:0 10px;background:var(--card)}
+.cell span{color:var(--faint)}
+.cell input{border:0;outline:0;width:100%;min-width:64px;text-align:right;font-variant-numeric:tabular-nums;background:transparent}
+.cell.miss{border-color:#E7A39C;background:#FFF8F7}
+.miss-t{font-size:11.5px;color:var(--bad);font-weight:600;margin-top:3px}
+.ovr{margin-top:12px;padding:14px;border:1px solid #9DB9DE;border-radius:10px;background:var(--wash);display:grid;gap:12px}
+.ovr h4{margin:0;font-size:14px}
+.guest{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px;font-size:14px;display:grid;gap:10px}
+.guest b{font-size:13px}
+.gl{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ctr{display:inline-flex;align-items:center;gap:8px}
+.ctr button{width:28px;height:28px;border-radius:50%;border:1px solid var(--line2);background:var(--card);font-weight:700}
+.ctr output{min-width:18px;text-align:center;font-weight:700;font-variant-numeric:tabular-nums}
+.gt{border-top:1px solid var(--line);padding-top:10px;display:flex;justify-content:space-between;font-weight:700;font-size:16px;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted);font-size:13px}
+.footbar{display:flex;flex-wrap:wrap;gap:10px}
+.gone{font-size:13px;color:var(--muted)}
+.gone s{color:var(--faint)}
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <div>
+      <h1>Τιμές ανά ομάδα</h1>
+      <p>Η καρτέλα «Τιμές» με τη σειρά που προτείνατε. Πρώτα φτιάχνετε τις ομάδες επιβατών και τσεκάρετε τι ισχύει για καθεμία. Μετά διαλέγετε σε ποιες περιόδους πουλιέται η εκδρομή, και ο πίνακας εμφανίζεται μόνος του: μία γραμμή ανά ομάδα, μία στήλη ανά περίοδο. Όλα δουλεύουν εδώ: αλλάξτε ομάδες, τσεκάρετε περιόδους, γράψτε τιμές.</p>
+    </div>
+    <aside class="changes" aria-label="Τι αλλάζει από σήμερα">
+      <h2>Τι αλλάζει από σήμερα</h2>
+      <ol>
+        <li><b>Ομάδα με ιδιότητα.</b> ΑμεΑ και φοιτητές δεν έχουν ηλικία: δείχνουν δικαιολογητικό στην επιβίβαση.</li>
+        <li><b>Μία προκαταβολή για την εκδρομή.</b> Αν θέλετε άλλη σε μια περίοδο, τη βάζετε στη στήλη της.</li>
+        <li><b>Μια στήλη που δεν φεύγει.</b> «Όλο τον χρόνο» καλύπτει κάθε μέρα που δεν πέφτει σε άλλη περίοδο.</li>
+      </ol>
+      <p class="gone" style="margin:10px 0 0">Και η λέξη <s>τιμοκατάλογος</s> δεν υπάρχει πια.</p>
+    </aside>
+  </header>
+
+  <section class="panel" aria-label="Η καρτέλα Τιμές">
+    <div class="crumbs">Εκδρομές › Επεξεργασία</div>
+    <div class="ph">
+      <h2>Απογευματινό ψάρεμα <span class="state">Σε πώληση</span></h2>
+      <span class="btn">Δείτε τη σελίδα</span>
+    </div>
+
+    <nav class="tabs" aria-label="Καρτέλες εκδρομής">
+      <span class="tab">Βασικά</span>
+      <span class="tab">Πότε φεύγει <span class="chip">1 δρομολόγιο</span></span>
+      <span class="tab on">Τιμές <span class="chip" id="tabchip"></span></span>
+      <span class="tab">Όροι</span>
+      <span class="tab">Σελίδα <span class="chip">7 από 8</span></span>
+    </nav>
+
+    <!-- 1. groups -->
+    <article class="sec">
+      <div class="sec-h">
+        <div class="sec-t">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><circle cx="16.5" cy="10" r="2.3"/><path d="M3 19c.6-3 2.5-5 5-5s4.4 2 5 5M13.8 18.5c.4-2.2 1.6-3.7 3.2-3.7s2.8 1.5 3.2 3.7"/></svg></span>
+          <div><span class="step">Βήμα 1</span><h3>Ομάδες επιβατών</h3><p>Ποιοι επιβάτες υπάρχουν και τι ισχύει για τον καθένα.</p></div>
+        </div>
+        <button type="button" class="btn small" id="addgroup">Νέα ομάδα</button>
+      </div>
+      <div class="sec-b"><div id="groups"></div></div>
+    </article>
+
+    <!-- 2. periods -->
+    <article class="sec">
+      <div class="sec-h">
+        <div class="sec-t">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/></svg></span>
+          <div><span class="step">Βήμα 2</span><h3>Περίοδοι</h3><p>Σε ποιες περιόδους έχει άλλη τιμή. Οι περίοδοι είναι κοινές για όλες τις εκδρομές σας.</p></div>
+        </div>
+        <button type="button" class="link" id="newperbtn" aria-expanded="false">Νέα περίοδος</button>
+      </div>
+      <div class="sec-b">
+        <div class="newper" id="newper" hidden>
+          <div class="grid c3">
+            <div class="f"><label for="np-name">Όνομα</label><input class="inp" id="np-name" placeholder="π.χ. Πάσχα"></div>
+            <div class="f"><label for="np-from">Από</label><input class="inp" id="np-from" type="date" value="2027-04-24"></div>
+            <div class="f"><label for="np-to">Έως</label><input class="inp" id="np-to" type="date" value="2027-05-04"></div>
+          </div>
+          <div class="footbar"><button type="button" class="btn primary small" id="np-save">Προσθήκη</button><button type="button" class="btn small" id="np-cancel">Άκυρο</button></div>
+          <p class="help" id="np-err" hidden style="color:var(--bad);margin:0">Γράψτε ένα όνομα για την περίοδο.</p>
+        </div>
+        <div class="periods" id="periods"></div>
+      </div>
+    </article>
+
+    <!-- 3. prices -->
+    <article class="sec">
+      <div class="sec-h">
+        <div class="sec-t">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M16.5 7.5c-1-1.3-2.5-2-4.2-2-3.1 0-5.3 2.9-5.3 6.5s2.2 6.5 5.3 6.5c1.7 0 3.2-.7 4.2-2M4.5 10.5h8M4.5 13.5h8"/></svg></span>
+          <div><span class="step">Βήμα 3</span><h3>Τιμές σε ευρώ</h3><p>Γραμμές οι ομάδες, στήλες οι περίοδοι. Σε κάθε κελί η τιμή για ένα άτομο.</p></div>
+        </div>
+      </div>
+      <div class="sec-b">
+        <div id="banner"></div>
+        <div class="pt">
+          <div>
+            <div class="tbl-wrap"><table class="tbl" id="tbl"></table></div>
+            <div id="ovr"></div>
+          </div>
+          <div class="guest" id="guest"></div>
+        </div>
+      </div>
+    </article>
+
+    <!-- 4. deposit -->
+    <article class="sec">
+      <div class="sec-h">
+        <div class="sec-t">
+          <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/></svg></span>
+          <div><h3>Προκαταβολή και προθεσμίες</h3><p>Ισχύουν σε όλες τις περιόδους. Για διαφορετικά σε μία, πατήστε ⋯ στη στήλη της.</p></div>
+        </div>
+      </div>
+      <div class="sec-b" id="deposit"></div>
+    </article>
+
+    <div class="footbar"><button type="button" class="btn primary" id="save">Αποθήκευση</button><span class="muted" id="saved" hidden>Αποθηκεύτηκε (μόνο σε αυτή τη σελίδα).</span></div>
+  </section>
+</div>
+
+<script>
+(function(){
+  var uid = 10;
+  var S = {
+    groups: [
+      {id:1, name:'Ενήλικας', kind:'age', from:12, to:'', base:true, seat:true, escort:false, nodoc:false, proof:false},
+      {id:2, name:'Παιδί', kind:'age', from:3, to:11, base:false, seat:true, escort:true, nodoc:false, proof:false},
+      {id:3, name:'Βρέφος', kind:'age', from:0, to:2, base:false, seat:false, escort:true, nodoc:true, proof:false},
+      {id:4, name:'ΑμεΑ', kind:'status', from:'', to:'', base:false, seat:true, escort:false, nodoc:false, proof:true},
+      {id:5, name:'Φοιτητής', kind:'status', from:'', to:'', base:false, seat:true, escort:false, nodoc:false, proof:true}
+    ],
+    open: 1,
+    periods: [
+      {id:'all', name:'Όλο τον χρόνο', dates:'όταν δεν ισχύει άλλη', on:true, fixed:true},
+      {id:'p1', name:'Χαμηλή σεζόν', dates:'1/4 – 31/5', on:true},
+      {id:'p2', name:'Υψηλή σεζόν', dates:'1/6 – 15/9', on:true},
+      {id:'p3', name:'Φθινόπωρο', dates:'16/9 – 31/10', on:false},
+      {id:'p4', name:'Χριστούγεννα', dates:'20/12 – 6/1', on:false}
+    ],
+    prices: {
+      'all': {1:'45,00', 2:'22,50', 3:'0,00', 4:'35,00', 5:''},
+      'p1':  {1:'40,00', 2:'20,00', 3:'0,00', 4:'30,00', 5:''},
+      'p2':  {1:'55,00', 2:'27,50', 3:'0,00', 4:'', 5:''}
+    },
+    pax: {1:2, 2:1},
+    preview: 'p2',
+    deposit: {type:'percent', value:'30', hours:'12'},
+    overrides: {},
+    ovrOpen: null
+  };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var esc = function(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+  var cents = function(t){ t = String(t||'').trim().replace(/\s/g,'').replace(',', '.'); if (t === '' || isNaN(+t)) return null; return Math.round(+t*100); };
+  var eur = function(c){ return (c/100).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; };
+  var activePeriods = function(){ return S.periods.filter(function(p){ return p.on; }); };
+  var chev = '<svg class="chev" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="m5 8 5 5 5-5"/></svg>';
+
+  function ages(g){
+    if (g.kind === 'status') return 'με ιδιότητα';
+    if (g.to === '' || g.to === null) return g.from + ' ετών και πάνω';
+    return g.from + ' έως ' + g.to + ' ετών';
+  }
+
+  function tags(g){
+    var t = ['<span class="tag">' + esc(ages(g)) + '</span>'];
+    if (g.base) t.push('<span class="tag blue">βασική</span>');
+    t.push('<span class="tag">' + (g.seat ? 'πιάνει θέση' : 'δεν πιάνει θέση') + '</span>');
+    if (g.escort) t.push('<span class="tag">με συνοδό</span>');
+    if (g.nodoc) t.push('<span class="tag">χωρίς έγγραφο</span>');
+    if (g.kind === 'status' && g.proof) t.push('<span class="tag warn">δικαιολογητικό στην επιβίβαση</span>');
+    return t.join('');
+  }
+
+  function toggle(g, key, label, help){
+    return '<label class="tg"><input type="checkbox" data-g="' + g.id + '" data-k="' + key + '"' + (g[key] ? ' checked' : '') + '><span class="sw"></span><span>' + label + (help ? '<small>' + help + '</small>' : '') + '</span></label>';
+  }
+
+  function renderGroups(){
+    $('groups').innerHTML = S.groups.map(function(g){
+      var open = S.open === g.id;
+      var body = '';
+      if (open) {
+        body = '<div class="acc-b">'
+          + '<div class="grid c3">'
+          + '<div class="f"><label for="gn' + g.id + '">Όνομα</label><input class="inp" id="gn' + g.id + '" data-g="' + g.id + '" data-k="name" value="' + esc(g.name) + '"><div class="help">Το διαβάζει ο επισκέπτης όταν διαλέγει άτομα.</div></div>'
+          + '<div class="f"><span class="flabel">Πώς ορίζεται</span><div class="seg" role="group" aria-label="Πώς ορίζεται"><button type="button" data-kind="age" data-g="' + g.id + '" aria-pressed="' + (g.kind === 'age') + '">Με ηλικία</button><button type="button" data-kind="status" data-g="' + g.id + '" aria-pressed="' + (g.kind === 'status') + '">Με ιδιότητα</button></div><div class="help">' + (g.kind === 'age' ? 'Π.χ. παιδί 3 έως 11.' : 'Π.χ. ΑμεΑ, φοιτητής, κάτοικος νησιού.') + '</div></div>'
+          + (g.kind === 'age'
+            ? '<div class="grid c2" style="gap:12px"><div class="f"><label for="gf' + g.id + '">Από ηλικία</label><input class="inp" id="gf' + g.id + '" inputmode="numeric" data-g="' + g.id + '" data-k="from" value="' + esc(g.from) + '"></div><div class="f"><label for="gt' + g.id + '">Έως ηλικία</label><input class="inp" id="gt' + g.id + '" inputmode="numeric" data-g="' + g.id + '" data-k="to" value="' + esc(g.to) + '" placeholder="χωρίς όριο"></div></div>'
+            : '<div></div>')
+          + '</div>'
+          + '<div class="toggles">'
+          + toggle(g, 'base', 'Βασική κατηγορία', 'Δίνει την τιμή «από» στη σελίδα. Μόνο μία.')
+          + toggle(g, 'seat', 'Πιάνει θέση', 'Ένα βρέφος στην αγκαλιά δεν πιάνει.')
+          + toggle(g, 'escort', 'Χρειάζεται συνοδό ενήλικα', '')
+          + toggle(g, 'nodoc', 'Χωρίς έγγραφο', 'Δεν ζητείται αριθμός εγγράφου στην κράτηση.')
+          + (g.kind === 'status' ? toggle(g, 'proof', 'Δείχνει δικαιολογητικό στην επιβίβαση', 'Το πλήρωμα το βλέπει στη λίστα επιβίβασης.') : '')
+          + '</div>'
+          + '<div class="rowfoot"><button type="button" class="del" data-del="' + g.id + '">Διαγραφή ομάδας</button></div>'
+          + '</div>';
+      }
+      return '<div class="acc' + (open ? ' open' : '') + '"><button type="button" class="acc-sum" data-open="' + g.id + '" aria-expanded="' + open + '"><span><span class="acc-name">' + esc(g.name || 'Χωρίς όνομα') + '</span><span class="acc-meta">' + tags(g) + '</span></span>' + chev + '</button>' + body + '</div>';
+    }).join('');
+  }
+
+  function renderPeriods(){
+    $('periods').innerHTML = S.periods.map(function(p){
+      if (p.fixed) return '<div class="per fixed"><input type="checkbox" checked disabled aria-label="Όλο τον χρόνο, πάντα ενεργή"><span><b>' + esc(p.name) + '</b><span>' + esc(p.dates) + ' · πάντα στον πίνακα</span></span></div>';
+      return '<label class="per"><input type="checkbox" data-p="' + p.id + '"' + (p.on ? ' checked' : '') + '><span><b>' + esc(p.name) + '</b><span>' + esc(p.dates) + '</span></span></label>';
+    }).join('');
+  }
+
+  function missing(){
+    var n = 0;
+    activePeriods().forEach(function(p){ S.groups.forEach(function(g){ if (cents((S.prices[p.id] || {})[g.id]) === null) n++; }); });
+    return n;
+  }
+
+  function depositText(d){
+    var dep = d.type === 'none' ? 'χωρίς προκαταβολή' : d.type === 'percent' ? 'προκαταβολή ' + (d.value || '0') + '%' : 'προκαταβολή ' + (d.value || '0') + ' €';
+    return dep + ' · έως ' + (d.hours || '0') + ' ώρες πριν';
+  }
+
+  function renderTable(){
+    var ps = activePeriods();
+    var head = '<thead><tr><th>Ομάδα</th>' + ps.map(function(p){
+      var own = S.overrides[p.id] ? '<span class="own">δική της προκαταβολή</span>' : '';
+      return '<th><div class="colh"><span><b>' + esc(p.name) + '</b>' + esc(p.dates) + own + '</span><button type="button" class="more" data-ovr="' + p.id + '" aria-expanded="' + (S.ovrOpen === p.id) + '" aria-label="Διαφορετικά για ' + esc(p.name) + '">⋯</button></div></th>';
+    }).join('') + '</tr></thead>';
+    var body = '<tbody>' + S.groups.map(function(g){
+      return '<tr><td class="bandc"><b>' + esc(g.name || 'Χωρίς όνομα') + '</b><span>' + esc(ages(g)) + (g.base ? ' · βασική' : '') + '</span></td>' + ps.map(function(p){
+        var v = (S.prices[p.id] || {})[g.id] || '';
+        var miss = cents(v) === null;
+        return '<td><label class="cell' + (miss ? ' miss' : '') + '"><span>€</span><input inputmode="decimal" autocomplete="off" aria-label="' + esc(g.name) + ' · ' + esc(p.name) + '" data-cell="' + p.id + ':' + g.id + '" value="' + esc(v) + '"></label>' + (miss ? '<div class="miss-t">Λείπει</div>' : '') + '</td>';
+      }).join('') + '</tr>';
+    }).join('') + '</tbody>';
+    $('tbl').innerHTML = head + body;
+
+    var n = missing();
+    $('banner').innerHTML = n === 0
+      ? '<div class="banner ok">Όλες οι τιμές είναι συμπληρωμένες.</div>'
+      : '<div class="banner">' + (n === 1 ? 'Λείπει μία τιμή.' : 'Λείπουν ' + n + ' τιμές.') + ' Χωρίς αυτές η εκδρομή δεν δημοσιεύεται.</div>';
+    $('tabchip').textContent = n === 0 ? S.groups.length + ' ομάδες' : n + ' λείπουν';
+    $('tabchip').style.background = n === 0 ? '' : 'var(--badbg)';
+    $('tabchip').style.color = n === 0 ? '' : 'var(--bad)';
+
+    // override panel
+    var p = S.periods.filter(function(x){ return x.id === S.ovrOpen && x.on; })[0];
+    if (!p) { S.ovrOpen = null; $('ovr').innerHTML = ''; }
+    else {
+      var o = S.overrides[p.id];
+      $('ovr').innerHTML = '<div class="ovr"><h4>' + esc(p.name) + ': προκαταβολή και προθεσμίες</h4>'
+        + '<label class="tg"><input type="checkbox" id="ovr-on"' + (o ? ' checked' : '') + '><span class="sw"></span><span>Διαφορετικό για αυτή την περίοδο<small>' + (o ? 'Ισχύει: ' + esc(depositText(o)) : 'Τώρα ισχύει της εκδρομής: ' + esc(depositText(S.deposit))) + '</small></span></label>'
+        + (o ? depositFields(o, 'o') : '')
+        + '<div class="footbar"><button type="button" class="btn small" id="ovr-close">Κλείσιμο</button></div></div>';
+    }
+  }
+
+  function depositFields(d, pre){
+    return '<div class="grid c3">'
+      + '<div class="f"><span class="flabel">Προκαταβολή</span><div class="seg" role="group" aria-label="Προκαταβολή">'
+      + ['none','percent','amount'].map(function(t){ return '<button type="button" data-dep="' + pre + ':' + t + '" aria-pressed="' + (d.type === t) + '">' + {none:'Καμία',percent:'Ποσοστό',amount:'Ποσό'}[t] + '</button>'; }).join('')
+      + '</div></div>'
+      + (d.type === 'none' ? '<div></div>' : '<div class="f"><label for="' + pre + '-val">' + (d.type === 'percent' ? 'Ποσοστό του συνόλου' : 'Ποσό ανά κράτηση') + '</label><input class="inp" id="' + pre + '-val" inputmode="decimal" data-depv="' + pre + ':value" value="' + esc(d.value) + '"><div class="help">' + (d.type === 'percent' ? 'Σε %. Το υπόλοιπο πληρώνεται στην επιβίβαση.' : 'Σε ευρώ.') + '</div></div>')
+      + '<div class="f"><label for="' + pre + '-hrs">Κρατήσεις έως</label><input class="inp" id="' + pre + '-hrs" inputmode="numeric" data-depv="' + pre + ':hours" value="' + esc(d.hours) + '"><div class="help">Ώρες πριν την αναχώρηση.</div></div>'
+      + '</div>';
+  }
+
+  function renderDeposit(){
+    var owns = activePeriods().filter(function(p){ return S.overrides[p.id]; });
+    $('deposit').innerHTML = depositFields(S.deposit, 'd')
+      + '<p class="muted" style="margin:0">' + (owns.length ? 'Διαφορετικά σε: ' + owns.map(function(p){ return esc(p.name) + ' (' + esc(depositText(S.overrides[p.id])) + ')'; }).join(', ') + '.' : 'Καμία περίοδος δεν έχει δικά της.') + '</p>';
+  }
+
+  function renderGuest(){
+    var ps = activePeriods();
+    if (!ps.some(function(p){ return p.id === S.preview; })) S.preview = ps[0].id;
+    var total = 0, gap = false;
+    var rows = S.groups.map(function(g){
+      var n = S.pax[g.id] || 0;
+      var c = cents((S.prices[S.preview] || {})[g.id]);
+      if (n > 0) { if (c === null) gap = true; else total += c * n; }
+      return '<div class="gl"><span>' + esc(g.name || 'Χωρίς όνομα') + '</span><span class="ctr"><button type="button" data-pax="' + g.id + ':-1" aria-label="Ένας λιγότερος">−</button><output>' + n + '</output><button type="button" data-pax="' + g.id + ':1" aria-label="Ένας περισσότερος">+</button></span></div>';
+    }).join('');
+    $('guest').innerHTML = '<b>Τι πληρώνει ο επισκέπτης</b>'
+      + '<div class="f" style="margin:0"><label for="prev" style="font-size:13px">Περίοδος</label><select class="inp" id="prev">' + ps.map(function(p){ return '<option value="' + p.id + '"' + (p.id === S.preview ? ' selected' : '') + '>' + esc(p.name) + '</option>'; }).join('') + '</select></div>'
+      + rows
+      + '<div class="gt"><span>Σύνολο</span><span>' + (gap ? '—' : eur(total)) + '</span></div>'
+      + (gap ? '<span class="muted">Λείπει τιμή για κάποιον από αυτούς.</span>' : '');
+  }
+
+  function all(){ renderGroups(); renderPeriods(); renderTable(); renderDeposit(); renderGuest(); }
+
+  document.addEventListener('click', function(e){
+    var t = e.target.closest('button,[data-p]'); if (!t) return;
+    if (t.dataset.open) { var id = +t.dataset.open; S.open = S.open === id ? null : id; renderGroups(); return; }
+    if (t.dataset.kind) { var g = S.groups.filter(function(x){ return x.id === +t.dataset.g; })[0]; g.kind = t.dataset.kind; if (g.kind === 'status') { g.from = ''; g.to = ''; g.proof = true; } else { g.from = 0; g.proof = false; } all(); return; }
+    if (t.dataset.del) { var d = +t.dataset.del; if (S.groups.length === 1) return; var wasBase = S.groups.filter(function(x){ return x.id === d; })[0].base; S.groups = S.groups.filter(function(x){ return x.id !== d; }); if (wasBase) S.groups[0].base = true; S.open = null; all(); return; }
+    if (t.id === 'addgroup') { var n = {id:++uid, name:'Νέα ομάδα', kind:'age', from:0, to:'', base:false, seat:true, escort:false, nodoc:false, proof:false}; S.groups.push(n); S.open = n.id; all(); var inp = $('gn' + n.id); if (inp) { inp.focus(); inp.select(); } return; }
+    if (t.id === 'newperbtn') { var h = !$('newper').hidden; $('newper').hidden = h; t.setAttribute('aria-expanded', !h); if (!h) $('np-name').focus(); return; }
+    if (t.id === 'np-cancel') { $('newper').hidden = true; $('newperbtn').setAttribute('aria-expanded', false); return; }
+    if (t.id === 'np-save') {
+      var name = $('np-name').value.trim(); if (!name) { $('np-err').hidden = false; return; }
+      $('np-err').hidden = true;
+      var fmt = function(v){ var p = v.split('-'); return p.length === 3 ? (+p[2]) + '/' + (+p[1]) : v; };
+      S.periods.push({id:'n' + (++uid), name:name, dates:fmt($('np-from').value) + ' – ' + fmt($('np-to').value), on:true});
+      $('np-name').value = ''; $('newper').hidden = true; $('newperbtn').setAttribute('aria-expanded', false); all(); return;
+    }
+    if (t.dataset.ovr) { S.ovrOpen = S.ovrOpen === t.dataset.ovr ? null : t.dataset.ovr; renderTable(); return; }
+    if (t.id === 'ovr-close') { S.ovrOpen = null; renderTable(); return; }
+    if (t.dataset.dep) { var a = t.dataset.dep.split(':'); var target = a[0] === 'd' ? S.deposit : S.overrides[S.ovrOpen]; target.type = a[1]; renderTable(); renderDeposit(); return; }
+    if (t.dataset.pax) { var b = t.dataset.pax.split(':'); S.pax[b[0]] = Math.max(0, Math.min(99, (S.pax[b[0]] || 0) + (+b[1]))); renderGuest(); return; }
+    if (t.id === 'save') { $('saved').hidden = false; setTimeout(function(){ $('saved').hidden = true; }, 2500); return; }
+  });
+
+  document.addEventListener('change', function(e){
+    var t = e.target;
+    if (t.dataset.p) { S.periods.forEach(function(p){ if (p.id === t.dataset.p) p.on = t.checked; }); renderTable(); renderDeposit(); renderGuest(); return; }
+    if (t.dataset.k && t.type === 'checkbox') {
+      var g = S.groups.filter(function(x){ return x.id === +t.dataset.g; })[0];
+      if (t.dataset.k === 'base') { if (!t.checked) { t.checked = true; return; } S.groups.forEach(function(x){ x.base = x.id === g.id; }); }
+      else g[t.dataset.k] = t.checked;
+      all(); return;
+    }
+    if (t.id === 'ovr-on') { if (t.checked) S.overrides[S.ovrOpen] = {type:S.deposit.type, value:S.deposit.value, hours:S.deposit.hours}; else delete S.overrides[S.ovrOpen]; renderTable(); renderDeposit(); return; }
+    if (t.id === 'prev') { S.preview = t.value; renderGuest(); return; }
+  });
+
+  // Typing: update state without redrawing the field being typed in.
+  document.addEventListener('input', function(e){
+    var t = e.target;
+    if (t.dataset.k && t.type !== 'checkbox') {
+      var g = S.groups.filter(function(x){ return x.id === +t.dataset.g; })[0];
+      g[t.dataset.k] = (t.dataset.k === 'from' || t.dataset.k === 'to') ? t.value.replace(/\D/g, '') : t.value;
+      var sum = t.closest('.acc').querySelector('.acc-sum');
+      sum.querySelector('.acc-name').textContent = g.name || 'Χωρίς όνομα';
+      sum.querySelector('.acc-meta').innerHTML = tags(g);
+      return;
+    }
+    if (t.dataset.cell) { var c = t.dataset.cell.split(':'); (S.prices[c[0]] = S.prices[c[0]] || {})[c[1]] = t.value; renderGuest(); return; }
+    if (t.dataset.depv) { var a = t.dataset.depv.split(':'); var target = a[0] === 'd' ? S.deposit : S.overrides[S.ovrOpen]; target[a[1]] = t.value; return; }
+  });
+
+  // Redraw on leaving a field: names into the table, missing marks, summaries.
+  document.addEventListener('focusout', function(e){
+    var t = e.target;
+    if (t.dataset && (t.dataset.k || t.dataset.cell || t.dataset.depv)) {
+      setTimeout(function(){
+        var keep = document.activeElement && document.activeElement.id;
+        var cellKeep = document.activeElement && document.activeElement.dataset && document.activeElement.dataset.cell;
+        if (t.dataset.cell) { var v = cents(t.value); if (v !== null) { var c = t.dataset.cell.split(':'); S.prices[c[0]][c[1]] = (v/100).toFixed(2).replace('.', ','); } }
+        renderTable(); renderDeposit(); renderGuest();
+        if (cellKeep) { var n = document.querySelector('[data-cell="' + cellKeep + '"]'); if (n) n.focus(); }
+        else if (keep) { var m = $(keep); if (m) m.focus(); }
+      }, 0);
+    }
+  });
+
+  all();
+})();
+</script>

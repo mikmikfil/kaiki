@@ -1,17 +1,24 @@
 {{--
-    «Πώς λειτουργεί»: numbered steps on a sand-coloured band (2026-09-16).
+    «Πώς λειτουργεί»: the steps as a route (Mike, 2026-09-24, from
+    docs/mockups/steps-route.html, version Ε). It used to be three white cards
+    on a sand-coloured band.
 
     Every word is the operator's, from the editor — which starts a new block off
     with the three steps every Kaiki booking actually takes (choose, pay online,
     turn up), in both languages, for them to keep, change or delete. Nothing
     here falls back to platform copy, so a step the operator deleted stays gone.
 
-    An `<ol>`, because the order is the content. The number in the circle is
-    drawn for the eye and hidden from a screen reader, which already announces
-    the list position.
+    An `<ol>`, because the order is the content. Each stop is a numbered circle
+    on a dashed line, with its step under it; the last circle carries a tick.
+    The numbers are drawn for the eye and hidden from a screen reader, which
+    already announces the list position.
 
-    With a photograph, the steps sit beside it; without one, centred under the
-    heading.
+    `data-animate` is for `/hosted/route.js`, which travels the route once when
+    it comes into view: each circle fills in turn and the line to the next grows
+    solid. Without the script, or with reduced motion, the route is simply shown
+    complete.
+
+    With a photograph, the route sits beside it; without one, under the heading.
 --}}
 @php
     use App\Domain\Hosted\Support\BlockItems;
@@ -27,7 +34,7 @@
 @endphp
 
 @if ($steps->isNotEmpty() || $block->heading)
-    <section @class(['block', 'band', 'band-sand', 'steps-block', 'has-image' => $image !== null])>
+    <section @class(['block', 'steps-block', 'steps-route', 'has-image' => $image !== null])>
         <div class="band-inner">
             <div class="band-copy">
                 @include('hosted.partials.section-head', [
@@ -38,17 +45,26 @@
                 ])
 
                 @if ($steps->isNotEmpty())
-                    <ol @class(['steps', 'steps-' . $steps->count()])>
+                    <ol @class(['route', 'route-' . min($steps->count(), 4)]) data-animate>
                         @foreach ($steps as $step)
-                            <li class="step">
-                                <span class="step-number" aria-hidden="true">{{ $loop->iteration }}</span>
-                                <h3>{{ $step['title'] }}</h3>
-                                @if ($step['text'] !== '')
-                                    <p>{{ $step['text'] }}</p>
-                                @endif
+                            <li @class(['stop', 'is-last' => $loop->last])>
+                                <span class="stop-dot" aria-hidden="true">
+                                    @if ($loop->last && $loop->count > 1)
+                                        @include('hosted.partials.icon', ['name' => 'check'])
+                                    @else
+                                        {{ $loop->iteration }}
+                                    @endif
+                                </span>
+                                <div class="stop-copy">
+                                    <h3>{{ $step['title'] }}</h3>
+                                    @if ($step['text'] !== '')
+                                        <p>{{ $step['text'] }}</p>
+                                    @endif
+                                </div>
                             </li>
                         @endforeach
                     </ol>
+                    <script src="{{ url('/hosted/route.js') }}" defer></script>
                 @endif
             </div>
 

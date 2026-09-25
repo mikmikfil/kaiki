@@ -15,6 +15,7 @@ use App\Models\Departure;
 use App\Models\Payment;
 use App\Support\Tenancy;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Tests\Support\Api\BookingApiScenario;
 
 /*
@@ -268,6 +269,33 @@ it('marks a booking paid in cash and confirms it', function (): void {
             // costs one uuid; a column that is sometimes null is a column every
             // later query has to special-case.
             ->and($payment->idempotency_key)->not->toBeNull();
+    });
+})->group('fast');
+
+it('books the departure it was given, on a day with two sailings', function (): void {
+    $fixture = BookingApiScenario::bookable(startsAt: Carbon::now()->addDays(30)->setTime(6, 0));
+
+    Tenancy::forTenant($fixture['tenant'], function () use ($fixture): void {
+        // A second sailing of the same trip, the same day, three hours later.
+        $later = $fixture['departure']->replicate(['uuid']);
+        $later->forceFill([
+            'uuid' => (string) Str::uuid(),
+            'starts_at_utc' => $fixture['departure']->starts_at_utc->copy()->addHours(3),
+            'ends_at_utc' => $fixture['departure']->ends_at_utc->copy()->addHours(3),
+            'local_time' => Carbon::parse((string) $fixture['departure']->local_time)->addHours(3)->format('H:i:s'),
+        ])->save();
+
+        $data = new BookingDraftData(
+            product: $fixture['product'],
+            date: $later->local_date->copy(),
+            guestName: 'Γιώργος Νικολάου',
+            guestEmail: null,
+            paxByCode: ['adult' => 1],
+            startTime: (string) $later->local_time,
+        );
+
+        // Without the time, the day's first sailing took it (fixed 2026-09-24).
+        expect(app(CreateManualBooking::class)($data)->departure_id)->toBe($later->getKey());
     });
 })->group('fast');
 

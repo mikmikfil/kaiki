@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Guest;
 
 use App\Domain\Booking\Actions\MintCheckoutSession;
+use App\Domain\Booking\Actions\ResumeAbandonedBooking;
 use App\Domain\Booking\Actions\SaveGuestDetails;
 use App\Domain\Booking\Support\GuestTokenResolver;
 use App\Domain\Booking\Support\PassengerForm;
@@ -27,6 +28,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator as ValidatorFactory;
 use Illuminate\Validation\Validator;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 /**
  * `/c/{manage_token}` — the checkout page (amends WGT-18).
@@ -90,6 +92,12 @@ final class CheckoutController extends GuestPageController
 
         if ($booking === null || ! $tenant instanceof Tenant) {
             return $this->linkNotValid($request);
+        }
+
+        // The abandoned-payment email's button (2026-09-24): a fresh booking
+        // with the same party, checked again, and its checkout.
+        if (ResumeAbandonedBooking::applies($booking)) {
+            return $this->resume($request, $booking, $tenant, $token);
         }
 
         // A booking that is no longer waiting to be paid for has a better page
@@ -407,6 +415,32 @@ final class CheckoutController extends GuestPageController
     public static function isPayable(Booking $booking): bool
     {
         return in_array($booking->status, [BookingStatus::Draft, BookingStatus::PendingPayment], true);
+    }
+
+    /**
+     * Start again from an abandoned checkout, or say plainly why not.
+     *
+     * A draft goes to its own checkout; a booking already paid for goes to its
+     * booking page; a boat that filled or a code that ran out goes back to the
+     * old booking's page with the reason.
+     */
+    private function resume(Request $request, Booking $booking, Tenant $tenant, string $token): Response
+    {
+        app()->setLocale($this->resolveLocale($request, $booking->locale));
+
+        try {
+            $fresh = Tenancy::forTenant($tenant, fn (): Booking => app(ResumeAbandonedBooking::class)($booking));
+        } catch (Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route('guest.booking', ['token' => $token])
+                ->with('resume_refused', __('guest.booking.resume_refused'));
+        }
+
+        return self::isPayable($fresh)
+            ? redirect()->route('guest.checkout', ['token' => $fresh->manage_token])
+            : redirect()->route('guest.booking', ['token' => $fresh->manage_token]);
     }
 
     /** @return array{0: Booking|null, 1: Tenant|null} */

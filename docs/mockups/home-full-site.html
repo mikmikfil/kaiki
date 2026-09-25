@@ -1,0 +1,451 @@
+<title>Αρχική, ολόκληρο site</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* Home page for operators with a full website (hosted_site_mode = full).
+   From Mike's reference image of 24/9. Kaiki rules: light only, Inter only,
+   no uppercase, no underlined links. Photos: the demo seeder's, and the hero
+   Mike supplied. */
+:root{
+  --navy:#0C2A4D; --blue:#1B5FD1; --blue-soft:#E8F0FC; --sky:#F2F6FC;
+  --ink:#10213A; --soft:#4B5B72; --faint:#8593A6; --line:#E2E8F1; --paper:#FFFFFF; --ground:#E7ECF2;
+  --pblue:#1E5AA8; --pline:#E1E8F2;
+  --sans:Inter,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.55;padding-block:24px 72px;padding-inline:16px;-webkit-font-smoothing:antialiased}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:is(button,a,input,select,summary):focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+img{display:block;max-width:100%}
+svg{flex:none}
+.page{max-width:1240px;margin:0 auto;display:grid;gap:20px}
+
+/* ---- the mockup's own chrome ---- */
+.intro h1{font-size:26px;line-height:1.2;margin:0 0 6px;letter-spacing:-.015em;text-wrap:balance}
+.intro p{margin:0;max-width:78ch;color:var(--soft)}
+.bar{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13.5px;color:var(--soft)}
+.seg{display:inline-flex;flex-wrap:wrap;background:#fff;border:1px solid #CFDAE8;border-radius:10px;padding:3px}
+.seg button{padding:6px 12px;border-radius:7px;font-weight:600;font-size:13.5px;color:var(--soft)}
+.seg button[aria-pressed="true"]{background:var(--navy);color:#fff}
+
+.device{margin:0 auto;width:100%;border-radius:18px;overflow:hidden;background:var(--paper);box-shadow:0 1px 0 #CBD5DE,0 18px 50px rgba(12,42,77,.14);transition:max-width .3s ease}
+.device.phone{max-width:390px}
+.device.desk{max-width:1240px}
+.site{container:site/inline-size}
+.gut{padding-inline:clamp(16px,3.2cqi,40px)}
+
+/* ---- header (point 6) ---- */
+.sh{display:flex;align-items:center;gap:18px;padding-block:16px}
+.brand{display:flex;align-items:center;gap:10px;margin-right:auto;min-width:0}
+.logo{width:40px;height:40px;border-radius:11px;background:var(--navy);display:grid;place-items:center;color:#fff}
+.brand b{font-weight:800;font-size:17px;color:var(--navy);letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav{display:none;gap:28px;font-size:14.5px;font-weight:500;margin-right:auto}
+.nav a{color:var(--ink)}
+.nav a[aria-current]{color:var(--blue)}
+.langs{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--faint)}
+.langs .on{color:var(--navy)}
+.langs i{width:1px;height:12px;background:var(--line)}
+.book{display:none;align-items:center;gap:8px;background:var(--blue);color:#fff!important;font-weight:700;font-size:14.5px;padding:11px 18px;border-radius:10px}
+.burger{width:42px;height:42px;border:1px solid var(--line);border-radius:11px;display:grid;place-items:center;color:var(--navy)}
+@container site (min-width:880px){.nav{display:flex}.book{display:inline-flex}.burger{display:none}.brand{margin-right:0}}
+
+/* ---- hero (point 1): inset, rounded, not full width ---- */
+.hero-wrap{position:relative}
+.hero{position:relative;border-radius:clamp(20px,3cqi,32px);overflow:hidden;min-height:clamp(430px,44cqi,540px);display:flex;align-items:center;color:#fff;background:var(--navy)}
+.hero > img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:62% 50%}
+.hero::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,24,46,.72) 0%,rgba(7,24,46,.42) 42%,rgba(7,24,46,0) 72%)}
+.hero-copy{position:relative;z-index:2;padding:clamp(28px,5cqi,64px);max-width:640px}
+.kick{font-size:13.5px;font-weight:600;letter-spacing:.06em;margin:0 0 14px;color:var(--blue)}
+.hero .kick{color:rgba(255,255,255,.85)}
+.hero h1{font-weight:800;font-size:clamp(34px,5.6cqi,60px);line-height:1.04;letter-spacing:-.03em;margin:0 0 16px;text-wrap:balance}
+.hero p.lede{margin:0 0 26px;font-size:clamp(16px,1.7cqi,19px);color:rgba(255,255,255,.92);max-width:30rem}
+.btn{display:inline-flex;align-items:center;gap:10px;font-weight:700;font-size:15px;padding:13px 20px;border-radius:12px}
+.btn-white{background:#fff;color:var(--navy)!important}
+.btn-blue{background:var(--blue);color:#fff!important}
+.dots{position:absolute;z-index:2;right:28px;bottom:24px;display:flex;gap:6px}
+.dots i{width:7px;height:7px;border-radius:99px;background:rgba(255,255,255,.55)}
+.dots i:first-child{width:26px;background:#fff}
+
+/* ---- search (point 2), three placements ---- */
+.search{background:#fff;border-radius:18px;box-shadow:0 2px 6px rgba(12,42,77,.06),0 22px 50px rgba(12,42,77,.16);display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding:8px}
+.field{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;min-width:0;color:var(--ink)}
+.field + .field{border-top:1px solid var(--line)}
+.field svg{color:var(--blue)}
+.field span{display:block;min-width:0}
+.field b{display:block;font-size:13.5px;font-weight:600}
+.field small{display:block;font-size:13px;color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.field .chev{margin-left:auto;color:var(--faint)}
+.search .go{justify-content:center;margin:6px}
+@container site (min-width:880px){
+  .search{grid-template-columns:repeat(3,minmax(0,1fr)) auto;align-items:center}
+  .field + .field{border-top:0;border-left:1px solid var(--line);border-radius:0}
+  .search .go{margin:0 4px 0 8px;padding-inline:26px}
+}
+/* Α: a card overlapping the bottom of the photograph */
+.site[data-search="below"] .search{position:relative;z-index:3;margin:-46px clamp(16px,4cqi,56px) 0}
+/* Β: inside the photograph, on the right (today's live layout). The card and
+   the photograph share one grid cell on a wide screen; on a phone the card
+   follows the photograph. */
+.site[data-search="inside"] .search{grid-template-columns:minmax(0,1fr)!important;margin-top:14px}
+.site[data-search="inside"] .search .field + .field{border-left:0;border-top:1px solid var(--line);border-radius:0}
+.site[data-search="inside"] .search .go{margin:8px 6px 6px;padding-block:14px}
+@container site (min-width:880px){
+  .site[data-search="inside"] .hero-wrap{display:grid}
+  .site[data-search="inside"] .hero,.site[data-search="inside"] .search{grid-area:1/1}
+  .site[data-search="inside"] .search{position:relative;z-index:3;align-self:center;justify-self:end;width:370px;margin:0 clamp(28px,4cqi,56px) 0 0}
+  .site[data-search="inside"] .hero-copy{max-width:min(640px,calc(100% - 440px))}
+}
+.search-title{display:none;font-weight:700;color:var(--navy);font-size:17px;padding:12px 14px 4px}
+.site[data-search="inside"] .search-title{display:block}
+/* Γ: no form, just the button in the photograph and a pill of choices under it */
+.site[data-search="none"] .search{display:none}
+.quick{display:none}
+.site[data-search="none"] .quick{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.quick a{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);color:#fff;border-radius:99px;padding:7px 14px;font-size:14px;font-weight:600;backdrop-filter:blur(6px)}
+
+/* trust row */
+.trust{display:grid;gap:14px;grid-template-columns:minmax(0,1fr);padding-block:30px 8px}
+@container site (min-width:700px){.trust{grid-template-columns:repeat(3,minmax(0,1fr));justify-items:center}}
+.trust div{display:flex;gap:12px;align-items:center}
+.trust svg{color:var(--blue)}
+.trust b{display:block;font-size:14.5px;color:var(--navy)}
+.trust small{display:block;font-size:13px;color:var(--faint)}
+
+/* ---- sections ---- */
+.sec{padding-block:clamp(44px,6cqi,72px) 0}
+h2{font-weight:800;font-size:clamp(26px,3.6cqi,38px);line-height:1.12;letter-spacing:-.028em;color:var(--navy);margin:0;text-wrap:balance}
+.head{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:end;justify-content:space-between;margin-bottom:20px}
+.all{font-weight:600;font-size:14.5px;display:inline-flex;gap:6px;align-items:center}
+
+/* filters */
+.pills{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin-bottom:22px;padding-bottom:2px}
+.pills button{white-space:nowrap;border:1px solid var(--line);background:#fff;border-radius:99px;padding:8px 16px;font-size:14px;font-weight:600;color:var(--soft)}
+.pills button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+
+/* trip cards (point 3): the facts on one line */
+.cards{display:grid;gap:18px;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:620px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@container site (min-width:1040px){.cards{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.card{background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 0 0 1px var(--line),0 6px 18px rgba(12,42,77,.05);display:flex;flex-direction:column;transition:transform .18s ease,box-shadow .18s ease}
+.card:hover{transform:translateY(-2px);box-shadow:0 0 0 1px var(--line),0 14px 30px rgba(12,42,77,.1)}
+.card .ph{position:relative}
+.card .ph img{width:100%;aspect-ratio:4/3;object-fit:cover}
+.tag{position:absolute;top:12px;left:12px;background:#fff;color:var(--navy);font-size:12.5px;font-weight:700;border-radius:99px;padding:4px 11px}
+.card .b{padding:16px 16px 16px;display:flex;flex-direction:column;gap:9px;flex:1}
+.card h3{margin:0;font-size:17px;color:var(--navy);letter-spacing:-.01em}
+.meta{display:flex;align-items:center;gap:14px;font-size:13.5px;color:var(--soft);white-space:nowrap;overflow:hidden}
+.meta span{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.meta span:last-child{overflow:hidden;text-overflow:ellipsis}
+.meta svg{color:var(--faint)}
+.card p{margin:0;font-size:14px;color:var(--soft)}
+.price{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:10px;border-top:1px solid var(--line)}
+.price span{font-size:14px;color:var(--soft)}
+.price b{font-size:22px;color:var(--blue);letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.price .ask{font-weight:700;color:var(--blue);font-size:15px}
+.arrow{width:38px;height:38px;border-radius:50%;border:1.5px solid var(--blue);color:var(--blue);display:grid;place-items:center}
+
+/* ---- story band (point 5: inset, not full width) ---- */
+.story{display:grid;gap:14px;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:880px){.story{grid-template-columns:minmax(0,1.2fr) minmax(0,.55fr) minmax(0,1fr)}}
+.story img{width:100%;height:100%;min-height:240px;object-fit:cover;border-radius:22px}
+.story .narrow{display:none}
+@container site (min-width:880px){.story .narrow{display:block}}
+.story-copy{background:var(--sky);border-radius:22px;padding:clamp(24px,3.4cqi,40px);display:flex;flex-direction:column;justify-content:center}
+.story-copy h2{margin-bottom:14px}
+.story-copy p{margin:0 0 18px;color:var(--soft)}
+
+/* private trips band */
+.private{display:grid;border-radius:22px;overflow:hidden;background:var(--navy);color:#fff}
+@container site (min-width:880px){.private{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)}}
+.private .t{padding:clamp(26px,4cqi,48px);display:flex;flex-direction:column;justify-content:center;gap:14px}
+.private .kick{color:#8DB4F2}
+.private h2{color:#fff}
+.private p{margin:0;color:#C3D2E6;max-width:26rem}
+.private .btn{align-self:flex-start;margin-top:6px}
+.private img{width:100%;height:100%;min-height:240px;object-fit:cover}
+
+/* ---- steps (point 4) ---- */
+.steps-h{text-align:center;margin-bottom:28px}
+.steps{list-style:none;margin:0;padding:0;display:grid;gap:22px;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:760px){.steps{grid-template-columns:repeat(3,minmax(0,1fr));gap:28px}}
+.step{position:relative;display:grid;grid-template-columns:52px minmax(0,1fr);gap:14px;align-items:start}
+.step .n{width:52px;height:52px;border-radius:50%;background:var(--blue-soft);color:var(--blue);display:grid;place-items:center;font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;position:relative;z-index:1}
+.step b{display:block;color:var(--navy);font-size:16px;margin-top:4px}
+.step span{display:block;color:var(--soft);font-size:14px}
+@container site (min-width:760px){
+  .step:not(:last-child)::after{content:"";position:absolute;top:26px;left:64px;right:-14px;height:2px;background:linear-gradient(90deg,var(--blue-soft),var(--line))}
+  .step b,.step span{background:#fff;position:relative;z-index:1;padding-right:8px}
+  .step:not(:last-child) .txt{padding-right:14px}
+}
+@container site (max-width:759px){
+  .step:not(:last-child)::after{content:"";position:absolute;left:25px;top:56px;bottom:-18px;width:2px;background:var(--blue-soft)}
+}
+
+/* ---- faq ---- */
+.faq{display:grid;gap:24px;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:880px){.faq{grid-template-columns:minmax(0,.8fr) minmax(0,1.4fr);gap:48px}}
+.faq p{color:var(--soft);margin:12px 0 0}
+.faq details{border-bottom:1px solid var(--line)}
+.faq summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:16px;padding:16px 2px;font-weight:600;color:var(--ink)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";font-size:22px;line-height:1;color:var(--blue);font-weight:500}
+.faq details[open] summary::after{content:"−"}
+.faq details p{margin:0 0 16px;padding-right:32px}
+
+/* ---- footer ---- */
+.foot{margin-top:clamp(48px,7cqi,80px);background:var(--navy);color:#B7C6DA;font-size:14px}
+.foot-in{display:grid;gap:26px;grid-template-columns:minmax(0,1fr);padding-block:36px}
+@container site (min-width:880px){.foot-in{grid-template-columns:1.4fr 1fr 1fr 1.1fr}}
+.foot b{color:#fff;display:block;margin-bottom:10px}
+.foot ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.foot a{color:#B7C6DA}
+.foot .legal{border-top:1px solid rgba(255,255,255,.12);padding-block:16px;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;font-size:13px}
+.foot .brand b{color:#fff;margin:0}
+.foot .logo{background:rgba(255,255,255,.1)}
+
+/* questions */
+.qs{background:#fff;border-radius:18px;padding:20px 22px;box-shadow:0 1px 0 #CBD5DE}
+.qs h2{font-size:18px;margin:0 0 12px;color:var(--ink);letter-spacing:-.01em}
+.qs ol{margin:0;padding-left:22px;display:grid;gap:10px}
+.qs li b{display:block}
+.qs li span{color:var(--soft);font-size:14.5px}
+.took{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));margin:0;padding:0;list-style:none}
+.took li{background:#fff;border-radius:12px;padding:10px 14px;font-size:14px;color:var(--soft);box-shadow:0 1px 0 #CBD5DE}
+.took li b{color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.card,.device{transition:none}}
+</style>
+
+<div class="page">
+  <header class="intro">
+    <h1>Η αρχική σελίδα για όσους θέλουν ολόκληρο site</h1>
+    <p>Με βάση την εικόνα της 24/9 και τα έξι σημεία σου. Η αναζήτηση έχει τρεις θέσεις για να τις συγκρίνεις. Όλα τα κείμενα και οι φωτογραφίες είναι του διοργανωτή, από τις ενότητες της «Αρχικής σελίδας».</p>
+  </header>
+
+  <ul class="took" aria-label="Τι κράτησα">
+    <li><b>1. Φωτογραφία</b> με καμπύλες γωνίες, όχι σε όλο το πλάτος</li>
+    <li><b>2. Αναζήτηση</b> σε τρεις θέσεις, διαλέγεις πάνω δεξιά</li>
+    <li><b>3. Κάρτες</b> με διάρκεια και λιμάνι σε μία γραμμή</li>
+    <li><b>4. «Από την κράτηση στο κατάστρωμα»</b></li>
+    <li><b>5. Ζώνες</b> ξανασχεδιασμένες, πάλι όχι σε όλο το πλάτος</li>
+    <li><b>6. Μενού</b> όπως στην εικόνα</li>
+  </ul>
+
+  <div class="bar">
+    <div class="ctl">
+      <div class="seg" role="group" aria-label="Οθόνη">
+        <button type="button" id="v-phone" aria-pressed="false" data-view="phone">Κινητό</button>
+        <button type="button" id="v-desk" aria-pressed="true" data-view="desk">Υπολογιστής</button>
+      </div>
+    </div>
+    <div class="ctl">
+      <span>Αναζήτηση:</span>
+      <div class="seg" role="group" aria-label="Θέση αναζήτησης">
+        <button type="button" id="s-below" aria-pressed="true" data-search="below">Α. Κάτω από τη φωτογραφία</button>
+        <button type="button" id="s-inside" aria-pressed="false" data-search="inside">Β. Μέσα, δεξιά</button>
+        <button type="button" id="s-none" aria-pressed="false" data-search="none">Γ. Μόνο κουμπιά</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="device desk" id="device">
+   <div class="site" id="site" data-search="below">
+
+    <header class="sh gut">
+      <div class="brand">
+        <span class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14M12 4l7 11h-7M4 18h16l-2 3H6z"/></svg></span>
+        <b>Aegean Blue Cruises</b>
+      </div>
+      <nav class="nav" aria-label="Μενού">
+        <a href="#trips">Εκδρομές</a>
+        <a href="#">Σχετικά με εμάς</a>
+        <a href="#faq">Συχνές ερωτήσεις</a>
+        <a href="#">Επικοινωνία</a>
+      </nav>
+      <div class="langs"><span class="on">ΕΛ</span><i></i><span>EN</span></div>
+      <a class="book" href="#trips">Κράτηση <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <span class="burger" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>
+    </header>
+
+    <div class="gut">
+      <div class="hero-wrap">
+        <section class="hero">
+          <img src="home-img/hero.jpg" alt="Ιστιοπλοϊκό σε όρμο με γαλαζοπράσινα νερά">
+          <div class="hero-grid">
+            <div class="hero-copy">
+              <p class="kick">Εκδρομές με σκάφος · Πειραιάς</p>
+              <h1>Η καλύτερη πλευρά της μέρας σας.</h1>
+              <p class="lede">Μικρές αποδράσεις με ιστιοπλοϊκό, από τη Μαρίνα Ζέας.</p>
+              <a class="btn btn-white" href="#trips">Δείτε τις εκδρομές <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+              <div class="quick"><a href="#">Αύριο</a><a href="#">Αυτό το Σαββατοκύριακο</a><a href="#">Ιδιωτική εκδρομή</a></div>
+            </div>
+          </div>
+          <div class="dots" aria-hidden="true"><i></i><i></i><i></i></div>
+        </section>
+        <form class="search" id="search" aria-label="Αναζήτηση εκδρομής">
+          <div class="search-title">Βρείτε την εκδρομή σας</div>
+          <label class="field"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg><span><b>Ημερομηνία</b><small>Διαλέξτε μέρα</small></span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></label>
+          <label class="field"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.8 14.2c2.3.2 4 1.8 4.7 4.8"/></svg><span><b>Άτομα</b><small>2 ενήλικες</small></span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></label>
+          <label class="field"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v13M12 4l6 10h-6M4 17h16l-2 3H6z"/></svg><span><b>Εκδρομή</b><small>Όλες οι εκδρομές</small></span><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></label>
+          <button class="btn btn-blue go" type="submit">Αναζήτηση <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        </form>
+      </div>
+
+      <div class="trust">
+        <div><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15.8 14.2c2.3.2 4 1.8 4.7 4.8"/></svg><span><b>Μικρές παρέες</b><small>Έως 12 άτομα σε κάθε σκάφος</small></span></div>
+        <div><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v14M5 13a7 7 0 0 0 14 0M8 11h8"/></svg><span><b>Έμπειρο πλήρωμα</b><small>Κυβερνήτες από τον Σαρωνικό</small></span></div>
+        <div><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M9 15l2 2 4-4"/></svg><span><b>Κράτηση σε ένα λεπτό</b><small>Πληρωμή με κάρτα, με ασφάλεια</small></span></div>
+      </div>
+
+      <!-- trips -->
+      <section class="sec" id="trips">
+        <div class="head">
+          <div><p class="kick">Βρείτε τη δική σας απόδραση</p><h2>Μια μικρή εκδρομή. Μια υπέροχη μέρα.</h2></div>
+          <a class="all" href="#">Όλες οι εκδρομές <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+        </div>
+        <div class="pills" role="group" aria-label="Κατηγορίες">
+          <button type="button" id="f-all" aria-pressed="true" data-f="all">Όλες</button>
+          <button type="button" id="f-morning" aria-pressed="false" data-f="morning">Πρωινές</button>
+          <button type="button" id="f-sunset" aria-pressed="false" data-f="sunset">Ηλιοβασίλεμα</button>
+          <button type="button" id="f-private" aria-pressed="false" data-f="private">Ιδιωτικές</button>
+          <button type="button" id="f-day" aria-pressed="false" data-f="day">Ολοήμερες</button>
+        </div>
+        <div class="cards">
+          <article class="card" data-cat="morning">
+            <div class="ph"><img src="home-img/trip-day.jpg" alt=""><span class="tag">Πρωινή</span></div>
+            <div class="b">
+              <h3>Πρωινή απόδραση</h3>
+              <div class="meta"><span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>4 ώρες</span><span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Μαρίνα Ζέας</span></div>
+              <p>Κολύμπι σε καταγάλανα νερά και στάσεις σε όμορφους κολπίσκους του Σαρωνικού.</p>
+              <div class="price"><span>από <b>50 €</b> / άτομο</span><span class="arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+            </div>
+          </article>
+          <article class="card" data-cat="sunset">
+            <div class="ph"><img src="home-img/trip-sunset.jpg" alt=""><span class="tag">Ηλιοβασίλεμα</span></div>
+            <div class="b">
+              <h3>Ηλιοβασίλεμα εν πλω</h3>
+              <div class="meta"><span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>3 ώρες</span><span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Μαρίνα Ζέας</span></div>
+              <p>Ένα ηλιοβασίλεμα στη θάλασσα, με ένα ποτήρι κρασί και καλή παρέα.</p>
+              <div class="price"><span>από <b>55 €</b> / άτομο</span><span class="arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+            </div>
+          </article>
+          <article class="card" data-cat="private">
+            <div class="ph"><img src="home-img/trip-private.jpg" alt=""><span class="tag">Ιδιωτική</span></div>
+            <div class="b">
+              <h3>Το σκάφος, μόνο για εσάς</h3>
+              <div class="meta"><span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>4 ή 8 ώρες</span><span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5"/></svg>Έως 10 άτομα</span></div>
+              <p>Ιδιωτική εκδρομή για τη δική σας παρέα. Εσείς διαλέγετε πού θα πάμε.</p>
+              <div class="price"><span class="ask">Ζητήστε προσφορά</span><span class="arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+            </div>
+          </article>
+          <article class="card" data-cat="day">
+            <div class="ph"><img src="home-img/trip-morning.jpg" alt=""><span class="tag">Ολοήμερη</span></div>
+            <div class="b">
+              <h3>Τρία νησιά σε μια μέρα</h3>
+              <div class="meta"><span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>9 ώρες</span><span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>Αίγινα · Αγκίστρι · Μονή</span></div>
+              <p>Αίγινα, Αγκίστρι και Μονή, με φαγητό στο σκάφος και ώρες για κολύμπι.</p>
+              <div class="price"><span>από <b>89 €</b> / άτομο</span><span class="arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- story band -->
+      <section class="sec">
+        <div class="story">
+          <img src="home-img/story.jpg" alt="Ο κυβερνήτης και η σύντροφός του στην πλώρη">
+          <img class="narrow" src="home-img/story-2.jpg" alt="">
+          <div class="story-copy">
+            <p class="kick">Η εμπειρία</p>
+            <h2>Πανιά, βουτιές και καλή παρέα.</h2>
+            <p>Ένα άνετο ιστιοπλοϊκό, έμπειρο πλήρωμα και οι πιο όμορφες γωνιές του Σαρωνικού. Μικρές παρέες και στιγμές που μένουν.</p>
+            <a class="all" href="#">Γνωρίστε μας <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          </div>
+        </div>
+      </section>
+
+      <!-- private band -->
+      <section class="sec">
+        <div class="private">
+          <div class="t">
+            <p class="kick">Ιδιωτικές εκδρομές</p>
+            <h2>Η δική σας παρέα. Η δική σας διαδρομή.</h2>
+            <p>Για γενέθλια, μια ξεχωριστή περίσταση ή απλώς μια μέρα μαζί.</p>
+            <a class="btn btn-blue" href="#">Ζητήστε προσφορά <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+          </div>
+          <img src="home-img/private.jpg" alt="Παρέα στο σκάφος στο ηλιοβασίλεμα">
+        </div>
+      </section>
+
+      <!-- steps -->
+      <section class="sec">
+        <h2 class="steps-h">Από την κράτηση στο κατάστρωμα.</h2>
+        <ol class="steps">
+          <li class="step"><span class="n">1</span><div class="txt"><b>Διαλέξτε εκδρομή</b><span>Όποια ταιριάζει στη μέρα σας.</span></div></li>
+          <li class="step"><span class="n">2</span><div class="txt"><b>Κλείστε θέση</b><span>Γρήγορα και με ασφάλεια, online.</span></div></li>
+          <li class="step"><span class="n">3</span><div class="txt"><b>Τα λέμε στο σκάφος</b><span>Γνωρίστε το πλήρωμα και ξεκινάμε.</span></div></li>
+        </ol>
+      </section>
+
+      <!-- faq -->
+      <section class="sec" id="faq">
+        <div class="faq">
+          <div><p class="kick">Συχνές ερωτήσεις</p><h2>Χρήσιμα πριν φύγουμε.</h2><p>Ό,τι χρειάζεται να ξέρετε για να απολαύσετε την εκδρομή σας.</p></div>
+          <div>
+            <details><summary>Από πού αναχωρούμε;</summary><p>Από τη Μαρίνα Ζέας, προβλήτα Β, στον Πειραιά. Ελάτε 20 λεπτά νωρίτερα.</p></details>
+            <details><summary>Τι περιλαμβάνεται στην τιμή;</summary><p>Νερό, αναψυκτικά, φρούτα και μάσκες για κολύμπι. Στην ολοήμερη, και φαγητό.</p></details>
+            <details><summary>Τι χρειάζεται να έχω μαζί μου;</summary><p>Μαγιό, πετσέτα, αντηλιακό και καπέλο. Παπούτσια που δεν γλιστράνε.</p></details>
+            <details><summary>Τι γίνεται αν έχει κακοκαιρία;</summary><p>Αν ο καιρός δεν επιτρέπει να βγούμε, σας προτείνουμε άλλη μέρα ή σας επιστρέφουμε όλα τα χρήματα.</p></details>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <footer class="foot">
+      <div class="foot-in gut">
+        <div class="brand"><span class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14M12 4l7 11h-7M4 18h16l-2 3H6z"/></svg></span><b>Aegean Blue Cruises</b></div>
+        <div><b>Εκδρομές</b><ul><li><a href="#">Όλες οι εκδρομές</a></li><li><a href="#">Πρωινές</a></li><li><a href="#">Ηλιοβασίλεμα</a></li><li><a href="#">Ιδιωτικές</a></li></ul></div>
+        <div><b>Εμείς</b><ul><li><a href="#">Σχετικά με εμάς</a></li><li><a href="#">Συχνές ερωτήσεις</a></li><li><a href="#">Επικοινωνία</a></li></ul></div>
+        <div><b>Μαρίνα Ζέας, Πειραιάς</b><ul><li>210 412 3456</li><li>info@aegeanblue.gr</li></ul></div>
+      </div>
+      <div class="legal gut"><span>© 2026 Aegean Blue Cruises ΙΚΕ</span><span>Όροι · Απόρρητο · Πολιτική ακύρωσης · powered by Kaiki</span></div>
+    </footer>
+   </div>
+  </div>
+
+  <section class="qs">
+    <h2>Τρεις ερωτήσεις</h2>
+    <ol>
+      <li><b>Πού η αναζήτηση;</b><span>Α κάτω από τη φωτογραφία (όπως στην εικόνα), Β μέσα δεξιά (όπως είναι σήμερα), ή Γ χωρίς φόρμα, μόνο κουμπιά. Πάτα τους τρεις διακόπτες πάνω δεξιά.</span></li>
+      <li><b>Τρεις ή τέσσερις κάρτες στη σειρά;</b><span>Στον υπολογιστή βάζω τέσσερις. Με τρεις, οι φωτογραφίες είναι μεγαλύτερες.</span></li>
+      <li><b>Μόνο για όσους έχουν ολόκληρο site;</b><span>Η πρόταση είναι ναι: οι υπόλοιποι κρατάνε την αρχική που έχουν σήμερα.</span></li>
+    </ol>
+  </section>
+</div>
+
+<script>
+(function () {
+  var device = document.getElementById('device');
+  var site = document.getElementById('site');
+  function press(sel, btn) { document.querySelectorAll(sel).forEach(function (o) { o.setAttribute('aria-pressed', o === btn ? 'true' : 'false'); }); }
+  document.querySelectorAll('[data-view]').forEach(function (b) {
+    b.addEventListener('click', function () { press('[data-view]', b); device.classList.remove('phone', 'desk'); device.classList.add(b.dataset.view); });
+  });
+  document.querySelectorAll('button[data-search]').forEach(function (b) {
+    b.addEventListener('click', function () { press('button[data-search]', b); site.dataset.search = b.dataset.search; });
+  });
+  document.querySelectorAll('[data-f]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      press('[data-f]', b);
+      document.querySelectorAll('.card').forEach(function (c) { c.hidden = b.dataset.f !== 'all' && c.dataset.cat !== b.dataset.f; });
+    });
+  });
+  document.getElementById('search').addEventListener('submit', function (e) { e.preventDefault(); });
+  if (window.innerWidth < 700) { document.getElementById('v-phone').click(); }
+})();
+</script>

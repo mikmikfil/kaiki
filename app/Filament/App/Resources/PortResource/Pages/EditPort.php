@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Filament\App\Resources\PortResource\Pages;
 
 use App\Filament\App\Resources\PortResource;
+use App\Filament\App\Support\TitledByRecord;
 use App\Filament\Support\MoreActions;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
@@ -14,6 +15,8 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditPort extends EditRecord
 {
+    use TitledByRecord;
+
     protected static string $resource = PortResource::class;
 
     /** @return array<int, Action> */

@@ -4,26 +4,40 @@ declare(strict_types=1);
 
 namespace App\Filament\App\Resources\ProductResource\Pages;
 
+use App\Domain\Catalog\Support\ProductPublishChecklist;
+use App\Domain\Pricing\Support\PriceTable;
 use App\Enums\BookingMode;
 use App\Enums\ProductCategory;
+use App\Enums\VesselLicence;
 use App\Filament\App\Resources\ProductResource;
+use App\Filament\App\Resources\ProductResource\RelationManagers\ExtrasRelationManager;
 use App\Filament\App\Resources\RatePlanResource;
+use App\Filament\Forms\DepartureTimes;
 use App\Filament\Forms\MoneyInput;
 use App\Filament\Forms\TranslatableInput;
 use App\Rules\MaxPaxWithinVesselCapacity;
 use App\Support\Tenancy;
+use Filament\Forms\Components\Actions;
+use Filament\Forms\Components\Actions\Action as FormAction;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Group;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
+use Filament\Forms\Components\Wizard;
 use Filament\Forms\Components\Wizard\Step;
+use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Carbon;
 
 /**
@@ -65,13 +79,141 @@ trait HasTripWizard
 {
     use HasWizard;
 
-    /** @return array<int, Step> */
+    /** «Αποθήκευση ως πρόχειρο» is running: the fields a draft may leave empty stop being required. */
+    public bool $savingDraft = false;
+
+    /**
+     * The wizard beside «Πριν τη δημοσίευση», as on the edit page (2026-09-24):
+     * four fifths for the steps, a fifth for the checklist, which fills in as
+     * the steps are answered. On a phone it drops under the form.
+     */
+    public function form(Form $form): Form
+    {
+        return parent::form($form)
+            ->schema([
+                Grid::make(['default' => 1, 'xl' => 5])
+                    ->schema([
+                        Group::make([
+                            Wizard::make($this->getSteps())
+                                ->startOnStep($this->getStartStep())
+                                ->cancelAction($this->getCancelFormAction())
+                                ->submitAction($this->getSubmitFormAction())
+                                ->skippable($this->hasSkippableSteps())
+                                ->extraAttributes(['class' => 'ka-wizard']),
+                        ])->columnSpan(['default' => 1, 'xl' => 4]),
+
+                        Group::make([
+                            Section::make(__('catalog.product.sections.checklist'))
+                                ->compact()
+                                ->extraAttributes(['class' => 'ka-checklist-side'])
+                                ->schema([
+                                    Placeholder::make('wizard_checklist')
+                                        ->hiddenLabel()
+                                        ->content(static fn (Get $get): View => self::checklistView($get))
+                                        ->columnSpanFull(),
+
+                                    // At any step, not only the last: a trip
+                                    // started today and finished tomorrow is
+                                    // how most first trips get made.
+                                    Actions::make([
+                                        FormAction::make('saveDraft')
+                                            ->label(__('catalog.product.status_actions.save_draft'))
+                                            ->color('gray')
+                                            ->action(static fn (mixed $livewire) => $livewire->saveDraft()),
+                                    ])->fullWidth(),
+                                ]),
+                        ])->columnSpan(['default' => 1, 'xl' => 1]),
+                    ]),
+            ])
+            ->columns(null);
+    }
+
+    /**
+     * «Αποθήκευση ως πρόχειρο»: the whole form, saved as a draft, with the
+     * meeting point and the number of people allowed to wait. The title, the
+     * boat and the booking mode are still asked — a draft nobody can name or
+     * find is not a draft.
+     */
+    public function saveDraft(): void
+    {
+        $this->savingDraft = true;
+        $this->data['wizard_publish'] = 'draft';
+
+        try {
+            $this->create();
+        } finally {
+            $this->savingDraft = false;
+        }
+    }
+
+    /**
+     * The edit page's checklist, answered from what has been typed so far —
+     * the same requirements, words and view, so the list a first trip fills in
+     * is the one the edit page will show.
+     */
+    private static function checklistView(Get $get): View
+    {
+        $mode = BookingMode::tryFrom((string) $get('mode'));
+        $title = (array) ($get('title') ?? []);
+        $prices = (array) ($get('wizard_prices') ?? []);
+        $bands = (array) ($get('age_bands') ?? []);
+        $filled = static fn (mixed $value): bool => $value !== null && trim((string) $value) !== '';
+
+        $columns = [PriceTable::NEW_DEFAULT, ...array_map(
+            static fn (mixed $id): string => 's' . (int) $id,
+            (array) ($get('wizard_seasons') ?? []),
+        )];
+
+        $cell = static fn (string $item, string $column): bool => $filled($prices[$item][$column] ?? null);
+
+        $met = [
+            ProductPublishChecklist::TITLE_LOCALES => collect((array) config('kaiki.i18n.required_locales', ['el', 'en']))
+                ->every(static fn (string $locale): bool => $filled($title[$locale] ?? null)),
+            ProductPublishChecklist::VESSEL => $filled($get('vessel_id')),
+            ProductPublishChecklist::MEETING_POINT => $filled($get('meeting_point_id')),
+            ProductPublishChecklist::AGE_BANDS => $mode !== BookingMode::PerSeat || $bands !== [],
+            ProductPublishChecklist::RATE_PLAN => match ($mode) {
+                BookingMode::PerSeat => $bands !== [] && collect(array_keys($bands))->every(static fn ($item): bool => $cell((string) $item, PriceTable::NEW_DEFAULT)),
+                BookingMode::PerVessel => $filled($get('wizard_vessel_price')),
+                default => true,
+            },
+            ProductPublishChecklist::PRICES => $mode !== BookingMode::PerSeat || ($bands !== [] && collect(array_keys($bands))
+                ->every(static fn ($item): bool => collect($columns)->every(static fn (string $column): bool => $cell((string) $item, $column)))),
+            ProductPublishChecklist::CANCELLATION_POLICY => $filled($get('cancellation_policy_id')),
+        ];
+
+        $items = [];
+        $remaining = 0;
+
+        foreach (ProductPublishChecklist::requirements() as $requirement) {
+            $ok = $met[$requirement] ?? false;
+            $remaining += $ok ? 0 : 1;
+            $items[] = [
+                'met' => $ok,
+                'label' => __("catalog.product.checklist.{$requirement}.label"),
+                'unmet' => __("catalog.product.checklist.{$requirement}.unmet"),
+            ];
+        }
+
+        return view('filament.app.product-checklist', ['record' => null, 'live' => true, 'items' => $items, 'remaining' => $remaining]);
+    }
+
+    /**
+     * The edit page's tabs, as steps (Mike, 2026-09-24, approved from
+     * `docs/mockups/wizard-like-edit.html`: «όλο το styling … και όχι μόνο το
+     * styling αλλά και η ουσία»). Same names, same sections, same icons, in
+     * the same order — what an operator learns creating a trip is exactly what
+     * they see editing it — then «Δημοσίευση».
+     *
+     * @return array<int, Step>
+     */
     public function getSteps(): array
     {
         return [
             $this->basicsStep(),
             $this->whenStep(),
             $this->pricesStep(),
+            $this->termsStep(),
             $this->pageStep(),
             $this->publishStep(),
         ];
@@ -79,311 +221,369 @@ trait HasTripWizard
 
     private function basicsStep(): Step
     {
-        return Step::make(__('catalog.product.wizard.basics.label'))
+        return Step::make(__('catalog.product.tabs.basics'))
             ->description(__('catalog.product.wizard.basics.description'))
             ->icon('heroicon-o-identification')
             ->schema([
-                TranslatableInput::text(
-                    'title',
-                    __('catalog.product.form.title.label'),
-                    __('catalog.product.form.title.help'),
-                    maxLength: 160,
-                    configure: static fn (TextInput $input, string $locale): TextInput => $locale === 'el'
-                        ? $input->live(onBlur: true)->afterStateUpdated(ProductResource::fillSlug(...))
-                        : $input,
-                ),
+                Section::make(__('catalog.product.sections.basics'))
+                    ->icon('heroicon-o-map')
+                    ->schema([
+                        TranslatableInput::text(
+                            'title',
+                            __('catalog.product.form.title.label'),
+                            __('catalog.product.form.title.help'),
+                            maxLength: 160,
+                            configure: static fn (TextInput $input, string $locale): TextInput => $locale === 'el'
+                                ? $input->live(onBlur: true)->afterStateUpdated(ProductResource::fillSlug(...))
+                                : $input,
+                        ),
 
-                // Made from the Greek title and not asked for. An operator who
-                // wants to change it can, on the trip's own «Βασικά» tab; on a
-                // first trip it is one more field with a rule attached.
-                Hidden::make('slug'),
+                        // Made from the Greek title and not asked for. An operator who
+                        // wants to change it can, on the trip's own «Βασικά» tab; on a
+                        // first trip it is one more field with a rule attached.
+                        Hidden::make('slug'),
 
-                Select::make('vessel_id')
-                    ->label(__('catalog.product.form.vessel.label'))
-                    ->helperText(__('catalog.product.form.vessel.help'))
-                    ->options(ProductResource::vesselOptions(...))
-                    ->searchable()
-                    ->preload()
-                    ->required(),
+                        Select::make('vessel_id')
+                            ->label(__('catalog.product.form.vessel.label'))
+                            ->helperText(__('catalog.product.form.vessel.help'))
+                            ->options(ProductResource::vesselOptions(...))
+                            ->searchable()
+                            ->preload()
+                            ->required(),
 
-                Select::make('category')
-                    ->label(__('catalog.product.form.category.label'))
-                    ->helperText(__('catalog.product.form.category.help'))
-                    ->options(ProductCategory::options())
-                    ->required(),
+                        Select::make('category')
+                            ->label(__('catalog.product.form.category.label'))
+                            ->helperText(__('catalog.product.form.category.help'))
+                            ->options(ProductCategory::options())
+                            ->required(),
 
-                Radio::make('mode')
-                    ->label(__('catalog.product.form.mode.label'))
-                    ->helperText(__('catalog.product.form.mode.help'))
-                    ->options(BookingMode::options())
-                    ->descriptions(self::modeDescriptions())
-                    ->default(BookingMode::PerSeat->value)
-                    ->required()
-                    ->live(),
-            ])
-            ->columns(2);
+                        Radio::make('mode')
+                            ->label(__('catalog.product.form.mode.label'))
+                            ->helperText(__('catalog.product.form.mode.help'))
+                            ->options(BookingMode::options())
+                            ->descriptions(self::modeDescriptions())
+                            ->default(BookingMode::PerSeat->value)
+                            ->required()
+                            ->live(),
+
+                        // The same note the edit page gives (2026-09-24).
+                        Placeholder::make('licence_warning')
+                            ->hiddenLabel()
+                            ->content(__('catalog.product.form.vessel.pleasure_per_seat'))
+                            ->extraAttributes(['class' => 'ka-warning-note'])
+                            ->columnSpanFull()
+                            ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value
+                                && ProductResource::vesselLicence($get) === VesselLicence::ProfessionalPleasure),
+                    ])
+                    ->columns(2),
+            ]);
     }
 
     private function whenStep(): Step
     {
-        return Step::make(__('catalog.product.wizard.when.label'))
+        return Step::make(__('catalog.product.tabs.when'))
             ->description(__('catalog.product.wizard.when.description'))
             ->icon('heroicon-o-clock')
             ->schema([
-                TextInput::make('duration_minutes')
-                    ->label(__('catalog.product.form.duration_minutes.label'))
-                    ->helperText(__('catalog.product.form.duration_minutes.help'))
-                    ->suffix(__('catalog.product.form.duration_minutes.suffix'))
-                    ->integer()
-                    ->minValue(15)
-                    ->maxValue(20160)
-                    ->default(180)
-                    ->required(),
-
-                TextInput::make('check_in_offset_minutes')
-                    ->label(__('catalog.product.form.check_in_offset_minutes.label'))
-                    ->helperText(__('catalog.product.form.check_in_offset_minutes.help'))
-                    ->suffix(__('catalog.product.form.check_in_offset_minutes.suffix'))
-                    ->integer()
-                    ->minValue(0)
-                    ->maxValue(1440)
-                    ->default(30),
-
-                Select::make('meeting_point_id')
-                    ->label(__('catalog.product.form.meeting_point.label'))
-                    ->helperText(__('catalog.product.form.meeting_point.help'))
-                    ->options(ProductResource::portOptions(...))
-                    ->searchable()
-                    ->preload()
-                    ->required(),
-
-                // The same CAT-5 ceiling the edit form enforces (Mike,
-                // 2026-09-23). It matters more here: the boat was chosen a step
-                // ago, its certificate is not on screen, and a trip made in the
-                // guide is the first one an operator ever publishes.
-                TextInput::make('max_pax')
-                    ->label(__('catalog.product.form.max_pax.label'))
-                    ->helperText(static fn (Get $get): string => ProductResource::maxPaxHelp($get))
-                    ->integer()
-                    ->minValue(1)
-                    ->maxValue(2000)
-                    ->required()
-                    ->rules(static fn (Get $get): array => [
-                        new MaxPaxWithinVesselCapacity(ProductResource::vesselIdOf($get)),
-                    ]),
-
-                /*
-                 * **The timetable, all of it** (product owner, 2026-09-22:
-                 * *«και δρομολόγια extra αν υπάρχουν με ημέρες ώρες κλπ»*).
-                 *
-                 * This was one row of checkboxes and one time — enough for a
-                 * trip that leaves Tuesdays at nine and nothing else. A real
-                 * summer is «καθημερινά 10:00 και 18:00, και Σαββατοκύριακα
-                 * 12:00 μέχρι τέλη Σεπτεμβρίου», and an operator who cannot say
-                 * that here leaves the guide with a timetable that is wrong.
-                 *
-                 * So: a row per rule, each with its own days, its own list of
-                 * times and its own window — the same four questions the trip's
-                 * «Δρομολόγια» tab asks, in the same order and with the same
-                 * meanings. One row is there to begin with, because a per-seat
-                 * trip with no schedule has no day to sell.
-                 */
-                Repeater::make('wizard_schedules')
-                    ->label(__('catalog.product.wizard.when.schedules'))
-                    ->helperText(__('catalog.product.wizard.when.schedules_help'))
-                    ->addActionLabel(__('catalog.product.wizard.when.add_schedule'))
-                    /*
-                     * «Δρομολόγιο 2 — Τετάρτη, Πέμπτη» (Mike, 23/9).
-                     *
-                     * Τρία κλειστά δρομολόγια που λένε όλα «Δρομολόγιο» δεν
-                     * είναι λίστα, είναι τρεις ίδιες γραμμές: για να βρει
-                     * κανείς εκείνο της Τετάρτης πρέπει να τα ανοίξει ένα ένα.
-                     * Ο αριθμός λέει πού βρίσκεται, οι μέρες λένε ποιο είναι.
-                     */
+                Section::make(static fn (Get $get): string => $get('mode') === BookingMode::PerSeat->value
+                    ? __('catalog.product.sections.schedule_per_seat')
+                    : __('catalog.product.sections.schedule'))
+                    ->icon('heroicon-o-clock')
                     ->schema([
-                        CheckboxList::make('days')
-                            ->label(__('catalog.product.wizard.when.days'))
-                            ->helperText(__('catalog.product.wizard.when.days_help'))
-                            ->options(self::weekdays())
-                            ->columns(4)
-                            ->columnSpanFull(),
+                        TextInput::make('duration_minutes')
+                            ->label(__('catalog.product.form.duration_minutes.label'))
+                            ->helperText(__('catalog.product.form.duration_minutes.help'))
+                            ->suffix(__('catalog.product.form.duration_minutes.suffix'))
+                            ->integer()
+                            ->minValue(15)
+                            ->maxValue(20160)
+                            ->default(180)
+                            ->required(),
 
-                        // Several a day, the way the «Δρομολόγια» tab takes them
-                        // (2026-09-17): one rule per time, sharing the days and
-                        // the window, so 13:00 can be paused on its own later.
-                        Repeater::make('times')
-                            ->label(__('catalog.product.wizard.when.times'))
-                            ->helperText(__('catalog.product.wizard.when.times_help'))
-                            ->addActionLabel(__('availability.schedule_rule.form.start_times.add'))
-                            ->simple(
-                                TimePicker::make('time')
-                                    // A clock time on the quay, not an instant.
-                                    // Without this the panel's tenant-timezone
-                                    // conversion stores 19:00 as 16:00
-                                    // (2026-09-17, `ClockTimePickerTest`).
-                                    ->timezone('UTC')
-                                    ->seconds(false)
-                                    ->native(false)
-                                    ->distinct(),
-                            )
-                            ->defaultItems(1)
-                            ->reorderable(false)
-                            // Τρεις ανά σειρά, όπως και στην καρτέλα
-                            // «Δρομολόγια» (Mike, 23/9): μια ώρα είναι πέντε
-                            // χαρακτήρες, και μία ανά γραμμή διαβάζεται σαν
-                            // φόρμα που ξέχασαν να στοιχίσουν αντί για ωράριο.
-                            ->grid(['default' => 1, 'sm' => 2, 'lg' => 3])
-                            // Full width so the two dates below sit side by
-                            // side: the times grow downwards as they are added,
-                            // and a column that grows beside a date field
-                            // leaves «Ισχύει έως» stranded on its own row.
-                            ->columnSpanFull()
-                            // «Σκαμμένο»: see `.ka-nest` in `sea.blade.php`.
-                            ->extraFieldWrapperAttributes(['class' => 'ka-nest']),
+                        TextInput::make('check_in_offset_minutes')
+                            ->label(__('catalog.product.form.check_in_offset_minutes.label'))
+                            ->helperText(__('catalog.product.form.check_in_offset_minutes.help'))
+                            ->suffix(__('catalog.product.form.check_in_offset_minutes.suffix'))
+                            ->integer()
+                            ->minValue(0)
+                            ->maxValue(1440)
+                            ->default(30),
 
-                        DatePicker::make('valid_from')
-                            ->label(__('availability.schedule_rule.form.valid_from.label'))
-                            ->helperText(__('catalog.product.wizard.when.valid_from_help'))
-                            ->native(false)
-                            ->default(static fn (): string => Carbon::today(Tenancy::current()->timezone)->toDateString()),
+                        Select::make('meeting_point_id')
+                            ->label(__('catalog.product.form.meeting_point.label'))
+                            ->helperText(__('catalog.product.form.meeting_point.help'))
+                            ->options(ProductResource::portOptions(...))
+                            ->searchable()
+                            ->preload()
+                            ->required(static fn (mixed $livewire): bool => ! ($livewire->savingDraft ?? false)),
 
-                        DatePicker::make('valid_until')
-                            ->label(__('availability.schedule_rule.form.valid_until.label'))
-                            ->helperText(__('catalog.product.wizard.when.valid_until_help'))
-                            ->native(false)
-                            // Both bounds inclusive, so a one-day window is valid.
-                            ->afterOrEqual('valid_from')
-                            ->validationMessages([
-                                'after_or_equal' => __('availability.schedule_rule.validation.inverted_window'),
-                            ]),
+                        // «Λιμάνι αποβίβασης», as on the edit page (2026-09-24).
+                        Select::make('landing_port_id')
+                            ->label(__('catalog.product.form.landing_port.label'))
+                            ->helperText(__('catalog.product.form.landing_port.help'))
+                            ->options(ProductResource::portOptions(...))
+                            ->searchable()
+                            ->preload(),
+
+                        /*
+                         * A charter's single start time is a column on the trip — and
+                         * on a trip sold «κατόπιν προσφοράς» it is **optional**
+                         * (product owner, 2026-09-22: *«μπορεί να την ζητήσει ο
+                         * χρήστης»*).
+                         *
+                         * The column has always been nullable and the quoting side has
+                         * always honoured a proposed time — `ProposedWindowBuilder`
+                         * takes the guest's over the trip's. Only the form said
+                         * otherwise, with a helper line («την ίδια ώρα ξεκινούν όλοι»)
+                         * that is simply untrue of a trip whose whole point is that the
+                         * guest asks for a time.
+                         */
+                        TimePicker::make('default_start_time')
+                            ->label(__('catalog.product.form.default_start_time.label'))
+                            ->helperText(static fn (Get $get): string => $get('mode') === BookingMode::Quote->value
+                                ? __('catalog.product.form.default_start_time.quote_help')
+                                : __('catalog.product.form.default_start_time.help'))
+                            ->placeholder(static fn (Get $get): ?string => $get('mode') === BookingMode::Quote->value
+                                ? __('catalog.product.form.default_start_time.optional')
+                                : null)
+                            ->seconds(false)
+                            ->timezone('UTC')
+                            ->visible(static fn (Get $get): bool => $get('mode') !== BookingMode::PerSeat->value),
                     ])
-                    /*
-                     * «Δρομολόγιο 2 — Τετάρτη, Πέμπτη · 11:00» (Mike, 23/9).
-                     *
-                     * Η ετικέτα υπήρχε ήδη με τις μέρες και τις ώρες, αλλά
-                     * **χωρίς αριθμό** — και επέστρεφε null σε άδειο δρομολόγιο,
-                     * οπότε το φρέσκο κουτί δεν είχε καθόλου κεφαλίδα και τα
-                     * τρία μαζί διαβάζονταν σαν ένα. Ο αριθμός λέει πού
-                     * βρίσκεσαι, οι μέρες λένε ποιο είναι.
-                     */
-                    ->itemLabel(static fn (array $state, Repeater $component, string $uuid): string => self::scheduleLabel(
-                        $state,
-                        self::positionOf($component, $uuid),
-                    ))
-                    ->defaultItems(1)
-                    ->collapsible()
-                    ->columns(2)
-                    ->columnSpanFull()
-                    ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value),
+                    ->columns(2),
 
-                /*
-                 * A charter's single start time is a column on the trip — and
-                 * on a trip sold «κατόπιν προσφοράς» it is **optional**
-                 * (product owner, 2026-09-22: *«μπορεί να την ζητήσει ο
-                 * χρήστης»*).
-                 *
-                 * The column has always been nullable and the quoting side has
-                 * always honoured a proposed time — `ProposedWindowBuilder`
-                 * takes the guest's over the trip's. Only the form said
-                 * otherwise, with a helper line («την ίδια ώρα ξεκινούν όλοι»)
-                 * that is simply untrue of a trip whose whole point is that the
-                 * guest asks for a time.
-                 */
-                TimePicker::make('default_start_time')
-                    ->label(__('catalog.product.form.default_start_time.label'))
-                    ->helperText(static fn (Get $get): string => $get('mode') === BookingMode::Quote->value
-                        ? __('catalog.product.form.default_start_time.quote_help')
-                        : __('catalog.product.form.default_start_time.help'))
-                    ->placeholder(static fn (Get $get): ?string => $get('mode') === BookingMode::Quote->value
-                        ? __('catalog.product.form.default_start_time.optional')
-                        : null)
-                    ->seconds(false)
-                    ->timezone('UTC')
-                    ->visible(static fn (Get $get): bool => $get('mode') !== BookingMode::PerSeat->value),
-            ])
-            ->columns(2);
+                Section::make(__('catalog.product.sections.capacity'))
+                    ->icon('heroicon-o-user-group')
+                    ->schema([
+                        // The same CAT-5 ceiling the edit form enforces (Mike,
+                        // 2026-09-23). It matters more here: the boat was chosen a step
+                        // ago, its certificate is not on screen, and a trip made in the
+                        // guide is the first one an operator ever publishes.
+                        TextInput::make('max_pax')
+                            ->label(__('catalog.product.form.max_pax.label'))
+                            ->helperText(static fn (Get $get): string => ProductResource::maxPaxHelp($get))
+                            ->integer()
+                            ->minValue(1)
+                            ->maxValue(2000)
+                            ->required(static fn (mixed $livewire): bool => ! ($livewire->savingDraft ?? false))
+                            ->rules(static fn (Get $get): array => [
+                                new MaxPaxWithinVesselCapacity(ProductResource::vesselIdOf($get)),
+                            ]),
+
+                        TextInput::make('min_pax')
+                            ->label(__('catalog.product.form.min_pax.label'))
+                            ->helperText(__('catalog.product.form.min_pax.help'))
+                            ->integer()
+                            ->default(0)
+                            ->minValue(0)
+                            ->maxValue(65535)
+                            ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value),
+
+                        TextInput::make('min_booking_pax')
+                            ->label(__('catalog.product.form.min_booking_pax.label'))
+                            ->helperText(__('catalog.product.form.min_booking_pax.help'))
+                            ->integer()
+                            ->default(1)
+                            ->minValue(1)
+                            ->maxValue(65535),
+                    ])
+                    ->columns(['default' => 1, 'md' => 2, 'lg' => 3]),
+
+                Section::make(__('availability.schedule_rule.on_product.title'))
+                    ->icon('heroicon-o-calendar-days')
+                    ->description(__('availability.schedule_rule.on_product.help'))
+                    ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value)
+                    ->schema([
+                        /*
+                         * **The timetable, all of it** (product owner, 2026-09-22:
+                         * *«και δρομολόγια extra αν υπάρχουν με ημέρες ώρες κλπ»*).
+                         *
+                         * This was one row of checkboxes and one time — enough for a
+                         * trip that leaves Tuesdays at nine and nothing else. A real
+                         * summer is «καθημερινά 10:00 και 18:00, και Σαββατοκύριακα
+                         * 12:00 μέχρι τέλη Σεπτεμβρίου», and an operator who cannot say
+                         * that here leaves the guide with a timetable that is wrong.
+                         *
+                         * So: a row per rule, each with its own days, its own list of
+                         * times and its own window — the same four questions the trip's
+                         * «Δρομολόγια» tab asks, in the same order and with the same
+                         * meanings. One row is there to begin with, because a per-seat
+                         * trip with no schedule has no day to sell.
+                         */
+                        Repeater::make('wizard_schedules')
+                            ->label(__('catalog.product.wizard.when.schedules'))
+                            ->helperText(__('catalog.product.wizard.when.schedules_help'))
+                            ->addActionLabel(__('catalog.product.wizard.when.add_schedule'))
+                            /*
+                             * «Δρομολόγιο 2 — Τετάρτη, Πέμπτη» (Mike, 23/9).
+                             *
+                             * Τρία κλειστά δρομολόγια που λένε όλα «Δρομολόγιο» δεν
+                             * είναι λίστα, είναι τρεις ίδιες γραμμές: για να βρει
+                             * κανείς εκείνο της Τετάρτης πρέπει να τα ανοίξει ένα ένα.
+                             * Ο αριθμός λέει πού βρίσκεται, οι μέρες λένε ποιο είναι.
+                             */
+                            ->schema([
+                                CheckboxList::make('days')
+                                    ->label(__('catalog.product.wizard.when.days'))
+                                    ->helperText(__('catalog.product.wizard.when.days_help'))
+                                    ->options(self::weekdays())
+                                    ->columns(4)
+                                    ->columnSpanFull(),
+
+                                // Several a day, the way the «Δρομολόγια» tab takes them
+                                // (2026-09-17): one rule per time, sharing the days and
+                                // the window, so 13:00 can be paused on its own later.
+                                // Chips since 24/9 (#11), the same field as the tab.
+                                DepartureTimes::make('times')
+                                    ->label(__('catalog.product.wizard.when.times'))
+                                    ->helperText(__('catalog.product.wizard.when.times_help'))
+                                    ->daysField('days')
+                                    ->columnSpanFull(),
+
+                                DatePicker::make('valid_from')
+                                    ->label(__('availability.schedule_rule.form.valid_from.label'))
+                                    ->helperText(__('catalog.product.wizard.when.valid_from_help'))
+                                    ->native(false)
+                                    ->default(static fn (): string => Carbon::today(Tenancy::current()->timezone)->toDateString()),
+
+                                DatePicker::make('valid_until')
+                                    ->label(__('availability.schedule_rule.form.valid_until.label'))
+                                    ->helperText(__('catalog.product.wizard.when.valid_until_help'))
+                                    ->native(false)
+                                    // Both bounds inclusive, so a one-day window is valid.
+                                    ->afterOrEqual('valid_from')
+                                    ->validationMessages([
+                                        'after_or_equal' => __('availability.schedule_rule.validation.inverted_window'),
+                                    ]),
+                            ])
+                            /*
+                             * «Δρομολόγιο 2 — Τετάρτη, Πέμπτη · 11:00» (Mike, 23/9).
+                             *
+                             * Η ετικέτα υπήρχε ήδη με τις μέρες και τις ώρες, αλλά
+                             * **χωρίς αριθμό** — και επέστρεφε null σε άδειο δρομολόγιο,
+                             * οπότε το φρέσκο κουτί δεν είχε καθόλου κεφαλίδα και τα
+                             * τρία μαζί διαβάζονταν σαν ένα. Ο αριθμός λέει πού
+                             * βρίσκεσαι, οι μέρες λένε ποιο είναι.
+                             */
+                            ->itemLabel(static fn (array $state, Repeater $component, string $uuid): string => self::scheduleLabel(
+                                $state,
+                                self::positionOf($component, $uuid),
+                            ))
+                            ->defaultItems(1)
+                            ->collapsible()
+                            ->columns(2)
+                            ->columnSpanFull()
+                            ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value),
+                    ]),
+            ]);
     }
 
     private function pricesStep(): Step
     {
-        return Step::make(__('catalog.product.wizard.prices.label'))
+        $perSeat = static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value;
+
+        return Step::make(__('catalog.product.tabs.prices'))
             ->description(__('catalog.product.wizard.prices.description'))
             ->icon('heroicon-o-banknotes')
             ->schema([
-                Placeholder::make('wizard_prices_intro')
-                    ->hiddenLabel()
-                    ->content(__('catalog.product.wizard.prices.intro'))
-                    ->columnSpanFull()
-                    ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value),
-
-                Repeater::make('age_bands')
-                    ->label(__('catalog.product.sections.bands'))
-                    ->addActionLabel(__('catalog.product.form.bands.add'))
-                    /*
-                     * Η κατηγορία γράφει το όνομά της στην κεφαλίδα της (Mike,
-                     * 23/9). Κλειστές, οι κατηγορίες είναι τρία πανομοιότυπα
-                     * πλαίσια — και εδώ η διαφορά μεταξύ τους είναι ακριβώς το
-                     * πεδίο που δεν φαινόταν.
-                     *
-                     * Από το `label` που μόλις πληκτρολογήθηκε και όχι από τον
-                     * κωδικό: ο διοργανωτής που μετονόμασε το «Παιδί» σε «Παιδί
-                     * 3–11» περιμένει να το δει έτσι αμέσως.
-                     */
-                    ->itemLabel(fn (array $state): string => self::bandName($state))
+                Section::make(__('catalog.product.sections.bands'))
+                    ->icon('heroicon-o-users')
+                    ->description(__('catalog.product.form.bands.help'))
+                    ->visible($perSeat)
                     ->schema([
-                        Hidden::make('code'),
-                        Hidden::make('pricing_mode'),
-                        Hidden::make('price_multiplier_bp'),
-                        Hidden::make('is_base'),
-                        Hidden::make('counts_toward_capacity'),
-                        Hidden::make('requires_adult'),
-                        Hidden::make('no_document'),
+                        ProductResource::bandsRepeater()->live(),
+                    ]),
 
-                        TranslatableInput::text(
-                            'label',
-                            __('catalog.product.form.bands.label.label'),
-                            __('catalog.product.form.bands.label.help'),
-                            maxLength: 60,
-                        ),
+                Section::make(__('pricing.periods.heading'))
+                    ->icon('heroicon-o-calendar-days')
+                    ->description(__('pricing.periods.intro'))
+                    ->visible(static fn (Get $get): bool => $perSeat($get) && RatePlanResource::seasonOptions() !== [])
+                    ->schema([
+                        /*
+                         * The pricing flow of the edit page (2026-09-24, Mike: «όταν
+                         * φτιάχνω νέα εκδρομή δεν το έχεις κάνει έτσι όμως ε;»):
+                         * groups above, then the periods ticked, then a price per group
+                         * for «Όλο τον χρόνο» and each ticked period, then the deposit
+                         * and deadlines once. Saved by the same SavePriceTable as the
+                         * edit page, so the two screens cannot drift apart again.
+                         *
+                         * The rows are keyed by the group's repeater item, which does
+                         * not change when the group is renamed.
+                         */
+                        CheckboxList::make('wizard_seasons')
+                            ->options(RatePlanResource::seasonOptions(...))
+                            ->hiddenLabel()
+                            ->columns(['default' => 1, 'md' => 3])
+                            ->live()
+                            ->columnSpanFull()
+                            // Cards, like the edit page's ticks (`.ka-period-cards`).
+                            ->extraAttributes(['class' => 'ka-period-cards'])
+                            ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value
+                                && RatePlanResource::seasonOptions() !== []),
+                    ]),
 
-                        TextInput::make('min_age')
-                            ->label(__('catalog.product.form.bands.min_age.label'))
-                            ->integer()
-                            ->minValue(0)
-                            ->maxValue(120)
-                            ->required(),
+                Section::make(__('pricing.price_table.heading'))
+                    ->icon('heroicon-o-currency-euro')
+                    ->description(__('pricing.price_table.intro'))
+                    ->visible($perSeat)
+                    ->schema([
+                        Grid::make(['default' => 1])
+                            ->schema(static fn (Get $get): array => self::wizardPriceRows($get))
+                            ->columnSpanFull()
+                            ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value),
+                    ]),
 
-                        TextInput::make('max_age')
-                            ->label(__('catalog.product.form.bands.max_age.label'))
-                            ->helperText(__('catalog.product.form.bands.max_age.help'))
-                            ->integer()
-                            ->minValue(0)
-                            ->maxValue(120),
+                Section::make(__('pricing.periods.terms.section'))
+                    ->icon('heroicon-o-banknotes')
+                    ->description(__('pricing.periods.terms.intro'))
+                    ->visible($perSeat)
+                    ->schema([
+                        Group::make(ManagesPriceTable::termFields())
+                            ->statePath('wizard_terms')
+                            ->columns(['default' => 1, 'md' => 3])
+                            ->columnSpanFull()
+                            ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value),
+                    ]),
 
+                Section::make(__('catalog.product.wizard.prices.vessel_section'))
+                    ->icon('heroicon-o-currency-euro')
+                    ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value)
+                    ->schema([
                         MoneyInput::make(
-                            'wizard_price',
-                            __('catalog.product.wizard.prices.price'),
-                            __('catalog.product.wizard.prices.price_help'),
-                        ),
+                            'wizard_vessel_price',
+                            __('pricing.rate_plan.form.vessel_price_cents.label'),
+                            __('pricing.rate_plan.form.vessel_price_cents.help'),
+                        )->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value),
 
                         /*
-                         * **A period's own price, beside the band it prices**
-                         * (product owner, 2026-09-22: *«και τιμές περίοδοι
-                         * κλπ»*).
+                         * **«Μέχρι N άτομα, +Y € ο καθένας παραπάνω»** — the charter
+                         * shape some operators sell (2026-09-17), switched on per
+                         * operator by the platform.
                          *
-                         * A price list is a period and a price for every band,
-                         * which on a form is a grid — and a grid of fields whose
-                         * columns are rows of another repeater is exactly the
-                         * thing that breaks the moment a band is renamed. So the
-                         * question is turned around and asked per band, which is
-                         * also how an operator says it: *«ο ενήλικας 45, το
-                         * καλοκαίρι 55»*. The rows are gathered back into one
-                         * list per period on save.
-                         *
-                         * Hidden when the operator has no periods yet: a select
-                         * with nothing in it is a question with no answer.
+                         * The guide asked for the boat's price and stopped, so an
+                         * operator who prices this way finished the guide with half a
+                         * price list and no sign that the other half existed. Same two
+                         * fields as the trip's own «Τιμές», same gate, same words.
                          */
-                        Repeater::make('wizard_season_prices')
+                        TextInput::make('wizard_included_pax')
+                            ->label(__('pricing.on_product.included_pax.label'))
+                            ->helperText(__('pricing.on_product.included_pax.help'))
+                            ->integer()
+                            ->minValue(1)
+                            ->maxValue(999)
+                            ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value
+                                && Tenancy::current()?->usesExtraPersonPricing() === true),
+
+                        MoneyInput::make(
+                            'wizard_extra_pax_price',
+                            __('pricing.on_product.extra_pax_price.label'),
+                            __('pricing.on_product.extra_pax_price.help'),
+                        )->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value
+                            && Tenancy::current()?->usesExtraPersonPricing() === true),
+
+                        // The same question for a charter, where there are no bands to
+                        // hang it on: the boat's price, per period.
+                        Repeater::make('wizard_vessel_season_prices')
                             ->label(__('catalog.product.wizard.prices.seasons'))
                             ->helperText(__('catalog.product.wizard.prices.seasons_help'))
                             ->addActionLabel(__('catalog.product.wizard.prices.add_season'))
@@ -392,14 +592,11 @@ trait HasTripWizard
                                     ->label(__('pricing.rate_plan.form.season.label'))
                                     ->options(RatePlanResource::seasonOptions(...))
                                     ->required()
-                                    // One price per period per band; a second row
-                                    // for the same period is two answers to one
-                                    // question.
                                     ->distinct(),
 
                                 MoneyInput::make(
                                     'price',
-                                    __('catalog.product.wizard.prices.price'),
+                                    __('pricing.rate_plan.form.vessel_price_cents.label'),
                                     null,
                                 ),
                             ])
@@ -407,78 +604,47 @@ trait HasTripWizard
                             ->defaultItems(0)
                             ->columnSpanFull()
                             ->extraFieldWrapperAttributes(['class' => 'ka-nest'])
-                            ->visible(static fn (): bool => RatePlanResource::seasonOptions() !== []),
+                            ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value
+                                && RatePlanResource::seasonOptions() !== []),
                     ])
-                    ->default(ProductResource::defaultAgeBands(...))
-                    ->columns(2)
-                    ->columnSpanFull()
-                    ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerSeat->value),
-
-                MoneyInput::make(
-                    'wizard_vessel_price',
-                    __('pricing.rate_plan.form.vessel_price_cents.label'),
-                    __('pricing.rate_plan.form.vessel_price_cents.help'),
-                )->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value),
-
-                /*
-                 * **«Μέχρι N άτομα, +Y € ο καθένας παραπάνω»** — the charter
-                 * shape some operators sell (2026-09-17), switched on per
-                 * operator by the platform.
-                 *
-                 * The guide asked for the boat's price and stopped, so an
-                 * operator who prices this way finished the guide with half a
-                 * price list and no sign that the other half existed. Same two
-                 * fields as the trip's own «Τιμές», same gate, same words.
-                 */
-                TextInput::make('wizard_included_pax')
-                    ->label(__('pricing.on_product.included_pax.label'))
-                    ->helperText(__('pricing.on_product.included_pax.help'))
-                    ->integer()
-                    ->minValue(1)
-                    ->maxValue(999)
-                    ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value
-                        && Tenancy::current()?->usesExtraPersonPricing() === true),
-
-                MoneyInput::make(
-                    'wizard_extra_pax_price',
-                    __('pricing.on_product.extra_pax_price.label'),
-                    __('pricing.on_product.extra_pax_price.help'),
-                )->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value
-                    && Tenancy::current()?->usesExtraPersonPricing() === true),
-
-                // The same question for a charter, where there are no bands to
-                // hang it on: the boat's price, per period.
-                Repeater::make('wizard_vessel_season_prices')
-                    ->label(__('catalog.product.wizard.prices.seasons'))
-                    ->helperText(__('catalog.product.wizard.prices.seasons_help'))
-                    ->addActionLabel(__('catalog.product.wizard.prices.add_season'))
-                    ->schema([
-                        Select::make('season_id')
-                            ->label(__('pricing.rate_plan.form.season.label'))
-                            ->options(RatePlanResource::seasonOptions(...))
-                            ->required()
-                            ->distinct(),
-
-                        MoneyInput::make(
-                            'price',
-                            __('pricing.rate_plan.form.vessel_price_cents.label'),
-                            null,
-                        ),
-                    ])
-                    ->columns(2)
-                    ->defaultItems(0)
-                    ->columnSpanFull()
-                    ->extraFieldWrapperAttributes(['class' => 'ka-nest'])
-                    ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::PerVessel->value
-                        && RatePlanResource::seasonOptions() !== []),
+                    ->columns(2),
 
                 Placeholder::make('wizard_quote_note')
                     ->hiddenLabel()
                     ->content(__('catalog.product.wizard.prices.quote'))
                     ->columnSpanFull()
                     ->visible(static fn (Get $get): bool => $get('mode') === BookingMode::Quote->value),
-            ])
-            ->columns(2);
+
+                // «Πρόσθετα», as on the edit page's «Τιμές» (Mike, 2026-09-24:
+                // «δεν βλέπω κάπου τις πρόσθετες υπηρεσίες»). The same fields
+                // as the trip's own table, saved the same way on create.
+                Section::make(__('catalog.extra.on_product.title'))
+                    ->icon('heroicon-o-sparkles')
+                    ->description(__('catalog.extra.on_product.help'))
+                    ->schema([
+                        Repeater::make('wizard_extras')
+                            ->hiddenLabel()
+                            ->addActionLabel(__('catalog.extra.on_product.add'))
+                            ->schema(ExtrasRelationManager::fields())
+                            ->itemLabel(static fn (array $state): ?string => self::bandName((array) ['label' => $state['name'] ?? null]) ?: null)
+                            ->defaultItems(0)
+                            ->collapsible()
+                            ->columns(2),
+                    ]),
+            ]);
+    }
+
+    /**
+     * «Όροι», as on the edit page: the cancellation policy, the VAT and what
+     * the guest is asked at checkout — the policy select carries the «+» that
+     * makes a first policy. Until 2026-09-24 these sat inside «Δημοσίευση».
+     */
+    private function termsStep(): Step
+    {
+        return Step::make(__('catalog.product.tabs.terms'))
+            ->description(__('catalog.product.wizard.terms.description'))
+            ->icon('heroicon-o-shield-check')
+            ->schema(ProductResource::termsSections());
     }
 
     /**
@@ -500,7 +666,7 @@ trait HasTripWizard
      */
     private function pageStep(): Step
     {
-        return Step::make(__('catalog.product.wizard.page.label'))
+        return Step::make(__('catalog.product.tabs.page'))
             ->description(__('catalog.product.wizard.page.description'))
             ->icon('heroicon-o-photo')
             ->schema([
@@ -519,31 +685,6 @@ trait HasTripWizard
             ->description(__('catalog.product.wizard.publish.description'))
             ->icon('heroicon-o-rocket-launch')
             ->schema([
-                // The same two the «Όροι» tab uses — the policy select carries
-                // the «+» that makes a first policy, which is exactly what a
-                // new operator needs here.
-                ProductResource::cancellationPolicySelect(),
-
-                ProductResource::vatRateSelect()
-                    ->helperText(__('catalog.product.wizard.publish.vat_help')),
-
-                /*
-                 * **«Στοιχεία επιβατών»** (product owner, 2026-09-22, after
-                 * reaching a real checkout: *«δεν υπάρχουν πεδία για τα
-                 * έγγραφα»*).
-                 *
-                 * They exist and they work — checkout asks every passenger for
-                 * a name, a nationality, a date of birth and a document — but
-                 * only for a trip whose switch is on, and the switch lived on
-                 * the «Όροι» tab alone. That is a tab nobody opens on a trip
-                 * they are still writing, and the consequence is invisible
-                 * until a guest is asked for nothing on the way to paying.
-                 *
-                 * So the guide asks it, beside the other terms, where an
-                 * operator is already thinking about what travelling requires.
-                 */
-                ...ProductResource::guestDetailsFields(),
-
                 Radio::make('wizard_publish')
                     ->label(__('catalog.product.wizard.publish.question'))
                     ->options([
@@ -557,8 +698,7 @@ trait HasTripWizard
                     ->default('publish')
                     ->required()
                     ->columnSpanFull(),
-            ])
-            ->columns(2);
+            ]);
     }
 
     /**
@@ -696,6 +836,52 @@ trait HasTripWizard
         $flush($run);
 
         return implode(', ', $parts);
+    }
+
+    /**
+     * «Τιμές σε ευρώ» in the wizard: a line per group, a field per column —
+     * «Όλο τον χρόνο» and every ticked period. `wizard_prices.{item}.{column}`,
+     * with the columns keyed as the edit page's table keys them.
+     *
+     * @return list<Component>
+     */
+    private static function wizardPriceRows(Get $get): array
+    {
+        $bands = (array) ($get('age_bands') ?? []);
+        $options = RatePlanResource::seasonOptions();
+        $ticked = array_values(array_filter(
+            array_map('intval', (array) ($get('wizard_seasons') ?? [])),
+            static fn (int $id): bool => array_key_exists($id, $options),
+        ));
+
+        $columns = [PriceTable::NEW_DEFAULT => __('pricing.on_product.season.default')];
+
+        foreach ($ticked as $id) {
+            $columns['s' . $id] = (string) $options[$id];
+        }
+
+        $rows = [];
+
+        // A line per group — its name, then a price per column — the way the
+        // edit page's table reads (2026-09-24).
+        foreach ($bands as $item => $band) {
+            $fields = [
+                Placeholder::make("wizard_prices_name_{$item}")
+                    ->hiddenLabel()
+                    ->content(self::bandName((array) $band))
+                    ->extraAttributes(['class' => 'ka-price-row-name']),
+            ];
+
+            foreach ($columns as $key => $label) {
+                $fields[] = MoneyInput::make("wizard_prices.{$item}.{$key}", $label, null);
+            }
+
+            $rows[] = Grid::make(['default' => 1, 'md' => min(5, count($columns) + 1)])
+                ->schema($fields)
+                ->extraAttributes(['class' => 'ka-price-row']);
+        }
+
+        return $rows;
     }
 
     /**

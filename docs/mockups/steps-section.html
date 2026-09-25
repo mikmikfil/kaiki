@@ -1,0 +1,235 @@
+<title>Βήματα κράτησης</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* «Από την οθόνη σας στο κατάστρωμα», four directions (Mike, 24/9: he likes
+   neither today's cards nor the joined circles). The live site's own tokens:
+   Aegean Blue's colours, Inter, light only, no uppercase, no underlines. */
+:root{
+  --primary:#123A5E; --deep:#0E2C48; --accent:#1B5FD1; --accent-soft:#E8F0FC; --sand:#F7F3EC;
+  --ink:#131A22; --soft:#4A5D5A; --faint:#7B8D8A; --rule:#E1E9E7; --paper:#FFFFFF; --ground:#E6ECF0;
+  --sans:Inter,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;padding-block:22px 64px;padding-inline:16px;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:is(button,a):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+img{display:block;max-width:100%}
+.page{max-width:1240px;margin:0 auto;display:grid;gap:18px}
+
+/* mockup chrome */
+.intro h1{font-size:25px;line-height:1.2;margin:0 0 6px;letter-spacing:-.015em}
+.intro p{margin:0;max-width:76ch;color:var(--soft);font-size:15px}
+.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:#fff;border:1px solid #CFDAE8;border-radius:10px;padding:3px}
+.seg button{padding:7px 13px;border-radius:7px;font-weight:600;font-size:14px;color:var(--soft)}
+.seg button[aria-pressed="true"]{background:var(--primary);color:#fff}
+.why{font-size:14.5px;color:var(--soft);background:#fff;border-radius:12px;padding:12px 16px;box-shadow:0 1px 0 #CBD5DE}
+.why b{color:var(--ink)}
+
+.device{margin:0 auto;width:100%;background:var(--paper);border-radius:18px;overflow:hidden;box-shadow:0 1px 0 #CBD5DE,0 18px 50px rgba(14,44,72,.12);transition:max-width .3s}
+.device.phone{max-width:390px}
+.device.desk{max-width:1240px}
+.site{container:site/inline-size}
+.col{padding-inline:clamp(18px,3.4cqi,44px)}
+/* a hint of the page around the section */
+.ctx{padding-block:22px;color:var(--faint);font-size:13.5px;border-bottom:1px dashed var(--rule)}
+.ctx + .dir,.dir + .ctx2{margin-top:0}
+.ctx2{padding-block:22px;color:var(--faint);font-size:13.5px;border-top:1px dashed var(--rule)}
+
+.kick{font-size:14px;font-weight:600;color:var(--accent);margin:0 0 10px;display:flex;align-items:center;gap:10px}
+.kick::before{content:"";width:22px;height:2px;background:currentColor;border-radius:2px}
+h2{font-weight:800;font-size:clamp(28px,3.8cqi,42px);line-height:1.1;letter-spacing:-.03em;color:var(--primary);margin:0;text-wrap:balance}
+h3{font-size:18px;letter-spacing:-.01em;color:var(--primary);margin:0 0 4px}
+p{margin:0}
+.btn{display:inline-flex;align-items:center;gap:9px;background:var(--accent);color:#fff!important;font-weight:700;font-size:15px;padding:13px 20px;border-radius:10px}
+.num{font-variant-numeric:tabular-nums}
+
+/* ===== Α. Photographs: the trip as three pictures ===== */
+.dA{padding-block:clamp(52px,7cqi,88px)}
+.dA .head{display:flex;flex-wrap:wrap;gap:16px 32px;align-items:end;justify-content:space-between;margin-bottom:30px}
+.dA .head p.lede{max-width:28rem;color:var(--soft)}
+.dA ol{list-style:none;margin:0;padding:0;display:grid;gap:22px;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:760px){.dA ol{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.dA li figure{margin:0;position:relative;border-radius:18px;overflow:hidden}
+.dA li img{width:100%;aspect-ratio:4/3;object-fit:cover}
+.dA li figure span{position:absolute;left:14px;top:14px;background:#fff;color:var(--primary);font-weight:800;font-size:14px;border-radius:99px;padding:5px 12px}
+.dA li .t{padding:16px 4px 0}
+.dA li .t p{color:var(--soft);font-size:15px}
+
+/* ===== Β. Big numbers: heading on the left, the three on the right ===== */
+.dB{padding-block:clamp(52px,7cqi,92px);display:grid;gap:30px;grid-template-columns:minmax(0,1fr)}
+@container site (min-width:900px){.dB{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:64px;align-items:start}}
+.dB .l p{color:var(--soft);margin:16px 0 24px;max-width:24rem}
+.dB ol{list-style:none;margin:0;padding:0;display:grid}
+.dB li{display:grid;grid-template-columns:clamp(64px,8cqi,96px) minmax(0,1fr);gap:18px;padding-block:22px;border-top:1px solid var(--rule)}
+.dB li:last-child{border-bottom:1px solid var(--rule)}
+.dB .n{font-size:clamp(48px,6cqi,72px);font-weight:300;line-height:.9;color:var(--accent);letter-spacing:-.04em}
+.dB li p{color:var(--soft);font-size:15.5px;max-width:30rem}
+
+/* ===== Γ. The boarding pass: one ticket, three stubs ===== */
+.dC{padding-block:clamp(52px,7cqi,88px);background:var(--sand)}
+.dC .head{text-align:center;margin-bottom:30px}
+.dC .head .kick{justify-content:center}
+.ticket{display:grid;grid-template-columns:minmax(0,1fr);background:#fff;border-radius:22px;box-shadow:0 2px 6px rgba(14,44,72,.05),0 20px 44px rgba(14,44,72,.1);position:relative}
+@container site (min-width:760px){.ticket{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.stub{padding:26px 26px 28px;position:relative}
+.stub + .stub{border-top:2px dashed var(--rule)}
+@container site (min-width:760px){
+  .stub + .stub{border-top:0;border-left:2px dashed var(--rule)}
+  .stub + .stub::before,.stub + .stub::after{content:"";position:absolute;left:-13px;width:24px;height:24px;border-radius:50%;background:var(--sand)}
+  .stub + .stub::before{top:-12px}
+  .stub + .stub::after{bottom:-12px}
+}
+.stub .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.stub .lbl{font-size:12.5px;font-weight:600;color:var(--faint);letter-spacing:.04em}
+.stub .ic{color:var(--accent)}
+.stub p{color:var(--soft);font-size:15px}
+.stub .code{margin-top:18px;font-size:13px;color:var(--faint);font-variant-numeric:tabular-nums;display:flex;gap:14px;flex-wrap:wrap}
+.stub .code b{color:var(--primary);font-weight:700}
+
+/* ===== Δ. One photograph and a short list beside it ===== */
+.dD{padding-block:clamp(52px,7cqi,88px);display:grid;gap:30px;grid-template-columns:minmax(0,1fr);align-items:center}
+@container site (min-width:900px){.dD{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:64px}}
+.dD .ph{border-radius:22px;overflow:hidden;position:relative}
+.dD .ph img{width:100%;aspect-ratio:4/5;object-fit:cover;object-position:center 40%}
+@container site (max-width:899px){.dD .ph img{aspect-ratio:4/3}}
+.dD .ph .badge{position:absolute;left:16px;bottom:16px;right:16px;background:rgba(255,255,255,.95);border-radius:14px;padding:12px 14px;display:flex;gap:12px;align-items:center;font-size:14px;color:var(--ink)}
+.dD .ph .badge b{display:block;color:var(--primary)}
+.dD .ph .badge .ic{color:var(--accent)}
+.dD ol{list-style:none;margin:26px 0 28px;padding:0;display:grid;gap:20px}
+.dD li{display:grid;grid-template-columns:44px minmax(0,1fr);gap:14px;align-items:start}
+.dD li .ic{width:44px;height:44px;display:grid;place-items:center;color:var(--accent)}
+.dD li p{color:var(--soft);font-size:15px}
+
+.qs{background:#fff;border-radius:16px;padding:18px 20px;box-shadow:0 1px 0 #CBD5DE;font-size:15px}
+.qs b{display:block;margin-bottom:4px}
+.qs span{color:var(--soft)}
+</style>
+
+<div class="page">
+  <header class="intro">
+    <h1>«Από την οθόνη σας στο κατάστρωμα»: τέσσερις προτάσεις</h1>
+    <p>Με τα χρώματα και τα κείμενα του Aegean Blue. Πάνω και κάτω από την ενότητα φαίνεται πού κάθεται στη σελίδα.</p>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Πρόταση">
+      <button type="button" id="b-a" aria-pressed="true" data-dir="a">Α. Τρεις φωτογραφίες</button>
+      <button type="button" id="b-b" aria-pressed="false" data-dir="b">Β. Μεγάλοι αριθμοί</button>
+      <button type="button" id="b-c" aria-pressed="false" data-dir="c">Γ. Εισιτήριο</button>
+      <button type="button" id="b-d" aria-pressed="false" data-dir="d">Δ. Φωτογραφία και λίστα</button>
+    </div>
+    <div class="seg" role="group" aria-label="Οθόνη">
+      <button type="button" id="v-phone" aria-pressed="false" data-view="phone">Κινητό</button>
+      <button type="button" id="v-desk" aria-pressed="true" data-view="desk">Υπολογιστής</button>
+    </div>
+  </div>
+
+  <p class="why" id="why"></p>
+
+  <div class="device desk" id="device">
+   <div class="site">
+    <div class="ctx col">… οι κάρτες των εκδρομών</div>
+
+    <!-- Α -->
+    <section class="dir dA col" data-dir="a">
+      <div class="head">
+        <div><p class="kick">Πώς λειτουργεί</p><h2>Από την οθόνη σας στο κατάστρωμα</h2></div>
+        <p class="lede">Τρία βήματα, και το εισιτήριο είναι στο κινητό σας πριν κλείσετε τη σελίδα.</p>
+      </div>
+      <ol>
+        <li><figure><img src="steps-img/s1.jpg" alt=""><span>1</span></figure><div class="t"><h3>Διαλέξτε εκδρομή</h3><p>Δείτε τις ελεύθερες θέσεις κάθε μέρας και την τιμή για την παρέα σας.</p></div></li>
+        <li><figure><img src="steps-img/s2.jpg" alt=""><span>2</span></figure><div class="t"><h3>Πληρώστε online</h3><p>Με κάρτα, με ασφάλεια. Το εισιτήριο έρχεται αμέσως στο email σας.</p></div></li>
+        <li><figure><img src="steps-img/s3.jpg" alt=""><span>3</span></figure><div class="t"><h3>Ελάτε στη Μαρίνα Ζέας</h3><p>15 λεπτά πριν. Εμείς φέρνουμε τον καφέ, εσείς το μαγιό.</p></div></li>
+      </ol>
+    </section>
+
+    <!-- Β -->
+    <section class="dir dB col" data-dir="b" hidden>
+      <div class="l">
+        <p class="kick">Πώς λειτουργεί</p>
+        <h2>Από την οθόνη σας στο κατάστρωμα</h2>
+        <p>Τρία βήματα, και το εισιτήριο είναι στο κινητό σας πριν κλείσετε τη σελίδα.</p>
+        <a class="btn" href="#">Δείτε τις εκδρομές →</a>
+      </div>
+      <ol>
+        <li><span class="n num">1</span><div><h3>Διαλέξτε εκδρομή</h3><p>Δείτε τις ελεύθερες θέσεις κάθε μέρας και την τιμή για την παρέα σας.</p></div></li>
+        <li><span class="n num">2</span><div><h3>Πληρώστε online</h3><p>Με κάρτα, με ασφάλεια. Το εισιτήριο έρχεται αμέσως στο email σας.</p></div></li>
+        <li><span class="n num">3</span><div><h3>Ελάτε στη Μαρίνα Ζέας</h3><p>15 λεπτά πριν. Εμείς φέρνουμε τον καφέ, εσείς το μαγιό.</p></div></li>
+      </ol>
+    </section>
+
+    <!-- Γ -->
+    <section class="dir dC col" data-dir="c" hidden>
+      <div class="head"><p class="kick">Πώς λειτουργεί</p><h2>Από την οθόνη σας στο κατάστρωμα</h2></div>
+      <div class="ticket">
+        <div class="stub">
+          <div class="top"><span class="lbl">Βήμα 1</span><svg class="ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg></div>
+          <h3>Διαλέξτε εκδρομή</h3><p>Δείτε τις ελεύθερες θέσεις κάθε μέρας και την τιμή για την παρέα σας.</p>
+          <div class="code"><span>Ημερομηνία <b>Σάβ 27/9</b></span><span>Άτομα <b>2</b></span></div>
+        </div>
+        <div class="stub">
+          <div class="top"><span class="lbl">Βήμα 2</span><svg class="ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/></svg></div>
+          <h3>Πληρώστε online</h3><p>Με κάρτα, με ασφάλεια. Το εισιτήριο έρχεται αμέσως στο email σας.</p>
+          <div class="code"><span>Κράτηση <b>ABC-4821</b></span></div>
+        </div>
+        <div class="stub">
+          <div class="top"><span class="lbl">Βήμα 3</span><svg class="ic" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v14M5 13a7 7 0 0 0 14 0M8.5 11h7"/></svg></div>
+          <h3>Ελάτε στη Μαρίνα Ζέας</h3><p>15 λεπτά πριν. Εμείς φέρνουμε τον καφέ, εσείς το μαγιό.</p>
+          <div class="code"><span>Επιβίβαση <b>09:45</b></span><span>Προβλήτα <b>Β</b></span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Δ -->
+    <section class="dir dD col" data-dir="d" hidden>
+      <div class="ph">
+        <img src="steps-img/tall.jpg" alt="Επιβάτισσα στο κατάστρωμα του σκάφους">
+        <div class="badge"><svg class="ic" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12l5 5L20 6"/></svg><div><b>Το εισιτήριο στο κινητό</b>Ο κυβερνήτης το σκανάρει στην προβλήτα.</div></div>
+      </div>
+      <div>
+        <p class="kick">Πώς λειτουργεί</p>
+        <h2>Από την οθόνη σας στο κατάστρωμα</h2>
+        <ol>
+          <li><span class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><div><h3>Διαλέξτε εκδρομή</h3><p>Δείτε τις ελεύθερες θέσεις κάθε μέρας και την τιμή για την παρέα σας.</p></div></li>
+          <li><span class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="M3 10h18M7 15h3"/></svg></span><div><h3>Πληρώστε online</h3><p>Με κάρτα, με ασφάλεια. Το εισιτήριο έρχεται αμέσως στο email σας.</p></div></li>
+          <li><span class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="2"/><path d="M12 7v14M5 13a7 7 0 0 0 14 0M8.5 11h7"/></svg></span><div><h3>Ελάτε στη Μαρίνα Ζέας</h3><p>15 λεπτά πριν. Εμείς φέρνουμε τον καφέ, εσείς το μαγιό.</p></div></li>
+        </ol>
+        <a class="btn" href="#">Δείτε τις εκδρομές →</a>
+      </div>
+    </section>
+
+    <div class="ctx2 col">… «Ένα ξύλινο καΐκι και δύο αδέρφια»</div>
+   </div>
+  </div>
+
+  <div class="qs"><b>Όποια διαλέξεις, μπαίνει στο live site ως στυλ της ενότητας «Πώς λειτουργεί».</b><span>Τα κείμενα των βημάτων μένουν όπως τα γράφει ο διοργανωτής. Στο Α ο διοργανωτής βάζει και τρεις φωτογραφίες, στο Δ μία.</span></div>
+</div>
+
+<script>
+(function () {
+  var why = {
+    a: '<b>Α. Τρεις φωτογραφίες.</b> Κάθε βήμα με τη δική του φωτογραφία: η εκδρομή, το ηλιοβασίλεμα, η επιβίβαση. Ο επισκέπτης βλέπει τη μέρα του, όχι έναν οδηγό χρήσης.',
+    b: '<b>Β. Μεγάλοι αριθμοί.</b> Ήσυχο και καθαρό: ο τίτλος αριστερά με ένα κουμπί, δεξιά τα τρία βήματα με λεπτούς μεγάλους αριθμούς και γραμμές ανάμεσα. Χωρίς κουτιά.',
+    c: '<b>Γ. Εισιτήριο.</b> Τα τρία βήματα σαν κάρτα επιβίβασης με διάτρητες γραμμές, με μικρές λεπτομέρειες όπως ημερομηνία, κωδικός κράτησης και προβλήτα. Κάτι που έχει μόνο ένα site για σκάφη.',
+    d: '<b>Δ. Φωτογραφία και λίστα.</b> Μία μεγάλη φωτογραφία επιβίβασης αριστερά, τα τρία βήματα δεξιά με λεπτά εικονίδια και ένα κουμπί στο τέλος.'
+  };
+  var device = document.getElementById('device');
+  function press(sel, b) { document.querySelectorAll(sel).forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); }); }
+  function show(d) {
+    document.querySelectorAll('section.dir').forEach(function (s) { s.hidden = s.dataset.dir !== d; });
+    document.getElementById('why').innerHTML = why[d];
+  }
+  document.querySelectorAll('button[data-dir]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-dir]', b); show(b.dataset.dir); }); });
+  document.querySelectorAll('button[data-view]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-view]', b); device.classList.remove('phone', 'desk'); device.classList.add(b.dataset.view); }); });
+  document.querySelectorAll('a[href="#"]').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); }); });
+  show('a');
+  if (window.innerWidth < 700) document.getElementById('v-phone').click();
+})();
+</script>

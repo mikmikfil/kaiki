@@ -140,6 +140,12 @@
                                         @if ($answerLine !== '')
                                             <span class="block text-xs text-gray-500 dark:text-gray-400">{{ $answerLine }}</span>
                                         @endif
+                                        {{-- «Φοιτητής», «ΑμεΑ»: a group by status the crew check
+                                             with their eyes, since checkout asked no number
+                                             (2026-09-24). --}}
+                                        @if ($guest->ageBand?->requires_proof)
+                                            <span class="block text-xs font-medium text-warning-700 dark:text-warning-400">{{ __('checkin.guest.proof', ['group' => $guest->ageBand->label]) }}</span>
+                                        @endif
                                         @if ($guest->no_show)
                                             <span class="text-xs text-danger-600 dark:text-danger-400">· {{ __('checkin.guest.no_show') }}</span>
                                         @endif

@@ -45,7 +45,7 @@ final class BlockItems
     public const STARTING_FEATURE_ICONS = ['users', 'anchor', 'sun', 'lock'];
 
     /** Where a call-to-action button may point. */
-    public const TARGETS = ['trips', 'search', 'contact', 'trip', 'page'];
+    public const TARGETS = ['trips', 'search', 'contact', 'about', 'trip', 'page'];
 
     /**
      * The stored entries, cleaned, or null when none survive.
@@ -71,6 +71,7 @@ final class BlockItems
                 HomeBlockType::Steps => self::step($entry),
                 HomeBlockType::Features => self::feature($entry),
                 HomeBlockType::Testimonials => self::review($entry),
+                HomeBlockType::Timeline => self::milestone($entry),
                 default => null,
             };
 
@@ -236,6 +237,25 @@ final class BlockItems
             'icon' => self::icon($entry['icon'] ?? null),
             'title' => $title,
             'text' => self::translations($entry['text'] ?? null, 300) ?? [],
+        ];
+    }
+
+    /**
+     * One year of the timeline: the year as the operator writes it («1968»,
+     * «Σήμερα»), a title, and a line.
+     *
+     * @param  array<string, mixed>  $entry
+     * @return array<string, mixed>|null
+     */
+    private static function milestone(array $entry): ?array
+    {
+        $title = self::translations($entry['title'] ?? null, 80);
+        $year = is_string($entry['year'] ?? null) || is_int($entry['year'] ?? null) ? mb_substr(trim((string) $entry['year']), 0, 12) : '';
+
+        return $title === null || $year === '' ? null : [
+            'year' => $year,
+            'title' => $title,
+            'text' => self::translations($entry['text'] ?? null, 200) ?? [],
         ];
     }
 
