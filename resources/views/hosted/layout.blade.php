@@ -4008,7 +4008,10 @@
         .page-head .lede, .search-head .standfirst, .trip-intro .standfirst { font-size: var(--t-lead); line-height: 1.5; }
 
         /* ---- measure ---- */
-        .story-copy .prose, .product-main .prose, .faq-item .prose, .page-head .lede { max-width: var(--measure); }
+        .story-copy .prose, .faq-item .prose, .page-head .lede { max-width: var(--measure); }
+        /* The trip's own text runs wider (Mike, 25/9: «more width»): 32rem left
+           «Για την εκδρομή» a thin column beside a wide empty page. */
+        .product-main .prose { max-width: 48rem; }
 
         /* ---- the legal page: prose, not sections ----
            It is the one page whose column holds its h1, h2 and paragraphs
