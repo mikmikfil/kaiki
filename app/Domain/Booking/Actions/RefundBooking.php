@@ -384,7 +384,11 @@ final class RefundBooking
             // does an operator reconciling two rows against one statement.
             'refunds_payment_id' => $source->getKey(),
             // PAY-9. Minted before the call, never derived from a response.
-            'idempotency_key' => $keyPrefix . Str::uuid(),
+            // The column is char(40): a prefixed key drops the uuid's dashes
+            // so «late-» + 32 hex still fits (MySQL refuses 41).
+            'idempotency_key' => $keyPrefix === ''
+                ? (string) Str::uuid()
+                : $keyPrefix . str_replace('-', '', (string) Str::uuid()),
         ])->save();
 
         return $payment;
