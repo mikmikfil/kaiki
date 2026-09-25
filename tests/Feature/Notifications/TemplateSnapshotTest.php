@@ -107,14 +107,28 @@ it('leaves no translation key unresolved in either locale', function (): void {
     }
 })->group('fast');
 
-it('needs no image to be readable', function (): void {
+it('fetches no remote image, and names the one image it carries', function (): void {
     [$html] = renderTemplate(NotificationTemplate::BookingConfirmed, 'el');
 
     // NTF-6, and every client on its list blocks remote images by default for
     // a sender the recipient has not written to before — which is exactly the
     // situation a confirmation email is in. A layout that needs an image is a
     // layout that arrives broken the first time it matters.
-    expect($html)->not->toContain('<img');
+    //
+    // The boarding QR is the one exception (2026-09-23), and it is not a
+    // fetch: it travels inside the message as a `cid:` part, which
+    // `Mailable::render()` turns into a `data:` URI. Anything with a scheme a
+    // client would go and get is still forbidden, and every image says whose
+    // code it is for the client that does not draw it.
+    preg_match_all('/<img\b[^>]*>/i', $html, $images);
+
+    expect($images[0])->not->toBeEmpty();
+
+    foreach ($images[0] as $img) {
+        expect($img)->toMatch('/src="data:image\/png;base64,/')
+            ->and($img)->not->toMatch('/src="(https?:)?\/\//i')
+            ->and($img)->toMatch('/alt="[^"]+"/');
+    }
 })->group('fast');
 
 it('applies no uppercase transform, which would strip Greek accents', function (): void {

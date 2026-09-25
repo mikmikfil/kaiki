@@ -44,6 +44,8 @@ final class ManifestAction
             ->label(__('manifest.action.label'))
             ->icon('heroicon-o-clipboard-document-list')
             ->visible(static fn (): bool => self::userCan(Capability::ViewManifest))
+            // The button downloads a file; Filament's fallback was «Submit».
+            ->modalSubmitActionLabel(__('manifest.action.submit'))
             ->form([
                 CheckboxList::make('columns')
                     ->label(__('manifest.action.columns'))

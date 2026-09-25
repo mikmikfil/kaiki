@@ -8,6 +8,7 @@ use App\Filament\App\Pages\HomePage;
 use App\Filament\App\Pages\Settings;
 use App\Filament\App\Resources\FaqResource\Pages;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\Faq;
 use App\Models\Product;
 use App\Policies\FaqPolicy;
@@ -58,6 +59,8 @@ class FaqResource extends Resource
 {
     protected static ?string $model = Faq::class;
 
+    protected static ?string $recordTitleAttribute = 'question';
+
     protected static ?string $navigationIcon = 'heroicon-o-question-mark-circle';
 
     /** Reached from the «Ρυθμίσεις» hub ({@see Settings}), not the sidebar. */
@@ -95,6 +98,7 @@ class FaqResource extends Resource
     {
         return [
             Section::make(__('faq.sections.entry'))
+                ->icon('heroicon-o-question-mark-circle')
                 ->schema([
                     TranslatableInput::text(
                         'question',
@@ -116,6 +120,7 @@ class FaqResource extends Resource
                 ]),
 
             Section::make(__('faq.sections.where'))
+                ->icon('heroicon-o-map-pin')
                 ->schema([
                     // Null is the default and the common case. The placeholder
                     // says what null means in the operator's own terms, because
@@ -170,10 +175,9 @@ class FaqResource extends Resource
                 TernaryFilter::make('is_published')
                     ->label(__('faq.form.is_published.label')),
             ])
-            ->actions([
-                EditAction::make(),
+            ->actions(MoreActions::row(EditAction::make(), [
                 DeleteAction::make(),
-            ])
+            ]))
             ->emptyStateHeading(__('faq.empty.heading'))
             ->emptyStateDescription(__('faq.empty.body'));
     }

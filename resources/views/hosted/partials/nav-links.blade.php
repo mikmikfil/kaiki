@@ -12,4 +12,8 @@
     accessibility tree and the tab order together.
 --}}
 <a href="{{ route('hosted.search', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.search.nav') }}</a>
+{{-- «Σχετικά με εμάς», once the operator has one (2026-09-24). --}}
+@if ($hasAbout ?? false)
+    <a href="{{ route('hosted.about', ['operator' => $tenant->slug, 'lang' => $locale]) }}" @if (request()->routeIs('hosted.about', 'hosted.custom.about')) aria-current="page" @endif>{{ __('hosted.about.nav') }}</a>
+@endif
 <a href="{{ route('hosted.contact', ['operator' => $tenant->slug, 'lang' => $locale]) }}">{{ __('hosted.contact.nav') }}</a>

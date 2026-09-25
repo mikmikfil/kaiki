@@ -9,6 +9,7 @@ use App\Filament\App\Pages\Setup;
 use App\Filament\App\Resources\PortResource;
 use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Resources\SeasonResource;
+use App\Filament\App\Resources\StaffResource;
 use App\Filament\App\Resources\VesselResource;
 use App\Models\User;
 use App\Support\Authorization\Capability;
@@ -95,6 +96,7 @@ class SetupProgress extends Widget
             SetupChecklist::PORT => PortResource::getUrl('create'),
             SetupChecklist::VESSEL => VesselResource::getUrl('create'),
             SetupChecklist::SEASON => SeasonResource::getUrl('index'),
+            SetupChecklist::CREW => StaffResource::getUrl('index'),
             SetupChecklist::PRODUCT => ProductResource::getUrl('create'),
         ];
     }

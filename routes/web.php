@@ -348,6 +348,13 @@ Route::domain(HostedHost::name())
             ->where('operator', '[a-z0-9][a-z0-9-]*')
             ->name('hosted.legal');
 
+        // «Σχετικά με εμάς» (2026-09-24). Before the trip route, like `/legal`:
+        // a trip whose slug is literally `about` is shadowed, and says so in
+        // `AboutPageTest`.
+        Route::get('/{operator}/about', [HostedPageController::class, 'about'])
+            ->where('operator', '[a-z0-9][a-z0-9-]*')
+            ->name('hosted.about');
+
         // The contact page and its form. Registered before the trip route for
         // the same reason `/legal` and `/search` are, and the `POST` shares the
         // path so the form's `action` is the page's own address — which is what
@@ -413,6 +420,7 @@ Route::middleware(['tenant', 'hosted.custom', 'hosted.page', 'locale'])->group(f
     // No `/` here: it is registered above, once, because a second one would
     // replace it rather than compete with it. See `RootController`.
     Route::get('/legal', [HostedPageController::class, 'legal'])->name('hosted.custom.legal');
+    Route::get('/about', [HostedPageController::class, 'about'])->name('hosted.custom.about');
     Route::get('/search', [SearchPageController::class, 'show'])->name('hosted.custom.search');
     Route::get('/contact', [ContactPageController::class, 'show'])->name('hosted.custom.contact');
 

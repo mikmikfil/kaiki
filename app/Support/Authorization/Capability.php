@@ -63,6 +63,14 @@ enum Capability: string
     case ViewManifest = 'view_manifest';
 
     /**
+     * «Πώληση τώρα» on the quay (2026-09-24): every role, crew included, may
+     * sell a seat on a departure and record that it was paid on the POS or in
+     * cash. It is not ManageBookings — crew still cannot edit, cancel or refund
+     * a booking — and the price is shown inside the sale only.
+     */
+    case SellOnQuay = 'sell_on_quay';
+
+    /**
      * Roles holding this capability.
      *
      * @return list<Role>
@@ -99,7 +107,8 @@ enum Capability: string
             self::ViewDepartures,
             self::ViewPaxList,
             self::CheckInGuests,
-            self::ViewManifest => [Role::Owner, Role::Manager, Role::Crew],
+            self::ViewManifest,
+            self::SellOnQuay => [Role::Owner, Role::Manager, Role::Crew],
         };
     }
 

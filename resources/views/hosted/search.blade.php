@@ -30,16 +30,20 @@
         $applied = $criteria->applied;
     @endphp
 
-    <header class="search-head">
-        <h1>{{ __('hosted.search.title') }}</h1>
-        <p class="standfirst">{{ __('hosted.search.standfirst') }}</p>
-    </header>
-
-    @include('hosted.partials.search-form', [
-        'applied' => $applied,
-        'dateValue' => $criteria->date->toDateString(),
-        'paxValue' => $criteria->pax,
+    @include('hosted.partials.page-top', [
+        'eyebrow' => __('hosted.page_top.search_eyebrow'),
+        'title' => __('hosted.search.title'),
+        'lede' => __('hosted.search.standfirst'),
     ])
+
+    {{-- The home page's white bar, on the band's lower edge (2026-09-24). --}}
+    <div class="hero-search hero-search-below page-top-over">
+        @include('hosted.partials.search-form', [
+            'applied' => $applied,
+            'dateValue' => $criteria->date->toDateString(),
+            'paxValue' => $criteria->pax,
+        ])
+    </div>
 
     @if ($browsing)
         {{-- Nobody asked a question, so this is the catalogue rather than an

@@ -127,6 +127,35 @@ it('renders the QR as an inline svg with no xml declaration', function (): void 
     });
 })->group('fast');
 
+it('draws the same payload as a PNG for the email, with a quiet zone and whole-pixel modules', function (): void {
+    [$tenant, $booking] = CheckInScenario::sailing(Carbon::parse('2026-07-03 09:00:00'));
+
+    Tenancy::forTenant($tenant, function () use ($booking): void {
+        $guest = $booking->guests()->first();
+        $png = TicketQr::pngFor($guest);
+
+        // Gmail and Outlook do not draw SVG, so the email carries this
+        // (2026-09-23) — from the same payload, not a second generator.
+        expect(substr($png, 0, 8))->toBe("\x89PNG\r\n\x1a\n")
+            ->and($png)->toBe(TicketQr::png(TicketQr::payloadFor($guest)));
+
+        $image = imagecreatefromstring($png);
+        expect($image)->not->toBeFalse();
+
+        /** @var GdImage $image */
+        $size = imagesx($image);
+
+        // Square, about twice the 200 px the email shows it at.
+        expect(imagesy($image))->toBe($size)
+            ->and($size)->toBeGreaterThan(300)->toBeLessThanOrEqual(TicketQr::PNG_PX);
+
+        // The white quiet zone, at every corner and inside the top-left one.
+        foreach ([[0, 0], [8, 8], [$size - 1, 0], [0, $size - 1], [$size - 1, $size - 1]] as [$x, $y]) {
+            expect(imagecolorat($image, $x, $y) & 0xFFFFFF)->toBe(0xFFFFFF);
+        }
+    });
+})->group('fast');
+
 it('points the QR at the boarding page rather than at a bare code', function (): void {
     [$tenant, $booking] = CheckInScenario::sailing(Carbon::parse('2026-07-03 09:00:00'));
 

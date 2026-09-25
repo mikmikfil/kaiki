@@ -46,6 +46,12 @@ return [
         'detail' => ':sold booked, minimum :minimum · :vessel',
     ],
 
+    'no_captain' => [
+        'title' => 'No captain · :trip, :time',
+        'detail' => ':vessel · the boat has no usual captain either',
+        'more' => ':vessel · and :count more departure on the same schedule|:vessel · and :count more departures on the same schedule',
+    ],
+
     'guest_details' => [
         'title' => 'Passenger details missing · :reference',
         'detail' => ':guest, :trip — the manifest has to exist before the boat leaves.',
@@ -54,6 +60,16 @@ return [
     'balance' => [
         'title' => 'Balance overdue · :reference',
         'detail' => ':guest still owes :amount.',
+    ],
+
+    // Money that came in as cash or by transfer and has to go back by hand
+    // (2026-09-23). A card refunds itself; these do not.
+    'refund' => [
+        'title' => 'Refund :amount · :reference',
+        'detail' => 'To :guest, :method. The booking was cancelled and this money does not go back on its own.',
+        'cash' => 'in cash',
+        'bank_transfer' => 'by bank transfer',
+        'pos' => 'back on their card, from your POS',
     ],
 
     'quote' => [
@@ -75,14 +91,25 @@ return [
 
     // Every row leads to where it is fixed (2026-09-17).
     'actions' => [
+        'captain' => 'Assign a captain',
         'departure' => 'Open departure',
         'details' => 'Open booking',
         'balance' => 'Record payment',
         'quote' => 'Open quote',
+        'refund' => 'Open booking',
         'calendar' => 'Fix calendar sync',
         'call' => 'Call',
         'all' => 'All (:count)',
         'fewer' => 'Fewer',
+    ],
+
+    // The answered row stays a few seconds with its outcome (2026-09-23);
+    // otherwise the next one slides into its place and nothing seems to happen.
+    'done' => [
+        'cancelled' => 'Cancelled',
+        'sailed' => 'Sails anyway',
+        'paid' => 'Paid',
+        'refunded' => 'Refunded',
     ],
 
     // The decisions are taken here, confirmed first (2026-09-17).
@@ -94,12 +121,17 @@ return [
         'sailed' => 'Done: the departure sails as planned.',
         'cancel' => 'Cancel and notify guests',
         'cancel_heading' => 'Cancel: :trip',
-        'cancel_body' => '{0} There are no bookings on this departure. It is cancelled and stops selling.|{1} :count booking on this departure is cancelled. The guest gets back everything they paid and is emailed.|[2,*] :count bookings on this departure are cancelled. Every guest gets back everything they paid and is emailed.',
+        'cancel_body' => '{0} There are no bookings on this departure. It is cancelled and stops selling.|{1} :count booking on this departure is cancelled. The guest gets back everything they paid and is emailed. Card payments go back on their own; anything paid in cash or by transfer will appear here for you to hand back.|[2,*] :count bookings on this departure are cancelled. Every guest gets back everything they paid and is emailed. Card payments go back on their own; anything paid in cash or by transfer will appear here for you to hand back.',
         'cancel_confirm' => 'Yes, cancel',
         'cancelled' => '{0} The departure is cancelled.|{1} The departure is cancelled, with :count booking.|[2,*] The departure is cancelled, with :count bookings.',
         'paid' => 'Paid',
         'paid_heading' => 'Payment for booking :reference',
         'paid_confirm' => 'Record',
+        'refunded' => 'Refunded',
+        'refunded_heading' => 'Did :guest get :amount back?',
+        'refunded_body' => 'Press «Yes» only once you have handed the money back :method. The booking will be marked refunded.',
+        'refunded_confirm' => 'Yes, refunded',
+        'refunded_done' => 'Refund recorded.',
     ],
 
 ];

@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources;
 use App\Domain\Catalog\Actions\SaveCancellationPolicy;
 use App\Filament\App\Resources\CancellationPolicyResource\Pages;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\CancellationPolicy;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Repeater;
@@ -51,6 +52,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class CancellationPolicyResource extends Resource
 {
     protected static ?string $model = CancellationPolicy::class;
+
+    protected static ?string $recordTitleAttribute = 'name';
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-uturn-left';
 
@@ -98,6 +101,7 @@ class CancellationPolicyResource extends Resource
     {
         return [
             Section::make(__('pricing.cancellation.sections.identity'))
+                ->icon('heroicon-o-document-text')
                 ->schema([
                     TranslatableInput::text(
                         'name',
@@ -119,6 +123,7 @@ class CancellationPolicyResource extends Resource
                 ]),
 
             Section::make(__('pricing.cancellation.sections.ladder'))
+                ->icon('heroicon-o-arrow-trending-down')
                 ->description(__('pricing.cancellation.form.tiers.help'))
                 ->schema([
                     TextInput::make('free_cancellation_hours')
@@ -172,6 +177,7 @@ class CancellationPolicyResource extends Resource
                 ]),
 
             Section::make(__('pricing.cancellation.sections.special'))
+                ->icon('heroicon-o-exclamation-triangle')
                 ->schema([
                     TextInput::make('weather_refund_percent')
                         ->label(__('pricing.cancellation.form.weather_refund_percent.label'))
@@ -236,11 +242,10 @@ class CancellationPolicyResource extends Resource
             ])
             ->defaultSort('is_default', 'desc')
             ->filters([TrashedFilter::make()])
-            ->actions([
-                EditAction::make(),
+            ->actions(MoreActions::row(EditAction::make(), [
                 DeleteAction::make(),
                 RestoreAction::make(),
-            ]);
+            ]));
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Enums;
 
 use App\Enums\Concerns\HasTranslatedLabel;
+use Filament\Support\Contracts\HasColor;
 
 /**
  * Where a quote stands (`docs/data-model.md` §4.4).
@@ -25,7 +26,7 @@ use App\Enums\Concerns\HasTranslatedLabel;
  * the audit trail is intact."* A `revised` case would make the two readings
  * disagree; there is one row per version and each keeps its own final status.
  */
-enum QuoteStatus: string
+enum QuoteStatus: string implements HasColor
 {
     use HasTranslatedLabel;
 
@@ -77,5 +78,20 @@ enum QuoteStatus: string
     public function canTransitionTo(self $target): bool
     {
         return in_array($target, $this->allowedTransitions(), strict: true);
+    }
+
+    /**
+     * The badge colour in the panel's lists (phone audit, 2026-09-23): a column
+     * of grey badges made a cancelled row look like every other one.
+     */
+    public function getColor(): string
+    {
+        return match ($this) {
+            self::Draft => 'gray',
+            self::Sent => 'info',
+            self::Accepted => 'success',
+            self::Declined => 'danger',
+            self::Expired => 'gray',
+        };
     }
 }

@@ -45,6 +45,12 @@
         text-align: center;
     }
 
+    /* A unit («λεπτά», «%») after the +, not between the number and it: the
+       − and + belong beside the value they change (phone audit, 2026-09-23). */
+    .fi-input-wrp-suffix:has(.ka-step) > span {
+        order: 2;
+    }
+
     /* Below the desktop breakpoint they are what a thumb aims at, so they take
        the 44px `touch-targets` gives every other control on a phone. */
     @media (max-width: 1023.98px) {

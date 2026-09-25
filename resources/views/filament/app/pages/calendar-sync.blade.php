@@ -23,11 +23,11 @@
             @foreach ($this->vessels() as $vessel)
                 @php($feed = $this->feedFor($vessel))
 
-                <div class="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-                    <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-gray-900">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                         <p class="font-semibold">{{ $vessel->name }}</p>
 
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2 sm:justify-start">
                             @if ($feed->is_active)
                                 <x-filament::badge color="success">{{ __('ical.export.enable') }}</x-filament::badge>
                             @else
@@ -35,7 +35,7 @@
                             @endif
 
                             <x-filament::button
-                                size="xs"
+                                size="sm"
                                 color="gray"
                                 wire:click="togglePublish({{ $feed->getKey() }})"
                             >
@@ -48,7 +48,7 @@
                         {{-- `select-all` so one click takes the whole address: it is
                              40 hex characters and a partial copy is a subscription
                              that silently never works. --}}
-                        <p class="mt-3 select-all break-all rounded-lg bg-gray-50 p-2 font-mono text-xs dark:bg-gray-800">
+                        <p class="mt-3 select-all break-all rounded-lg bg-gray-50 p-2 font-mono text-xs ring-1 ring-gray-950/5 dark:bg-white/5 dark:ring-white/10">
                             {{ $this->feedUrl($feed) }}
                         </p>
 
@@ -72,7 +72,7 @@
                             </label>
                         </div>
 
-                        <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+                        <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                             <p class="text-xs text-gray-500 dark:text-gray-400">
                                 @if ($feed->last_accessed_at)
                                     {{ __('ical.export.last_read') }}:
@@ -88,7 +88,7 @@
                                  silently and immediately, and nothing on anybody's
                                  screen will say why. --}}
                             <x-filament::button
-                                size="xs"
+                                size="sm"
                                 color="danger"
                                 wire:click="rotate({{ $feed->getKey() }})"
                                 wire:confirm="{{ __('ical.export.rotate_confirm') }}"
@@ -117,14 +117,14 @@
             </form>
 
             @foreach ($this->sources() as $source)
-                <div class="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-                    <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-white/10 dark:bg-gray-900">
+                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                         <div>
                             <p class="font-semibold">{{ $source->name }}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">{{ $source->vessel?->name }}</p>
                         </div>
 
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center justify-between gap-2 sm:justify-start">
                             @if (! $source->is_active)
                                 <x-filament::badge color="gray">{{ __('ical.import.status_off') }}</x-filament::badge>
                             @elseif ($source->needsAttention())
@@ -134,7 +134,7 @@
                             @endif
 
                             <x-filament::button
-                                size="xs"
+                                size="sm"
                                 color="gray"
                                 wire:click="syncNow({{ $source->getKey() }})"
                             >
@@ -142,7 +142,7 @@
                             </x-filament::button>
 
                             <x-filament::button
-                                size="xs"
+                                size="sm"
                                 color="danger"
                                 wire:click="removeSource({{ $source->getKey() }})"
                                 wire:confirm="{{ __('ical.import.remove_confirm') }}"
@@ -166,7 +166,7 @@
                          "sync failed" sends them to us and "the address may have
                          changed" sends them to the right place. --}}
                     @if ($source->needsAttention())
-                        <div class="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+                        <div class="mt-3 rounded-lg border border-warning-300 bg-warning-50 p-3 text-sm text-warning-900 [overflow-wrap:anywhere] dark:border-warning-500/40 dark:bg-warning-500/10 dark:text-warning-200">
                             <p>{{ $source->is_active ? __('ical.import.attention') : __('ical.import.disabled_notice') }}</p>
 
                             <p class="mt-1 text-xs">

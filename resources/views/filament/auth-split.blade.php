@@ -282,29 +282,392 @@
         .kaiki-auth-brandmark { inline-size: 44%; }
     }
 
-    /* --- a phone: the blue is a band across the top -------------------
-       Short enough that the password field is still on the first screen. */
+    /* The desktop's column carries the long line, the phone's band the short
+       one; exactly one is ever displayed. */
+    .kaiki-auth-brandmark-line-short { display: none; }
+
+    /* Never an underlined link on these screens, not even on hover (Kaiki
+       rule). Filament's links underline their label on hover and focus. */
+    .fi-simple-layout a,
+    .fi-simple-layout .fi-link,
+    .fi-simple-layout .fi-link * {
+        text-decoration: none !important;
+    }
+
+    /* The header's subheading, and ours on the reset page, start where the
+       heading starts. */
+    .fi-simple-layout .fi-simple-header-subheading { text-align: start; }
+
+    /* «‹ Σύνδεση», the heading and the line under it on «Ξέχασα τον κωδικό».
+       Filament's header is left empty there; see the page's view. */
+    .fi-simple-page:has(.kaiki-auth-intro) .fi-simple-header { display: none; }
+
+    .kaiki-auth-intro .fi-simple-header-heading {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        line-height: 2rem;
+        letter-spacing: -.025em;
+        color: #13233A;
+    }
+
+    .kaiki-auth-intro .fi-simple-header-subheading {
+        margin: .5rem 0 0;
+        font-size: .9375rem;
+        line-height: 1.45;
+        color: #45556A;
+    }
+
+    .kaiki-auth-back {
+        display: inline-flex;
+        align-items: center;
+        gap: .375rem;
+        min-block-size: 2.75rem;
+        margin-block-end: .25rem;
+        font-weight: 600;
+        color: #174F94;
+    }
+
+    .kaiki-auth-back:hover { color: #0F2E57; }
+
+    /* A wrong email or password: said once, above the fields, with what to
+       try (Α1, 2026-09-23). The field keeps its red border; its own line
+       under it would say the same thing a second time. */
+    .kaiki-login-alert {
+        display: flex;
+        gap: .625rem;
+        align-items: flex-start;
+        padding: .75rem .875rem;
+        border-radius: .625rem;
+        background-color: #FEF1EF;
+        color: #B42318;
+        line-height: 1.4;
+    }
+
+    .kaiki-login-alert__icon {
+        flex: none;
+        display: grid;
+        place-items: center;
+        inline-size: 1.25rem;
+        block-size: 1.25rem;
+        margin-block-start: .0625rem;
+        border-radius: 50%;
+        background-color: #B42318;
+        color: #fff;
+        font-size: .8125rem;
+        font-weight: 800;
+    }
+
+    .kaiki-login-alert__title { margin: 0; font-weight: 600; }
+    .kaiki-login-alert__hint { margin: .125rem 0 0; color: #7A2A20; font-size: .9375rem; }
+
+    .kaiki-login-form--rejected .fi-fo-field-wrp-error-message { display: none; }
+
+    /* «Ξέχασα τον κωδικό» is in the markup twice (see `App\Filament\App\Auth\Login`):
+       beside the password's label here on a desktop, in the «Να με θυμάσαι»
+       row on a phone. */
+    .kaiki-login-forgot-phone { display: none !important; }
+
+    /* --- a phone or a tablet held upright: the blue is a band on top ----
+       Direction Α, variant Α1 of docs/mockups/login-mobile-directions.html
+       (product owner, 2026-09-23): a 230 px band with the mark in the middle
+       and the line under it, the language switch small in its corner, and
+       the whole empty form on the first screen of an iPhone SE.
+
+       **Calm sizes, a fixed band** (second round, same day: «έγιναν τεράστιες
+       οι φόρμες», and the band that folded while typing felt odd). Fields
+       and the button are 48 px, the type inside the fields exactly 16 px —
+       the size under which iOS zooms the page on focus, and no bigger —
+       labels 14 px, the heading 26 px. The band never changes height; when
+       a field takes the focus the browser scrolls it into view as it always
+       does, helped by the few lines of script below.
+
+       **Tablets.** Upright (768, 820 wide) they get this layout, with the
+       form a centred 420 px column rather than stretched across the screen.
+       On their side (1024 wide and up) they get the desktop's split, which
+       fits there. */
     @media (max-width: 1023.98px) {
         .kaiki-auth-brandmark {
             inset-inline-end: 0;
-            block-size: 10.5rem;
-            padding: 1.75rem 1.5rem;
-            justify-content: flex-start;
+            block-size: 230px;
+            padding: 0 1.5rem;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
 
-        .kaiki-auth-brandmark-name { font-size: 2.25rem; }
-        .kaiki-auth-brandmark img { max-block-size: 3rem; }
-        .kaiki-auth-brandmark p { font-size: .95rem; margin-top: .5rem; }
+        .kaiki-auth-brandmark-name { font-size: 46px; }
 
-        .kaiki-auth-brandmark::after { block-size: calc(70% + 24px); background-size: 520px 150px; }
-        .kaiki-auth-brandmark::before { block-size: calc(90% + 24px); background-size: 780px 220px; }
+        .kaiki-auth-brandmark img {
+            max-block-size: 3.5rem;
+            margin-inline: auto;
+        }
 
+        .kaiki-auth-brandmark .kaiki-auth-brandmark-line { display: none; }
+
+        .kaiki-auth-brandmark .kaiki-auth-brandmark-line-short {
+            display: block;
+            margin: 12px auto 0;
+            font-size: 16px;
+            line-height: 1.4;
+        }
+
+        /* The waves, scaled to the band rather than cropped out of the
+           desktop's tiles (product owner, 2026-09-23: «σαν να τελειώνει το
+           σχέδιο»). The desktop's tiles are 520 × 220 and 780 × 330 for a
+           drawing that is 520 × 170, which on a desktop only adds sky above
+           it; squeezed to the phone's heights the browser kept the drawing's
+           proportions and shrank it *narrower than its tile*, so every tile
+           ended in a blank gap and each wave visibly stopped short of the
+           next. `waves-light-band.svg` is the same drawing told to fill
+           whatever box it gets (`preserveAspectRatio="none"`, strokes that
+           keep their width), so the tiles stay exactly 520 and 780 wide —
+           the drift's one-tile loop is unchanged and seamless — and only the
+           height follows the band. Each layer is exactly one tile tall and
+           sits on the band's floor, so no line is sliced at the top or by
+           the bottom edge. */
+        .kaiki-auth-brandmark::before,
+        .kaiki-auth-brandmark::after {
+            inset-block-end: 0;
+            background-image: url('/images/waves-light-band.svg');
+        }
+
+        .kaiki-auth-brandmark::after { block-size: 120px; background-size: 520px 120px; }
+        .kaiki-auth-brandmark::before { block-size: 170px; background-size: 780px 170px; }
+
+        /* The language switch: small, in the band's top-right corner, light
+           on the blue. Flags off here; the two letters are enough. */
+        .fi-simple-page > div:has(> .kaiki-locale-switcher) {
+            position: absolute;
+            inset-block-start: 12px;
+            inset-inline-end: 16px;
+            z-index: 2;
+            margin: 0 !important;
+        }
+
+        .fi-simple-layout .kaiki-locale-switcher {
+            padding: 0;
+            gap: 0;
+            border-radius: 8px;
+            background-color: rgb(255 255 255 / .12);
+        }
+
+        .fi-simple-layout .kaiki-locale-switcher__option {
+            position: relative;
+            padding: 9px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #DCE6F3;
+        }
+
+        /* A 48 px target around a 34 px pill. */
+        .fi-simple-layout .kaiki-locale-switcher__option::after {
+            content: '';
+            position: absolute;
+            inset: -7px 0;
+        }
+
+        .fi-simple-layout .kaiki-locale-switcher__option:hover {
+            color: #fff;
+            background-color: rgb(255 255 255 / .08);
+        }
+
+        .fi-simple-layout .kaiki-locale-switcher__option[aria-current='true'] {
+            color: #0F2E57;
+            background-color: rgb(255 255 255 / .92);
+            box-shadow: none;
+        }
+
+        .fi-simple-layout .kaiki-locale-switcher__option:focus-visible { outline-color: #fff; }
+        .fi-simple-layout .kaiki-locale-switcher__flag { display: none; }
+
+        /* --- the form under the band --- */
         .fi-simple-layout > .fi-simple-main-ctn {
             align-items: flex-start;
-            padding-block-start: 10.5rem;
+            padding-block-start: 230px;
         }
 
-        .fi-simple-layout .fi-simple-main { margin-block: .75rem 1.75rem; }
+        .fi-simple-layout .fi-simple-main {
+            margin-block: 24px;
+            padding-block: 0;
+        }
+
+        .fi-simple-page > section { row-gap: 14px; }
+
+        .fi-simple-layout .fi-simple-header-heading {
+            font-size: 26px;
+            font-weight: 800;
+            line-height: 1.2;
+            letter-spacing: -.02em;
+            color: #13233A;
+        }
+
+        .kaiki-auth-intro .fi-simple-header-heading { font-size: 24px; }
+        .kaiki-auth-intro .fi-simple-header-subheading { font-size: 15px; }
+
+        /* The error takes the heading's place, as in the mockup's third
+           screen: the band, the alert, the fields. */
+        .fi-simple-page:has(.kaiki-login-alert) .fi-simple-header { display: none; }
+
+        .kaiki-login-alert { font-size: 15px; }
+        .kaiki-login-alert__hint { font-size: 14px; }
+
+        .fi-simple-layout .fi-form { row-gap: 14px; }
+        .fi-simple-layout .fi-form > .fi-fo-component-ctn { row-gap: 14px; }
+
+        .fi-simple-layout .fi-fo-field-wrp > .grid { row-gap: 6px; }
+
+        .fi-simple-layout .fi-fo-field-wrp-label span {
+            font-size: 14px;
+            font-weight: 600;
+            color: #13233A;
+        }
+
+        /* Every field is required here and says so by being there. */
+        .fi-simple-layout .fi-fo-field-wrp-label sup { display: none; }
+
+        /* 48 px fields, 16 px type inside them: under 16 px iOS zooms the
+           whole page in when a field takes the focus. */
+        .fi-simple-layout .fi-fo-text-input {
+            min-block-size: 48px;
+            border-radius: 10px;
+        }
+
+        .fi-simple-layout .fi-fo-text-input:not(:focus-within) { --tw-ring-color: #BFCBDB; }
+
+        .fi-simple-layout .fi-fo-text-input .fi-input {
+            min-block-size: 46px;
+            padding-inline: 14px;
+            font-size: 16px;
+            color: #13233A;
+        }
+
+        /* «Εμφάνιση» as a word inside the field, not only an eye. The label is
+           the icon button's own (visually hidden) text, shown here. */
+        .fi-simple-layout .fi-input-wrp-suffix {
+            border-inline-start: 0;
+            padding-inline: 0 4px;
+        }
+
+        .fi-simple-layout .fi-input-wrp-suffix .fi-icon-btn {
+            inline-size: auto;
+            block-size: 44px;
+            padding-inline: 10px;
+            color: #174F94;
+        }
+
+        .fi-simple-layout .fi-input-wrp-suffix .fi-icon-btn > svg { display: none; }
+
+        .fi-simple-layout .fi-input-wrp-suffix .fi-icon-btn > .sr-only {
+            position: static;
+            inline-size: auto;
+            block-size: auto;
+            margin: 0;
+            overflow: visible;
+            clip: auto;
+            white-space: nowrap;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        /* «Να με θυμάσαι» and «Ξέχασα τον κωδικό» share one 44 px row. */
+        .kaiki-login-forgot-desktop { display: none !important; }
+        .fi-simple-layout .kaiki-login-forgot-phone { display: inline-flex !important; }
+
+        .fi-simple-layout .fi-fo-component-ctn > :has(.fi-checkbox-input) {
+            margin-block: -6px;
+        }
+
+        .fi-simple-layout .fi-fo-field-wrp:has(.fi-checkbox-input) > div > div:first-child {
+            min-block-size: 44px;
+        }
+
+        .fi-simple-layout .fi-fo-field-wrp-label:has(.fi-checkbox-input) span {
+            font-size: 15px;
+            font-weight: 400;
+        }
+
+        .fi-simple-layout .fi-checkbox-input {
+            inline-size: 20px;
+            block-size: 20px;
+            border-radius: 5px;
+        }
+
+        .fi-simple-layout .kaiki-login-forgot-phone {
+            padding-block: 12px;
+            padding-inline-start: 8px;
+        }
+
+        /* The mockup's link blue, darkened to #174F94 so it clears 7:1 on
+           the light ground (#1D5FAF is 6.1:1). Filament colours the label
+           through its own custom properties, hence the `!important`. */
+        .fi-simple-layout .kaiki-login-forgot-phone,
+        .fi-simple-layout .kaiki-login-forgot-phone * {
+            font-size: 15px;
+            color: #174F94 !important;
+        }
+
+        .fi-simple-layout .fi-form-actions .fi-btn {
+            min-block-size: 48px;
+            border-radius: 10px;
+            font-size: 16px;
+        }
+    }
+
+    /* A tablet held upright: the same band, the form a centred column. */
+    @media (min-width: 640px) and (max-width: 1023.98px) {
+        .fi-simple-layout .fi-simple-main {
+            max-inline-size: 420px;
+            margin-block-start: 48px;
+            padding-inline: 0;
+        }
     }
 </style>
+
+<script>
+    /* On a phone, keep the focused field and the button under it in sight
+       once the on-screen keyboard is up (product owner, 2026-09-23, second
+       round). Nothing about the layout changes — the band stays as it is —
+       this only scrolls, and only when the keyboard has actually covered
+       part of the form. The browser's own scroll brings the field into view;
+       this centres it, so on a 390 × 844 phone the password and «Σύνδεση»
+       are both above the keys. */
+    (function () {
+        if (window.kaikiAuthScroll) {
+            return;
+        }
+
+        window.kaikiAuthScroll = true;
+
+        const narrow = window.matchMedia('(max-width: 1023.98px)');
+        const viewport = window.visualViewport;
+        const fieldSelector = '.fi-simple-layout input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"])';
+
+        let pending = 0;
+
+        const reveal = () => {
+            const field = document.activeElement;
+
+            if (! narrow.matches || ! field?.matches?.(fieldSelector)) {
+                return;
+            }
+
+            const visible = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
+            const button = field.form?.querySelector('[type="submit"]');
+            const lowest = (button ?? field).getBoundingClientRect().bottom;
+
+            if (lowest > visible) {
+                field.scrollIntoView({ block: 'center' });
+            }
+        };
+
+        const later = () => {
+            clearTimeout(pending);
+            pending = setTimeout(reveal, 300);
+        };
+
+        document.addEventListener('focusin', later);
+        viewport?.addEventListener('resize', later);
+    })();
+</script>
 

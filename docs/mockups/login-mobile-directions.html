@@ -1,0 +1,880 @@
+<title>Η σύνδεση στο κινητό</title>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  /* Φως μόνο, σκόπιμα: οι οθόνες σύνδεσης της Kaiki είναι ανοιχτές ό,τι κι αν λέει το κινητό.
+     Καμία ελληνική λέξη με κεφαλαία, κανένα υπογραμμισμένο link, καμία ζωγραφιά. */
+  :root {
+    --sea: #0F2E57;        /* το μπλε της στήλης σύνδεσης, όπως είναι χτισμένο */
+    --sea-deep: #0A2242;
+    --sea-soft: #C4D3E8;
+    --link: #1D5FAF;
+    --ink: #13233A;
+    --muted: #56677D;
+    --form-ground: #F7FAFD; /* το φόντο της φόρμας, όπως είναι χτισμένο */
+    --page: #EEF2F7;
+    --paper: #FFFFFF;
+    --hairline: #D6DFEA;
+    --field: #BFCBDB;
+    --error: #B42318;
+    --error-bg: #FEF1EF;
+    --ok: #1E6B45;
+    --ok-bg: #EAF5EE;
+    --kb: #D2D6DD;
+    --kb-key: #FFFFFF;
+    --kb-dark: #ABB2BD;
+    --waves: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='170' viewBox='0 0 520 170'%3E%3Cg fill='none' stroke='%238FB0DA' stroke-width='1.4'%3E%3Cpath d='M0 150 Q65 128 130 150 T260 150 T390 150 T520 150' opacity='.75'/%3E%3Cpath d='M0 120 Q65 100 130 120 T260 120 T390 120 T520 120' opacity='.55'/%3E%3Cpath d='M-65 90 Q0 72 65 90 T195 90 T325 90 T455 90 T585 90' opacity='.4'/%3E%3Cpath d='M0 60 Q65 46 130 60 T260 60 T390 60 T520 60' opacity='.26'/%3E%3Cpath d='M-65 30 Q0 18 65 30 T195 30 T325 30 T455 30 T585 30' opacity='.14'/%3E%3C/g%3E%3C/svg%3E");
+    --s: .7;               /* η κλίμακα των τηλεφώνων: μέσα τους όλα είναι σε πραγματικά 390 × 844 */
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--page);
+    color: var(--ink);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: .9375rem;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1260px; margin: 0 auto; padding-inline: 16px; padding-block: 48px 88px; }
+  @media (min-width: 700px) { .wrap { padding-inline: 28px; } }
+
+  a { color: var(--link); text-decoration: none; font-weight: 600; }
+  a:hover { color: var(--sea); text-decoration: none; }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+
+  code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: .85em; background: var(--paper); border: 1px solid var(--hairline); border-radius: 5px; padding: 0 5px; overflow-wrap: anywhere; }
+
+  .eyebrow { font-size: .75rem; font-weight: 600; letter-spacing: .06em; color: var(--muted); margin: 0 0 14px; }
+  h1 { font-size: clamp(2rem, 6vw, 2.75rem); font-weight: 800; letter-spacing: -.025em; line-height: 1.08; margin: 0 0 20px; text-wrap: balance; }
+  .lede { font-size: 1.0625rem; color: var(--muted); margin: 0; max-width: 64ch; }
+  .lede + .lede { margin-top: 14px; }
+  .lede strong { color: var(--ink); }
+  .rule { height: 1px; background: var(--hairline); border: 0; margin-block: 52px; }
+
+  .direction-head { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .letter {
+    font-size: .875rem; font-weight: 600; color: var(--paper); background: var(--sea);
+    width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; flex: none;
+  }
+  .letter.today { background: var(--muted); }
+  section h2 { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+  .decision { font-size: 1.0625rem; color: var(--ink); margin: 0 0 14px; max-width: 64ch; }
+  .points { margin: 0 0 26px; padding-inline-start: 1.1rem; color: var(--muted); max-width: 70ch; display: grid; gap: 4px; }
+  .points b { color: var(--ink); font-weight: 600; }
+  .tradeoff { font-size: .9375rem; color: var(--muted); margin: 24px 0 0; max-width: 70ch; padding-inline-start: 14px; border-inline-start: 2px solid var(--field); }
+  .tradeoff b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- τα τηλέφωνα ---------- */
+  .phones { display: flex; flex-wrap: wrap; gap: 26px 18px; }
+  .shot { width: calc(390px * var(--s) + 12px); max-width: 100%; }
+  .shot-label { font-size: .8125rem; font-weight: 600; color: var(--ink); margin: 0 0 2px; }
+  .shot-note { font-size: .75rem; color: var(--muted); margin: 0 0 10px; min-height: 2.4em; line-height: 1.4; }
+
+  .phone {
+    width: calc(390px * var(--s) + 12px);
+    height: calc(844px * var(--s) + 12px);
+    padding: 6px;
+    background: #1B2533;
+    border-radius: calc(46px * var(--s) + 6px);
+    box-shadow: 0 10px 30px rgba(15, 46, 87, .12);
+    overflow: hidden;
+  }
+  .screen {
+    width: 390px; height: 844px;
+    transform: scale(var(--s)); transform-origin: top left;
+    position: relative; overflow: hidden;
+    border-radius: 46px;
+    background: var(--form-ground);
+    font-size: 17px; line-height: 1.4;
+  }
+
+  .status {
+    position: absolute; inset-inline: 0; top: 0; height: 50px; z-index: 5;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 34px 0 40px;
+    font-size: 16px; font-weight: 600; color: var(--ink);
+  }
+  .status.on-sea { color: #FFFFFF; }
+  .status i { display: inline-block; width: 26px; height: 12px; border: 1.5px solid currentColor; border-radius: 4px; position: relative; opacity: .9; }
+  .status i::after { content: ''; position: absolute; inset: 2px 6px 2px 2px; background: currentColor; border-radius: 1px; }
+
+  /* ---------- κοινά στοιχεία της φόρμας (πραγματικά μεγέθη) ---------- */
+  .body { padding: 0 24px; }
+  .h { font-size: 30px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 6px; line-height: 1.15; }
+  .h.sm { font-size: 26px; }
+  .sub { font-size: 16px; color: var(--muted); margin: 0 0 22px; line-height: 1.45; }
+  .lbl { display: flex; justify-content: space-between; align-items: baseline; font-size: 15px; font-weight: 600; margin: 0 0 7px; }
+  .lbl a { font-size: 15px; }
+  .field {
+    height: 52px; border: 1px solid var(--field); border-radius: 10px; background: var(--paper);
+    display: flex; align-items: center; padding: 0 14px; font-size: 17px; color: var(--ink);
+    position: relative;
+  }
+  .field .ph { color: #8E9BAD; }
+  .field.focus { border: 2px solid var(--sea); padding: 0 13px; box-shadow: 0 0 0 4px rgba(15, 46, 87, .1); }
+  .field.bad { border: 2px solid var(--error); padding: 0 13px; }
+  .caret { display: inline-block; width: 2px; height: 22px; background: var(--link); margin-inline-start: 1px; }
+  .dots { letter-spacing: 3px; font-size: 20px; }
+  .reveal { margin-inline-start: auto; font-size: 15px; font-weight: 600; color: var(--link); padding: 14px 0 14px 12px; }
+  .gap { height: 16px; }
+  .gap.s { height: 10px; }
+  .gap.l { height: 24px; }
+
+  .btn {
+    height: 52px; border-radius: 10px; background: var(--sea); color: #FFFFFF;
+    display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600;
+  }
+  .btn.ghost { background: transparent; color: var(--link); border: 1px solid var(--field); }
+  .btn.quiet { background: transparent; color: var(--link); height: 48px; }
+
+  .check { display: flex; align-items: center; gap: 12px; height: 48px; font-size: 16px; }
+  .check .box { width: 24px; height: 24px; border: 1.5px solid var(--field); border-radius: 6px; background: var(--paper); flex: none; display: grid; place-items: center; }
+  .check .box.on { background: var(--sea); border-color: var(--sea); }
+  .check .box.on::after { content: ''; width: 11px; height: 6px; border: 2.5px solid #FFFFFF; border-top: 0; border-right: 0; transform: rotate(-45deg) translate(1px, -1px); }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+  .row a { font-size: 16px; padding: 12px 0 12px 8px; }
+
+  .switch { width: 51px; height: 31px; border-radius: 16px; background: var(--sea); position: relative; flex: none; }
+  .switch::after { content: ''; position: absolute; width: 27px; height: 27px; top: 2px; right: 2px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 3px rgba(0, 0, 0, .2); }
+
+  .alert { display: flex; gap: 10px; align-items: flex-start; background: var(--error-bg); color: var(--error); border-radius: 10px; padding: 12px 14px; font-size: 16px; line-height: 1.4; }
+  .alert b { font-weight: 600; display: block; }
+  .alert span { color: #7A2A20; font-size: 15px; }
+  .alert .ic, .err .ic { flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--error); color: #FFFFFF; font-size: 13px; font-weight: 800; display: grid; place-items: center; margin-top: 1px; }
+  .err { display: flex; gap: 8px; align-items: flex-start; color: var(--error); font-size: 15px; font-weight: 600; margin-top: 8px; line-height: 1.35; }
+  .err .ic { width: 18px; height: 18px; font-size: 12px; }
+  .okbox { background: var(--ok-bg); color: var(--ok); border-radius: 10px; padding: 14px; font-size: 16px; line-height: 1.45; }
+  .okbox b { font-weight: 600; }
+
+  .lang { display: inline-flex; border-radius: 8px; font-size: 14px; font-weight: 600; overflow: hidden; }
+  .lang span { padding: 7px 11px; }
+  .lang.on-sea { background: rgba(255, 255, 255, .12); color: var(--sea-soft); }
+  .lang.on-sea span.on { background: rgba(255, 255, 255, .92); color: var(--sea); border-radius: 8px; }
+  .lang.on-light { background: #E6ECF4; color: var(--muted); }
+  .lang.on-light span.on { background: var(--paper); color: var(--ink); border-radius: 8px; box-shadow: 0 1px 2px rgba(15, 46, 87, .12); }
+
+  .back { display: inline-flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 600; color: var(--link); height: 44px; }
+
+  /* ---------- σήμερα: η μπάρα όπως είναι χτισμένη ---------- */
+  .band {
+    background: var(--sea); color: #FFFFFF; position: relative; overflow: hidden;
+    padding: 76px 24px 0;
+  }
+  .band::before, .band::after { content: ''; position: absolute; inset-inline: -40px; bottom: -10px; background-image: var(--waves); background-repeat: repeat-x; background-position: bottom left; pointer-events: none; }
+  .band::before { height: 150px; background-size: 520px 150px; opacity: .55; }
+  .band::after { height: 110px; background-size: 780px 110px; opacity: .35; background-position: bottom right; }
+  .band > * { position: relative; z-index: 1; }
+  .word { font-size: 38px; font-weight: 800; letter-spacing: -.03em; line-height: 1; margin: 0; }
+  .band .line { font-size: 16px; color: var(--sea-soft); margin: 10px 0 0; }
+  .band .lang { position: absolute; top: 60px; right: 20px; }
+
+  .band.today { height: 168px; padding-top: 58px; }
+  .band.a { height: 210px; }
+  .band.strip { height: 104px; padding-top: 58px; display: flex; align-items: center; justify-content: space-between; }
+  .band.strip::before { height: 60px; background-size: 360px 60px; }
+  .band.strip::after { height: 44px; background-size: 500px 44px; }
+  .band.strip .word { font-size: 22px; }
+  .band.strip .lang { position: static; }
+
+  /* Γύρος 2: ψηλότερη ζώνη, το Kaiki στο κέντρο */
+  .band.hero { padding: 50px 24px 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .band.hero .word { font-size: 46px; }
+  .band.hero .line { margin-top: 12px; }
+  .band.hero .lang { top: 58px; right: 20px; }
+  .band.h230 { height: 230px; }
+  .band.h280 { height: 280px; }
+  .band.h330 { height: 330px; }
+  .band.h330 .word { font-size: 52px; }
+  .band.h330::before { height: 190px; background-size: 600px 190px; }
+  .band.strip.center { justify-content: center; }
+  .band.strip.center .lang { position: absolute; top: 64px; right: 20px; }
+  .ruler { position: absolute; left: 8px; z-index: 6; font-size: 13px; font-weight: 600; color: var(--sea); background: rgba(255, 255, 255, .92); border-radius: 6px; padding: 3px 8px; }
+  .round-note { font-size: .9375rem; color: var(--muted); margin: 0 0 22px; max-width: 70ch; }
+  .round-note b { color: var(--ink); font-weight: 600; }
+
+  /* Β: μόνο η λέξη, πάνω αριστερά, χωρίς μπλε */
+  .mast { height: 104px; padding: 58px 24px 0; display: flex; justify-content: space-between; align-items: center; }
+  .mast .word { font-size: 24px; color: var(--sea); }
+
+  /* Γ: η μάρκα κάτω, εκεί που θα σκεπάσει το πληκτρολόγιο */
+  .foot-band { position: absolute; inset-inline: 0; bottom: 0; height: 170px; background: var(--sea); color: #FFFFFF; overflow: hidden; padding: 34px 24px 0; }
+  .foot-band::before { content: ''; position: absolute; inset-inline: -40px; top: -18px; height: 120px; background-image: var(--waves); background-size: 520px 120px; background-repeat: repeat-x; opacity: .5; transform: scaleY(-1); }
+  .foot-band > * { position: relative; }
+  .foot-band .word { font-size: 26px; }
+  .foot-band .line { font-size: 15px; color: var(--sea-soft); margin: 6px 0 0; }
+  .corner-lang { position: absolute; top: 60px; right: 20px; z-index: 3; }
+
+  .chip { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--paper); border: 1px solid var(--hairline); border-radius: 999px; padding: 0 6px 0 16px; height: 48px; font-size: 16px; }
+  .chip .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip a { font-size: 15px; padding: 12px 10px; flex: none; }
+
+  .code { display: flex; gap: 8px; }
+  .code span { flex: 1; height: 60px; border: 1px solid var(--field); border-radius: 10px; background: var(--paper); display: grid; place-items: center; font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 26px; font-weight: 500; }
+  .code span.cur { border: 2px solid var(--sea); box-shadow: 0 0 0 4px rgba(15, 46, 87, .1); }
+  .code.bad span { border: 2px solid var(--error); color: var(--error); }
+  .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  .small { font-size: 15px; color: var(--muted); line-height: 1.45; }
+
+  /* ---------- το πληκτρολόγιο της οθόνης ---------- */
+  .kb { position: absolute; inset-inline: 0; bottom: 0; z-index: 4; background: var(--kb); padding-bottom: 34px; }
+  .kb-acc { height: 44px; background: #F4F5F7; border-top: 1px solid #C4C9D1; display: flex; align-items: center; padding: 0 16px; gap: 22px; color: #8A93A0; font-size: 20px; }
+  .kb-acc b { margin-inline-start: auto; color: #1D6FE0; font-size: 17px; font-weight: 600; }
+  .kb-sug { height: 40px; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #3B4450; border-bottom: 1px solid #C4C9D1; }
+  .kb-sug b { font-weight: 600; }
+  .kb-rows { padding: 8px 3px 4px; display: grid; gap: 11px; }
+  .kb-row { display: flex; justify-content: center; gap: 6px; }
+  .kb-row span { height: 42px; flex: 0 0 33px; background: var(--kb-key); border-radius: 5px; box-shadow: 0 1px 0 #8C939E; display: grid; place-items: center; font-size: 21px; color: #111; }
+  .kb-row span.w { flex: 0 0 44px; background: var(--kb-dark); font-size: 15px; }
+  .kb-row span.sp { flex: 1 1 auto; font-size: 15px; color: #333; }
+  .kb-row span.go { flex: 0 0 96px; background: #1D6FE0; color: #FFFFFF; font-size: 15px; font-weight: 600; }
+  .kb-row span.k { flex: 0 0 38px; font-size: 18px; }
+  .kb-pad { padding: 7px 6px 4px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+  .kb-pad span { height: 48px; background: var(--kb-key); border-radius: 6px; box-shadow: 0 1px 0 #8C939E; display: grid; place-items: center; font-size: 25px; color: #111; }
+  .kb-pad span.blank { background: transparent; box-shadow: none; }
+  .kb-pad span.del { background: transparent; box-shadow: none; font-size: 22px; }
+
+  /* Η γραμμή που δείχνει ως πού φαίνεται η οθόνη όταν ανοίγει το πληκτρολόγιο */
+  .kb.warn { border-top: 3px dashed var(--error); }
+  .kb.warn::before { content: 'Από εδώ και κάτω δεν φαίνεται'; position: absolute; left: 14px; top: -40px; font-size: 14px; font-weight: 600; color: var(--error); background: var(--paper); border-radius: 6px; padding: 4px 9px; box-shadow: 0 1px 3px rgba(0, 0, 0, .15); }
+
+  /* ---------- κοινά σε όλες ---------- */
+  .common { display: grid; gap: 28px; grid-template-columns: 1fr; }
+  @media (min-width: 860px) { .common { grid-template-columns: 1fr 1fr; } }
+  .common ul { margin: 0; padding-inline-start: 1.1rem; display: grid; gap: 8px; color: var(--muted); }
+  .common b { color: var(--ink); font-weight: 600; }
+  .common h3 { font-size: 1rem; font-weight: 600; margin: 0 0 10px; }
+
+  /* ---------- επιλογή ---------- */
+  .picker h2 { margin-bottom: 8px; }
+  .picker > p { color: var(--muted); margin: 0 0 18px; }
+  .options { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+  .option {
+    text-align: left; font: inherit; color: var(--ink); cursor: pointer;
+    background: var(--paper); border: 1px solid var(--hairline); border-radius: 12px; padding: 16px 18px;
+    display: grid; gap: 4px; min-height: 48px;
+  }
+  .option:hover { border-color: var(--field); }
+  .option[aria-pressed="true"] { border: 2px solid var(--sea); padding: 15px 17px; }
+  .option-letter { font-weight: 800; color: var(--sea); }
+  .option-name { font-weight: 600; }
+  .option-why { font-size: .875rem; color: var(--muted); }
+  .chosen { margin: 16px 0 0; color: var(--muted); }
+  .chosen b { color: var(--ink); }
+
+  @media (max-width: 420px) {
+    :root { --s: .78; }
+    .shot, .phone { margin-inline: auto; }
+    .phones { justify-content: center; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Kaiki · μακέτες, 23 Σεπτεμβρίου 2026 · γύρος 2 πρώτος</p>
+    <h1>Η σύνδεση στο κινητό</h1>
+    <p class="lede">Η οθόνη σύνδεσης είναι χτισμένη (κατεύθυνση Γ της 17/9): μπλε με κύματα αριστερά στον υπολογιστή, μπλε λωρίδα πάνω στο κινητό. Στο κινητό όμως ο καπετάνιος τη βλέπει στην προβλήτα, με το ένα χέρι, συχνά στον ήλιο — και μόλις πατήσει το email ανοίγει το πληκτρολόγιο και <strong>πιάνει τη μισή οθόνη</strong>.</p>
+    <p class="lede">Σήμερα, με ανοιχτό πληκτρολόγιο, ο κωδικός και το κουμπί «Σύνδεση» κρύβονται από κάτω. Οι τρεις δρόμοι παρακάτω είναι τρεις διαφορετικές αποφάσεις, όχι η ίδια φόρμα σε άλλη θέση: <strong>Α</strong> κρατά τη φόρμα και τη χωράει, <strong>Β</strong> τη σπάει σε δύο βήματα, <strong>Γ</strong> βγάζει τον κωδικό πρόσβασης από τη μέση.</p>
+  </header>
+
+  <hr class="rule">
+
+  <!-- ============ ΓΥΡΟΣ 2 ============ -->
+  <section id="r2">
+    <div class="direction-head"><span class="letter" aria-hidden="true">2</span><h2>Γύρος 2: ψηλότερη ζώνη, το Kaiki στο κέντρο</h2></div>
+    <p class="decision">Πάνω στο <strong>Α</strong> (email και κωδικός μαζί): η μπλε ζώνη ψηλώνει και το «Kaiki» έρχεται στο κέντρο, με τη γραμμή από κάτω. Τρία ύψη, για να διαλέξεις πόσο.</p>
+    <p class="round-note">Η διακεκομμένη γραμμή δείχνει πού τελειώνει η οθόνη σε <b>iPhone SE</b> (667 px), το μικρότερο κινητό που μετράει. Με ανοιχτό πληκτρολόγιο και τα τρία γίνονται <b>ίδια</b>: η ζώνη μαζεύει σε λωρίδα, αλλιώς το κουμπί χάνεται κάτω από τα πλήκτρα.</p>
+
+    <h3 style="font-size: 1.125rem; margin: 30px 0 4px;">Α1 · Λίγο ψηλότερη</h3>
+    <p class="round-note">Από 168 σε 230 px. Η φόρμα ξεκινά ακόμα στο πάνω μισό, και το «Σύνδεση» φαίνεται χωρίς κύλιση ακόμα και σε iPhone SE.</p>
+    <div class="phones">
+      <div class="shot">
+        <p class="shot-label">Άδεια φόρμα</p>
+        <p class="shot-note">Μπλε ζώνη 230 px, το «Kaiki» στο κέντρο.</p>
+        <div class="phone"><div class="screen">
+          <div class="status on-sea"><span>9:41</span><i></i></div>
+          <div class="band hero h230"><span class="lang on-sea"><span class="on">ΕΛ</span><span>EN</span></span><p class="word">Kaiki</p><p class="line">Κρατήσεις για εκδρομές με σκάφος.</p></div>
+          <div class="body" style="padding-top: 26px;">
+            <p class="h">Σύνδεση</p>
+            <div class="gap s"></div>
+            <p class="lbl">Email</p>
+            <div class="field"><span class="ph">όνομα@εταιρεία.gr</span></div>
+            <div class="gap"></div>
+            <p class="lbl">Κωδικός</p>
+            <div class="field"><span class="reveal">Εμφάνιση</span></div>
+            <div class="gap s"></div>
+            <div class="row"><div class="check"><span class="box on"></span>Να με θυμάσαι</div><a href="#r2">Ξέχασα τον κωδικό</a></div>
+            <div class="gap s"></div>
+            <div class="btn">Σύνδεση</div>
+          </div>
+          <span class="ruler" style="top: 667px;">↑ ως εδώ σε iPhone SE</span>
+          <div style="position:absolute; left:0; right:0; top:667px; border-top: 2px dashed var(--sea); opacity:.5; z-index:6;"></div>
+        </div></div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 1.125rem; margin: 30px 0 4px;">Α2 · Το ένα τρίτο της οθόνης</h3>
+    <p class="round-note">Περίπου 280 px: η μπλε ζώνη πιάνει το ένα τρίτο, με χώρο για τα κύματα. Σε iPhone SE το κουμπί «Σύνδεση» πέφτει λίγο κάτω από την άκρη.</p>
+    <div class="phones">
+      <div class="shot">
+        <p class="shot-label">Άδεια φόρμα</p>
+        <p class="shot-note">Μπλε ζώνη 280 px, το «Kaiki» στο κέντρο.</p>
+        <div class="phone"><div class="screen">
+          <div class="status on-sea"><span>9:41</span><i></i></div>
+          <div class="band hero h280"><span class="lang on-sea"><span class="on">ΕΛ</span><span>EN</span></span><p class="word">Kaiki</p><p class="line">Κρατήσεις για εκδρομές με σκάφος.</p></div>
+          <div class="body" style="padding-top: 26px;">
+            <p class="h">Σύνδεση</p>
+            <div class="gap s"></div>
+            <p class="lbl">Email</p>
+            <div class="field"><span class="ph">όνομα@εταιρεία.gr</span></div>
+            <div class="gap"></div>
+            <p class="lbl">Κωδικός</p>
+            <div class="field"><span class="reveal">Εμφάνιση</span></div>
+            <div class="gap s"></div>
+            <div class="row"><div class="check"><span class="box on"></span>Να με θυμάσαι</div><a href="#r2">Ξέχασα τον κωδικό</a></div>
+            <div class="gap s"></div>
+            <div class="btn">Σύνδεση</div>
+          </div>
+          <span class="ruler" style="top: 667px;">↑ ως εδώ σε iPhone SE</span>
+          <div style="position:absolute; left:0; right:0; top:667px; border-top: 2px dashed var(--sea); opacity:.5; z-index:6;"></div>
+        </div></div>
+      </div>
+      <div class="shot">
+        <p class="shot-label">Πληκτρολόγιο ανοιχτό</p>
+        <p class="shot-note">Η ζώνη μαζεύει σε 104 px· το «Kaiki» μένει στο κέντρο.</p>
+        <div class="phone"><div class="screen">
+          <div class="status on-sea"><span>9:41</span><i></i></div>
+          <div class="band strip center"><p class="word">Kaiki</p><span class="lang on-sea"><span class="on">ΕΛ</span><span>EN</span></span></div>
+          <div class="body" style="padding-top: 20px;">
+            <p class="lbl">Email</p>
+            <div class="field">nikos@kalypso-cruises.gr</div>
+            <div class="gap"></div>
+            <p class="lbl">Κωδικός</p>
+            <div class="field focus"><span class="dots">••••••</span><span class="caret"></span><span class="reveal">Εμφάνιση</span></div>
+            <div class="gap"></div>
+            <div class="btn">Σύνδεση</div>
+          </div>
+          <div class="kb" data-kind="email" data-go="Σύνδεση" data-suggest="Κωδικοί · kalypso-cruises.gr"></div>
+        </div></div>
+      </div>
+    </div>
+
+    <h3 style="font-size: 1.125rem; margin: 30px 0 4px;">Α3 · Σχεδόν μισή οθόνη</h3>
+    <p class="round-note">330 px και μεγαλύτερο «Kaiki»: δυνατή πρώτη εικόνα. Η φόρμα πιέζεται, και σε μικρό κινητό χρειάζεται κύλιση για το κουμπί.</p>
+    <div class="phones">
+      <div class="shot">
+        <p class="shot-label">Άδεια φόρμα</p>
+        <p class="shot-note">Μπλε ζώνη 330 px, το «Kaiki» στο κέντρο.</p>
+        <div class="phone"><div class="screen">
+          <div class="status on-sea"><span>9:41</span><i></i></div>
+          <div class="band hero h330"><span class="lang on-sea"><span class="on">ΕΛ</span><span>EN</span></span><p class="word">Kaiki</p><p class="line">Κρατήσεις για εκδρομές με σκάφος.</p></div>
+          <div class="body" style="padding-top: 26px;">
+            <p class="h">Σύνδεση</p>
+            <div class="gap s"></div>
+            <p class="lbl">Email</p>
+            <div class="field"><span class="ph">όνομα@εταιρεία.gr</span></div>
+            <div class="gap"></div>
+            <p class="lbl">Κωδικός</p>
+            <div class="field"><span class="reveal">Εμφάνιση</span></div>
+            <div class="gap s"></div>
+            <div class="row"><div class="check"><span class="box on"></span>Να με θυμάσαι</div><a href="#r2">Ξέχασα τον κωδικό</a></div>
+            <div class="gap s"></div>
+            <div class="btn">Σύνδεση</div>
+          </div>
+          <span class="ruler" style="top: 667px;">↑ ως εδώ σε iPhone SE</span>
+          <div style="position:absolute; left:0; right:0; top:667px; border-top: 2px dashed var(--sea); opacity:.5; z-index:6;"></div>
+        </div></div>
+      </div>
+    </div>
+
+    <div class="picker" style="margin-top: 34px;">
+      <p style="margin: 0 0 12px; color: var(--muted);">Ποιο ύψος;</p>
+      <div class="options">
+        <button type="button" id="pick-a1" class="option" aria-pressed="false" data-letter="Α1" data-name="230 px">
+          <span class="option-letter">Α1</span><span class="option-name">230 px · λίγο ψηλότερη</span>
+          <span class="option-why">Χωράει παντού χωρίς κύλιση.</span>
+        </button>
+        <button type="button" id="pick-a2" class="option" aria-pressed="false" data-letter="Α2" data-name="280 px">
+          <span class="option-letter">Α2</span><span class="option-name">280 px · ένα τρίτο</span>
+          <span class="option-why">Ισορροπία· σε SE λίγη κύλιση.</span>
+        </button>
+        <button type="button" id="pick-a3" class="option" aria-pressed="false" data-letter="Α3" data-name="330 px">
+          <span class="option-letter">Α3</span><span class="option-name">330 px · σχεδόν μισή</span>
+          <span class="option-why">Η πιο δυνατή εικόνα· η φόρμα πιέζεται.</span>
+        </button>
+      </div>
+      <p class="chosen">Δεν έχετε διαλέξει ακόμη.</p>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ============ ΣΗΜΕΡΑ ============ -->
+  <section>
+    <div class="direction-head"><span class="letter today" aria-hidden="true">·</span><h2>Αυτό που υπάρχει σήμερα</h2></div>
+    <p class="decision">Η σελίδα όπως τη ζωγραφίζει σήμερα το <code>/app/login</code> σε 390 pixel, και η ίδια τη στιγμή που ανοίγει το πληκτρολόγιο.</p>
+
+    <div class="phones">
+      <div class="shot">
+        <p class="shot-label">Άδεια φόρμα</p>
+        <p class="shot-note">Η μπλε λωρίδα 168 px, μετά γλώσσα, τίτλος, δύο πεδία.</p>
+        <div class="phone"><div class="screen">
+          <div class="status on-sea"><span>9:41</span><i></i></div>
+          <div class="band today"><p class="word">Kaiki</p><p class="line">Κρατήσεις για εκδρομές με σκάφος.</p></div>
+          <div class="body" style="padding-top: 60px;">
+            <span class="lang on-light"><span>ΕΛ</span><span class="on">EN</span></span>
+            <div class="gap l"></div>
+            <p class="h">Σύνδεση</p>
+            <div class="gap"></div>
+            <p class="lbl">Email</p>
+            <div class="field"></div>
+            <div class="gap l"></div>
+            <p class="lbl"><span>Κωδικός</span><a href="#a">Ξέχασα τον κωδικό</a></p>
+            <div class="field"><span class="reveal">Εμφάνιση</span></div>
+            <div class="gap"></div>
+            <div class="check"><span class="box"></span>Να με θυμάσαι</div>
+            <div class="gap"></div>
+            <div class="btn">Σύνδεση</div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="shot">
+        <p class="shot-label">Με ανοιχτό πληκτρολόγιο</p>
+        <p class="shot-note">Ο κωδικός και το κουμπί πέφτουν κάτω από τα πλήκτρα.</p>
+        <div class="phone"><div class="screen">
+          <div class="status on-sea"><span>9:41</span><i></i></div>
+          <div class="band today"><p class="word">Kaiki</p><p class="line">Κρατήσεις για εκδρομές με σκάφος.</p></div>
+          <div class="body" style="padding-top: 60px;">
+            <span class="lang on-light"><span>ΕΛ</span><span class="on">EN</span></span>
+            <div class="gap l"></div>
+            <p class="h">Σύνδεση</p>
+            <div class="gap"></div>
+            <p class="lbl">Email</p>
+            <div class="field focus">nikos@kalypso<span class="caret"></span></div>
+            <div class="gap l"></div>
+            <p class="lbl"><span>Κωδικός</span><a href="#a">Ξέχασα τον κωδικό</a></p>
+            <div class="field"><span class="reveal">Εμφάνιση</span></div>
+            <div class="gap"></div>
+            <div class="btn">Σύνδεση</div>
+          </div>
+          <div class="kb warn" data-kind="email" data-go="Επόμενο" data-suggest="nikos@kalypso-cruises.gr"></div>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ============ Α ============ -->
+  <section>
+    <div class="direction-head"><span class="letter" aria-hidden="true">Α</span><h2>Η ίδια φόρμα, που χωράει</h2></div>
+    <p class="decision">Η απόφαση: <strong>email και κωδικός μαζί, όπως σήμερα</strong> — αλλάζει μόνο πώς φέρεται η οθόνη όταν ανοίγει το πληκτρολόγιο.</p>
+    <ul class="points">
+      <li>Η μπλε λωρίδα μένει, αλλά μόλις πατήσεις πεδίο <b>μαζεύει σε γραμμή 104 px</b> με το «Kaiki» μικρό· ο τίτλος «Σύνδεση» κρύβεται.</li>
+      <li>Με αυτό, email, κωδικός και κουμπί χωράνε <b>πάνω από το πληκτρολόγιο</b> σε iPhone 13.</li>
+      <li>Το «Ξέχασα τον κωδικό» πάει δίπλα στο «Να με θυμάσαι», σε γραμμή 48 px, όχι μικρό δίπλα στην ετικέτα.</li>
+      <li>Το λάθος εμφανίζεται πάνω από τη φόρμα· το email μένει, ο κωδικός αδειάζει.</li>
+    </ul>
+
+    <div class="phones">
+      <div class="shot">
+        <p class="shot-label">1 · Άδεια φόρμα</p>
+        <p class="shot-note">Η λωρίδα κρατά το σήμα, τη γραμμή και τα ΕΛ/EN.</p>
+        <div class="phone"><div class="screen">
+          <div class="status on-sea"><span>9:41</span><i></i></div>
+          <div class="band a"><span class="lang on-sea"><span class="on">ΕΛ</span><span>EN</span></span><p class="word">Kaiki</p><p class="line">Κρατήσεις για εκδρομές με σκάφος.</p></div>
+          <div class="body" style="padding-top: 30px;">
+            <p class="h">Σύνδεση</p>
+            <div class="gap"></div>
+            <p class="lbl">Email</p>
+            <div class="field"><span class="ph">όνομα@εταιρεία.gr</span></div>
+            <div class="gap"></div>
+            <p class="lbl">Κωδικός</p>
+            <div class="field"><span class="reveal">Εμφάνιση</span></div>
+            <div class="gap s"></div>
+            <div class="row"><div class="check"><span class="box on"></span>Να με θυμάσαι</div><a href="#a">Ξέχασα τον κωδικό</a></div>
+            <div class="gap s"></div>
+            <div class="btn">Σύνδεση</div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="shot">
+        <p class="shot-label">2 · Πληκτρολόγιο ανοιχτό</p>
+        <p class="shot-note">Η λωρίδα μαζεύει· το κουμπί μένει ορατό.</p>
+        <div class="phone"><div class="screen">
+          <div class="status on-sea"><span>9:41</span><i></i></div>
+          <div class="band strip"><p class="word">Kaiki</p><span class="lang on-sea"><span class="on">ΕΛ</span><span>EN</span></span></div>
+          <div class="body" style="padding-top: 20px;">
+            <p class="lbl">Email</p>
+            <div class="field">nikos@kalypso-cruises.gr</div>
+            <div class="gap"></div>
+            <p class="lbl">Κωδικός</p>
+            <div class="field focus"><span class="dots">••••••</span><span class="caret"></span><span class="reveal">Εμφάνιση</span></div>
+            <div class="gap"></div>
+            <div class="btn">Σύνδεση</div>
+          </div>
+          <div class="kb" data-kind="email" data-go="Σύνδεση" data-suggest="Κωδικοί · kalypso-cruises.gr"></div>
+        </div></div>
+      </div>
+
+      <div class="shot">
+        <p class="shot-label">3 · Λάθος</p>
+        <p class="shot-note">Πάνω από τα πεδία, με το τι να κάνεις.</p>
+        <div class="phone"><div class="screen">
+          <div class="status on-sea"><span>9:41</span><i></i></div>
+          <div class="band a"><span class="lang on-sea"><span class="on">ΕΛ</span><span>EN</span></span><p class="word">Kaiki</p><p class="line">Κρατήσεις για εκδρομές με σκάφος.</p></div>
+          <div class="body" style="padding-top: 24px;">
+            <div class="alert"><span class="ic">!</span><div><b>Λάθος email ή κωδικός.</b><span>Έλεγξε αν είναι ανοιχτά τα κεφαλαία και ξαναδοκίμασε.</span></div></div>
+            <div class="gap"></div>
+            <p class="lbl">Email</p>
+            <div class="field">nikos@kalypso-cruises.gr</div>
+            <div class="gap"></div>
+            <p class="lbl">Κωδικός</p>
+            <div class="field bad"><span class="reveal">Εμφάνιση</span></div>
+            <div class="gap s"></div>
+            <div class="row"><div class="check"><span class="box on"></span>Να με θυμάσαι</div><a href="#a">Ξέχασα τον κωδικό</a></div>
+            <div class="gap s"></div>
+            <div class="btn">Σύνδεση</div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="shot">
+        <p class="shot-label">4 · Ξέχασα τον κωδικό</p>
+        <p class="shot-note">Ίδια λωρίδα, το email έρχεται ήδη γραμμένο.</p>
+        <div class="phone"><div class="screen">
+          <div class="status on-sea"><span>9:41</span><i></i></div>
+          <div class="band a"><span class="lang on-sea"><span class="on">ΕΛ</span><span>EN</span></span><p class="word">Kaiki</p><p class="line">Κρατήσεις για εκδρομές με σκάφος.</p></div>
+          <div class="body" style="padding-top: 22px;">
+            <a class="back" href="#a">‹ Σύνδεση</a>
+            <p class="h sm">Νέος κωδικός</p>
+            <p class="sub">Θα σου στείλουμε σύνδεσμο για να βάλεις καινούργιο. Ισχύει 60 λεπτά.</p>
+            <p class="lbl">Email</p>
+            <div class="field">nikos@kalypso-cruises.gr</div>
+            <div class="gap"></div>
+            <div class="btn">Στείλε μου σύνδεσμο</div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> η μικρότερη αλλαγή (μόνο CSS και λίγη JavaScript στο υπάρχον layout), αλλά το πρόβλημα μένει μισό: δύο πεδία στον ήλιο, κωδικός που πληκτρολογείται με το ένα χέρι. Σε μικρότερο κινητό (iPhone SE) το κουμπί ξαναπέφτει κάτω από τα πλήκτρα.</p>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ============ Β ============ -->
+  <section>
+    <div class="direction-head"><span class="letter" aria-hidden="true">Β</span><h2>Πρώτα το email, μετά ο κωδικός</h2></div>
+    <p class="decision">Η απόφαση: <strong>ένα πεδίο ανά οθόνη</strong>. Ποτέ δεν υπάρχουν δύο πράγματα να χωρέσουν πάνω από το πληκτρολόγιο.</p>
+    <ul class="points">
+      <li>Χωρίς μπλε λωρίδα: μόνο η λέξη «Kaiki» πάνω αριστερά. Όλη η οθόνη ανήκει στη φόρμα.</li>
+      <li>Το δεύτερο βήμα <b>ξέρει το email</b> — το δείχνει ως ετικέτα με «Αλλαγή», και το «Ξέχασα τον κωδικό» γίνεται ένα πάτημα, χωρίς να το ξαναγράψεις.</li>
+      <li>Το λάθος κάθεται κάτω από τον κωδικό, με τη διέξοδο («Ξέχασα τον κωδικό») αμέσως από κάτω.</li>
+      <li>Αργότερα το δεύτερο βήμα μπορεί να δείξει «Σύνδεση με Face ID» (passkey) σε όποιον το έχει στήσει, χωρίς να αλλάξει κάτι άλλο.</li>
+    </ul>
+
+    <div class="phones">
+      <div class="shot">
+        <p class="shot-label">1 · Βήμα 1, άδειο</p>
+        <p class="shot-note">Ένα πεδίο, ένα κουμπί.</p>
+        <div class="phone"><div class="screen">
+          <div class="status"><span>9:41</span><i></i></div>
+          <div class="mast"><p class="word">Kaiki</p><span class="lang on-light"><span class="on">ΕΛ</span><span>EN</span></span></div>
+          <div class="body" style="padding-top: 36px;">
+            <p class="h">Σύνδεση</p>
+            <p class="sub">Με το email που χρησιμοποιείς στην Kaiki.</p>
+            <p class="lbl">Email</p>
+            <div class="field"><span class="ph">όνομα@εταιρεία.gr</span></div>
+            <div class="gap"></div>
+            <div class="btn">Συνέχεια</div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="shot">
+        <p class="shot-label">2 · Βήμα 2, πληκτρολόγιο ανοιχτό</p>
+        <p class="shot-note">Χωράει άνετα· περισσεύει χώρος.</p>
+        <div class="phone"><div class="screen">
+          <div class="status"><span>9:41</span><i></i></div>
+          <div class="mast"><p class="word">Kaiki</p><span class="lang on-light"><span class="on">ΕΛ</span><span>EN</span></span></div>
+          <div class="body" style="padding-top: 14px;">
+            <div class="chip"><span class="who">nikos@kalypso-cruises.gr</span><a href="#b">Αλλαγή</a></div>
+            <div class="gap"></div>
+            <p class="lbl">Κωδικός</p>
+            <div class="field focus"><span class="dots">••••••</span><span class="caret"></span><span class="reveal">Εμφάνιση</span></div>
+            <div class="gap"></div>
+            <div class="btn">Σύνδεση</div>
+          </div>
+          <div class="kb" data-kind="email" data-go="Σύνδεση" data-suggest="Κωδικοί · kalypso-cruises.gr"></div>
+        </div></div>
+      </div>
+
+      <div class="shot">
+        <p class="shot-label">3 · Λάθος</p>
+        <p class="shot-note">Το μήνυμα και η διέξοδος, μαζί.</p>
+        <div class="phone"><div class="screen">
+          <div class="status"><span>9:41</span><i></i></div>
+          <div class="mast"><p class="word">Kaiki</p><span class="lang on-light"><span class="on">ΕΛ</span><span>EN</span></span></div>
+          <div class="body" style="padding-top: 14px;">
+            <div class="chip"><span class="who">nikos@kalypso-cruises.gr</span><a href="#b">Αλλαγή</a></div>
+            <div class="gap"></div>
+            <p class="lbl">Κωδικός</p>
+            <div class="field bad"><span class="reveal">Εμφάνιση</span></div>
+            <p class="err"><span class="ic">!</span>Λάθος email ή κωδικός.</p>
+            <div class="gap s"></div>
+            <div class="row"><span class="check"><span class="switch"></span>Να με θυμάσαι</span></div>
+            <div class="gap s"></div>
+            <div class="btn">Σύνδεση</div>
+            <div class="gap s"></div>
+            <div class="btn quiet">Ξέχασα τον κωδικό</div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="shot">
+        <p class="shot-label">4 · Ξέχασα τον κωδικό</p>
+        <p class="shot-note">Ένα πάτημα: το email το ξέρουμε ήδη.</p>
+        <div class="phone"><div class="screen">
+          <div class="status"><span>9:41</span><i></i></div>
+          <div class="mast"><p class="word">Kaiki</p><span class="lang on-light"><span class="on">ΕΛ</span><span>EN</span></span></div>
+          <div class="body" style="padding-top: 14px;">
+            <a class="back" href="#b">‹ Πίσω</a>
+            <p class="h sm">Κοίτα το email σου</p>
+            <div class="gap s"></div>
+            <div class="okbox">Στείλαμε σύνδεσμο στο <b>nikos@kalypso-cruises.gr</b>. Άνοιξέ τον από το κινητό για να βάλεις νέο κωδικό· ισχύει 60 λεπτά.</div>
+            <div class="gap"></div>
+            <p class="small">Δεν ήρθε σε δύο λεπτά; Κοίτα στα ανεπιθύμητα.</p>
+            <div class="gap s"></div>
+            <div class="btn ghost">Στείλε τον ξανά</div>
+          </div>
+        </div></div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> ένα πάτημα παραπάνω κάθε φορά που μπαίνεις χωρίς αποθηκευμένο κωδικό, και μια σελίδα που γίνεται δύο στο Filament (το «Συνέχεια» δεν πρέπει να λέει αν υπάρχει το email, αλλιώς προδίδει ποιοι έχουν λογαριασμό). Οι διαχειριστές κωδικών του κινητού το χειρίζονται σωστά αν το βήμα 2 κρατά κρυφό πεδίο <code>autocomplete="username"</code>.</p>
+  </section>
+
+  <hr class="rule">
+
+  <!-- ============ Γ ============ -->
+  <section>
+    <div class="direction-head"><span class="letter" aria-hidden="true">Γ</span><h2>Κωδικός μιας χρήσης στο email</h2></div>
+    <p class="decision">Η απόφαση: <strong>κανείς δεν πληκτρολογεί κωδικό πρόσβασης</strong>. Γράφεις το email, σου έρχονται έξι ψηφία, μπαίνεις — και το κινητό σε θυμάται 30 ημέρες.</p>
+    <ul class="points">
+      <li>Η μάρκα πάει <b>κάτω</b>, σε μπλε ζώνη με κύματα: όταν ανοίξει το πληκτρολόγιο, σκεπάζει αυτήν και όχι τη φόρμα.</li>
+      <li>Αριθμητικό πληκτρολόγιο και <code>autocomplete="one-time-code"</code>: το iPhone προτείνει τα ψηφία από το Mail πάνω από τα πλήκτρα.</li>
+      <li>Χωρίς κουμπί στο δεύτερο βήμα: μπαίνεις μόλις γράψεις το έκτο ψηφίο.</li>
+      <li>Ο κωδικός πρόσβασης μένει ως δεύτερος δρόμος («Σύνδεση με κωδικό πρόσβασης») για όποιον τον προτιμά ή δεν έχει το email στο κινητό.</li>
+    </ul>
+
+    <div class="phones">
+      <div class="shot">
+        <p class="shot-label">1 · Άδεια φόρμα</p>
+        <p class="shot-note">Ένα πεδίο· η μάρκα κάτω.</p>
+        <div class="phone"><div class="screen">
+          <div class="status"><span>9:41</span><i></i></div>
+          <span class="lang on-light corner-lang"><span class="on">ΕΛ</span><span>EN</span></span>
+          <div class="body" style="padding-top: 128px;">
+            <p class="h">Σύνδεση</p>
+            <p class="sub">Σου στέλνουμε έναν κωδικό 6 ψηφίων στο email. Χωρίς κωδικό πρόσβασης.</p>
+            <p class="lbl">Email</p>
+            <div class="field"><span class="ph">όνομα@εταιρεία.gr</span></div>
+            <div class="gap"></div>
+            <div class="btn">Στείλε μου κωδικό</div>
+            <div class="gap s"></div>
+            <div class="btn quiet">Σύνδεση με κωδικό πρόσβασης</div>
+          </div>
+          <div class="foot-band"><p class="word">Kaiki</p><p class="line">Κρατήσεις για εκδρομές με σκάφος.</p></div>
+        </div></div>
+      </div>
+
+      <div class="shot">
+        <p class="shot-label">2 · Τα έξι ψηφία, πληκτρολόγιο ανοιχτό</p>
+        <p class="shot-note">Το κινητό προτείνει τον κωδικό από το Mail.</p>
+        <div class="phone"><div class="screen">
+          <div class="status"><span>9:41</span><i></i></div>
+          <div class="body" style="padding-top: 64px;">
+            <a class="back" href="#c">‹ Άλλο email</a>
+            <p class="h sm">Γράψε τον κωδικό</p>
+            <p class="sub" style="margin-bottom: 16px;">Τον στείλαμε στο nikos@kalypso-cruises.gr.</p>
+            <div class="code"><span>4</span><span>8</span><span>2</span><span class="cur"><i class="caret"></i></span><span></span><span></span></div>
+            <div class="gap s"></div>
+            <div class="check"><span class="box on"></span>Να με θυμάται αυτό το κινητό 30 ημέρες</div>
+          </div>
+          <div class="kb" data-kind="pad" data-suggest="Από το Mail · 482 913"></div>
+        </div></div>
+      </div>
+
+      <div class="shot">
+        <p class="shot-label">3 · Λάθος</p>
+        <p class="shot-note">Τα κουτιά κοκκινίζουν και αδειάζουν στο επόμενο πάτημα.</p>
+        <div class="phone"><div class="screen">
+          <div class="status"><span>9:41</span><i></i></div>
+          <div class="body" style="padding-top: 64px;">
+            <a class="back" href="#c">‹ Άλλο email</a>
+            <p class="h sm">Γράψε τον κωδικό</p>
+            <p class="sub" style="margin-bottom: 16px;">Τον στείλαμε στο nikos@kalypso-cruises.gr.</p>
+            <div class="code bad"><span>4</span><span>8</span><span>2</span><span>9</span><span>3</span><span>1</span></div>
+            <p class="err"><span class="ic">!</span><span>Λάθος email ή κωδικός. Κοίτα το πιο πρόσφατο email από την Kaiki.</span></p>
+            <div class="gap"></div>
+            <div class="btn ghost">Στείλε νέο κωδικό <span class="mono" style="font-weight: 400; margin-inline-start: 8px; color: var(--muted);">σε 0:42</span></div>
+          </div>
+          <div class="foot-band"><p class="word">Kaiki</p><p class="line">Κρατήσεις για εκδρομές με σκάφος.</p></div>
+        </div></div>
+      </div>
+
+      <div class="shot">
+        <p class="shot-label">4 · Με κωδικό πρόσβασης</p>
+        <p class="shot-note">Ο δεύτερος δρόμος· το «ξέχασα» στέλνει απλώς κωδικό.</p>
+        <div class="phone"><div class="screen">
+          <div class="status"><span>9:41</span><i></i></div>
+          <div class="body" style="padding-top: 64px;">
+            <a class="back" href="#c">‹ Με κωδικό στο email</a>
+            <p class="h sm">Σύνδεση με κωδικό πρόσβασης</p>
+            <div class="gap s"></div>
+            <p class="lbl">Email</p>
+            <div class="field">nikos@kalypso-cruises.gr</div>
+            <div class="gap"></div>
+            <p class="lbl">Κωδικός πρόσβασης</p>
+            <div class="field"><span class="reveal">Εμφάνιση</span></div>
+            <div class="gap"></div>
+            <div class="btn">Σύνδεση</div>
+            <div class="btn quiet">Τον ξέχασα — στείλε μου κωδικό</div>
+          </div>
+          <div class="foot-band" style="height: 120px; padding-top: 26px;"><p class="word">Kaiki</p></div>
+        </div></div>
+      </div>
+    </div>
+
+    <p class="tradeoff"><b>Το τίμημα:</b> η σύνδεση κρέμεται από το email. Σήμερα η Kaiki δεν έχει ακόμα τα στοιχεία SMTP, οπότε ο δρόμος αυτός δεν δουλεύει πριν μπουν· και ένα email που αργεί ή πάει στα ανεπιθύμητα αφήνει τον καπετάνιο στην προβλήτα να περιμένει. Επίσης ο καπετάνιος πηγαινοέρχεται ανάμεσα σε Mail και Kaiki την πρώτη φορά. Κερδίζει ότι «ξέχασα τον κωδικό» σχεδόν δεν υπάρχει, και το πλήρωμα δεν χρειάζεται καν κωδικό.</p>
+  </section>
+
+  <hr class="rule">
+
+  <section>
+    <h2 style="margin-bottom: 18px;">Ό,τι κι αν διαλέξεις</h2>
+    <div class="common">
+      <div>
+        <h3>Για το δάχτυλο και τον ήλιο</h3>
+        <ul>
+          <li>Πεδία και κουμπιά <b>52 px</b> ψηλά, κάθε σύνδεσμος σε ζώνη πατήματος 48 px.</li>
+          <li>Γράμματα <b>17 px</b> μέσα στα πεδία: κάτω από 16 το iPhone κάνει μεγέθυνση στη σελίδα.</li>
+          <li>Σκούρο μπλε κείμενο σε ανοιχτό φόντο· τα κουμπιά σε <code>#0F2E57</code> με λευκά γράμματα — αντίθεση πάνω από 7:1.</li>
+          <li>«Εμφάνιση» με λέξη μέσα στον κωδικό, όχι μόνο ματάκι.</li>
+          <li>ΕΛ/EN μικρό, πάνω δεξιά. Κανένας σύνδεσμος υπογραμμισμένο, κανένα ελληνικό με κεφαλαία.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Για το κινητό από κάτω</h3>
+        <ul>
+          <li><code>type="email" inputmode="email" autocomplete="username"</code> — πληκτρολόγιο με @ και πρόταση του αποθηκευμένου λογαριασμού.</li>
+          <li><code>autocomplete="current-password"</code>, ώστε το Face ID να συμπληρώνει τον κωδικό από το Keychain ή το Google.</li>
+          <li><code>enterkeyhint</code> «Επόμενο» / «Σύνδεση»: το μπλε πλήκτρο κάνει ό,τι και το μεγάλο κουμπί.</li>
+          <li>«Να με θυμάσαι» <b>ανοιχτό από προεπιλογή</b> στο κινητό: το πλήρωμα δεν θέλει να ξαναμπαίνει κάθε πρωί.</li>
+          <li>Στο λάθος το email μένει, ο κωδικός αδειάζει και παίρνει την εστίαση.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <hr class="rule">
+
+  <section class="picker">
+    <h2>Ποια από τις τρεις;</h2>
+    <p>Πατήστε για να τη δείτε σημειωμένη, και πείτε μου το γράμμα στη συζήτηση.</p>
+
+    <div class="options">
+      <button type="button" id="pick-a" class="option" aria-pressed="false" data-letter="Α" data-name="Η ίδια φόρμα, που χωράει">
+        <span class="option-letter">Α</span><span class="option-name">Η ίδια φόρμα, που χωράει</span>
+        <span class="option-why">Δύο πεδία μαζί, η λωρίδα μαζεύει. Η μικρότερη αλλαγή.</span>
+      </button>
+      <button type="button" id="pick-b" class="option" aria-pressed="false" data-letter="Β" data-name="Πρώτα το email, μετά ο κωδικός">
+        <span class="option-letter">Β</span><span class="option-name">Πρώτα το email, μετά ο κωδικός</span>
+        <span class="option-why">Ένα πεδίο ανά οθόνη. Ένα πάτημα παραπάνω.</span>
+      </button>
+      <button type="button" id="pick-c" class="option" aria-pressed="false" data-letter="Γ" data-name="Κωδικός μιας χρήσης στο email">
+        <span class="option-letter">Γ</span><span class="option-name">Κωδικός μιας χρήσης στο email</span>
+        <span class="option-why">Χωρίς κωδικό πρόσβασης. Θέλει email που δουλεύει.</span>
+      </button>
+    </div>
+
+    <p class="chosen" id="chosen">Δεν έχετε διαλέξει ακόμη.</p>
+  </section>
+
+</div>
+
+<script>
+  (function () {
+    // Τα πληκτρολόγια της οθόνης: ίδια σε κάθε τηλέφωνο, οπότε φτιάχνονται εδώ.
+    var rows = [['q','w','e','r','t','y','u','i','o','p'], ['a','s','d','f','g','h','j','k','l']];
+
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    }
+
+    document.querySelectorAll('.kb').forEach(function (kb) {
+      var acc = el('div', 'kb-acc');
+      acc.appendChild(el('span', null, '⌃'));
+      acc.appendChild(el('span', null, '⌄'));
+      acc.appendChild(el('b', null, 'Τέλος'));
+      kb.appendChild(acc);
+
+      var sug = el('div', 'kb-sug');
+      sug.appendChild(el('b', null, kb.dataset.suggest || ''));
+      kb.appendChild(sug);
+
+      if (kb.dataset.kind === 'pad') {
+        var pad = el('div', 'kb-pad');
+        ['1','2','3','4','5','6','7','8','9','','0','⌫'].forEach(function (k) {
+          pad.appendChild(el('span', k === '' ? 'blank' : (k === '⌫' ? 'del' : null), k));
+        });
+        kb.appendChild(pad);
+        return;
+      }
+
+      var wrap = el('div', 'kb-rows');
+      rows.forEach(function (r) {
+        var row = el('div', 'kb-row');
+        r.forEach(function (k) { row.appendChild(el('span', null, k)); });
+        wrap.appendChild(row);
+      });
+      var third = el('div', 'kb-row');
+      third.appendChild(el('span', 'w', '⇧'));
+      ['z','x','c','v','b','n','m'].forEach(function (k) { third.appendChild(el('span', null, k)); });
+      third.appendChild(el('span', 'w', '⌫'));
+      wrap.appendChild(third);
+      var last = el('div', 'kb-row');
+      last.appendChild(el('span', 'w', '123'));
+      last.appendChild(el('span', 'k', '@'));
+      last.appendChild(el('span', 'sp', 'κενό'));
+      last.appendChild(el('span', 'k', '.'));
+      last.appendChild(el('span', 'go', kb.dataset.go || 'Μετάβαση'));
+      wrap.appendChild(last);
+      kb.appendChild(wrap);
+    });
+
+    document.querySelectorAll('.options').forEach(function (group) {
+      var options = Array.prototype.slice.call(group.querySelectorAll('.option'));
+      var out = group.parentNode.querySelector('.chosen');
+      options.forEach(function (option) {
+        option.addEventListener('click', function () {
+          options.forEach(function (other) { other.setAttribute('aria-pressed', String(other === option)); });
+          out.innerHTML = 'Διαλέξατε <b>' + option.dataset.letter + ' — ' + option.dataset.name + '</b>. Πείτε μου το γράμμα στη συζήτηση για να χτιστεί.';
+        });
+      });
+    });
+  })();
+</script>

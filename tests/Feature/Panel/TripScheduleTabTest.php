@@ -9,6 +9,7 @@ use App\Filament\App\Resources\ProductResource;
 use App\Filament\App\Resources\ProductResource\Pages\EditProduct;
 use App\Filament\App\Resources\ProductResource\RelationManagers\ScheduleRulesRelationManager;
 use App\Filament\App\Resources\ScheduleRuleResource;
+use App\Filament\Forms\DepartureTimes;
 use App\Models\Product;
 use App\Models\ScheduleRule;
 use App\Models\Tenant;
@@ -85,6 +86,67 @@ it('adds one schedule row per departure time, with the same days and dates', fun
     expect($rules)->toHaveCount(3)
         ->and($rules->map(static fn (ScheduleRule $rule): string => substr((string) $rule->start_time, 0, 5))->all())->toBe(['09:00', '13:00', '17:00'])
         ->and($rules->pluck('weekday_mask')->unique()->all())->toBe([WeekdayMask::fromDays([1, 2, 3, 4, 5, 6, 7])]);
+})->group('fast');
+
+it('takes the times as the chips send them, in any order, typed any way', function (): void {
+    // #11 (24/9): the chips hold a plain list, and «930» is what a thumb types.
+    $owner = OperatorUser::withRole(Role::Owner);
+    tenancy()->initialize(Tenant::query()->findOrFail($owner->tenant_id));
+
+    $product = Product::factory()->create(['mode' => BookingMode::PerSeat]);
+
+    Livewire::actingAs($owner)
+        ->test(ScheduleRulesRelationManager::class, ['ownerRecord' => $product, 'pageClass' => EditProduct::class])
+        ->mountTableAction('create')
+        ->set('mountedTableActionsData.0.start_times', ['18:00', '930', '13:00'])
+        ->setTableActionData([
+            'weekdays' => [6, 7],
+            'valid_from' => '2026-06-01',
+            'is_active' => true,
+        ])
+        ->callMountedTableAction()
+        ->assertHasNoTableActionErrors();
+
+    $times = ScheduleRule::query()->where('product_id', $product->getKey())->orderBy('start_time')->get()
+        ->map(static fn (ScheduleRule $rule): string => substr((string) $rule->start_time, 0, 5))->all();
+
+    expect($times)->toBe(['09:30', '13:00', '18:00']);
+})->group('fast');
+
+it('refuses the same time twice, and a time that is not one', function (array $times): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+    tenancy()->initialize(Tenant::query()->findOrFail($owner->tenant_id));
+
+    $product = Product::factory()->create(['mode' => BookingMode::PerSeat]);
+
+    Livewire::actingAs($owner)
+        ->test(ScheduleRulesRelationManager::class, ['ownerRecord' => $product, 'pageClass' => EditProduct::class])
+        ->mountTableAction('create')
+        ->set('mountedTableActionsData.0.start_times', $times)
+        ->setTableActionData([
+            'weekdays' => [1],
+            'valid_from' => '2026-06-01',
+            'is_active' => true,
+        ])
+        ->callMountedTableAction()
+        ->assertHasTableActionErrors(['start_times']);
+
+    expect(ScheduleRule::query()->where('product_id', $product->getKey())->count())->toBe(0);
+})->with([
+    'twice' => [['09:00', '9']],
+    'not a time' => [['09:00', '25:10']],
+    'none' => [[]],
+])->group('fast');
+
+it('reads «930», «9» and «09:30» the same way the chips do', function (): void {
+    expect(DepartureTimes::parse('930'))->toBe('09:30')
+        ->and(DepartureTimes::parse('9'))->toBe('09:00')
+        ->and(DepartureTimes::parse('1830'))->toBe('18:30')
+        ->and(DepartureTimes::parse('09:30:00'))->toBe('09:30')
+        ->and(DepartureTimes::parse('2026-09-22 09:30:00'))->toBe('09:30')
+        ->and(DepartureTimes::parse('24:00'))->toBeNull()
+        ->and(DepartureTimes::parse('abc'))->toBeNull()
+        ->and(DepartureTimes::normalise([['time' => '18:00'], '9', '09:00', null]))->toBe(['09:00', '18:00']);
 })->group('fast');
 
 it('says «none» on a trip nobody can book on any day', function (): void {

@@ -48,7 +48,7 @@ final class TodayHome
      *
      * @return array{departure: Departure, starts: Carbon, underway: bool, today: bool, aboard: int, expected: int}|null
      */
-    public function nextDeparture(?Carbon $now = null): ?array
+    public function nextDeparture(?Carbon $now = null, ?int $sailingUserId = null): ?array
     {
         $now ??= Carbon::now('UTC');
 
@@ -57,6 +57,11 @@ final class TodayHome
             ->where('status', '!=', DepartureStatus::Cancelled->value)
             ->where('ends_at_utc', '>', $now)
             ->where('starts_at_utc', '<', $now->copy()->addDays(7))
+            // «Η επόμενη δική μου» (2026-09-24): for a crew member, the next
+            // one they are the captain of or on the crew of.
+            ->when($sailingUserId !== null, static fn ($query) => $query->where(static function ($mine) use ($sailingUserId): void {
+                $mine->where('captain_user_id', $sailingUserId)->orWhereJsonContains('crew_user_ids', $sailingUserId);
+            }))
             ->orderBy('starts_at_utc')
             ->first();
 

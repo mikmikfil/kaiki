@@ -48,14 +48,39 @@
         </x-filament::link>
     </div>
 
-    <div class="ka-setup">
-        <nav class="ka-setup-steps" aria-label="{{ __('setup.steps_label') }}">
+    @php($doneCount = count(array_filter($questions, fn ($step) => $states[$step] ?? false)))
+    <div class="ka-setup" x-data="{ stepsOpen: false }">
+        {{-- On a phone the step list does not fit on one line (it was cut at
+             «Φ…»): one line says where you are, a thin bar how far along, and
+             a tap opens the full list to jump elsewhere (phone audit,
+             2026-09-23). --}}
+        <button
+            type="button"
+            class="ka-setup-mini"
+            x-on:click="stepsOpen = ! stepsOpen"
+            x-bind:aria-expanded="stepsOpen ? 'true' : 'false'"
+            aria-controls="ka-setup-steps"
+        >
+            <span class="line">
+                @if ($isReady)
+                    <b>{{ __('setup.steps.ready.label') }}</b>
+                @else
+                    <span>{{ __('setup.step_of', ['n' => (int) $position + 1, 'total' => count($questions)]) }}</span>
+                    <b>{{ __('setup.steps.' . $current . '.label') }}</b>
+                @endif
+                <x-filament::icon icon="heroicon-m-chevron-down" class="chev h-5 w-5" />
+            </span>
+            <span class="bar" aria-hidden="true"><i style="width: {{ count($questions) > 0 ? round($doneCount / count($questions) * 100) : 0 }}%"></i></span>
+        </button>
+
+        <nav id="ka-setup-steps" class="ka-setup-steps" x-bind:class="stepsOpen && 'is-open'" aria-label="{{ __('setup.steps_label') }}">
             @foreach ($questions as $i => $step)
                 @php($isDone = $states[$step] ?? false)
                 @php($isSkipped = ! $isDone && $this->isSkipped($step))
                 <button
                     type="button"
                     wire:click="goTo('{{ $step }}')"
+                    x-on:click="stepsOpen = false"
                     @class(['ka-setup-step', 'is-done' => $isDone, 'is-on' => $step === $current, 'is-skipped' => $isSkipped])
                     @if ($step === $current) aria-current="step" @endif
                 >
@@ -184,8 +209,48 @@
     </div>
 
     <style>
+        /*
+         * Colours as variables on the two roots, redefined under `.dark`
+         * (phone audit, 2026-09-23: 31 light-only colours, a white card on the
+         * dark page and «Πίσω» white on white). Dark values come from
+         * Filament's grey and the dark primary scale.
+         */
+        .ka-setup-exit, .ka-setup {
+            --ks-card: #fff;
+            --ks-line: #E1E8F2;
+            --ks-hover: #F4F7FB;
+            --ks-ring: #C7D3E3;
+            --ks-ink: #15233A;
+            --ks-muted: #5F6F86;
+            --ks-faint: #64748B;
+            --ks-strong: #0F2E57;
+            --ks-on-ink: #fff;
+            --ks-soft: #EAF1FA;
+            --ks-ok: #1F7A4D;
+            --ks-ok-fill: #1F7A4D;
+            --ks-ring-on: rgba(15, 46, 87, .1);
+            --ks-note: #FBF0DF;
+            --ks-note-ink: #9A5B0C;
+        }
+        .dark .ka-setup-exit, .dark .ka-setup {
+            --ks-card: rgb(var(--gray-900));
+            --ks-line: rgba(255, 255, 255, .1);
+            --ks-hover: rgba(255, 255, 255, .05);
+            --ks-ring: rgb(var(--gray-600));
+            --ks-ink: rgb(var(--gray-100));
+            --ks-muted: rgb(var(--gray-400));
+            --ks-faint: rgb(var(--gray-400));
+            --ks-strong: rgb(var(--primary-400));
+            --ks-on-ink: rgb(var(--primary-950));
+            --ks-soft: rgba(var(--primary-400), .14);
+            --ks-ok: rgb(var(--success-400));
+            --ks-ok-fill: #1F7A4D;
+            --ks-ring-on: rgba(var(--primary-400), .25);
+            --ks-note: rgba(var(--warning-500), .14);
+            --ks-note-ink: rgb(var(--warning-300));
+        }
         /* The two exits, on one line above the guide and wrapping on a phone. */
-        .ka-setup-exit { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; justify-content: flex-end; font-size: .85rem; color: #5F6F86; margin-bottom: .75rem; }
+        .ka-setup-exit { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; justify-content: flex-end; font-size: .85rem; color: var(--ks-muted); margin-bottom: .75rem; }
         .ka-setup-exit > span { margin-inline-end: auto; }
         /*
          * **Τέρμα πλάτος** (product owner, 2026-09-22, direction Α of
@@ -198,21 +263,21 @@
          * still.
          */
         .ka-setup { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 1.5rem; align-items: start; }
-        .ka-setup-steps { display: grid; gap: 2px; background: #fff; border: 1px solid #E1E8F2; border-radius: .75rem; padding: .5rem; }
-        .ka-setup-step { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) auto; gap: .6rem; align-items: center; padding: .55rem .5rem; border-radius: .5rem; font-size: .9rem; color: #5F6F86; text-align: left; }
-        .ka-setup-step:hover { background: #F4F7FB; }
-        .ka-setup-step .dot { width: 1.4rem; height: 1.4rem; border-radius: 999px; border: 1.5px solid #C7D3E3; display: grid; place-items: center; font-size: .72rem; font-weight: 700; }
-        .ka-setup-step.is-done { color: #15233A; }
-        .ka-setup-step.is-done .dot { background: #1F7A4D; border-color: #1F7A4D; color: #fff; }
-        .ka-setup-step.is-on { background: #EAF1FA; color: #0F2E57; font-weight: 600; }
-        .ka-setup-step.is-on .dot { background: #0F2E57; border-color: #0F2E57; color: #fff; }
-        .ka-setup-step .tag { font-size: .72rem; color: #94A3B8; font-weight: 500; }
+        .ka-setup-steps { display: grid; gap: 2px; background: var(--ks-card); border: 1px solid var(--ks-line); border-radius: .75rem; padding: .5rem; }
+        .ka-setup-step { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr) auto; gap: .6rem; align-items: center; padding: .55rem .5rem; border-radius: .5rem; font-size: .9rem; color: var(--ks-muted); text-align: left; }
+        .ka-setup-step:hover { background: var(--ks-hover); }
+        .ka-setup-step .dot { width: 1.4rem; height: 1.4rem; border-radius: 999px; border: 1.5px solid var(--ks-ring); display: grid; place-items: center; font-size: .72rem; font-weight: 700; }
+        .ka-setup-step.is-done { color: var(--ks-ink); }
+        .ka-setup-step.is-done .dot { background: var(--ks-ok-fill); border-color: var(--ks-ok-fill); color: #fff; }
+        .ka-setup-step.is-on { background: var(--ks-soft); color: var(--ks-strong); font-weight: 600; }
+        .ka-setup-step.is-on .dot { background: var(--ks-strong); border-color: var(--ks-strong); color: var(--ks-on-ink); }
+        .ka-setup-step .tag { font-size: .72rem; color: var(--ks-faint); font-weight: 500; }
 
-        .ka-setup-card { background: #fff; border: 1px solid #E1E8F2; border-radius: .9rem; padding: 1.5rem; display: grid; gap: 1.1rem; min-width: 0; }
+        .ka-setup-card { background: var(--ks-card); border: 1px solid var(--ks-line); border-radius: .9rem; padding: 1.5rem; display: grid; gap: 1.1rem; min-width: 0; }
         .ka-setup-card .head { display: grid; gap: .35rem; }
-        .ka-setup-card .count { font-size: .82rem; color: #5F6F86; }
-        .ka-setup-card h2 { font-size: 1.35rem; font-weight: 700; color: #0F2E57; letter-spacing: -.01em; line-height: 1.25; }
-        .ka-setup-card .head p { color: #5F6F86; font-size: .92rem; max-width: 62ch; }
+        .ka-setup-card .count { font-size: .82rem; color: var(--ks-muted); }
+        .ka-setup-card h2 { font-size: 1.35rem; font-weight: 700; color: var(--ks-strong); letter-spacing: -.01em; line-height: 1.25; }
+        .ka-setup-card .head p { color: var(--ks-muted); font-size: .92rem; max-width: 62ch; }
 
         /*
          * **Το τελευταίο βήμα γράφει μέχρι την άκρη** (Mike, 23/9: *«στο είστε
@@ -251,27 +316,49 @@
         .ka-setup-card .fi-fo-field-wrp-helper-text { margin-top: auto; padding-top: .35rem; }
 
         .ka-setup-presets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .65rem; }
-        .ka-setup-preset { border: 1.5px solid #E1E8F2; border-radius: .75rem; padding: .8rem; display: grid; gap: .3rem; text-align: left; font-size: .84rem; color: #5F6F86; }
-        .ka-setup-preset strong { color: #15233A; font-size: .95rem; }
-        .ka-setup-preset.is-on { border-color: #0F2E57; box-shadow: 0 0 0 3px rgba(15, 46, 87, .1); }
-        .ka-setup-ladder { border: 1px solid #E1E8F2; border-radius: .6rem; overflow: hidden; font-size: .88rem; }
-        .ka-setup-ladder div { display: flex; justify-content: space-between; gap: .75rem; padding: .5rem .75rem; border-top: 1px solid #E1E8F2; }
+        .ka-setup-preset { border: 1.5px solid var(--ks-line); border-radius: .75rem; padding: .8rem; display: grid; gap: .3rem; text-align: left; font-size: .84rem; color: var(--ks-muted); }
+        .ka-setup-preset strong { color: var(--ks-ink); font-size: .95rem; }
+        .ka-setup-preset.is-on { border-color: var(--ks-strong); box-shadow: 0 0 0 3px var(--ks-ring-on); }
+        .ka-setup-ladder { border: 1px solid var(--ks-line); border-radius: .6rem; overflow: hidden; font-size: .88rem; }
+        .ka-setup-ladder div { display: flex; justify-content: space-between; gap: .75rem; padding: .5rem .75rem; border-top: 1px solid var(--ks-line); }
         .ka-setup-ladder div:first-child { border-top: 0; }
         .ka-setup-ladder .pct { font-variant-numeric: tabular-nums; font-weight: 600; }
 
-        .ka-setup-done { display: flex; gap: .5rem; align-items: center; color: #1F7A4D; font-weight: 600; font-size: .92rem; }
-        .ka-setup-hint { color: #5F6F86; font-size: .85rem; }
-        .ka-setup-note { background: #FBF0DF; color: #9A5B0C; border-radius: .6rem; padding: .65rem .8rem; font-size: .9rem; }
+        .ka-setup-done { display: flex; gap: .5rem; align-items: center; color: var(--ks-ok); font-weight: 600; font-size: .92rem; }
+        .ka-setup-hint { color: var(--ks-muted); font-size: .85rem; }
+        .ka-setup-note { background: var(--ks-note); color: var(--ks-note-ink); border-radius: .6rem; padding: .65rem .8rem; font-size: .9rem; }
 
         .ka-setup-actions { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; padding-top: .25rem; }
         .ka-setup-actions .right { display: flex; gap: .5rem; margin-left: auto; }
 
+        /* Phone only: where you are, and how far along. */
+        .ka-setup-mini {
+            display: none; gap: .5rem; width: 100%; padding: .7rem .85rem; text-align: left;
+            background: var(--ks-card); border: 1px solid var(--ks-line); border-radius: .75rem; color: var(--ks-ink);
+        }
+        .ka-setup-mini .line { display: flex; align-items: center; gap: .5rem; font-size: .9rem; min-width: 0; }
+        .ka-setup-mini .line > span { color: var(--ks-muted); white-space: nowrap; }
+        .ka-setup-mini .line b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+        .ka-setup-mini .chev { margin-left: auto; flex: none; color: var(--ks-muted); transition: transform .15s; }
+        .ka-setup-mini[aria-expanded="true"] .chev { transform: rotate(180deg); }
+        .ka-setup-mini .bar { display: block; height: .3rem; border-radius: 99px; background: var(--ks-hover); overflow: hidden; box-shadow: inset 0 0 0 1px var(--ks-line); }
+        .ka-setup-mini .bar i { display: block; height: 100%; border-radius: inherit; background: var(--ks-ok-fill); }
+
         @media (max-width: 760px) {
-            .ka-setup { grid-template-columns: 1fr; }
-            .ka-setup-steps { grid-auto-flow: column; grid-auto-columns: max-content; overflow-x: auto; }
-            .ka-setup-step .name { white-space: nowrap; }
+            .ka-setup { grid-template-columns: 1fr; gap: .75rem; }
+            .ka-setup-mini { display: grid; }
+            .ka-setup-steps { display: none; }
+            .ka-setup-steps.is-open { display: grid; }
             .ka-setup-presets { grid-template-columns: 1fr; }
             .ka-setup-card { padding: 1.1rem; }
+            /* The line above already says «Βήμα 4 από 5». */
+            .ka-setup-card .count { display: none; }
+        }
+        /* The two exits, one under the other and full width on a phone. */
+        @media (max-width: 639px) {
+            .ka-setup-exit { flex-direction: column; align-items: stretch; gap: .5rem; }
+            .ka-setup-exit > span { margin-inline-end: 0; }
+            .ka-setup-exit > .fi-btn, .ka-setup-exit > .fi-link { width: 100%; justify-content: center; min-height: 2.5rem; }
         }
     </style>
 </x-filament-panels::page>

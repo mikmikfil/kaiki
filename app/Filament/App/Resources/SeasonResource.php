@@ -7,6 +7,7 @@ namespace App\Filament\App\Resources;
 use App\Domain\Catalog\Actions\SaveSeason;
 use App\Filament\App\Resources\SeasonResource\Pages;
 use App\Filament\Forms\TranslatableInput;
+use App\Filament\Support\MoreActions;
 use App\Models\Season;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\DatePicker;
@@ -43,6 +44,8 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 class SeasonResource extends Resource
 {
     protected static ?string $model = Season::class;
+
+    protected static ?string $recordTitleAttribute = 'name';
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
 
@@ -92,6 +95,7 @@ class SeasonResource extends Resource
     {
         return [
             Section::make(__('pricing.season.model.singular'))
+                ->icon('heroicon-o-calendar-days')
                 ->schema([
                     TranslatableInput::text(
                         'name',
@@ -122,6 +126,7 @@ class SeasonResource extends Resource
                 ->columns(2),
 
             Section::make(__('pricing.season.form.ranges.label'))
+                ->icon('heroicon-o-arrows-right-left')
                 ->description(__('pricing.season.form.ranges.help'))
                 ->schema([
                     Repeater::make('dateRanges')
@@ -210,7 +215,7 @@ class SeasonResource extends Resource
                     ->visible(static fn (): bool => RatePlanResource::hasNoTrips())
                     ->url(static fn (): string => ProductResource::getUrl('create')),
             ])
-            ->actions([EditAction::make(), DeleteAction::make(), RestoreAction::make()]);
+            ->actions(MoreActions::row(EditAction::make(), [DeleteAction::make(), RestoreAction::make()]));
     }
 
     /**

@@ -21,14 +21,22 @@
 
     ## Readable without images, because NTF-6 requires it
 
-    There is no image in this template at all — not a logo, not a spacer, not a
-    tracking pixel, and **not the QR code**. The mockup draws the QR inside the
-    email; this does not, deliberately. Every mail client on the list blocks
+    There is no remote image in this template at all — not a logo, not a
+    spacer, not a tracking pixel. Every mail client on the list blocks remote
     images by default for a sender the recipient has not written to before,
-    which is exactly the situation a confirmation email is in, and a boarding
-    code that arrives as a grey box is worse than a link that opens the ticket
-    PDF, where the QR always is. The ticket block shows the booking code in
-    large type and that link.
+    which is exactly the situation a confirmation email is in.
+
+    The one image is **the boarding QR, one per passenger** (product owner,
+    2026-09-23, reversing the 2026-09-17 call to leave it out). It is a PNG
+    carried inside the message as a `cid:` part — nothing is fetched, so
+    nothing is blocked, and no URL that serves a boarding code exists for
+    anybody to guess. PNG because Gmail and Outlook do not draw SVG
+    ({@see \App\Domain\Booking\Support\TicketQr}). It appears only where the
+    ticket PDF and the booking page would show one
+    ({@see \App\Domain\Booking\Support\BoardingPasses}): QR boarding on for
+    this operator, a ticketed booking, a trip not yet sailed. The message still
+    reads without it: the booking code in large type and the link to the
+    ticket PDF sit above it, and each image has its passenger in the alt text.
 
     The operator's identity is carried by the **name and the accent colour**,
     both of which survive an image block.
@@ -65,7 +73,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{{ __("mail.{$template->value}.subject", ['reference' => $booking->reference]) }}</title>
+    <title>{{ __("mail.{$template->value}.subject", ['reference' => $booking->reference, 'trip' => (string) $booking->product?->title]) }}</title>
 </head>
 <body style="margin:0;padding:0;background:#f2f5f7;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f2f5f7;">
@@ -131,7 +139,7 @@
 
                         {{-- Under the card, the stub: the ticket on the full messages,
                              and on every other one the few facts that message is
-                             about. No QR image here — see the file docblock. --}}
+                             about. The QR codes follow in their own block. --}}
                         @if ($showTicket)
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
                                    style="border:1px solid #dbe3e9;border-top:0;margin:0 0 18px;">
@@ -139,7 +147,13 @@
                                     <td style="padding:14px 20px;{{ $font }}">
                                         <p style="margin:0;font-size:13px;{{ $muted }}">{{ __('mail.common.ticket') }}</p>
                                         <p style="margin:0 0 4px;font-size:22px;font-weight:bold;letter-spacing:1px;">{{ $booking->reference }}</p>
-                                        <p style="margin:0 0 8px;font-size:13px;{{ $muted }}">{{ __('mail.common.ticket_help') }}</p>
+                                        <p style="margin:0 0 8px;font-size:13px;{{ $muted }}">
+                                            {{ __('mail.common.ticket_help') }}
+                                            {{-- Only when `GuestMail::send()` really attached it (2026-09-23). --}}
+                                            @if ($ticketPdfAttached ?? false)
+                                                {{ __('mail.common.ticket_attached') }}
+                                            @endif
+                                        </p>
                                         <a href="{{ $d->ticketUrl }}" style="{{ $link }}">{{ __('mail.common.open_ticket') }}</a>
                                     </td>
                                 </tr>
@@ -165,6 +179,42 @@
                             </table>
                         @else
                             <div style="height:18px;line-height:18px;font-size:1px;">&nbsp;</div>
+                        @endif
+
+                        {{-- The boarding codes (2026-09-23): one per passenger,
+                             each a PNG inside the message (see the file
+                             docblock). 200 px on screen, drawn at about twice
+                             that so a phone's screen keeps the edges hard, with
+                             the white quiet zone in the image itself. Side by
+                             side where there is room, one under the other on a
+                             phone — and in Outlook, which stacks the blocks. --}}
+                        @if ($d->boardingPasses !== [])
+                            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                                   style="border:1px solid #dbe3e9;margin:0 0 18px;">
+                                <tr>
+                                    <td style="padding:14px 20px 6px;{{ $font }}">
+                                        <p style="margin:0;font-size:13px;{{ $muted }}">{{ __('mail.common.boarding_heading') }}</p>
+                                        <p style="margin:0 0 10px;font-size:14px;color:#14202b;">{{ trans_choice('mail.common.boarding_help', count($d->boardingPasses)) }}</p>
+                                        @foreach ($d->boardingPasses as $pass)
+                                            @php
+                                                $png = \App\Domain\Booking\Support\TicketQr::pngFor($pass['guest']);
+                                                // `$message` is the mailer's own, on a real send and on
+                                                // `Mailable::render()`; a bare `view()` has none.
+                                                $qrSrc = isset($message)
+                                                    ? $message->embedData($png, 'boarding-' . $loop->iteration . '.png', 'image/png')
+                                                    : 'data:image/png;base64,' . base64_encode($png);
+                                            @endphp
+                                            <div style="display:inline-block;vertical-align:top;width:200px;margin:0 16px 12px 0;">
+                                                <img src="{{ $qrSrc }}" width="200" height="200"
+                                                     alt="{{ __('mail.common.boarding_alt', ['name' => $pass['name']]) }}"
+                                                     style="display:block;width:200px;height:200px;border:0;outline:none;background:#ffffff;">
+                                                <p style="margin:6px 0 0;font-size:14px;font-weight:bold;color:#14202b;">{{ $pass['name'] }}</p>
+                                                <p style="margin:0;font-size:11px;{{ $muted }}word-break:break-all;">{{ $pass['code'] }}</p>
+                                            </div>
+                                        @endforeach
+                                    </td>
+                                </tr>
+                            </table>
                         @endif
 
                         {{-- «Προσθήκη στο ημερολόγιο» (2026-09-18). Two links and

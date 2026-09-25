@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Domain\Booking\Support;
 
 use App\Models\BookingGuest;
+use BaconQrCode\Common\ErrorCorrectionLevel;
+use BaconQrCode\Encoder\Encoder;
+use BaconQrCode\Renderer\GDLibRenderer;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
@@ -48,11 +51,35 @@ use BaconQrCode\Writer;
  * host. It is embedded in the Blade markup rather than written to disk, which
  * keeps SEC-14's locked-down Chromium honest — a renderer that has to reach a
  * local file is a renderer with local file access.
+ *
+ * ## PNG, for the email, and only for the email
+ *
+ * An inbox is the one place SVG does not work: Gmail strips it and Outlook on
+ * Windows renders through Word, which has never heard of it. The confirmation
+ * carries the codes as PNGs (product owner, 2026-09-23), embedded in the
+ * message as `cid:` parts rather than linked — a linked image is a remote
+ * fetch every client blocks by default, and a URL that serves a boarding code
+ * is a URL somebody can guess. {@see pngFor()} draws the **same payload** with
+ * bacon's own GD renderer, so there is one generator and one decision about
+ * what a ticket says, in two formats.
+ *
+ * PNG and not JPEG: a QR is two flat colours with hard edges, which is what
+ * PNG compresses losslessly to a few hundred bytes and what JPEG smears into
+ * grey halos a phone camera has to guess through.
+ *
+ * GD is the one requirement this adds, and it is declared (`ext-gd` in
+ * `composer.json`) rather than assumed; the SVG path still needs nothing.
  */
 final class TicketQr
 {
     /** Roughly a 3cm square at print resolution — comfortably scannable, small enough to sit beside the text. */
     private const SIZE_PX = 220;
+
+    /** About twice the 200 px the email draws it at; see {@see png()}. */
+    public const PNG_PX = 400;
+
+    /** The white border every QR reader expects, in modules (ISO/IEC 18004). */
+    private const QUIET_ZONE_MODULES = 4;
 
     /**
      * The scan URL for one guest.
@@ -83,6 +110,35 @@ final class TicketQr
     public static function svgFor(BookingGuest $guest): string
     {
         return self::svg(self::payloadFor($guest));
+    }
+
+    /**
+     * The QR as PNG bytes, for the one place SVG cannot go (see above).
+     *
+     * @see self::png()
+     */
+    public static function pngFor(BookingGuest $guest): string
+    {
+        return self::png(self::payloadFor($guest));
+    }
+
+    /**
+     * Black on white, with the standard four-module white quiet zone, and a
+     * whole number of pixels per module.
+     *
+     * The size is worked out from the encoded matrix rather than fixed, because
+     * a fixed size divided by 41 modules is 9.76 pixels each and GD rounds every
+     * edge its own way — uneven modules are what a cheap phone camera fails on.
+     * The result is roughly {@see PNG_PX} square: twice the size the email shows
+     * it at, so it stays sharp on a phone's high-density screen.
+     */
+    public static function png(string $payload): string
+    {
+        $qr = Encoder::encode($payload, ErrorCorrectionLevel::L(), Encoder::DEFAULT_BYTE_MODE_ENCODING);
+        $modules = $qr->getMatrix()->getWidth() + 2 * self::QUIET_ZONE_MODULES;
+        $size = $modules * max(1, intdiv(self::PNG_PX, $modules));
+
+        return (new GDLibRenderer($size, self::QUIET_ZONE_MODULES))->render($qr);
     }
 
     public static function svg(string $payload): string

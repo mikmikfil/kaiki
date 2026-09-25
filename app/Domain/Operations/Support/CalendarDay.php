@@ -156,7 +156,7 @@ final class CalendarDay
     }
 
     /**
-     * @return array{kind: string, uuid: string, label: string, detail: string|null, start: float, end: float, buffer: float, pax: int|null, capacity: int|null, cancelled: bool, reason: string|null}
+     * @return array{kind: string, uuid: string, label: string, detail: string|null, start: float, end: float, buffer: float, pax: int|null, capacity: int|null, cancelled: bool, reason: string|null, captain: string|null}
      */
     private static function departureBar(Departure $departure, LocalDay $day, int $minutes, int $buffer): array
     {
@@ -181,11 +181,14 @@ final class CalendarDay
             // operator wants to see that it *was* cancelled.
             'cancelled' => $departure->status === DepartureStatus::Cancelled,
             'reason' => null,
+            // Who takes her out (2026-09-24): the departure's, the schedule's
+            // copy on it, or the boat's usual captain.
+            'captain' => $departure->captainName(),
         ];
     }
 
     /**
-     * @return array{kind: string, uuid: string, label: string, detail: string|null, start: float, end: float, buffer: float, pax: int|null, capacity: int|null, cancelled: bool, reason: string|null}
+     * @return array{kind: string, uuid: string, label: string, detail: string|null, start: float, end: float, buffer: float, pax: int|null, capacity: int|null, cancelled: bool, reason: string|null, captain: string|null}
      */
     private static function blockBar(VesselBlock $block, LocalDay $day, int $minutes, int $buffer): array
     {
@@ -201,6 +204,7 @@ final class CalendarDay
             'capacity' => null,
             'cancelled' => false,
             'reason' => $block->reason->value,
+            'captain' => null,
         ];
     }
 

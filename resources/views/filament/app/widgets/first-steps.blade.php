@@ -53,6 +53,15 @@
                 color: rgb(var(--gray-400));
             }
 
+            /* The rule above is as specific as the light «done» one and comes
+               later, so it was greying the done discs too. Restated here; the
+               tick is dark because the dark primary is a light blue (white
+               on it was ~2:1). */
+            .dark .kaiki-first-steps .is-done .mark {
+                background: rgb(var(--primary-500));
+                color: rgb(var(--primary-950));
+            }
+
             .dark .kaiki-first-steps .why,
             .dark .kaiki-first-steps .is-done .body strong { color: rgb(var(--gray-400)); }
         </style>

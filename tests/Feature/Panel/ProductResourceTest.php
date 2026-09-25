@@ -353,8 +353,8 @@ it('publishes a brand-new trip, with its prices and its schedule, in one walk', 
         ],
     ]);
 
-    // The price travels on the band row, the way the step asks for it.
-    $state['age_bands'][0]['wizard_price'] = '45,00';
+    // «Όλο τον χρόνο» for the one group, as the step's price table asks it.
+    $state['wizard_prices'] = [array_key_first($state['age_bands']) => ['new' => '45,00']];
 
     $page->fillForm($state)
         ->call('create')
@@ -416,14 +416,11 @@ it('takes the whole timetable, several times a day, on the first walk', function
     });
 })->group('fast');
 
-it('takes a period price beside the band, and fills the rest of the list in', function (): void {
-    // Product owner, 2026-09-22: *«και τιμές περίοδοι κλπ»*. The question is
-    // asked per band — *«ο ενήλικας 45, το καλοκαίρι 55»* — and gathered back
-    // into one list per period on save.
-    //
-    // The band the operator said nothing about keeps its all-year price, which
-    // is both what they meant and what PRC-4 needs: a list that prices some of
-    // the bands is refused.
+it('prices every group for all year and each ticked period, as the edit page does', function (): void {
+    // Product owner, 2026-09-24: the wizard asks prices the way the edit page
+    // does — tick the periods, then a price per group and column — and saves
+    // them through the same SavePriceTable. Nothing is inherited silently: a
+    // ticked period is priced for every group, or the step says what is missing.
     $owner = OperatorUser::withRole(Role::Owner);
 
     $season = Tenancy::forTenant(productTenantOf($owner), fn (): Season => Season::factory()->create());
@@ -443,12 +440,15 @@ it('takes a period price beside the band, and fills the rest of the list in', fu
         'requires_adult' => true,
     ];
 
-    $state['age_bands'][0]['wizard_price'] = '45,00';
-    $state['age_bands'][0]['wizard_season_prices'] = [
-        ['season_id' => $season->getKey(), 'price' => '55,00'],
+    [$adultKey, $childKey] = array_keys($state['age_bands']);
+    $period = 's' . $season->getKey();
+
+    $state['wizard_seasons'] = [$season->getKey()];
+    $state['wizard_terms'] = ['deposit_type' => 'percent', 'deposit_percent' => 30, 'min_lead_time_hours' => 6];
+    $state['wizard_prices'] = [
+        $adultKey => ['new' => '45,00', $period => '55,00'],
+        $childKey => ['new' => '20,00', $period => '25,00'],
     ];
-    // The child is priced all year and never for the period.
-    $state['age_bands'][1]['wizard_price'] = '20,00';
 
     $page->fillForm($state)->call('create')->assertHasNoFormErrors();
 
@@ -466,8 +466,32 @@ it('takes a period price beside the band, and fills the rest of the list in', fu
         expect($priceFor($allYear, $bands[0]))->toBe(4500)
             ->and($priceFor($allYear, $bands[1]))->toBe(2000)
             ->and($priceFor($summer, $bands[0]))->toBe(5500)
-            // Inherited, not missing.
-            ->and($priceFor($summer, $bands[1]))->toBe(2000);
+            ->and($priceFor($summer, $bands[1]))->toBe(2500)
+            // The terms once, and the period follows them.
+            ->and($summer->deposit_percent)->toBe(30)
+            ->and($summer->min_lead_time_hours)->toBe(6)
+            ->and($summer->follows_trip_terms)->toBeTrue();
+    });
+})->group('fast');
+
+it('refuses a half-priced table in the wizard before making the trip', function (): void {
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $season = Tenancy::forTenant(productTenantOf($owner), fn (): Season => Season::factory()->create());
+
+    $page = productPageAs($owner, CreateProduct::class);
+
+    $state = productFormState();
+    $key = array_key_first($state['age_bands']);
+    $state['wizard_seasons'] = [$season->getKey()];
+    $state['wizard_prices'] = [$key => ['new' => '45,00', 's' . $season->getKey() => null]];
+
+    $page->fillForm($state)
+        ->call('create')
+        ->assertHasErrors(['data.wizard_prices']);
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        expect(Product::query()->count())->toBe(0);
     });
 })->group('fast');
 
@@ -745,7 +769,17 @@ it('warns the operator about a published trip that cannot be priced', function (
 
     tenancy()->initialize(productTenantOf($owner));
 
+    actingAs($owner);
+
     expect(UnsellableProducts::canView())->toBeTrue();
+
+    // Crew never see prices (TEN-8), so not this pricing warning either — the
+    // stress sweep found it on their home page (2026-09-23).
+    $crew = OperatorUser::withRole(Role::Crew, productTenantOf($owner));
+
+    actingAs($crew);
+
+    expect(UnsellableProducts::canView())->toBeFalse();
 })->group('fast');
 
 it('stops warning once the trip has a plan', function (): void {
@@ -819,5 +853,52 @@ it('refuses a badge longer than twenty-four characters', function (): void {
 
     Tenancy::forTenant(productTenantOf($owner), function () use ($product): void {
         expect($product->refresh()->getTranslation('badge', 'el', false))->toBeNull();
+    });
+})->group('fast');
+
+it('saves a draft from the first step, with the boat\'s certificate standing in for «Πόσα άτομα»', function (): void {
+    // Mike, 2026-09-24 (the wizard mockup): «Αποθήκευση ως πρόχειρη» at any
+    // step. A trip started today and finished tomorrow is how most first
+    // trips get made.
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $page = productPageAs($owner, CreateProduct::class);
+
+    $state = productFormState();
+    unset($state['meeting_point_id']);
+    $state['max_pax'] = null;
+    $state['wizard_publish'] = 'publish';
+
+    $page->fillForm($state)->call('saveDraft')->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $product = Product::query()->firstOrFail();
+
+        expect($product->status)->toBe(ProductStatus::Draft)
+            ->and($product->meeting_point_id)->toBeNull()
+            ->and($product->max_pax)->toBe(12);
+    });
+})->group('fast');
+
+it('makes the extras typed in the wizard, as the trip\'s own table would', function (): void {
+    // Mike, 2026-09-24: «δεν βλέπω κάπου τις πρόσθετες υπηρεσίες».
+    $owner = OperatorUser::withRole(Role::Owner);
+
+    $page = productPageAs($owner, CreateProduct::class);
+
+    $state = productFormState([
+        'wizard_extras' => [
+            ['name' => ['el' => 'Μάσκες', 'en' => 'Masks'], 'kind' => 'free', 'is_active' => true],
+            ['name' => ['el' => 'Γεύμα', 'en' => 'Lunch'], 'kind' => 'paid', 'pricing_type' => 'per_person', 'price_cents' => '25,00', 'is_active' => true],
+        ],
+    ]);
+
+    $page->fillForm($state)->call('create')->assertHasNoFormErrors();
+
+    Tenancy::forTenant(productTenantOf($owner), function (): void {
+        $extras = Product::query()->firstOrFail()->extras()->get();
+
+        expect($extras)->toHaveCount(2)
+            ->and($extras->firstWhere('price_cents', 2500))->not->toBeNull();
     });
 })->group('fast');

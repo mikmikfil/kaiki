@@ -16,7 +16,7 @@
         {{-- The empty state carries the button too. The page header has one, but
              an operator who has never been here reads the panel, not the header
              bar, and «Αποθήκευση» up there was the only way in. --}}
-        <section class="fi-section rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
+        <section class="fi-section rounded-xl bg-white p-4 shadow-sm sm:p-6 ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
             <p class="text-sm text-gray-500 dark:text-gray-400">
                 {{ __('integrations.help.never_shown') }}
             </p>
@@ -31,11 +31,11 @@
                 @php($status = $this->statusOf($credential))
 
                 <section
-                    class="fi-section rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+                    class="fi-section rounded-xl bg-white p-4 shadow-sm sm:p-6 ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
                     aria-label="{{ $credential->provider->label() }}"
                 >
                     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                        <div class="space-y-2">
+                        <div class="min-w-0 space-y-2">
                             <h2 class="text-base font-semibold leading-6 text-gray-950 dark:text-white">
                                 {{ $credential->provider->label() }}
                             </h2>
@@ -62,11 +62,11 @@
 
                             <dl class="mt-2 space-y-1">
                                 @foreach ($credential->provider->credentialFields() as $field)
-                                    <div class="flex gap-2 text-sm">
+                                    <div class="flex flex-col text-sm sm:flex-row sm:gap-2">
                                         <dt class="text-gray-500 dark:text-gray-400">
                                             {{ __('integrations.fields.' . $field) }}
                                         </dt>
-                                        <dd class="font-mono text-gray-700 dark:text-gray-300">
+                                        <dd class="font-mono text-gray-700 [overflow-wrap:anywhere] dark:text-gray-300">
                                             {{ $credential->hint($field) }}
                                         </dd>
                                     </div>
@@ -98,10 +98,10 @@
                                     </p>
 
                                     <div class="flex flex-wrap items-center gap-2 pt-1">
-                                        <code class="select-all break-all rounded bg-gray-50 px-2 py-1 font-mono text-sm text-gray-800 ring-1 ring-gray-950/10 dark:bg-white/5 dark:text-gray-200 dark:ring-white/10">{{ $webhookUrl }}</code>
+                                        <code class="min-w-0 max-w-full select-all break-all rounded bg-gray-50 px-2 py-1 font-mono text-sm text-gray-800 ring-1 ring-gray-950/10 dark:bg-white/5 dark:text-gray-200 dark:ring-white/10">{{ $webhookUrl }}</code>
 
                                         <x-filament::button
-                                            size="xs"
+                                            size="sm"
                                             color="gray"
                                             icon="heroicon-m-clipboard"
                                             x-data="{}"
@@ -159,7 +159,7 @@
     ])
 
     <section
-        class="fi-section rounded-xl bg-white p-6 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
+        class="fi-section rounded-xl bg-white p-4 shadow-sm sm:p-6 ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10"
         aria-label="{{ __('integrations.viva_return.heading') }}"
     >
         <h2 class="text-base font-semibold leading-6 text-gray-950 dark:text-white">
@@ -179,10 +179,10 @@
                     <dd class="flex flex-wrap items-center gap-2">
                         {{-- `select-all`, so one click selects the whole address
                              even where the clipboard API is refused. --}}
-                        <code class="select-all break-all rounded bg-gray-50 px-2 py-1 font-mono text-sm text-gray-800 ring-1 ring-gray-950/10 dark:bg-white/5 dark:text-gray-200 dark:ring-white/10">{{ $url }}</code>
+                        <code class="min-w-0 max-w-full select-all break-all rounded bg-gray-50 px-2 py-1 font-mono text-sm text-gray-800 ring-1 ring-gray-950/10 dark:bg-white/5 dark:text-gray-200 dark:ring-white/10">{{ $url }}</code>
 
                         <x-filament::button
-                            size="xs"
+                            size="sm"
                             color="gray"
                             icon="heroicon-m-clipboard"
                             x-data="{}"

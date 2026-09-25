@@ -143,6 +143,29 @@ it('refuses nothing, and refuses a gateway that has a gateway behind it', functi
     });
 });
 
+it('records a card payment taken on the operator POS', function (): void {
+    $tenant = Tenant::factory()->create();
+
+    Tenancy::forTenant($tenant, function (): void {
+        $booking = Booking::factory()->create([
+            'status' => BookingStatus::Confirmed,
+            'total_cents' => 12000,
+            'paid_cents' => 0,
+            'balance_cents' => 12000,
+        ]);
+
+        payFor($booking, 12000, PaymentGatewayName::Pos);
+
+        $payment = Payment::query()->where('booking_id', $booking->getKey())->sole();
+
+        // The operator's own terminal (2026-09-24): money Kaiki records and
+        // never reconciles, so not external — like cash.
+        expect($payment->gateway)->toBe(PaymentGatewayName::Pos)
+            ->and($payment->gateway->isExternal())->toBeFalse()
+            ->and($booking->refresh()->balance_cents)->toBe(0);
+    });
+});
+
 it('refuses to record money against a cancelled booking', function (): void {
     $tenant = Tenant::factory()->create();
 

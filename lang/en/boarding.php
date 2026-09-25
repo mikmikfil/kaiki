@@ -23,6 +23,23 @@ return [
     'placeholder' => 'Ticket code',
     'scan' => 'Scan',
 
+    // The camera inside the page. It stays open from one passenger to the next.
+    'camera' => [
+        'open' => 'Scan with the camera',
+        'close' => 'Close camera',
+        'hint' => 'Point the camera at the ticket\'s QR code.',
+        'starting' => 'Opening the camera…',
+        'or_type' => 'or type the code:',
+        // Over http:// on a network address the browser offers no camera at all.
+        'insecure' => 'The camera only opens over a secure connection (https). Type the code below.',
+        'unsupported' => 'This browser cannot open a camera. Type the code below.',
+        'denied' => 'Camera permission was not given. Allow it in the browser settings and tap again.',
+        'nocamera' => 'No camera was found on this device.',
+        'busy' => 'Another app is using the camera. Close it and tap again.',
+        'failed' => 'The camera did not open. Tap again or type the code.',
+        'not_ticket' => 'This QR code is not a ticket',
+    ],
+
     'checked_in' => 'Aboard',
     'queued' => 'Recorded — will send when there is a signal',
     'already' => 'Already aboard',

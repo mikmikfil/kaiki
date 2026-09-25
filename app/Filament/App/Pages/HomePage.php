@@ -11,13 +11,18 @@ use App\Domain\Hosted\Support\BlockSettings;
 use App\Enums\HomeBlockType;
 use App\Enums\ProductCategory;
 use App\Enums\ProductStatus;
+use App\Enums\VesselStatus;
 use App\Filament\Forms\TranslatableInput;
 use App\Models\HomePageBlock;
 use App\Models\Port;
 use App\Models\Product;
+use App\Models\Tenant;
+use App\Models\Vessel;
 use App\Rules\EmbeddableVideoUrl;
 use App\Support\Tenancy;
 use Closure;
+use Filament\Forms\ComponentContainer;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Component;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
@@ -32,6 +37,7 @@ use Filament\Forms\Get;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 
@@ -75,6 +81,12 @@ class HomePage extends Page implements HasForms
     protected static ?int $navigationSort = 88;
 
     protected static string $view = 'filament.app.pages.home-page';
+
+    /**
+     * Which page this editor writes (2026-09-24). «Σχετικά με εμάς» is the
+     * same screen with `about` here — {@see AboutPage}.
+     */
+    protected static string $pageName = HomePageBlock::PAGE_HOME;
 
     /**
      * The form state.
@@ -133,14 +145,16 @@ class HomePage extends Page implements HasForms
      */
     protected function currentBlocks(): array
     {
-        $stored = HomePageBlock::query()->orderBy('sort_order')->orderBy('id')->get();
+        $stored = HomePageBlock::query()->onPage(static::$pageName)->orderBy('sort_order')->orderBy('id')->get();
 
         if ($stored->isEmpty()) {
             $tenant = Tenancy::current();
 
-            $stored = $tenant === null
-                ? collect()
-                : app(BuildHomePage::class)->default($tenant);
+            $stored = match (true) {
+                $tenant === null => collect(),
+                static::$pageName === HomePageBlock::PAGE_ABOUT => $this->aboutStarter($tenant),
+                default => app(BuildHomePage::class)->default($tenant),
+            };
         }
 
         return $stored->map(fn (HomePageBlock $block): array => [
@@ -214,7 +228,13 @@ class HomePage extends Page implements HasForms
                     ->helperText(__('home_page.form.blocks.help'))
                     ->schema($this->blockSchema())
                     ->reorderable()
-                    ->collapsible()
+                    // Closed by default (2026-09-23): every section open was
+                    // 28,000 px of phone with «Αποθήκευση» at the bottom of it.
+                    // Closed, the page reads as its own table of contents and
+                    // one tap opens the section being changed. A section just
+                    // added has no type yet and opens, so «Προσθήκη» never
+                    // produces a row the operator has to find and unfold.
+                    ->collapsed(static fn (?ComponentContainer $item): bool => filled($item?->getRawState()['type'] ?? null))
                     // The label on a collapsed block is the operator's own
                     // heading, so a page of six collapsed rows is readable.
                     // Falling back to the type's label rather than to "Block 4"
@@ -247,7 +267,7 @@ class HomePage extends Page implements HasForms
             return $block;
         }, array_values((array) ($state['blocks'] ?? [])));
 
-        $count = app(SaveHomePage::class)($blocks);
+        $count = app(SaveHomePage::class)($blocks, static::$pageName);
 
         // Refilled from the database rather than left as submitted, so that the
         // normalisation the Action applied is what the operator sees — a
@@ -275,7 +295,9 @@ class HomePage extends Page implements HasForms
         $tenant = Tenancy::current();
         $host = (string) config('kaiki.tenancy.hosted_host');
 
-        return $tenant === null ? '#' : "https://{$host}/{$tenant->slug}";
+        $suffix = static::$pageName === HomePageBlock::PAGE_ABOUT ? '/about' : '';
+
+        return $tenant === null ? '#' : "https://{$host}/{$tenant->slug}{$suffix}";
     }
 
     /** @param array<string, mixed> $state */
@@ -563,6 +585,60 @@ class HomePage extends Page implements HasForms
                 ->defaultItems(0)
                 ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Testimonials->value),
 
+            // --- timeline (2026-09-24) ---
+
+            Repeater::make(self::itemsKey(HomeBlockType::Timeline))
+                ->label(__('home_page.form.timeline.label'))
+                ->helperText(__('home_page.form.timeline.help'))
+                ->schema([
+                    TextInput::make('year')
+                        ->label(__('home_page.form.timeline.year.label'))
+                        ->helperText(__('home_page.form.timeline.year.help'))
+                        ->required()
+                        ->maxLength(12),
+                    TranslatableInput::text('title', __('home_page.form.timeline.title.label'), null, required: true, maxLength: 80),
+                    TranslatableInput::text('text', __('home_page.form.timeline.text.label'), null, required: false, maxLength: 200),
+                ])
+                ->maxItems(HomeBlockType::Timeline->maxItems())
+                ->reorderable()
+                ->collapsible()
+                ->itemLabel(fn (array $state): ?string => collect([
+                    is_string($state['year'] ?? null) ? trim($state['year']) : null,
+                    self::preview($state, 'title'),
+                ])->filter()->implode(' · ') ?: null)
+                ->addActionLabel(__('home_page.form.timeline.add'))
+                ->defaultItems(0)
+                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Timeline->value),
+
+            // --- the sections that fill themselves (2026-09-24) ---
+
+            // Says where the content comes from, so nobody looks here for the
+            // field the boats are typed into.
+            Placeholder::make('mount_hint')
+                ->label(__('home_page.form.mount.label'))
+                ->content(fn (Get $get): string => in_array($get('type'), [HomeBlockType::Fleet->value, HomeBlockType::Crew->value, HomeBlockType::Credentials->value, HomeBlockType::MeetingPoint->value], true)
+                    ? (string) __('home_page.form.mount.' . $get('type'))
+                    : '')
+                ->visible(fn (Get $get): bool => in_array($get('type'), [HomeBlockType::Fleet->value, HomeBlockType::Crew->value, HomeBlockType::Credentials->value, HomeBlockType::MeetingPoint->value], true)),
+
+            CheckboxList::make('settings.vessel_ids')
+                ->label(__('home_page.form.fleet.label'))
+                ->helperText(__('home_page.form.fleet.help'))
+                ->options(fn (): array => Vessel::query()
+                    ->where('status', VesselStatus::Active)
+                    ->orderBy('sort_order')
+                    ->orderBy('id')
+                    ->pluck('name', 'id')
+                    ->all())
+                ->columns(2)
+                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Fleet->value),
+
+            Toggle::make('settings.photos')
+                ->label(__('home_page.form.crew_photos.label'))
+                ->helperText(__('home_page.form.crew_photos.help'))
+                ->default(true)
+                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Crew->value),
+
             // --- trips ---
 
             Select::make('settings.source')
@@ -680,7 +756,9 @@ class HomePage extends Page implements HasForms
                     ->mapWithKeys(fn (Port $port): array => [$port->id => $port->name])
                     ->all())
                 ->native(false)
-                ->visible(fn (Get $get): bool => $get('type') === HomeBlockType::Contact->value),
+                // The meeting-point section (2026-09-24) asks the same question
+                // of the same table, so it is the same field.
+                ->visible(fn (Get $get): bool => in_array($get('type'), [HomeBlockType::Contact->value, HomeBlockType::MeetingPoint->value], true)),
         ];
     }
 
@@ -782,7 +860,8 @@ class HomePage extends Page implements HasForms
             || collect($value)->filter(static fn (mixed $text): bool => is_string($text) && trim($text) !== '')->isEmpty();
 
         $section = match ($type) {
-            HomeBlockType::Steps, HomeBlockType::Features, HomeBlockType::Testimonials, HomeBlockType::Cta => $type->value,
+            HomeBlockType::Steps, HomeBlockType::Features, HomeBlockType::Testimonials, HomeBlockType::Cta,
+            HomeBlockType::Timeline, HomeBlockType::Fleet, HomeBlockType::Crew, HomeBlockType::Credentials, HomeBlockType::MeetingPoint => $type->value,
             default => null,
         };
 
@@ -813,6 +892,56 @@ class HomePage extends Page implements HasForms
 
             $set(self::itemsKey($type), $items);
         }
+    }
+
+    /**
+     * What «Σχετικά με εμάς» opens with before its first save: the sections of
+     * {@see HomeBlockType::aboutLayout()}, each with a heading in both
+     * languages and nothing invented — the operator's story and years are
+     * theirs to write. Not stored until they press «Αποθήκευση».
+     *
+     * @return Collection<int, HomePageBlock>
+     */
+    protected function aboutStarter(Tenant $tenant): Collection
+    {
+        // A section type with no starting line gets none, rather than the lang
+        // key printed as its heading.
+        $both = static fn (string $key): ?array => trans()->has($key, 'el') && is_string(__($key, [], 'el')) ? [
+            'el' => (string) __($key, [], 'el'),
+            'en' => (string) __($key, [], 'en'),
+        ] : null;
+
+        return collect(HomeBlockType::aboutLayout())->values()->map(function (HomeBlockType $type, int $order) use ($both, $tenant): HomePageBlock {
+            $block = new HomePageBlock([
+                'page' => HomePageBlock::PAGE_ABOUT,
+                'type' => $type,
+                'sort_order' => $order,
+                'is_visible' => true,
+                'settings' => BlockSettings::defaults($type),
+            ]);
+
+            $heading = match ($type) {
+                HomeBlockType::Hero => $both('hosted.about.nav'),
+                HomeBlockType::Stats => null,
+                default => $both("hosted.blocks.{$type->value}.heading"),
+            };
+
+            if ($heading !== null) {
+                $block->setTranslations('heading', $heading);
+            }
+
+            $eyebrow = $type->hasEyebrow() && $type !== HomeBlockType::Hero ? $both("hosted.blocks.{$type->value}.eyebrow") : null;
+
+            if ($eyebrow !== null) {
+                $block->setTranslations('eyebrow', $eyebrow);
+            }
+
+            if ($type === HomeBlockType::Hero) {
+                $block->setTranslations('eyebrow', ['el' => $tenant->name, 'en' => $tenant->name]);
+            }
+
+            return $block;
+        });
     }
 
     protected function image(string $name): FileUpload

@@ -1,0 +1,64 @@
+/*
+ * The panel theme, for `/app` and `/admin` alike (2026-09-23).
+ *
+ * Filament's own compiled stylesheet carries only the utilities Filament's
+ * views use. Ours use some forty more (`break-all`, `sm:grid-cols-4`,
+ * `dark:text-gray-300` …), and each of them silently did nothing: an analytics
+ * grid that never became a grid, a webhook address running off a phone, labels
+ * that stayed dark grey on black. This file is Filament's theme with our views
+ * added to what Tailwind scans, so a class written in a view is a class that
+ * exists.
+ *
+ * Built by the **Tailwind v3** CLI (`npm run build:panel`), not by Vite. The
+ * rest of the project is on Tailwind v4 and Filament 3 is on v3; this is the
+ * route Filament itself gives for that case (`make:filament-theme`). The output
+ * is `public/css/filament/app/theme.css`, ignored by git: `npm run build`
+ * produces it.
+ */
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@config 'tailwind.config.js';
+
+/*
+ * Dark mode reads the primary from a lighter scale (see
+ * App\Filament\Support\DarkPrimary), and a filled primary button is that
+ * light blue — so its label is the dark end of the same scale, not Filament's
+ * white (2.3:1 on the new 500; 6.8:1 like this). Same for a checked button in a
+ * toggle-button group.
+ */
+.dark .fi-btn.fi-color-primary:not(.fi-btn-outlined):not(label),
+.dark .fi-btn.fi-color-primary:not(.fi-btn-outlined):not(label) .fi-btn-icon,
+.dark input:checked + label.fi-btn.fi-color-primary,
+.dark input:checked + label.fi-btn.fi-color-primary .fi-btn-icon {
+    color: rgb(var(--primary-950));
+}
+
+/*
+ * A ticked box or radio in dark mode: the tick is white, so the fill is the
+ * 600 step (3.1:1 against it), not the 500 the lighter scale made too pale.
+ */
+.dark .fi-checkbox-input:checked,
+.dark .fi-radio-input:checked {
+    background-color: rgb(var(--primary-600));
+}
+
+/*
+ * A contact link in an infolist (the guest's email and phone on a booking):
+ * Filament underlines a linked entry on hover, and no link of ours is
+ * underlined, ever — colour and weight say it is one. The focus ring stays for
+ * the keyboard. A thumb-sized target too: it is tapped on a phone.
+ */
+.ka-contact .fi-in-text-item > div {
+    text-decoration: none !important;
+    font-weight: 600;
+}
+.ka-contact a {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    border-radius: 0.25rem;
+}
+.ka-contact a:focus-visible {
+    outline: 2px solid rgb(var(--primary-600));
+    outline-offset: 2px;
+}

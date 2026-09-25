@@ -90,6 +90,9 @@ return [
             'evening_named' => 'Good evening, :name',
         ],
         'next' => [
+            'mine' => 'My next one',
+            'role_captain' => 'You are the captain',
+            'role_crew' => 'You are on the crew',
             'label' => 'Next departure',
             'underway' => 'at sea now',
             'in_minutes' => 'in :count minute|in :count minutes',
@@ -116,6 +119,7 @@ return [
             'calendar' => 'Calendar',
             'seats' => ':count seat|:count seats',
             'free' => 'Free today',
+            'idle' => 'Free today|Free today',
         ],
     ],
 ];

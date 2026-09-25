@@ -7,13 +7,18 @@ namespace App\Filament\App\Resources\ProductResource\Pages;
 use App\Domain\Catalog\Actions\SaveProduct;
 use App\Enums\ProductStatus;
 use App\Filament\App\Resources\ProductResource;
+use App\Filament\Support\MoreActions;
 use App\Models\Product;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\HtmlString;
 use Illuminate\Validation\ValidationException;
 
 class EditProduct extends EditRecord
@@ -31,6 +36,41 @@ class EditProduct extends EditRecord
     }
 
     /**
+     * The trip's own name, not «Επεξεργασία: Εκδρομή» (rule Ε of the form
+     * mockup, 2026-09-24): with several trips open in tabs, the model's name
+     * said nothing about which one this was.
+     */
+    public function getTitle(): string
+    {
+        $title = trim((string) $this->getRecord()->getAttribute('title'));
+
+        return $title !== '' ? $title : parent::getTitle();
+    }
+
+    /** The name, and beside it whether it is on sale — the same pill as the list. */
+    public function getHeading(): string|Htmlable
+    {
+        $status = $this->getRecord()->getAttribute('status');
+
+        if (! $status instanceof ProductStatus) {
+            return $this->getTitle();
+        }
+
+        return new HtmlString(
+            '<span class="ka-title-with-state">' . e($this->getTitle()) . ' '
+            . Blade::render('<x-filament::badge :color="$color" size="lg">{{ $label }}</x-filament::badge>', [
+                'color' => match ($status) {
+                    ProductStatus::Draft => 'warning',
+                    ProductStatus::Active => 'success',
+                    ProductStatus::Inactive, ProductStatus::Archived => 'gray',
+                },
+                'label' => __('enums.product_status.' . $status->value . '.label'),
+            ])
+            . '</span>',
+        );
+    }
+
+    /**
      * The bands may have changed with the trip, so the table is rebuilt, unless
      * it holds typed prices that are not saved yet: those are kept, not lost.
      */
@@ -41,10 +81,10 @@ class EditProduct extends EditRecord
         }
     }
 
-    /** @return array<int, Action> */
+    /** @return array<int, Action|ActionGroup> */
     protected function getHeaderActions(): array
     {
-        return [
+        return MoreActions::header([
             // The guest's own page, for the trip being edited. Absent while it
             // is a draft: there is nothing published to look at.
             Action::make('preview')
@@ -53,6 +93,7 @@ class EditProduct extends EditRecord
                 ->color('gray')
                 ->url(fn (): ?string => ProductResource::previewUrl($this->product()), shouldOpenInNewTab: true)
                 ->visible(fn (): bool => ProductResource::previewUrl($this->product()) !== null),
+        ], [
             Action::make('archive')
                 ->label(__('catalog.product.status_actions.archive'))
                 ->icon('heroicon-o-archive-box')
@@ -69,7 +110,7 @@ class EditProduct extends EditRecord
                 ->action(fn () => $this->setStatusOnly(ProductStatus::Draft, 'unarchived')),
             DeleteAction::make(),
             RestoreAction::make(),
-        ];
+        ]);
     }
 
     /**

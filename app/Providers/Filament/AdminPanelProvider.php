@@ -52,6 +52,9 @@ class AdminPanelProvider extends PanelProvider
              */
             ->defaultAvatarProvider(InitialsAvatarProvider::class)
             ->path('admin')
+            // Filament's CSS plus every utility our own views use, both panels
+            // alike (2026-09-23). See {@see PanelTheme}.
+            ->theme(PanelTheme::url())
             ->login()
             /*
              * Password reset, which the panel did not have.

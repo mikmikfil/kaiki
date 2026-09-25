@@ -1,0 +1,237 @@
+<title>Τέλος σελίδας, επικοινωνία</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+/* The end of the home page: what replaces «Επικοινωνήστε μαζί μας», or nothing
+   (Mike, 24/9: «δεν μου αρέσει καθόλου … μπορεί να φύγει και τελείως»).
+   Aegean Blue's tokens; light page, no uppercase, no underlines. */
+:root{
+  --primary:#123A5E; --secondary:#0B2740; --deep:#0E2C48; --accent:#1B5FD1; --accent-soft:#EDF3FD; --sky:#8DB4F2; --wa:#1F9D55;
+  --ink:#131A22; --soft:#4A5D5A; --faint:#7B8D8A; --rule:#E1E9E7; --paper:#FFFFFF; --ground:#E6ECF0; --mist:#F4F7FB;
+  --sans:Inter,"Helvetica Neue",Arial,sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.6;padding-block:22px 64px;padding-inline:16px;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+:is(button,a):focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+a{color:var(--accent);text-decoration:none}
+p{margin:0}
+img{display:block;max-width:100%}
+.page{max-width:1240px;margin:0 auto;display:grid;gap:18px}
+.intro h1{font-size:25px;line-height:1.2;margin:0 0 6px;letter-spacing:-.015em}
+.intro p{color:var(--soft);font-size:15px;max-width:78ch}
+.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;background:#fff;border:1px solid #CFDAE8;border-radius:10px;padding:3px}
+.seg button{padding:7px 12px;border-radius:7px;font-weight:600;font-size:14px;color:var(--soft)}
+.seg button[aria-pressed="true"]{background:var(--primary);color:#fff}
+.why{font-size:14.5px;color:var(--soft);background:#fff;border-radius:12px;padding:12px 16px;box-shadow:0 1px 0 #CBD5DE}
+.why b{color:var(--ink)}
+.device{margin:0 auto;width:100%;background:var(--paper);border-radius:18px;overflow:hidden;box-shadow:0 1px 0 #CBD5DE,0 18px 50px rgba(14,44,72,.12);transition:max-width .3s}
+.device.phone{max-width:390px}
+.device.desk{max-width:1240px}
+.site{container:site/inline-size}
+.col{padding-inline:clamp(18px,3.4cqi,44px)}
+h2{font-weight:800;font-size:clamp(26px,3.4cqi,38px);line-height:1.12;letter-spacing:-.028em;color:var(--primary);margin:0;text-wrap:balance}
+.kick{font-size:14px;font-weight:600;color:var(--accent);margin:0 0 10px;display:inline-flex;align-items:center;gap:10px}
+.kick::before{content:"";width:22px;height:2px;background:currentColor;border-radius:2px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:700;font-size:15px;padding:12px 18px;border-radius:10px;white-space:nowrap}
+.btn-blue{background:var(--accent);color:#fff!important}
+.btn-line{border:1.5px solid var(--rule);color:var(--primary)!important;background:#fff}
+.btn-wa{background:var(--wa);color:#fff!important}
+.ic{flex:none}
+
+/* the FAQ above, as on the page */
+.faq{padding-block:56px 8px}
+.faq h2{margin-bottom:18px}
+.faq details{border:1px solid var(--rule);border-radius:12px;margin-bottom:10px;padding:14px 18px;font-weight:600;color:var(--primary)}
+.faq summary{list-style:none;display:flex;justify-content:space-between}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";color:var(--accent);font-weight:500;font-size:20px;line-height:1}
+
+.opt{padding-block:clamp(40px,6cqi,72px) 0}
+.opt.o0{padding:0}
+
+/* 1. slim strip */
+.strip{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:center;justify-content:space-between;border:1px solid var(--rule);border-radius:18px;padding:22px clamp(18px,3cqi,30px);background:var(--mist)}
+.strip b{display:block;font-size:19px;color:var(--primary);letter-spacing:-.01em}
+.strip span{color:var(--soft);font-size:15px}
+.strip .acts{display:flex;flex-wrap:wrap;gap:10px}
+@container site (max-width:600px){.strip .acts{width:100%}.strip .acts .btn{flex:1 1 auto}}
+
+/* 2. port and details */
+.port{display:grid;grid-template-columns:minmax(0,1fr);border:1px solid var(--rule);border-radius:22px;overflow:hidden}
+@container site (min-width:820px){.port{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}}
+.port img{width:100%;height:100%;min-height:240px;object-fit:cover}
+.port .d{padding:clamp(24px,3.6cqi,44px);display:flex;flex-direction:column;justify-content:center;gap:18px}
+.port dl{margin:0;display:grid;gap:14px}
+.port dl div{display:grid;grid-template-columns:26px minmax(0,1fr);gap:12px;align-items:start}
+.port dt{color:var(--accent);margin-top:2px}
+.port dd{margin:0}
+.port dd b{display:block;color:var(--primary);font-size:16px}
+.port dd span{color:var(--soft);font-size:14.5px}
+.port .acts{display:flex;flex-wrap:wrap;gap:10px}
+
+/* 3. a person */
+.person{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;align-items:center;background:var(--accent-soft);border-radius:22px;padding:clamp(22px,3.6cqi,40px)}
+@container site (min-width:760px){.person{grid-template-columns:auto minmax(0,1fr) auto;gap:30px}}
+.person img{width:112px;height:112px;border-radius:50%;object-fit:cover;box-shadow:0 0 0 5px #fff}
+.person h2{font-size:clamp(24px,3cqi,32px)}
+.person p{color:var(--soft);margin-top:6px}
+.person .tel{display:block;font-size:clamp(24px,3cqi,30px);font-weight:800;color:var(--primary);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-bottom:10px}
+.person .acts{display:flex;flex-wrap:wrap;gap:10px}
+
+/* the footer, as on the page, with option 4's row */
+.foot{margin-top:clamp(40px,6cqi,72px);background:var(--deep);color:#B9CADC;font-size:14.5px}
+.opt.o0 + .foot{margin-top:clamp(40px,6cqi,72px)}
+/* 4. one quiet row at the top of the footer: a short line, then the three
+   ways to reach the operator as plain icon + text links, no boxes. */
+.reach{display:none;padding-block:20px;background:var(--reach-bg,var(--secondary))}
+/* the operator's secondary colour (Aegean: #0B2740), or the accent to compare */
+.site[data-bg="accent"]{--reach-bg:var(--accent)}
+.site[data-bg="accent"] .reach a svg{color:#fff}
+.site[data-bg="accent"] .reach a:hover{color:#D6E4FB!important}
+#bgseg{display:none}
+body:has(.site[data-o="4"]) #bgseg{display:inline-flex}
+.site[data-o="4"] .reach{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:center}
+.reach h2{color:#fff;font-size:17px;font-weight:700;letter-spacing:-.01em;margin-right:auto}
+.reach a{display:inline-flex;gap:9px;align-items:center;color:#fff!important;font-size:15px;font-weight:600;transition:color .15s}
+.reach a:hover{color:var(--sky)!important}
+.reach a svg{color:var(--sky);width:19px;height:19px}
+.reach a span{display:none}
+.reach a b{font-weight:600}
+@container site (max-width:600px){.site[data-o="4"] .reach{flex-direction:column;align-items:flex-start;gap:12px}.reach h2{margin:0 0 2px}}
+.foot-in{display:grid;gap:26px;grid-template-columns:minmax(0,1fr);padding-block:34px}
+@container site (min-width:820px){.foot-in{grid-template-columns:1.3fr 1fr 1fr 1.2fr}}
+.foot b.h{display:block;color:#fff;margin-bottom:10px;font-size:15px}
+.foot ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.foot a{color:#B9CADC}
+.brand{display:flex;align-items:center;gap:10px;color:#fff;font-weight:800}
+.brand i{width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,.1);display:grid;place-items:center}
+.legal{border-top:1px solid rgba(255,255,255,.12);padding-block:16px;display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;font-size:13px}
+.note{background:#fff;border-radius:16px;padding:16px 20px;box-shadow:0 1px 0 #CBD5DE;font-size:15px;color:var(--soft)}
+.note b{color:var(--ink)}
+</style>
+
+<div class="page">
+  <header class="intro">
+    <h1>Το «Επικοινωνήστε μαζί μας» πριν το footer</h1>
+    <p>Τέσσερις αντικαταστάσεις, και η εκδοχή 0 όπου φεύγει τελείως. Φαίνονται ανάμεσα στις Συχνές ερωτήσεις και στο footer, όπως είναι στη σελίδα.</p>
+  </header>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Εκδοχή">
+      <button type="button" id="b0" aria-pressed="false" data-o="0">0. Να φύγει</button>
+      <button type="button" id="b1" aria-pressed="true" data-o="1">1. Λεπτή λωρίδα</button>
+      <button type="button" id="b2" aria-pressed="false" data-o="2">2. Λιμάνι και στοιχεία</button>
+      <button type="button" id="b3" aria-pressed="false" data-o="3">3. Ένας άνθρωπος</button>
+      <button type="button" id="b4" aria-pressed="false" data-o="4">4. Μέσα στο footer, μικρό</button>
+    </div>
+    <div class="seg" role="group" aria-label="Φόντο γραμμής" id="bgseg">
+      <button type="button" id="bg-sec" aria-pressed="true" data-bg="secondary">Φόντο: δευτερεύον #0B2740</button>
+      <button type="button" id="bg-acc" aria-pressed="false" data-bg="accent">Φόντο: γαλάζιο #1B5FD1</button>
+    </div>
+    <div class="seg" role="group" aria-label="Οθόνη">
+      <button type="button" id="v-phone" aria-pressed="false" data-view="phone">Κινητό</button>
+      <button type="button" id="v-desk" aria-pressed="true" data-view="desk">Υπολογιστής</button>
+    </div>
+  </div>
+  <p class="why" id="why"></p>
+
+  <div class="device desk" id="device">
+   <div class="site" id="site" data-o="1">
+    <section class="faq col">
+      <h2>Συχνές ερωτήσεις</h2>
+      <details><summary>Πού συναντιόμαστε;</summary></details>
+      <details><summary>Τι γίνεται αν έχει κακοκαιρία;</summary></details>
+      <details><summary>Χρειάζεται να ξέρω κολύμπι;</summary></details>
+    </section>
+
+    <!-- 1 -->
+    <section class="opt col" data-o="1">
+      <div class="strip">
+        <div><b>Έχετε κάποια ερώτηση;</b><span>Απαντάμε αμέσως, από τις 8:00 ως τις 22:00.</span></div>
+        <div class="acts">
+          <a class="btn btn-blue" href="#"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 4.2 10 7.4a1.4 1.4 0 0 1-.3 1.6l-1.1 1a12.6 12.6 0 0 0 4.4 4.4l1-1.1a1.4 1.4 0 0 1 1.6-.3l3.2 1.6a1.4 1.4 0 0 1 .7 1.6 3.9 3.9 0 0 1-4.2 2.9A14.6 14.6 0 0 1 4.1 6.4 3.9 3.9 0 0 1 7 2.2a1.4 1.4 0 0 1 1.4.7Z"/></svg>210 412 3456</a>
+          <a class="btn btn-wa" href="#"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/></svg>WhatsApp</a>
+          <a class="btn btn-line" href="#"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg>Email</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 -->
+    <section class="opt col" data-o="2" hidden>
+      <div class="port">
+        <img src="contact-img/port.jpg" alt="Η Μαρίνα Ζέας με τα σκάφη">
+        <div class="d">
+          <div><p class="kick">Επικοινωνία</p><h2>Θα τα πούμε στη Μαρίνα Ζέας</h2></div>
+          <dl>
+            <div><dt><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg></dt><dd><b>Ακτή Θεμιστοκλέους 42, Πειραιάς</b><span>Προβλήτα Β, δίπλα στο μπλε περίπτερο</span></dd></div>
+            <div><dt><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 4.2 10 7.4a1.4 1.4 0 0 1-.3 1.6l-1.1 1a12.6 12.6 0 0 0 4.4 4.4l1-1.1a1.4 1.4 0 0 1 1.6-.3l3.2 1.6a1.4 1.4 0 0 1 .7 1.6 3.9 3.9 0 0 1-4.2 2.9A14.6 14.6 0 0 1 4.1 6.4 3.9 3.9 0 0 1 7 2.2a1.4 1.4 0 0 1 1.4.7Z"/></svg></dt><dd><b>+30 210 412 3456</b><span>Κάθε μέρα, 8:00 με 22:00</span></dd></div>
+            <div><dt><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg></dt><dd><b>info@aegean-blue.example</b><span>Απαντάμε μέσα στη μέρα</span></dd></div>
+          </dl>
+          <div class="acts"><a class="btn btn-blue" href="#">Οδηγίες στους χάρτες</a><a class="btn btn-line" href="#">Στείλτε μας μήνυμα</a></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 -->
+    <section class="opt col" data-o="3" hidden>
+      <div class="person">
+        <img src="contact-img/giorgos.jpg" alt="Ο Γιώργος, κυβερνήτης">
+        <div><h2>Μιλήστε με τον Γιώργο</h2><p>Κυβερνήτης και ιδιοκτήτης. Σας λέει τι καιρό θα έχουμε και ποια εκδρομή ταιριάζει στην παρέα σας.</p></div>
+        <div><span class="tel">210 412 3456</span><div class="acts"><a class="btn btn-wa" href="#">WhatsApp</a><a class="btn btn-line" href="#">Email</a></div></div>
+      </div>
+    </section>
+
+    <!-- 0 and 4 have no section of their own -->
+    <section class="opt o0" data-o="0" hidden></section>
+    <section class="opt o0" data-o="4" hidden></section>
+
+    <footer class="foot">
+      <div class="reach col">
+        <h2>Έχετε ερώτηση; Είμαστε εδώ.</h2>
+        <a href="#"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 4.2 10 7.4a1.4 1.4 0 0 1-.3 1.6l-1.1 1a12.6 12.6 0 0 0 4.4 4.4l1-1.1a1.4 1.4 0 0 1 1.6-.3l3.2 1.6a1.4 1.4 0 0 1 .7 1.6 3.9 3.9 0 0 1-4.2 2.9A14.6 14.6 0 0 1 4.1 6.4 3.9 3.9 0 0 1 7 2.2a1.4 1.4 0 0 1 1.4.7Z"/></svg><div><span>Τηλέφωνο</span><b>+30 210 412 3456</b></div></a>
+        <a href="#"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1.3-3.9A8 8 0 1 1 8 19z"/></svg><div><span>WhatsApp</span><b>Γράψτε μας</b></div></a>
+        <a href="#"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m4 7 8 6 8-6"/></svg><div><span>Email</span><b>info@aegean-blue.example</b></div></a>
+      </div>
+      <div class="foot-in col">
+        <div class="brand"><i><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14M12 4l7 11h-7M4 18h16l-2 3H6z"/></svg></i>Aegean Blue Cruises</div>
+        <div><b class="h">Η σελίδα μας</b><ul><li><a href="#">Αρχική</a></li><li><a href="#">Βρείτε εκδρομή</a></li><li><a href="#">Σχετικά με εμάς</a></li><li><a href="#">Επικοινωνία</a></li></ul></div>
+        <div><b class="h">Επικοινωνία</b><ul><li>+30 210 412 3456</li><li>info@aegean-blue.example</li></ul></div>
+        <div><b class="h">Διοργανωτής</b><ul><li>AEGEAN BLUE CRUISES ΙΚΕ</li><li>Ακτή Θεμιστοκλέους 42, 18538 Πειραιάς</li><li>ΑΦΜ 801234567 · ΔΟΥ Πειραιά</li></ul></div>
+      </div>
+      <div class="legal col"><span>© 2026 AEGEAN BLUE CRUISES ΙΚΕ</span><span>Όροι · Απόρρητο · Πολιτική ακύρωσης · powered by Kaiki</span></div>
+    </footer>
+   </div>
+  </div>
+
+  <p class="note"><b>Αν φύγει (0),</b> τίποτα δεν χάνεται: το τηλέφωνο, το email και η διεύθυνση είναι ήδη στο footer, και η σελίδα «Επικοινωνία» στο μενού.</p>
+</div>
+
+<script>
+(function () {
+  var why = {
+    0: '<b>0. Να φύγει.</b> Η σελίδα τελειώνει στις Συχνές ερωτήσεις και πάει κατευθείαν στο footer, που έχει ήδη τηλέφωνο, email και διεύθυνση.',
+    1: '<b>1. Λεπτή λωρίδα.</b> Μία γραμμή «Έχετε κάποια ερώτηση;» με τρία κουμπιά: τηλέφωνο, WhatsApp, email. Χωρίς φωτογραφία, χωρίς κάρτες.',
+    2: '<b>2. Λιμάνι και στοιχεία.</b> Η φωτογραφία της μαρίνας αριστερά, δεξιά πού θα βρεθούμε, τηλέφωνο και email με ώρες, και κουμπί για τους χάρτες.',
+    3: '<b>3. Ένας άνθρωπος.</b> Ο κυβερνήτης με τη φωτογραφία του, το τηλέφωνο μεγάλο και κουμπί WhatsApp. Μιλάς με κάποιον, όχι με «εταιρεία».',
+    4: '<b>4. Μέσα στο footer, μικρό.</b> Καμία ξεχωριστή ενότητα: το footer ανοίγει με μία ήσυχη γραμμή, «Έχετε ερώτηση; Είμαστε εδώ.» και δίπλα τηλέφωνο, WhatsApp και email ως απλά εικονίδια με κείμενο, χωρίς κουτάκια.'
+  };
+  var site = document.getElementById('site'), device = document.getElementById('device');
+  function press(sel, b) { document.querySelectorAll(sel).forEach(function (o) { o.setAttribute('aria-pressed', o === b ? 'true' : 'false'); }); }
+  function show(o) {
+    site.dataset.o = o;
+    document.querySelectorAll('section.opt').forEach(function (s) { s.hidden = s.dataset.o !== o; });
+    document.getElementById('why').innerHTML = why[o];
+  }
+  document.querySelectorAll('button[data-o]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-o]', b); show(b.dataset.o); }); });
+  document.querySelectorAll('button[data-bg]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-bg]', b); site.dataset.bg = b.dataset.bg; }); });
+  document.querySelectorAll('button[data-view]').forEach(function (b) { b.addEventListener('click', function () { press('button[data-view]', b); device.classList.remove('phone', 'desk'); device.classList.add(b.dataset.view); }); });
+  document.querySelectorAll('a[href="#"]').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); }); });
+  document.getElementById('b4').click();
+  if (window.innerWidth < 700) document.getElementById('v-phone').click();
+})();
+</script>

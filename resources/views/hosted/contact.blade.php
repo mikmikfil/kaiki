@@ -16,12 +16,14 @@
 @section('description', __('hosted.contact.meta', ['operator' => $tenant->name]))
 
 @section('content')
-    <div class="page-head">
-        <h1>{{ __('hosted.contact.title') }}</h1>
-        <p class="lede">{{ __('hosted.contact.lede') }}</p>
-    </div>
+    @include('hosted.partials.page-top', [
+        'eyebrow' => __('hosted.page_top.contact_eyebrow'),
+        'title' => __('hosted.contact.title'),
+        'lede' => __('hosted.contact.lede'),
+    ])
 
-    <div class="contact-page">
+    {{-- The form and the ways to reach a person, both on the band's lower edge (2026-09-24). --}}
+    <div class="contact-page page-top-over">
         <div class="contact-form-card">
             @if (session('sent'))
                 {{-- `status` and not `alert`: the guest pressed a button and this

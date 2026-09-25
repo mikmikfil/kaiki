@@ -106,7 +106,7 @@ class CalendarSync extends Page implements HasForms
         return $form
             ->schema([
                 Select::make('vessel_id')
-                    ->label(__('ical.import.name'))
+                    ->label(__('ical.import.vessel'))
                     ->options(fn (): array => $this->vessels()
                         ->mapWithKeys(static fn (Vessel $v): array => [$v->getKey() => $v->name])
                         ->all())

@@ -6,6 +6,7 @@ namespace App\Filament\App\Resources;
 
 use App\Enums\EnquiryStatus;
 use App\Filament\App\Resources\EnquiryResource\Pages;
+use App\Filament\Support\MoreActions;
 use App\Models\Enquiry;
 use App\Models\User;
 use App\Policies\EnquiryPolicy;
@@ -189,11 +190,10 @@ class EnquiryResource extends Resource
                     ->label(__('quotes.enquiry.table.status'))
                     ->options(EnquiryStatus::options()),
             ])
-            ->actions([
-                EditAction::make(),
+            ->actions(MoreActions::row(EditAction::make(), [
                 static::markAnsweredAction(),
                 static::markSpamAction(),
-            ]);
+            ]));
         // No delete action anywhere. See the class docblock: spam is a status,
         // and the GDPR purge is what removes rows.
     }

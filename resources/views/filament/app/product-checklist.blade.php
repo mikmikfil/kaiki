@@ -12,7 +12,9 @@
     the thing you want after you have found the red one and not before.
 --}}
 @php
-    $unsaved = $record === null || ! $record->exists;
+    // The new-trip wizard passes `live`: its chips answer from what has been
+    // typed, before there is a record (2026-09-24).
+    $unsaved = ! ($live ?? false) && ($record === null || ! $record->exists);
 @endphp
 
 @if ($unsaved)

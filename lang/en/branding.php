@@ -116,6 +116,7 @@ return [
         'body' => 'The real booking widget and the real confirmation email, drawn with the colours below. Change a colour and both follow.',
         'widget' => 'Booking widget',
         'email' => 'Confirmation email',
+        'tag' => 'Preview',
         'guest' => 'Maria Papadopoulou',
     ],
 

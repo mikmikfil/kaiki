@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Hosted;
 use App\Domain\Branding\Actions\GetBrandPayload;
 use App\Domain\Catalog\Support\SearchFormOptions;
 use App\Domain\Hosted\Actions\BuildHomePage;
+use App\Models\HomePageBlock;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -78,6 +79,32 @@ class HostedPageController extends HostedController
             // The operator's own first paragraph describes their business
             // better than a template sentence, and it is already written.
             'metaDescription' => $this->homePage->metaDescription($tenant),
+        ], $locale);
+    }
+
+    /**
+     * «Σχετικά με εμάς» (2026-09-24): the same sections as the home page, on
+     * a page of their own.
+     *
+     * A 404 until the operator has saved one with something visible on it —
+     * there is no default about page, because there is no default family
+     * history. The menu link follows the same rule ({@see HostedController}).
+     */
+    public function about(Request $request): Response
+    {
+        $tenant = $this->tenant();
+
+        abort_unless($tenant->hosted_site_mode->servesHomePage(), Response::HTTP_NOT_FOUND);
+
+        $blocks = ($this->homePage)($tenant, HomePageBlock::PAGE_ABOUT);
+
+        abort_if($blocks === [], Response::HTTP_NOT_FOUND);
+
+        $locale = $this->resolveLocale($request, $tenant);
+
+        return $this->render($request, $tenant, 'hosted.about', fn (): array => [
+            'blocks' => $blocks,
+            'metaDescription' => $this->homePage->metaDescription($tenant, HomePageBlock::PAGE_ABOUT),
         ], $locale);
     }
 

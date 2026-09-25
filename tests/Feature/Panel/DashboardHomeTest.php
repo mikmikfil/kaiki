@@ -220,7 +220,25 @@ it('keeps the boarding list but never «Σάρωση» when only the QR scanner 
         ->test(DayByBoat::class)
         ->assertOk()
         ->assertDontSee(__('dashboard.home.next.scan'))
-        ->assertSee(__('dashboard.home.next.board'));
+        ->assertSee(__('dashboard.home.next.board'))
+        // The list, not a camera: there is nothing on these tickets to scan.
+        ->assertDontSee(route('filament.app.boarding', ['camera' => 1]), escape: false)
+        ->assertSee(CheckIn::getUrl(), escape: false);
+})->group('fast');
+
+it('sends «Σάρωση εισιτηρίων» to the boarding page with the camera opening', function (): void {
+    Carbon::setTestNow('2026-09-08 09:00:00');
+    $owner = homeOwner();
+    $owner->tenant->forceFill(['check_in_enabled' => true, 'qr_check_in_enabled' => true])->save();
+    tenancy()->initialize($owner->tenant);
+
+    // Mike, 2026-09-23: one press, and the camera is up and reading ticket
+    // after ticket — on the page that keeps working with no signal.
+    Livewire::actingAs($owner)
+        ->test(DayByBoat::class)
+        ->assertOk()
+        ->assertSee(__('dashboard.home.next.scan'))
+        ->assertSee(route('filament.app.boarding', ['camera' => 1]), escape: false);
 })->group('fast');
 
 it('greets with the name as given, or without one when it is blank', function (?string $name, string $morning, string $hello): void {
