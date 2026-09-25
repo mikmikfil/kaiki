@@ -99,6 +99,9 @@ trait HasTenantAccountFields
                     Toggle::make('check_in_enabled')
                         ->label(__('tenants.columns.check_in'))
                         ->helperText(__('tenants.edit.check_in_help'))
+                        // On for a new owner too: Filament's toggle defaults to off, and
+                        // the create page saved that `false` over the column's default.
+                        ->default(true)
                         ->formatStateUsing(fn (?bool $state): bool => $state !== false)
                         // The QR toggle reads this, so the form has to know the
                         // moment it moves rather than on the next round trip.
@@ -109,6 +112,7 @@ trait HasTenantAccountFields
                         ->helperText(__('tenants.edit.qr_check_in_help'))
                         // Null is on (see `Tenant::usesQrCheckIn()`); a toggle
                         // showing a null as off would switch it off on save.
+                        ->default(true)
                         ->formatStateUsing(fn (?bool $state): bool => $state !== false)
                         // Hidden rather than disabled while check-in is off:
                         // "scanning, on" under "check-in, off" is a pair that
@@ -176,6 +180,7 @@ trait HasTenantAccountFields
                     Toggle::make('setup_guide_enabled')
                         ->label(__('tenants.columns.setup_guide'))
                         ->helperText(__('tenants.edit.setup_guide_help'))
+                        ->default(true)
                         ->formatStateUsing(fn (?bool $state): bool => $state !== false),
 
                     // Where the operator has got to, so the platform knows
